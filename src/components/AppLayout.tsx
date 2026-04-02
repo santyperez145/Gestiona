@@ -18,10 +18,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
         <div className="p-6 border-b border-sidebar-border">
-          <h1 className="font-display text-xl font-bold text-primary tracking-wide">
-            ✦ VaperGold
+        <h1 className="font-display text-xl font-bold text-primary tracking-wide">
+            ✦ Exentry Imports
           </h1>
-          <p className="text-xs text-sidebar-foreground mt-1">Gestión de Inventario</p>
+          <p className="text-xs text-sidebar-foreground mt-1">Sistema de Gestión</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map(({ to, label, icon: Icon }) => {
