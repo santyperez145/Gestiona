@@ -1,11 +1,19 @@
+export type ProductCategory = 'perfume_arabe' | 'perfume_diseñador' | 'vaper' | 'electronico';
+export type ProductGender = 'masculino' | 'femenino' | 'unisex';
+
 export interface Product {
   id: string;
   name: string;
-  category: 'vaper' | 'perfume';
+  brand: string;
+  category: ProductCategory;
+  gender: ProductGender;
   costUSD: number;
-  customsFee: number; // 15% of costUSD
+  customsFee: number;
   totalCostUSD: number;
   salePriceARS: number;
+  discountPriceARS?: number;
+  profitPerUnitARS: number;
+  profitPerUnitUSD: number;
   stock: number;
   description?: string;
   createdAt: string;
@@ -23,6 +31,7 @@ export interface Purchase {
   totalARS: number;
   date: string;
   supplier?: string;
+  batchName?: string;
 }
 
 export interface Sale {
@@ -31,7 +40,11 @@ export interface Sale {
   productName: string;
   quantity: number;
   unitPriceARS: number;
+  discountApplied: boolean;
   totalARS: number;
+  costPerUnitUSD: number;
+  profitARS: number;
+  profitUSD: number;
   customerName?: string;
   date: string;
   paid: boolean;
@@ -53,4 +66,5 @@ export interface Debt {
 export interface Settings {
   exchangeRate: number;
   customsPercent: number;
+  defaultDiscountPercent: number;
 }

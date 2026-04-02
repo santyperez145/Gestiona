@@ -1,11 +1,11 @@
 import { Product, Purchase, Sale, Debt, Settings } from './types';
 
 const KEYS = {
-  products: 'vaper_products',
-  purchases: 'vaper_purchases',
-  sales: 'vaper_sales',
-  debts: 'vaper_debts',
-  settings: 'vaper_settings',
+  products: 'exentry_products',
+  purchases: 'exentry_purchases',
+  sales: 'exentry_sales',
+  debts: 'exentry_debts',
+  settings: 'exentry_settings',
 };
 
 function get<T>(key: string, fallback: T): T {
@@ -33,7 +33,6 @@ export function getPurchases(): Purchase[] { return get(KEYS.purchases, []); }
 export function savePurchases(p: Purchase[]) { set(KEYS.purchases, p); }
 export function addPurchase(p: Purchase) {
   const all = getPurchases(); all.push(p); savePurchases(all);
-  // Update stock
   const products = getProducts();
   const prod = products.find(x => x.id === p.productId);
   if (prod) { prod.stock += p.quantity; saveProducts(products); }
@@ -45,11 +44,9 @@ export function getSales(): Sale[] { return get(KEYS.sales, []); }
 export function saveSales(s: Sale[]) { set(KEYS.sales, s); }
 export function addSale(s: Sale) {
   const all = getSales(); all.push(s); saveSales(all);
-  // Update stock
   const products = getProducts();
   const prod = products.find(x => x.id === s.productId);
   if (prod) { prod.stock = Math.max(0, prod.stock - s.quantity); saveProducts(products); }
-  // Create debt if not paid
   if (!s.paid) {
     addDebt({
       id: crypto.randomUUID(),
@@ -74,9 +71,35 @@ export function updateDebt(d: Debt) { saveDebts(getDebts().map(x => x.id === d.i
 export function deleteDebt(id: string) { saveDebts(getDebts().filter(x => x.id !== id)); }
 
 // Settings
-export function getSettings(): Settings { return get(KEYS.settings, { exchangeRate: 1200, customsPercent: 15 }); }
+export function getSettings(): Settings {
+  return get(KEYS.settings, { exchangeRate: 1695, customsPercent: 15, defaultDiscountPercent: 20 });
+}
 export function saveSettings(s: Settings) { set(KEYS.settings, s); }
 
 // Helpers
 export function formatARS(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n); }
 export function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
+
+export function getCategoryLabel(cat: string) {
+  const map: Record<string, string> = {
+    perfume_arabe: 'Perfume Árabe',
+    'perfume_diseñador': 'Perfume Diseñador',
+    vaper: 'Vaper',
+    electronico: 'Electrónico',
+  };
+  return map[cat] || cat;
+}
+
+export function getGenderLabel(g: string) {
+  const map: Record<string, string> = { masculino: 'Masculino', femenino: 'Femenino', unisex: 'Unisex' };
+  return map[g] || g;
+}
+
+export function calculateProductProfits(costUSD: number, customsPercent: number, salePriceARS: number, exchangeRate: number) {
+  const customsFee = costUSD * (customsPercent / 100);
+  const totalCostUSD = costUSD + customsFee;
+  const totalCostARS = totalCostUSD * exchangeRate;
+  const profitPerUnitARS = salePriceARS - totalCostARS;
+  const profitPerUnitUSD = profitPerUnitARS / exchangeRate;
+  return { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD };
+}
