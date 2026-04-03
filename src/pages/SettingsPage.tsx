@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getSettings, saveSettings, getProducts, saveProducts } from "@/lib/store";
+import { getSettings, saveSettings, getProducts, saveProducts, calculateProductProfits } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
