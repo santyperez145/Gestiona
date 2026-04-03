@@ -29,7 +29,7 @@ export default function SettingsPage() {
   const handleRecalculate = () => {
     const settings = getSettings();
     const products = getProducts();
-    const cpf = calculateProductProfits;
+    // recalculate all
     const updated = products.map(p => {
       if (p.costUSD <= 0) return p;
       const { customsFee, totalCostUSD, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
