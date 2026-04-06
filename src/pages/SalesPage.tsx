@@ -164,7 +164,7 @@ function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
       cost_per_unit_usd: Number(product!.total_cost_usd),
       profit_ars: profitARS,
       profit_usd: profitUSD,
-      customer_name: customerName,
+      customer_name: customerName || null,
       date,
       paid: paid === 'true',
     });
