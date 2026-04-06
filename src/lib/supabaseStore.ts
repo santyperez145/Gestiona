@@ -58,7 +58,8 @@ export async function addSaleDB(sale: any) {
   if (sale.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
     if (prod) {
-      await supabase.from('products').update({ stock: Math.max(0, prod.stock - sale.quantity) }).eq('id', sale.product_id);
+      const newStock = Math.max(0, prod.stock - sale.quantity);
+      await supabase.from('products').update({ stock: newStock }).eq('id', sale.product_id);
     }
   }
   if (!sale.paid) {
@@ -168,7 +169,7 @@ export function calculateTaxes(profitARS: number, settings: any) {
   const iva = profitARS * (Number(settings.tax_iva_percent || 21) / 100);
   const iibb = profitARS * (Number(settings.tax_iibb_percent || 3.5) / 100);
   const monotributo = Number(settings.tax_monotributo_monthly || 0);
-  const totalTax = iva + iibb;
+  const totalTax = iva + iibb + monotributo;
   return { iva, iibb, monotributo, totalTax, netProfit: profitARS - totalTax };
 }
 
