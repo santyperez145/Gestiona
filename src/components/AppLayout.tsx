@@ -11,6 +11,7 @@ const navItems = [
   { to: "/compras", label: "Compras", icon: ShoppingCart },
   { to: "/ventas", label: "Ventas", icon: DollarSign },
   { to: "/deudas", label: "Deudas", icon: AlertCircle },
+  { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/reportes", label: "Reportes", icon: TrendingUp },
   { to: "/marketing", label: "Marketing", icon: Megaphone },
   { to: "/ia", label: "IA Insights", icon: Brain },
