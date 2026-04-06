@@ -3,6 +3,7 @@ import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settin
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { toast } from "sonner";
 
 const navItems = [
@@ -22,6 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const config = useBusinessConfig();
 
   const handleLogout = async () => {
     await signOut();
@@ -40,11 +42,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-xl font-bold text-primary tracking-wide">✦ Exentry Imports</h1>
-            <p className="text-xs text-sidebar-foreground mt-1">Sistema de Gestión v4.0</p>
+          <div className="flex items-center gap-3 min-w-0">
+            {config.logoUrl ? (
+              <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+            ) : (
+              <span className="text-lg">✦</span>
+            )}
+            <div className="min-w-0">
+              <h1 className="font-display text-lg font-bold text-primary tracking-wide truncate">{config.businessName}</h1>
+              <p className="text-xs text-sidebar-foreground mt-0.5">Sistema de Gestión v5.0</p>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setMobileOpen(false)}>
+          <Button variant="ghost" size="sm" className="lg:hidden shrink-0" onClick={() => setMobileOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -79,7 +88,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
-          <span className="font-display font-bold text-primary">✦ Exentry</span>
+          {config.logoUrl ? (
+            <img src={config.logoUrl} alt="Logo" className="w-6 h-6 rounded object-cover" />
+          ) : (
+            <span className="text-sm">✦</span>
+          )}
+          <span className="font-display font-bold text-primary truncate">{config.businessName}</span>
         </div>
         <div className="p-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
           {children}

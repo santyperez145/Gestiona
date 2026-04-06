@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload } from "lucide-react";
 import { calculateProductProfits } from "@/lib/supabaseStore";
 
 export default function SettingsPage() {
@@ -21,6 +21,13 @@ export default function SettingsPage() {
   const [productCount, setProductCount] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  // Multi-tenant
+  const [businessName, setBusinessName] = useState('Exentry Imports');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#D4A843');
+  const [secondaryColor, setSecondaryColor] = useState('#1A1A2E');
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -32,10 +39,33 @@ export default function SettingsPage() {
       setTaxIva(String(s.tax_iva_percent ?? 21));
       setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
       setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
+      setBusinessName((s as any).business_name || 'Exentry Imports');
+      setLogoUrl((s as any).logo_url || '');
+      setPrimaryColor((s as any).primary_color || '#D4A843');
+      setSecondaryColor((s as any).secondary_color || '#1A1A2E');
       const products = await getProductsDB(user.id);
       setProductCount(products.length);
     })();
   }, [user]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/logo.${ext}`;
+      const { error } = await supabase.storage.from('marketing-images').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('marketing-images').getPublicUrl(path);
+      setLogoUrl(urlData.publicUrl);
+      toast.success("Logo subido correctamente");
+    } catch (err: any) {
+      toast.error("Error al subir logo: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -49,6 +79,10 @@ export default function SettingsPage() {
         tax_iva_percent: parseFloat(taxIva) || 21,
         tax_iibb_percent: parseFloat(taxIibb) || 3.5,
         tax_monotributo_monthly: parseFloat(taxMonotributo) || 0,
+        business_name: businessName || 'Exentry Imports',
+        logo_url: logoUrl || null,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
       });
       toast.success("Configuración guardada correctamente");
     } catch (err: any) {
@@ -81,31 +115,77 @@ export default function SettingsPage() {
   return (
     <div>
       <h1 className="text-2xl md:text-3xl font-display font-bold mb-1">Ajustes</h1>
-      <p className="text-muted-foreground mb-6 md:mb-8">Configuración general de Exentry Imports</p>
+      <p className="text-muted-foreground mb-6 md:mb-8">Configuración general de {businessName}</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4 md:space-y-5">
-          <h2 className="font-display font-semibold text-lg">Parámetros Financieros</h2>
-          <div>
-            <label className="text-sm text-muted-foreground">Tipo de Cambio (USD → ARS)</label>
-            <Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border mt-1" />
+        {/* Left column */}
+        <div className="space-y-4 md:space-y-6">
+          {/* Business branding */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
+            </h2>
+            <div>
+              <label className="text-sm text-muted-foreground">Nombre del Negocio</label>
+              <Input value={businessName} onChange={e => setBusinessName(e.target.value)} className="bg-muted border-border mt-1" />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Logo</label>
+              <div className="flex items-center gap-3 mt-1">
+                {logoUrl && <img src={logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-cover border border-border" />}
+                <label className="flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg cursor-pointer hover:bg-accent text-sm transition-colors">
+                  <Upload className="w-4 h-4" />
+                  {uploading ? 'Subiendo...' : 'Subir logo'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
+                </label>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-muted-foreground">Color Principal</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded border-0 cursor-pointer" />
+                  <Input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="bg-muted border-border flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Color Secundario</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <input type="color" value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="w-10 h-10 rounded border-0 cursor-pointer" />
+                  <Input value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="bg-muted border-border flex-1" />
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Estos colores y logo se aplicarán en el sidebar y reportes exportados.</p>
           </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Porcentaje del Pasero (%)</label>
-            <Input type="number" value={customsPercent} onChange={e => setCustomsPercent(e.target.value)} className="bg-muted border-border mt-1" />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Descuento por Defecto (%)</label>
-            <Input type="number" value={defaultDiscountPercent} onChange={e => setDefaultDiscountPercent(e.target.value)} className="bg-muted border-border mt-1" />
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold shadow-gold flex-1">
-              {saving ? 'Guardando...' : 'Guardar'}
-            </Button>
-            <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular</Button>
+
+          {/* Financial params */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4 md:space-y-5">
+            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
+            </h2>
+            <div>
+              <label className="text-sm text-muted-foreground">Tipo de Cambio (USD → ARS)</label>
+              <Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border mt-1" />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Porcentaje del Pasero (%)</label>
+              <Input type="number" value={customsPercent} onChange={e => setCustomsPercent(e.target.value)} className="bg-muted border-border mt-1" />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Descuento por Defecto (%)</label>
+              <Input type="number" value={defaultDiscountPercent} onChange={e => setDefaultDiscountPercent(e.target.value)} className="bg-muted border-border mt-1" />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold shadow-gold flex-1">
+                {saving ? 'Guardando...' : 'Guardar Configuración'}
+              </Button>
+              <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular</Button>
+            </div>
           </div>
         </div>
 
+        {/* Right column */}
         <div className="space-y-4 md:space-y-6">
           {/* Tax Module */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
@@ -130,18 +210,19 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground">Los impuestos se descontarán de la ganancia bruta en reportes y dashboard.</p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Activá esta opción para descontar impuestos de tus ganancias. Se mostrará en reportes y dashboard.</p>
+              <p className="text-sm text-muted-foreground">Activá esta opción para descontar impuestos de tus ganancias.</p>
             )}
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
             <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Negocio:</span><span className="font-medium">{businessName}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{productCount}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Lovable Cloud ☁️</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Cloud ☁️</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Lovable AI ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">4.0</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Activo ✓</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">5.0</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{user?.email}</span></div>
             </div>
           </div>
@@ -151,7 +232,7 @@ export default function SettingsPage() {
               <Shield className="w-4 h-4 text-success" />Seguridad
             </h2>
             <p className="text-sm text-muted-foreground">
-              Tus datos están protegidos en la nube con autenticación y cifrado. Cada usuario solo puede ver sus propios datos.
+              Tus datos están protegidos en la nube con autenticación y cifrado. Cada usuario solo puede ver sus propios datos. Sistema multi-tenant con aislamiento completo.
             </p>
           </div>
         </div>
