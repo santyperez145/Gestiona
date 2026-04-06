@@ -46,6 +46,7 @@ function ProtectedRoutes() {
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/ia" element={<AIInsightsPage />} />
         <Route path="/ajustes" element={<SettingsPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>

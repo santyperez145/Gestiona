@@ -17,6 +17,7 @@ const navItems = [
   { to: "/marketing", label: "Marketing", icon: Megaphone },
   { to: "/ia", label: "IA Insights", icon: Brain },
   { to: "/ajustes", label: "Ajustes", icon: Settings },
+  { to: "/admin", label: "Admin", icon: Crown },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
