@@ -170,6 +170,9 @@ function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
       paid: paid === 'true',
     });
     toast.success("Venta registrada");
+    if (productId) {
+      await checkStockAfterSale(productId, product!.name);
+    }
     onSave();
   };
 
