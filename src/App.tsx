@@ -14,6 +14,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
+import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
