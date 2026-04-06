@@ -123,13 +123,28 @@ export default function Dashboard() {
       const paidSalesARS = sales.filter((s: any) => s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
       const unpaidSalesARS = sales.filter((s: any) => !s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
 
+      // Low stock & out of stock products
+      const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 3);
+      const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
+
+      // Restock suggestions: products sold frequently but low/no stock
+      const restockSuggestions = Object.entries(productSales)
+        .map(([id, data]: any) => {
+          const prod = products.find((p: any) => p.id === id);
+          return prod ? { name: prod.name, stock: prod.stock, soldQty: data.qty, revenue: data.revenue } : null;
+        })
+        .filter((r: any) => r && r.stock <= 3)
+        .sort((a: any, b: any) => b.soldQty - a.soldQty)
+        .slice(0, 5);
+
       setStats({
         totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
         totalPurchasesUSD, totalPurchasesARS,
         totalDebtsARS: pendingDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0),
         pendingDebts: pendingDebts.length,
-        lowStock: products.filter((p: any) => p.stock <= 3 && p.stock > 0).length,
-        outOfStock: products.filter((p: any) => p.stock <= 0).length,
+        lowStock: lowStockProducts.length,
+        outOfStock: outOfStockProducts.length,
+        lowStockProducts, outOfStockProducts, restockSuggestions,
         grossProfitARS, grossProfitUSD,
         netProfitARS: taxes.netProfit,
         taxEnabled: settings.tax_enabled,
