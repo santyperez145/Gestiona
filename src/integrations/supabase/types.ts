@@ -334,11 +334,15 @@ export type Database = {
       }
       settings: {
         Row: {
+          business_name: string | null
           created_at: string
           customs_percent: number
           default_discount_percent: number
           exchange_rate: number
           id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
           tax_enabled: boolean
           tax_iibb_percent: number
           tax_iva_percent: number
@@ -347,11 +351,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          business_name?: string | null
           created_at?: string
           customs_percent?: number
           default_discount_percent?: number
           exchange_rate?: number
           id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
           tax_iva_percent?: number
@@ -360,11 +368,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          business_name?: string | null
           created_at?: string
           customs_percent?: number
           default_discount_percent?: number
           exchange_rate?: number
           id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
           tax_iva_percent?: number
