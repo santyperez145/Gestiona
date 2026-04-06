@@ -1,10 +1,35 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from "recharts";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, Percent } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
+  LineChart, Line, Legend, AreaChart, Area,
+} from "recharts";
 
-const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)'];
+const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
+
+function GaugeChart({ value, max, label, color }: { value: number; max: number; label: string; color: string }) {
+  const pct = Math.min(Math.max(value / (max || 1), 0), 1);
+  const angle = pct * 180;
+  const rad = (angle * Math.PI) / 180;
+  const x = 50 + 40 * Math.cos(Math.PI - rad);
+  const y = 50 - 40 * Math.sin(Math.PI - rad);
+  const largeArc = angle > 90 ? 1 : 0;
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg viewBox="0 0 100 60" className="w-full max-w-[160px]">
+        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="hsl(220, 15%, 18%)" strokeWidth="8" strokeLinecap="round" />
+        {pct > 0 && (
+          <path d={`M 10 50 A 40 40 0 ${largeArc} 1 ${x} ${y}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" />
+        )}
+        <text x="50" y="45" textAnchor="middle" className="text-[10px] font-bold" fill="currentColor">{value.toFixed(1)}%</text>
+      </svg>
+      <span className="text-[10px] text-muted-foreground mt-1">{label}</span>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -28,6 +53,7 @@ export default function Dashboard() {
 
       const taxes = calculateTaxes(grossProfitARS, settings);
 
+      // Products by sales
       const productSales: Record<string, any> = {};
       sales.forEach((s: any) => {
         if (!productSales[s.product_id]) productSales[s.product_id] = { qty: 0, revenue: 0, name: s.product_name, profit: 0 };
@@ -37,30 +63,65 @@ export default function Dashboard() {
       });
       const topProducts = Object.values(productSales).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5);
 
+      // Monthly data
       const monthMap: Record<string, any> = {};
       sales.forEach((s: any) => {
         const d = new Date(s.date);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0 };
+        if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0, count: 0, costARS: 0 };
         monthMap[key].total += Number(s.total_ars);
         monthMap[key].profit += Number(s.profit_ars);
+        monthMap[key].count += s.quantity;
+        monthMap[key].costARS += Number(s.cost_per_unit_usd) * Number(settings.exchange_rate) * s.quantity;
       });
-      const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      const salesByMonth = Object.entries(monthMap).sort(([a],[b]) => a.localeCompare(b)).slice(-6).map(([m, data]: any) => {
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const salesByMonth = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([m, data]: any) => {
         const [y, mo] = m.split('-');
-        return { month: `${monthNames[parseInt(mo)-1]} ${y.slice(2)}`, total: data.total, profit: data.profit };
+        return {
+          month: `${monthNames[parseInt(mo) - 1]} ${y.slice(2)}`,
+          total: data.total, profit: data.profit, count: data.count,
+          margin: data.total > 0 ? (data.profit / data.total * 100) : 0,
+        };
       });
 
-      const catMap: Record<string, number> = {};
+      // Category breakdown
+      const catMap: Record<string, { revenue: number; profit: number; count: number }> = {};
       sales.forEach((s: any) => {
         const prod = products.find((p: any) => p.id === s.product_id);
         const cat = prod ? getCategoryLabel(prod.category) : 'Otro';
-        catMap[cat] = (catMap[cat] || 0) + Number(s.total_ars);
+        if (!catMap[cat]) catMap[cat] = { revenue: 0, profit: 0, count: 0 };
+        catMap[cat].revenue += Number(s.total_ars);
+        catMap[cat].profit += Number(s.profit_ars);
+        catMap[cat].count += s.quantity;
       });
+
+      // Daily sales for the last 30 days
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const dailyMap: Record<string, { total: number; profit: number }> = {};
+      sales.forEach((s: any) => {
+        const d = new Date(s.date);
+        if (d >= thirtyDaysAgo) {
+          const key = d.toISOString().slice(0, 10);
+          if (!dailyMap[key]) dailyMap[key] = { total: 0, profit: 0 };
+          dailyMap[key].total += Number(s.total_ars);
+          dailyMap[key].profit += Number(s.profit_ars);
+        }
+      });
+      const dailySales = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, data]) => ({
+        date: new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
+        ...data,
+      }));
 
       const customers = new Set(sales.filter((s: any) => s.customer_name).map((s: any) => s.customer_name));
       const inventoryValueUSD = products.reduce((s: number, p: any) => s + (Number(p.total_cost_usd) * p.stock), 0);
       const totalStock = products.reduce((s: number, p: any) => s + p.stock, 0);
+      const profitMargin = totalSalesARS > 0 ? (grossProfitARS / totalSalesARS) * 100 : 0;
+      const roi = totalPurchasesUSD > 0 ? (grossProfitUSD / totalPurchasesUSD) * 100 : 0;
+
+      // Paid vs unpaid sales
+      const paidSalesARS = sales.filter((s: any) => s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+      const unpaidSalesARS = sales.filter((s: any) => !s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
 
       setStats({
         totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
@@ -68,15 +129,18 @@ export default function Dashboard() {
         totalDebtsARS: pendingDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0),
         pendingDebts: pendingDebts.length,
         lowStock: products.filter((p: any) => p.stock <= 3 && p.stock > 0).length,
+        outOfStock: products.filter((p: any) => p.stock <= 0).length,
         grossProfitARS, grossProfitUSD,
         netProfitARS: taxes.netProfit,
         taxEnabled: settings.tax_enabled,
-        profitMargin: totalSalesARS > 0 ? (grossProfitARS / totalSalesARS) * 100 : 0,
+        taxes,
+        profitMargin, roi,
         avgSaleARS: sales.length > 0 ? totalSalesARS / sales.length : 0,
-        topProducts, salesByMonth,
-        salesByCategory: Object.entries(catMap).map(([name, value]) => ({ name, value })),
+        topProducts, salesByMonth, dailySales,
+        salesByCategory: Object.entries(catMap).map(([name, data]) => ({ name, value: data.revenue, profit: data.profit, count: data.count })),
         uniqueCustomers: customers.size, inventoryValueUSD,
         recentSales: sales.slice(0, 5),
+        paidSalesARS, unpaidSalesARS,
       });
       setLoading(false);
     })();
@@ -89,16 +153,18 @@ export default function Dashboard() {
   );
 
   const kpiCards = [
-    { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)} · Margen: ${stats.profitMargin.toFixed(1)}%`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
+    { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
     ...(stats.taxEnabled ? [{ label: "Ganancia Neta", value: formatARS(stats.netProfitARS), sub: "Post impuestos", icon: TrendingUp, color: stats.netProfitARS >= 0 ? "text-success" : "text-destructive" }] : []),
     { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, color: "text-primary" },
     { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, color: "text-warning" },
     { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, color: "text-destructive" },
     { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, color: "text-primary" },
     { label: "Ticket Prom.", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, color: "text-accent" },
-    { label: "Stock Bajo", value: stats.lowStock, sub: "≤3 uds", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-success" },
+    { label: "Stock Bajo", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / Agotado", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-success" },
     { label: "Clientes", value: stats.uniqueCustomers, sub: "Únicos", icon: Users, color: "text-primary" },
   ];
+
+  const tooltipStyle = { background: 'hsl(220, 18%, 12%)', border: '1px solid hsl(220, 15%, 18%)', borderRadius: 8, color: 'hsl(40, 20%, 92%)' };
 
   return (
     <div>
@@ -108,6 +174,7 @@ export default function Dashboard() {
       </div>
       <p className="text-muted-foreground text-sm mb-4 md:mb-6">Resumen general de Exentry Imports</p>
 
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
         {kpiCards.map(c => (
           <div key={c.label} className="bg-card border border-border rounded-lg p-3 md:p-4 shadow-card hover:border-primary/30 transition-colors">
@@ -121,21 +188,49 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* ROI & Margin Gauges */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 md:mb-8">
+        <div className="bg-card border border-border rounded-lg p-4 shadow-card flex items-center justify-center">
+          <GaugeChart value={stats.profitMargin} max={100} label="Margen Bruto" color="hsl(150, 60%, 40%)" />
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4 shadow-card flex items-center justify-center">
+          <GaugeChart value={stats.roi} max={200} label="ROI" color="hsl(40, 70%, 50%)" />
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
+          <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Cobranza</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Cobrado</span>
+              <span className="text-success font-medium">{formatARS(stats.paidSalesARS)}</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-success rounded-full" style={{ width: `${stats.totalSalesARS > 0 ? (stats.paidSalesARS / stats.totalSalesARS * 100) : 0}%` }} />
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Por cobrar</span>
+              <span className="text-destructive font-medium">{formatARS(stats.unpaidSalesARS)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
         <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Ventas y Ganancia por Mes</h2>
           {stats.salesByMonth.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stats.salesByMonth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
                 <XAxis dataKey="month" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={{ background: 'hsl(220, 18%, 12%)', border: '1px solid hsl(220, 15%, 18%)', borderRadius: 8, color: 'hsl(40, 20%, 92%)' }} formatter={(v: number, name: string) => [formatARS(v), name === 'total' ? 'Ventas' : 'Ganancia']} />
-                <Bar dataKey="total" fill="hsl(40, 70%, 50%)" radius={[4,4,0,0]} name="Ventas" />
-                <Bar dataKey="profit" fill="hsl(150, 60%, 40%)" radius={[4,4,0,0]} name="Ganancia" />
+                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name === 'total' ? 'Ventas' : 'Ganancia']} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="total" fill="hsl(40, 70%, 50%)" radius={[4, 4, 0, 0]} name="Ventas" />
+                <Bar dataKey="profit" fill="hsl(150, 60%, 40%)" radius={[4, 4, 0, 0]} name="Ganancia" />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">Sin datos de ventas aún</div>}
+          ) : <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sin datos de ventas aún</div>}
         </div>
 
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
@@ -147,14 +242,17 @@ export default function Dashboard() {
                   <Pie data={stats.salesByCategory} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" stroke="none">
                     {stats.salesByCategory.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ background: 'hsl(220, 18%, 12%)', border: '1px solid hsl(220, 15%, 18%)', borderRadius: 8, color: 'hsl(40, 20%, 92%)' }} formatter={(v: number) => [formatARS(v), 'Total']} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), 'Total']} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-3 mt-2">
+              <div className="space-y-1.5 mt-2">
                 {stats.salesByCategory.map((cat: any, i: number) => (
-                  <div key={cat.name} className="flex items-center gap-1.5 text-xs">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                    <span className="text-muted-foreground">{cat.name}</span>
+                  <div key={cat.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="text-muted-foreground">{cat.name}</span>
+                    </div>
+                    <span className="font-medium">{cat.count}u · {formatARS(cat.profit)}</span>
                   </div>
                 ))}
               </div>
@@ -163,6 +261,41 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Daily Trend + Margin Evolution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia Diaria (30 días)</h2>
+          {stats.dailySales.length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={stats.dailySales}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
+                <XAxis dataKey="date" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 9 }} axisLine={false} />
+                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v)]} />
+                <Area type="monotone" dataKey="total" stroke="hsl(40, 70%, 50%)" fill="hsl(40, 70%, 50%)" fillOpacity={0.15} name="Ventas" />
+                <Area type="monotone" dataKey="profit" stroke="hsl(150, 60%, 40%)" fill="hsl(150, 60%, 40%)" fillOpacity={0.15} name="Ganancia" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos recientes</div>}
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Margen por Mes (%)</h2>
+          {stats.salesByMonth.length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={stats.salesByMonth}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
+                <XAxis dataKey="month" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen']} />
+                <Line type="monotone" dataKey="margin" stroke="hsl(200, 60%, 50%)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(200, 60%, 50%)' }} name="Margen" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos</div>}
+        </div>
+      </div>
+
+      {/* Top Products + Recent Sales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Productos Más Vendidos</h2>
@@ -173,7 +306,7 @@ export default function Dashboard() {
                 return (
                   <div key={p.name}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium truncate mr-2">{i+1}. {p.name}</span>
+                      <span className="font-medium truncate mr-2">{i + 1}. {p.name}</span>
                       <span className="text-muted-foreground shrink-0 text-xs">{p.qty}u · <span className="text-success">{formatARS(p.profit)}</span></span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -197,15 +330,19 @@ export default function Dashboard() {
                       <th className="text-left p-3 font-medium">Producto</th>
                       <th className="text-left p-3 font-medium">Cliente</th>
                       <th className="text-right p-3 font-medium">Total</th>
+                      <th className="text-right p-3 font-medium">Ganancia</th>
                       <th className="text-center p-3 font-medium">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.recentSales.map((s: any) => (
                       <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                        <td className="p-3">{s.product_name}</td>
+                        <td className="p-3 truncate max-w-[150px]">{s.product_name}</td>
                         <td className="p-3">{s.customer_name || '—'}</td>
                         <td className="p-3 text-right font-medium">{formatARS(Number(s.total_ars))}</td>
+                        <td className="p-3 text-right">
+                          <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
+                        </td>
                         <td className="p-3 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
                             {s.paid ? 'Pagado' : 'Debe'}
