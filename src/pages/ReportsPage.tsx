@@ -50,8 +50,6 @@ export default function ReportsPage() {
   const inventoryValueUSD = products.reduce((s: number, p: any) => s + (Number(p.total_cost_usd) * p.stock), 0);
   const totalStock = products.reduce((s: number, p: any) => s + p.stock, 0);
 
-  // Net profit after taxes
-  const taxes = calculateTaxes(grossProfitARS, settings);
   const taxes = calculateTaxes(grossProfitARS, settings);
   const roi = totalPurchasesUSD > 0 ? ((grossProfitUSD / totalPurchasesUSD) * 100) : 0;
 
