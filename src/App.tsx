@@ -16,6 +16,7 @@ import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
 import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/AuthPage";
+import AdminPage from "@/pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ function ProtectedRoutes() {
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/ia" element={<AIInsightsPage />} />
         <Route path="/ajustes" element={<SettingsPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
