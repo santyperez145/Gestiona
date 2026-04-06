@@ -310,6 +310,50 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Stock Alerts */}
+      {(stats.lowStockProducts?.length > 0 || stats.outOfStockProducts?.length > 0) && (
+        <div className="bg-card border border-destructive/30 rounded-lg p-4 md:p-5 shadow-card mb-6 md:mb-8">
+          <h2 className="text-sm font-display font-semibold mb-3 text-destructive uppercase tracking-wider flex items-center gap-2">
+            <Bell className="w-4 h-4" /> Alertas de Stock
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {stats.outOfStockProducts?.length > 0 && (
+              <div className="bg-destructive/10 rounded-lg p-3">
+                <p className="text-xs font-semibold text-destructive mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Sin Stock ({stats.outOfStockProducts.length})</p>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {stats.outOfStockProducts.slice(0, 8).map((p: any) => (
+                    <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name}</p>
+                  ))}
+                  {stats.outOfStockProducts.length > 8 && <p className="text-xs text-muted-foreground">+{stats.outOfStockProducts.length - 8} más</p>}
+                </div>
+              </div>
+            )}
+            {stats.lowStockProducts?.length > 0 && (
+              <div className="bg-warning/10 rounded-lg p-3">
+                <p className="text-xs font-semibold text-warning mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stock Bajo ≤3 ({stats.lowStockProducts.length})</p>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {stats.lowStockProducts.map((p: any) => (
+                    <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name} — <span className="text-warning font-medium">{p.stock}u</span></p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          {stats.restockSuggestions?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs font-semibold text-primary mb-2">🔄 Sugerencias de Restock (más vendidos con bajo stock)</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.restockSuggestions.map((r: any) => (
+                  <span key={r.name} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-[10px] font-medium">
+                    {r.name} ({r.stock}u · {r.soldQty} vendidos)
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Top Products + Recent Sales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
