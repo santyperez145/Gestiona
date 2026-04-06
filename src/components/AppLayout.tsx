@@ -42,7 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div>
             <h1 className="font-display text-xl font-bold text-primary tracking-wide">✦ Exentry Imports</h1>
-            <p className="text-xs text-sidebar-foreground mt-1">Sistema de Gestión v3.0</p>
+            <p className="text-xs text-sidebar-foreground mt-1">Sistema de Gestión v4.0</p>
           </div>
           <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setMobileOpen(false)}>
             <X className="w-4 h-4" />

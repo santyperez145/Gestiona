@@ -141,7 +141,7 @@ export default function SettingsPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Lovable Cloud ☁️</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Lovable AI ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">3.1</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">4.0</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{user?.email}</span></div>
             </div>
           </div>
