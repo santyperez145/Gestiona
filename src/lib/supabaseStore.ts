@@ -32,7 +32,6 @@ export async function getPurchasesDB(userId: string) {
 export async function addPurchaseDB(purchase: any) {
   const { error } = await supabase.from('purchases').insert(purchase);
   if (error) throw error;
-  // Update product stock
   if (purchase.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', purchase.product_id).single();
     if (prod) {
@@ -56,14 +55,12 @@ export async function getSalesDB(userId: string) {
 export async function addSaleDB(sale: any) {
   const { error } = await supabase.from('sales').insert(sale);
   if (error) throw error;
-  // Reduce stock
   if (sale.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
     if (prod) {
       await supabase.from('products').update({ stock: Math.max(0, prod.stock - sale.quantity) }).eq('id', sale.product_id);
     }
   }
-  // Auto-create debt if unpaid
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
@@ -105,14 +102,18 @@ export async function deleteDebtDB(id: string) {
 export async function getSettingsDB(userId: string) {
   const { data } = await supabase.from('settings').select('*').eq('user_id', userId).single();
   if (data) return data;
-  // Create default settings
-  const defaults = { user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20 };
+  const defaults = {
+    user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20,
+    tax_enabled: false, tax_iva_percent: 21, tax_iibb_percent: 3.5, tax_monotributo_monthly: 0,
+  };
   await supabase.from('settings').insert(defaults);
   return defaults;
 }
 
-export async function saveSettingsDB(userId: string, settings: { exchange_rate: number; customs_percent: number; default_discount_percent: number }) {
-  const { error } = await supabase.from('settings').upsert({ user_id: userId, ...settings });
+export async function saveSettingsDB(userId: string, settings: Record<string, any>) {
+  const { error } = await supabase
+    .from('settings')
+    .upsert({ user_id: userId, ...settings }, { onConflict: 'user_id' });
   if (error) throw error;
 }
 
@@ -161,15 +162,22 @@ export function calculateProductProfits(costUSD: number, customsPercent: number,
   return { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD };
 }
 
+/** Calculate tax deductions on profit */
+export function calculateTaxes(profitARS: number, settings: any) {
+  if (!settings?.tax_enabled) return { iva: 0, iibb: 0, monotributo: 0, totalTax: 0, netProfit: profitARS };
+  const iva = profitARS * (Number(settings.tax_iva_percent || 21) / 100);
+  const iibb = profitARS * (Number(settings.tax_iibb_percent || 3.5) / 100);
+  const monotributo = Number(settings.tax_monotributo_monthly || 0);
+  const totalTax = iva + iibb;
+  return { iva, iibb, monotributo, totalTax, netProfit: profitARS - totalTax };
+}
+
 // Seed products for a new user
 export async function seedProductsForUser(userId: string) {
   const { data: existing } = await supabase.from('products').select('id').eq('user_id', userId).limit(1);
   if (existing && existing.length > 0) return;
-
   const { seedProductsList } = await import('./seedData');
   const products = seedProductsList.map(p => ({ ...p, user_id: userId, id: crypto.randomUUID() }));
-  
-  // Insert in batches
   for (let i = 0; i < products.length; i += 50) {
     await supabase.from('products').insert(products.slice(i, i + 50));
   }

@@ -15,12 +15,15 @@ export default function PurchasesPage() {
   const reload = async () => { if (user) setPurchases(await getPurchasesDB(user.id)); };
   useEffect(() => { reload(); }, [user]);
 
+  const totalUSD = purchases.reduce((s, p) => s + Number(p.total_usd), 0);
+  const totalARS = purchases.reduce((s, p) => s + Number(p.total_ars), 0);
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
-          <h1 className="text-3xl font-display font-bold">Compras</h1>
-          <p className="text-muted-foreground">Registro de compras en USD + pasero</p>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Compras</h1>
+          <p className="text-muted-foreground text-sm">{purchases.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -36,38 +39,65 @@ export default function PurchasesPage() {
       {!purchases.length ? (
         <div className="text-center py-20 text-muted-foreground"><p className="text-lg">No hay compras registradas</p></div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th className="text-left p-3 font-medium">Fecha</th>
-                <th className="text-left p-3 font-medium">Producto</th>
-                <th className="text-right p-3 font-medium">Cant.</th>
-                <th className="text-right p-3 font-medium">Unit. USD</th>
-                <th className="text-right p-3 font-medium">Total USD</th>
-                <th className="text-right p-3 font-medium">Total ARS</th>
-                <th className="text-center p-3 font-medium">Acc.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purchases.map(p => (
-                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="p-3">{new Date(p.date).toLocaleDateString('es-AR')}</td>
-                  <td className="p-3">{p.product_name}</td>
-                  <td className="p-3 text-right">{p.quantity}</td>
-                  <td className="p-3 text-right">{formatUSD(Number(p.unit_cost_usd))}</td>
-                  <td className="p-3 text-right font-medium">{formatUSD(Number(p.total_usd))}</td>
-                  <td className="p-3 text-right font-medium">{formatARS(Number(p.total_ars))}</td>
-                  <td className="p-3 text-center">
-                    <Button variant="ghost" size="sm" onClick={async () => { await deletePurchaseDB(p.id); reload(); toast.success("Eliminada"); }}>
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </Button>
-                  </td>
+        <>
+          <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left p-3 font-medium">Fecha</th>
+                  <th className="text-left p-3 font-medium">Producto</th>
+                  <th className="text-left p-3 font-medium">Proveedor</th>
+                  <th className="text-right p-3 font-medium">Cant.</th>
+                  <th className="text-right p-3 font-medium">Unit. USD</th>
+                  <th className="text-right p-3 font-medium">Pasero</th>
+                  <th className="text-right p-3 font-medium">Total USD</th>
+                  <th className="text-right p-3 font-medium">Total ARS</th>
+                  <th className="text-center p-3 font-medium">Acc.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {purchases.map(p => (
+                  <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="p-3">{new Date(p.date).toLocaleDateString('es-AR')}</td>
+                    <td className="p-3">{p.product_name}</td>
+                    <td className="p-3 text-muted-foreground">{p.supplier || '—'}</td>
+                    <td className="p-3 text-right">{p.quantity}</td>
+                    <td className="p-3 text-right">{formatUSD(Number(p.unit_cost_usd))}</td>
+                    <td className="p-3 text-right text-warning">{formatUSD(Number(p.customs_fee))}</td>
+                    <td className="p-3 text-right font-medium">{formatUSD(Number(p.total_usd))}</td>
+                    <td className="p-3 text-right font-medium">{formatARS(Number(p.total_ars))}</td>
+                    <td className="p-3 text-center">
+                      <Button variant="ghost" size="sm" onClick={async () => { await deletePurchaseDB(p.id); reload(); toast.success("Eliminada"); }}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {purchases.map(p => (
+              <div key={p.id} className="bg-card border border-border rounded-lg p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-medium text-sm">{p.product_name}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString('es-AR')} · {p.supplier || 'Sin proveedor'}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => { await deletePurchaseDB(p.id); reload(); toast.success("Eliminada"); }}>
+                    <Trash2 className="w-3 h-3 text-destructive" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div><span className="text-muted-foreground block">Cant.</span><span>{p.quantity}</span></div>
+                  <div><span className="text-muted-foreground block">Total USD</span><span className="font-medium">{formatUSD(Number(p.total_usd))}</span></div>
+                  <div><span className="text-muted-foreground block">Total ARS</span><span className="font-medium">{formatARS(Number(p.total_ars))}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -85,8 +115,7 @@ function PurchaseForm({ userId, onSave }: { userId: string; onSave: () => void }
   useEffect(() => {
     (async () => {
       const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
-      setProducts(p);
-      setSettings(s);
+      setProducts(p); setSettings(s);
       setExchangeRate(String(s?.exchange_rate || 1695));
     })();
   }, [userId]);

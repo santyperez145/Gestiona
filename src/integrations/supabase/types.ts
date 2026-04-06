@@ -339,6 +339,10 @@ export type Database = {
           default_discount_percent: number
           exchange_rate: number
           id: string
+          tax_enabled: boolean
+          tax_iibb_percent: number
+          tax_iva_percent: number
+          tax_monotributo_monthly: number
           updated_at: string
           user_id: string
         }
@@ -348,6 +352,10 @@ export type Database = {
           default_discount_percent?: number
           exchange_rate?: number
           id?: string
+          tax_enabled?: boolean
+          tax_iibb_percent?: number
+          tax_iva_percent?: number
+          tax_monotributo_monthly?: number
           updated_at?: string
           user_id: string
         }
@@ -357,6 +365,10 @@ export type Database = {
           default_discount_percent?: number
           exchange_rate?: number
           id?: string
+          tax_enabled?: boolean
+          tax_iibb_percent?: number
+          tax_iva_percent?: number
+          tax_monotributo_monthly?: number
           updated_at?: string
           user_id?: string
         }

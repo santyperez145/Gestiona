@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getGenderLabel, calculateProductProfits } from "@/lib/supabaseStore";
+import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -29,8 +29,7 @@ export default function ProductsPage() {
   const reload = async () => {
     if (!user) return;
     const [p, s] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id)]);
-    setProducts(p);
-    setSettings(s);
+    setProducts(p); setSettings(s);
   };
   useEffect(() => { reload(); }, [user]);
 
@@ -56,14 +55,14 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
         </div>
         <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo Producto</Button>
+            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
@@ -72,30 +71,32 @@ export default function ProductsPage() {
         </Dialog>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        <div className="relative flex-1 min-w-[180px]">
+      <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted border-border h-9 text-sm" />
         </div>
-        <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="w-[150px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas cat.</SelectItem>
-            <SelectItem value="perfume_arabe">Árabe</SelectItem>
-            <SelectItem value="perfume_diseñador">Diseñador</SelectItem>
-            <SelectItem value="vaper">Vaper</SelectItem>
-            <SelectItem value="electronico">Electrónico</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterStock} onValueChange={setFilterStock}>
-          <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todo stock</SelectItem>
-            <SelectItem value="instock">En stock</SelectItem>
-            <SelectItem value="low">Stock bajo</SelectItem>
-            <SelectItem value="out">Sin stock</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={filterCat} onValueChange={setFilterCat}>
+            <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas cat.</SelectItem>
+              <SelectItem value="perfume_arabe">Árabe</SelectItem>
+              <SelectItem value="perfume_diseñador">Diseñador</SelectItem>
+              <SelectItem value="vaper">Vaper</SelectItem>
+              <SelectItem value="electronico">Electrónico</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterStock} onValueChange={setFilterStock}>
+            <SelectTrigger className="w-[120px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo</SelectItem>
+              <SelectItem value="instock">En stock</SelectItem>
+              <SelectItem value="low">Stock bajo</SelectItem>
+              <SelectItem value="out">Sin stock</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {!filtered.length ? (
@@ -109,15 +110,18 @@ export default function ProductsPage() {
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
             </h2>
-            <div className="bg-card border border-border rounded-lg overflow-x-auto">
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="text-left p-3 font-medium">Nombre</th>
-                    <th className="text-center p-3 font-medium hidden sm:table-cell">Gen.</th>
-                    <th className="text-left p-3 font-medium hidden md:table-cell">Cat.</th>
+                    <th className="text-center p-3 font-medium">Gen.</th>
+                    <th className="text-left p-3 font-medium">Cat.</th>
                     <th className="text-right p-3 font-medium">Costo</th>
                     <th className="text-right p-3 font-medium">Venta</th>
+                    <th className="text-right p-3 font-medium">Oferta</th>
                     <th className="text-right p-3 font-medium">Ganancia</th>
                     <th className="text-right p-3 font-medium">Stock</th>
                     <th className="text-center p-3 font-medium">Acc.</th>
@@ -127,12 +131,11 @@ export default function ProductsPage() {
                   {items.map((p: any) => (
                     <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="p-3 font-medium max-w-[200px] truncate">{p.name}</td>
-                      <td className="p-3 text-center hidden sm:table-cell">{GENDER_ICONS[p.gender] || ''}</td>
-                      <td className="p-3 hidden md:table-cell">
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
-                      </td>
-                      <td className="p-3 text-right text-xs">{formatUSD(Number(p.cost_usd))}</td>
+                      <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
+                      <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
+                      <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
                       <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
+                      <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
                       <td className="p-3 text-right">
                         <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
                       </td>
@@ -151,6 +154,42 @@ export default function ProductsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-2">
+              {items.map((p: any) => (
+                <div key={p.id} className="bg-card border border-border rounded-lg p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{p.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
+                        <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => { await deleteProductDB(p.id); reload(); toast.success("Eliminado"); }}>
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><span className="text-muted-foreground block">Costo</span><span>{formatUSD(Number(p.total_cost_usd))}</span></div>
+                    <div><span className="text-muted-foreground block">Venta</span><span>{formatARS(Number(p.sale_price_ars))}</span></div>
+                    <div><span className="text-muted-foreground block">Ganancia</span>
+                      <span className={Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">Stock:</span>
+                    {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
+                      <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                    ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))
@@ -171,9 +210,9 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
-  const customsPercent = Number(settings?.customs_percent || settings?.customsPercent || 15);
-  const exchangeRate = Number(settings?.exchange_rate || settings?.exchangeRate || 1695);
-  const { customsFee, totalCostUSD, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
+  const customsPercent = Number(settings?.customs_percent || 15);
+  const exchangeRate = Number(settings?.exchange_rate || 1695);
+  const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,16 +245,26 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
+        <div><label className="text-sm text-muted-foreground">Género</label>
+          <Select value={gender} onValueChange={setGender}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
+          </Select>
+        </div>
+        <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Costo USD</label><Input type="number" step="0.01" value={costUSD} onChange={e => setCostUSD(e.target.value)} className="bg-muted border-border" /></div>
         <div><label className="text-sm text-muted-foreground">Precio Venta ARS</label><Input type="number" value={salePriceARS} onChange={e => setSalePriceARS(e.target.value)} className="bg-muted border-border" /></div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Precio c/Desc ARS</label><Input type="number" value={discountPriceARS} onChange={e => setDiscountPriceARS(e.target.value)} placeholder="Opcional" className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
+      <div>
+        <label className="text-sm text-muted-foreground">Precio c/Descuento ARS (opcional)</label>
+        <Input type="number" value={discountPriceARS} onChange={e => setDiscountPriceARS(e.target.value)} placeholder="Dejar vacío si no tiene oferta" className="bg-muted border-border" />
       </div>
       {cost > 0 && salePrice > 0 && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Costo+Pasero:</span><span>{formatUSD(totalCostUSD)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Costo base:</span><span>{formatUSD(cost)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-warning">{formatUSD(customsFee)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Costo total:</span><span>{formatUSD(totalCostUSD)} = {formatARS(totalCostARS)}</span></div>
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Ganancia/u:</span>
             <span className={profitPerUnitARS > 0 ? 'text-success' : 'text-destructive'}>{formatARS(profitPerUnitARS)} ({formatUSD(profitPerUnitUSD)})</span>
           </div>
