@@ -58,7 +58,8 @@ export async function addSaleDB(sale: any) {
   if (sale.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
     if (prod) {
-      await supabase.from('products').update({ stock: Math.max(0, prod.stock - sale.quantity) }).eq('id', sale.product_id);
+      const newStock = Math.max(0, prod.stock - sale.quantity);
+      await supabase.from('products').update({ stock: newStock }).eq('id', sale.product_id);
     }
   }
   if (!sale.paid) {
