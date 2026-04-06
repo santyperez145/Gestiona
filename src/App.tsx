@@ -16,6 +16,7 @@ import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
 import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/AuthPage";
+import AdminPage from "@/pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
