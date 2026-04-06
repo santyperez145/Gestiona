@@ -169,7 +169,7 @@ export function calculateTaxes(profitARS: number, settings: any) {
   const iva = profitARS * (Number(settings.tax_iva_percent || 21) / 100);
   const iibb = profitARS * (Number(settings.tax_iibb_percent || 3.5) / 100);
   const monotributo = Number(settings.tax_monotributo_monthly || 0);
-  const totalTax = iva + iibb;
+  const totalTax = iva + iibb + monotributo;
   return { iva, iibb, monotributo, totalTax, netProfit: profitARS - totalTax };
 }
 
