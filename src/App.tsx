@@ -14,6 +14,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
+import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ function ProtectedRoutes() {
         <Route path="/compras" element={<PurchasesPage />} />
         <Route path="/ventas" element={<SalesPage />} />
         <Route path="/deudas" element={<DebtsPage />} />
+        <Route path="/clientes" element={<CustomersPage />} />
         <Route path="/reportes" element={<ReportsPage />} />
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/ia" element={<AIInsightsPage />} />

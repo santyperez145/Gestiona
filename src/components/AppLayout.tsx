@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/compras", label: "Compras", icon: ShoppingCart },
   { to: "/ventas", label: "Ventas", icon: DollarSign },
   { to: "/deudas", label: "Deudas", icon: AlertCircle },
+  { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/reportes", label: "Reportes", icon: TrendingUp },
   { to: "/marketing", label: "Marketing", icon: Megaphone },
   { to: "/ia", label: "IA Insights", icon: Brain },
@@ -41,7 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div>
             <h1 className="font-display text-xl font-bold text-primary tracking-wide">✦ Exentry Imports</h1>
-            <p className="text-xs text-sidebar-foreground mt-1">Sistema de Gestión v3.0</p>
+            <p className="text-xs text-sidebar-foreground mt-1">Sistema de Gestión v4.0</p>
           </div>
           <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setMobileOpen(false)}>
             <X className="w-4 h-4" />
