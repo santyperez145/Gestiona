@@ -16,6 +16,7 @@ const navItems = [
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/reportes", label: "Reportes", icon: TrendingUp },
   { to: "/marketing", label: "Marketing", icon: Megaphone },
+  { to: "/canjes", label: "Canjes", icon: Gift },
   { to: "/ia", label: "IA Insights", icon: Brain },
   { to: "/ajustes", label: "Ajustes", icon: Settings },
 ];
