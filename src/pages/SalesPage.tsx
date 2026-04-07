@@ -111,13 +111,16 @@ export default function SalesPage() {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <ConfirmDialog
-                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                        title="¿Eliminar esta venta?"
-                        description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
-                        confirmText="Eliminar"
-                        onConfirm={() => handleDelete(s)}
-                      />
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                        <ConfirmDialog
+                          trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          title="¿Eliminar esta venta?"
+                          description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
+                          confirmText="Eliminar"
+                          onConfirm={() => handleDelete(s)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
