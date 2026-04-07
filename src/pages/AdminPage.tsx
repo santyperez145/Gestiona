@@ -31,8 +31,10 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState<VendorStats[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [period, setPeriod] = useState('all');
   const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'audit'>('overview');
 
   useEffect(() => {
     if (!user) return;
