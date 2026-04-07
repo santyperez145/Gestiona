@@ -181,13 +181,13 @@ export default function SalesPage() {
 function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [customerName, setCustomerName] = useState('');
-  const [paid, setPaid] = useState('true');
-  const [useDiscount, setUseDiscount] = useState('false');
-  const [customPrice, setCustomPrice] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [productId, setProductId] = useState(editItem?.product_id || '');
+  const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
+  const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
+  const [paid, setPaid] = useState(editItem ? String(editItem.paid) : 'true');
+  const [useDiscount, setUseDiscount] = useState(editItem?.discount_applied ? 'true' : 'false');
+  const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
