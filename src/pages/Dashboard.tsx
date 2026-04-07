@@ -161,11 +161,7 @@ export default function Dashboard() {
     })();
   }, [user]);
 
-  if (loading || !stats) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
