@@ -1,89 +1,69 @@
 
+# Plan: Redesign UX/UI Profesional v8.5
 
-# Plan: Roles (Admin/Vendedor/Viewer) + Seguridad + Catálogo Público Seguro
-
-## Resumen
-
-Implementar sistema de 3 roles con restricciones reales en DB y UI, proteger datos sensibles del catálogo público, y actualizar todas las páginas afectadas.
+## Filosofía
+Elevar la estética "dark luxury" actual con refinamiento profesional: glassmorphism sutil, gradientes más ricos, tipografía mejorada, micro-animaciones, y mejor jerarquía visual. Sin cambiar lógica de negocio.
 
 ---
 
-## 1. Migración de Base de Datos
+## 1. Design Tokens Mejorados (`index.css`)
 
-**SQL a ejecutar:**
+- Agregar variables de glassmorphism y profundidad
+- Gradientes más sofisticados para cards y sidebar
+- Sombras más elegantes con capas
+- Nuevo scrollbar estilizado
+- Focus rings más visibles
+- Transiciones suaves globales
 
-- Agregar `'viewer'` al enum `app_role`
-- Crear function `get_user_role(uuid)` (security definer) que retorna el rol o `'viewer'` por defecto
-- Crear function `is_approved(uuid)` que verifica si el usuario tiene rol asignado (admin o vendedor)
-- Actualizar trigger `auto_assign_admin`: primer usuario = admin, resto no recibe rol (queda como viewer implícito)
-- Crear vista `products_public` (solo campos no sensibles: name, brand, category, gender, sale_price_ars, discount_price_ars, stock, image_url, description, user_id) — sin cost_usd, profit, customs
-- Crear vista `settings_public` (solo business_name, logo_url, primary_color, secondary_color, user_id)
-- Actualizar RLS en `products`: quitar policy pública "Public can read products" sobre tabla base, agregar SELECT público solo en la vista
-- Actualizar RLS en `settings`: quitar "Public can read settings" sobre tabla base, agregar SELECT público solo en la vista
-- Actualizar RLS en tablas de datos para verificar rol:
-  - `products`, `purchases`, `marketing_posts`, `influencer_exchanges`, `settings`: solo admin (CRUD completo)
-  - `sales`: admin = todo, vendedor = INSERT + SELECT propias
-  - `debts`: admin = todo, vendedor = SELECT propias
+## 2. Sidebar Refinado (`AppLayout.tsx`)
 
-## 2. Hook `useUserRole`
+- Logo con brillo sutil dorado
+- Nav items con indicador lateral activo (barra dorada a la izquierda)
+- Hover states con transición de fondo más suave
+- Separadores visuales entre secciones
+- Footer con gradiente sutil
+- Ícono de campana con animación pulse cuando hay notificaciones
 
-Nuevo archivo `src/lib/useUserRole.ts`:
-- Consulta `user_roles` para obtener el rol del usuario actual
-- Retorna `{ role: 'admin' | 'vendedor' | 'viewer', loading: boolean }`
-- Cache con estado local
+## 3. Dashboard Premium (`Dashboard.tsx`)
 
-## 3. Gate de Acceso en App.tsx
+- Header con saludo dinámico ("Buenos días, Santiago") + fecha
+- KPI cards con borde gradiente sutil al hover
+- Gauge charts más grandes y con label mejorado
+- Cards de gráficos con header más elegante (línea dorada decorativa)
+- Sección de alertas con diseño más limpio
+- Espaciado más generoso entre secciones
 
-- Importar `useUserRole` en `ProtectedRoutes`
-- Si `role === 'viewer'`: mostrar pantalla "Esperando aprobación del administrador" con mensaje de contactar al admin + link al catálogo público
-- Si `role === 'vendedor'`: solo permitir rutas `/`, `/ventas`, `/clientes`
-- Si `role === 'admin'`: acceso completo
+## 4. Auth Page Elevada (`AuthPage.tsx`)
 
-## 4. AppLayout — Sidebar Filtrado por Rol
+- Fondo con patrón sutil (radial gradient)
+- Card con glassmorphism
+- Logo más grande y prominente
+- Inputs con focus state dorado
+- Animación de entrada staggered
 
-- Importar `useUserRole`
-- Filtrar `navItems` según rol:
-  - **vendedor**: Dashboard, Ventas, Clientes solamente
-  - **admin**: todo + Admin
-  - **viewer**: no llega aquí (gateado en App.tsx)
+## 5. KPI Cards Mejoradas (`KPICard.tsx`)
 
-## 5. SalesPage — Restricciones para Vendedor
+- Borde gradiente sutil en hover
+- Ícono con fondo circular semitransparente
+- Mejor separación visual entre valor y sublabel
 
-- Vendedor puede crear ventas pero NO editar ni eliminar
-- Ocultar botones Edit y Delete si rol !== 'admin'
-- El botón "Nueva Venta" sigue visible
+## 6. Componentes de Tabla
 
-## 6. AdminPage — Selector de 3 Roles
-
-- Agregar opción `viewer` al `AssignRoleDialog`
-- Badge con 3 colores: admin (dorado), vendedor (azul), viewer (gris)
-- Mostrar rol actual de cada usuario
-- Opción de eliminar rol (volver a viewer)
-
-## 7. Catálogo Público — Usar Vistas Seguras
-
-- `PublicCatalogPage.tsx`: cambiar queries de `products` a `products_public` y `settings` a `settings_public`
-- El PDF en `CatalogPage.tsx` ya usa los campos correctos (no muestra costos), no necesita cambios
+- Headers con fondo sutil diferenciado
+- Hover rows con transición más suave
+- Badges con mejor contraste y pill design
+- Empty states más visuales
 
 ---
 
-## Archivos a modificar/crear
+## Archivos a modificar
 
 | Archivo | Cambio |
 |---|---|
-| Migración SQL | enum + functions + vistas + RLS |
-| `src/lib/useUserRole.ts` | **Nuevo** — hook de rol |
-| `src/App.tsx` | Gate por rol en ProtectedRoutes |
-| `src/components/AppLayout.tsx` | Filtrar nav por rol |
-| `src/pages/SalesPage.tsx` | Ocultar edit/delete para vendedor |
-| `src/pages/AdminPage.tsx` | 3 roles + viewer badge |
-| `src/pages/PublicCatalogPage.tsx` | Usar vistas públicas |
-
-## Orden de implementación
-1. Migración DB
-2. Hook useUserRole
-3. App.tsx + AppLayout (gate + nav)
-4. SalesPage restricciones
-5. AdminPage 3 roles
-6. PublicCatalogPage vistas seguras
-
+| `src/index.css` | Tokens de glassmorphism, scrollbar, focus, transiciones |
+| `src/components/AppLayout.tsx` | Sidebar con indicador activo, hover refinado |
+| `src/pages/Dashboard.tsx` | Header con saludo, spacing, decorative elements |
+| `src/pages/AuthPage.tsx` | Glassmorphism, pattern background, animaciones |
+| `src/components/shared/KPICard.tsx` | Icon background, hover gradient border |
+| `src/components/shared/NotificationBell.tsx` | Pulse animation on unread |
+| `tailwind.config.ts` | Nuevas animaciones y utilities |

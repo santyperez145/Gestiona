@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { LogIn, UserPlus, KeyRound } from 'lucide-react';
+import { LogIn, UserPlus, KeyRound, Sparkles } from 'lucide-react';
 
 export default function AuthPage() {
   const { signIn, signUp } = useAuth();
@@ -59,27 +59,44 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="font-display text-3xl font-bold text-primary tracking-wide mb-2">✦ Exentry Imports</h1>
-          <p className="text-muted-foreground">Sistema de Gestión Integral</p>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{
+        background: 'radial-gradient(ellipse at 50% 0%, hsl(40, 72%, 52%, 0.08) 0%, hsl(225, 22%, 6%) 50%), hsl(225, 22%, 6%)',
+      }}
+    >
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-[0.03]"
+        style={{ background: 'radial-gradient(circle, hsl(40, 72%, 52%), transparent 70%)' }} />
+
+      <div className="w-full max-w-[420px] relative z-10">
+        {/* Logo */}
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-gold shadow-gold mb-4">
+            <Sparkles className="w-7 h-7 text-primary-foreground" />
+          </div>
+          <h1 className="font-display text-3xl font-bold text-gradient-gold tracking-wide mb-1">Exentry Imports</h1>
+          <p className="text-muted-foreground text-sm">Sistema de Gestión Integral</p>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 shadow-card">
+        {/* Card */}
+        <div className="glass border border-border/50 rounded-2xl p-7 shadow-elevated animate-scale-in"
+          style={{ animationDelay: '0.1s', animationFillMode: 'both' }}
+        >
           {mode === 'forgot' ? (
             <>
-              <div className="text-center mb-4">
-                <KeyRound className="w-10 h-10 text-primary mx-auto mb-2" />
+              <div className="text-center mb-5">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-3">
+                  <KeyRound className="w-5 h-5 text-primary" />
+                </div>
                 <h2 className="font-display font-semibold text-lg">Recuperar Contraseña</h2>
-                <p className="text-sm text-muted-foreground">Te enviaremos un email con instrucciones</p>
+                <p className="text-sm text-muted-foreground mt-1">Te enviaremos un email con instrucciones</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm text-muted-foreground">Email</label>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required className="bg-muted border-border mt-1" />
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required className="bg-secondary/50 border-border/50 mt-1.5 h-11 focus:ring-2 focus:ring-primary/30" />
                 </div>
-                <Button type="submit" disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+                <Button type="submit" disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold h-11 shadow-gold hover:shadow-lg transition-shadow">
                   {loading ? 'Enviando...' : 'Enviar Enlace'}
                 </Button>
                 <button type="button" onClick={() => setMode('login')} className="w-full text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -90,7 +107,7 @@ export default function AuthPage() {
           ) : (
             <>
               {/* Google Sign In */}
-              <Button variant="outline" className="w-full mb-4 h-11 font-medium" onClick={handleGoogleLogin} disabled={loading}>
+              <Button variant="outline" className="w-full mb-5 h-11 font-medium border-border/50 hover:bg-secondary/50" onClick={handleGoogleLogin} disabled={loading}>
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -100,38 +117,43 @@ export default function AuthPage() {
                 Ingresar con Google
               </Button>
 
-              <div className="relative mb-4">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-                <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">o con email</span></div>
+              <div className="relative mb-5">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/30" /></div>
+                <div className="relative flex justify-center text-xs"><span className="bg-transparent px-3 text-muted-foreground/60 backdrop-blur-sm">o con email</span></div>
               </div>
 
-              <div className="flex mb-6 bg-muted rounded-lg p-1">
-                <button onClick={() => setMode('login')} className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${mode === 'login' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}>Iniciar Sesión</button>
-                <button onClick={() => setMode('register')} className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${mode === 'register' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}>Registrarse</button>
+              {/* Tab Switch */}
+              <div className="flex mb-6 bg-secondary/50 rounded-xl p-1 border border-border/30">
+                <button onClick={() => setMode('login')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${mode === 'login' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:text-foreground'}`}>Iniciar Sesión</button>
+                <button onClick={() => setMode('register')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${mode === 'register' ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:text-foreground'}`}>Registrarse</button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === 'register' && (
-                  <div>
-                    <label className="text-sm text-muted-foreground">Nombre</label>
-                    <Input value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre" className="bg-muted border-border mt-1" required />
+                  <div className="animate-fade-in">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre</label>
+                    <Input value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre" className="bg-secondary/50 border-border/50 mt-1.5 h-11" required />
                   </div>
                 )}
                 <div>
-                  <label className="text-sm text-muted-foreground">Email</label>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required className="bg-muted border-border mt-1" />
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required className="bg-secondary/50 border-border/50 mt-1.5 h-11" />
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Contraseña</label>
-                  <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-muted border-border mt-1" />
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contraseña</label>
+                  <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-secondary/50 border-border/50 mt-1.5 h-11" />
                 </div>
                 {mode === 'login' && (
-                  <button type="button" onClick={() => setMode('forgot')} className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                    ¿Olvidaste tu contraseña?
-                  </button>
+                  <div className="text-right">
+                    <button type="button" onClick={() => setMode('forgot')} className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
                 )}
-                <Button type="submit" disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold shadow-gold">
-                  {loading ? 'Cargando...' : mode === 'login' ? (
+                <Button type="submit" disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold h-11 shadow-gold hover:shadow-lg transition-shadow">
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  ) : mode === 'login' ? (
                     <><LogIn className="w-4 h-4 mr-2" />Ingresar</>
                   ) : (
                     <><UserPlus className="w-4 h-4 mr-2" />Crear Cuenta</>
@@ -142,7 +164,7 @@ export default function AuthPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-[11px] text-muted-foreground/40 mt-8">
           Exentry Imports © {new Date().getFullYear()} · Todos los derechos reservados
         </p>
       </div>
