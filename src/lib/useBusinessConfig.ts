@@ -53,23 +53,27 @@ export function useBusinessConfig() {
   }, [user]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (config.primaryColor) {
-      const hsl = hexToHSL(config.primaryColor);
-      root.style.setProperty('--primary', hsl);
-      root.style.setProperty('--ring', hsl);
-      root.style.setProperty('--sidebar-primary', hsl);
-      root.style.setProperty('--sidebar-ring', hsl);
-      root.style.setProperty('--accent', hsl);
-    }
-    if (config.secondaryColor) {
-      const hsl = hexToHSL(config.secondaryColor);
-      root.style.setProperty('--background', hsl);
-      root.style.setProperty('--sidebar-background', hsl);
-      root.style.setProperty('--primary-foreground', hsl);
-      root.style.setProperty('--sidebar-primary-foreground', hsl);
-    }
+    applyColors(config.primaryColor, config.secondaryColor);
   }, [config.primaryColor, config.secondaryColor]);
 
   return config;
+}
+
+export function applyColors(primaryHex: string, secondaryHex: string) {
+  const root = document.documentElement;
+  if (primaryHex && /^#[0-9A-Fa-f]{6}$/.test(primaryHex)) {
+    const hsl = hexToHSL(primaryHex);
+    root.style.setProperty('--primary', hsl);
+    root.style.setProperty('--ring', hsl);
+    root.style.setProperty('--sidebar-primary', hsl);
+    root.style.setProperty('--sidebar-ring', hsl);
+    root.style.setProperty('--accent', hsl);
+  }
+  if (secondaryHex && /^#[0-9A-Fa-f]{6}$/.test(secondaryHex)) {
+    const hsl = hexToHSL(secondaryHex);
+    root.style.setProperty('--background', hsl);
+    root.style.setProperty('--sidebar-background', hsl);
+    root.style.setProperty('--primary-foreground', hsl);
+    root.style.setProperty('--sidebar-primary-foreground', hsl);
+  }
 }
