@@ -17,11 +17,20 @@ export default function DebtsPage() {
   const [debts, setDebts] = useState<any[]>([]);
   const [payingDebt, setPayingDebt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const reload = async () => { if (user) { setDebts(await getDebtsDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
-  const pending = debts.filter(d => d.status !== 'paid');
-  const paid = debts.filter(d => d.status === 'paid');
+  const dateFiltered = debts.filter(d => {
+    if (!dateFrom) return true;
+    const dt = new Date(d.date);
+    if (dt < dateFrom) return false;
+    if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (dt > end) return false; }
+    return true;
+  });
+  const pending = dateFiltered.filter(d => d.status !== 'paid');
+  const paid = dateFiltered.filter(d => d.status === 'paid');
   const totalPending = pending.reduce((s, d) => s + Number(d.remaining_ars), 0);
 
   const handleDelete = async (d: any) => {
