@@ -206,21 +206,23 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
     <form onSubmit={handleSubmit} className="space-y-4">
       <div><label className="text-sm text-muted-foreground">Producto</label>
         <Select value={productId} onValueChange={setProductId}><SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-          <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+          <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({formatUSD(Number(p.cost_usd))})</SelectItem>)}</SelectContent>
         </Select>
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div><label className="text-sm text-muted-foreground">Cantidad</label><Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">TC</label><Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border" /></div>
+        <div><label className="text-sm text-muted-foreground">TC (auto)</label><Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border" /></div>
         <div><label className="text-sm text-muted-foreground">Fecha</label><Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
       </div>
       <div><label className="text-sm text-muted-foreground">Proveedor</label><Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Opcional" className="bg-muted border-border" /></div>
       {product && (
-        <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal:</span><span>{formatUSD(unitCost * qty)}</span></div>
+        <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
+          <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span>{formatUSD(unitCost)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal ({qty} uds):</span><span>{formatUSD(unitCost * qty)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-warning">{formatUSD(customsFee)}</span></div>
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total USD:</span><span>{formatUSD(totalUSD)}</span></div>
           <div className="flex justify-between font-bold"><span>Total ARS:</span><span className="text-primary">{formatARS(totalARS)}</span></div>
+          <div className="flex justify-between text-xs border-t border-border pt-1"><span className="text-muted-foreground">Costo/u con pasero:</span><span>{formatUSD(qty > 0 ? totalUSD / qty : 0)}</span></div>
         </div>
       )}
       <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
