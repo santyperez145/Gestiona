@@ -77,6 +77,3 @@ export function applyColors(primaryHex: string, secondaryHex: string) {
     root.style.setProperty('--sidebar-primary-foreground', hsl);
   }
 }
-
-  return config;
-}
