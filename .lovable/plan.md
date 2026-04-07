@@ -1,103 +1,124 @@
 
 
-# Plan: Profesionalizar el Sistema Exentry Imports v6.0
+# Plan: Exentry Imports v7.0 — Version Final Profesional
 
 ## Resumen
 
-Mejoras integrales en arquitectura, UX, seguridad y funcionalidad para llevar el sistema a nivel comercial/revendible.
+Llevar el sistema al nivel final profesional con un nuevo modulo de Canjes/Influencers, mejoras criticas faltantes, y pulido completo. Despues de esto, no deberia quedar nada por agregar.
 
 ---
 
-## Fase 1 — Arquitectura y Calidad de Código
+## 1. Modulo de Canjes con Influencers (NUEVO)
 
-**Componentizar las páginas monolíticas.** Actualmente cada página (Dashboard 435 líneas, ProductsPage 276, SalesPage 231, etc.) tiene formularios inline y lógica mezclada. Extraer:
-- Componentes de formulario reutilizables: `SaleForm`, `PurchaseForm`, `ProductForm`, `DebtPaymentForm`
-- Componentes de tabla reutilizables: `DataTable` genérico con sorting, paginación y búsqueda integrada
-- KPI cards como componente independiente: `KPICard`
-- Dashboard charts como componentes separados: `SalesChart`, `CategoryPieChart`, `GaugeChart`, `MonthlyTrendChart`
+**Tabla `influencer_exchanges`** en base de datos:
+- `id`, `user_id`, `influencer_name`, `influencer_instagram`, `influencer_followers` (int), `product_id`, `product_name`, `quantity`, `product_value_ars` (valor de mercado del producto entregado), `exchange_type` (canje | regalo | colaboracion), `status` (pendiente | entregado | publicado | completado), `expected_posts` (int), `actual_posts` (int), `notes`, `delivery_date`, `created_at`
 
-**Custom hooks por dominio:** `useProducts`, `useSales`, `usePurchases`, `useDebts`, `useSettings` — encapsulan la lógica de carga, CRUD y estado, reemplazando los `useState`/`useEffect` repetitivos en cada página.
+**Pagina `/canjes`** con:
+- KPIs: total canjes, valor total entregado, tasa de cumplimiento (publicaciones hechas vs esperadas), influencers activos
+- Formulario para registrar canje: seleccionar producto del inventario, influencer (nombre + @instagram + seguidores), tipo de canje, posts esperados, notas
+- Al registrar un canje se descuenta stock automaticamente (como una venta pero sin ingreso de dinero)
+- Lista de canjes con filtros por estado y buscador
+- Seguimiento: marcar cuando la influencer publico, registrar cantidad de posts reales
+- Calculo de ROI estimado del canje: valor del producto vs alcance estimado (seguidores * posts)
 
-**Eliminar `any` types.** Reemplazar todos los `any` por interfaces tipadas (ya existen en `types.ts` pero no se usan en las páginas reales).
-
----
-
-## Fase 2 — Funcionalidades Faltantes Críticas
-
-1. **Edición de ventas y compras.** Actualmente solo se pueden crear y eliminar, no editar. Agregar modal de edición con recalculación de stock y ganancias.
-
-2. **Confirmación antes de eliminar.** Ningún módulo tiene diálogo de confirmación al borrar registros. Agregar `AlertDialog` en todas las acciones destructivas.
-
-3. **Paginación real en tablas.** Todas las tablas cargan todos los registros sin paginación. Implementar paginación client-side con 20-50 items por página.
-
-4. **Filtros por fecha en ventas, compras y deudas.** Agregar date range picker para filtrar por período (hoy, esta semana, este mes, personalizado).
-
-5. **Búsqueda global.** Agregar command palette (Ctrl+K) para buscar productos, clientes y ventas desde cualquier parte del sistema.
-
-6. **Password reset.** El auth no tiene flujo de recuperación de contraseña. Crear página `/reset-password` y botón "Olvidé mi contraseña" en AuthPage.
+**Ruta en sidebar:** icono Gift, entre Marketing y IA Insights
 
 ---
 
-## Fase 3 — Dashboard y Reportes Avanzados
+## 2. Mejoras Criticas Faltantes
 
-1. **Filtros temporales en Dashboard.** Actualmente muestra todos los datos acumulados. Agregar selector de período (7d, 30d, 90d, YTD, personalizado).
+### 2a. Edicion de ventas y compras
+- Agregar boton de edicion en ventas (actualmente solo se puede crear/eliminar)
+- Modal de edicion con recalculo de stock y ganancia
+- Lo mismo para compras
 
-2. **Comparativa de períodos.** "Este mes vs mes anterior" con indicadores de variación porcentual (flechas verde/rojo).
+### 2b. Log de auditoria visible en Admin
+- En AdminPage, agregar pestaña/seccion "Actividad Reciente" que muestre los ultimos 50 registros de `audit_logs`
+- Mostrar: fecha, usuario, accion, entidad, detalles
 
-3. **Reporte de rentabilidad por producto.** Tabla con ranking de productos por margen, ROI individual y velocidad de rotación.
+### 2c. Validacion de formularios mejorada
+- Agregar mensajes de error inline en todos los formularios (no solo toast)
+- Validar rangos numericos (precio > 0, stock >= 0, etc.)
 
-4. **Reporte impositivo detallado.** Cuando impuestos están activos, generar desglose mensual de IVA, IIBB y Monotributo para facilitar declaraciones.
-
----
-
-## Fase 4 — UX y Pulido Visual
-
-1. **Loading skeletons.** Reemplazar spinners genéricos por skeleton loaders que reflejen la estructura de cada página.
-
-2. **Empty states con ilustración.** Reemplazar los textos planos "No hay ventas" por empty states con ícono, mensaje descriptivo y CTA.
-
-3. **Breadcrumbs.** Agregar breadcrumbs en páginas internas para mejorar la navegación.
-
-4. **Sidebar colapsable en desktop.** Permitir colapsar el sidebar a solo íconos para ganar espacio.
-
-5. **Dark/Light mode toggle.** Agregar opción de tema claro en Ajustes (actualmente solo dark).
-
-6. **Animaciones de transición.** Agregar transiciones suaves entre páginas y al abrir/cerrar modales.
+### 2d. Busqueda en Command Palette
+- Agregar busqueda de clientes y ventas recientes al CommandPalette (actualmente solo busca paginas y productos)
 
 ---
 
-## Fase 5 — Seguridad y Admin
+## 3. Pulido UX Final
 
-1. **Ocultar Admin del sidebar para no-admins.** Actualmente todos ven el enlace Admin. Verificar rol antes de mostrar.
+### 3a. Breadcrumbs
+- Agregar breadcrumb sutil debajo del titulo de cada pagina ("Dashboard > Ventas > Nueva Venta")
 
-2. **Protección de ruta Admin.** Agregar guard en la ruta `/admin` que verifique `has_role` antes de renderizar.
+### 3b. Animaciones
+- Agregar `animate-fade-in` a las cards y modales para transiciones mas suaves
 
-3. **Audit log.** Tabla `audit_logs` que registre acciones críticas (eliminaciones, cambios de precio, modificaciones de settings) con timestamp y user_id.
+### 3c. Footer en sidebar
+- Mostrar version del sistema y nombre del negocio en el footer del sidebar
 
-4. **Validación de formularios.** Agregar validación con mensajes de error claros en todos los formularios (campos requeridos, rangos numéricos, formato de email).
+### 3d. Empty states mejorados en Marketing y IA
+- Usar el componente EmptyState existente en las paginas que aun no lo usan (Marketing, IA)
 
 ---
 
-## Detalles Técnicos
+## 4. Dashboard — Periodo comparativo
 
-### Archivos nuevos principales
-- `src/components/shared/DataTable.tsx` — tabla genérica con sort/paginación
-- `src/components/shared/KPICard.tsx` — card de métricas
-- `src/components/shared/ConfirmDialog.tsx` — diálogo de confirmación
-- `src/components/shared/DateRangePicker.tsx` — selector de rango de fechas
-- `src/components/shared/CommandPalette.tsx` — búsqueda global
-- `src/components/shared/SkeletonLoaders.tsx` — skeletons por módulo
-- `src/hooks/useProducts.ts`, `useSales.ts`, `usePurchases.ts`, etc.
-- `src/pages/ResetPasswordPage.tsx`
+- Agregar selector de periodo en el dashboard (7d, 30d, 90d, YTD)
+- Mostrar variacion porcentual vs periodo anterior en los KPI cards (flecha verde/roja con %)
 
-### Migración de base de datos
-- Tabla `audit_logs` (user_id, action, entity_type, entity_id, details JSONB, created_at)
-- Habilitar realtime en `audit_logs` para el panel Admin
+---
 
-### Orden de implementación sugerido
-1. Fase 2 (funcionalidades faltantes) — impacto inmediato en usabilidad
-2. Fase 5 (seguridad) — proteger datos existentes
-3. Fase 4 (UX) — mejorar experiencia
-4. Fase 1 (refactor) — mejorar mantenibilidad
-5. Fase 3 (reportes avanzados) — valor agregado
+## Detalles Tecnicos
+
+### Migracion de base de datos
+```sql
+CREATE TABLE public.influencer_exchanges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  influencer_name TEXT NOT NULL,
+  influencer_instagram TEXT,
+  influencer_followers INTEGER DEFAULT 0,
+  product_id UUID,
+  product_name TEXT NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  product_value_ars NUMERIC NOT NULL DEFAULT 0,
+  exchange_type TEXT NOT NULL DEFAULT 'canje',
+  status TEXT NOT NULL DEFAULT 'pendiente',
+  expected_posts INTEGER DEFAULT 1,
+  actual_posts INTEGER DEFAULT 0,
+  notes TEXT,
+  delivery_date TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.influencer_exchanges ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own exchanges"
+  ON public.influencer_exchanges FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+### Archivos nuevos
+- `src/pages/InfluencerExchangesPage.tsx` — Pagina completa de canjes
+- Funciones CRUD en `supabaseStore.ts` para influencer_exchanges
+
+### Archivos modificados
+- `src/App.tsx` — agregar ruta `/canjes`
+- `src/components/AppLayout.tsx` — agregar item en sidebar
+- `src/pages/SalesPage.tsx` — agregar edicion de ventas
+- `src/pages/PurchasesPage.tsx` — agregar edicion de compras
+- `src/pages/AdminPage.tsx` — agregar seccion de audit logs
+- `src/components/shared/CommandPalette.tsx` — agregar busqueda de clientes
+- `src/pages/Dashboard.tsx` — agregar filtro de periodo
+
+### Orden de implementacion
+1. Migracion DB para influencer_exchanges
+2. Modulo de Canjes (pagina + CRUD + sidebar)
+3. Edicion de ventas y compras
+4. Audit log visible en Admin
+5. Dashboard con filtro de periodo
+6. Pulido UX (breadcrumbs, animaciones, empty states)
 
