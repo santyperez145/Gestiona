@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
+import { applyColors } from "@/lib/useBusinessConfig";
 import { calculateProductProfits } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
