@@ -121,16 +121,19 @@ export default function PurchasesPage() {
             {paged.map(p => (
               <div key={p.id} className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-medium text-sm">{p.product_name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{p.product_name}</p>
                     <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString('es-AR')} · {p.supplier || 'Sin proveedor'}</p>
                   </div>
-                  <ConfirmDialog
-                    trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
-                    title="¿Eliminar compra?"
-                    confirmText="Eliminar"
-                    onConfirm={() => handleDelete(p)}
-                  />
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
+                    <ConfirmDialog
+                      trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
+                      title="¿Eliminar compra?"
+                      confirmText="Eliminar"
+                      onConfirm={() => handleDelete(p)}
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div><span className="text-muted-foreground block">Cant.</span><span>{p.quantity}</span></div>
