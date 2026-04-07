@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +17,9 @@ import AIInsightsPage from "@/pages/AIInsightsPage";
 import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
+import CommandPalette from "@/components/shared/CommandPalette";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,7 @@ function ProtectedRoutes() {
 
   return (
     <AppLayout>
+      <CommandPalette />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/productos" element={<ProductsPage />} />
@@ -60,7 +63,10 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <ProtectedRoutes />
+          <Routes>
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/*" element={<ProtectedRoutes />} />
+          </Routes>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

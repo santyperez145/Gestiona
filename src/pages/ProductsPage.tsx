@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import EmptyState from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import { logAudit } from "@/lib/auditLog";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -15,6 +19,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   electronico: 'bg-warning/15 text-warning',
 };
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
+const PAGE_SIZE = 30;
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -25,11 +30,13 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const reload = async () => {
     if (!user) return;
     const [p, s] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id)]);
-    setProducts(p); setSettings(s);
+    setProducts(p); setSettings(s); setLoading(false);
   };
   useEffect(() => { reload(); }, [user]);
 
@@ -42,7 +49,10 @@ export default function ProductsPage() {
     return true;
   });
 
-  const grouped = filtered.reduce<Record<string, any[]>>((acc, p) => {
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const grouped = paged.reduce<Record<string, any[]>>((acc, p) => {
     const key = p.brand || 'Sin marca';
     (acc[key] = acc[key] || []).push(p);
     return acc;
@@ -51,7 +61,14 @@ export default function ProductsPage() {
   const totalStock = filtered.reduce((s, p) => s + p.stock, 0);
   const totalValue = filtered.reduce((s, p) => s + (Number(p.total_cost_usd) * p.stock), 0);
 
-  if (!settings) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  const handleDelete = async (p: any) => {
+    await deleteProductDB(p.id);
+    if (user) await logAudit(user.id, 'delete', 'product', p.id, { name: p.name });
+    reload();
+    toast.success("Producto eliminado");
+  };
+
+  if (loading) return <TableSkeleton rows={8} cols={8} />;
 
   return (
     <div>
@@ -74,10 +91,10 @@ export default function ProductsPage() {
       <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted border-border h-9 text-sm" />
+          <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
         </div>
         <div className="flex gap-2">
-          <Select value={filterCat} onValueChange={setFilterCat}>
+          <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
             <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas cat.</SelectItem>
@@ -87,7 +104,7 @@ export default function ProductsPage() {
               <SelectItem value="electronico">Electrónico</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterStock} onValueChange={setFilterStock}>
+          <Select value={filterStock} onValueChange={v => { setFilterStock(v); setPage(0); }}>
             <SelectTrigger className="w-[120px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todo</SelectItem>
@@ -100,99 +117,115 @@ export default function ProductsPage() {
       </div>
 
       {!filtered.length ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg">{products.length ? 'Sin resultados' : 'No hay productos aún'}</p>
-        </div>
+        <EmptyState icon={Package} title={products.length ? 'Sin resultados' : 'No hay productos aún'} description="Agregá tu primer producto para empezar." actionLabel="Nuevo Producto" onAction={() => setOpen(true)} />
       ) : (
-        Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
-          <div key={brand} className="mb-6">
-            <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
-            </h2>
-
-            {/* Desktop table */}
-            <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="text-left p-3 font-medium">Nombre</th>
-                    <th className="text-center p-3 font-medium">Gen.</th>
-                    <th className="text-left p-3 font-medium">Cat.</th>
-                    <th className="text-right p-3 font-medium">Costo</th>
-                    <th className="text-right p-3 font-medium">Venta</th>
-                    <th className="text-right p-3 font-medium">Oferta</th>
-                    <th className="text-right p-3 font-medium">Ganancia</th>
-                    <th className="text-right p-3 font-medium">Stock</th>
-                    <th className="text-center p-3 font-medium">Acc.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((p: any) => (
-                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="p-3 font-medium max-w-[200px] truncate">{p.name}</td>
-                      <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
-                      <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
-                      <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
-                      <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
-                      <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
-                      <td className="p-3 text-right">
-                        <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
-                      </td>
-                      <td className="p-3 text-right">
-                        {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
-                          <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                        ) : <span className="text-success font-medium">{p.stock}</span>}
-                      </td>
-                      <td className="p-3 text-center space-x-1">
-                        <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="sm" onClick={async () => { await deleteProductDB(p.id); reload(); toast.success("Eliminado"); }}>
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </Button>
-                      </td>
+        <>
+          {Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
+            <div key={brand} className="mb-6">
+              <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
+              </h2>
+              {/* Desktop table */}
+              <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground">
+                      <th className="text-left p-3 font-medium">Nombre</th>
+                      <th className="text-center p-3 font-medium">Gen.</th>
+                      <th className="text-left p-3 font-medium">Cat.</th>
+                      <th className="text-right p-3 font-medium">Costo</th>
+                      <th className="text-right p-3 font-medium">Venta</th>
+                      <th className="text-right p-3 font-medium">Oferta</th>
+                      <th className="text-right p-3 font-medium">Ganancia</th>
+                      <th className="text-right p-3 font-medium">Stock</th>
+                      <th className="text-center p-3 font-medium">Acc.</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-2">
-              {items.map((p: any) => (
-                <div key={p.id} className="bg-card border border-border rounded-lg p-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{p.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
-                        <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                  </thead>
+                  <tbody>
+                    {items.map((p: any) => (
+                      <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="p-3 font-medium max-w-[200px] truncate">{p.name}</td>
+                        <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
+                        <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
+                        <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
+                        <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
+                        <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
+                        <td className="p-3 text-right">
+                          <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                        </td>
+                        <td className="p-3 text-right">
+                          {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
+                            <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                          ) : <span className="text-success font-medium">{p.stock}</span>}
+                        </td>
+                        <td className="p-3 text-center space-x-1">
+                          <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                          <ConfirmDialog
+                            trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                            title="¿Eliminar producto?"
+                            description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
+                            confirmText="Eliminar"
+                            onConfirm={() => handleDelete(p)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-2">
+                {items.map((p: any) => (
+                  <div key={p.id} className="bg-card border border-border rounded-lg p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{p.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
+                          <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>
+                        <ConfirmDialog
+                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
+                          title="¿Eliminar producto?"
+                          confirmText="Eliminar"
+                          onConfirm={() => handleDelete(p)}
+                        />
                       </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => { await deleteProductDB(p.id); reload(); toast.success("Eliminado"); }}>
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div><span className="text-muted-foreground block">Costo</span><span>{formatUSD(Number(p.total_cost_usd))}</span></div>
+                      <div><span className="text-muted-foreground block">Venta</span><span>{formatARS(Number(p.sale_price_ars))}</span></div>
+                      <div><span className="text-muted-foreground block">Ganancia</span>
+                        <span className={Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                      <span className="text-xs text-muted-foreground">Stock:</span>
+                      {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
+                        <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                      ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div><span className="text-muted-foreground block">Costo</span><span>{formatUSD(Number(p.total_cost_usd))}</span></div>
-                    <div><span className="text-muted-foreground block">Venta</span><span>{formatARS(Number(p.sale_price_ars))}</span></div>
-                    <div><span className="text-muted-foreground block">Ganancia</span>
-                      <span className={Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(p.profit_per_unit_ars))}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                    <span className="text-xs text-muted-foreground">Stock:</span>
-                    {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
-                      <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                    ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))
+          ))}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -207,6 +240,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [salePriceARS, setSalePriceARS] = useState(product?.sale_price_ars?.toString() || '');
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
+  const [description, setDescription] = useState(product?.description || '');
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
@@ -216,9 +250,10 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !costUSD) { toast.error("Completá nombre y costo"); return; }
+    if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
+    if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     const data = {
-      name: name.trim(), brand: brand.trim(), category, gender,
+      name: name.trim(), brand: brand.trim(), category, gender, description: description.trim() || null,
       cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
       sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
@@ -226,8 +261,10 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     };
     if (product) {
       await updateProductDB(product.id, data);
+      await logAudit(userId, 'update', 'product', product.id, { name: name.trim(), changes: data });
     } else {
       await addProductDB({ ...data, user_id: userId });
+      await logAudit(userId, 'create', 'product', undefined, { name: name.trim() });
     }
     toast.success(product ? "Producto actualizado" : "Producto agregado");
     onSave();
@@ -235,7 +272,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div><label className="text-sm text-muted-foreground">Nombre</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border" /></div>
+      <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border" required /></div>
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value)} className="bg-muted border-border" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>
@@ -250,15 +287,19 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
             <SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem><SelectItem value="unisex">Unisex</SelectItem></SelectContent>
           </Select>
         </div>
-        <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
+        <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Costo USD</label><Input type="number" step="0.01" value={costUSD} onChange={e => setCostUSD(e.target.value)} className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">Precio Venta ARS</label><Input type="number" value={salePriceARS} onChange={e => setSalePriceARS(e.target.value)} className="bg-muted border-border" /></div>
+        <div><label className="text-sm text-muted-foreground">Costo USD *</label><Input type="number" step="0.01" min="0" value={costUSD} onChange={e => setCostUSD(e.target.value)} className="bg-muted border-border" required /></div>
+        <div><label className="text-sm text-muted-foreground">Precio Venta ARS</label><Input type="number" min="0" value={salePriceARS} onChange={e => setSalePriceARS(e.target.value)} className="bg-muted border-border" /></div>
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Precio c/Descuento ARS (opcional)</label>
-        <Input type="number" value={discountPriceARS} onChange={e => setDiscountPriceARS(e.target.value)} placeholder="Dejar vacío si no tiene oferta" className="bg-muted border-border" />
+        <Input type="number" min="0" value={discountPriceARS} onChange={e => setDiscountPriceARS(e.target.value)} placeholder="Dejar vacío si no tiene oferta" className="bg-muted border-border" />
+      </div>
+      <div>
+        <label className="text-sm text-muted-foreground">Descripción (opcional)</label>
+        <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
       </div>
       {cost > 0 && salePrice > 0 && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">

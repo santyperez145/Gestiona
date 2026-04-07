@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, Percent, AlertTriangle, Bell } from "lucide-react";
+import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
@@ -161,11 +162,7 @@ export default function Dashboard() {
     })();
   }, [user]);
 
-  if (loading || !stats) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },

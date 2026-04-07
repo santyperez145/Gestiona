@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard } from "lucide-react";
 import { calculateProductProfits } from "@/lib/supabaseStore";
+import { logAudit } from "@/lib/auditLog";
+import { FormSkeleton } from "@/components/shared/PageSkeleton";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -20,8 +22,8 @@ export default function SettingsPage() {
   const [taxMonotributo, setTaxMonotributo] = useState('0');
   const [productCount, setProductCount] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Multi-tenant
   const [businessName, setBusinessName] = useState('Exentry Imports');
   const [logoUrl, setLogoUrl] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#D4A843');
@@ -45,6 +47,7 @@ export default function SettingsPage() {
       setSecondaryColor((s as any).secondary_color || '#1A1A2E');
       const products = await getProductsDB(user.id);
       setProductCount(products.length);
+      setLoading(false);
     })();
   }, [user]);
 
@@ -84,6 +87,7 @@ export default function SettingsPage() {
         primary_color: primaryColor,
         secondary_color: secondaryColor,
       });
+      await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
     } catch (err: any) {
       toast.error("Error al guardar: " + err.message);
@@ -112,15 +116,27 @@ export default function SettingsPage() {
     toast.success(`${count} productos recalculados con TC $${rate}`);
   };
 
-  return (
+  if (loading) return (
     <div>
       <h1 className="text-2xl md:text-3xl font-display font-bold mb-1">Ajustes</h1>
+      <p className="text-muted-foreground mb-6 md:mb-8">Cargando configuración...</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><FormSkeleton /><FormSkeleton /></div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-2xl md:text-3xl font-display font-bold">Ajustes</h1>
+        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+          <Keyboard className="w-3 h-3" />Ctrl+K búsqueda rápida
+        </div>
+      </div>
       <p className="text-muted-foreground mb-6 md:mb-8">Configuración general de {businessName}</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Left column */}
         <div className="space-y-4 md:space-y-6">
-          {/* Business branding */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-lg flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
@@ -156,10 +172,8 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Estos colores y logo se aplicarán en el sidebar y reportes exportados.</p>
           </div>
 
-          {/* Financial params */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4 md:space-y-5">
             <h2 className="font-display font-semibold text-lg flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
@@ -187,7 +201,6 @@ export default function SettingsPage() {
 
         {/* Right column */}
         <div className="space-y-4 md:space-y-6">
-          {/* Tax Module */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-lg flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
@@ -195,18 +208,9 @@ export default function SettingsPage() {
             </div>
             {taxEnabled ? (
               <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-muted-foreground">IVA (%)</label>
-                  <Input type="number" step="0.1" value={taxIva} onChange={e => setTaxIva(e.target.value)} className="bg-muted border-border mt-1" />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Ingresos Brutos (%)</label>
-                  <Input type="number" step="0.1" value={taxIibb} onChange={e => setTaxIibb(e.target.value)} className="bg-muted border-border mt-1" />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Monotributo mensual (ARS)</label>
-                  <Input type="number" value={taxMonotributo} onChange={e => setTaxMonotributo(e.target.value)} className="bg-muted border-border mt-1" />
-                </div>
+                <div><label className="text-sm text-muted-foreground">IVA (%)</label><Input type="number" step="0.1" value={taxIva} onChange={e => setTaxIva(e.target.value)} className="bg-muted border-border mt-1" /></div>
+                <div><label className="text-sm text-muted-foreground">Ingresos Brutos (%)</label><Input type="number" step="0.1" value={taxIibb} onChange={e => setTaxIibb(e.target.value)} className="bg-muted border-border mt-1" /></div>
+                <div><label className="text-sm text-muted-foreground">Monotributo mensual (ARS)</label><Input type="number" value={taxMonotributo} onChange={e => setTaxMonotributo(e.target.value)} className="bg-muted border-border mt-1" /></div>
                 <p className="text-xs text-muted-foreground">Los impuestos se descontarán de la ganancia bruta en reportes y dashboard.</p>
               </div>
             ) : (
@@ -222,7 +226,8 @@ export default function SettingsPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Cloud ☁️</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Activo ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">5.0</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-success">Activo ✓</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">6.0</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{user?.email}</span></div>
             </div>
           </div>
@@ -232,7 +237,7 @@ export default function SettingsPage() {
               <Shield className="w-4 h-4 text-success" />Seguridad
             </h2>
             <p className="text-sm text-muted-foreground">
-              Tus datos están protegidos en la nube con autenticación y cifrado. Cada usuario solo puede ver sus propios datos. Sistema multi-tenant con aislamiento completo.
+              Datos protegidos con autenticación, cifrado y auditoría de acciones. Cada usuario solo ve sus propios datos. Sistema multi-tenant con aislamiento completo.
             </p>
           </div>
         </div>
