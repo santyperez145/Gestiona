@@ -183,13 +183,20 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná producto y cantidad"); return; }
-    await addPurchaseDB({
-      user_id: userId, product_id: productId, product_name: product!.name,
+    const purchaseData = {
+      product_id: productId, product_name: product!.name,
       quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
       total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date, supplier,
-    });
-    await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty });
-    toast.success("Compra registrada");
+    };
+    if (editItem) {
+      await updatePurchaseDB(editItem.id, purchaseData, editItem);
+      await logAudit(userId, 'update', 'purchase', editItem.id, { product: product!.name, totalUSD, qty });
+      toast.success("Compra actualizada");
+    } else {
+      await addPurchaseDB({ user_id: userId, ...purchaseData });
+      await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty });
+      toast.success("Compra registrada");
+    }
     onSave();
   };
 
