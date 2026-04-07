@@ -46,7 +46,10 @@ export default function AdminPage() {
     const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
     const admin = roleData?.some(r => r.role === 'admin') || false;
     setIsAdmin(admin);
-    if (admin) await loadVendorData();
+    if (admin) {
+      await loadVendorData();
+      getAuditLogsDB(50).then(setAuditLogs).catch(() => {});
+    }
     setLoading(false);
   };
 
