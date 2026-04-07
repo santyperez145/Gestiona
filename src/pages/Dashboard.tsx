@@ -197,13 +197,26 @@ export default function Dashboard() {
 
   const tooltipStyle = { background: 'hsl(220, 18%, 12%)', border: '1px solid hsl(220, 15%, 18%)', borderRadius: 8, color: 'hsl(40, 20%, 92%)' };
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Buenos días';
+    if (h < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  })();
+
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 gap-1">
-        <h1 className="text-2xl md:text-3xl font-display font-bold">Dashboard</h1>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">{greeting} 👋</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${CATEGORIES.find(c => c.value === filterCat)?.label}`}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="bg-card border-border w-[200px] h-9 text-sm">
+            <SelectTrigger className="bg-card border-border/50 w-[200px] h-9 text-sm rounded-lg">
               <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
@@ -213,23 +226,29 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
-      <p className="text-muted-foreground text-sm mb-4 md:mb-6">
-        {filterCat === 'all' ? 'Resumen general de Exentry Imports' : `Filtrado: ${CATEGORIES.find(c => c.value === filterCat)?.label}`}
-      </p>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
-        {kpiCards.map(c => (
-          <div key={c.label} className="bg-card border border-border rounded-lg p-3 md:p-4 shadow-card hover:border-primary/30 transition-colors">
-            <div className="flex items-center justify-between mb-1 md:mb-2">
-              <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider leading-tight">{c.label}</span>
-              <c.icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${c.color} shrink-0`} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
+        {kpiCards.map((c, i) => (
+          <div key={c.label} className="group bg-card border border-border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{c.label}</span>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                c.color === 'text-success' ? 'bg-success/10' : 
+                c.color === 'text-destructive' ? 'bg-destructive/10' : 
+                c.color === 'text-warning' ? 'bg-warning/10' : 
+                c.color === 'text-accent' ? 'bg-accent/10' : 'bg-primary/10'
+              } group-hover:scale-110 transition-transform duration-200`}>
+                <c.icon className={`w-4 h-4 ${c.color}`} />
+              </div>
             </div>
-            <p className="text-base md:text-xl font-bold font-display">{c.value}</p>
-            <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 truncate">{c.sub}</p>
+            <p className="text-lg md:text-xl font-bold font-display tracking-tight">{c.value}</p>
+            <p className="text-[10px] md:text-[11px] text-muted-foreground/60 mt-0.5 truncate">{c.sub}</p>
           </div>
         ))}
       </div>
