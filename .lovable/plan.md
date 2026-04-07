@@ -1,105 +1,89 @@
 
 
-# Plan: Optimización Mobile + Catálogo Web Compartible en Tiempo Real
+# Plan: Roles (Admin/Vendedor/Viewer) + Seguridad + Catálogo Público Seguro
 
 ## Resumen
 
-Dos mejoras principales:
-1. **Optimización mobile completa** de todas las páginas del sistema
-2. **Catálogo web público en tiempo real** que reemplaza el workflow actual de Canva — un link compartible en Instagram que se actualiza solo cuando cambian precios o stock
+Implementar sistema de 3 roles con restricciones reales en DB y UI, proteger datos sensibles del catálogo público, y actualizar todas las páginas afectadas.
 
 ---
 
-## 1. Catálogo Público Web Optimizado para Instagram
+## 1. Migración de Base de Datos
 
-El catálogo público actual (`/catalogo/:userId`) ya existe y tiene realtime, pero necesita mejoras para reemplazar Canva:
+**SQL a ejecutar:**
 
-**Mejoras al catálogo público:**
-- Diseño visual tipo "tienda online" optimizado para mobile (Instagram abre links en browser mobile)
-- Header con logo, nombre del negocio y colores de marca (leídos de settings)
-- Grid de productos con fotos grandes, nombre, marca, y precios bien separados (efectivo/transferencia vs tarjeta)
-- Filtro por categoría visible como chips/tabs horizontales
-- Badge de descuento prominente
-- Footer con contacto/Instagram del negocio
-- Meta tags Open Graph para que al compartir en Instagram/WhatsApp se vea preview con imagen y título
-- El link ya se actualiza en tiempo real (realtime habilitado) — no necesitás tocar nada en Instagram, el mismo link siempre muestra datos actualizados
+- Agregar `'viewer'` al enum `app_role`
+- Crear function `get_user_role(uuid)` (security definer) que retorna el rol o `'viewer'` por defecto
+- Crear function `is_approved(uuid)` que verifica si el usuario tiene rol asignado (admin o vendedor)
+- Actualizar trigger `auto_assign_admin`: primer usuario = admin, resto no recibe rol (queda como viewer implícito)
+- Crear vista `products_public` (solo campos no sensibles: name, brand, category, gender, sale_price_ars, discount_price_ars, stock, image_url, description, user_id) — sin cost_usd, profit, customs
+- Crear vista `settings_public` (solo business_name, logo_url, primary_color, secondary_color, user_id)
+- Actualizar RLS en `products`: quitar policy pública "Public can read products" sobre tabla base, agregar SELECT público solo en la vista
+- Actualizar RLS en `settings`: quitar "Public can read settings" sobre tabla base, agregar SELECT público solo en la vista
+- Actualizar RLS en tablas de datos para verificar rol:
+  - `products`, `purchases`, `marketing_posts`, `influencer_exchanges`, `settings`: solo admin (CRUD completo)
+  - `sales`: admin = todo, vendedor = INSERT + SELECT propias
+  - `debts`: admin = todo, vendedor = SELECT propias
 
-**Archivos:** `src/pages/PublicCatalogPage.tsx`, `src/pages/CatalogPage.tsx`, `index.html` (meta tags)
+## 2. Hook `useUserRole`
 
----
+Nuevo archivo `src/lib/useUserRole.ts`:
+- Consulta `user_roles` para obtener el rol del usuario actual
+- Retorna `{ role: 'admin' | 'vendedor' | 'viewer', loading: boolean }`
+- Cache con estado local
 
-## 2. Optimización Mobile de Todas las Páginas
+## 3. Gate de Acceso en App.tsx
 
-Revisar y mejorar responsive en cada página:
+- Importar `useUserRole` en `ProtectedRoutes`
+- Si `role === 'viewer'`: mostrar pantalla "Esperando aprobación del administrador" con mensaje de contactar al admin + link al catálogo público
+- Si `role === 'vendedor'`: solo permitir rutas `/`, `/ventas`, `/clientes`
+- Si `role === 'admin'`: acceso completo
 
-**Dashboard:** 
-- KPIs en grid 2 columnas en mobile (ya parcialmente hecho)
-- Charts apilados verticalmente con scroll
-- Selector de categoría como dropdown compacto
+## 4. AppLayout — Sidebar Filtrado por Rol
 
-**ProductsPage:**
-- Tablas convertidas a cards en mobile
-- Formulario de producto en modal full-screen en mobile
-- Botones de acción como iconos compactos
+- Importar `useUserRole`
+- Filtrar `navItems` según rol:
+  - **vendedor**: Dashboard, Ventas, Clientes solamente
+  - **admin**: todo + Admin
+  - **viewer**: no llega aquí (gateado en App.tsx)
 
-**SalesPage / PurchasesPage / DebtsPage:**
-- Tablas con scroll horizontal o convertidas a cards en mobile
-- Formularios adaptados a pantalla completa
-- Filtros colapsables
+## 5. SalesPage — Restricciones para Vendedor
 
-**CatalogPage (interno):**
-- Grid 1 columna en mobile muy pequeño, 2 columnas en mobile normal
-- Botones de compartir/descargar sticky en bottom
+- Vendedor puede crear ventas pero NO editar ni eliminar
+- Ocultar botones Edit y Delete si rol !== 'admin'
+- El botón "Nueva Venta" sigue visible
 
-**InfluencerExchangesPage / CustomersPage:**
-- Cards en lugar de tablas en mobile
+## 6. AdminPage — Selector de 3 Roles
 
-**SettingsPage:**
-- Formulario en columna única
-- Color picker adaptado
+- Agregar opción `viewer` al `AssignRoleDialog`
+- Badge con 3 colores: admin (dorado), vendedor (azul), viewer (gris)
+- Mostrar rol actual de cada usuario
+- Opción de eliminar rol (volver a viewer)
 
-**AppLayout (sidebar):**
-- Ya funciona con drawer mobile — verificar que no haya overflow
+## 7. Catálogo Público — Usar Vistas Seguras
 
-**Archivos:** Todas las páginas en `src/pages/`, `src/components/AppLayout.tsx`
-
----
-
-## 3. Meta Tags para Compartir en Redes
-
-Agregar meta tags dinámicos para que al pegar el link del catálogo en Instagram/WhatsApp se vea:
-- Título: "{Nombre Negocio} — Catálogo"
-- Descripción: "X productos disponibles"
-- Imagen: logo del negocio o imagen del primer producto
-
-Como es una SPA, los meta tags base van en `index.html` y se pueden mejorar con una edge function que sirva HTML con meta tags dinámicos para `/catalogo/:userId`.
-
-**Archivos:** `index.html`, nueva edge function `catalog-meta` (opcional)
+- `PublicCatalogPage.tsx`: cambiar queries de `products` a `products_public` y `settings` a `settings_public`
+- El PDF en `CatalogPage.tsx` ya usa los campos correctos (no muestra costos), no necesita cambios
 
 ---
 
-## Detalles Técnicos
+## Archivos a modificar/crear
 
-### Catálogo público mobile-first
-- CSS: grid-cols-1 en <400px, grid-cols-2 en >400px
-- Imágenes lazy loading con `loading="lazy"`
-- Sticky header con nombre del negocio
-- Scroll suave entre categorías
+| Archivo | Cambio |
+|---|---|
+| Migración SQL | enum + functions + vistas + RLS |
+| `src/lib/useUserRole.ts` | **Nuevo** — hook de rol |
+| `src/App.tsx` | Gate por rol en ProtectedRoutes |
+| `src/components/AppLayout.tsx` | Filtrar nav por rol |
+| `src/pages/SalesPage.tsx` | Ocultar edit/delete para vendedor |
+| `src/pages/AdminPage.tsx` | 3 roles + viewer badge |
+| `src/pages/PublicCatalogPage.tsx` | Usar vistas públicas |
 
-### Responsive tables → cards
-- Usar `useIsMobile()` hook existente
-- En mobile: renderizar `<div>` cards en lugar de `<table>`
-- Mantener todas las acciones (editar, eliminar) accesibles
-
-### Workflow Instagram
-- El usuario comparte el link `/catalogo/:userId` en su bio de Instagram
-- Cuando actualiza precios/stock, el link ya muestra los datos nuevos automáticamente (realtime ya implementado)
-- No necesita Canva ni regenerar nada
-
-### Orden de implementación
-1. Catálogo público mobile-first con diseño visual mejorado
-2. Meta tags Open Graph
-3. Responsive en Dashboard y ProductsPage
-4. Responsive en SalesPage, PurchasesPage, DebtsPage
-5. Responsive en páginas restantes
+## Orden de implementación
+1. Migración DB
+2. Hook useUserRole
+3. App.tsx + AppLayout (gate + nav)
+4. SalesPage restricciones
+5. AdminPage 3 roles
+6. PublicCatalogPage vistas seguras
 
