@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS, formatUSD, getAuditLogsDB } from "@/lib/supabaseStore";
-import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3 } from "lucide-react";
+import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
