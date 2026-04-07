@@ -253,8 +253,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
   const [description, setDescription] = useState(product?.description || '');
-  const [manualSalePrice, setManualSalePrice] = useState(false);
-  const [manualDiscountPrice, setManualDiscountPrice] = useState(false);
+  const [manualSalePrice, setManualSalePrice] = useState(!!product);
+  const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
@@ -262,23 +262,26 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const exchangeRate = Number(settings?.exchange_rate || 1695);
   const defaultDiscount = Number(settings?.default_discount_percent || 40);
 
-  // Auto-calculate sale price and discount price when cost changes
-  useEffect(() => {
-    if (cost <= 0 || product) return; // Don't auto-calc when editing
-    if (!manualSalePrice) {
-      const autoSale = (cost + cost * customsPercent / 100) * exchangeRate * 2;
-      setSalePriceARS(Math.round(autoSale).toString());
-    }
-  }, [cost, customsPercent, exchangeRate, manualSalePrice]);
+  // Computed auto values (always available for display)
+  const autoSalePrice = cost > 0 ? Math.round((cost + cost * customsPercent / 100) * exchangeRate * 2) : 0;
+  const currentSaleForDiscount = parseFloat(salePriceARS) || autoSalePrice;
+  const autoDiscountPrice = currentSaleForDiscount > 0 ? Math.round(currentSaleForDiscount * (1 - defaultDiscount / 100)) : 0;
 
+  // Auto-calculate sale price when cost changes (real-time)
   useEffect(() => {
-    const sp = parseFloat(salePriceARS) || 0;
-    if (sp <= 0 || product) return;
-    if (!manualDiscountPrice) {
-      const autoDiscount = sp * (1 - defaultDiscount / 100);
-      setDiscountPriceARS(Math.round(autoDiscount).toString());
+    if (cost <= 0) return;
+    if (!manualSalePrice) {
+      setSalePriceARS(autoSalePrice.toString());
     }
-  }, [salePriceARS, defaultDiscount, manualDiscountPrice]);
+  }, [cost, customsPercent, exchangeRate, manualSalePrice, autoSalePrice]);
+
+  // Auto-calculate discount price when sale price changes (real-time)
+  useEffect(() => {
+    if (currentSaleForDiscount <= 0) return;
+    if (!manualDiscountPrice) {
+      setDiscountPriceARS(autoDiscountPrice.toString());
+    }
+  }, [currentSaleForDiscount, defaultDiscount, manualDiscountPrice, autoDiscountPrice]);
 
   const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
 
