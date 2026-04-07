@@ -134,7 +134,7 @@ export default function SalesPage() {
                   <th className="text-right p-3 font-medium">Total</th>
                   <th className="text-right p-3 font-medium">Ganancia</th>
                   <th className="text-center p-3 font-medium">Estado</th>
-                  <th className="text-center p-3 font-medium">Acc.</th>
+                  {isAdmin && <th className="text-center p-3 font-medium">Acc.</th>}
                 </tr>
               </thead>
               <tbody>
