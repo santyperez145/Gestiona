@@ -30,16 +30,20 @@ const queryClient = new QueryClient();
 
 function ViewerGate() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="text-center max-w-md">
-        <ShieldAlert className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h1 className="text-2xl font-display font-bold mb-2">Esperando aprobación</h1>
-        <p className="text-muted-foreground mb-6">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse at 50% 0%, hsl(40, 72%, 52%, 0.06) 0%, hsl(225, 22%, 6%) 50%), hsl(225, 22%, 6%)' }}
+    >
+      <div className="text-center max-w-md animate-fade-in-up">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-muted border border-border mb-6">
+          <ShieldAlert className="w-9 h-9 text-muted-foreground" />
+        </div>
+        <h1 className="text-2xl font-display font-bold mb-3">Esperando aprobación</h1>
+        <p className="text-muted-foreground text-sm leading-relaxed mb-8">
           Tu cuenta fue registrada pero aún no tenés acceso al sistema. Contactá al administrador para que te asigne un rol.
         </p>
         <a
           href="/"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-gold text-primary-foreground font-semibold text-sm shadow-gold hover:shadow-lg transition-shadow"
         >
           <BookOpen className="w-4 h-4" /> Ver catálogo público
         </a>
