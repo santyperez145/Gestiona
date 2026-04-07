@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
