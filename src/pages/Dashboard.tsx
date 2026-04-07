@@ -1,14 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, Percent, AlertTriangle, Bell } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
 } from "recharts";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
+
+const CATEGORIES = [
+  { value: 'all', label: 'Todas las categorías' },
+  { value: 'perfume_arabe', label: 'Perfume Árabe' },
+  { value: 'perfume_diseñador', label: 'Perfume Diseñador' },
+  { value: 'vaper', label: 'Vaper' },
+  { value: 'electronico', label: 'Electrónico' },
+];
 
 function GaugeChart({ value, max, label, color }: { value: number; max: number; label: string; color: string }) {
   const pct = Math.min(Math.max(value / (max || 1), 0), 1);
@@ -34,8 +43,9 @@ function GaugeChart({ value, max, label, color }: { value: number; max: number; 
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<any>(null);
+  const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filterCat, setFilterCat] = useState('all');
 
   useEffect(() => {
     if (!user) return;
@@ -44,123 +54,132 @@ export default function Dashboard() {
       const [products, sales, purchases, debts, settings] = await Promise.all([
         getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id),
       ]);
-
-      const pendingDebts = debts.filter(d => d.status !== 'paid');
-      const totalSalesARS = sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
-      const grossProfitARS = sales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
-      const grossProfitUSD = sales.reduce((s: number, v: any) => s + Number(v.profit_usd), 0);
-      const totalPurchasesUSD = purchases.reduce((s: number, c: any) => s + Number(c.total_usd), 0);
-      const totalPurchasesARS = purchases.reduce((s: number, c: any) => s + Number(c.total_ars), 0);
-
-      const taxes = calculateTaxes(grossProfitARS, settings);
-
-      // Products by sales
-      const productSales: Record<string, any> = {};
-      sales.forEach((s: any) => {
-        if (!productSales[s.product_id]) productSales[s.product_id] = { qty: 0, revenue: 0, name: s.product_name, profit: 0 };
-        productSales[s.product_id].qty += s.quantity;
-        productSales[s.product_id].revenue += Number(s.total_ars);
-        productSales[s.product_id].profit += Number(s.profit_ars);
-      });
-      const topProducts = Object.values(productSales).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5);
-
-      // Monthly data
-      const monthMap: Record<string, any> = {};
-      sales.forEach((s: any) => {
-        const d = new Date(s.date);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0, count: 0, costARS: 0 };
-        monthMap[key].total += Number(s.total_ars);
-        monthMap[key].profit += Number(s.profit_ars);
-        monthMap[key].count += s.quantity;
-        monthMap[key].costARS += Number(s.cost_per_unit_usd) * Number(settings.exchange_rate) * s.quantity;
-      });
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-      const salesByMonth = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([m, data]: any) => {
-        const [y, mo] = m.split('-');
-        return {
-          month: `${monthNames[parseInt(mo) - 1]} ${y.slice(2)}`,
-          total: data.total, profit: data.profit, count: data.count,
-          margin: data.total > 0 ? (data.profit / data.total * 100) : 0,
-        };
-      });
-
-      // Category breakdown
-      const catMap: Record<string, { revenue: number; profit: number; count: number }> = {};
-      sales.forEach((s: any) => {
-        const prod = products.find((p: any) => p.id === s.product_id);
-        const cat = prod ? getCategoryLabel(prod.category) : 'Otro';
-        if (!catMap[cat]) catMap[cat] = { revenue: 0, profit: 0, count: 0 };
-        catMap[cat].revenue += Number(s.total_ars);
-        catMap[cat].profit += Number(s.profit_ars);
-        catMap[cat].count += s.quantity;
-      });
-
-      // Daily sales for the last 30 days
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const dailyMap: Record<string, { total: number; profit: number }> = {};
-      sales.forEach((s: any) => {
-        const d = new Date(s.date);
-        if (d >= thirtyDaysAgo) {
-          const key = d.toISOString().slice(0, 10);
-          if (!dailyMap[key]) dailyMap[key] = { total: 0, profit: 0 };
-          dailyMap[key].total += Number(s.total_ars);
-          dailyMap[key].profit += Number(s.profit_ars);
-        }
-      });
-      const dailySales = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, data]) => ({
-        date: new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
-        ...data,
-      }));
-
-      const customers = new Set(sales.filter((s: any) => s.customer_name).map((s: any) => s.customer_name));
-      const inventoryValueUSD = products.reduce((s: number, p: any) => s + (Number(p.total_cost_usd) * p.stock), 0);
-      const totalStock = products.reduce((s: number, p: any) => s + p.stock, 0);
-      const profitMargin = totalSalesARS > 0 ? (grossProfitARS / totalSalesARS) * 100 : 0;
-      const roi = totalPurchasesUSD > 0 ? (grossProfitUSD / totalPurchasesUSD) * 100 : 0;
-
-      // Paid vs unpaid sales
-      const paidSalesARS = sales.filter((s: any) => s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
-      const unpaidSalesARS = sales.filter((s: any) => !s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
-
-      // Low stock & out of stock products
-      const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 3);
-      const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
-
-      // Restock suggestions: products sold frequently but low/no stock
-      const restockSuggestions = Object.entries(productSales)
-        .map(([id, data]: any) => {
-          const prod = products.find((p: any) => p.id === id);
-          return prod ? { name: prod.name, stock: prod.stock, soldQty: data.qty, revenue: data.revenue } : null;
-        })
-        .filter((r: any) => r && r.stock <= 3)
-        .sort((a: any, b: any) => b.soldQty - a.soldQty)
-        .slice(0, 5);
-
-      setStats({
-        totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
-        totalPurchasesUSD, totalPurchasesARS,
-        totalDebtsARS: pendingDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0),
-        pendingDebts: pendingDebts.length,
-        lowStock: lowStockProducts.length,
-        outOfStock: outOfStockProducts.length,
-        lowStockProducts, outOfStockProducts, restockSuggestions,
-        grossProfitARS, grossProfitUSD,
-        netProfitARS: taxes.netProfit,
-        taxEnabled: settings.tax_enabled,
-        taxes,
-        profitMargin, roi,
-        avgSaleARS: sales.length > 0 ? totalSalesARS / sales.length : 0,
-        topProducts, salesByMonth, dailySales,
-        salesByCategory: Object.entries(catMap).map(([name, data]) => ({ name, value: data.revenue, profit: data.profit, count: data.count })),
-        uniqueCustomers: customers.size, inventoryValueUSD,
-        recentSales: sales.slice(0, 5),
-        paidSalesARS, unpaidSalesARS,
-      });
+      setRawData({ products, sales, purchases, debts, settings });
       setLoading(false);
     })();
   }, [user]);
+
+  const stats = useMemo(() => {
+    if (!rawData) return null;
+    const { products: allProducts, sales: allSales, purchases: allPurchases, debts, settings } = rawData;
+
+    // Filter by category: get product IDs in category, then filter sales/purchases
+    const products = filterCat === 'all' ? allProducts : allProducts.filter(p => p.category === filterCat);
+    const productIds = new Set(products.map(p => p.id));
+    const sales = filterCat === 'all' ? allSales : allSales.filter(s => productIds.has(s.product_id));
+    const purchases = filterCat === 'all' ? allPurchases : allPurchases.filter(p => productIds.has(p.product_id));
+
+    const pendingDebts = debts.filter((d: any) => d.status !== 'paid');
+    const totalSalesARS = sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const grossProfitARS = sales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+    const grossProfitUSD = sales.reduce((s: number, v: any) => s + Number(v.profit_usd), 0);
+    const totalPurchasesUSD = purchases.reduce((s: number, c: any) => s + Number(c.total_usd), 0);
+    const totalPurchasesARS = purchases.reduce((s: number, c: any) => s + Number(c.total_ars), 0);
+
+    const taxes = calculateTaxes(grossProfitARS, settings);
+
+    // Products by sales
+    const productSales: Record<string, any> = {};
+    sales.forEach((s: any) => {
+      if (!productSales[s.product_id]) productSales[s.product_id] = { qty: 0, revenue: 0, name: s.product_name, profit: 0 };
+      productSales[s.product_id].qty += s.quantity;
+      productSales[s.product_id].revenue += Number(s.total_ars);
+      productSales[s.product_id].profit += Number(s.profit_ars);
+    });
+    const topProducts = Object.values(productSales).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5);
+
+    // Monthly data
+    const monthMap: Record<string, any> = {};
+    sales.forEach((s: any) => {
+      const d = new Date(s.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0, count: 0, costARS: 0 };
+      monthMap[key].total += Number(s.total_ars);
+      monthMap[key].profit += Number(s.profit_ars);
+      monthMap[key].count += s.quantity;
+      monthMap[key].costARS += Number(s.cost_per_unit_usd) * Number(settings.exchange_rate) * s.quantity;
+    });
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const salesByMonth = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([m, data]: any) => {
+      const [y, mo] = m.split('-');
+      return {
+        month: `${monthNames[parseInt(mo) - 1]} ${y.slice(2)}`,
+        total: data.total, profit: data.profit, count: data.count,
+        margin: data.total > 0 ? (data.profit / data.total * 100) : 0,
+      };
+    });
+
+    // Category breakdown (use all products for pie chart, not filtered)
+    const catMap: Record<string, { revenue: number; profit: number; count: number }> = {};
+    allSales.forEach((s: any) => {
+      const prod = allProducts.find((p: any) => p.id === s.product_id);
+      const cat = prod ? getCategoryLabel(prod.category) : 'Otro';
+      if (!catMap[cat]) catMap[cat] = { revenue: 0, profit: 0, count: 0 };
+      catMap[cat].revenue += Number(s.total_ars);
+      catMap[cat].profit += Number(s.profit_ars);
+      catMap[cat].count += s.quantity;
+    });
+
+    // Daily sales for the last 30 days
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const dailyMap: Record<string, { total: number; profit: number }> = {};
+    sales.forEach((s: any) => {
+      const d = new Date(s.date);
+      if (d >= thirtyDaysAgo) {
+        const key = d.toISOString().slice(0, 10);
+        if (!dailyMap[key]) dailyMap[key] = { total: 0, profit: 0 };
+        dailyMap[key].total += Number(s.total_ars);
+        dailyMap[key].profit += Number(s.profit_ars);
+      }
+    });
+    const dailySales = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, data]) => ({
+      date: new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
+      ...data,
+    }));
+
+    const customers = new Set(sales.filter((s: any) => s.customer_name).map((s: any) => s.customer_name));
+    const inventoryValueUSD = products.reduce((s: number, p: any) => s + (Number(p.total_cost_usd) * p.stock), 0);
+    const totalStock = products.reduce((s: number, p: any) => s + p.stock, 0);
+    const profitMargin = totalSalesARS > 0 ? (grossProfitARS / totalSalesARS) * 100 : 0;
+    const roi = totalPurchasesUSD > 0 ? (grossProfitUSD / totalPurchasesUSD) * 100 : 0;
+
+    const paidSalesARS = sales.filter((s: any) => s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const unpaidSalesARS = sales.filter((s: any) => !s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+
+    const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 3);
+    const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
+
+    const restockSuggestions = Object.entries(productSales)
+      .map(([id, data]: any) => {
+        const prod = products.find((p: any) => p.id === id);
+        return prod ? { name: prod.name, stock: prod.stock, soldQty: data.qty, revenue: data.revenue } : null;
+      })
+      .filter((r: any) => r && r.stock <= 3)
+      .sort((a: any, b: any) => b.soldQty - a.soldQty)
+      .slice(0, 5);
+
+    return {
+      totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
+      totalPurchasesUSD, totalPurchasesARS,
+      totalDebtsARS: pendingDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0),
+      pendingDebts: pendingDebts.length,
+      lowStock: lowStockProducts.length,
+      outOfStock: outOfStockProducts.length,
+      lowStockProducts, outOfStockProducts, restockSuggestions,
+      grossProfitARS, grossProfitUSD,
+      netProfitARS: taxes.netProfit,
+      taxEnabled: settings.tax_enabled,
+      taxes,
+      profitMargin, roi,
+      avgSaleARS: sales.length > 0 ? totalSalesARS / sales.length : 0,
+      topProducts, salesByMonth, dailySales,
+      salesByCategory: Object.entries(catMap).map(([name, data]) => ({ name, value: data.revenue, profit: data.profit, count: data.count })),
+      uniqueCustomers: customers.size, inventoryValueUSD,
+      recentSales: sales.slice(0, 5),
+      paidSalesARS, unpaidSalesARS,
+    };
+  }, [rawData, filterCat]);
 
   if (loading || !stats) return <DashboardSkeleton />;
 
@@ -182,9 +201,24 @@ export default function Dashboard() {
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 gap-1">
         <h1 className="text-2xl md:text-3xl font-display font-bold">Dashboard</h1>
-        <span className="text-xs text-muted-foreground">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <div className="flex items-center gap-2">
+          <Select value={filterCat} onValueChange={setFilterCat}>
+            <SelectTrigger className="bg-card border-border w-[200px] h-9 text-sm">
+              <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map(c => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
       </div>
-      <p className="text-muted-foreground text-sm mb-4 md:mb-6">Resumen general de Exentry Imports</p>
+      <p className="text-muted-foreground text-sm mb-4 md:mb-6">
+        {filterCat === 'all' ? 'Resumen general de Exentry Imports' : `Filtrado: ${CATEGORIES.find(c => c.value === filterCat)?.label}`}
+      </p>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
