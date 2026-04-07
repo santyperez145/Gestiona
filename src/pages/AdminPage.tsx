@@ -282,7 +282,7 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
-      )}
+      </>)}
 
       {/* Audit Log Tab */}
       {activeTab === 'audit' && (
