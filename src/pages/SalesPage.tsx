@@ -178,7 +178,7 @@ export default function SalesPage() {
   );
 }
 
-function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
+function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [productId, setProductId] = useState('');
