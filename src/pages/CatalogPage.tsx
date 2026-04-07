@@ -1,13 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSettingsDB, formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Package, Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Package, Tag, Download, FileText, Share2 } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import { toast } from "sonner";
 
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
+
+function formatARSPlain(n: number) {
+  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+}
 
 export default function CatalogPage() {
   const { user } = useAuth();
@@ -16,6 +22,7 @@ export default function CatalogPage() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -33,13 +40,173 @@ export default function CatalogPage() {
     return true;
   });
 
+  const generatePDF = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      await import('jspdf-autotable');
+
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageW = doc.internal.pageSize.getWidth();
+      const businessName = settings?.business_name || 'Exentry Imports';
+      const primaryColor = settings?.primary_color || '#D4A843';
+      const r = parseInt(primaryColor.slice(1, 3), 16);
+      const g = parseInt(primaryColor.slice(3, 5), 16);
+      const b = parseInt(primaryColor.slice(5, 7), 16);
+
+      // Header
+      doc.setFillColor(26, 26, 46);
+      doc.rect(0, 0, pageW, 35, 'F');
+      doc.setFillColor(r, g, b);
+      doc.rect(0, 35, pageW, 2, 'F');
+
+      doc.setTextColor(r, g, b);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text(businessName, 15, 18);
+
+      doc.setTextColor(200, 200, 200);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('CATÁLOGO DE PRODUCTOS', 15, 26);
+
+      const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+      doc.setTextColor(150, 150, 150);
+      doc.setFontSize(8);
+      doc.text(today, pageW - 15, 26, { align: 'right' });
+      doc.text(`${filtered.length} productos disponibles`, pageW - 15, 31, { align: 'right' });
+
+      // Group by category
+      const categories = [...new Set(filtered.map(p => p.category))];
+      let startY = 45;
+
+      for (const cat of categories) {
+        const catProducts = filtered.filter(p => p.category === cat);
+
+        // Category header
+        if (startY > 260) {
+          doc.addPage();
+          startY = 20;
+        }
+
+        doc.setFillColor(r, g, b);
+        doc.roundedRect(15, startY - 4, pageW - 30, 8, 1, 1, 'F');
+        doc.setTextColor(26, 26, 46);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`  ${getCategoryLabel(cat).toUpperCase()}  (${catProducts.length})`, 18, startY + 1.5);
+        startY += 10;
+
+        // Table
+        const tableData = catProducts.map(p => [
+          p.name,
+          p.brand,
+          getGenderLabel(p.gender),
+          formatARSPlain(Number(p.sale_price_ars)),
+          p.discount_price_ars ? formatARSPlain(Number(p.discount_price_ars)) : '—',
+          `${p.stock}`,
+        ]);
+
+        (doc as any).autoTable({
+          startY,
+          head: [['Producto', 'Marca', 'Género', 'Precio Lista', 'Precio Oferta', 'Stock']],
+          body: tableData,
+          margin: { left: 15, right: 15 },
+          styles: {
+            fontSize: 8.5,
+            cellPadding: 2.5,
+            textColor: [220, 220, 220],
+            fillColor: [30, 30, 50],
+            lineColor: [50, 50, 70],
+            lineWidth: 0.2,
+          },
+          headStyles: {
+            fillColor: [40, 40, 65],
+            textColor: [r, g, b],
+            fontStyle: 'bold',
+            fontSize: 8,
+          },
+          alternateRowStyles: {
+            fillColor: [25, 25, 42],
+          },
+          columnStyles: {
+            0: { cellWidth: 50, fontStyle: 'bold' },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 22, halign: 'center' },
+            3: { cellWidth: 30, halign: 'right' },
+            4: { cellWidth: 30, halign: 'right', textColor: p => p ? [r, g, b] : [150, 150, 150] },
+            5: { cellWidth: 15, halign: 'center' },
+          },
+          didParseCell: (data: any) => {
+            // Highlight discount prices
+            if (data.column.index === 4 && data.cell.raw !== '—') {
+              data.cell.styles.textColor = [r, g, b];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          },
+        });
+
+        startY = (doc as any).lastAutoTable.finalY + 10;
+      }
+
+      // Footer on each page
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        const pH = doc.internal.pageSize.getHeight();
+        doc.setFillColor(26, 26, 46);
+        doc.rect(0, pH - 12, pageW, 12, 'F');
+        doc.setFillColor(r, g, b);
+        doc.rect(0, pH - 12, pageW, 0.5, 'F');
+        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(7);
+        doc.text(`${businessName} — Catálogo generado el ${today}`, 15, pH - 5);
+        doc.text(`Página ${i} de ${pageCount}`, pageW - 15, pH - 5, { align: 'right' });
+      }
+
+      doc.save(`${businessName.replace(/\s+/g, '_')}_Catalogo_${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success('Catálogo PDF generado exitosamente');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al generar el PDF');
+    } finally {
+      setGenerating(false);
+    }
+  }, [filtered, settings]);
+
+  const shareCatalog = useCallback(async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${settings?.business_name || 'Exentry Imports'} — Catálogo`,
+          text: `Mirá nuestro catálogo con ${filtered.length} productos disponibles`,
+          url: window.location.href,
+        });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Link del catálogo copiado al portapapeles');
+    }
+  }, [filtered, settings]);
+
   if (loading) return <TableSkeleton rows={6} cols={4} />;
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-display font-bold">Catálogo</h1>
-        <p className="text-muted-foreground text-sm">{filtered.length} productos disponibles</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Catálogo</h1>
+          <p className="text-muted-foreground text-sm">{filtered.length} productos disponibles</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={shareCatalog}>
+            <Share2 className="w-4 h-4 mr-1" /> Compartir
+          </Button>
+          <Button size="sm" onClick={generatePDF} disabled={generating || !filtered.length}>
+            <Download className="w-4 h-4 mr-1" />
+            {generating ? 'Generando...' : 'Descargar PDF'}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
