@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/lib/useUserRole";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { toast } from "sonner";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'] },
@@ -103,6 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className={`p-4 ${collapsed ? 'px-2' : ''} border-t border-sidebar-border space-y-2`}>
+          <NotificationBell collapsed={collapsed} />
           {!collapsed && (
             <>
               <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>
