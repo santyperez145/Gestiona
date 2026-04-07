@@ -55,7 +55,10 @@ export default function ProductsPage() {
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const grouped = paged.reduce<Record<string, any[]>>((acc, p) => {
-    const key = p.brand || 'Sin marca';
+    const rawKey = p.brand || 'Sin marca';
+    // Case-insensitive grouping: find existing key that matches ignoring case
+    const existingKey = Object.keys(acc).find(k => k.toLowerCase() === rawKey.toLowerCase());
+    const key = existingKey || rawKey;
     (acc[key] = acc[key] || []).push(p);
     return acc;
   }, {});
