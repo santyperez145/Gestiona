@@ -68,8 +68,8 @@ export default function SalesPage() {
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Venta</Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border max-w-lg">
-            <DialogHeader><DialogTitle className="font-display">Registrar Venta</DialogTitle></DialogHeader>
-            <SaleForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
+            <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
+            <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>
           </Dialog>
         </div>
