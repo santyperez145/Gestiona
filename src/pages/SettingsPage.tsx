@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
-import { calculateProductProfits } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -32,10 +32,21 @@ export default function SettingsPage() {
   const [secondaryColor, setSecondaryColor] = useState('#1A1A2E');
   const [uploading, setUploading] = useState(false);
 
+  // Payment method discounts
+  const [discountCash, setDiscountCash] = useState('10');
+  const [discountTransfer, setDiscountTransfer] = useState('5');
+  const [discountDebit, setDiscountDebit] = useState('0');
+  const [discountCredit, setDiscountCredit] = useState('0');
+
+  // Track original values for auto-recalculate prompt
+  const [origRate, setOrigRate] = useState('');
+  const [origCustoms, setOrigCustoms] = useState('');
+  const [origDiscount, setOrigDiscount] = useState('');
+
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const s = await getSettingsDB(user.id);
+      const s: any = await getSettingsDB(user.id);
       setExchangeRate(String(s.exchange_rate));
       setCustomsPercent(String(s.customs_percent));
       setDefaultDiscountPercent(String(s.default_discount_percent));
@@ -43,10 +54,17 @@ export default function SettingsPage() {
       setTaxIva(String(s.tax_iva_percent ?? 21));
       setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
       setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
-      setBusinessName((s as any).business_name || 'Exentry Imports');
-      setLogoUrl((s as any).logo_url || '');
-      setPrimaryColor((s as any).primary_color || '#D4A843');
-      setSecondaryColor((s as any).secondary_color || '#1A1A2E');
+      setBusinessName(s.business_name || 'Exentry Imports');
+      setLogoUrl(s.logo_url || '');
+      setPrimaryColor(s.primary_color || '#D4A843');
+      setSecondaryColor(s.secondary_color || '#1A1A2E');
+      setDiscountCash(String(s.discount_cash_percent ?? 10));
+      setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
+      setDiscountDebit(String(s.discount_debit_percent ?? 0));
+      setDiscountCredit(String(s.discount_credit_percent ?? 0));
+      setOrigRate(String(s.exchange_rate));
+      setOrigCustoms(String(s.customs_percent));
+      setOrigDiscount(String(s.default_discount_percent));
       const products = await getProductsDB(user.id);
       setProductCount(products.length);
       setLoading(false);
@@ -88,9 +106,25 @@ export default function SettingsPage() {
         logo_url: logoUrl || null,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
+        discount_cash_percent: parseFloat(discountCash) || 0,
+        discount_transfer_percent: parseFloat(discountTransfer) || 0,
+        discount_debit_percent: parseFloat(discountDebit) || 0,
+        discount_credit_percent: parseFloat(discountCredit) || 0,
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
+
+      // Check if pricing-related settings changed → prompt recalculate
+      if (exchangeRate !== origRate || customsPercent !== origCustoms || defaultDiscountPercent !== origDiscount) {
+        toast("Los parámetros financieros cambiaron", {
+          description: "¿Recalcular todos los precios de productos?",
+          action: { label: "Recalcular", onClick: () => handleRecalculate() },
+          duration: 10000,
+        });
+      }
+      setOrigRate(exchangeRate);
+      setOrigCustoms(customsPercent);
+      setOrigDiscount(defaultDiscountPercent);
     } catch (err: any) {
       toast.error("Error al guardar: " + err.message);
     } finally {
@@ -103,19 +137,28 @@ export default function SettingsPage() {
     const products = await getProductsDB(user.id);
     const rate = parseFloat(exchangeRate) || 1695;
     const customs = parseFloat(customsPercent) || 15;
+    const discPct = parseFloat(defaultDiscountPercent) || 40;
     let count = 0;
     for (const p of products) {
       if (Number(p.cost_usd) <= 0) continue;
+      const costUsd = Number(p.cost_usd);
+      // Auto-calculate sale price: (cost + pasero) * TC * 2
+      const newSalePrice = Math.round((costUsd + costUsd * customs / 100) * rate * 2);
+      // Auto-calculate discount price
+      const newDiscountPrice = Math.round(newSalePrice * (1 - discPct / 100));
       const { customsFee, totalCostUSD, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
-        Number(p.cost_usd), customs, Number(p.sale_price_ars), rate
+        costUsd, customs, newSalePrice, rate
       );
       await supabase.from('products').update({
         customs_fee: customsFee, total_cost_usd: totalCostUSD,
+        sale_price_ars: newSalePrice,
+        discount_price_ars: newDiscountPrice,
         profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
       }).eq('id', p.id);
       count++;
     }
-    toast.success(`${count} productos recalculados con TC $${rate}`);
+    setProductCount(count);
+    toast.success(`${count} productos recalculados con TC $${rate}, pasero ${customs}%, desc. ${discPct}%`);
   };
 
   if (loading) return (
@@ -137,8 +180,8 @@ export default function SettingsPage() {
       <p className="text-muted-foreground mb-6 md:mb-8">Configuración general de {businessName}</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Left column */}
         <div className="space-y-4 md:space-y-6">
+          {/* Brand */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-lg flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
@@ -167,6 +210,7 @@ export default function SettingsPage() {
             </Button>
           </div>
 
+          {/* Financial params */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4 md:space-y-5">
             <h2 className="font-display font-semibold text-lg flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
@@ -182,18 +226,37 @@ export default function SettingsPage() {
             <div>
               <label className="text-sm text-muted-foreground">Descuento por Defecto (%)</label>
               <Input type="number" value={defaultDiscountPercent} onChange={e => setDefaultDiscountPercent(e.target.value)} className="bg-muted border-border mt-1" />
+              <p className="text-[10px] text-muted-foreground mt-1">Se aplica al calcular precio c/descuento: Venta × (1 - {defaultDiscountPercent}%)</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold shadow-gold flex-1">
                 {saving ? 'Guardando...' : 'Guardar Configuración'}
               </Button>
-              <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular</Button>
+              <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular Todo</Button>
+            </div>
+          </div>
+
+          {/* Payment method discounts */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
+            </h2>
+            <p className="text-xs text-muted-foreground">Estos descuentos se aplican sobre el precio de venta al registrar una venta. Efectivo y transferencia usan el precio c/descuento del producto.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-sm text-muted-foreground">Efectivo (%)</label>
+                <Input type="number" step="0.1" value={discountCash} onChange={e => setDiscountCash(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">Transferencia (%)</label>
+                <Input type="number" step="0.1" value={discountTransfer} onChange={e => setDiscountTransfer(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">Débito (%)</label>
+                <Input type="number" step="0.1" value={discountDebit} onChange={e => setDiscountDebit(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">Crédito (%)</label>
+                <Input type="number" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
         </div>
 
-        {/* Right column */}
         <div className="space-y-4 md:space-y-6">
+          {/* Taxes */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-lg flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
@@ -211,6 +274,7 @@ export default function SettingsPage() {
             )}
           </div>
 
+          {/* System info */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
             <div className="space-y-2 text-sm">
@@ -220,7 +284,7 @@ export default function SettingsPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Activo ✓</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-success">Activo ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">6.0</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">7.5</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{user?.email}</span></div>
             </div>
           </div>
@@ -230,7 +294,7 @@ export default function SettingsPage() {
               <Shield className="w-4 h-4 text-success" />Seguridad
             </h2>
             <p className="text-sm text-muted-foreground">
-              Datos protegidos con autenticación, cifrado y auditoría de acciones. Cada usuario solo ve sus propios datos. Sistema multi-tenant con aislamiento completo.
+              Datos protegidos con autenticación, cifrado y auditoría. Cada usuario solo ve sus propios datos. Sistema multi-tenant con aislamiento completo.
             </p>
           </div>
         </div>
