@@ -120,8 +120,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const margin = 12;
       const gap = 5;
       const cardW = (W - margin * 2 - gap * (COLS - 1)) / COLS; // ~58.67
-      const imgH = cardW * 0.75; // image area height
-      const textH = 28; // text area height
+      const imgH = cardW * 0.7; // image area height
+      const textH = 38; // text area height — more room for stacked prices
       const cardH = imgH + textH;
 
       // Group by category
@@ -211,56 +211,63 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           doc.text(catLabel, x + cardW - 3.5, y + 4.5, { align: 'right' });
 
           // Text area
-          const tY = y + imgH + 2;
+          const tY = y + imgH + 3;
 
-          // Product name
-          doc.setTextColor(230, 230, 240);
-          doc.setFontSize(7.5);
+          // Product name (larger)
+          doc.setTextColor(235, 235, 245);
+          doc.setFontSize(9);
           doc.setFont('helvetica', 'bold');
           const nameLines = doc.splitTextToSize(p.name, cardW - 6);
-          doc.text(nameLines.slice(0, 2), x + 3, tY + 3);
+          doc.text(nameLines.slice(0, 2), x + 3, tY + 3.5);
+          const nameOffset = Math.min(nameLines.length, 2) * 3.8;
 
           // Brand + gender
-          doc.setTextColor(140, 140, 160);
-          doc.setFontSize(6);
+          doc.setTextColor(150, 150, 170);
+          doc.setFontSize(7);
           doc.setFont('helvetica', 'normal');
-          doc.text(`${p.brand} · ${getGenderLabel(p.gender)}`, x + 3, tY + 10);
+          doc.text(`${p.brand} · ${getGenderLabel(p.gender)}`, x + 3, tY + nameOffset + 4);
 
-          // Price
+          // Separator line
+          doc.setDrawColor(50, 50, 75);
+          doc.setLineWidth(0.2);
+          doc.line(x + 3, tY + nameOffset + 6.5, x + cardW - 3, tY + nameOffset + 6.5);
+
+          // Prices — stacked vertically
           if (p.discount_price_ars && p.discount_price_ars < p.sale_price_ars) {
+            // Discount price (large, primary color)
             doc.setTextColor(pR, pG, pB);
-            doc.setFontSize(9);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
-            doc.text(fmtARS(Number(p.discount_price_ars)), x + 3, tY + 17);
+            doc.text(fmtARS(Number(p.discount_price_ars)), x + 3, tY + nameOffset + 12.5);
 
-            doc.setTextColor(100, 100, 120);
-            doc.setFontSize(6);
+            // Original price below, struck through
+            doc.setTextColor(110, 110, 130);
+            doc.setFontSize(7.5);
             doc.setFont('helvetica', 'normal');
             const oldPrice = fmtARS(Number(p.sale_price_ars));
-            const priceX = x + 3 + doc.getTextWidth(fmtARS(Number(p.discount_price_ars))) * (9/6) * 0.48 + 4;
-            doc.text(oldPrice, Math.min(priceX, x + cardW - 5), tY + 17);
-            // Strikethrough line
+            doc.text(oldPrice, x + 3, tY + nameOffset + 17.5);
             const spW = doc.getTextWidth(oldPrice);
-            doc.setDrawColor(100, 100, 120);
-            doc.setLineWidth(0.2);
-            doc.line(Math.min(priceX, x + cardW - 5), tY + 16, Math.min(priceX, x + cardW - 5) + spW, tY + 16);
+            doc.setDrawColor(110, 110, 130);
+            doc.setLineWidth(0.25);
+            doc.line(x + 3, tY + nameOffset + 16.5, x + 3 + spW, tY + nameOffset + 16.5);
 
-            doc.setTextColor(120, 120, 140);
-            doc.setFontSize(5);
-            doc.text('Efectivo / Transferencia', x + 3, tY + 21);
+            // Label
+            doc.setTextColor(pR, pG, pB);
+            doc.setFontSize(5.5);
+            doc.text('Efectivo / Transferencia', x + 3 + spW + 2, tY + nameOffset + 17.5);
           } else {
             doc.setTextColor(pR, pG, pB);
-            doc.setFontSize(9);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
-            doc.text(fmtARS(Number(p.sale_price_ars)), x + 3, tY + 17);
+            doc.text(fmtARS(Number(p.sale_price_ars)), x + 3, tY + nameOffset + 12.5);
           }
 
           // Stock (only non-public)
           if (!isPublic) {
             doc.setTextColor(100, 100, 120);
-            doc.setFontSize(5);
+            doc.setFontSize(6);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Stock: ${p.stock}`, x + cardW - 3, tY + 24, { align: 'right' });
+            doc.text(`Stock: ${p.stock}`, x + cardW - 3, tY + nameOffset + 17.5, { align: 'right' });
           }
         }
 
