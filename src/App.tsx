@@ -20,6 +20,7 @@ import CatalogPage from "@/pages/CatalogPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import PublicCatalogPage from "@/pages/PublicCatalogPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 
@@ -69,6 +70,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </BrowserRouter>
