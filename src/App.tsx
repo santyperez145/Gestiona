@@ -70,6 +70,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </BrowserRouter>
