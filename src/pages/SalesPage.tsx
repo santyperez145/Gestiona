@@ -13,6 +13,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
+import { useUserRole } from "@/lib/useUserRole";
 
 const PAGE_SIZE = 20;
 
@@ -34,6 +35,7 @@ const CATEGORIES = [
 
 export default function SalesPage() {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -156,6 +158,7 @@ export default function SalesPage() {
                         {s.paid ? 'Pagado' : 'Debe'}
                       </span>
                     </td>
+                    {isAdmin && (
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Button variant="ghost" size="sm" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
@@ -168,6 +171,7 @@ export default function SalesPage() {
                         />
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -194,6 +198,7 @@ export default function SalesPage() {
                     <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
                     <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                   </div>
+                  {isAdmin && (
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
                     <ConfirmDialog
@@ -203,6 +208,7 @@ export default function SalesPage() {
                       onConfirm={() => handleDelete(s)}
                     />
                   </div>
+                  )}
                 </div>
               </div>
             ))}
