@@ -140,6 +140,70 @@ export async function deleteMarketingPostDB(id: string) {
   if (error) throw error;
 }
 
+// ========= INFLUENCER EXCHANGES =========
+export async function getExchangesDB(userId: string) {
+  const { data, error } = await supabase.from('influencer_exchanges').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addExchangeDB(exchange: any) {
+  const { error } = await supabase.from('influencer_exchanges').insert(exchange);
+  if (error) throw error;
+  // Deduct stock like a sale
+  if (exchange.product_id) {
+    const { data: prod } = await supabase.from('products').select('stock').eq('id', exchange.product_id).single();
+    if (prod) {
+      const newStock = Math.max(0, prod.stock - (exchange.quantity || 1));
+      await supabase.from('products').update({ stock: newStock }).eq('id', exchange.product_id);
+    }
+  }
+}
+
+export async function updateExchangeDB(id: string, updates: any) {
+  const { error } = await supabase.from('influencer_exchanges').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteExchangeDB(id: string) {
+  const { error } = await supabase.from('influencer_exchanges').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ========= SALES EDIT =========
+export async function updateSaleDB(id: string, updates: any, oldSale?: any) {
+  const { error } = await supabase.from('sales').update(updates).eq('id', id);
+  if (error) throw error;
+  // Adjust stock if product changed or quantity changed
+  if (oldSale?.product_id && updates.quantity !== undefined) {
+    const diff = (oldSale.quantity || 0) - (updates.quantity || 0);
+    if (diff !== 0) {
+      const { data: prod } = await supabase.from('products').select('stock').eq('id', oldSale.product_id).single();
+      if (prod) await supabase.from('products').update({ stock: Math.max(0, prod.stock + diff) }).eq('id', oldSale.product_id);
+    }
+  }
+}
+
+// ========= PURCHASES EDIT =========
+export async function updatePurchaseDB(id: string, updates: any, oldPurchase?: any) {
+  const { error } = await supabase.from('purchases').update(updates).eq('id', id);
+  if (error) throw error;
+  if (oldPurchase?.product_id && updates.quantity !== undefined) {
+    const diff = (updates.quantity || 0) - (oldPurchase.quantity || 0);
+    if (diff !== 0) {
+      const { data: prod } = await supabase.from('products').select('stock').eq('id', oldPurchase.product_id).single();
+      if (prod) await supabase.from('products').update({ stock: Math.max(0, prod.stock + diff) }).eq('id', oldPurchase.product_id);
+    }
+  }
+}
+
+// ========= AUDIT LOGS =========
+export async function getAuditLogsDB(limit = 50) {
+  const { data, error } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
 // ========= HELPERS =========
 export function formatARS(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n); }
 export function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }

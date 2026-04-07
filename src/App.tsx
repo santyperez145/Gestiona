@@ -48,6 +48,7 @@ function ProtectedRoutes() {
         <Route path="/clientes" element={<CustomersPage />} />
         <Route path="/reportes" element={<ReportsPage />} />
         <Route path="/marketing" element={<MarketingPage />} />
+        <Route path="/canjes" element={<InfluencerExchangesPage />} />
         <Route path="/ia" element={<AIInsightsPage />} />
         <Route path="/ajustes" element={<SettingsPage />} />
         <Route path="/admin" element={<AdminPage />} />

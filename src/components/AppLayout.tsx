@@ -103,7 +103,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className={`p-4 ${collapsed ? 'px-2' : ''} border-t border-sidebar-border space-y-2`}>
-          {!collapsed && <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>}
+          {!collapsed && (
+            <>
+              <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>
+              <div className="text-[10px] text-muted-foreground/50 px-1">{config.businessName} · v7.0</div>
+            </>
+          )}
           <Button
             variant="ghost" size="sm"
             className={`w-full ${collapsed ? 'justify-center' : 'justify-start'} text-muted-foreground hover:text-destructive`}
