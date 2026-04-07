@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/lib/useUserRole";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { toast } from "sonner";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'] },
