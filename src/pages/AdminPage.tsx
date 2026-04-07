@@ -153,6 +153,10 @@ export default function AdminPage() {
           <p className="text-muted-foreground text-sm">Gestión de vendedores y rendimiento global</p>
         </div>
         <div className="flex gap-2">
+          <div className="flex bg-muted rounded-lg p-0.5">
+            <Button variant={activeTab === 'overview' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('overview')}>Rendimiento</Button>
+            <Button variant={activeTab === 'audit' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('audit')} className="gap-1"><ClipboardList className="w-3.5 h-3.5" />Auditoría</Button>
+          </div>
           <AssignRoleDialog onDone={loadVendorData} />
         </div>
       </div>
