@@ -22,6 +22,8 @@ export default function SalesPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const reload = async () => {
     if (user) {
       setSales(await getSalesDB(user.id));
@@ -30,10 +32,17 @@ export default function SalesPage() {
   };
   useEffect(() => { reload(); }, [user]);
 
-  const totalSales = sales.reduce((s, v) => s + Number(v.total_ars), 0);
-  const totalProfit = sales.reduce((s, v) => s + Number(v.profit_ars), 0);
-  const totalPages = Math.ceil(sales.length / PAGE_SIZE);
-  const paged = sales.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filtered = sales.filter(s => {
+    if (!dateFrom) return true;
+    const d = new Date(s.date);
+    if (d < dateFrom) return false;
+    if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (d > end) return false; }
+    return true;
+  });
+  const totalSales = filtered.reduce((s, v) => s + Number(v.total_ars), 0);
+  const totalProfit = filtered.reduce((s, v) => s + Number(v.profit_ars), 0);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleDelete = async (sale: any) => {
     await deleteSaleDB(sale.id);
