@@ -304,12 +304,15 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       <div><label className="text-sm text-muted-foreground">Precio personalizado (opcional)</label>
         <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(autoUnitPrice)}`} className="bg-muted border-border" /></div>
       {product && (
-        <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
+        <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
           <div className="flex justify-between"><span className="text-muted-foreground">Precio unitario:</span><span>{formatARS(unitPrice)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span className="text-warning">{formatARS(costPerUnitARS)}</span></div>
-          <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total:</span><span className="text-primary">{formatARS(total)}</span></div>
+          <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total ({qty} uds):</span><span className="text-primary">{formatARS(total)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Ganancia:</span>
             <span className={profitARS > 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{formatARS(profitARS)} ({formatUSD(profitUSD)})</span>
+          </div>
+          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Margen:</span>
+            <span className={profitARS > 0 ? 'text-success' : 'text-destructive'}>{total > 0 ? Math.round(profitARS / total * 100) : 0}%</span>
           </div>
           <div className="flex justify-between text-xs"><span className="text-muted-foreground">Medio:</span>
             <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
