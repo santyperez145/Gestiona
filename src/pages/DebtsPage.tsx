@@ -4,19 +4,33 @@ import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS } from "@/lib/supabas
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash2, DollarSign } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import EmptyState from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import { logAudit } from "@/lib/auditLog";
 
 export default function DebtsPage() {
   const { user } = useAuth();
   const [debts, setDebts] = useState<any[]>([]);
   const [payingDebt, setPayingDebt] = useState<any>(null);
-  const reload = async () => { if (user) setDebts(await getDebtsDB(user.id)); };
+  const [loading, setLoading] = useState(true);
+  const reload = async () => { if (user) { setDebts(await getDebtsDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
   const pending = debts.filter(d => d.status !== 'paid');
   const paid = debts.filter(d => d.status === 'paid');
   const totalPending = pending.reduce((s, d) => s + Number(d.remaining_ars), 0);
+
+  const handleDelete = async (d: any) => {
+    await deleteDebtDB(d.id);
+    if (user) await logAudit(user.id, 'delete', 'debt', d.id, { customer: d.customer_name, amount: d.amount_ars });
+    reload();
+    toast.success("Deuda eliminada");
+  };
+
+  if (loading) return <TableSkeleton rows={5} cols={7} />;
 
   return (
     <div>
@@ -34,13 +48,13 @@ export default function DebtsPage() {
       <Dialog open={!!payingDebt} onOpenChange={v => { if (!v) setPayingDebt(null); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader><DialogTitle className="font-display">Registrar Pago</DialogTitle></DialogHeader>
-          {payingDebt && <PaymentForm debt={payingDebt} onSave={() => { setPayingDebt(null); reload(); }} />}
+          {payingDebt && <PaymentForm debt={payingDebt} userId={user!.id} onSave={() => { setPayingDebt(null); reload(); }} />}
         </DialogContent>
       </Dialog>
 
       <h2 className="text-lg font-display font-semibold mb-3">Pendientes ({pending.length})</h2>
       {!pending.length ? (
-        <div className="text-center py-10 text-muted-foreground mb-8 bg-card border border-border rounded-lg"><p>🎉 No hay deudas pendientes</p></div>
+        <EmptyState icon={AlertCircle} title="🎉 No hay deudas pendientes" description="Todas las deudas están saldadas." />
       ) : (
         <>
           <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto mb-8">
@@ -73,9 +87,13 @@ export default function DebtsPage() {
                     </td>
                     <td className="p-3 text-center space-x-1">
                       <Button variant="ghost" size="sm" onClick={() => setPayingDebt(d)}><DollarSign className="w-3.5 h-3.5 text-success" /></Button>
-                      <Button variant="ghost" size="sm" onClick={async () => { await deleteDebtDB(d.id); reload(); toast.success("Eliminada"); }}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
+                      <ConfirmDialog
+                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                        title="¿Eliminar deuda?"
+                        description={`Se eliminará la deuda de ${d.customer_name} por ${formatARS(Number(d.amount_ars))}.`}
+                        confirmText="Eliminar"
+                        onConfirm={() => handleDelete(d)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -104,9 +122,12 @@ export default function DebtsPage() {
                   <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => setPayingDebt(d)}>
                     <DollarSign className="w-3 h-3 mr-1" />Pagar
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={async () => { await deleteDebtDB(d.id); reload(); toast.success("Eliminada"); }}>
-                    <Trash2 className="w-3 h-3 text-destructive" />
-                  </Button>
+                  <ConfirmDialog
+                    trigger={<Button size="sm" variant="ghost"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
+                    title="¿Eliminar deuda?"
+                    confirmText="Eliminar"
+                    onConfirm={() => handleDelete(d)}
+                  />
                 </div>
               </div>
             ))}
@@ -154,7 +175,7 @@ export default function DebtsPage() {
   );
 }
 
-function PaymentForm({ debt, onSave }: { debt: any; onSave: () => void }) {
+function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSave: () => void }) {
   const [amount, setAmount] = useState('');
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,6 +186,7 @@ function PaymentForm({ debt, onSave }: { debt: any; onSave: () => void }) {
     const newPaid = Number(debt.paid_ars) + payment;
     const newRemaining = Number(debt.amount_ars) - newPaid;
     await updateDebtDB(debt.id, { paid_ars: newPaid, remaining_ars: Math.max(0, newRemaining), status: newRemaining <= 0 ? 'paid' : 'partial' });
+    await logAudit(userId, 'update', 'debt', debt.id, { customer: debt.customer_name, payment, newStatus: newRemaining <= 0 ? 'paid' : 'partial' });
     toast.success(newRemaining <= 0 ? "¡Deuda saldada!" : "Pago parcial registrado");
     onSave();
   };
@@ -177,7 +199,7 @@ function PaymentForm({ debt, onSave }: { debt: any; onSave: () => void }) {
         <div className="flex justify-between font-bold border-t border-border pt-1"><span>Resta:</span><span className="text-destructive">{formatARS(Number(debt.remaining_ars))}</span></div>
       </div>
       <div><label className="text-sm text-muted-foreground">Monto del pago (ARS)</label>
-        <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder={`Máx: ${debt.remaining_ars}`} className="bg-muted border-border" /></div>
+        <Input type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder={`Máx: ${debt.remaining_ars}`} className="bg-muted border-border" /></div>
       <div className="flex gap-2">
         <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold">Registrar Pago</Button>
         <Button type="button" variant="outline" onClick={() => { setAmount(String(debt.remaining_ars)); }}>Todo</Button>

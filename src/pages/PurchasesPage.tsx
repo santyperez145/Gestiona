@@ -5,18 +5,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import EmptyState from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import { logAudit } from "@/lib/auditLog";
+
+const PAGE_SIZE = 20;
 
 export default function PurchasesPage() {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const reload = async () => { if (user) setPurchases(await getPurchasesDB(user.id)); };
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
   const totalUSD = purchases.reduce((s, p) => s + Number(p.total_usd), 0);
   const totalARS = purchases.reduce((s, p) => s + Number(p.total_ars), 0);
+  const totalPages = Math.ceil(purchases.length / PAGE_SIZE);
+  const paged = purchases.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handleDelete = async (p: any) => {
+    await deletePurchaseDB(p.id);
+    if (user) await logAudit(user.id, 'delete', 'purchase', p.id, { product: p.product_name });
+    reload();
+    toast.success("Compra eliminada");
+  };
+
+  if (loading) return <TableSkeleton rows={6} cols={8} />;
 
   return (
     <div>
@@ -37,7 +56,7 @@ export default function PurchasesPage() {
       </div>
 
       {!purchases.length ? (
-        <div className="text-center py-20 text-muted-foreground"><p className="text-lg">No hay compras registradas</p></div>
+        <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>
           <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
@@ -56,7 +75,7 @@ export default function PurchasesPage() {
                 </tr>
               </thead>
               <tbody>
-                {purchases.map(p => (
+                {paged.map(p => (
                   <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="p-3">{new Date(p.date).toLocaleDateString('es-AR')}</td>
                     <td className="p-3">{p.product_name}</td>
@@ -67,9 +86,13 @@ export default function PurchasesPage() {
                     <td className="p-3 text-right font-medium">{formatUSD(Number(p.total_usd))}</td>
                     <td className="p-3 text-right font-medium">{formatARS(Number(p.total_ars))}</td>
                     <td className="p-3 text-center">
-                      <Button variant="ghost" size="sm" onClick={async () => { await deletePurchaseDB(p.id); reload(); toast.success("Eliminada"); }}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
+                      <ConfirmDialog
+                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                        title="¿Eliminar compra?"
+                        description={`Se eliminará la compra de ${p.product_name}.`}
+                        confirmText="Eliminar"
+                        onConfirm={() => handleDelete(p)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -78,16 +101,19 @@ export default function PurchasesPage() {
           </div>
 
           <div className="md:hidden space-y-3">
-            {purchases.map(p => (
+            {paged.map(p => (
               <div key={p.id} className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-medium text-sm">{p.product_name}</p>
                     <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString('es-AR')} · {p.supplier || 'Sin proveedor'}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => { await deletePurchaseDB(p.id); reload(); toast.success("Eliminada"); }}>
-                    <Trash2 className="w-3 h-3 text-destructive" />
-                  </Button>
+                  <ConfirmDialog
+                    trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
+                    title="¿Eliminar compra?"
+                    confirmText="Eliminar"
+                    onConfirm={() => handleDelete(p)}
+                  />
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div><span className="text-muted-foreground block">Cant.</span><span>{p.quantity}</span></div>
@@ -97,6 +123,14 @@ export default function PurchasesPage() {
               </div>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft className="w-4 h-4" /></Button>
+              <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}><ChevronRight className="w-4 h-4" /></Button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -137,6 +171,7 @@ function PurchaseForm({ userId, onSave }: { userId: string; onSave: () => void }
       quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
       total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date, supplier,
     });
+    await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty });
     toast.success("Compra registrada");
     onSave();
   };

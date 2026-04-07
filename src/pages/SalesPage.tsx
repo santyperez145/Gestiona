@@ -5,19 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import EmptyState from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import { logAudit } from "@/lib/auditLog";
+
+const PAGE_SIZE = 20;
 
 export default function SalesPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const reload = async () => { if (user) setSales(await getSalesDB(user.id)); };
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const reload = async () => {
+    if (user) {
+      setSales(await getSalesDB(user.id));
+      setLoading(false);
+    }
+  };
   useEffect(() => { reload(); }, [user]);
 
   const totalSales = sales.reduce((s, v) => s + Number(v.total_ars), 0);
   const totalProfit = sales.reduce((s, v) => s + Number(v.profit_ars), 0);
+  const totalPages = Math.ceil(sales.length / PAGE_SIZE);
+  const paged = sales.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handleDelete = async (sale: any) => {
+    await deleteSaleDB(sale.id);
+    if (user) await logAudit(user.id, 'delete', 'sale', sale.id, { product: sale.product_name, total: sale.total_ars });
+    reload();
+    toast.success("Venta eliminada");
+  };
+
+  if (loading) return <TableSkeleton rows={8} cols={7} />;
 
   return (
     <div>
@@ -38,7 +62,7 @@ export default function SalesPage() {
       </div>
 
       {!sales.length ? (
-        <div className="text-center py-20 text-muted-foreground"><p className="text-lg">No hay ventas registradas</p></div>
+        <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
       ) : (
         <>
           {/* Desktop table */}
@@ -57,7 +81,7 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sales.map(s => (
+                {paged.map(s => (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="p-3">{new Date(s.date).toLocaleDateString('es-AR')}</td>
                     <td className="p-3">{s.product_name}</td>
@@ -73,9 +97,13 @@ export default function SalesPage() {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <Button variant="ghost" size="sm" onClick={async () => { await deleteSaleDB(s.id); reload(); toast.success("Eliminada"); }}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
+                      <ConfirmDialog
+                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                        title="¿Eliminar esta venta?"
+                        description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
+                        confirmText="Eliminar"
+                        onConfirm={() => handleDelete(s)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -85,7 +113,7 @@ export default function SalesPage() {
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
-            {sales.map(s => (
+            {paged.map(s => (
               <div key={s.id} className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -102,13 +130,31 @@ export default function SalesPage() {
                     <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
                     <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={async () => { await deleteSaleDB(s.id); reload(); toast.success("Eliminada"); }}>
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </Button>
+                  <ConfirmDialog
+                    trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                    title="¿Eliminar venta?"
+                    confirmText="Eliminar"
+                    onConfirm={() => handleDelete(s)}
+                  />
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -137,14 +183,10 @@ function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
   const product = products.find(p => p.id === productId);
   const qty = parseInt(quantity) || 0;
   const applyDiscount = useDiscount === 'true' && product?.discount_price_ars;
-  
-  // Price logic: custom price > discount price > normal price
   const baseUnitPrice = applyDiscount ? Number(product!.discount_price_ars) : (Number(product?.sale_price_ars) || 0);
   const unitPrice = customPrice ? (parseFloat(customPrice) || baseUnitPrice) : baseUnitPrice;
   const total = unitPrice * qty;
-  
   const exchangeRate = Number(settings?.exchange_rate || 1695);
-  // Cost = total_cost_usd (includes customs) converted to ARS
   const costPerUnitARS = product ? Number(product.total_cost_usd) * exchangeRate : 0;
   const profitARS = total - (costPerUnitARS * qty);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
@@ -153,26 +195,17 @@ function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
     if (product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
+    const saleId = crypto.randomUUID();
     await addSaleDB({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      product_id: productId,
-      product_name: product!.name,
-      quantity: qty,
-      unit_price_ars: unitPrice,
-      discount_applied: !!applyDiscount || !!customPrice,
-      total_ars: total,
-      cost_per_unit_usd: Number(product!.total_cost_usd),
-      profit_ars: profitARS,
-      profit_usd: profitUSD,
-      customer_name: customerName || null,
-      date,
-      paid: paid === 'true',
+      id: saleId, user_id: userId, product_id: productId, product_name: product!.name,
+      quantity: qty, unit_price_ars: unitPrice, discount_applied: !!applyDiscount || !!customPrice,
+      total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
+      profit_ars: profitARS, profit_usd: profitUSD,
+      customer_name: customerName || null, date, paid: paid === 'true',
     });
+    await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS });
     toast.success("Venta registrada");
-    if (productId) {
-      await checkStockAfterSale(productId, product!.name);
-    }
+    if (productId) await checkStockAfterSale(productId, product!.name);
     onSave();
   };
 
