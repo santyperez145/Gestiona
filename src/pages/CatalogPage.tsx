@@ -120,8 +120,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const margin = 12;
       const gap = 5;
       const cardW = (W - margin * 2 - gap * (COLS - 1)) / COLS; // ~58.67
-      const imgH = cardW * 0.75; // image area height
-      const textH = 28; // text area height
+      const imgH = cardW * 0.7; // image area height
+      const textH = 38; // text area height — more room for stacked prices
       const cardH = imgH + textH;
 
       // Group by category
