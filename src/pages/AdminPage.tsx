@@ -281,6 +281,43 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
+      )}
+
+      {/* Audit Log Tab */}
+      {activeTab === 'audit' && (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h3 className="font-display font-semibold flex items-center gap-2"><ClipboardList className="w-4 h-4 text-primary" />Actividad Reciente ({auditLogs.length})</h3>
+          </div>
+          <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
+            {auditLogs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-10 text-sm">No hay actividad registrada</p>
+            ) : auditLogs.map(log => {
+              const details = typeof log.details === 'object' ? log.details : {};
+              return (
+                <div key={log.id} className="p-3 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        log.action === 'delete' ? 'bg-destructive/20 text-destructive' :
+                        log.action === 'create' ? 'bg-success/20 text-success' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>{log.action}</span>
+                      <span className="text-xs font-medium">{log.entity_type}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{new Date(log.created_at).toLocaleString('es-AR')}</span>
+                  </div>
+                  {details && Object.keys(details).length > 0 && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {Object.entries(details).map(([k, v]) => `${k}: ${typeof v === 'number' ? formatARS(v as number) : v}`).join(' · ')}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
