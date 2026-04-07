@@ -1,115 +1,105 @@
 
 
-# Plan: Automatización Completa v7.5
+# Plan: Optimización Mobile + Catálogo Web Compartible en Tiempo Real
 
 ## Resumen
-Implementar auto-cálculo de precios en productos, medio de pago en ventas, auto-cálculo en compras, catálogo visual, y ajuste masivo de precios. El usuario solo ingresa costo USD y el sistema calcula todo automáticamente.
+
+Dos mejoras principales:
+1. **Optimización mobile completa** de todas las páginas del sistema
+2. **Catálogo web público en tiempo real** que reemplaza el workflow actual de Canva — un link compartible en Instagram que se actualiza solo cuando cambian precios o stock
 
 ---
 
-## 1. Migración de Base de Datos
+## 1. Catálogo Público Web Optimizado para Instagram
 
-Agregar columnas faltantes:
-- `sales.payment_method TEXT DEFAULT 'efectivo'`
-- `products.image_url TEXT`
-- `settings.discount_cash_percent NUMERIC DEFAULT 10`
-- `settings.discount_transfer_percent NUMERIC DEFAULT 5`
-- `settings.discount_debit_percent NUMERIC DEFAULT 0`
-- `settings.discount_credit_percent NUMERIC DEFAULT 0`
+El catálogo público actual (`/catalogo/:userId`) ya existe y tiene realtime, pero necesita mejoras para reemplazar Canva:
 
----
+**Mejoras al catálogo público:**
+- Diseño visual tipo "tienda online" optimizado para mobile (Instagram abre links en browser mobile)
+- Header con logo, nombre del negocio y colores de marca (leídos de settings)
+- Grid de productos con fotos grandes, nombre, marca, y precios bien separados (efectivo/transferencia vs tarjeta)
+- Filtro por categoría visible como chips/tabs horizontales
+- Badge de descuento prominente
+- Footer con contacto/Instagram del negocio
+- Meta tags Open Graph para que al compartir en Instagram/WhatsApp se vea preview con imagen y título
+- El link ya se actualiza en tiempo real (realtime habilitado) — no necesitás tocar nada en Instagram, el mismo link siempre muestra datos actualizados
 
-## 2. Auto-cálculo en ProductForm
-
-Al ingresar `cost_usd`, calcular automáticamente:
-- `sale_price_ars = (costUSD + costUSD × pasero%) × TC × 2`
-- `discount_price_ars = sale_price_ars × (1 - default_discount_percent/100)`
-
-Los campos se auto-completan pero permiten override manual. Se muestra label explicativo con la fórmula aplicada.
-
-**Archivo:** `src/pages/ProductsPage.tsx` — agregar `useEffect` en ProductForm que recalcula cuando cambia `costUSD`.
+**Archivos:** `src/pages/PublicCatalogPage.tsx`, `src/pages/CatalogPage.tsx`, `index.html` (meta tags)
 
 ---
 
-## 3. Medio de Pago en Ventas (reemplaza descuento manual)
+## 2. Optimización Mobile de Todas las Páginas
 
-Reemplazar los toggles "Normal/Oferta" y "Pagado/Fía" por un único selector de **medio de pago**:
-- **Efectivo** → usa `discount_price_ars` (precio con descuento)
-- **Transferencia** → usa `discount_price_ars`
-- **Débito** → usa `sale_price_ars` (precio normal)
-- **Crédito** → usa `sale_price_ars`
-- **Fiado** → usa `sale_price_ars` + marca `paid=false` + genera deuda
+Revisar y mejorar responsive en cada página:
 
-El precio se aplica automáticamente al seleccionar el medio. Se mantiene la opción de precio personalizado como override.
+**Dashboard:** 
+- KPIs en grid 2 columnas en mobile (ya parcialmente hecho)
+- Charts apilados verticalmente con scroll
+- Selector de categoría como dropdown compacto
 
-**Archivo:** `src/pages/SalesPage.tsx` — modificar SaleForm.
+**ProductsPage:**
+- Tablas convertidas a cards en mobile
+- Formulario de producto en modal full-screen en mobile
+- Botones de acción como iconos compactos
 
----
+**SalesPage / PurchasesPage / DebtsPage:**
+- Tablas con scroll horizontal o convertidas a cards en mobile
+- Formularios adaptados a pantalla completa
+- Filtros colapsables
 
-## 4. Auto-cálculo en PurchaseForm
+**CatalogPage (interno):**
+- Grid 1 columna en mobile muy pequeño, 2 columnas en mobile normal
+- Botones de compartir/descargar sticky en bottom
 
-Al seleccionar producto:
-- Auto-completar `unit_cost_usd` desde el producto
-- Calcular automáticamente `customs_fee`, `total_usd`, `total_ars`
-- TC se toma de Settings
+**InfluencerExchangesPage / CustomersPage:**
+- Cards en lugar de tablas en mobile
 
-**Archivo:** `src/pages/PurchasesPage.tsx` — ya lo hace parcialmente, verificar que sea completo.
+**SettingsPage:**
+- Formulario en columna única
+- Color picker adaptado
 
----
+**AppLayout (sidebar):**
+- Ya funciona con drawer mobile — verificar que no haya overflow
 
-## 5. Recálculo Masivo Mejorado en Settings
-
-Al recalcular, además de costos y ganancias, también recalcular:
-- `sale_price_ars` con la fórmula `(cost_usd + customs_fee) × TC × 2`
-- `discount_price_ars` con la fórmula `sale_price_ars × (1 - default_discount_percent/100)`
-
-Al guardar Settings, si cambió TC/pasero/descuento, mostrar diálogo preguntando si recalcular todos los productos automáticamente.
-
-**Archivo:** `src/pages/SettingsPage.tsx`
-
----
-
-## 6. Sección Descuentos por Medio de Pago en Settings
-
-Nueva sección en SettingsPage con 4 campos configurables:
-- Descuento Efectivo (%), Transferencia (%), Débito (%), Crédito (%)
-
-**Archivo:** `src/pages/SettingsPage.tsx`
+**Archivos:** Todas las páginas en `src/pages/`, `src/components/AppLayout.tsx`
 
 ---
 
-## 7. Catálogo Visual de Productos
+## 3. Meta Tags para Compartir en Redes
 
-Nueva página `/catalogo` con grid de cards mostrando:
-- Foto del producto (nuevo campo `image_url`)
-- Nombre, marca, categoría
-- Precio normal y precio con descuento
-- Filtros por categoría y búsqueda
+Agregar meta tags dinámicos para que al pegar el link del catálogo en Instagram/WhatsApp se vea:
+- Título: "{Nombre Negocio} — Catálogo"
+- Descripción: "X productos disponibles"
+- Imagen: logo del negocio o imagen del primer producto
 
-Upload de imagen en ProductForm.
+Como es una SPA, los meta tags base van en `index.html` y se pueden mejorar con una edge function que sirva HTML con meta tags dinámicos para `/catalogo/:userId`.
 
-**Archivos nuevos:** `src/pages/CatalogPage.tsx`
-**Modificados:** `src/App.tsx` (ruta), `src/components/AppLayout.tsx` (sidebar), `src/pages/ProductsPage.tsx` (upload imagen)
+**Archivos:** `index.html`, nueva edge function `catalog-meta` (opcional)
 
 ---
 
-## 8. Ajuste Masivo de Precios
+## Detalles Técnicos
 
-Botón "Ajustar precios" en ProductsPage que abre modal para:
-- Seleccionar categoría o todas
-- Ingresar porcentaje (+/- X%)
-- Elegir campo (venta, descuento, ambos)
-- Vista previa y confirmar
+### Catálogo público mobile-first
+- CSS: grid-cols-1 en <400px, grid-cols-2 en >400px
+- Imágenes lazy loading con `loading="lazy"`
+- Sticky header con nombre del negocio
+- Scroll suave entre categorías
 
-**Archivo:** `src/pages/ProductsPage.tsx`, `src/lib/supabaseStore.ts`
+### Responsive tables → cards
+- Usar `useIsMobile()` hook existente
+- En mobile: renderizar `<div>` cards en lugar de `<table>`
+- Mantener todas las acciones (editar, eliminar) accesibles
 
----
+### Workflow Instagram
+- El usuario comparte el link `/catalogo/:userId` en su bio de Instagram
+- Cuando actualiza precios/stock, el link ya muestra los datos nuevos automáticamente (realtime ya implementado)
+- No necesita Canva ni regenerar nada
 
-## Orden de implementación
-1. Migración DB
-2. Auto-cálculo en ProductForm
-3. Medio de pago en SaleForm
-4. Recálculo masivo mejorado + descuentos en Settings
-5. Catálogo visual + upload de imagen
-6. Ajuste masivo de precios
+### Orden de implementación
+1. Catálogo público mobile-first con diseño visual mejorado
+2. Meta tags Open Graph
+3. Responsive en Dashboard y ProductsPage
+4. Responsive en SalesPage, PurchasesPage, DebtsPage
+5. Responsive en páginas restantes
 
