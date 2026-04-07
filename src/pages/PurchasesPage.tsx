@@ -223,7 +223,7 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
           <div className="flex justify-between font-bold"><span>Total ARS:</span><span className="text-primary">{formatARS(totalARS)}</span></div>
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">Registrar Compra</Button>
+      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
     </form>
   );
 }
