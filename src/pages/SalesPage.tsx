@@ -24,24 +24,43 @@ const PAYMENT_METHODS = [
   { value: 'fiado', label: 'Fiado', usesDiscount: false },
 ];
 
+const CATEGORIES = [
+  { value: 'all', label: 'Todas' },
+  { value: 'perfume_arabe', label: 'Perfume Árabe' },
+  { value: 'perfume_diseñador', label: 'Perfume Diseñador' },
+  { value: 'vaper', label: 'Vaper' },
+  { value: 'electronico', label: 'Electrónico' },
+];
+
 export default function SalesPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [filterCat, setFilterCat] = useState('all');
   const reload = async () => {
     if (user) {
-      setSales(await getSalesDB(user.id));
+      const [s, p] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id)]);
+      setSales(s);
+      setProducts(p);
       setLoading(false);
     }
   };
   useEffect(() => { reload(); }, [user]);
 
+  const productCatMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    products.forEach(p => { map[p.id] = p.category; });
+    return map;
+  }, [products]);
+
   const filtered = sales.filter(s => {
+    if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
     if (d < dateFrom) return false;
@@ -50,6 +69,7 @@ export default function SalesPage() {
   });
   const totalSales = filtered.reduce((s, v) => s + Number(v.total_ars), 0);
   const totalProfit = filtered.reduce((s, v) => s + Number(v.profit_ars), 0);
+  const totalProfitUSD = filtered.reduce((s, v) => s + Number(v.profit_usd), 0);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
