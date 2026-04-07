@@ -64,10 +64,11 @@ export default function PurchasesPage() {
             <DialogHeader><DialogTitle className="font-display">Registrar Compra</DialogTitle></DialogHeader>
             <PurchaseForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
-      {!purchases.length ? (
+      {!filtered.length ? (
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>

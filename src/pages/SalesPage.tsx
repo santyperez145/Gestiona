@@ -70,10 +70,11 @@ export default function SalesPage() {
             <DialogHeader><DialogTitle className="font-display">Registrar Venta</DialogTitle></DialogHeader>
             <SaleForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
-      {!sales.length ? (
+      {!filtered.length ? (
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
       ) : (
         <>

@@ -49,9 +49,12 @@ export default function DebtsPage() {
           <h1 className="text-2xl md:text-3xl font-display font-bold">Deudas</h1>
           <p className="text-muted-foreground text-sm">Control de deudas de clientes</p>
         </div>
-        <div className="bg-card border border-border rounded-lg px-4 py-2">
-          <span className="text-sm text-muted-foreground">Pendiente: </span>
-          <span className="font-bold text-destructive">{formatARS(totalPending)}</span>
+        <div className="flex items-center gap-2">
+          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+          <div className="bg-card border border-border rounded-lg px-4 py-2">
+            <span className="text-sm text-muted-foreground">Pendiente: </span>
+            <span className="font-bold text-destructive">{formatARS(totalPending)}</span>
+          </div>
         </div>
       </div>
 
