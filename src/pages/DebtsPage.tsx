@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trash2, DollarSign, AlertCircle } from "lucide-react";
+import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -16,11 +17,20 @@ export default function DebtsPage() {
   const [debts, setDebts] = useState<any[]>([]);
   const [payingDebt, setPayingDebt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const reload = async () => { if (user) { setDebts(await getDebtsDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
-  const pending = debts.filter(d => d.status !== 'paid');
-  const paid = debts.filter(d => d.status === 'paid');
+  const dateFiltered = debts.filter(d => {
+    if (!dateFrom) return true;
+    const dt = new Date(d.date);
+    if (dt < dateFrom) return false;
+    if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (dt > end) return false; }
+    return true;
+  });
+  const pending = dateFiltered.filter(d => d.status !== 'paid');
+  const paid = dateFiltered.filter(d => d.status === 'paid');
   const totalPending = pending.reduce((s, d) => s + Number(d.remaining_ars), 0);
 
   const handleDelete = async (d: any) => {
@@ -39,9 +49,12 @@ export default function DebtsPage() {
           <h1 className="text-2xl md:text-3xl font-display font-bold">Deudas</h1>
           <p className="text-muted-foreground text-sm">Control de deudas de clientes</p>
         </div>
-        <div className="bg-card border border-border rounded-lg px-4 py-2">
-          <span className="text-sm text-muted-foreground">Pendiente: </span>
-          <span className="font-bold text-destructive">{formatARS(totalPending)}</span>
+        <div className="flex items-center gap-2">
+          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+          <div className="bg-card border border-border rounded-lg px-4 py-2">
+            <span className="text-sm text-muted-foreground">Pendiente: </span>
+            <span className="font-bold text-destructive">{formatARS(totalPending)}</span>
+          </div>
         </div>
       </div>
 

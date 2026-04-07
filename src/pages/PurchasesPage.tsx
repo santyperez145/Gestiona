@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -20,13 +21,22 @@ export default function PurchasesPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
-  const totalUSD = purchases.reduce((s, p) => s + Number(p.total_usd), 0);
-  const totalARS = purchases.reduce((s, p) => s + Number(p.total_ars), 0);
-  const totalPages = Math.ceil(purchases.length / PAGE_SIZE);
-  const paged = purchases.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filtered = purchases.filter(p => {
+    if (!dateFrom) return true;
+    const d = new Date(p.date);
+    if (d < dateFrom) return false;
+    if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (d > end) return false; }
+    return true;
+  });
+  const totalUSD = filtered.reduce((s, p) => s + Number(p.total_usd), 0);
+  const totalARS = filtered.reduce((s, p) => s + Number(p.total_ars), 0);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleDelete = async (p: any) => {
     await deletePurchaseDB(p.id);
@@ -42,9 +52,11 @@ export default function PurchasesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Compras</h1>
-          <p className="text-muted-foreground text-sm">{purchases.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
+          <p className="text-muted-foreground text-sm">{filtered.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
           </DialogTrigger>
@@ -52,10 +64,11 @@ export default function PurchasesPage() {
             <DialogHeader><DialogTitle className="font-display">Registrar Compra</DialogTitle></DialogHeader>
             <PurchaseForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
-      {!purchases.length ? (
+      {!filtered.length ? (
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>

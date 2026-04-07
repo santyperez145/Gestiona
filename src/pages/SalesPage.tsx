@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -21,6 +22,8 @@ export default function SalesPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const reload = async () => {
     if (user) {
       setSales(await getSalesDB(user.id));
@@ -29,10 +32,17 @@ export default function SalesPage() {
   };
   useEffect(() => { reload(); }, [user]);
 
-  const totalSales = sales.reduce((s, v) => s + Number(v.total_ars), 0);
-  const totalProfit = sales.reduce((s, v) => s + Number(v.profit_ars), 0);
-  const totalPages = Math.ceil(sales.length / PAGE_SIZE);
-  const paged = sales.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filtered = sales.filter(s => {
+    if (!dateFrom) return true;
+    const d = new Date(s.date);
+    if (d < dateFrom) return false;
+    if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (d > end) return false; }
+    return true;
+  });
+  const totalSales = filtered.reduce((s, v) => s + Number(v.total_ars), 0);
+  const totalProfit = filtered.reduce((s, v) => s + Number(v.profit_ars), 0);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleDelete = async (sale: any) => {
     await deleteSaleDB(sale.id);
@@ -48,9 +58,11 @@ export default function SalesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Ventas</h1>
-          <p className="text-muted-foreground text-sm">{sales.length} ventas · Total: {formatARS(totalSales)} · Ganancia: {formatARS(totalProfit)}</p>
+          <p className="text-muted-foreground text-sm">{filtered.length} ventas · Total: {formatARS(totalSales)} · Ganancia: {formatARS(totalProfit)}</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Venta</Button>
           </DialogTrigger>
@@ -58,10 +70,11 @@ export default function SalesPage() {
             <DialogHeader><DialogTitle className="font-display">Registrar Venta</DialogTitle></DialogHeader>
             <SaleForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
-      {!sales.length ? (
+      {!filtered.length ? (
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
       ) : (
         <>
