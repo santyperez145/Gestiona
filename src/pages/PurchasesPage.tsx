@@ -154,14 +154,14 @@ export default function PurchasesPage() {
   );
 }
 
-function PurchaseForm({ userId, onSave }: { userId: string; onSave: () => void }) {
+function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [exchangeRate, setExchangeRate] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [productId, setProductId] = useState(editItem?.product_id || '');
+  const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
+  const [exchangeRate, setExchangeRate] = useState(editItem ? String(editItem.exchange_rate) : '');
+  const [supplier, setSupplier] = useState(editItem?.supplier || '');
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
