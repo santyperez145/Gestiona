@@ -52,9 +52,11 @@ export default function PurchasesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Compras</h1>
-          <p className="text-muted-foreground text-sm">{purchases.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
+          <p className="text-muted-foreground text-sm">{filtered.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
           </DialogTrigger>
