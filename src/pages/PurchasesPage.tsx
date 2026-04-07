@@ -100,13 +100,16 @@ export default function PurchasesPage() {
                     <td className="p-3 text-right font-medium">{formatUSD(Number(p.total_usd))}</td>
                     <td className="p-3 text-right font-medium">{formatARS(Number(p.total_ars))}</td>
                     <td className="p-3 text-center">
-                      <ConfirmDialog
-                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                        title="¿Eliminar compra?"
-                        description={`Se eliminará la compra de ${p.product_name}.`}
-                        confirmText="Eliminar"
-                        onConfirm={() => handleDelete(p)}
-                      />
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                        <ConfirmDialog
+                          trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          title="¿Eliminar compra?"
+                          description={`Se eliminará la compra de ${p.product_name}.`}
+                          confirmText="Eliminar"
+                          onConfirm={() => handleDelete(p)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
