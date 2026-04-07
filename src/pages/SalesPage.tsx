@@ -284,7 +284,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </div>
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">Registrar Venta</Button>
+      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Venta' : 'Registrar Venta'}</Button>
     </form>
   );
 }
