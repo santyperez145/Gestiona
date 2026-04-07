@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type AuditAction = 'create' | 'update' | 'delete' | 'settings_change' | 'price_change' | 'role_change';
-export type EntityType = 'product' | 'sale' | 'purchase' | 'debt' | 'settings' | 'user_role' | 'marketing_post';
+export type EntityType = 'product' | 'sale' | 'purchase' | 'debt' | 'settings' | 'user_role' | 'marketing_post' | 'exchange';
 
 export async function logAudit(
   userId: string,
