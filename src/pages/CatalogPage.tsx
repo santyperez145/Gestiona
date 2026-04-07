@@ -386,11 +386,14 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
                 <div className="space-y-1">
                   {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars ? (
                     <>
-                      <div className="flex items-baseline gap-2 flex-wrap">
+                      <div>
                         <span className="text-base font-bold text-primary">{formatARS(Number(p.discount_price_ars))}</span>
-                        <span className="text-[10px] text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</span>
+                        <p className="text-[10px] text-muted-foreground">Efectivo / Transferencia</p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">Efectivo / Transferencia</p>
+                      <div className="mt-1">
+                        <span className="text-xs text-muted-foreground">{formatARS(Number(p.sale_price_ars))}</span>
+                        <p className="text-[10px] text-muted-foreground">Tarjeta hasta 3 cuotas sin interés</p>
+                      </div>
                     </>
                   ) : (
                     <span className="text-base font-bold text-primary">{formatARS(Number(p.sale_price_ars))}</span>
