@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Megaphone, Brain, Users, Crown, Search } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Megaphone, Brain, Users, Crown, Search, Gift } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB } from "@/lib/supabaseStore";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { label: "Clientes / CRM", path: "/clientes", icon: Users },
   { label: "Reportes", path: "/reportes", icon: TrendingUp },
   { label: "Marketing", path: "/marketing", icon: Megaphone },
+  { label: "Canjes & Influencers", path: "/canjes", icon: Gift },
   { label: "IA Insights", path: "/ia", icon: Brain },
   { label: "Ajustes", path: "/ajustes", icon: Settings },
   { label: "Admin", path: "/admin", icon: Crown },

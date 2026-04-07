@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS, formatUSD } from "@/lib/supabaseStore";
-import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3 } from "lucide-react";
+import { formatARS, formatUSD, getAuditLogsDB } from "@/lib/supabaseStore";
+import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -31,8 +31,10 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState<VendorStats[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [period, setPeriod] = useState('all');
   const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'audit'>('overview');
 
   useEffect(() => {
     if (!user) return;
@@ -44,7 +46,10 @@ export default function AdminPage() {
     const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
     const admin = roleData?.some(r => r.role === 'admin') || false;
     setIsAdmin(admin);
-    if (admin) await loadVendorData();
+    if (admin) {
+      await loadVendorData();
+      getAuditLogsDB(50).then(setAuditLogs).catch(() => {});
+    }
     setLoading(false);
   };
 
@@ -148,10 +153,15 @@ export default function AdminPage() {
           <p className="text-muted-foreground text-sm">Gestión de vendedores y rendimiento global</p>
         </div>
         <div className="flex gap-2">
+          <div className="flex bg-muted rounded-lg p-0.5">
+            <Button variant={activeTab === 'overview' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('overview')}>Rendimiento</Button>
+            <Button variant={activeTab === 'audit' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('audit')} className="gap-1"><ClipboardList className="w-3.5 h-3.5" />Auditoría</Button>
+          </div>
           <AssignRoleDialog onDone={loadVendorData} />
         </div>
       </div>
 
+      {activeTab === 'overview' && (<>
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
@@ -272,6 +282,43 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
+      </>)}
+
+      {/* Audit Log Tab */}
+      {activeTab === 'audit' && (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h3 className="font-display font-semibold flex items-center gap-2"><ClipboardList className="w-4 h-4 text-primary" />Actividad Reciente ({auditLogs.length})</h3>
+          </div>
+          <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
+            {auditLogs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-10 text-sm">No hay actividad registrada</p>
+            ) : auditLogs.map(log => {
+              const details = typeof log.details === 'object' ? log.details : {};
+              return (
+                <div key={log.id} className="p-3 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        log.action === 'delete' ? 'bg-destructive/20 text-destructive' :
+                        log.action === 'create' ? 'bg-success/20 text-success' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>{log.action}</span>
+                      <span className="text-xs font-medium">{log.entity_type}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{new Date(log.created_at).toLocaleString('es-AR')}</span>
+                  </div>
+                  {details && Object.keys(details).length > 0 && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {Object.entries(details).map(([k, v]) => `${k}: ${typeof v === 'number' ? formatARS(v as number) : v}`).join(' · ')}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

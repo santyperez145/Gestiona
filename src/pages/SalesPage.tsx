@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -20,6 +20,7 @@ export default function SalesPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -62,13 +63,13 @@ export default function SalesPage() {
         </div>
         <div className="flex items-center gap-2">
           <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Venta</Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border max-w-lg">
-            <DialogHeader><DialogTitle className="font-display">Registrar Venta</DialogTitle></DialogHeader>
-            <SaleForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
+            <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
+            <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>
           </Dialog>
         </div>
@@ -110,13 +111,16 @@ export default function SalesPage() {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <ConfirmDialog
-                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                        title="¿Eliminar esta venta?"
-                        description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
-                        confirmText="Eliminar"
-                        onConfirm={() => handleDelete(s)}
-                      />
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                        <ConfirmDialog
+                          trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          title="¿Eliminar esta venta?"
+                          description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
+                          confirmText="Eliminar"
+                          onConfirm={() => handleDelete(s)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -174,16 +178,16 @@ export default function SalesPage() {
   );
 }
 
-function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
+function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [customerName, setCustomerName] = useState('');
-  const [paid, setPaid] = useState('true');
-  const [useDiscount, setUseDiscount] = useState('false');
-  const [customPrice, setCustomPrice] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [productId, setProductId] = useState(editItem?.product_id || '');
+  const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
+  const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
+  const [paid, setPaid] = useState(editItem ? String(editItem.paid) : 'true');
+  const [useDiscount, setUseDiscount] = useState(editItem?.discount_applied ? 'true' : 'false');
+  const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
@@ -207,18 +211,27 @@ function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
-    if (product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
-    const saleId = crypto.randomUUID();
-    await addSaleDB({
-      id: saleId, user_id: userId, product_id: productId, product_name: product!.name,
+    if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
+
+    const saleData = {
+      product_id: productId, product_name: product!.name,
       quantity: qty, unit_price_ars: unitPrice, discount_applied: !!applyDiscount || !!customPrice,
       total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
       profit_ars: profitARS, profit_usd: profitUSD,
       customer_name: customerName || null, date, paid: paid === 'true',
-    });
-    await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS });
-    toast.success("Venta registrada");
-    if (productId) await checkStockAfterSale(productId, product!.name);
+    };
+
+    if (editItem) {
+      await updateSaleDB(editItem.id, saleData, editItem);
+      await logAudit(userId, 'update', 'sale', editItem.id, { product: product!.name, total, profit: profitARS });
+      toast.success("Venta actualizada");
+    } else {
+      const saleId = crypto.randomUUID();
+      await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+      await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS });
+      toast.success("Venta registrada");
+      if (productId) await checkStockAfterSale(productId, product!.name);
+    }
     onSave();
   };
 
@@ -271,7 +284,7 @@ function SaleForm({ userId, onSave }: { userId: string; onSave: () => void }) {
           </div>
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">Registrar Venta</Button>
+      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Venta' : 'Registrar Venta'}</Button>
     </form>
   );
 }

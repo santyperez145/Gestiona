@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +16,7 @@ const navItems = [
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/reportes", label: "Reportes", icon: TrendingUp },
   { to: "/marketing", label: "Marketing", icon: Megaphone },
+  { to: "/canjes", label: "Canjes", icon: Gift },
   { to: "/ia", label: "IA Insights", icon: Brain },
   { to: "/ajustes", label: "Ajustes", icon: Settings },
 ];
@@ -102,7 +103,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className={`p-4 ${collapsed ? 'px-2' : ''} border-t border-sidebar-border space-y-2`}>
-          {!collapsed && <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>}
+          {!collapsed && (
+            <>
+              <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>
+              <div className="text-[10px] text-muted-foreground/50 px-1">{config.businessName} · v7.0</div>
+            </>
+          )}
           <Button
             variant="ghost" size="sm"
             className={`w-full ${collapsed ? 'justify-center' : 'justify-start'} text-muted-foreground hover:text-destructive`}

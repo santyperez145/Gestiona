@@ -100,6 +100,66 @@ export type Database = {
           },
         ]
       }
+      influencer_exchanges: {
+        Row: {
+          actual_posts: number | null
+          created_at: string | null
+          delivery_date: string | null
+          exchange_type: string
+          expected_posts: number | null
+          id: string
+          influencer_followers: number | null
+          influencer_instagram: string | null
+          influencer_name: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          product_value_ars: number
+          quantity: number
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_posts?: number | null
+          created_at?: string | null
+          delivery_date?: string | null
+          exchange_type?: string
+          expected_posts?: number | null
+          id?: string
+          influencer_followers?: number | null
+          influencer_instagram?: string | null
+          influencer_name: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          product_value_ars?: number
+          quantity?: number
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_posts?: number | null
+          created_at?: string | null
+          delivery_date?: string | null
+          exchange_type?: string
+          expected_posts?: number | null
+          id?: string
+          influencer_followers?: number | null
+          influencer_instagram?: string | null
+          influencer_name?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_value_ars?: number
+          quantity?: number
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       marketing_posts: {
         Row: {
           ai_generated: boolean

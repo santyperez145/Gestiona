@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, getProductsDB, getSettingsDB, formatARS, formatUSD } from "@/lib/supabaseStore";
+import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, formatARS, formatUSD } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -19,6 +19,7 @@ export default function PurchasesPage() {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -56,13 +57,13 @@ export default function PurchasesPage() {
         </div>
         <div className="flex items-center gap-2">
           <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
-            <DialogHeader><DialogTitle className="font-display">Registrar Compra</DialogTitle></DialogHeader>
-            <PurchaseForm userId={user!.id} onSave={() => { setOpen(false); reload(); }} />
+            <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
+            <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>
           </Dialog>
         </div>
@@ -99,13 +100,16 @@ export default function PurchasesPage() {
                     <td className="p-3 text-right font-medium">{formatUSD(Number(p.total_usd))}</td>
                     <td className="p-3 text-right font-medium">{formatARS(Number(p.total_ars))}</td>
                     <td className="p-3 text-center">
-                      <ConfirmDialog
-                        trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                        title="¿Eliminar compra?"
-                        description={`Se eliminará la compra de ${p.product_name}.`}
-                        confirmText="Eliminar"
-                        onConfirm={() => handleDelete(p)}
-                      />
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                        <ConfirmDialog
+                          trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          title="¿Eliminar compra?"
+                          description={`Se eliminará la compra de ${p.product_name}.`}
+                          confirmText="Eliminar"
+                          onConfirm={() => handleDelete(p)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -150,14 +154,14 @@ export default function PurchasesPage() {
   );
 }
 
-function PurchaseForm({ userId, onSave }: { userId: string; onSave: () => void }) {
+function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [exchangeRate, setExchangeRate] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [productId, setProductId] = useState(editItem?.product_id || '');
+  const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
+  const [exchangeRate, setExchangeRate] = useState(editItem ? String(editItem.exchange_rate) : '');
+  const [supplier, setSupplier] = useState(editItem?.supplier || '');
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
@@ -179,13 +183,20 @@ function PurchaseForm({ userId, onSave }: { userId: string; onSave: () => void }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná producto y cantidad"); return; }
-    await addPurchaseDB({
-      user_id: userId, product_id: productId, product_name: product!.name,
+    const purchaseData = {
+      product_id: productId, product_name: product!.name,
       quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
       total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date, supplier,
-    });
-    await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty });
-    toast.success("Compra registrada");
+    };
+    if (editItem) {
+      await updatePurchaseDB(editItem.id, purchaseData, editItem);
+      await logAudit(userId, 'update', 'purchase', editItem.id, { product: product!.name, totalUSD, qty });
+      toast.success("Compra actualizada");
+    } else {
+      await addPurchaseDB({ user_id: userId, ...purchaseData });
+      await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty });
+      toast.success("Compra registrada");
+    }
     onSave();
   };
 
@@ -212,7 +223,7 @@ function PurchaseForm({ userId, onSave }: { userId: string; onSave: () => void }
           <div className="flex justify-between font-bold"><span>Total ARS:</span><span className="text-primary">{formatARS(totalARS)}</span></div>
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">Registrar Compra</Button>
+      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
     </form>
   );
 }
