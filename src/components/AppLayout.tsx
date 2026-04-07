@@ -104,6 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className={`p-4 ${collapsed ? 'px-2' : ''} border-t border-sidebar-border space-y-2`}>
+          <NotificationBell collapsed={collapsed} />
           {!collapsed && (
             <>
               <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>
