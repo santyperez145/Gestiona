@@ -20,6 +20,7 @@ export default function SalesPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
