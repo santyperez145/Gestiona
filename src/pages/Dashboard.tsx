@@ -254,26 +254,26 @@ export default function Dashboard() {
       </div>
 
       {/* ROI & Margin Gauges */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 md:mb-8">
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card flex items-center justify-center">
-          <GaugeChart value={stats.profitMargin} max={100} label="Margen Bruto" color="hsl(150, 60%, 40%)" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
+          <GaugeChart value={stats.profitMargin} max={100} label="Margen Bruto" color="hsl(152, 58%, 42%)" />
         </div>
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card flex items-center justify-center">
-          <GaugeChart value={stats.roi} max={200} label="ROI" color="hsl(40, 70%, 50%)" />
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
+          <GaugeChart value={stats.roi} max={200} label="ROI" color="hsl(40, 72%, 52%)" />
         </div>
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
-          <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Cobranza</h3>
-          <div className="space-y-2">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card">
+          <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-4">Cobranza</h3>
+          <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Cobrado</span>
-              <span className="text-success font-medium">{formatARS(stats.paidSalesARS)}</span>
+              <span className="text-success font-semibold">{formatARS(stats.paidSalesARS)}</span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-success rounded-full" style={{ width: `${stats.totalSalesARS > 0 ? (stats.paidSalesARS / stats.totalSalesARS * 100) : 0}%` }} />
+            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <div className="h-full bg-success rounded-full transition-all duration-500" style={{ width: `${stats.totalSalesARS > 0 ? (stats.paidSalesARS / stats.totalSalesARS * 100) : 0}%` }} />
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Por cobrar</span>
-              <span className="text-destructive font-medium">{formatARS(stats.unpaidSalesARS)}</span>
+              <span className="text-destructive font-semibold">{formatARS(stats.unpaidSalesARS)}</span>
             </div>
           </div>
         </div>
