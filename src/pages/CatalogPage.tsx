@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
@@ -12,13 +12,28 @@ import { toast } from "sonner";
 
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 
-function formatARSShort(n: number) {
+function fmtARS(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 }
 
 interface CatalogPageProps {
   isPublic?: boolean;
   publicUserId?: string;
+}
+
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
 
 export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps) {
@@ -30,7 +45,6 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const [filterCat, setFilterCat] = useState('all');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const catalogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -52,62 +66,231 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   });
 
   const generatePDF = useCallback(async () => {
-    if (!catalogRef.current || !filtered.length) return;
+    if (!filtered.length) return;
     setGenerating(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
       const { default: jsPDF } = await import('jspdf');
 
-      const element = catalogRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#1A1A2E',
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
-      const imgWidth = 210; // A4 mm
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const W = doc.internal.pageSize.getWidth();   // 210
+      const H = doc.internal.pageSize.getHeight();   // 297
       const businessName = settings?.business_name || 'Exentry Imports';
+      const hex = settings?.primary_color || '#D4A843';
+      const pR = parseInt(hex.slice(1, 3), 16);
+      const pG = parseInt(hex.slice(3, 5), 16);
+      const pB = parseInt(hex.slice(5, 7), 16);
+      const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-      let heightLeft = imgHeight;
-      let position = 0;
-      let page = 1;
+      // Preload images
+      const imageCache: Record<string, string | null> = {};
+      const imageUrls = [...new Set(filtered.map(p => p.image_url).filter(Boolean))];
+      await Promise.all(imageUrls.map(async (url) => {
+        imageCache[url] = await loadImageAsBase64(url);
+      }));
 
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const drawHeader = () => {
+        doc.setFillColor(20, 20, 40);
+        doc.rect(0, 0, W, 28, 'F');
+        doc.setFillColor(pR, pG, pB);
+        doc.rect(0, 28, W, 1.5, 'F');
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        page++;
+        doc.setTextColor(pR, pG, pB);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(businessName.toUpperCase(), 12, 14);
+
+        doc.setTextColor(180, 180, 190);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('CATÁLOGO DE PRODUCTOS', 12, 21);
+        doc.text(today, W - 12, 21, { align: 'right' });
+
+        return 35; // Y after header
+      };
+
+      const drawFooter = () => {
+        doc.setFillColor(20, 20, 40);
+        doc.rect(0, H - 10, W, 10, 'F');
+        doc.setFillColor(pR, pG, pB);
+        doc.rect(0, H - 10, W, 0.4, 'F');
+      };
+
+      // Card dimensions
+      const COLS = 3;
+      const margin = 12;
+      const gap = 5;
+      const cardW = (W - margin * 2 - gap * (COLS - 1)) / COLS; // ~58.67
+      const imgH = cardW * 0.75; // image area height
+      const textH = 28; // text area height
+      const cardH = imgH + textH;
+
+      // Group by category
+      const categories = [...new Set(filtered.map(p => p.category))];
+      let y = drawHeader();
+      let pageNum = 1;
+
+      const newPage = () => {
+        drawFooter();
+        doc.addPage();
+        pageNum++;
+        y = drawHeader();
+      };
+
+      for (const cat of categories) {
+        const catProducts = filtered.filter(p => p.category === cat);
+
+        // Category header
+        if (y + 10 > H - 15) newPage();
+
+        doc.setFillColor(pR, pG, pB);
+        doc.roundedRect(margin, y, W - margin * 2, 7, 1.5, 1.5, 'F');
+        doc.setTextColor(20, 20, 40);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${getCategoryLabel(cat).toUpperCase()}  —  ${catProducts.length} producto${catProducts.length > 1 ? 's' : ''}`, margin + 4, y + 5);
+        y += 11;
+
+        // Draw product cards in grid
+        for (let i = 0; i < catProducts.length; i++) {
+          const col = i % COLS;
+          if (col === 0 && i > 0) y += cardH + gap;
+          if (y + cardH > H - 15) {
+            newPage();
+          }
+
+          const p = catProducts[i];
+          const x = margin + col * (cardW + gap);
+
+          // Card background
+          doc.setFillColor(30, 30, 52);
+          doc.roundedRect(x, y, cardW, cardH, 2, 2, 'F');
+
+          // Card border
+          doc.setDrawColor(50, 50, 75);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(x, y, cardW, cardH, 2, 2, 'S');
+
+          // Image area
+          doc.setFillColor(25, 25, 45);
+          doc.rect(x + 0.5, y + 0.5, cardW - 1, imgH - 1, 'F');
+
+          if (p.image_url && imageCache[p.image_url]) {
+            try {
+              doc.addImage(imageCache[p.image_url]!, 'JPEG', x + 1, y + 1, cardW - 2, imgH - 2);
+            } catch {
+              // fallback: no image
+              doc.setTextColor(80, 80, 100);
+              doc.setFontSize(7);
+              doc.text('Sin imagen', x + cardW / 2, y + imgH / 2, { align: 'center' });
+            }
+          } else {
+            doc.setTextColor(80, 80, 100);
+            doc.setFontSize(7);
+            doc.text('Sin imagen', x + cardW / 2, y + imgH / 2, { align: 'center' });
+          }
+
+          // Discount badge
+          if (p.discount_price_ars && p.discount_price_ars < p.sale_price_ars) {
+            const pct = Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100);
+            doc.setFillColor(220, 40, 40);
+            doc.roundedRect(x + 1.5, y + 1.5, 14, 5, 1, 1, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(6);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`-${pct}%`, x + 8.5, y + 5, { align: 'center' });
+          }
+
+          // Category pill
+          const catLabel = getCategoryLabel(p.category);
+          const pillW = doc.getTextWidth(catLabel) + 4;
+          doc.setFillColor(20, 20, 40);
+          doc.roundedRect(x + cardW - pillW - 2, y + 1.5, pillW, 4.5, 1, 1, 'F');
+          doc.setTextColor(160, 160, 180);
+          doc.setFontSize(5);
+          doc.setFont('helvetica', 'normal');
+          doc.text(catLabel, x + cardW - 3.5, y + 4.5, { align: 'right' });
+
+          // Text area
+          const tY = y + imgH + 2;
+
+          // Product name
+          doc.setTextColor(230, 230, 240);
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'bold');
+          const nameLines = doc.splitTextToSize(p.name, cardW - 6);
+          doc.text(nameLines.slice(0, 2), x + 3, tY + 3);
+
+          // Brand + gender
+          doc.setTextColor(140, 140, 160);
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${p.brand} · ${getGenderLabel(p.gender)}`, x + 3, tY + 10);
+
+          // Price
+          if (p.discount_price_ars && p.discount_price_ars < p.sale_price_ars) {
+            doc.setTextColor(pR, pG, pB);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text(fmtARS(Number(p.discount_price_ars)), x + 3, tY + 17);
+
+            doc.setTextColor(100, 100, 120);
+            doc.setFontSize(6);
+            doc.setFont('helvetica', 'normal');
+            const oldPrice = fmtARS(Number(p.sale_price_ars));
+            const priceX = x + 3 + doc.getTextWidth(fmtARS(Number(p.discount_price_ars))) * (9/6) * 0.48 + 4;
+            doc.text(oldPrice, Math.min(priceX, x + cardW - 5), tY + 17);
+            // Strikethrough line
+            const spW = doc.getTextWidth(oldPrice);
+            doc.setDrawColor(100, 100, 120);
+            doc.setLineWidth(0.2);
+            doc.line(Math.min(priceX, x + cardW - 5), tY + 16, Math.min(priceX, x + cardW - 5) + spW, tY + 16);
+
+            doc.setTextColor(120, 120, 140);
+            doc.setFontSize(5);
+            doc.text('Efectivo / Transferencia', x + 3, tY + 21);
+          } else {
+            doc.setTextColor(pR, pG, pB);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text(fmtARS(Number(p.sale_price_ars)), x + 3, tY + 17);
+          }
+
+          // Stock (only non-public)
+          if (!isPublic) {
+            doc.setTextColor(100, 100, 120);
+            doc.setFontSize(5);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Stock: ${p.stock}`, x + cardW - 3, tY + 24, { align: 'right' });
+          }
+        }
+
+        // After last row of this category
+        const lastRowItems = catProducts.length % COLS || COLS;
+        if (lastRowItems > 0) y += cardH + gap;
+        y += 3; // extra space between categories
       }
 
-      // Add footer on each page
-      const totalPages = pdf.getNumberOfPages();
-      const today = new Date().toLocaleDateString('es-AR');
+      drawFooter();
+
+      // Page numbers
+      const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(7);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(`${businessName} — ${today} — Pág. ${i}/${totalPages}`, 105, 293, { align: 'center' });
+        doc.setPage(i);
+        doc.setTextColor(120, 120, 140);
+        doc.setFontSize(6);
+        doc.text(`${businessName} · ${today}`, 12, H - 4);
+        doc.text(`${i} / ${totalPages}`, W - 12, H - 4, { align: 'right' });
       }
 
-      pdf.save(`${businessName.replace(/\s+/g, '_')}_Catalogo.pdf`);
+      doc.save(`${businessName.replace(/\s+/g, '_')}_Catalogo.pdf`);
       toast.success('Catálogo PDF descargado');
     } catch (err) {
-      console.error('PDF generation error:', err);
+      console.error('PDF error:', err);
       toast.error('Error al generar el PDF');
     } finally {
       setGenerating(false);
     }
-  }, [filtered, settings]);
+  }, [filtered, settings, isPublic]);
 
   const shareCatalog = useCallback(async () => {
     const url = `${window.location.origin}/catalogo/${userId}`;
@@ -118,7 +301,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           text: `Mirá nuestro catálogo con ${filtered.length} productos disponibles`,
           url,
         });
-      } catch { /* user cancelled */ }
+      } catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(url);
       toast.success('Link del catálogo copiado al portapapeles');
@@ -169,65 +352,57 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       {!filtered.length ? (
         <EmptyState icon={Package} title="No hay productos disponibles" description="No se encontraron productos con stock." />
       ) : (
-        <div ref={catalogRef} className="bg-background p-4 rounded-xl">
-          {/* PDF Header - visible in PDF capture */}
-          <div className="text-center mb-6 pb-4 border-b border-border">
-            <h2 className="text-xl font-bold text-primary">{businessName}</h2>
-            <p className="text-xs text-muted-foreground">Catálogo de Productos — {new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}</p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filtered.map(p => (
-              <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow group">
-                <div className="aspect-square bg-muted flex items-center justify-center relative">
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                  ) : (
-                    <Package className="w-12 h-12 text-muted-foreground/30" />
-                  )}
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-background/80 backdrop-blur-sm font-medium">
-                      {getCategoryLabel(p.category)}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {filtered.map(p => (
+            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow group">
+              <div className="aspect-square bg-muted flex items-center justify-center relative">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Package className="w-12 h-12 text-muted-foreground/30" />
+                )}
+                <div className="absolute top-2 right-2">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-background/80 backdrop-blur-sm font-medium">
+                    {getCategoryLabel(p.category)}
+                  </span>
+                </div>
+                {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars && (
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-destructive text-destructive-foreground font-bold flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      {Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100)}% OFF
                     </span>
                   </div>
-                  {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars && (
-                    <div className="absolute top-2 left-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-destructive text-destructive-foreground font-bold flex items-center gap-1">
-                        <Tag className="w-3 h-3" />
-                        {Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100)}% OFF
-                      </span>
+                )}
+              </div>
+              <div className="p-3">
+                <div className="flex items-start justify-between mb-1">
+                  <h3 className="font-semibold text-sm leading-tight flex-1">{p.name}</h3>
+                  <span className="text-xs text-muted-foreground ml-1">{GENDER_ICONS[p.gender]}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{p.brand}</p>
+                <div className="space-y-1">
+                  {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars ? (
+                    <>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-base font-bold text-primary">{formatARS(Number(p.discount_price_ars))}</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Efectivo / Transferencia</p>
+                    </>
+                  ) : (
+                    <span className="text-base font-bold text-primary">{formatARS(Number(p.sale_price_ars))}</span>
+                  )}
+                  {!isPublic && (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-border">
+                      <span className="text-[10px] text-muted-foreground">Stock: {p.stock}</span>
+                      <span className="text-[10px] text-muted-foreground">{getGenderLabel(p.gender)}</span>
                     </div>
                   )}
                 </div>
-                <div className="p-3">
-                  <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-semibold text-sm leading-tight flex-1">{p.name}</h3>
-                    <span className="text-xs text-muted-foreground ml-1">{GENDER_ICONS[p.gender]}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">{p.brand}</p>
-                  <div className="space-y-1">
-                    {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars ? (
-                      <>
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="text-base font-bold text-primary">{formatARSShort(Number(p.discount_price_ars))}</span>
-                          <span className="text-[10px] text-muted-foreground line-through">{formatARSShort(Number(p.sale_price_ars))}</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">Efectivo / Transferencia</p>
-                      </>
-                    ) : (
-                      <span className="text-base font-bold text-primary">{formatARSShort(Number(p.sale_price_ars))}</span>
-                    )}
-                    {!isPublic && (
-                      <div className="flex items-center justify-between pt-1.5 border-t border-border">
-                        <span className="text-[10px] text-muted-foreground">Stock: {p.stock}</span>
-                        <span className="text-[10px] text-muted-foreground">{getGenderLabel(p.gender)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
