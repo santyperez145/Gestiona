@@ -329,19 +329,29 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       <div>
         <label className="text-sm text-muted-foreground">Costo USD *</label>
         <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" required />
-        {!product && cost > 0 && (
+        {cost > 0 && (
           <p className="text-[10px] text-muted-foreground mt-1">
-            Fórmula: [(USD+{customsPercent}% pasero) × ${exchangeRate}] × 2 - {defaultDiscount}% desc.
+            Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × 2 = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
           </p>
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm text-muted-foreground">Precio Venta ARS</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-muted-foreground">Precio Venta ARS</label>
+            {manualSalePrice && cost > 0 && (
+              <button type="button" onClick={() => setManualSalePrice(false)} className="text-[10px] text-primary hover:underline">Auto</button>
+            )}
+          </div>
           <Input type="number" min="0" value={salePriceARS} onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }} className="bg-muted border-border" />
         </div>
         <div>
-          <label className="text-sm text-muted-foreground">Precio c/Descuento ARS</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-muted-foreground">Precio c/Desc. ARS</label>
+            {manualDiscountPrice && currentSaleForDiscount > 0 && (
+              <button type="button" onClick={() => setManualDiscountPrice(false)} className="text-[10px] text-primary hover:underline">Auto</button>
+            )}
+          </div>
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
         </div>
       </div>
