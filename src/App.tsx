@@ -20,6 +20,7 @@ import CatalogPage from "@/pages/CatalogPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import PublicCatalogPage from "@/pages/PublicCatalogPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 
