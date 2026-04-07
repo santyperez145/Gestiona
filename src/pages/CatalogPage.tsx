@@ -234,27 +234,22 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
           // Prices — stacked vertically
           if (p.discount_price_ars && p.discount_price_ars < p.sale_price_ars) {
-            // Discount price (large, primary color)
+            // Discount price (large, primary color) — Efectivo/Transferencia
             doc.setTextColor(pR, pG, pB);
-            doc.setFontSize(11);
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
-            doc.text(fmtARS(Number(p.discount_price_ars)), x + 3, tY + nameOffset + 12.5);
-
-            // Original price below, struck through
-            doc.setTextColor(110, 110, 130);
-            doc.setFontSize(7.5);
+            doc.text(fmtARS(Number(p.discount_price_ars)), x + 3, tY + nameOffset + 11.5);
+            doc.setFontSize(5);
             doc.setFont('helvetica', 'normal');
-            const oldPrice = fmtARS(Number(p.sale_price_ars));
-            doc.text(oldPrice, x + 3, tY + nameOffset + 17.5);
-            const spW = doc.getTextWidth(oldPrice);
-            doc.setDrawColor(110, 110, 130);
-            doc.setLineWidth(0.25);
-            doc.line(x + 3, tY + nameOffset + 16.5, x + 3 + spW, tY + nameOffset + 16.5);
+            doc.text('Efectivo / Transferencia', x + 3, tY + nameOffset + 14.5);
 
-            // Label
-            doc.setTextColor(pR, pG, pB);
-            doc.setFontSize(5.5);
-            doc.text('Efectivo / Transferencia', x + 3 + spW + 2, tY + nameOffset + 17.5);
+            // List price (no strikethrough) — Tarjeta
+            doc.setTextColor(180, 180, 195);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(fmtARS(Number(p.sale_price_ars)), x + 3, tY + nameOffset + 19);
+            doc.setFontSize(5);
+            doc.text('Tarjeta hasta 3 cuotas sin interés', x + 3, tY + nameOffset + 22);
           } else {
             doc.setTextColor(pR, pG, pB);
             doc.setFontSize(11);
