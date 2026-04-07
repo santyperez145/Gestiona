@@ -51,15 +51,20 @@ export default function ProductsPage() {
     return true;
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  const grouped = paged.reduce<Record<string, any[]>>((acc, p) => {
+  // Group first, then paginate by brand groups to avoid splitting a brand across pages
+  const allGrouped = filtered.reduce<Record<string, any[]>>((acc, p) => {
     const rawKey = p.brand || 'Sin marca';
-    // Case-insensitive grouping: find existing key that matches ignoring case
     const existingKey = Object.keys(acc).find(k => k.toLowerCase() === rawKey.toLowerCase());
     const key = existingKey || rawKey;
     (acc[key] = acc[key] || []).push(p);
+    return acc;
+  }, {});
+
+  const brandKeys = Object.keys(allGrouped).sort((a, b) => a.localeCompare(b, 'es'));
+  const totalPages = Math.ceil(brandKeys.length / PAGE_SIZE) || 1;
+  const pagedBrandKeys = brandKeys.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const grouped = pagedBrandKeys.reduce<Record<string, any[]>>((acc, key) => {
+    acc[key] = allGrouped[key];
     return acc;
   }, {});
 
