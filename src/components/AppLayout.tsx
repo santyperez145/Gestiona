@@ -1,47 +1,44 @@
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/useUserRole";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/productos", label: "Productos", icon: Package },
-  { to: "/compras", label: "Compras", icon: ShoppingCart },
-  { to: "/ventas", label: "Ventas", icon: DollarSign },
-  { to: "/deudas", label: "Deudas", icon: AlertCircle },
-  { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/reportes", label: "Reportes", icon: TrendingUp },
-  { to: "/marketing", label: "Marketing", icon: Megaphone },
-  { to: "/canjes", label: "Canjes", icon: Gift },
-  { to: "/catalogo", label: "Catálogo", icon: BookOpen },
-  { to: "/ia", label: "IA Insights", icon: Brain },
-  { to: "/ajustes", label: "Ajustes", icon: Settings },
+const allNavItems = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'] },
+  { to: "/productos", label: "Productos", icon: Package, roles: ['admin'] },
+  { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'] },
+  { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'] },
+  { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'] },
+  { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'] },
+  { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'] },
+  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'] },
+  { to: "/canjes", label: "Canjes", icon: Gift, roles: ['admin'] },
+  { to: "/catalogo", label: "Catálogo", icon: BookOpen, roles: ['admin'] },
+  { to: "/ia", label: "IA Insights", icon: Brain, roles: ['admin'] },
+  { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'] },
+  { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'] },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
+  const { role } = useUserRole();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const config = useBusinessConfig();
 
-  useEffect(() => {
-    if (!user) return;
-    supabase.from('user_roles').select('role').eq('user_id', user.id)
-      .then(({ data }) => setIsAdmin(data?.some(r => r.role === 'admin') || false));
-  }, [user]);
+  const navItems = useMemo(() => {
+    return allNavItems.filter(item => item.roles.includes(role));
+  }, [role]);
 
   const handleLogout = async () => {
     await signOut();
     toast.success("Sesión cerrada");
   };
-
-  const allNavItems = [...navItems, ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: Crown }] : [])];
 
   return (
     <div className="flex min-h-screen">
@@ -65,7 +62,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {!collapsed && (
               <div className="min-w-0">
                 <h1 className="font-display text-lg font-bold text-primary tracking-wide truncate">{config.businessName}</h1>
-                <p className="text-xs text-sidebar-foreground mt-0.5">Sistema de Gestión v6.0</p>
+                <p className="text-xs text-sidebar-foreground mt-0.5">
+                  {role === 'admin' ? 'Administrador' : role === 'vendedor' ? 'Vendedor' : 'Viewer'}
+                </p>
               </div>
             )}
           </div>
@@ -75,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
-          {allNavItems.map(({ to, label, icon: Icon }) => {
+          {navItems.map(({ to, label, icon: Icon }) => {
             const active = pathname === to;
             return (
               <Link
@@ -107,7 +106,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {!collapsed && (
             <>
               <div className="text-xs text-muted-foreground truncate px-1">{user?.email}</div>
-              <div className="text-[10px] text-muted-foreground/50 px-1">{config.businessName} · v7.0</div>
+              <div className="text-[10px] text-muted-foreground/50 px-1">{config.businessName} · v8.0</div>
             </>
           )}
           <Button

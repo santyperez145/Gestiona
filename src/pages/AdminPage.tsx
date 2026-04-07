@@ -71,7 +71,7 @@ export default function AdminPage() {
     
     for (const p of profiles) {
       const userRoles = roles?.filter(r => r.user_id === p.user_id) || [];
-      const role = userRoles.map(r => r.role).join(', ') || 'vendedor';
+      const role = userRoles.map(r => r.role).join(', ') || 'viewer';
       const userSales = (allSales || []).filter(s => s.user_id === p.user_id);
       const userProducts = (allProducts || []).filter(pr => pr.user_id === p.user_id);
       
@@ -245,8 +245,8 @@ export default function AdminPage() {
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      v.role.includes('admin') ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
-                    }`}>{v.role}</span>
+                      v.role.includes('admin') ? 'bg-yellow-500/20 text-yellow-400' : v.role.includes('vendedor') ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-500/20 text-zinc-400'
+                    }`}>{v.role || 'viewer'}</span>
                   </td>
                   <td className="p-3 text-right">{v.totalProducts}</td>
                   <td className="p-3 text-right">{v.totalSales}</td>
@@ -268,8 +268,8 @@ export default function AdminPage() {
                 <div>
                   <p className="font-medium">{v.displayName}</p>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    v.role.includes('admin') ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
-                  }`}>{v.role}</span>
+                    v.role.includes('admin') ? 'bg-yellow-500/20 text-yellow-400' : v.role.includes('vendedor') ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-500/20 text-zinc-400'
+                  }`}>{v.role || 'viewer'}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -327,7 +327,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'vendedor'>('vendedor');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'vendedor' | 'viewer'>('vendedor');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -380,6 +380,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
               <SelectContent>
                 <SelectItem value="admin">Administrador</SelectItem>
                 <SelectItem value="vendedor">Vendedor</SelectItem>
+                <SelectItem value="viewer">Viewer (sin acceso)</SelectItem>
               </SelectContent>
             </Select>
           </div>

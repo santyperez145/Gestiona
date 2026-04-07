@@ -26,8 +26,8 @@ export default function PublicCatalogPage() {
   const fetchData = useCallback(async () => {
     if (!userId) { setValid(false); return; }
     const [pRes, sRes] = await Promise.all([
-      supabase.from('products').select('*').eq('user_id', userId).gt('stock', 0).order('category').order('name'),
-      supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('products_public' as any).select('*').eq('user_id', userId).gt('stock', 0).order('category').order('name'),
+      supabase.from('settings_public' as any).select('*').eq('user_id', userId).maybeSingle(),
     ]);
     if (!sRes.data) { setValid(false); return; }
     setProducts(pRes.data || []);

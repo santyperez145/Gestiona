@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import ProductsPage from "@/pages/ProductsPage";
@@ -23,12 +24,35 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicCatalogPage from "@/pages/PublicCatalogPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
+import { ShieldAlert, BookOpen } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+function ViewerGate() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="text-center max-w-md">
+        <ShieldAlert className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <h1 className="text-2xl font-display font-bold mb-2">Esperando aprobación</h1>
+        <p className="text-muted-foreground mb-6">
+          Tu cuenta fue registrada pero aún no tenés acceso al sistema. Contactá al administrador para que te asigne un rol.
+        </p>
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm"
+        >
+          <BookOpen className="w-4 h-4" /> Ver catálogo público
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoutes() {
-  const { user, loading } = useAuth();
-  if (loading) return (
+  const { user, loading: authLoading } = useAuth();
+  const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
+
+  if (authLoading || roleLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -37,24 +61,40 @@ function ProtectedRoutes() {
     </div>
   );
   if (!user) return <AuthPage />;
+  if (isViewer) return <ViewerGate />;
+
+  // Vendedor: restricted routes
+  const vendedorRoutes = ['/', '/ventas', '/clientes'];
 
   return (
     <AppLayout>
       <CommandPalette />
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/productos" element={<ProductsPage />} />
-        <Route path="/compras" element={<PurchasesPage />} />
         <Route path="/ventas" element={<SalesPage />} />
-        <Route path="/deudas" element={<DebtsPage />} />
         <Route path="/clientes" element={<CustomersPage />} />
-        <Route path="/reportes" element={<ReportsPage />} />
-        <Route path="/marketing" element={<MarketingPage />} />
-        <Route path="/canjes" element={<InfluencerExchangesPage />} />
-        <Route path="/catalogo" element={<CatalogPage />} />
-        <Route path="/ia" element={<AIInsightsPage />} />
-        <Route path="/ajustes" element={<SettingsPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        
+        {/* Admin-only routes */}
+        {isAdmin && (
+          <>
+            <Route path="/productos" element={<ProductsPage />} />
+            <Route path="/compras" element={<PurchasesPage />} />
+            <Route path="/deudas" element={<DebtsPage />} />
+            <Route path="/reportes" element={<ReportsPage />} />
+            <Route path="/marketing" element={<MarketingPage />} />
+            <Route path="/canjes" element={<InfluencerExchangesPage />} />
+            <Route path="/catalogo" element={<CatalogPage />} />
+            <Route path="/ia" element={<AIInsightsPage />} />
+            <Route path="/ajustes" element={<SettingsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+          </>
+        )}
+        
+        {/* Redirect vendedor from admin routes */}
+        {isVendedor && (
+          <Route path="*" element={<Navigate to="/" replace />} />
+        )}
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
