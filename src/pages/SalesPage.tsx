@@ -211,18 +211,27 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
-    if (product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
-    const saleId = crypto.randomUUID();
-    await addSaleDB({
-      id: saleId, user_id: userId, product_id: productId, product_name: product!.name,
+    if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
+
+    const saleData = {
+      product_id: productId, product_name: product!.name,
       quantity: qty, unit_price_ars: unitPrice, discount_applied: !!applyDiscount || !!customPrice,
       total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
       profit_ars: profitARS, profit_usd: profitUSD,
       customer_name: customerName || null, date, paid: paid === 'true',
-    });
-    await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS });
-    toast.success("Venta registrada");
-    if (productId) await checkStockAfterSale(productId, product!.name);
+    };
+
+    if (editItem) {
+      await updateSaleDB(editItem.id, saleData, editItem);
+      await logAudit(userId, 'update', 'sale', editItem.id, { product: product!.name, total, profit: profitARS });
+      toast.success("Venta actualizada");
+    } else {
+      const saleId = crypto.randomUUID();
+      await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+      await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS });
+      toast.success("Venta registrada");
+      if (productId) await checkStockAfterSale(productId, product!.name);
+    }
     onSave();
   };
 
