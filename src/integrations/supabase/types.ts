@@ -222,6 +222,7 @@ export type Database = {
           discount_price_ars: number | null
           gender: string
           id: string
+          image_url: string | null
           name: string
           profit_per_unit_ars: number
           profit_per_unit_usd: number
@@ -241,6 +242,7 @@ export type Database = {
           discount_price_ars?: number | null
           gender?: string
           id?: string
+          image_url?: string | null
           name: string
           profit_per_unit_ars?: number
           profit_per_unit_usd?: number
@@ -260,6 +262,7 @@ export type Database = {
           discount_price_ars?: number | null
           gender?: string
           id?: string
+          image_url?: string | null
           name?: string
           profit_per_unit_ars?: number
           profit_per_unit_usd?: number
@@ -369,6 +372,7 @@ export type Database = {
           discount_applied: boolean
           id: string
           paid: boolean
+          payment_method: string
           product_id: string | null
           product_name: string
           profit_ars: number
@@ -386,6 +390,7 @@ export type Database = {
           discount_applied?: boolean
           id?: string
           paid?: boolean
+          payment_method?: string
           product_id?: string | null
           product_name: string
           profit_ars?: number
@@ -403,6 +408,7 @@ export type Database = {
           discount_applied?: boolean
           id?: string
           paid?: boolean
+          payment_method?: string
           product_id?: string | null
           product_name?: string
           profit_ars?: number
@@ -428,6 +434,10 @@ export type Database = {
           created_at: string
           customs_percent: number
           default_discount_percent: number
+          discount_cash_percent: number
+          discount_credit_percent: number
+          discount_debit_percent: number
+          discount_transfer_percent: number
           exchange_rate: number
           id: string
           logo_url: string | null
@@ -445,6 +455,10 @@ export type Database = {
           created_at?: string
           customs_percent?: number
           default_discount_percent?: number
+          discount_cash_percent?: number
+          discount_credit_percent?: number
+          discount_debit_percent?: number
+          discount_transfer_percent?: number
           exchange_rate?: number
           id?: string
           logo_url?: string | null
@@ -462,6 +476,10 @@ export type Database = {
           created_at?: string
           customs_percent?: number
           default_discount_percent?: number
+          discount_cash_percent?: number
+          discount_credit_percent?: number
+          discount_debit_percent?: number
+          discount_transfer_percent?: number
           exchange_rate?: number
           id?: string
           logo_url?: string | null
