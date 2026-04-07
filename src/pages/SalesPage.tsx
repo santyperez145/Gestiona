@@ -16,6 +16,14 @@ import { logAudit } from "@/lib/auditLog";
 
 const PAGE_SIZE = 20;
 
+const PAYMENT_METHODS = [
+  { value: 'efectivo', label: 'Efectivo', usesDiscount: true },
+  { value: 'transferencia', label: 'Transferencia', usesDiscount: true },
+  { value: 'debito', label: 'Débito', usesDiscount: false },
+  { value: 'credito', label: 'Crédito', usesDiscount: false },
+  { value: 'fiado', label: 'Fiado', usesDiscount: false },
+];
+
 export default function SalesPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
@@ -79,7 +87,6 @@ export default function SalesPage() {
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
       ) : (
         <>
-          {/* Desktop table */}
           <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -87,6 +94,7 @@ export default function SalesPage() {
                   <th className="text-left p-3 font-medium">Fecha</th>
                   <th className="text-left p-3 font-medium">Producto</th>
                   <th className="text-left p-3 font-medium">Cliente</th>
+                  <th className="text-center p-3 font-medium">Medio</th>
                   <th className="text-right p-3 font-medium">Cant.</th>
                   <th className="text-right p-3 font-medium">Total</th>
                   <th className="text-right p-3 font-medium">Ganancia</th>
@@ -100,6 +108,11 @@ export default function SalesPage() {
                     <td className="p-3">{new Date(s.date).toLocaleDateString('es-AR')}</td>
                     <td className="p-3">{s.product_name}</td>
                     <td className="p-3">{s.customer_name || '—'}</td>
+                    <td className="p-3 text-center">
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-muted capitalize">
+                        {(s as any).payment_method || 'efectivo'}
+                      </span>
+                    </td>
                     <td className="p-3 text-right">{s.quantity}</td>
                     <td className="p-3 text-right font-medium">{formatARS(Number(s.total_ars))}</td>
                     <td className="p-3 text-right">
@@ -128,7 +141,6 @@ export default function SalesPage() {
             </table>
           </div>
 
-          {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {paged.map(s => (
               <div key={s.id} className="bg-card border border-border rounded-lg p-4">
@@ -137,9 +149,11 @@ export default function SalesPage() {
                     <p className="font-medium text-sm">{s.product_name}</p>
                     <p className="text-xs text-muted-foreground">{new Date(s.date).toLocaleDateString('es-AR')} · {s.customer_name || 'Sin cliente'}</p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
-                    {s.paid ? 'Pagado' : 'Debe'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+                      {s.paid ? 'Pagado' : 'Debe'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4 text-sm">
@@ -147,26 +161,26 @@ export default function SalesPage() {
                     <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
                     <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                   </div>
-                  <ConfirmDialog
-                    trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                    title="¿Eliminar venta?"
-                    confirmText="Eliminar"
-                    onConfirm={() => handleDelete(s)}
-                  />
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
+                    <ConfirmDialog
+                      trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                      title="¿Eliminar venta?"
+                      confirmText="Eliminar"
+                      onConfirm={() => handleDelete(s)}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-sm text-muted-foreground">
-                {page + 1} / {totalPages}
-              </span>
+              <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
               <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -184,8 +198,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [productId, setProductId] = useState(editItem?.product_id || '');
   const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
   const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
-  const [paid, setPaid] = useState(editItem ? String(editItem.paid) : 'true');
-  const [useDiscount, setUseDiscount] = useState(editItem?.discount_applied ? 'true' : 'false');
+  const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
   const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
 
@@ -199,9 +212,15 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
 
   const product = products.find(p => p.id === productId);
   const qty = parseInt(quantity) || 0;
-  const applyDiscount = useDiscount === 'true' && product?.discount_price_ars;
-  const baseUnitPrice = applyDiscount ? Number(product!.discount_price_ars) : (Number(product?.sale_price_ars) || 0);
-  const unitPrice = customPrice ? (parseFloat(customPrice) || baseUnitPrice) : baseUnitPrice;
+  const methodConfig = PAYMENT_METHODS.find(m => m.value === paymentMethod);
+  const usesDiscount = methodConfig?.usesDiscount ?? false;
+  const isFiado = paymentMethod === 'fiado';
+
+  // Determine unit price based on payment method
+  const discountPrice = product?.discount_price_ars ? Number(product.discount_price_ars) : null;
+  const normalPrice = Number(product?.sale_price_ars) || 0;
+  const autoUnitPrice = usesDiscount && discountPrice ? discountPrice : normalPrice;
+  const unitPrice = customPrice ? (parseFloat(customPrice) || autoUnitPrice) : autoUnitPrice;
   const total = unitPrice * qty;
   const exchangeRate = Number(settings?.exchange_rate || 1695);
   const costPerUnitARS = product ? Number(product.total_cost_usd) * exchangeRate : 0;
@@ -213,12 +232,16 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
     if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
 
-    const saleData = {
+    const paid = !isFiado;
+    const discountApplied = usesDiscount || !!customPrice;
+
+    const saleData: any = {
       product_id: productId, product_name: product!.name,
-      quantity: qty, unit_price_ars: unitPrice, discount_applied: !!applyDiscount || !!customPrice,
+      quantity: qty, unit_price_ars: unitPrice, discount_applied: discountApplied,
       total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
       profit_ars: profitARS, profit_usd: profitUSD,
-      customer_name: customerName || null, date, paid: paid === 'true',
+      customer_name: customerName || null, date, paid,
+      payment_method: paymentMethod,
     };
 
     if (editItem) {
@@ -228,7 +251,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     } else {
       const saleId = crypto.randomUUID();
       await addSaleDB({ id: saleId, user_id: userId, ...saleData });
-      await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS });
+      await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
       if (productId) await checkStockAfterSale(productId, product!.name);
     }
@@ -241,10 +264,10 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setUseDiscount('false'); }}>
+        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); }}>
           <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
           <SelectContent>
-            {products.filter(p => p.stock > 0).map(p => (
+            {products.filter(p => editItem || p.stock > 0).map(p => (
               <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</SelectItem>
             ))}
           </SelectContent>
@@ -258,22 +281,28 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       </div>
       <div><label className="text-sm text-muted-foreground">Cliente (opcional)</label>
         <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Nombre" className="bg-muted border-border" /></div>
-      <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Pago</label>
-          <Select value={paid} onValueChange={setPaid}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="true">Pagado</SelectItem><SelectItem value="false">Fía (deuda)</SelectItem></SelectContent>
-          </Select>
-        </div>
-        {product?.discount_price_ars && (
-          <div><label className="text-sm text-muted-foreground">Descuento</label>
-            <Select value={useDiscount} onValueChange={setUseDiscount}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="false">Normal ({formatARS(Number(product.sale_price_ars))})</SelectItem><SelectItem value="true">Oferta ({formatARS(Number(product.discount_price_ars))})</SelectItem></SelectContent>
-            </Select>
-          </div>
+      <div>
+        <label className="text-sm text-muted-foreground">Medio de Pago</label>
+        <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); setCustomPrice(''); }}>
+          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {PAYMENT_METHODS.map(m => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {product && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {usesDiscount && discountPrice
+              ? `Precio c/descuento: ${formatARS(discountPrice)}`
+              : `Precio normal: ${formatARS(normalPrice)}`
+            }
+            {isFiado && ' · Se genera deuda automáticamente'}
+          </p>
         )}
       </div>
       <div><label className="text-sm text-muted-foreground">Precio personalizado (opcional)</label>
-        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Predeterminado: ${formatARS(baseUnitPrice)}`} className="bg-muted border-border" /></div>
+        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(autoUnitPrice)}`} className="bg-muted border-border" /></div>
       {product && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Precio unitario:</span><span>{formatARS(unitPrice)}</span></div>
@@ -281,6 +310,9 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total:</span><span className="text-primary">{formatARS(total)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Ganancia:</span>
             <span className={profitARS > 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{formatARS(profitARS)} ({formatUSD(profitUSD)})</span>
+          </div>
+          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Medio:</span>
+            <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
           </div>
         </div>
       )}

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits } from "@/lib/supabaseStore";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -32,6 +33,7 @@ export default function ProductsPage() {
   const [filterStock, setFilterStock] = useState('all');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -77,16 +79,29 @@ export default function ProductsPage() {
           <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
         </div>
-        <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-            <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)}>
+            <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
+          </Button>
+          <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
+              <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Bulk price adjustment modal */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
+          <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
         <div className="relative flex-1">
@@ -125,7 +140,6 @@ export default function ProductsPage() {
               <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
               </h2>
-              {/* Desktop table */}
               <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -173,7 +187,6 @@ export default function ProductsPage() {
                   </tbody>
                 </table>
               </div>
-              {/* Mobile cards */}
               <div className="md:hidden space-y-2">
                 {items.map((p: any) => (
                   <div key={p.id} className="bg-card border border-border rounded-lg p-3">
@@ -213,7 +226,6 @@ export default function ProductsPage() {
               </div>
             </div>
           ))}
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
@@ -241,11 +253,33 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
   const [description, setDescription] = useState(product?.description || '');
+  const [manualSalePrice, setManualSalePrice] = useState(false);
+  const [manualDiscountPrice, setManualDiscountPrice] = useState(false);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
   const customsPercent = Number(settings?.customs_percent || 15);
   const exchangeRate = Number(settings?.exchange_rate || 1695);
+  const defaultDiscount = Number(settings?.default_discount_percent || 40);
+
+  // Auto-calculate sale price and discount price when cost changes
+  useEffect(() => {
+    if (cost <= 0 || product) return; // Don't auto-calc when editing
+    if (!manualSalePrice) {
+      const autoSale = (cost + cost * customsPercent / 100) * exchangeRate * 2;
+      setSalePriceARS(Math.round(autoSale).toString());
+    }
+  }, [cost, customsPercent, exchangeRate, manualSalePrice]);
+
+  useEffect(() => {
+    const sp = parseFloat(salePriceARS) || 0;
+    if (sp <= 0 || product) return;
+    if (!manualDiscountPrice) {
+      const autoDiscount = sp * (1 - defaultDiscount / 100);
+      setDiscountPriceARS(Math.round(autoDiscount).toString());
+    }
+  }, [salePriceARS, defaultDiscount, manualDiscountPrice]);
+
   const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -289,13 +323,24 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
         </div>
         <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Costo USD *</label><Input type="number" step="0.01" min="0" value={costUSD} onChange={e => setCostUSD(e.target.value)} className="bg-muted border-border" required /></div>
-        <div><label className="text-sm text-muted-foreground">Precio Venta ARS</label><Input type="number" min="0" value={salePriceARS} onChange={e => setSalePriceARS(e.target.value)} className="bg-muted border-border" /></div>
-      </div>
       <div>
-        <label className="text-sm text-muted-foreground">Precio c/Descuento ARS (opcional)</label>
-        <Input type="number" min="0" value={discountPriceARS} onChange={e => setDiscountPriceARS(e.target.value)} placeholder="Dejar vacío si no tiene oferta" className="bg-muted border-border" />
+        <label className="text-sm text-muted-foreground">Costo USD *</label>
+        <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" required />
+        {!product && cost > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Fórmula: [(USD+{customsPercent}% pasero) × ${exchangeRate}] × 2 - {defaultDiscount}% desc.
+          </p>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm text-muted-foreground">Precio Venta ARS</label>
+          <Input type="number" min="0" value={salePriceARS} onChange={e => { setSalePriceARS(e.target.value); setManualSalePrice(true); }} className="bg-muted border-border" />
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">Precio c/Descuento ARS</label>
+          <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
+        </div>
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Descripción (opcional)</label>
@@ -309,9 +354,100 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Ganancia/u:</span>
             <span className={profitPerUnitARS > 0 ? 'text-success' : 'text-destructive'}>{formatARS(profitPerUnitARS)} ({formatUSD(profitPerUnitUSD)})</span>
           </div>
+          {parseFloat(discountPriceARS) > 0 && (
+            <div className="flex justify-between text-xs border-t border-border pt-1">
+              <span className="text-muted-foreground">Ganancia c/desc:</span>
+              <span className={parseFloat(discountPriceARS) - totalCostARS > 0 ? 'text-success' : 'text-destructive'}>
+                {formatARS(parseFloat(discountPriceARS) - totalCostARS)}
+              </span>
+            </div>
+          )}
         </div>
       )}
       <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{product ? 'Guardar' : 'Agregar'}</Button>
     </form>
+  );
+}
+
+function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; settings: any; onDone: () => void }) {
+  const [category, setCategory] = useState('all');
+  const [percent, setPercent] = useState('');
+  const [field, setField] = useState('both');
+  const [loading, setLoading] = useState(false);
+
+  const handleApply = async () => {
+    const pct = parseFloat(percent);
+    if (!pct || pct === 0) { toast.error("Ingresá un porcentaje válido"); return; }
+    setLoading(true);
+    try {
+      const products = await getProductsDB(userId);
+      const toUpdate = category === 'all' ? products : products.filter(p => p.category === category);
+      let count = 0;
+      for (const p of toUpdate) {
+        const updates: any = {};
+        if ((field === 'sale' || field === 'both') && Number(p.sale_price_ars) > 0) {
+          updates.sale_price_ars = Math.round(Number(p.sale_price_ars) * (1 + pct / 100));
+        }
+        if ((field === 'discount' || field === 'both') && Number(p.discount_price_ars) > 0) {
+          updates.discount_price_ars = Math.round(Number(p.discount_price_ars) * (1 + pct / 100));
+        }
+        // Recalculate profits
+        if (updates.sale_price_ars !== undefined) {
+          const exchangeRate = Number(settings?.exchange_rate || 1695);
+          const { profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
+            Number(p.cost_usd), Number(settings?.customs_percent || 15), updates.sale_price_ars, exchangeRate
+          );
+          updates.profit_per_unit_ars = profitPerUnitARS;
+          updates.profit_per_unit_usd = profitPerUnitUSD;
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateProductDB(p.id, updates);
+          count++;
+        }
+      }
+      toast.success(`${count} productos actualizados (${pct > 0 ? '+' : ''}${pct}%)`);
+      onDone();
+    } catch (err: any) {
+      toast.error("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Aplicar un porcentaje de aumento o descuento a los precios de venta.</p>
+      <div>
+        <label className="text-sm text-muted-foreground">Categoría</label>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            <SelectItem value="perfume_arabe">Perfume Árabe</SelectItem>
+            <SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem>
+            <SelectItem value="vaper">Vaper</SelectItem>
+            <SelectItem value="electronico">Electrónico</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label className="text-sm text-muted-foreground">Campo a modificar</label>
+        <Select value={field} onValueChange={setField}>
+          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="both">Venta + Descuento</SelectItem>
+            <SelectItem value="sale">Solo Precio Venta</SelectItem>
+            <SelectItem value="discount">Solo Precio Descuento</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
+        <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
+      </div>
+      <Button onClick={handleApply} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+        {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
+      </Button>
+    </div>
   );
 }
