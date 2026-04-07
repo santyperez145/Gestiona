@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -24,24 +24,43 @@ const PAYMENT_METHODS = [
   { value: 'fiado', label: 'Fiado', usesDiscount: false },
 ];
 
+const CATEGORIES = [
+  { value: 'all', label: 'Todas' },
+  { value: 'perfume_arabe', label: 'Perfume Árabe' },
+  { value: 'perfume_diseñador', label: 'Perfume Diseñador' },
+  { value: 'vaper', label: 'Vaper' },
+  { value: 'electronico', label: 'Electrónico' },
+];
+
 export default function SalesPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [filterCat, setFilterCat] = useState('all');
   const reload = async () => {
     if (user) {
-      setSales(await getSalesDB(user.id));
+      const [s, p] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id)]);
+      setSales(s);
+      setProducts(p);
       setLoading(false);
     }
   };
   useEffect(() => { reload(); }, [user]);
 
+  const productCatMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    products.forEach(p => { map[p.id] = p.category; });
+    return map;
+  }, [products]);
+
   const filtered = sales.filter(s => {
+    if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
     if (d < dateFrom) return false;
@@ -50,6 +69,7 @@ export default function SalesPage() {
   });
   const totalSales = filtered.reduce((s, v) => s + Number(v.total_ars), 0);
   const totalProfit = filtered.reduce((s, v) => s + Number(v.profit_ars), 0);
+  const totalProfitUSD = filtered.reduce((s, v) => s + Number(v.profit_usd), 0);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
@@ -67,9 +87,22 @@ export default function SalesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Ventas</h1>
-          <p className="text-muted-foreground text-sm">{filtered.length} ventas · Total: {formatARS(totalSales)} · Ganancia: {formatARS(totalProfit)}</p>
+          <p className="text-muted-foreground text-sm">
+            {filtered.length} ventas · Total: {formatARS(totalSales)} · Ganancia: {formatARS(totalProfit)} ({formatUSD(totalProfitUSD)})
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
+            <SelectTrigger className="bg-card border-border w-[160px] h-9 text-sm">
+              <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map(c => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
