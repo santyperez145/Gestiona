@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -17,6 +17,7 @@ const navItems = [
   { to: "/reportes", label: "Reportes", icon: TrendingUp },
   { to: "/marketing", label: "Marketing", icon: Megaphone },
   { to: "/canjes", label: "Canjes", icon: Gift },
+  { to: "/catalogo", label: "Catálogo", icon: BookOpen },
   { to: "/ia", label: "IA Insights", icon: Brain },
   { to: "/ajustes", label: "Ajustes", icon: Settings },
 ];
