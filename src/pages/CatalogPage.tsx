@@ -46,18 +46,31 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
+  const fetchData = useCallback(async () => {
+    if (!userId) return;
+    const [pRes, sRes] = await Promise.all([
+      supabase.from('products').select('*').eq('user_id', userId).gt('stock', 0).order('category').order('name'),
+      supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
+    ]);
+    setProducts(pRes.data || []);
+    setSettings(sRes.data);
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Realtime: auto-update when products or settings change
   useEffect(() => {
     if (!userId) return;
-    (async () => {
-      const [pRes, sRes] = await Promise.all([
-        supabase.from('products').select('*').eq('user_id', userId).gt('stock', 0).order('category').order('name'),
-        supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
-      ]);
-      setProducts(pRes.data || []);
-      setSettings(sRes.data);
-      setLoading(false);
-    })();
-  }, [userId]);
+    const channel = supabase
+      .channel('catalog-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchData())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, fetchData]);
 
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
