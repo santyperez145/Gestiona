@@ -158,21 +158,12 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-muted-foreground">Color Principal</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded border-0 cursor-pointer" />
-                  <Input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="bg-muted border-border flex-1" />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Color Secundario</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <input type="color" value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="w-10 h-10 rounded border-0 cursor-pointer" />
-                  <Input value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="bg-muted border-border flex-1" />
-                </div>
-              </div>
+              <ColorPicker label="Color Principal" value={primaryColor} onChange={(c) => { setPrimaryColor(c); applyColors(c, secondaryColor); }} />
+              <ColorPicker label="Color Secundario" value={secondaryColor} onChange={(c) => { setSecondaryColor(c); applyColors(primaryColor, c); }} />
             </div>
+            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => { setPrimaryColor('#D4A843'); setSecondaryColor('#1A1A2E'); applyColors('#D4A843', '#1A1A2E'); }}>
+              <RotateCcw className="w-3 h-3 mr-1" />Restaurar colores originales
+            </Button>
           </div>
 
           <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4 md:space-y-5">
