@@ -62,6 +62,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
   toast.success('Excel exportado con hojas por categoría');
 }
 
+export default function ProductsPage() {
   const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
