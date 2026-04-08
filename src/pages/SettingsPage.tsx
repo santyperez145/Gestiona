@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [discountTransfer, setDiscountTransfer] = useState('5');
   const [discountDebit, setDiscountDebit] = useState('0');
   const [discountCredit, setDiscountCredit] = useState('0');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
 
   // Track original values for auto-recalculate prompt
   const [origRate, setOrigRate] = useState('');
@@ -62,6 +63,7 @@ export default function SettingsPage() {
       setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
+      setWhatsappNumber(s.whatsapp_number || '');
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
@@ -110,6 +112,7 @@ export default function SettingsPage() {
         discount_transfer_percent: parseFloat(discountTransfer) || 0,
         discount_debit_percent: parseFloat(discountDebit) || 0,
         discount_credit_percent: parseFloat(discountCredit) || 0,
+        whatsapp_number: whatsappNumber || null,
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
