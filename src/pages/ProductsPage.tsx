@@ -327,6 +327,10 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [description, setDescription] = useState(product?.description || '');
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
@@ -334,46 +338,68 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const exchangeRate = Number(settings?.exchange_rate || 1695);
   const defaultDiscount = Number(settings?.default_discount_percent || 40);
 
-  // Computed auto values (always available for display)
   const autoSalePrice = cost > 0 ? Math.round((cost + cost * customsPercent / 100) * exchangeRate * 2) : 0;
   const currentSaleForDiscount = parseFloat(salePriceARS) || autoSalePrice;
   const autoDiscountPrice = currentSaleForDiscount > 0 ? Math.round(currentSaleForDiscount * (1 - defaultDiscount / 100)) : 0;
 
-  // Auto-calculate sale price when cost changes (real-time)
   useEffect(() => {
     if (cost <= 0) return;
-    if (!manualSalePrice) {
-      setSalePriceARS(autoSalePrice.toString());
-    }
+    if (!manualSalePrice) setSalePriceARS(autoSalePrice.toString());
   }, [cost, customsPercent, exchangeRate, manualSalePrice, autoSalePrice]);
 
-  // Auto-calculate discount price when sale price changes (real-time)
   useEffect(() => {
     if (currentSaleForDiscount <= 0) return;
-    if (!manualDiscountPrice) {
-      setDiscountPriceARS(autoDiscountPrice.toString());
-    }
+    if (!manualDiscountPrice) setDiscountPriceARS(autoDiscountPrice.toString());
   }, [currentSaleForDiscount, defaultDiscount, manualDiscountPrice, autoDiscountPrice]);
 
   const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return imagePreview;
+    setUploading(true);
+    try {
+      const ext = imageFile.name.split('.').pop();
+      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(path, imageFile);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err: any) {
+      toast.error('Error subiendo imagen: ' + err.message);
+      return product?.image_url || null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
+    
+    const imageUrl = await uploadImage();
     const data = {
-      name: name.trim(), brand: brand.trim(), category, gender, description: description.trim() || null,
+      name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
       cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
       sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
       stock: parseInt(stock) || 0,
+      image_url: imageUrl,
     };
     if (product) {
       await updateProductDB(product.id, data);
-      await logAudit(userId, 'update', 'product', product.id, { name: name.trim(), changes: data });
+      await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
     } else {
       await addProductDB({ ...data, user_id: userId });
-      await logAudit(userId, 'create', 'product', undefined, { name: name.trim() });
+      await logAudit(userId, 'create', 'product', undefined, { name: data.name });
     }
     toast.success(product ? "Producto actualizado" : "Producto agregado");
     onSave();
@@ -381,9 +407,32 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border" required /></div>
+      {/* Image upload */}
+      <div>
+        <label className="text-sm text-muted-foreground">Imagen del producto</label>
+        <div className="mt-1 flex items-center gap-3">
+          {imagePreview ? (
+            <div className="relative">
+              <img src={imagePreview} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
+              <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+              <Upload className="w-5 h-5" />
+              <span className="text-[10px] mt-0.5">Subir</span>
+            </button>
+          )}
+          {imagePreview && (
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Cambiar</Button>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+        </div>
+      </div>
+      <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value)} className="bg-muted border-border" /></div>
+        <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>
           <Select value={category} onValueChange={setCategory}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="perfume_arabe">Perfume Árabe</SelectItem><SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem><SelectItem value="vaper">Vaper</SelectItem><SelectItem value="electronico">Electrónico</SelectItem></SelectContent>
