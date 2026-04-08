@@ -213,6 +213,21 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             doc.text(`-${pct}%`, x + 8.5, y + 5, { align: 'center' });
           }
 
+          // Gender badge (for perfumes)
+          const isPerfume = p.category === 'perfume_arabe' || p.category === 'perfume_diseñador';
+          if (isPerfume && p.gender) {
+            const gLabel = p.gender === 'masculino' ? '♂ MASC' : p.gender === 'femenino' ? '♀ FEM' : '⚥ UNI';
+            const gW = doc.getTextWidth(gLabel) + 5;
+            // Gender badge colors
+            const gBg = p.gender === 'masculino' ? [40, 60, 120] : p.gender === 'femenino' ? [120, 40, 80] : [80, 50, 120];
+            doc.setFillColor(gBg[0], gBg[1], gBg[2]);
+            doc.roundedRect(x + cardW - gW - 2, y + imgH - 6.5, gW, 5, 1, 1, 'F');
+            doc.setTextColor(200, 210, 255);
+            doc.setFontSize(5.5);
+            doc.setFont('helvetica', 'bold');
+            doc.text(gLabel, x + cardW - 4, y + imgH - 3.2, { align: 'right' });
+          }
+
           // Category pill
           const catLabel = getCategoryLabel(p.category);
           const pillW = doc.getTextWidth(catLabel) + 4;

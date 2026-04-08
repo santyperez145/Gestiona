@@ -108,7 +108,7 @@ export default function PublicCatalogPage() {
   return (
     <div className="min-h-screen text-white" style={{ background: 'linear-gradient(145deg, #0a0a14 0%, #111127 50%, #0a0a14 100%)' }}>
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-2xl border-b border-white/[0.06]" style={{ background: 'rgba(10,10,20,0.85)' }}>
+      <header className="sticky top-0 z-50 backdrop-blur-2xl border-b border-white/[0.06] max-h-[45vh] overflow-hidden" style={{ background: 'rgba(10,10,20,0.85)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {logoUrl ? (
