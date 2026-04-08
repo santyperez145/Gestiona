@@ -499,6 +499,7 @@ export type Database = {
           tax_monotributo_monthly: number
           updated_at: string
           user_id: string
+          whatsapp_number: string | null
         }
         Insert: {
           business_name?: string | null
@@ -520,6 +521,7 @@ export type Database = {
           tax_monotributo_monthly?: number
           updated_at?: string
           user_id: string
+          whatsapp_number?: string | null
         }
         Update: {
           business_name?: string | null
@@ -541,6 +543,7 @@ export type Database = {
           tax_monotributo_monthly?: number
           updated_at?: string
           user_id?: string
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
@@ -614,6 +617,7 @@ export type Database = {
           primary_color: string | null
           secondary_color: string | null
           user_id: string | null
+          whatsapp_number: string | null
         }
         Insert: {
           business_name?: string | null
@@ -622,6 +626,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           user_id?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
           business_name?: string | null
@@ -630,6 +635,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           user_id?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }

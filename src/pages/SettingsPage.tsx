@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [discountTransfer, setDiscountTransfer] = useState('5');
   const [discountDebit, setDiscountDebit] = useState('0');
   const [discountCredit, setDiscountCredit] = useState('0');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
 
   // Track original values for auto-recalculate prompt
   const [origRate, setOrigRate] = useState('');
@@ -62,6 +63,7 @@ export default function SettingsPage() {
       setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
+      setWhatsappNumber(s.whatsapp_number || '');
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
@@ -110,6 +112,7 @@ export default function SettingsPage() {
         discount_transfer_percent: parseFloat(discountTransfer) || 0,
         discount_debit_percent: parseFloat(discountDebit) || 0,
         discount_credit_percent: parseFloat(discountCredit) || 0,
+        whatsapp_number: whatsappNumber || null,
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
@@ -208,6 +211,11 @@ export default function SettingsPage() {
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => { setPrimaryColor('#D4A843'); setSecondaryColor('#1A1A2E'); applyColors('#D4A843', '#1A1A2E'); }}>
               <RotateCcw className="w-3 h-3 mr-1" />Restaurar colores originales
             </Button>
+            <div>
+              <label className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />WhatsApp (catálogo público)</label>
+              <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />
+              <p className="text-[10px] text-muted-foreground mt-1">Número con código de país. Aparecerá como botón flotante en tu catálogo público.</p>
+            </div>
           </div>
 
           {/* Financial params */}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Tag, Search, Share2, X, Filter } from "lucide-react";
+import { Package, Tag, Search, Share2, X, Filter, MessageCircle } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
   perfume_arabe: 'Perfume Árabe',
@@ -77,6 +77,7 @@ export default function PublicCatalogPage() {
   const primaryColor = settings?.primary_color || '#D4A843';
   const businessName = settings?.business_name || 'EXENTRY IMPORTS';
   const logoUrl = settings?.logo_url;
+  const whatsappNumber = settings?.whatsapp_number;
 
   if (valid === null) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(145deg, #0a0a14 0%, #111127 50%, #0a0a14 100%)' }}>
@@ -317,6 +318,20 @@ export default function PublicCatalogPage() {
           <p className="text-[9px] text-white/10 mt-1.5 font-medium">Catálogo actualizado en tiempo real</p>
         </div>
       </footer>
+
+      {/* WhatsApp FAB */}
+      {whatsappNumber && (
+        <a
+          href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola! Vi tu catálogo y me interesa consultar sobre un producto 🛍️')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-full text-white font-bold text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
+          style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 8px 30px rgba(37,211,102,0.4)' }}
+        >
+          <MessageCircle className="w-5 h-5" fill="white" />
+          <span className="hidden sm:inline">Consultar</span>
+        </a>
+      )}
     </div>
   );
 }
