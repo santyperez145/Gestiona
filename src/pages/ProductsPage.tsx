@@ -498,7 +498,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           )}
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{product ? 'Guardar' : 'Agregar'}</Button>
+      <Button type="submit" disabled={uploading} className="w-full gradient-gold text-primary-foreground font-semibold">{uploading ? 'Subiendo imagen...' : product ? 'Guardar' : 'Agregar'}</Button>
     </form>
   );
 }
