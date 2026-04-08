@@ -335,5 +335,3 @@ export default function PublicCatalogPage() {
     </div>
   );
 }
-  );
-}
