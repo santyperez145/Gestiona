@@ -77,8 +77,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
-        transform transition-all duration-300 ease-out h-screen lg:h-screen
+        fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
+        transform transition-all duration-300 ease-out h-screen
         ${collapsed ? 'w-[68px]' : 'w-[260px]'}
         ${mobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}
       `}>
