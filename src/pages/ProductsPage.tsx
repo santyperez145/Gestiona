@@ -362,6 +362,23 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     setImagePreview(URL.createObjectURL(file));
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+        toast.success('Imagen pegada correctamente');
+        return;
+      }
+    }
+  };
+
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return imagePreview;
     setUploading(true);
@@ -406,7 +423,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
       {/* Image upload */}
       <div>
         <label className="text-sm text-muted-foreground">Imagen del producto</label>
@@ -426,6 +443,9 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           )}
           {imagePreview && (
             <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Cambiar</Button>
+          )}
+          {!imagePreview && (
+            <span className="text-[10px] text-muted-foreground/60">o pegá una imagen (Ctrl+V)</span>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
         </div>
