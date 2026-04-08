@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -83,24 +83,27 @@ export default function ProductsPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
-          <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBulkOpen(true)}>
-            <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
-          </Button>
-          <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
-            <DialogTrigger asChild>
-              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-              <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
-            </DialogContent>
-          </Dialog>
-        </div>
+         <div>
+           <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
+           <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
+         </div>
+         <div className="flex gap-2">
+           <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
+             <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
+           </Button>
+           <Button variant="outline" onClick={() => setBulkOpen(true)}>
+             <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
+           </Button>
+           <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+             <DialogTrigger asChild>
+               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+             </DialogTrigger>
+             <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+               <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
+               <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+             </DialogContent>
+           </Dialog>
+         </div>
       </div>
 
       {/* Bulk price adjustment modal */}
@@ -151,47 +154,59 @@ export default function ProductsPage() {
               <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="text-left p-3 font-medium">Nombre</th>
-                      <th className="text-center p-3 font-medium">Gen.</th>
-                      <th className="text-left p-3 font-medium">Cat.</th>
-                      <th className="text-right p-3 font-medium">Costo</th>
-                      <th className="text-right p-3 font-medium">Venta</th>
-                      <th className="text-right p-3 font-medium">Oferta</th>
-                      <th className="text-right p-3 font-medium">Ganancia</th>
-                      <th className="text-right p-3 font-medium">Stock</th>
-                      <th className="text-center p-3 font-medium">Acc.</th>
-                    </tr>
+                     <tr className="border-b border-border text-muted-foreground">
+                       <th className="text-left p-3 font-medium">Nombre</th>
+                       <th className="text-center p-3 font-medium">Gen.</th>
+                       <th className="text-left p-3 font-medium">Cat.</th>
+                       <th className="text-right p-3 font-medium">Costo</th>
+                       <th className="text-right p-3 font-medium">Venta</th>
+                       <th className="text-right p-3 font-medium">Oferta</th>
+                       <th className="text-right p-3 font-medium">Ganancia</th>
+                       <th className="text-right p-3 font-medium">Stock</th>
+                       <th className="text-center p-3 font-medium">Mod.</th>
+                       <th className="text-center p-3 font-medium">Acc.</th>
+                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((p: any) => (
-                      <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                        <td className="p-3 font-medium max-w-[200px] truncate">{p.name}</td>
-                        <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
-                        <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
-                        <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
-                        <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
-                        <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
-                        <td className="p-3 text-right">
-                          <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
-                        </td>
-                        <td className="p-3 text-right">
-                          {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
-                            <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                          ) : <span className="text-success font-medium">{p.stock}</span>}
-                        </td>
-                        <td className="p-3 text-center space-x-1">
-                          <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
-                          <ConfirmDialog
-                            trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                            title="¿Eliminar producto?"
-                            description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
-                            confirmText="Eliminar"
-                            onConfirm={() => handleDelete(p)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                     {items.map((p: any) => (
+                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                         <td className="p-3 font-medium max-w-[200px] truncate">
+                           <div className="flex items-center gap-2">
+                             {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
+                             {p.name}
+                           </div>
+                         </td>
+                         <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
+                         <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
+                         <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
+                         <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
+                         <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
+                         <td className="p-3 text-right">
+                           <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                         </td>
+                         <td className="p-3 text-right">
+                           {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
+                             <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                           ) : <span className="text-success font-medium">{p.stock}</span>}
+                         </td>
+                         <td className="p-3 text-center">
+                           <span className="text-[10px] text-muted-foreground flex items-center justify-center gap-1" title={new Date(p.updated_at).toLocaleString('es-AR')}>
+                             <Clock className="w-3 h-3" />
+                             {new Date(p.updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                           </span>
+                         </td>
+                         <td className="p-3 text-center space-x-1">
+                           <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                           <ConfirmDialog
+                             trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                             title="¿Eliminar producto?"
+                             description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
+                             confirmText="Eliminar"
+                             onConfirm={() => handleDelete(p)}
+                           />
+                         </td>
+                       </tr>
+                     ))}
                   </tbody>
                 </table>
               </div>
