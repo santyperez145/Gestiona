@@ -210,15 +210,18 @@ export default function ProductsPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="md:hidden space-y-2">
+               <div className="md:hidden space-y-2">
                 {items.map((p: any) => (
                   <div key={p.id} className="bg-card border border-border rounded-lg p-3">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{p.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
-                          <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{p.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
+                            <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -239,10 +242,16 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                      <span className="text-xs text-muted-foreground">Stock:</span>
-                      {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
-                        <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                      ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">Stock:</span>
+                        {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
+                          <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                        ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(p.updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                      </span>
                     </div>
                   </div>
                 ))}
