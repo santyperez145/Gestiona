@@ -77,8 +77,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
-        transform transition-all duration-300 ease-out h-screen lg:h-screen
+        fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
+        transform transition-all duration-300 ease-out h-screen
         ${collapsed ? 'w-[68px]' : 'w-[260px]'}
         ${mobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -178,7 +178,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto w-full">
+      <main className={`flex-1 overflow-auto w-full transition-all duration-300 ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'}`}>
         {/* Mobile header */}
         <div className="lg:hidden sticky top-0 z-30 glass border-b border-border/50 px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="h-8 w-8 p-0">

@@ -339,10 +339,9 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
     if (!selectedUser) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('user_roles').upsert(
-        { user_id: selectedUser, role: selectedRole },
-        { onConflict: 'user_id' }
-      );
+      // Delete existing role first, then insert new one
+      await supabase.from('user_roles').delete().eq('user_id', selectedUser);
+      const { error } = await supabase.from('user_roles').insert({ user_id: selectedUser, role: selectedRole });
       if (error) throw error;
       toast.success(`Rol ${selectedRole} asignado correctamente`);
       setOpen(false);
