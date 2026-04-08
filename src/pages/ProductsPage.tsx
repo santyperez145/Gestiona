@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -21,6 +21,46 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
+
+async function exportProductsXLSX(products: any[], settings: any) {
+  const { utils, writeFile } = await import('xlsx');
+  const categories = [...new Set(products.map((p: any) => p.category))];
+  const wb = utils.book_new();
+  
+  for (const cat of categories) {
+    const catProducts = products.filter((p: any) => p.category === cat);
+    const rows = catProducts.map((p: any) => ({
+      'Nombre': p.name,
+      'Marca': p.brand,
+      'Género': p.gender,
+      'Costo USD': Number(p.cost_usd),
+      'Pasero USD': Number(p.customs_fee),
+      'Costo Total USD': Number(p.total_cost_usd),
+      'Precio Venta ARS': Number(p.sale_price_ars),
+      'Precio Desc. ARS': Number(p.discount_price_ars) || '',
+      'Ganancia ARS': Number(p.profit_per_unit_ars),
+      'Stock': p.stock,
+      'Última Mod.': new Date(p.updated_at).toLocaleDateString('es-AR'),
+    }));
+    const ws = utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
+    utils.book_append_sheet(wb, ws, getCategoryLabel(cat).substring(0, 31));
+  }
+  
+  // All products sheet
+  const allRows = products.map((p: any) => ({
+    'Nombre': p.name, 'Marca': p.brand, 'Categoría': getCategoryLabel(p.category),
+    'Costo USD': Number(p.total_cost_usd), 'Venta ARS': Number(p.sale_price_ars),
+    'Desc. ARS': Number(p.discount_price_ars) || '', 'Ganancia ARS': Number(p.profit_per_unit_ars),
+    'Stock': p.stock, 'Última Mod.': new Date(p.updated_at).toLocaleDateString('es-AR'),
+  }));
+  const wsAll = utils.json_to_sheet(allRows);
+  wsAll['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
+  utils.book_append_sheet(wb, wsAll, 'Todos');
+  
+  writeFile(wb, `productos_exentry_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast.success('Excel exportado con hojas por categoría');
+}
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -83,24 +123,27 @@ export default function ProductsPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
-          <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBulkOpen(true)}>
-            <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
-          </Button>
-          <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
-            <DialogTrigger asChild>
-              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-              <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
-            </DialogContent>
-          </Dialog>
-        </div>
+         <div>
+           <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
+           <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
+         </div>
+         <div className="flex gap-2">
+           <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
+             <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
+           </Button>
+           <Button variant="outline" onClick={() => setBulkOpen(true)}>
+             <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
+           </Button>
+           <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+             <DialogTrigger asChild>
+               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+             </DialogTrigger>
+             <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+               <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
+               <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+             </DialogContent>
+           </Dialog>
+         </div>
       </div>
 
       {/* Bulk price adjustment modal */}
@@ -151,59 +194,74 @@ export default function ProductsPage() {
               <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="text-left p-3 font-medium">Nombre</th>
-                      <th className="text-center p-3 font-medium">Gen.</th>
-                      <th className="text-left p-3 font-medium">Cat.</th>
-                      <th className="text-right p-3 font-medium">Costo</th>
-                      <th className="text-right p-3 font-medium">Venta</th>
-                      <th className="text-right p-3 font-medium">Oferta</th>
-                      <th className="text-right p-3 font-medium">Ganancia</th>
-                      <th className="text-right p-3 font-medium">Stock</th>
-                      <th className="text-center p-3 font-medium">Acc.</th>
-                    </tr>
+                     <tr className="border-b border-border text-muted-foreground">
+                       <th className="text-left p-3 font-medium">Nombre</th>
+                       <th className="text-center p-3 font-medium">Gen.</th>
+                       <th className="text-left p-3 font-medium">Cat.</th>
+                       <th className="text-right p-3 font-medium">Costo</th>
+                       <th className="text-right p-3 font-medium">Venta</th>
+                       <th className="text-right p-3 font-medium">Oferta</th>
+                       <th className="text-right p-3 font-medium">Ganancia</th>
+                       <th className="text-right p-3 font-medium">Stock</th>
+                       <th className="text-center p-3 font-medium">Mod.</th>
+                       <th className="text-center p-3 font-medium">Acc.</th>
+                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((p: any) => (
-                      <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                        <td className="p-3 font-medium max-w-[200px] truncate">{p.name}</td>
-                        <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
-                        <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
-                        <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
-                        <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
-                        <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
-                        <td className="p-3 text-right">
-                          <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
-                        </td>
-                        <td className="p-3 text-right">
-                          {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
-                            <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                          ) : <span className="text-success font-medium">{p.stock}</span>}
-                        </td>
-                        <td className="p-3 text-center space-x-1">
-                          <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
-                          <ConfirmDialog
-                            trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                            title="¿Eliminar producto?"
-                            description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
-                            confirmText="Eliminar"
-                            onConfirm={() => handleDelete(p)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                     {items.map((p: any) => (
+                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                         <td className="p-3 font-medium max-w-[200px] truncate">
+                           <div className="flex items-center gap-2">
+                             {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
+                             {p.name}
+                           </div>
+                         </td>
+                         <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
+                         <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
+                         <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
+                         <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
+                         <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
+                         <td className="p-3 text-right">
+                           <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                         </td>
+                         <td className="p-3 text-right">
+                           {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
+                             <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                           ) : <span className="text-success font-medium">{p.stock}</span>}
+                         </td>
+                         <td className="p-3 text-center">
+                           <span className="text-[10px] text-muted-foreground flex items-center justify-center gap-1" title={new Date(p.updated_at).toLocaleString('es-AR')}>
+                             <Clock className="w-3 h-3" />
+                             {new Date(p.updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                           </span>
+                         </td>
+                         <td className="p-3 text-center space-x-1">
+                           <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                           <ConfirmDialog
+                             trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                             title="¿Eliminar producto?"
+                             description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
+                             confirmText="Eliminar"
+                             onConfirm={() => handleDelete(p)}
+                           />
+                         </td>
+                       </tr>
+                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="md:hidden space-y-2">
+               <div className="md:hidden space-y-2">
                 {items.map((p: any) => (
                   <div key={p.id} className="bg-card border border-border rounded-lg p-3">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{p.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
-                          <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{p.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span>
+                            <span className="text-xs text-muted-foreground">{GENDER_ICONS[p.gender]}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -224,10 +282,16 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                      <span className="text-xs text-muted-foreground">Stock:</span>
-                      {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
-                        <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                      ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">Stock:</span>
+                        {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
+                          <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                        ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(p.updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -263,6 +327,10 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [description, setDescription] = useState(product?.description || '');
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
@@ -270,46 +338,68 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const exchangeRate = Number(settings?.exchange_rate || 1695);
   const defaultDiscount = Number(settings?.default_discount_percent || 40);
 
-  // Computed auto values (always available for display)
   const autoSalePrice = cost > 0 ? Math.round((cost + cost * customsPercent / 100) * exchangeRate * 2) : 0;
   const currentSaleForDiscount = parseFloat(salePriceARS) || autoSalePrice;
   const autoDiscountPrice = currentSaleForDiscount > 0 ? Math.round(currentSaleForDiscount * (1 - defaultDiscount / 100)) : 0;
 
-  // Auto-calculate sale price when cost changes (real-time)
   useEffect(() => {
     if (cost <= 0) return;
-    if (!manualSalePrice) {
-      setSalePriceARS(autoSalePrice.toString());
-    }
+    if (!manualSalePrice) setSalePriceARS(autoSalePrice.toString());
   }, [cost, customsPercent, exchangeRate, manualSalePrice, autoSalePrice]);
 
-  // Auto-calculate discount price when sale price changes (real-time)
   useEffect(() => {
     if (currentSaleForDiscount <= 0) return;
-    if (!manualDiscountPrice) {
-      setDiscountPriceARS(autoDiscountPrice.toString());
-    }
+    if (!manualDiscountPrice) setDiscountPriceARS(autoDiscountPrice.toString());
   }, [currentSaleForDiscount, defaultDiscount, manualDiscountPrice, autoDiscountPrice]);
 
   const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return imagePreview;
+    setUploading(true);
+    try {
+      const ext = imageFile.name.split('.').pop();
+      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(path, imageFile);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err: any) {
+      toast.error('Error subiendo imagen: ' + err.message);
+      return product?.image_url || null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
+    
+    const imageUrl = await uploadImage();
     const data = {
-      name: name.trim(), brand: brand.trim(), category, gender, description: description.trim() || null,
+      name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
       cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
       sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
       stock: parseInt(stock) || 0,
+      image_url: imageUrl,
     };
     if (product) {
       await updateProductDB(product.id, data);
-      await logAudit(userId, 'update', 'product', product.id, { name: name.trim(), changes: data });
+      await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
     } else {
       await addProductDB({ ...data, user_id: userId });
-      await logAudit(userId, 'create', 'product', undefined, { name: name.trim() });
+      await logAudit(userId, 'create', 'product', undefined, { name: data.name });
     }
     toast.success(product ? "Producto actualizado" : "Producto agregado");
     onSave();
@@ -317,9 +407,32 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border" required /></div>
+      {/* Image upload */}
+      <div>
+        <label className="text-sm text-muted-foreground">Imagen del producto</label>
+        <div className="mt-1 flex items-center gap-3">
+          {imagePreview ? (
+            <div className="relative">
+              <img src={imagePreview} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
+              <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+              <Upload className="w-5 h-5" />
+              <span className="text-[10px] mt-0.5">Subir</span>
+            </button>
+          )}
+          {imagePreview && (
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Cambiar</Button>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+        </div>
+      </div>
+      <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value)} className="bg-muted border-border" /></div>
+        <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>
           <Select value={category} onValueChange={setCategory}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="perfume_arabe">Perfume Árabe</SelectItem><SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem><SelectItem value="vaper">Vaper</SelectItem><SelectItem value="electronico">Electrónico</SelectItem></SelectContent>
@@ -385,7 +498,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           )}
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{product ? 'Guardar' : 'Agregar'}</Button>
+      <Button type="submit" disabled={uploading} className="w-full gradient-gold text-primary-foreground font-semibold">{uploading ? 'Subiendo imagen...' : product ? 'Guardar' : 'Agregar'}</Button>
     </form>
   );
 }

@@ -19,7 +19,7 @@ function exportCSV(filename: string, headers: string[], rows: string[][]) {
 function exportPDF(title: string, headers: string[], rows: string[][]) {
   const style = `<style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#333;font-size:18px}table{border-collapse:collapse;width:100%;margin-top:10px}th,td{border:1px solid #ddd;padding:6px 8px;text-size:11px;text-align:left}th{background:#f4f4f4;font-weight:600}tr:nth-child(even){background:#fafafa}.footer{margin-top:20px;font-size:10px;color:#999}</style>`;
   const tableHtml = `<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${style}</head><body><h1>${title} - Exentry Imports</h1><p>Generado: ${new Date().toLocaleDateString('es-AR')}</p>${tableHtml}<div class="footer">Exentry Imports · Sistema de Gestión</div></body></html>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${style}</head><body><h1>${title} - EXENTRY IMPORTS</h1><p>Generado: ${new Date().toLocaleDateString('es-AR')}</p>${tableHtml}<div class="footer">EXENTRY IMPORTS · Sistema de Gestión</div></body></html>`;
   const w = window.open('', '_blank');
   if (w) { w.document.write(html); w.document.close(); w.print(); }
 }
