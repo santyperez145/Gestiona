@@ -10,7 +10,7 @@ export type BusinessConfig = {
 };
 
 const defaultConfig: BusinessConfig = {
-  businessName: 'Exentry Imports',
+  businessName: 'EXENTRY IMPORTS',
   logoUrl: null,
   primaryColor: '#D4A843',
   secondaryColor: '#1A1A2E',
@@ -44,7 +44,7 @@ export function useBusinessConfig() {
     (async () => {
       const s = await getSettingsDB(user.id) as any;
       setConfig({
-        businessName: s.business_name || 'Exentry Imports',
+        businessName: s.business_name || 'EXENTRY IMPORTS',
         logoUrl: s.logo_url || null,
         primaryColor: s.primary_color || '#D4A843',
         secondaryColor: s.secondary_color || '#1A1A2E',

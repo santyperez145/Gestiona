@@ -97,7 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
             {!collapsed && (
               <div className="min-w-0 animate-fade-in">
-                <h1 className="font-display text-base font-bold text-primary tracking-wide truncate">{config.businessName}</h1>
+                <h1 className="text-lg font-bold text-primary tracking-wide truncate font-mono text-center border-0 border-none">{config.businessName}</h1>
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium border mt-0.5 ${roleBadgeClass}`}>
                   {roleLabel}
                 </span>
