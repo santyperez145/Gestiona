@@ -423,7 +423,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
       {/* Image upload */}
       <div>
         <label className="text-sm text-muted-foreground">Imagen del producto</label>
@@ -443,6 +443,9 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           )}
           {imagePreview && (
             <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Cambiar</Button>
+          )}
+          {!imagePreview && (
+            <span className="text-[10px] text-muted-foreground/60">o pegá una imagen (Ctrl+V)</span>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
         </div>
