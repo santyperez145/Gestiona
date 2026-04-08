@@ -22,7 +22,46 @@ const CATEGORY_COLORS: Record<string, string> = {
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 
-export default function ProductsPage() {
+async function exportProductsXLSX(products: any[], settings: any) {
+  const { utils, writeFile } = await import('xlsx');
+  const categories = [...new Set(products.map((p: any) => p.category))];
+  const wb = utils.book_new();
+  
+  for (const cat of categories) {
+    const catProducts = products.filter((p: any) => p.category === cat);
+    const rows = catProducts.map((p: any) => ({
+      'Nombre': p.name,
+      'Marca': p.brand,
+      'Género': p.gender,
+      'Costo USD': Number(p.cost_usd),
+      'Pasero USD': Number(p.customs_fee),
+      'Costo Total USD': Number(p.total_cost_usd),
+      'Precio Venta ARS': Number(p.sale_price_ars),
+      'Precio Desc. ARS': Number(p.discount_price_ars) || '',
+      'Ganancia ARS': Number(p.profit_per_unit_ars),
+      'Stock': p.stock,
+      'Última Mod.': new Date(p.updated_at).toLocaleDateString('es-AR'),
+    }));
+    const ws = utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
+    utils.book_append_sheet(wb, ws, getCategoryLabel(cat).substring(0, 31));
+  }
+  
+  // All products sheet
+  const allRows = products.map((p: any) => ({
+    'Nombre': p.name, 'Marca': p.brand, 'Categoría': getCategoryLabel(p.category),
+    'Costo USD': Number(p.total_cost_usd), 'Venta ARS': Number(p.sale_price_ars),
+    'Desc. ARS': Number(p.discount_price_ars) || '', 'Ganancia ARS': Number(p.profit_per_unit_ars),
+    'Stock': p.stock, 'Última Mod.': new Date(p.updated_at).toLocaleDateString('es-AR'),
+  }));
+  const wsAll = utils.json_to_sheet(allRows);
+  wsAll['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 12 }];
+  utils.book_append_sheet(wb, wsAll, 'Todos');
+  
+  writeFile(wb, `productos_exentry_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast.success('Excel exportado con hojas por categoría');
+}
+
   const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
