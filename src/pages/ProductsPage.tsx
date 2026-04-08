@@ -362,6 +362,23 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     setImagePreview(URL.createObjectURL(file));
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+        toast.success('Imagen pegada correctamente');
+        return;
+      }
+    }
+  };
+
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return imagePreview;
     setUploading(true);
