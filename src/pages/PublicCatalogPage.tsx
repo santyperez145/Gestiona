@@ -219,7 +219,14 @@ export default function PublicCatalogPage() {
                   {/* Info */}
                   <div className="p-2.5 sm:p-3.5">
                     <h3 className="font-semibold text-xs sm:text-sm text-white/90 leading-tight mb-1 line-clamp-2">{p.name}</h3>
-                    <p className="text-[10px] text-white/30 mb-2 sm:mb-3">{CATEGORY_LABELS[p.category] || p.category}</p>
+                    <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
+                      <span className="text-[10px] text-white/30">{CATEGORY_LABELS[p.category] || p.category}</span>
+                      {(p.category === 'perfume_arabe' || p.category === 'perfume_diseñador') && p.gender && (
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-white/50">
+                          {p.gender === 'masculino' ? '♂ Masc' : p.gender === 'femenino' ? '♀ Fem' : '⚥ Unisex'}
+                        </span>
+                      )}
+                    </div>
 
                     {/* Prices */}
                     <div className="space-y-1.5">
