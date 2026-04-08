@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Tag, Search, Share2, X, Filter } from "lucide-react";
+import { Package, Tag, Search, Share2, X, Filter, MessageCircle } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
   perfume_arabe: 'Perfume Árabe',
@@ -77,6 +77,7 @@ export default function PublicCatalogPage() {
   const primaryColor = settings?.primary_color || '#D4A843';
   const businessName = settings?.business_name || 'EXENTRY IMPORTS';
   const logoUrl = settings?.logo_url;
+  const whatsappNumber = settings?.whatsapp_number;
 
   if (valid === null) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(145deg, #0a0a14 0%, #111127 50%, #0a0a14 100%)' }}>
