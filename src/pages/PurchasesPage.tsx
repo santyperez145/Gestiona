@@ -244,3 +244,113 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
     </form>
   );
 }
+
+function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [orders, setOrders] = useState<Record<string, { qty: number; supplier: string }>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
+      setProducts(p);
+      setSettings(s);
+      const initial: Record<string, { qty: number; supplier: string }> = {};
+      p.forEach((prod: any) => { initial[prod.id] = { qty: 0, supplier: '' }; });
+      setOrders(initial);
+      setLoading(false);
+    })();
+  }, [userId]);
+
+  const updateOrder = (id: string, field: 'qty' | 'supplier', value: any) => {
+    setOrders(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  };
+
+  const selectedProducts = products.filter(p => (orders[p.id]?.qty || 0) > 0);
+
+  const generateExcel = async () => {
+    if (!selectedProducts.length) { toast.error('Seleccioná al menos un producto'); return; }
+    const { utils, writeFile } = await import('xlsx');
+    const wb = utils.book_new();
+    const businessName = settings?.business_name || 'EXENTRY IMPORTS';
+
+    // Group by supplier
+    const bySupplier: Record<string, any[]> = {};
+    selectedProducts.forEach(p => {
+      const supplier = orders[p.id]?.supplier?.trim() || 'Sin proveedor';
+      (bySupplier[supplier] = bySupplier[supplier] || []).push(p);
+    });
+
+    for (const [supplier, prods] of Object.entries(bySupplier)) {
+      const rows = prods.map(p => ({
+        'Producto': p.name,
+        'Cantidad': orders[p.id]?.qty || 0,
+        'Precio Unit. USD': Number(p.cost_usd),
+        'Total USD': (orders[p.id]?.qty || 0) * Number(p.cost_usd),
+      }));
+      // Add total row
+      const totalUSD = rows.reduce((s, r) => s + r['Total USD'], 0);
+      rows.push({ 'Producto': 'TOTAL', 'Cantidad': rows.reduce((s, r) => s + r['Cantidad'], 0), 'Precio Unit. USD': 0, 'Total USD': totalUSD } as any);
+
+      const ws = utils.json_to_sheet(rows);
+      ws['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 16 }, { wch: 14 }];
+      utils.book_append_sheet(wb, ws, supplier.substring(0, 31));
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    writeFile(wb, `orden_compra_${businessName.replace(/\s+/g, '_')}_${dateStr}.xlsx`);
+    toast.success('Orden de compra generada');
+    onDone();
+  };
+
+  if (loading) return <div className="py-8 text-center text-muted-foreground text-sm">Cargando productos...</div>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Seleccioná los productos y cantidades para generar el Excel de orden de compra.</p>
+
+      <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
+        {products.map(p => (
+          <div key={p.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${(orders[p.id]?.qty || 0) > 0 ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30'}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{p.name}</p>
+              <p className="text-[10px] text-muted-foreground">Stock: {p.stock} · {formatUSD(Number(p.cost_usd))}/u</p>
+            </div>
+            <Input
+              type="text"
+              placeholder="Proveedor"
+              value={orders[p.id]?.supplier || ''}
+              onChange={e => updateOrder(p.id, 'supplier', e.target.value)}
+              className="w-28 h-8 text-xs bg-background border-border"
+            />
+            <Input
+              type="number"
+              min="0"
+              value={orders[p.id]?.qty || ''}
+              onChange={e => updateOrder(p.id, 'qty', parseInt(e.target.value) || 0)}
+              placeholder="0"
+              className="w-16 h-8 text-xs bg-background border-border text-center"
+            />
+          </div>
+        ))}
+      </div>
+
+      {selectedProducts.length > 0 && (
+        <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
+          <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{selectedProducts.length}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Unidades:</span><span className="font-medium">{selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0), 0)}</span></div>
+          <div className="flex justify-between font-bold border-t border-border pt-1">
+            <span>Total USD:</span>
+            <span>{formatUSD(selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0) * Number(p.cost_usd), 0))}</span>
+          </div>
+        </div>
+      )}
+
+      <Button onClick={generateExcel} className="w-full gradient-gold text-primary-foreground font-semibold" disabled={!selectedProducts.length}>
+        <FileSpreadsheet className="w-4 h-4 mr-2" />
+        Generar Excel ({selectedProducts.length} productos)
+      </Button>
+    </div>
+  );
+}
