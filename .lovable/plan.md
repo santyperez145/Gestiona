@@ -1,69 +1,76 @@
 
-# Plan: Redesign UX/UI Profesional v8.5
 
-## Filosofía
-Elevar la estética "dark luxury" actual con refinamiento profesional: glassmorphism sutil, gradientes más ricos, tipografía mejorada, micro-animaciones, y mejor jerarquía visual. Sin cambiar lógica de negocio.
+# Plan: Detalle de Producto en Catálogo + WhatsApp Directo + Órdenes de Compra Excel
 
----
+## Resumen
 
-## 1. Design Tokens Mejorados (`index.css`)
-
-- Agregar variables de glassmorphism y profundidad
-- Gradientes más sofisticados para cards y sidebar
-- Sombras más elegantes con capas
-- Nuevo scrollbar estilizado
-- Focus rings más visibles
-- Transiciones suaves globales
-
-## 2. Sidebar Refinado (`AppLayout.tsx`)
-
-- Logo con brillo sutil dorado
-- Nav items con indicador lateral activo (barra dorada a la izquierda)
-- Hover states con transición de fondo más suave
-- Separadores visuales entre secciones
-- Footer con gradiente sutil
-- Ícono de campana con animación pulse cuando hay notificaciones
-
-## 3. Dashboard Premium (`Dashboard.tsx`)
-
-- Header con saludo dinámico ("Buenos días, Santiago") + fecha
-- KPI cards con borde gradiente sutil al hover
-- Gauge charts más grandes y con label mejorado
-- Cards de gráficos con header más elegante (línea dorada decorativa)
-- Sección de alertas con diseño más limpio
-- Espaciado más generoso entre secciones
-
-## 4. Auth Page Elevada (`AuthPage.tsx`)
-
-- Fondo con patrón sutil (radial gradient)
-- Card con glassmorphism
-- Logo más grande y prominente
-- Inputs con focus state dorado
-- Animación de entrada staggered
-
-## 5. KPI Cards Mejoradas (`KPICard.tsx`)
-
-- Borde gradiente sutil en hover
-- Ícono con fondo circular semitransparente
-- Mejor separación visual entre valor y sublabel
-
-## 6. Componentes de Tabla
-
-- Headers con fondo sutil diferenciado
-- Hover rows con transición más suave
-- Badges con mejor contraste y pill design
-- Empty states más visuales
+1. **Detalle de producto** — Al clickear una card del catálogo público, se abre un modal/drawer con imagen grande, descripción, precios y botón "Consultar por WhatsApp" con el nombre del producto pre-cargado en el mensaje.
+2. **Venta directa por WhatsApp** — El botón de consulta en el detalle envía un mensaje personalizado con el producto seleccionado. Sin pasarela de pago.
+3. **Órdenes de compra automáticas** — Nueva página/sección en Compras para generar un Excel (.xlsx) con productos a reponer, agrupados por proveedor, con logo y datos del negocio.
 
 ---
 
-## Archivos a modificar
+## 1. Modal de Detalle de Producto (Catálogo Público)
+
+**Archivo:** `src/pages/PublicCatalogPage.tsx`
+
+- Reemplazar el `selectedProduct` toggle por un **modal/drawer** que se abre al clickear una card
+- Contenido del modal:
+  - Imagen grande (aspect-ratio libre, max-height limitado)
+  - Nombre, marca, categoría, género (si perfume)
+  - Descripción del producto (`p.description`)
+  - Precios (efectivo/tarjeta) con el mismo diseño actual
+  - Indicador de stock bajo
+  - Botón "Consultar por WhatsApp" que abre `wa.me` con mensaje: `"Hola! Me interesa el producto: {nombre} — {precio}"`
+- Diseño dark consistente con el catálogo, animación de entrada suave
+- Responsive: en mobile ocupa pantalla completa como drawer, en desktop es modal centrado
+
+## 2. Campo de Descripción en Productos (Admin)
+
+**Archivo:** `src/pages/ProductsPage.tsx`
+
+- Verificar que el formulario de producto ya tenga campo `description` (textarea)
+- Si no existe, agregar un textarea para descripción en el formulario de crear/editar producto
+- La descripción se muestra en el catálogo público via la vista `products_public`
+
+**Archivo de migración (si necesario):** Verificar que `products_public` view incluya el campo `description`
+
+## 3. Generador de Órdenes de Compra (Excel)
+
+**Archivo nuevo:** `src/pages/PurchaseOrdersPage.tsx` (o sección dentro de `PurchasesPage.tsx`)
+
+- Sección "Generar Orden de Compra" en la página de Compras
+- Interfaz para seleccionar productos a reponer:
+  - Lista de productos con stock actual
+  - Campo de cantidad a pedir por producto
+  - Campo de proveedor por producto (o agrupado)
+- Botón "Generar Excel" que crea un `.xlsx` con:
+  - Header: logo + nombre del negocio + fecha
+  - Columnas: Producto, Cantidad, Precio Unitario USD, Total USD
+  - Agrupado por proveedor (una hoja por proveedor o secciones separadas)
+  - Fila de totales
+- Usa la librería `xlsx` (SheetJS) para generar el archivo client-side
+- Solo accesible para admin
+
+**Archivo:** `src/App.tsx` — Agregar ruta si es página separada
+
+## 4. Dependencia
+
+- Instalar `xlsx` para generación de Excel client-side
+
+---
+
+## Archivos a modificar/crear
 
 | Archivo | Cambio |
 |---|---|
-| `src/index.css` | Tokens de glassmorphism, scrollbar, focus, transiciones |
-| `src/components/AppLayout.tsx` | Sidebar con indicador activo, hover refinado |
-| `src/pages/Dashboard.tsx` | Header con saludo, spacing, decorative elements |
-| `src/pages/AuthPage.tsx` | Glassmorphism, pattern background, animaciones |
-| `src/components/shared/KPICard.tsx` | Icon background, hover gradient border |
-| `src/components/shared/NotificationBell.tsx` | Pulse animation on unread |
-| `tailwind.config.ts` | Nuevas animaciones y utilities |
+| `src/pages/PublicCatalogPage.tsx` | Modal detalle producto + WhatsApp directo |
+| `src/pages/ProductsPage.tsx` | Verificar/agregar campo descripción |
+| `src/pages/PurchasesPage.tsx` | Agregar sección de orden de compra con generación Excel |
+| `package.json` | Agregar dependencia `xlsx` |
+
+## Orden de implementación
+1. Modal de detalle en catálogo público
+2. Verificar campo descripción en formulario de productos
+3. Generador de órdenes de compra Excel en PurchasesPage
+
