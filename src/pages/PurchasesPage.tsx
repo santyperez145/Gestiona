@@ -24,6 +24,7 @@ export default function PurchasesPage() {
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [orderOpen, setOrderOpen] = useState(false);
   const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
