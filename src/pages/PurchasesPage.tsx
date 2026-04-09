@@ -80,8 +80,6 @@ export default function PurchasesPage() {
           <PurchaseOrderGenerator userId={user!.id} onDone={() => setOrderOpen(false)} />
         </DialogContent>
       </Dialog>
-        </div>
-      </div>
 
       {!filtered.length ? (
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
