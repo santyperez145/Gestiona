@@ -58,6 +58,9 @@ export default function PurchasesPage() {
         </div>
         <div className="flex items-center gap-2">
           <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+          <Button variant="outline" onClick={() => setOrderOpen(true)}>
+            <ClipboardList className="w-4 h-4 mr-2" />Orden de Compra
+          </Button>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
@@ -67,6 +70,16 @@ export default function PurchasesPage() {
             <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>
           </Dialog>
+        </div>
+      </div>
+
+      {/* Purchase Order Generator Dialog */}
+      <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">Generar Orden de Compra</DialogTitle></DialogHeader>
+          <PurchaseOrderGenerator userId={user!.id} onDone={() => setOrderOpen(false)} />
+        </DialogContent>
+      </Dialog>
         </div>
       </div>
 
