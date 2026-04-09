@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Tag, Search, Share2, X, Filter, MessageCircle } from "lucide-react";
+import { Package, Tag, Search, Share2, X, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const CATEGORY_LABELS: Record<string, string> = {
   perfume_arabe: 'Perfume Árabe',
@@ -29,7 +30,7 @@ export default function PublicCatalogPage() {
   const [filterCat, setFilterCat] = useState('all');
   const [filterGender, setFilterGender] = useState('all');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [detailProduct, setDetailProduct] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
     if (!userId) { setValid(false); return; }
@@ -106,6 +107,15 @@ export default function PublicCatalogPage() {
     }
   };
 
+  const buildWhatsAppUrl = (product?: any) => {
+    if (!whatsappNumber) return '';
+    const num = whatsappNumber.replace(/[^0-9]/g, '');
+    const msg = product
+      ? `Hola! Me interesa el producto: *${product.name}* — ${fmtARS(Number(product.discount_price_ars || product.sale_price_ars))} 🛍️`
+      : 'Hola! Vi tu catálogo y me interesa consultar sobre un producto 🛍️';
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  };
+
   return (
     <div className="min-h-screen text-white" style={{ background: 'linear-gradient(145deg, #0a0a14 0%, #111127 50%, #0a0a14 100%)' }}>
       {/* Sticky Header */}
@@ -171,7 +181,6 @@ export default function PublicCatalogPage() {
             ))}
           </div>
 
-          {/* Gender filter - only for perfume categories */}
           {(isPerfumeCategory || (filterCat === 'all' && hasPerfumes)) && (
             <div className="flex gap-1.5">
               {['all', 'masculino', 'femenino', 'unisex'].map(g => (
@@ -210,42 +219,28 @@ export default function PublicCatalogPage() {
                 <div
                   key={p.id}
                   className="group relative bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-400 cursor-pointer"
-                  style={{ ['--hover-glow' as any]: `${primaryColor}15` }}
-                  onClick={() => setSelectedProduct(selectedProduct?.id === p.id ? null : p)}
+                  onClick={() => setDetailProduct(p)}
                 >
-                  {/* Image area */}
                   <div className="aspect-[4/5] bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden">
                     {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
-                      />
+                      <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                         <Package className="w-8 h-8 sm:w-10 sm:h-10 text-white/[0.06]" />
                       </div>
                     )}
 
-                    {/* Top badges row */}
                     <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
-                      {/* Discount badge */}
                       {hasDiscount ? (
                         <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-white flex items-center gap-0.5" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
-                          <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          -{discountPct}%
+                          <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />-{discountPct}%
                         </span>
                       ) : <span />}
-
-                      {/* Gender badge */}
                       {isPerfume && genderInfo && (
                         <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold backdrop-blur-md border border-white/10"
                           style={{
-                            background: p.gender === 'masculino' ? 'rgba(59,130,246,0.25)' :
-                              p.gender === 'femenino' ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)',
-                            color: p.gender === 'masculino' ? '#93bbfd' :
-                              p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
+                            background: p.gender === 'masculino' ? 'rgba(59,130,246,0.25)' : p.gender === 'femenino' ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)',
+                            color: p.gender === 'masculino' ? '#93bbfd' : p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
                           }}
                         >
                           {genderInfo.icon} {genderInfo.label}
@@ -253,20 +248,15 @@ export default function PublicCatalogPage() {
                       )}
                     </div>
 
-                    {/* Bottom gradient overlay with brand */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-10 pb-2.5 px-2.5">
-                      <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-white/70">
-                        {p.brand}
-                      </span>
+                      <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-white/70">{p.brand}</span>
                     </div>
                   </div>
 
-                  {/* Info */}
                   <div className="p-2.5 sm:p-3.5">
                     <h3 className="font-bold text-[11px] sm:text-[13px] text-white/90 leading-snug mb-0.5 line-clamp-2">{p.name}</h3>
                     <p className="text-[9px] sm:text-[10px] text-white/25 mb-2.5 font-medium">{CATEGORY_LABELS[p.category] || p.category}</p>
 
-                    {/* Prices */}
                     <div className="space-y-1.5">
                       {hasDiscount ? (
                         <>
@@ -286,7 +276,6 @@ export default function PublicCatalogPage() {
                       )}
                     </div>
 
-                    {/* Stock indicator */}
                     {p.stock <= 3 && (
                       <p className="text-[9px] text-amber-400/70 font-semibold mt-2 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 animate-pulse" />
@@ -300,6 +289,20 @@ export default function PublicCatalogPage() {
           </div>
         )}
       </main>
+
+      {/* Product Detail Modal */}
+      <Dialog open={!!detailProduct} onOpenChange={open => { if (!open) setDetailProduct(null); }}>
+        <DialogContent className="p-0 border-0 bg-transparent shadow-none max-w-lg sm:max-w-xl [&>button]:hidden">
+          {detailProduct && (
+            <ProductDetailModal
+              product={detailProduct}
+              primaryColor={primaryColor}
+              whatsappUrl={buildWhatsAppUrl(detailProduct)}
+              onClose={() => setDetailProduct(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="border-t border-white/[0.04] mt-12">
@@ -322,7 +325,7 @@ export default function PublicCatalogPage() {
       {/* WhatsApp FAB */}
       {whatsappNumber && (
         <a
-          href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola! Vi tu catálogo y me interesa consultar sobre un producto 🛍️')}`}
+          href={buildWhatsAppUrl()}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-full text-white font-bold text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
@@ -332,6 +335,108 @@ export default function PublicCatalogPage() {
           <span className="hidden sm:inline">Consultar</span>
         </a>
       )}
+    </div>
+  );
+}
+
+function ProductDetailModal({ product: p, primaryColor, whatsappUrl, onClose }: {
+  product: any; primaryColor: string; whatsappUrl: string; onClose: () => void;
+}) {
+  const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
+  const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
+  const isPerfume = p.category === 'perfume_arabe' || p.category === 'perfume_diseñador';
+  const genderInfo = GENDER_LABELS[p.gender];
+
+  return (
+    <div className="rounded-2xl overflow-hidden text-white animate-in fade-in zoom-in-95 duration-300" style={{ background: 'linear-gradient(160deg, #13132a 0%, #0d0d1a 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* Close button */}
+      <button onClick={onClose} className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors">
+        <X className="w-4 h-4 text-white/70" />
+      </button>
+
+      {/* Image */}
+      <div className="relative aspect-square max-h-[50vh] bg-black/30 overflow-hidden">
+        {p.image_url ? (
+          <img src={p.image_url} alt={p.name} className="w-full h-full object-contain" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package className="w-16 h-16 text-white/[0.06]" />
+          </div>
+        )}
+
+        {/* Badges over image */}
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          {hasDiscount && (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+              -{discountPct}% OFF
+            </span>
+          )}
+          {isPerfume && genderInfo && (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold backdrop-blur-md border border-white/10"
+              style={{
+                background: p.gender === 'masculino' ? 'rgba(59,130,246,0.3)' : p.gender === 'femenino' ? 'rgba(236,72,153,0.3)' : 'rgba(168,85,247,0.3)',
+                color: p.gender === 'masculino' ? '#93bbfd' : p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
+              }}
+            >
+              {genderInfo.icon} {genderInfo.label}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="p-5 space-y-4">
+        <div>
+          <p className="text-[10px] font-bold tracking-widest uppercase text-white/40 mb-1">{p.brand}</p>
+          <h2 className="text-lg sm:text-xl font-black leading-tight">{p.name}</h2>
+          <p className="text-xs text-white/30 mt-1">{CATEGORY_LABELS[p.category] || p.category}</p>
+        </div>
+
+        {p.description && (
+          <p className="text-sm text-white/50 leading-relaxed">{p.description}</p>
+        )}
+
+        {/* Prices */}
+        <div className="space-y-2">
+          {hasDiscount ? (
+            <>
+              <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
+                <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.discount_price_ars))}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: `${primaryColor}90` }}>Efectivo / Transferencia</p>
+              </div>
+              <div className="px-1">
+                <p className="text-sm text-white/50 font-medium">{fmtARS(Number(p.sale_price_ars))}</p>
+                <p className="text-[10px] text-white/25 font-medium">Tarjeta · hasta 3 cuotas sin interés</p>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
+              <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
+            </div>
+          )}
+        </div>
+
+        {p.stock <= 3 && (
+          <p className="text-xs text-amber-400/80 font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            ¡Últimas {p.stock} unidades disponibles!
+          </p>
+        )}
+
+        {/* WhatsApp CTA */}
+        {whatsappUrl && (
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+            style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.35)' }}
+          >
+            <MessageCircle className="w-5 h-5" fill="white" />
+            Consultar por WhatsApp
+          </a>
+        )}
+      </div>
     </div>
   );
 }
