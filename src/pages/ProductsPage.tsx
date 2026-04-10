@@ -336,6 +336,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
   const [description, setDescription] = useState(product?.description || '');
+  const [featured, setFeatured] = useState(product?.featured || false);
+  const [offerExpiresAt, setOfferExpiresAt] = useState(product?.offer_expires_at ? new Date(product.offer_expires_at).toISOString().slice(0, 16) : '');
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -421,6 +423,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
       stock: parseInt(stock) || 0,
       image_url: imageUrl,
+      featured,
+      offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
     };
     if (product) {
       await updateProductDB(product.id, data);
