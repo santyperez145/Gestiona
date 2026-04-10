@@ -376,6 +376,51 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Margin Rankings */}
+      {(stats.topMarginProducts?.length > 0 || stats.lowMarginProducts?.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
+          {stats.topMarginProducts?.length > 0 && (
+            <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+              <h2 className="text-sm font-display font-semibold mb-3 text-success uppercase tracking-wider flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" /> Top 5 Margen Más Alto
+              </h2>
+              <div className="space-y-2.5">
+                {stats.topMarginProducts.map((p: any, i: number) => (
+                  <div key={p.name} className="flex items-center justify-between text-sm">
+                    <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-success font-bold">{p.margin.toFixed(1)}%</span>
+                      <span className="text-xs text-muted-foreground">{formatARS(p.profitARS)}/u</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {stats.lowMarginProducts?.length > 0 && (
+            <div className="bg-card border border-warning/30 rounded-lg p-4 md:p-5 shadow-card">
+              <h2 className="text-sm font-display font-semibold mb-3 text-warning uppercase tracking-wider flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Margen Bajo (&lt;30%) — Subir precio
+              </h2>
+              <div className="space-y-2.5">
+                {stats.lowMarginProducts.map((p: any, i: number) => {
+                  const suggestedPrice = stats.minPriceForMargin(p.costUSD, 30);
+                  return (
+                    <div key={p.name} className="flex items-center justify-between text-sm">
+                      <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-warning font-bold">{p.margin.toFixed(1)}%</span>
+                        <span className="text-[10px] text-muted-foreground">Mín: {formatARS(suggestedPrice)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stock Alerts */}
       {(stats.lowStockProducts?.length > 0 || stats.outOfStockProducts?.length > 0) && (
         <div className="bg-card border border-destructive/30 rounded-lg p-4 md:p-5 shadow-card mb-6 md:mb-8">
