@@ -355,8 +355,7 @@ function ProductCard({ product: p, primaryColor, onClick, featured }: {
 
   return (
     <div
-      className={`group relative bg-white/[0.02] border rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-all duration-400 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${featured ? 'border-white/[0.12] ring-1' : 'border-white/[0.06] hover:border-white/[0.12]'}`}
-      style={featured ? { ringColor: `${primaryColor}30` } : {}}
+      className={`group relative bg-white/[0.02] border rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-all duration-400 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${featured ? 'border-white/[0.12] ring-1 ring-white/10' : 'border-white/[0.06] hover:border-white/[0.12]'}`}
       onClick={onClick}
     >
       <div className="aspect-[4/5] bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden">
