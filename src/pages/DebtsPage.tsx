@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS } from "@/lib/supabaseStore";
+import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
