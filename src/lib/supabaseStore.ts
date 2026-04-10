@@ -204,9 +204,29 @@ export async function getAuditLogsDB(limit = 50) {
   return data || [];
 }
 
+// ========= CUSTOMERS =========
+export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('sales').select('customer_name').eq('user_id', userId).not('customer_name', 'is', null);
+  if (error) throw error;
+  const names = [...new Set((data || []).map(d => d.customer_name).filter(Boolean))] as string[];
+  return names.sort((a, b) => a.localeCompare(b, 'es'));
+}
+
 // ========= HELPERS =========
 export function formatARS(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n); }
 export function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
+
+/** Parse a date string safely for Argentina timezone display */
+export function formatDateAR(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+}
+
+/** Append noon time to a date-only string to avoid timezone offset issues */
+export function dateToNoon(dateStr: string) {
+  if (dateStr.includes('T')) return dateStr;
+  return dateStr + 'T12:00:00';
+}
 
 export function getCategoryLabel(cat: string) {
   const map: Record<string, string> = { perfume_arabe: 'Perfume Árabe', 'perfume_diseñador': 'Perfume Diseñador', vaper: 'Vaper', electronico: 'Electrónico' };
