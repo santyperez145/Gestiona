@@ -256,10 +256,12 @@ export type Database = {
           customs_fee: number
           description: string | null
           discount_price_ars: number | null
+          featured: boolean | null
           gender: string
           id: string
           image_url: string | null
           name: string
+          offer_expires_at: string | null
           profit_per_unit_ars: number
           profit_per_unit_usd: number
           sale_price_ars: number
@@ -276,10 +278,12 @@ export type Database = {
           customs_fee?: number
           description?: string | null
           discount_price_ars?: number | null
+          featured?: boolean | null
           gender?: string
           id?: string
           image_url?: string | null
           name: string
+          offer_expires_at?: string | null
           profit_per_unit_ars?: number
           profit_per_unit_usd?: number
           sale_price_ars?: number
@@ -296,10 +300,12 @@ export type Database = {
           customs_fee?: number
           description?: string | null
           discount_price_ars?: number | null
+          featured?: boolean | null
           gender?: string
           id?: string
           image_url?: string | null
           name?: string
+          offer_expires_at?: string | null
           profit_per_unit_ars?: number
           profit_per_unit_usd?: number
           sale_price_ars?: number
@@ -573,10 +579,12 @@ export type Database = {
           category: string | null
           description: string | null
           discount_price_ars: number | null
+          featured: boolean | null
           gender: string | null
           id: string | null
           image_url: string | null
           name: string | null
+          offer_expires_at: string | null
           sale_price_ars: number | null
           stock: number | null
           user_id: string | null
@@ -586,10 +594,12 @@ export type Database = {
           category?: string | null
           description?: string | null
           discount_price_ars?: number | null
+          featured?: boolean | null
           gender?: string | null
           id?: string | null
           image_url?: string | null
           name?: string | null
+          offer_expires_at?: string | null
           sale_price_ars?: number | null
           stock?: number | null
           user_id?: string | null
@@ -599,10 +609,12 @@ export type Database = {
           category?: string | null
           description?: string | null
           discount_price_ars?: number | null
+          featured?: boolean | null
           gender?: string | null
           id?: string | null
           image_url?: string | null
           name?: string | null
+          offer_expires_at?: string | null
           sale_price_ars?: number | null
           stock?: number | null
           user_id?: string | null
