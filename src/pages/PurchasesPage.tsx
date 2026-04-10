@@ -103,7 +103,7 @@ export default function PurchasesPage() {
               <tbody>
                 {paged.map(p => (
                   <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">{new Date(p.date).toLocaleDateString('es-AR')}</td>
+                    <td className="p-3">{formatDateAR(p.date)}</td>
                     <td className="p-3">{p.product_name}</td>
                     <td className="p-3 text-muted-foreground">{p.supplier || '—'}</td>
                     <td className="p-3 text-right">{p.quantity}</td>
@@ -135,7 +135,7 @@ export default function PurchasesPage() {
                 <div className="flex items-start justify-between mb-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{p.product_name}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString('es-AR')} · {p.supplier || 'Sin proveedor'}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateAR(p.date)} · {p.supplier || 'Sin proveedor'}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
@@ -201,7 +201,7 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
     const purchaseData = {
       product_id: productId, product_name: product!.name,
       quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
-      total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date, supplier,
+      total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date: dateToNoon(date), supplier,
     };
     if (editItem) {
       await updatePurchaseDB(editItem.id, purchaseData, editItem);
