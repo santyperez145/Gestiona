@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -213,7 +213,8 @@ export default function ProductsPage() {
                          <td className="p-3 font-medium max-w-[200px] truncate">
                            <div className="flex items-center gap-2">
                              {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
-                             {p.name}
+                             <span className="truncate">{p.name}</span>
+                             {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                            </div>
                          </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
@@ -222,7 +223,17 @@ export default function ProductsPage() {
                          <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
                          <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
                          <td className="p-3 text-right">
-                           <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                           {(() => {
+                             const margin = Number(p.sale_price_ars) > 0 ? (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 : 0;
+                             const isLowMargin = margin < 30 && margin > 0;
+                             return (
+                               <span className={`text-xs flex items-center justify-end gap-1 ${Number(p.profit_per_unit_ars) > 0 ? (isLowMargin ? 'text-warning' : 'text-success') : 'text-destructive'}`}>
+                                 {isLowMargin && <AlertTriangle className="w-3 h-3" />}
+                                 {formatARS(Number(p.profit_per_unit_ars))}
+                                 <span className="text-[10px] text-muted-foreground">({Math.round(margin)}%)</span>
+                               </span>
+                             );
+                           })()}
                          </td>
                          <td className="p-3 text-right">
                            {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
