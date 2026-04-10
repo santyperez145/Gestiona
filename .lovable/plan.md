@@ -1,62 +1,72 @@
 
 
-# Plan: Detalle de Producto en Catálogo + WhatsApp Directo + Órdenes de Compra Excel
+# Plan Combinado: Mejoras de Negocio + Fix Fechas + Clientes en Ventas
 
-## Resumen
+## Parte 1: Fix de Fechas (Bug crítico)
 
-1. **Detalle de producto** — Al clickear una card del catálogo público, se abre un modal/drawer con imagen grande, descripción, precios y botón "Consultar por WhatsApp" con el nombre del producto pre-cargado en el mensaje.
-2. **Venta directa por WhatsApp** — El botón de consulta en el detalle envía un mensaje personalizado con el producto seleccionado. Sin pasarela de pago.
-3. **Órdenes de compra automáticas** — Nueva página/sección en Compras para generar un Excel (.xlsx) con productos a reponer, agrupados por proveedor, con logo y datos del negocio.
+**Problema:** Las fechas se envían como `"2026-04-10"` sin hora, Supabase las interpreta como UTC midnight, y en Argentina (UTC-3) se muestra el día anterior.
 
----
+**Fix en archivos:** `SalesPage.tsx`, `PurchasesPage.tsx`, `DebtsPage.tsx`
+- Al guardar: `date + "T12:00:00"` en vez de solo `date`
+- Al mostrar: usar `new Date(d).toLocaleDateString('es-AR')` con manejo UTC-safe
 
-## 1. Modal de Detalle de Producto (Catálogo Público)
+## Parte 2: Selector de Clientes en Ventas
 
-**Archivo:** `src/pages/PublicCatalogPage.tsx`
+**Archivo:** `SalesPage.tsx`
+- Reemplazar el input de texto libre "Cliente" por un combobox con autocompletado
+- Extraer nombres únicos de clientes del historial de ventas (`sales.customer_name`)
+- Permitir escribir un nombre nuevo si no existe en la lista
+- Mostrar medio de pago en las cards mobile (actualmente falta)
 
-- Reemplazar el `selectedProduct` toggle por un **modal/drawer** que se abre al clickear una card
-- Contenido del modal:
-  - Imagen grande (aspect-ratio libre, max-height limitado)
-  - Nombre, marca, categoría, género (si perfume)
-  - Descripción del producto (`p.description`)
-  - Precios (efectivo/tarjeta) con el mismo diseño actual
-  - Indicador de stock bajo
-  - Botón "Consultar por WhatsApp" que abre `wa.me` con mensaje: `"Hola! Me interesa el producto: {nombre} — {precio}"`
-- Diseño dark consistente con el catálogo, animación de entrada suave
-- Responsive: en mobile ocupa pantalla completa como drawer, en desktop es modal centrado
+**Archivo:** `supabaseStore.ts`
+- Nueva función `getUniqueCustomersDB(userId)` que hace `SELECT DISTINCT customer_name FROM sales WHERE user_id = ?`
 
-## 2. Campo de Descripción en Productos (Admin)
+## Parte 3: Migración SQL — Productos Destacados
 
-**Archivo:** `src/pages/ProductsPage.tsx`
+```sql
+ALTER TABLE products ADD COLUMN IF NOT EXISTS featured boolean DEFAULT false;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS offer_expires_at timestamptz;
+```
 
-- Verificar que el formulario de producto ya tenga campo `description` (textarea)
-- Si no existe, agregar un textarea para descripción en el formulario de crear/editar producto
-- La descripción se muestra en el catálogo público via la vista `products_public`
+Actualizar la vista `products_public` para incluir `featured` y `offer_expires_at`.
 
-**Archivo de migración (si necesario):** Verificar que `products_public` view incluya el campo `description`
+## Parte 4: Catálogo Público — Precios Psicológicos + Destacados
 
-## 3. Generador de Órdenes de Compra (Excel)
+**Archivo:** `PublicCatalogPage.tsx`
 
-**Archivo nuevo:** `src/pages/PurchaseOrdersPage.tsx` (o sección dentro de `PurchasesPage.tsx`)
+- **Sección "Destacados"** arriba del grid con productos marcados `featured = true`
+- **Countdown timer** en productos con `offer_expires_at` vigente
+- **Precio por cuota**: mostrar "3 cuotas de $X" debajo del precio principal
+- **Etiqueta "MEJOR PRECIO"** en precio efectivo/transferencia
+- **Ahorro en pesos**: mostrar "Ahorrás $15.000" cuando hay descuento
+- **Precio tachado** más visible con línea roja
+- **Animaciones**: hover lift en cards, lazy loading con skeleton
+- **Mobile**: cards de 1 columna en pantallas < 400px, botón WhatsApp más grande
+- **Compartir producto**: botón que copia link directo al catálogo o mensaje de WhatsApp
 
-- Sección "Generar Orden de Compra" en la página de Compras
-- Interfaz para seleccionar productos a reponer:
-  - Lista de productos con stock actual
-  - Campo de cantidad a pedir por producto
-  - Campo de proveedor por producto (o agrupado)
-- Botón "Generar Excel" que crea un `.xlsx` con:
-  - Header: logo + nombre del negocio + fecha
-  - Columnas: Producto, Cantidad, Precio Unitario USD, Total USD
-  - Agrupado por proveedor (una hoja por proveedor o secciones separadas)
-  - Fila de totales
-- Usa la librería `xlsx` (SheetJS) para generar el archivo client-side
-- Solo accesible para admin
+## Parte 5: Panel Admin — Toggle Featured + Margen
 
-**Archivo:** `src/App.tsx` — Agregar ruta si es página separada
+**Archivo:** `ProductsPage.tsx`
 
-## 4. Dependencia
+- Toggle "Destacado" y campo fecha de expiración de oferta en el formulario de producto
+- Alerta visual cuando el margen del producto es < 30% (con ícono de warning)
+- Botón "Vender" rápido en cada card de producto que abre un mini-dialog de venta
 
-- Instalar `xlsx` para generación de Excel client-side
+## Parte 6: Dashboard — Análisis de Rentabilidad
+
+**Archivo:** `Dashboard.tsx`
+
+- **Ranking de margen**: tabla/lista de top 5 productos más rentables y bottom 5 menos rentables
+- **Alerta margen bajo**: warning en productos con margen < 30%
+- **Sugerencia de precio mínimo**: mostrar el precio mínimo para mantener X% de margen
+- **Mini-sparklines** en KPI cards mostrando tendencia de los últimos 7 días
+
+## Parte 7: Sidebar — Badge de Notificaciones
+
+**Archivo:** `AppLayout.tsx`
+
+- Consultar notificaciones no leídas del usuario
+- Mostrar badge numérico rojo en el ícono de notificaciones del sidebar
 
 ---
 
@@ -64,13 +74,23 @@
 
 | Archivo | Cambio |
 |---|---|
-| `src/pages/PublicCatalogPage.tsx` | Modal detalle producto + WhatsApp directo |
-| `src/pages/ProductsPage.tsx` | Verificar/agregar campo descripción |
-| `src/pages/PurchasesPage.tsx` | Agregar sección de orden de compra con generación Excel |
-| `package.json` | Agregar dependencia `xlsx` |
+| `src/pages/SalesPage.tsx` | Fix fecha, combobox clientes, medio de pago en mobile |
+| `src/pages/PurchasesPage.tsx` | Fix fecha |
+| `src/pages/DebtsPage.tsx` | Fix fecha |
+| `src/pages/PublicCatalogPage.tsx` | Destacados, precios psicológicos, countdown, compartir, animaciones |
+| `src/pages/ProductsPage.tsx` | Toggle featured, expiración oferta, alerta margen, venta rápida |
+| `src/pages/Dashboard.tsx` | Ranking margen, sparklines, alertas |
+| `src/components/AppLayout.tsx` | Badge notificaciones |
+| `src/lib/supabaseStore.ts` | `getUniqueCustomersDB()` |
+| Migración SQL | `featured`, `offer_expires_at` en products + actualizar vista pública |
 
 ## Orden de implementación
-1. Modal de detalle en catálogo público
-2. Verificar campo descripción en formulario de productos
-3. Generador de órdenes de compra Excel en PurchasesPage
+
+1. Migración SQL (featured, offer_expires_at)
+2. Fix de fechas en todas las páginas
+3. Combobox de clientes en ventas + medio de pago mobile
+4. Catálogo público: destacados + precios psicológicos + compartir + animaciones
+5. Productos: toggle featured + alerta margen + venta rápida
+6. Dashboard: ranking margen + sparklines
+7. Sidebar: badge notificaciones
 
