@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -32,6 +32,14 @@ const CATEGORIES = [
   { value: 'vaper', label: 'Vaper' },
   { value: 'electronico', label: 'Electrónico' },
 ];
+
+const PAYMENT_BADGE: Record<string, string> = {
+  efectivo: 'bg-success/15 text-success',
+  transferencia: 'bg-blue-500/15 text-blue-400',
+  debito: 'bg-primary/15 text-primary',
+  credito: 'bg-warning/15 text-warning',
+  fiado: 'bg-destructive/15 text-destructive',
+};
 
 export default function SalesPage() {
   const { user } = useAuth();
@@ -140,12 +148,12 @@ export default function SalesPage() {
               <tbody>
                 {paged.map(s => (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">{new Date(s.date).toLocaleDateString('es-AR')}</td>
+                    <td className="p-3">{formatDateAR(s.date)}</td>
                     <td className="p-3">{s.product_name}</td>
                     <td className="p-3">{s.customer_name || '—'}</td>
                     <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-muted capitalize">
-                        {(s as any).payment_method || 'efectivo'}
+                      <span className={`px-2 py-0.5 rounded-full text-xs capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
+                        {s.payment_method || 'efectivo'}
                       </span>
                     </td>
                     <td className="p-3 text-right">{s.quantity}</td>
@@ -184,9 +192,12 @@ export default function SalesPage() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-medium text-sm">{s.product_name}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(s.date).toLocaleDateString('es-AR')} · {s.customer_name || 'Sin cliente'}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateAR(s.date)} · {s.customer_name || 'Sin cliente'}</p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
+                      {s.payment_method || 'efectivo'}
+                    </span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
                       {s.paid ? 'Pagado' : 'Debe'}
                     </span>
@@ -234,18 +245,22 @@ export default function SalesPage() {
 function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [customers, setCustomers] = useState<string[]>([]);
   const [productId, setProductId] = useState(editItem?.product_id || '');
   const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
   const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [showCustomerList, setShowCustomerList] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
   const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
-      const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
+      const [p, s, c] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId)]);
       setProducts(p);
       setSettings(s);
+      setCustomers(c);
     })();
   }, [userId]);
 
@@ -255,7 +270,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isFiado = paymentMethod === 'fiado';
 
-  // Determine unit price based on payment method
   const discountPrice = product?.discount_price_ars ? Number(product.discount_price_ars) : null;
   const normalPrice = Number(product?.sale_price_ars) || 0;
   const autoUnitPrice = usesDiscount && discountPrice ? discountPrice : normalPrice;
@@ -265,6 +279,10 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const costPerUnitARS = product ? Number(product.total_cost_usd) * exchangeRate : 0;
   const profitARS = total - (costPerUnitARS * qty);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
+
+  const filteredCustomers = customers.filter(c => 
+    c.toLowerCase().includes((customerFilter || customerName).toLowerCase())
+  ).slice(0, 8);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,7 +297,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       quantity: qty, unit_price_ars: unitPrice, discount_applied: discountApplied,
       total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
       profit_ars: profitARS, profit_usd: profitUSD,
-      customer_name: customerName || null, date, paid,
+      customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
     };
 
@@ -318,8 +336,32 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         <div><label className="text-sm text-muted-foreground">Fecha</label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
       </div>
-      <div><label className="text-sm text-muted-foreground">Cliente (opcional)</label>
-        <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Nombre" className="bg-muted border-border" /></div>
+      {/* Customer combobox */}
+      <div className="relative">
+        <label className="text-sm text-muted-foreground">Cliente</label>
+        <Input 
+          value={customerName} 
+          onChange={e => { setCustomerName(e.target.value); setCustomerFilter(e.target.value); setShowCustomerList(true); }} 
+          onFocus={() => setShowCustomerList(true)}
+          onBlur={() => setTimeout(() => setShowCustomerList(false), 200)}
+          placeholder="Buscar o escribir nombre..."
+          className="bg-muted border-border" 
+        />
+        {showCustomerList && filteredCustomers.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+            {filteredCustomers.map(c => (
+              <button
+                key={c}
+                type="button"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg"
+                onMouseDown={() => { setCustomerName(c); setShowCustomerList(false); }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div>
         <label className="text-sm text-muted-foreground">Medio de Pago</label>
         <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); setCustomPrice(''); }}>

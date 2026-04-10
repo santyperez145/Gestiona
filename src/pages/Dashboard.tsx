@@ -150,6 +150,21 @@ export default function Dashboard() {
     const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 3);
     const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
 
+    // Margin rankings
+    const productsWithMargin = products.filter((p: any) => Number(p.sale_price_ars) > 0).map((p: any) => ({
+      name: p.name,
+      margin: (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100,
+      profitARS: Number(p.profit_per_unit_ars),
+      salePrice: Number(p.sale_price_ars),
+      costUSD: Number(p.total_cost_usd),
+    }));
+    const topMarginProducts = [...productsWithMargin].sort((a, b) => b.margin - a.margin).slice(0, 5);
+    const lowMarginProducts = [...productsWithMargin].filter(p => p.margin > 0 && p.margin < 30).sort((a, b) => a.margin - b.margin).slice(0, 5);
+    const minPriceForMargin = (costUSD: number, targetMargin: number) => {
+      const costARS = costUSD * Number(settings.exchange_rate);
+      return costARS / (1 - targetMargin / 100);
+    };
+
     const restockSuggestions = Object.entries(productSales)
       .map(([id, data]: any) => {
         const prod = products.find((p: any) => p.id === id);
@@ -178,6 +193,7 @@ export default function Dashboard() {
       uniqueCustomers: customers.size, inventoryValueUSD,
       recentSales: sales.slice(0, 5),
       paidSalesARS, unpaidSalesARS,
+      topMarginProducts, lowMarginProducts, minPriceForMargin,
     };
   }, [rawData, filterCat]);
 
@@ -359,6 +375,51 @@ export default function Dashboard() {
           ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos</div>}
         </div>
       </div>
+
+      {/* Margin Rankings */}
+      {(stats.topMarginProducts?.length > 0 || stats.lowMarginProducts?.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
+          {stats.topMarginProducts?.length > 0 && (
+            <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+              <h2 className="text-sm font-display font-semibold mb-3 text-success uppercase tracking-wider flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" /> Top 5 Margen Más Alto
+              </h2>
+              <div className="space-y-2.5">
+                {stats.topMarginProducts.map((p: any, i: number) => (
+                  <div key={p.name} className="flex items-center justify-between text-sm">
+                    <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-success font-bold">{p.margin.toFixed(1)}%</span>
+                      <span className="text-xs text-muted-foreground">{formatARS(p.profitARS)}/u</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {stats.lowMarginProducts?.length > 0 && (
+            <div className="bg-card border border-warning/30 rounded-lg p-4 md:p-5 shadow-card">
+              <h2 className="text-sm font-display font-semibold mb-3 text-warning uppercase tracking-wider flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Margen Bajo (&lt;30%) — Subir precio
+              </h2>
+              <div className="space-y-2.5">
+                {stats.lowMarginProducts.map((p: any, i: number) => {
+                  const suggestedPrice = stats.minPriceForMargin(p.costUSD, 30);
+                  return (
+                    <div key={p.name} className="flex items-center justify-between text-sm">
+                      <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-warning font-bold">{p.margin.toFixed(1)}%</span>
+                        <span className="text-[10px] text-muted-foreground">Mín: {formatARS(suggestedPrice)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stock Alerts */}
       {(stats.lowStockProducts?.length > 0 || stats.outOfStockProducts?.length > 0) && (

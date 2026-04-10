@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Tag, Search, Share2, X, MessageCircle } from "lucide-react";
+import { Package, Tag, Search, Share2, X, MessageCircle, Star, Clock, Copy } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CATEGORY_LABELS: Record<string, string> = {
   perfume_arabe: 'Perfume Árabe',
@@ -19,6 +20,53 @@ const GENDER_LABELS: Record<string, { icon: string; label: string }> = {
 
 function fmtARS(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+}
+
+function CountdownTimer({ expiresAt, primaryColor }: { expiresAt: string; primaryColor: string }) {
+  const [timeLeft, setTimeLeft] = useState('');
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const now = Date.now();
+      const end = new Date(expiresAt).getTime();
+      const diff = end - now;
+      if (diff <= 0) { setExpired(true); setTimeLeft(''); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (h > 24) {
+        const d = Math.floor(h / 24);
+        setTimeLeft(`${d}d ${h % 24}h`);
+      } else {
+        setTimeLeft(`${h}h ${m}m ${s}s`);
+      }
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  if (expired) return null;
+  return (
+    <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md animate-pulse"
+      style={{ background: `${primaryColor}30`, color: primaryColor, border: `1px solid ${primaryColor}40` }}>
+      <Clock className="w-2.5 h-2.5" />⏱ {timeLeft}
+    </span>
+  );
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <Skeleton className="aspect-[4/5] bg-white/[0.04]" />
+      <div className="p-3 space-y-2">
+        <Skeleton className="h-3 w-3/4 bg-white/[0.06]" />
+        <Skeleton className="h-2 w-1/2 bg-white/[0.04]" />
+        <Skeleton className="h-8 w-full bg-white/[0.04] rounded-lg" />
+      </div>
+    </div>
+  );
 }
 
 export default function PublicCatalogPage() {
@@ -74,6 +122,14 @@ export default function PublicCatalogPage() {
     if (filterGender !== 'all' && p.gender !== filterGender) return false;
     return true;
   }), [products, search, filterCat, filterGender]);
+
+  const featuredProducts = useMemo(() => {
+    return filtered.filter(p => p.featured && (!p.offer_expires_at || new Date(p.offer_expires_at) > new Date()));
+  }, [filtered]);
+
+  const regularProducts = useMemo(() => {
+    return filtered.filter(p => !p.featured || (p.offer_expires_at && new Date(p.offer_expires_at) <= new Date()));
+  }, [filtered]);
 
   const primaryColor = settings?.primary_color || '#D4A843';
   const businessName = settings?.business_name || 'EXENTRY IMPORTS';
@@ -199,6 +255,21 @@ export default function PublicCatalogPage() {
 
       {/* Products Grid */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
+        {/* Featured Section */}
+        {featuredProducts.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5" style={{ color: primaryColor }} fill={primaryColor} />
+              <h2 className="text-lg font-black tracking-wide" style={{ color: primaryColor }}>Destacados</h2>
+            </div>
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {featuredProducts.map(p => (
+                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} featured />
+              ))}
+            </div>
+          </div>
+        )}
+
         {!filtered.length ? (
           <div className="text-center py-24">
             <div className="w-20 h-20 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
@@ -208,85 +279,16 @@ export default function PublicCatalogPage() {
             <p className="text-white/15 text-xs mt-1">Probá con otro filtro o buscá otro término</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-            {filtered.map(p => {
-              const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
-              const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
-              const isPerfume = p.category === 'perfume_arabe' || p.category === 'perfume_diseñador';
-              const genderInfo = GENDER_LABELS[p.gender];
-
-              return (
-                <div
-                  key={p.id}
-                  className="group relative bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-400 cursor-pointer"
-                  onClick={() => setDetailProduct(p)}
-                >
-                  <div className="aspect-[4/5] bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                        <Package className="w-8 h-8 sm:w-10 sm:h-10 text-white/[0.06]" />
-                      </div>
-                    )}
-
-                    <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
-                      {hasDiscount ? (
-                        <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-white flex items-center gap-0.5" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
-                          <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />-{discountPct}%
-                        </span>
-                      ) : <span />}
-                      {isPerfume && genderInfo && (
-                        <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold backdrop-blur-md border border-white/10"
-                          style={{
-                            background: p.gender === 'masculino' ? 'rgba(59,130,246,0.25)' : p.gender === 'femenino' ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)',
-                            color: p.gender === 'masculino' ? '#93bbfd' : p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
-                          }}
-                        >
-                          {genderInfo.icon} {genderInfo.label}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-10 pb-2.5 px-2.5">
-                      <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-white/70">{p.brand}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3.5">
-                    <h3 className="font-bold text-[11px] sm:text-[13px] text-white/90 leading-snug mb-0.5 line-clamp-2">{p.name}</h3>
-                    <p className="text-[9px] sm:text-[10px] text-white/25 mb-2.5 font-medium">{CATEGORY_LABELS[p.category] || p.category}</p>
-
-                    <div className="space-y-1.5">
-                      {hasDiscount ? (
-                        <>
-                          <div className="rounded-lg p-2" style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}>
-                            <p className="text-[13px] sm:text-lg font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.discount_price_ars))}</p>
-                            <p className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-wider" style={{ color: `${primaryColor}99` }}>Efectivo / Transferencia</p>
-                          </div>
-                          <div className="px-2">
-                            <p className="text-[10px] sm:text-[11px] text-white/45 font-medium">{fmtARS(Number(p.sale_price_ars))}</p>
-                            <p className="text-[8px] sm:text-[9px] text-white/20 font-medium">Tarjeta · 3 cuotas s/interés</p>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="rounded-lg p-2" style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}>
-                          <p className="text-[13px] sm:text-lg font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {p.stock <= 3 && (
-                      <p className="text-[9px] text-amber-400/70 font-semibold mt-2 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 animate-pulse" />
-                        ¡Últimas {p.stock} unidades!
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <>
+            {featuredProducts.length > 0 && regularProducts.length > 0 && (
+              <h2 className="text-sm font-semibold text-white/30 uppercase tracking-widest mb-4">Todos los productos</h2>
+            )}
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {(featuredProducts.length > 0 ? regularProducts : filtered).map(p => (
+                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} />
+              ))}
+            </div>
+          </>
         )}
       </main>
 
@@ -298,6 +300,7 @@ export default function PublicCatalogPage() {
               product={detailProduct}
               primaryColor={primaryColor}
               whatsappUrl={buildWhatsAppUrl(detailProduct)}
+              catalogUrl={window.location.href}
               onClose={() => setDetailProduct(null)}
             />
           )}
@@ -328,10 +331,10 @@ export default function PublicCatalogPage() {
           href={buildWhatsAppUrl()}
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-full text-white font-bold text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 sm:px-6 sm:py-4 rounded-full text-white font-bold text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
           style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 8px 30px rgba(37,211,102,0.4)' }}
         >
-          <MessageCircle className="w-5 h-5" fill="white" />
+          <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" fill="white" />
           <span className="hidden sm:inline">Consultar</span>
         </a>
       )}
@@ -339,22 +342,130 @@ export default function PublicCatalogPage() {
   );
 }
 
-function ProductDetailModal({ product: p, primaryColor, whatsappUrl, onClose }: {
-  product: any; primaryColor: string; whatsappUrl: string; onClose: () => void;
+function ProductCard({ product: p, primaryColor, onClick, featured }: {
+  product: any; primaryColor: string; onClick: () => void; featured?: boolean;
 }) {
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
+  const savings = hasDiscount ? Number(p.sale_price_ars) - Number(p.discount_price_ars) : 0;
   const isPerfume = p.category === 'perfume_arabe' || p.category === 'perfume_diseñador';
   const genderInfo = GENDER_LABELS[p.gender];
+  const installment = Math.round(Number(p.sale_price_ars) / 3);
+  const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
+
+  return (
+    <div
+      className={`group relative bg-white/[0.02] border rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-all duration-400 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${featured ? 'border-white/[0.12] ring-1 ring-white/10' : 'border-white/[0.06] hover:border-white/[0.12]'}`}
+      onClick={onClick}
+    >
+      <div className="aspect-[4/5] bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden">
+        {p.image_url ? (
+          <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+            <Package className="w-8 h-8 sm:w-10 sm:h-10 text-white/[0.06]" />
+          </div>
+        )}
+
+        <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
+          <div className="flex flex-col gap-1">
+            {featured && (
+              <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5"
+                style={{ background: `${primaryColor}30`, color: primaryColor, border: `1px solid ${primaryColor}40` }}>
+                <Star className="w-2.5 h-2.5" fill={primaryColor} />Destacado
+              </span>
+            )}
+            {hasDiscount && (
+              <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-white flex items-center gap-0.5" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+                <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />-{discountPct}%
+              </span>
+            )}
+            {hasCountdown && (
+              <CountdownTimer expiresAt={p.offer_expires_at} primaryColor={primaryColor} />
+            )}
+          </div>
+          {isPerfume && genderInfo && (
+            <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold backdrop-blur-md border border-white/10"
+              style={{
+                background: p.gender === 'masculino' ? 'rgba(59,130,246,0.25)' : p.gender === 'femenino' ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)',
+                color: p.gender === 'masculino' ? '#93bbfd' : p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
+              }}
+            >
+              {genderInfo.icon} {genderInfo.label}
+            </span>
+          )}
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-10 pb-2.5 px-2.5">
+          <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-white/70">{p.brand}</span>
+        </div>
+      </div>
+
+      <div className="p-2.5 sm:p-3.5">
+        <h3 className="font-bold text-[11px] sm:text-[13px] text-white/90 leading-snug mb-0.5 line-clamp-2">{p.name}</h3>
+        <p className="text-[9px] sm:text-[10px] text-white/25 mb-2.5 font-medium">{CATEGORY_LABELS[p.category] || p.category}</p>
+
+        <div className="space-y-1.5">
+          {hasDiscount ? (
+            <>
+              <div className="rounded-lg p-2" style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{ background: `${primaryColor}25`, color: primaryColor }}>MEJOR PRECIO</span>
+                </div>
+                <p className="text-[13px] sm:text-lg font-black tracking-tight mt-1" style={{ color: primaryColor }}>{fmtARS(Number(p.discount_price_ars))}</p>
+                <p className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-wider" style={{ color: `${primaryColor}99` }}>Efectivo / Transferencia</p>
+                <p className="text-[9px] font-bold mt-0.5" style={{ color: '#4ade80' }}>Ahorrás {fmtARS(savings)}</p>
+              </div>
+              <div className="px-2">
+                <p className="text-[10px] sm:text-[11px] text-white/45 font-medium line-through decoration-red-500/60 decoration-2">{fmtARS(Number(p.sale_price_ars))}</p>
+                <p className="text-[8px] sm:text-[9px] text-white/30 font-medium">3 cuotas de {fmtARS(installment)} s/interés</p>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg p-2" style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}>
+              <p className="text-[13px] sm:text-lg font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
+              <p className="text-[8px] sm:text-[9px] text-white/30 font-medium">3 cuotas de {fmtARS(installment)} s/interés</p>
+            </div>
+          )}
+        </div>
+
+        {p.stock <= 3 && (
+          <p className="text-[9px] text-amber-400/70 font-semibold mt-2 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 animate-pulse" />
+            ¡Últimas {p.stock} unidades!
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProductDetailModal({ product: p, primaryColor, whatsappUrl, catalogUrl, onClose }: {
+  product: any; primaryColor: string; whatsappUrl: string; catalogUrl: string; onClose: () => void;
+}) {
+  const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
+  const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
+  const savings = hasDiscount ? Number(p.sale_price_ars) - Number(p.discount_price_ars) : 0;
+  const isPerfume = p.category === 'perfume_arabe' || p.category === 'perfume_diseñador';
+  const genderInfo = GENDER_LABELS[p.gender];
+  const installment = Math.round(Number(p.sale_price_ars) / 3);
+  const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
+
+  const handleShareProduct = async () => {
+    const text = `${p.name} — ${fmtARS(Number(p.discount_price_ars || p.sale_price_ars))} 🛍️\n${catalogUrl}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: p.name, text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+  };
 
   return (
     <div className="rounded-2xl overflow-hidden text-white animate-in fade-in zoom-in-95 duration-300" style={{ background: 'linear-gradient(160deg, #13132a 0%, #0d0d1a 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      {/* Close button */}
       <button onClick={onClose} className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors">
         <X className="w-4 h-4 text-white/70" />
       </button>
 
-      {/* Image */}
       <div className="relative aspect-square max-h-[50vh] bg-black/30 overflow-hidden">
         {p.image_url ? (
           <img src={p.image_url} alt={p.name} className="w-full h-full object-contain" />
@@ -363,14 +474,19 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, onClose }: 
             <Package className="w-16 h-16 text-white/[0.06]" />
           </div>
         )}
-
-        {/* Badges over image */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          {p.featured && (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-bold backdrop-blur-md flex items-center gap-1"
+              style={{ background: `${primaryColor}30`, color: primaryColor }}>
+              <Star className="w-3 h-3" fill={primaryColor} />Destacado
+            </span>
+          )}
           {hasDiscount && (
             <span className="px-2.5 py-1 rounded-lg text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
               -{discountPct}% OFF
             </span>
           )}
+          {hasCountdown && <CountdownTimer expiresAt={p.offer_expires_at} primaryColor={primaryColor} />}
           {isPerfume && genderInfo && (
             <span className="px-2.5 py-1 rounded-lg text-xs font-semibold backdrop-blur-md border border-white/10"
               style={{
@@ -384,7 +500,6 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, onClose }: 
         </div>
       </div>
 
-      {/* Info */}
       <div className="p-5 space-y-4">
         <div>
           <p className="text-[10px] font-bold tracking-widest uppercase text-white/40 mb-1">{p.brand}</p>
@@ -396,22 +511,26 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, onClose }: 
           <p className="text-sm text-white/50 leading-relaxed">{p.description}</p>
         )}
 
-        {/* Prices */}
         <div className="space-y-2">
           {hasDiscount ? (
             <>
               <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold" style={{ background: `${primaryColor}25`, color: primaryColor }}>MEJOR PRECIO</span>
+                </div>
                 <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.discount_price_ars))}</p>
                 <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: `${primaryColor}90` }}>Efectivo / Transferencia</p>
+                <p className="text-xs font-bold mt-1" style={{ color: '#4ade80' }}>Ahorrás {fmtARS(savings)}</p>
               </div>
               <div className="px-1">
-                <p className="text-sm text-white/50 font-medium">{fmtARS(Number(p.sale_price_ars))}</p>
-                <p className="text-[10px] text-white/25 font-medium">Tarjeta · hasta 3 cuotas sin interés</p>
+                <p className="text-sm text-white/50 font-medium line-through decoration-red-500/60 decoration-2">{fmtARS(Number(p.sale_price_ars))}</p>
+                <p className="text-[10px] text-white/25 font-medium">Tarjeta · 3 cuotas de {fmtARS(installment)} sin interés</p>
               </div>
             </>
           ) : (
             <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
               <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
+              <p className="text-[10px] text-white/30 font-medium mt-1">3 cuotas de {fmtARS(installment)} sin interés</p>
             </div>
           )}
         </div>
@@ -423,19 +542,27 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, onClose }: 
           </p>
         )}
 
-        {/* WhatsApp CTA */}
-        {whatsappUrl && (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
-            style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.35)' }}
+        <div className="flex gap-2">
+          {whatsappUrl && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+              style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.35)' }}
+            >
+              <MessageCircle className="w-5 h-5" fill="white" />
+              Consultar por WhatsApp
+            </a>
+          )}
+          <button
+            onClick={handleShareProduct}
+            className="p-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-colors"
+            title="Compartir producto"
           >
-            <MessageCircle className="w-5 h-5" fill="white" />
-            Consultar por WhatsApp
-          </a>
-        )}
+            <Copy className="w-5 h-5 text-white/50" />
+          </button>
+        </div>
       </div>
     </div>
   );

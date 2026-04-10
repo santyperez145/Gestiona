@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS } from "@/lib/supabaseStore";
+import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -87,7 +87,7 @@ export default function DebtsPage() {
               <tbody>
                 {pending.map(d => (
                   <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">{new Date(d.date).toLocaleDateString('es-AR')}</td>
+                    <td className="p-3">{formatDateAR(d.date)}</td>
                     <td className="p-3 font-medium">{d.customer_name}</td>
                     <td className="p-3 text-muted-foreground max-w-[200px] truncate">{d.description}</td>
                     <td className="p-3 text-right">{formatARS(Number(d.amount_ars))}</td>
@@ -120,7 +120,7 @@ export default function DebtsPage() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-medium text-sm">{d.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(d.date).toLocaleDateString('es-AR')} · {d.description}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateAR(d.date)} · {d.description}</p>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${d.status === 'partial' ? 'bg-warning/20 text-warning' : 'bg-destructive/20 text-destructive'}`}>
                     {d.status === 'partial' ? 'Parcial' : 'Pendiente'}
@@ -157,7 +157,7 @@ export default function DebtsPage() {
                 <tbody>
                   {paid.slice(0, 10).map(d => (
                     <tr key={d.id} className="border-b border-border last:border-0">
-                      <td className="p-3">{new Date(d.date).toLocaleDateString('es-AR')}</td>
+                      <td className="p-3">{formatDateAR(d.date)}</td>
                       <td className="p-3">{d.customer_name}</td>
                       <td className="p-3">{d.description}</td>
                       <td className="p-3 text-right">{formatARS(Number(d.amount_ars))}</td>
@@ -172,7 +172,7 @@ export default function DebtsPage() {
                 <div key={d.id} className="p-3 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{d.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(d.date).toLocaleDateString('es-AR')}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateAR(d.date)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm">{formatARS(Number(d.amount_ars))}</p>

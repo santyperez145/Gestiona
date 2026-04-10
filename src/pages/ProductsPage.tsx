@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -213,7 +213,8 @@ export default function ProductsPage() {
                          <td className="p-3 font-medium max-w-[200px] truncate">
                            <div className="flex items-center gap-2">
                              {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
-                             {p.name}
+                             <span className="truncate">{p.name}</span>
+                             {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                            </div>
                          </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
@@ -222,7 +223,17 @@ export default function ProductsPage() {
                          <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
                          <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
                          <td className="p-3 text-right">
-                           <span className={`text-xs ${Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                           {(() => {
+                             const margin = Number(p.sale_price_ars) > 0 ? (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 : 0;
+                             const isLowMargin = margin < 30 && margin > 0;
+                             return (
+                               <span className={`text-xs flex items-center justify-end gap-1 ${Number(p.profit_per_unit_ars) > 0 ? (isLowMargin ? 'text-warning' : 'text-success') : 'text-destructive'}`}>
+                                 {isLowMargin && <AlertTriangle className="w-3 h-3" />}
+                                 {formatARS(Number(p.profit_per_unit_ars))}
+                                 <span className="text-[10px] text-muted-foreground">({Math.round(margin)}%)</span>
+                               </span>
+                             );
+                           })()}
                          </td>
                          <td className="p-3 text-right">
                            {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
@@ -325,6 +336,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
   const [description, setDescription] = useState(product?.description || '');
+  const [featured, setFeatured] = useState(product?.featured || false);
+  const [offerExpiresAt, setOfferExpiresAt] = useState(product?.offer_expires_at ? new Date(product.offer_expires_at).toISOString().slice(0, 16) : '');
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -410,6 +423,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
       stock: parseInt(stock) || 0,
       image_url: imageUrl,
+      featured,
+      offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
     };
     if (product) {
       await updateProductDB(product.id, data);
@@ -499,6 +514,18 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       <div>
         <label className="text-sm text-muted-foreground">Descripción (opcional)</label>
         <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center gap-2 bg-muted rounded-lg p-3 border border-border">
+          <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} id="featured" className="rounded" />
+          <label htmlFor="featured" className="text-sm flex items-center gap-1 cursor-pointer">
+            <Star className="w-3.5 h-3.5 text-primary" />Destacado
+          </label>
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">Oferta hasta</label>
+          <Input type="datetime-local" value={offerExpiresAt} onChange={e => setOfferExpiresAt(e.target.value)} className="bg-muted border-border text-xs" />
+        </div>
       </div>
       {cost > 0 && salePrice > 0 && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
