@@ -150,6 +150,21 @@ export default function Dashboard() {
     const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 3);
     const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
 
+    // Margin rankings
+    const productsWithMargin = products.filter((p: any) => Number(p.sale_price_ars) > 0).map((p: any) => ({
+      name: p.name,
+      margin: (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100,
+      profitARS: Number(p.profit_per_unit_ars),
+      salePrice: Number(p.sale_price_ars),
+      costUSD: Number(p.total_cost_usd),
+    }));
+    const topMarginProducts = [...productsWithMargin].sort((a, b) => b.margin - a.margin).slice(0, 5);
+    const lowMarginProducts = [...productsWithMargin].filter(p => p.margin > 0 && p.margin < 30).sort((a, b) => a.margin - b.margin).slice(0, 5);
+    const minPriceForMargin = (costUSD: number, targetMargin: number) => {
+      const costARS = costUSD * Number(settings.exchange_rate);
+      return costARS / (1 - targetMargin / 100);
+    };
+
     const restockSuggestions = Object.entries(productSales)
       .map(([id, data]: any) => {
         const prod = products.find((p: any) => p.id === id);
@@ -178,6 +193,7 @@ export default function Dashboard() {
       uniqueCustomers: customers.size, inventoryValueUSD,
       recentSales: sales.slice(0, 5),
       paidSalesARS, unpaidSalesARS,
+      topMarginProducts, lowMarginProducts, minPriceForMargin,
     };
   }, [rawData, filterCat]);
 
