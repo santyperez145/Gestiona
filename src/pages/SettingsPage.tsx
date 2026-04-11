@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -39,6 +39,15 @@ export default function SettingsPage() {
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
 
+  // Volume / wholesale discount
+  const [volumeThreshold, setVolumeThreshold] = useState('3');
+  const [volumeDiscount, setVolumeDiscount] = useState('10');
+
+  // Decant margins
+  const [decantMargin10, setDecantMargin10] = useState('250');
+  const [decantMargin5, setDecantMargin5] = useState('350');
+  const [decantMargin2_5, setDecantMargin2_5] = useState('500');
+
   // Track original values for auto-recalculate prompt
   const [origRate, setOrigRate] = useState('');
   const [origCustoms, setOrigCustoms] = useState('');
@@ -64,6 +73,11 @@ export default function SettingsPage() {
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
+      setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
+      setVolumeDiscount(String(s.volume_discount_percent ?? 10));
+      setDecantMargin10(String(s.decant_margin_10ml ?? 250));
+      setDecantMargin5(String(s.decant_margin_5ml ?? 350));
+      setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
@@ -113,6 +127,11 @@ export default function SettingsPage() {
         discount_debit_percent: parseFloat(discountDebit) || 0,
         discount_credit_percent: parseFloat(discountCredit) || 0,
         whatsapp_number: whatsappNumber || null,
+        volume_discount_threshold: parseInt(volumeThreshold) || 3,
+        volume_discount_percent: parseFloat(volumeDiscount) || 10,
+        decant_margin_10ml: parseFloat(decantMargin10) || 250,
+        decant_margin_5ml: parseFloat(decantMargin5) || 350,
+        decant_margin_2_5ml: parseFloat(decantMargin2_5) || 500,
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
@@ -259,6 +278,36 @@ export default function SettingsPage() {
                 <Input type="number" step="0.1" value={discountDebit} onChange={e => setDiscountDebit(e.target.value)} className="bg-muted border-border mt-1" /></div>
               <div><label className="text-sm text-muted-foreground">Crédito (%)</label>
                 <Input type="number" step="0.1" value={discountCredit} onChange={e => setDiscountCredit(e.target.value)} className="bg-muted border-border mt-1" /></div>
+            </div>
+          </div>
+
+          {/* Volume / Wholesale discount */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-primary" />Descuento Mayorista
+            </h2>
+            <p className="text-xs text-muted-foreground">Se aplica sobre el precio efectivo/con descuento cuando el cliente lleva X+ unidades. Piso de rentabilidad: costo + 20%.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-sm text-muted-foreground">Cantidad mínima</label>
+                <Input type="number" min="2" value={volumeThreshold} onChange={e => setVolumeThreshold(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">Descuento (%)</label>
+                <Input type="number" step="0.5" value={volumeDiscount} onChange={e => setVolumeDiscount(e.target.value)} className="bg-muted border-border mt-1" /></div>
+            </div>
+          </div>
+
+          {/* Decant margins */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-primary" />Márgenes de Decants
+            </h2>
+            <p className="text-xs text-muted-foreground">Margen (%) sobre el costo proporcional por ml. El precio se calcula: (costo/ml × tamaño) × TC × (1 + margen%).</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div><label className="text-sm text-muted-foreground">10ml (%)</label>
+                <Input type="number" value={decantMargin10} onChange={e => setDecantMargin10(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">5ml (%)</label>
+                <Input type="number" value={decantMargin5} onChange={e => setDecantMargin5(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">2.5ml (%)</label>
+                <Input type="number" value={decantMargin2_5} onChange={e => setDecantMargin2_5(e.target.value)} className="bg-muted border-border mt-1" /></div>
             </div>
           </div>
         </div>

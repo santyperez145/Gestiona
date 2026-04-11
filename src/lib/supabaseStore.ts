@@ -247,6 +247,30 @@ export function calculateProductProfits(costUSD: number, customsPercent: number,
   return { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD };
 }
 
+/** Calculate decant price based on proportional cost + margin */
+export function calculateDecantPrice(
+  totalCostUSD: number, contentMl: number, decantMl: number,
+  marginPercent: number, exchangeRate: number
+) {
+  if (contentMl <= 0 || decantMl <= 0) return 0;
+  const costPropUSD = (totalCostUSD / contentMl) * decantMl;
+  const priceARS = costPropUSD * exchangeRate * (1 + marginPercent / 100);
+  return Math.round(priceARS);
+}
+
+/** Calculate wholesale price with profitability floor */
+export function calculateWholesalePrice(
+  discountPriceARS: number, salePriceARS: number,
+  volumeDiscountPercent: number, totalCostUSD: number, exchangeRate: number
+) {
+  const basePrice = discountPriceARS || salePriceARS;
+  const wholesalePrice = basePrice * (1 - volumeDiscountPercent / 100);
+  const minPrice = totalCostUSD * exchangeRate * 1.20; // 20% min profit
+  const finalPrice = Math.max(wholesalePrice, minPrice);
+  const belowFloor = wholesalePrice < minPrice;
+  return { wholesalePrice: Math.round(finalPrice), belowFloor, basePrice };
+}
+
 /** Calculate tax deductions on profit */
 export function calculateTaxes(profitARS: number, settings: any) {
   if (!settings?.tax_enabled) return { iva: 0, iibb: 0, monotributo: 0, totalTax: 0, netProfit: profitARS };

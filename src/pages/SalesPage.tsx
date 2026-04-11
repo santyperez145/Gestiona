@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -254,6 +254,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
   const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [decantSize, setDecantSize] = useState<string>('full'); // 'full' | '10' | '5' | '2.5'
 
   useEffect(() => {
     (async () => {
@@ -270,13 +271,39 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isFiado = paymentMethod === 'fiado';
 
+  const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
+  const contentMl = Number(product?.content_ml || 100);
+  const exchangeRate = Number(settings?.exchange_rate || 1695);
+  const volumeThreshold = Number(settings?.volume_discount_threshold || 3);
+  const volumeDiscountPct = Number(settings?.volume_discount_percent || 10);
+
+  // Decant price calculation
+  const isDecant = decantSize !== 'full' && isPerfume;
+  const decantMl = decantSize === '10' ? 10 : decantSize === '5' ? 5 : decantSize === '2.5' ? 2.5 : 0;
+  const decantMargin = decantSize === '10' ? Number(settings?.decant_margin_10ml || 250) :
+    decantSize === '5' ? Number(settings?.decant_margin_5ml || 350) : Number(settings?.decant_margin_2_5ml || 500);
+  const decantPrice = isDecant ? calculateDecantPrice(Number(product?.total_cost_usd || 0), contentMl, decantMl, decantMargin, exchangeRate) : 0;
+
   const discountPrice = product?.discount_price_ars ? Number(product.discount_price_ars) : null;
   const normalPrice = Number(product?.sale_price_ars) || 0;
-  const autoUnitPrice = usesDiscount && discountPrice ? discountPrice : normalPrice;
+  const baseUnitPrice = isDecant ? decantPrice : (usesDiscount && discountPrice ? discountPrice : normalPrice);
+  
+  // Volume discount
+  const applyVolume = qty >= volumeThreshold && !isDecant;
+  let autoUnitPrice = baseUnitPrice;
+  let volumeWarning = false;
+  if (applyVolume) {
+    const { wholesalePrice, belowFloor } = calculateWholesalePrice(
+      discountPrice || 0, normalPrice, volumeDiscountPct, Number(product?.total_cost_usd || 0), exchangeRate
+    );
+    autoUnitPrice = wholesalePrice;
+    volumeWarning = belowFloor;
+  }
+
   const unitPrice = customPrice ? (parseFloat(customPrice) || autoUnitPrice) : autoUnitPrice;
   const total = unitPrice * qty;
-  const exchangeRate = Number(settings?.exchange_rate || 1695);
-  const costPerUnitARS = product ? Number(product.total_cost_usd) * exchangeRate : 0;
+  const costPerUnitUSD = isDecant ? (Number(product?.total_cost_usd || 0) / contentMl) * decantMl : Number(product?.total_cost_usd || 0);
+  const costPerUnitARS = costPerUnitUSD * exchangeRate;
   const profitARS = total - (costPerUnitARS * qty);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
 
@@ -290,12 +317,13 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
 
     const paid = !isFiado;
-    const discountApplied = usesDiscount || !!customPrice;
+    const discountApplied = usesDiscount || !!customPrice || applyVolume;
+    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : product!.name;
 
     const saleData: any = {
-      product_id: productId, product_name: product!.name,
+      product_id: productId, product_name: productLabel,
       quantity: qty, unit_price_ars: unitPrice, discount_applied: discountApplied,
-      total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
+      total_ars: total, cost_per_unit_usd: costPerUnitUSD,
       profit_ars: profitARS, profit_usd: profitUSD,
       customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
@@ -303,14 +331,14 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
 
     if (editItem) {
       await updateSaleDB(editItem.id, saleData, editItem);
-      await logAudit(userId, 'update', 'sale', editItem.id, { product: product!.name, total, profit: profitARS });
+      await logAudit(userId, 'update', 'sale', editItem.id, { product: productLabel, total, profit: profitARS });
       toast.success("Venta actualizada");
     } else {
       const saleId = crypto.randomUUID();
       await addSaleDB({ id: saleId, user_id: userId, ...saleData });
-      await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS, paymentMethod });
+      await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
-      if (productId) await checkStockAfterSale(productId, product!.name);
+      if (productId && !isDecant) await checkStockAfterSale(productId, product!.name);
     }
     onSave();
   };
@@ -321,7 +349,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); }}>
+        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); }}>
           <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
           <SelectContent>
             {products.filter(p => editItem || p.stock > 0).map(p => (
@@ -330,6 +358,27 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </SelectContent>
         </Select>
       </div>
+      {/* Decant selector for perfumes */}
+      {product && isPerfume && (
+        <div>
+          <label className="text-sm text-muted-foreground">Tamaño</label>
+          <div className="flex gap-2 mt-1">
+            {[
+              { value: 'full', label: `Completo (${contentMl}ml)` },
+              { value: '10', label: '10ml' },
+              { value: '5', label: '5ml' },
+              { value: '2.5', label: '2.5ml' },
+            ].map(s => (
+              <button key={s.value} type="button"
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${decantSize === s.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border hover:bg-accent'}`}
+                onClick={() => { setDecantSize(s.value); setCustomPrice(''); }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {isDecant && <p className="text-[10px] text-muted-foreground mt-1">Decant {decantSize}ml · Precio auto: {formatARS(decantPrice)}</p>}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Cantidad</label>
           <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
@@ -374,10 +423,14 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         </Select>
         {product && (
           <p className="text-[10px] text-muted-foreground mt-1">
-            {usesDiscount && discountPrice
-              ? `Precio c/descuento: ${formatARS(discountPrice)}`
-              : `Precio normal: ${formatARS(normalPrice)}`
+            {isDecant 
+              ? `Decant ${decantSize}ml: ${formatARS(decantPrice)}`
+              : usesDiscount && discountPrice
+                ? `Precio c/descuento: ${formatARS(discountPrice)}`
+                : `Precio normal: ${formatARS(normalPrice)}`
             }
+            {applyVolume && ` · Mayorista -${volumeDiscountPct}%`}
+            {volumeWarning && ' ⚠️ Ajustado al piso de rentabilidad'}
             {isFiado && ' · Se genera deuda automáticamente'}
           </p>
         )}
@@ -398,6 +451,13 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           <div className="flex justify-between text-xs"><span className="text-muted-foreground">Medio:</span>
             <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
           </div>
+          {isDecant && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Tipo:</span><span className="font-medium">Decant {decantSize}ml</span></div>}
+          {applyVolume && (
+            <div className="flex justify-between text-xs border-t border-border pt-1">
+              <span className="text-muted-foreground">Mayorista:</span>
+              <span className="text-primary font-medium">-{volumeDiscountPct}% ({qty}+ uds){volumeWarning ? ' ⚠️ piso' : ''}</span>
+            </div>
+          )}
         </div>
       )}
       <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Venta' : 'Registrar Venta'}</Button>
