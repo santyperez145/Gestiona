@@ -39,6 +39,15 @@ export default function SettingsPage() {
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
 
+  // Volume / wholesale discount
+  const [volumeThreshold, setVolumeThreshold] = useState('3');
+  const [volumeDiscount, setVolumeDiscount] = useState('10');
+
+  // Decant margins
+  const [decantMargin10, setDecantMargin10] = useState('250');
+  const [decantMargin5, setDecantMargin5] = useState('350');
+  const [decantMargin2_5, setDecantMargin2_5] = useState('500');
+
   // Track original values for auto-recalculate prompt
   const [origRate, setOrigRate] = useState('');
   const [origCustoms, setOrigCustoms] = useState('');
