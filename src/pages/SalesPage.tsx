@@ -317,12 +317,13 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
 
     const paid = !isFiado;
-    const discountApplied = usesDiscount || !!customPrice;
+    const discountApplied = usesDiscount || !!customPrice || applyVolume;
+    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : product!.name;
 
     const saleData: any = {
-      product_id: productId, product_name: product!.name,
+      product_id: productId, product_name: productLabel,
       quantity: qty, unit_price_ars: unitPrice, discount_applied: discountApplied,
-      total_ars: total, cost_per_unit_usd: Number(product!.total_cost_usd),
+      total_ars: total, cost_per_unit_usd: costPerUnitUSD,
       profit_ars: profitARS, profit_usd: profitUSD,
       customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
@@ -330,14 +331,14 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
 
     if (editItem) {
       await updateSaleDB(editItem.id, saleData, editItem);
-      await logAudit(userId, 'update', 'sale', editItem.id, { product: product!.name, total, profit: profitARS });
+      await logAudit(userId, 'update', 'sale', editItem.id, { product: productLabel, total, profit: profitARS });
       toast.success("Venta actualizada");
     } else {
       const saleId = crypto.randomUUID();
       await addSaleDB({ id: saleId, user_id: userId, ...saleData });
-      await logAudit(userId, 'create', 'sale', saleId, { product: product!.name, total, profit: profitARS, paymentMethod });
+      await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
-      if (productId) await checkStockAfterSale(productId, product!.name);
+      if (productId && !isDecant) await checkStockAfterSale(productId, product!.name);
     }
     onSave();
   };
