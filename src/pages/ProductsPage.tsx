@@ -338,6 +338,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [description, setDescription] = useState(product?.description || '');
   const [featured, setFeatured] = useState(product?.featured || false);
   const [offerExpiresAt, setOfferExpiresAt] = useState(product?.offer_expires_at ? new Date(product.offer_expires_at).toISOString().slice(0, 16) : '');
+  const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '100');
+  const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -425,6 +427,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       image_url: imageUrl,
       featured,
       offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
+      content_ml: parseInt(contentMl) || 100,
     };
     if (product) {
       await updateProductDB(product.id, data);
