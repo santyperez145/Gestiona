@@ -73,6 +73,11 @@ export default function SettingsPage() {
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
+      setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
+      setVolumeDiscount(String(s.volume_discount_percent ?? 10));
+      setDecantMargin10(String(s.decant_margin_10ml ?? 250));
+      setDecantMargin5(String(s.decant_margin_5ml ?? 350));
+      setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
@@ -122,6 +127,11 @@ export default function SettingsPage() {
         discount_debit_percent: parseFloat(discountDebit) || 0,
         discount_credit_percent: parseFloat(discountCredit) || 0,
         whatsapp_number: whatsappNumber || null,
+        volume_discount_threshold: parseInt(volumeThreshold) || 3,
+        volume_discount_percent: parseFloat(volumeDiscount) || 10,
+        decant_margin_10ml: parseFloat(decantMargin10) || 250,
+        decant_margin_5ml: parseFloat(decantMargin5) || 350,
+        decant_margin_2_5ml: parseFloat(decantMargin2_5) || 500,
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
