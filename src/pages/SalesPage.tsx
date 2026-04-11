@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -254,6 +254,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
   const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [decantSize, setDecantSize] = useState<string>('full'); // 'full' | '10' | '5' | '2.5'
 
   useEffect(() => {
     (async () => {
