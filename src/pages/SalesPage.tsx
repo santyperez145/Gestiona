@@ -271,13 +271,39 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isFiado = paymentMethod === 'fiado';
 
+  const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
+  const contentMl = Number(product?.content_ml || 100);
+  const exchangeRate = Number(settings?.exchange_rate || 1695);
+  const volumeThreshold = Number(settings?.volume_discount_threshold || 3);
+  const volumeDiscountPct = Number(settings?.volume_discount_percent || 10);
+
+  // Decant price calculation
+  const isDecant = decantSize !== 'full' && isPerfume;
+  const decantMl = decantSize === '10' ? 10 : decantSize === '5' ? 5 : decantSize === '2.5' ? 2.5 : 0;
+  const decantMargin = decantSize === '10' ? Number(settings?.decant_margin_10ml || 250) :
+    decantSize === '5' ? Number(settings?.decant_margin_5ml || 350) : Number(settings?.decant_margin_2_5ml || 500);
+  const decantPrice = isDecant ? calculateDecantPrice(Number(product?.total_cost_usd || 0), contentMl, decantMl, decantMargin, exchangeRate) : 0;
+
   const discountPrice = product?.discount_price_ars ? Number(product.discount_price_ars) : null;
   const normalPrice = Number(product?.sale_price_ars) || 0;
-  const autoUnitPrice = usesDiscount && discountPrice ? discountPrice : normalPrice;
+  const baseUnitPrice = isDecant ? decantPrice : (usesDiscount && discountPrice ? discountPrice : normalPrice);
+  
+  // Volume discount
+  const applyVolume = qty >= volumeThreshold && !isDecant;
+  let autoUnitPrice = baseUnitPrice;
+  let volumeWarning = false;
+  if (applyVolume) {
+    const { wholesalePrice, belowFloor } = calculateWholesalePrice(
+      discountPrice || 0, normalPrice, volumeDiscountPct, Number(product?.total_cost_usd || 0), exchangeRate
+    );
+    autoUnitPrice = wholesalePrice;
+    volumeWarning = belowFloor;
+  }
+
   const unitPrice = customPrice ? (parseFloat(customPrice) || autoUnitPrice) : autoUnitPrice;
   const total = unitPrice * qty;
-  const exchangeRate = Number(settings?.exchange_rate || 1695);
-  const costPerUnitARS = product ? Number(product.total_cost_usd) * exchangeRate : 0;
+  const costPerUnitUSD = isDecant ? (Number(product?.total_cost_usd || 0) / contentMl) * decantMl : Number(product?.total_cost_usd || 0);
+  const costPerUnitARS = costPerUnitUSD * exchangeRate;
   const profitARS = total - (costPerUnitARS * qty);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
 
