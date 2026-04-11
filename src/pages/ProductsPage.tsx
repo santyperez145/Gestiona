@@ -514,10 +514,32 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
         </div>
       </div>
-      <div>
-        <label className="text-sm text-muted-foreground">Descripción (opcional)</label>
-        <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm text-muted-foreground">Descripción</label>
+          <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">Contenido (ml)</label>
+          <Input type="number" min="1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border" />
+        </div>
       </div>
+      {(category === 'perfume_arabe' || category === 'perfume_diseñador') && (
+        <Button type="button" variant="outline" size="sm" disabled={generatingDesc || !name.trim()} className="text-xs"
+          onClick={async () => {
+            setGeneratingDesc(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('generate-description', {
+                body: { name: name.trim(), brand: brand.trim(), category, gender }
+              });
+              if (error) throw error;
+              if (data?.description) { setDescription(data.description); toast.success('Descripción generada con IA'); }
+            } catch (err: any) { toast.error('Error generando descripción: ' + (err.message || 'Error desconocido')); }
+            finally { setGeneratingDesc(false); }
+          }}>
+          <Sparkles className="w-3 h-3 mr-1" />{generatingDesc ? 'Generando...' : 'Generar con IA'}
+        </Button>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2 bg-muted rounded-lg p-3 border border-border">
           <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} id="featured" className="rounded" />
