@@ -1,72 +1,82 @@
 
 
-# Plan Combinado: Mejoras de Negocio + Fix Fechas + Clientes en Ventas
+# Plan Actualizado: Máquina de Ventas — Decants con IA, Precios Mayoristas Rentables
 
-## Parte 1: Fix de Fechas (Bug crítico)
+## Cambios respecto al plan anterior
 
-**Problema:** Las fechas se envían como `"2026-04-10"` sin hora, Supabase las interpreta como UTC midnight, y en Argentina (UTC-3) se muestra el día anterior.
+1. **Descripciones generadas por IA** (no hardcodeadas): Usar Lovable AI (edge function) para generar descripciones de perfumes basadas en nombre, marca, categoría y género. Botón "Auto-generar" en ProductsPage que llama a la edge function.
+2. **Márgenes de decants realistas**: Basados en el mercado argentino de decants (margen típico 200-400% sobre costo proporcional). Valores por defecto: 10ml = 250%, 5ml = 350%, 2.5ml = 500%. Configurables en Settings.
+3. **Precio mayorista sobre precio con descuento**: El descuento mayorista se aplica sobre el `discount_price_ars` (precio efectivo/oferta), no sobre el precio de lista. Con un piso de rentabilidad: nunca menor al costo total + 20%.
 
-**Fix en archivos:** `SalesPage.tsx`, `PurchasesPage.tsx`, `DebtsPage.tsx`
-- Al guardar: `date + "T12:00:00"` en vez de solo `date`
-- Al mostrar: usar `new Date(d).toLocaleDateString('es-AR')` con manejo UTC-safe
+---
 
-## Parte 2: Selector de Clientes en Ventas
+## Parte 1: Migración SQL
 
-**Archivo:** `SalesPage.tsx`
-- Reemplazar el input de texto libre "Cliente" por un combobox con autocompletado
-- Extraer nombres únicos de clientes del historial de ventas (`sales.customer_name`)
-- Permitir escribir un nombre nuevo si no existe en la lista
-- Mostrar medio de pago en las cards mobile (actualmente falta)
-
-**Archivo:** `supabaseStore.ts`
-- Nueva función `getUniqueCustomersDB(userId)` que hace `SELECT DISTINCT customer_name FROM sales WHERE user_id = ?`
-
-## Parte 3: Migración SQL — Productos Destacados
-
+Nuevos campos en `settings`:
 ```sql
-ALTER TABLE products ADD COLUMN IF NOT EXISTS featured boolean DEFAULT false;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS offer_expires_at timestamptz;
+volume_discount_threshold integer DEFAULT 3
+volume_discount_percent numeric DEFAULT 10
+decant_margin_10ml numeric DEFAULT 250
+decant_margin_5ml numeric DEFAULT 350
+decant_margin_2_5ml numeric DEFAULT 500
 ```
 
-Actualizar la vista `products_public` para incluir `featured` y `offer_expires_at`.
+Nuevos campos en `products`:
+```sql
+content_ml integer DEFAULT 100
+total_sold integer DEFAULT 0
+```
 
-## Parte 4: Catálogo Público — Precios Psicológicos + Destacados
+Actualizar vista `products_public` para incluir `content_ml` y `total_sold`.
 
-**Archivo:** `PublicCatalogPage.tsx`
+## Parte 2: Edge Function para descripciones con IA
 
-- **Sección "Destacados"** arriba del grid con productos marcados `featured = true`
-- **Countdown timer** en productos con `offer_expires_at` vigente
-- **Precio por cuota**: mostrar "3 cuotas de $X" debajo del precio principal
-- **Etiqueta "MEJOR PRECIO"** en precio efectivo/transferencia
-- **Ahorro en pesos**: mostrar "Ahorrás $15.000" cuando hay descuento
-- **Precio tachado** más visible con línea roja
-- **Animaciones**: hover lift en cards, lazy loading con skeleton
-- **Mobile**: cards de 1 columna en pantallas < 400px, botón WhatsApp más grande
-- **Compartir producto**: botón que copia link directo al catálogo o mensaje de WhatsApp
+**Archivo:** `supabase/functions/generate-description/index.ts`
 
-## Parte 5: Panel Admin — Toggle Featured + Margen
+- Recibe `{ name, brand, category, gender }` 
+- Usa Lovable AI (gemini-3-flash-preview) con prompt: "Genera una descripción de venta para este perfume árabe: {name} de {brand}. Incluye notas olfativas probables, duración estimada, proyección y situaciones de uso recomendadas (citas, salir, diario). En español, máximo 3 oraciones, tono persuasivo de venta."
+- Retorna `{ description: string }`
 
-**Archivo:** `ProductsPage.tsx`
+**En ProductsPage:** Botón "Generar descripción con IA" en el formulario de producto. Botón masivo "Auto-generar todas las descripciones faltantes" en la toolbar.
 
-- Toggle "Destacado" y campo fecha de expiración de oferta en el formulario de producto
-- Alerta visual cuando el margen del producto es < 30% (con ícono de warning)
-- Botón "Vender" rápido en cada card de producto que abre un mini-dialog de venta
+## Parte 3: Sistema de Decants
 
-## Parte 6: Dashboard — Análisis de Rentabilidad
+**En SettingsPage:** Nueva sección "Decants" con 3 campos de margen configurables:
+- 10ml: 250% (default) — precio típico de mercado
+- 5ml: 350%
+- 2.5ml: 500%
 
-**Archivo:** `Dashboard.tsx`
+**Fórmula:**
+```
+costo_proporcional = (total_cost_usd / content_ml) * ml_decant
+precio_decant_ARS = costo_proporcional * exchange_rate * (1 + margen%)
+```
 
-- **Ranking de margen**: tabla/lista de top 5 productos más rentables y bottom 5 menos rentables
-- **Alerta margen bajo**: warning en productos con margen < 30%
-- **Sugerencia de precio mínimo**: mostrar el precio mínimo para mantener X% de margen
-- **Mini-sparklines** en KPI cards mostrando tendencia de los últimos 7 días
+**En PublicCatalogPage:** Para perfumes con content_ml > 0, mostrar tabs "Completo | 10ml | 5ml | 2.5ml" con precio calculado.
 
-## Parte 7: Sidebar — Badge de Notificaciones
+**En SalesPage:** Selector de tamaño al vender un perfume.
 
-**Archivo:** `AppLayout.tsx`
+## Parte 4: Descuento Mayorista (sobre precio con descuento)
 
-- Consultar notificaciones no leídas del usuario
-- Mostrar badge numérico rojo en el ícono de notificaciones del sidebar
+**Lógica:**
+```
+precio_base = discount_price_ars || sale_price_ars  // precio efectivo
+precio_mayorista = precio_base * (1 - volume_discount_percent/100)
+piso_minimo = total_cost_usd * exchange_rate * 1.20  // mínimo 20% ganancia
+precio_final = Math.max(precio_mayorista, piso_minimo)
+```
+
+**En SalesPage:** Cuando qty >= threshold, aplicar automáticamente y mostrar badge "Precio mayorista -X%". Si el descuento bajaría por debajo del piso, mostrar warning.
+
+**En PublicCatalogPage:** Texto "Llevá {X}+ y obtené {Y}% off sobre precio efectivo".
+
+## Parte 5: Catálogo — Conversión Agresiva
+
+Todo lo del plan anterior (secciones destacados, más vendidos, cross-sell vaper→perfume, escasez, countdown, compartir, animaciones) se mantiene igual.
+
+## Parte 6: Dashboard + Admin
+
+Ranking de margen, alertas, toggle featured, venta rápida — se mantiene igual del plan anterior.
 
 ---
 
@@ -74,23 +84,26 @@ Actualizar la vista `products_public` para incluir `featured` y `offer_expires_a
 
 | Archivo | Cambio |
 |---|---|
-| `src/pages/SalesPage.tsx` | Fix fecha, combobox clientes, medio de pago en mobile |
+| Migración SQL | Campos en settings y products, actualizar vista |
+| `supabase/functions/generate-description/index.ts` | **Nuevo** — IA para descripciones |
+| `src/pages/SettingsPage.tsx` | Config decants margins + mayorista |
+| `src/pages/ProductsPage.tsx` | Botón generar descripción IA, content_ml, featured |
+| `src/pages/SalesPage.tsx` | Selector decant, descuento mayorista con piso, fix fecha, combobox clientes |
 | `src/pages/PurchasesPage.tsx` | Fix fecha |
 | `src/pages/DebtsPage.tsx` | Fix fecha |
-| `src/pages/PublicCatalogPage.tsx` | Destacados, precios psicológicos, countdown, compartir, animaciones |
-| `src/pages/ProductsPage.tsx` | Toggle featured, expiración oferta, alerta margen, venta rápida |
-| `src/pages/Dashboard.tsx` | Ranking margen, sparklines, alertas |
+| `src/pages/PublicCatalogPage.tsx` | Secciones, decants, precios psicológicos, cross-sell, animaciones |
+| `src/pages/Dashboard.tsx` | Ranking margen, sparklines |
 | `src/components/AppLayout.tsx` | Badge notificaciones |
-| `src/lib/supabaseStore.ts` | `getUniqueCustomersDB()` |
-| Migración SQL | `featured`, `offer_expires_at` en products + actualizar vista pública |
+| `src/lib/supabaseStore.ts` | Helpers decants + mayorista |
 
 ## Orden de implementación
-
-1. Migración SQL (featured, offer_expires_at)
-2. Fix de fechas en todas las páginas
-3. Combobox de clientes en ventas + medio de pago mobile
-4. Catálogo público: destacados + precios psicológicos + compartir + animaciones
-5. Productos: toggle featured + alerta margen + venta rápida
-6. Dashboard: ranking margen + sparklines
-7. Sidebar: badge notificaciones
+1. Migración SQL
+2. Edge function IA para descripciones
+3. Settings: config decants + mayorista
+4. Fix fechas en todas las páginas
+5. Products: content_ml, generar descripciones IA, featured
+6. Sales: combobox clientes, selector decant, descuento mayorista
+7. Catálogo público: reestructura completa
+8. Dashboard: ranking + alertas
+9. Sidebar: badge notificaciones
 
