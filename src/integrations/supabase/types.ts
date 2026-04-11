@@ -251,6 +251,7 @@ export type Database = {
         Row: {
           brand: string
           category: string
+          content_ml: number | null
           cost_usd: number
           created_at: string
           customs_fee: number
@@ -267,12 +268,14 @@ export type Database = {
           sale_price_ars: number
           stock: number
           total_cost_usd: number
+          total_sold: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           brand?: string
           category?: string
+          content_ml?: number | null
           cost_usd?: number
           created_at?: string
           customs_fee?: number
@@ -289,12 +292,14 @@ export type Database = {
           sale_price_ars?: number
           stock?: number
           total_cost_usd?: number
+          total_sold?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           brand?: string
           category?: string
+          content_ml?: number | null
           cost_usd?: number
           created_at?: string
           customs_fee?: number
@@ -311,6 +316,7 @@ export type Database = {
           sale_price_ars?: number
           stock?: number
           total_cost_usd?: number
+          total_sold?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -489,6 +495,9 @@ export type Database = {
           business_name: string | null
           created_at: string
           customs_percent: number
+          decant_margin_10ml: number | null
+          decant_margin_2_5ml: number | null
+          decant_margin_5ml: number | null
           default_discount_percent: number
           discount_cash_percent: number
           discount_credit_percent: number
@@ -505,12 +514,17 @@ export type Database = {
           tax_monotributo_monthly: number
           updated_at: string
           user_id: string
+          volume_discount_percent: number | null
+          volume_discount_threshold: number | null
           whatsapp_number: string | null
         }
         Insert: {
           business_name?: string | null
           created_at?: string
           customs_percent?: number
+          decant_margin_10ml?: number | null
+          decant_margin_2_5ml?: number | null
+          decant_margin_5ml?: number | null
           default_discount_percent?: number
           discount_cash_percent?: number
           discount_credit_percent?: number
@@ -527,12 +541,17 @@ export type Database = {
           tax_monotributo_monthly?: number
           updated_at?: string
           user_id: string
+          volume_discount_percent?: number | null
+          volume_discount_threshold?: number | null
           whatsapp_number?: string | null
         }
         Update: {
           business_name?: string | null
           created_at?: string
           customs_percent?: number
+          decant_margin_10ml?: number | null
+          decant_margin_2_5ml?: number | null
+          decant_margin_5ml?: number | null
           default_discount_percent?: number
           discount_cash_percent?: number
           discount_credit_percent?: number
@@ -549,6 +568,8 @@ export type Database = {
           tax_monotributo_monthly?: number
           updated_at?: string
           user_id?: string
+          volume_discount_percent?: number | null
+          volume_discount_threshold?: number | null
           whatsapp_number?: string | null
         }
         Relationships: []
@@ -577,6 +598,7 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
+          content_ml: number | null
           description: string | null
           discount_price_ars: number | null
           featured: boolean | null
@@ -587,11 +609,13 @@ export type Database = {
           offer_expires_at: string | null
           sale_price_ars: number | null
           stock: number | null
+          total_sold: number | null
           user_id: string | null
         }
         Insert: {
           brand?: string | null
           category?: string | null
+          content_ml?: number | null
           description?: string | null
           discount_price_ars?: number | null
           featured?: boolean | null
@@ -602,11 +626,13 @@ export type Database = {
           offer_expires_at?: string | null
           sale_price_ars?: number | null
           stock?: number | null
+          total_sold?: number | null
           user_id?: string | null
         }
         Update: {
           brand?: string | null
           category?: string | null
+          content_ml?: number | null
           description?: string | null
           discount_price_ars?: number | null
           featured?: boolean | null
@@ -617,6 +643,7 @@ export type Database = {
           offer_expires_at?: string | null
           sale_price_ars?: number | null
           stock?: number | null
+          total_sold?: number | null
           user_id?: string | null
         }
         Relationships: []
