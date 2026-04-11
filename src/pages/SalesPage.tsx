@@ -349,7 +349,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); }}>
+        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); }}>
           <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
           <SelectContent>
             {products.filter(p => editItem || p.stock > 0).map(p => (
@@ -358,6 +358,27 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </SelectContent>
         </Select>
       </div>
+      {/* Decant selector for perfumes */}
+      {product && isPerfume && (
+        <div>
+          <label className="text-sm text-muted-foreground">Tamaño</label>
+          <div className="flex gap-2 mt-1">
+            {[
+              { value: 'full', label: `Completo (${contentMl}ml)` },
+              { value: '10', label: '10ml' },
+              { value: '5', label: '5ml' },
+              { value: '2.5', label: '2.5ml' },
+            ].map(s => (
+              <button key={s.value} type="button"
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${decantSize === s.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border hover:bg-accent'}`}
+                onClick={() => { setDecantSize(s.value); setCustomPrice(''); }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {isDecant && <p className="text-[10px] text-muted-foreground mt-1">Decant {decantSize}ml · Precio auto: {formatARS(decantPrice)}</p>}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Cantidad</label>
           <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
@@ -402,10 +423,14 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         </Select>
         {product && (
           <p className="text-[10px] text-muted-foreground mt-1">
-            {usesDiscount && discountPrice
-              ? `Precio c/descuento: ${formatARS(discountPrice)}`
-              : `Precio normal: ${formatARS(normalPrice)}`
+            {isDecant 
+              ? `Decant ${decantSize}ml: ${formatARS(decantPrice)}`
+              : usesDiscount && discountPrice
+                ? `Precio c/descuento: ${formatARS(discountPrice)}`
+                : `Precio normal: ${formatARS(normalPrice)}`
             }
+            {applyVolume && ` · Mayorista -${volumeDiscountPct}%`}
+            {volumeWarning && ' ⚠️ Ajustado al piso de rentabilidad'}
             {isFiado && ' · Se genera deuda automáticamente'}
           </p>
         )}
