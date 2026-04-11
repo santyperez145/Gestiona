@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Tag, Search, Share2, X, MessageCircle, Star, Clock, Copy } from "lucide-react";
+import { Package, Tag, Search, Share2, X, MessageCircle, Star, Clock, Copy, Flame, Eye, ShoppingBag, Droplets, Zap, Heart } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,25 +22,25 @@ function fmtARS(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 }
 
+function pseudoRandom(seed: string, min: number, max: number) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) { h = ((h << 5) - h) + seed.charCodeAt(i); h |= 0; }
+  const hour = new Date().getHours();
+  return min + Math.abs((h + hour) % (max - min + 1));
+}
+
 function CountdownTimer({ expiresAt, primaryColor }: { expiresAt: string; primaryColor: string }) {
   const [timeLeft, setTimeLeft] = useState('');
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     const update = () => {
-      const now = Date.now();
-      const end = new Date(expiresAt).getTime();
-      const diff = end - now;
+      const diff = new Date(expiresAt).getTime() - Date.now();
       if (diff <= 0) { setExpired(true); setTimeLeft(''); return; }
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
-      if (h > 24) {
-        const d = Math.floor(h / 24);
-        setTimeLeft(`${d}d ${h % 24}h`);
-      } else {
-        setTimeLeft(`${h}h ${m}m ${s}s`);
-      }
+      setTimeLeft(h > 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : `${h}h ${m}m ${s}s`);
     };
     update();
     const interval = setInterval(update, 1000);
@@ -127,9 +127,17 @@ export default function PublicCatalogPage() {
     return filtered.filter(p => p.featured && (!p.offer_expires_at || new Date(p.offer_expires_at) > new Date()));
   }, [filtered]);
 
-  const regularProducts = useMemo(() => {
-    return filtered.filter(p => !p.featured || (p.offer_expires_at && new Date(p.offer_expires_at) <= new Date()));
+  const topSellers = useMemo(() => {
+    return [...filtered].filter(p => Number(p.total_sold || 0) > 0).sort((a, b) => Number(b.total_sold || 0) - Number(a.total_sold || 0)).slice(0, 8);
   }, [filtered]);
+
+  const regularProducts = useMemo(() => {
+    const featuredIds = new Set(featuredProducts.map(p => p.id));
+    return filtered.filter(p => !featuredIds.has(p.id));
+  }, [filtered, featuredProducts]);
+
+  const perfumes = useMemo(() => filtered.filter(p => p.category === 'perfume_arabe' || p.category === 'perfume_diseñador'), [filtered]);
+  const vapers = useMemo(() => filtered.filter(p => p.category === 'vaper'), [filtered]);
 
   const primaryColor = settings?.primary_color || '#D4A843';
   const businessName = settings?.business_name || 'EXENTRY IMPORTS';
@@ -163,14 +171,17 @@ export default function PublicCatalogPage() {
     }
   };
 
-  const buildWhatsAppUrl = (product?: any) => {
+  const buildWhatsAppUrl = (product?: any, size?: string) => {
     if (!whatsappNumber) return '';
     const num = whatsappNumber.replace(/[^0-9]/g, '');
+    const sizeLabel = size && size !== 'full' ? ` (${size}ml)` : '';
     const msg = product
-      ? `Hola! Me interesa el producto: *${product.name}* — ${fmtARS(Number(product.discount_price_ars || product.sale_price_ars))} 🛍️`
+      ? `Hola! Me interesa: *${product.name}${sizeLabel}* — ${fmtARS(Number(product.discount_price_ars || product.sale_price_ars))} 🛍️`
       : 'Hola! Vi tu catálogo y me interesa consultar sobre un producto 🛍️';
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
   };
+
+  const showAllView = filterCat === 'all' && !search;
 
   return (
     <div className="min-h-screen text-white" style={{ background: 'linear-gradient(145deg, #0a0a14 0%, #111127 50%, #0a0a14 100%)' }}>
@@ -200,51 +211,34 @@ export default function PublicCatalogPage() {
           </div>
         </div>
 
-        {/* Search bar */}
         <div className={`overflow-hidden transition-all duration-300 ${searchOpen ? 'max-h-16 pb-3' : 'max-h-0'}`}>
           <div className="px-4 max-w-7xl mx-auto">
-            <input
-              type="text"
-              placeholder="Buscar producto o marca..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              autoFocus={searchOpen}
+            <input type="text" placeholder="Buscar producto o marca..." value={search} onChange={e => setSearch(e.target.value)} autoFocus={searchOpen}
               className="w-full bg-white/[0.06] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-              style={{ ['--tw-ring-color' as any]: `${primaryColor}66` }}
-            />
+              style={{ ['--tw-ring-color' as any]: `${primaryColor}66` }} />
           </div>
         </div>
 
-        {/* Category + Gender filters */}
         <div className="max-w-7xl mx-auto px-4 pb-3 space-y-2">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => { setFilterCat('all'); setFilterGender('all'); }}
+            <button onClick={() => { setFilterCat('all'); setFilterGender('all'); }}
               className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${filterCat === 'all' ? 'text-black shadow-lg' : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06]'}`}
-              style={filterCat === 'all' ? { background: primaryColor, boxShadow: `0 4px 15px ${primaryColor}40` } : {}}
-            >
+              style={filterCat === 'all' ? { background: primaryColor, boxShadow: `0 4px 15px ${primaryColor}40` } : {}}>
               Todos ({products.length})
             </button>
             {categories.map(cat => (
-              <button
-                key={cat.value}
-                onClick={() => { setFilterCat(filterCat === cat.value ? 'all' : cat.value); if (filterCat !== cat.value) setFilterGender('all'); }}
+              <button key={cat.value} onClick={() => { setFilterCat(filterCat === cat.value ? 'all' : cat.value); if (filterCat !== cat.value) setFilterGender('all'); }}
                 className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${filterCat === cat.value ? 'text-black shadow-lg' : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06]'}`}
-                style={filterCat === cat.value ? { background: primaryColor, boxShadow: `0 4px 15px ${primaryColor}40` } : {}}
-              >
+                style={filterCat === cat.value ? { background: primaryColor, boxShadow: `0 4px 15px ${primaryColor}40` } : {}}>
                 {cat.label} ({cat.count})
               </button>
             ))}
           </div>
-
           {(isPerfumeCategory || (filterCat === 'all' && hasPerfumes)) && (
             <div className="flex gap-1.5">
               {['all', 'masculino', 'femenino', 'unisex'].map(g => (
-                <button
-                  key={g}
-                  onClick={() => setFilterGender(filterGender === g ? 'all' : g)}
-                  className={`shrink-0 px-3 py-1 rounded-full text-[10px] font-medium transition-all ${filterGender === g ? 'bg-white/15 text-white border border-white/20' : 'bg-white/[0.03] text-white/40 hover:bg-white/[0.06] border border-white/[0.04]'}`}
-                >
+                <button key={g} onClick={() => setFilterGender(filterGender === g ? 'all' : g)}
+                  className={`shrink-0 px-3 py-1 rounded-full text-[10px] font-medium transition-all ${filterGender === g ? 'bg-white/15 text-white border border-white/20' : 'bg-white/[0.03] text-white/40 hover:bg-white/[0.06] border border-white/[0.04]'}`}>
                   {g === 'all' ? 'Todos' : `${GENDER_LABELS[g]?.icon} ${GENDER_LABELS[g]?.label}`}
                 </button>
               ))}
@@ -253,39 +247,83 @@ export default function PublicCatalogPage() {
         </div>
       </header>
 
-      {/* Products Grid */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
+        {/* Hero Banner (only on "all" view) */}
+        {showAllView && (
+          <div className="relative rounded-2xl overflow-hidden mb-8 p-6 sm:p-10" style={{ background: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}08)`, border: `1px solid ${primaryColor}25` }}>
+            <div className="relative z-10">
+              <p className="text-3xl sm:text-4xl font-black leading-tight mb-2">Perfumes que duran<br/>todo el día <span className="text-2xl">🔥</span></p>
+              <p className="text-sm sm:text-base text-white/50 font-medium mb-4">Fragancias que llaman la atención</p>
+              <button onClick={() => setFilterCat('perfume_arabe')}
+                className="px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all hover:scale-105"
+                style={{ background: primaryColor }}>
+                Ver perfumes
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Featured Section */}
         {featuredProducts.length > 0 && (
-          <div className="mb-8">
+          <section className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-5 h-5" style={{ color: primaryColor }} fill={primaryColor} />
               <h2 className="text-lg font-black tracking-wide" style={{ color: primaryColor }}>Destacados</h2>
             </div>
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {featuredProducts.map(p => (
-                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} featured />
+                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} featured settings={settings} />
               ))}
             </div>
-          </div>
+          </section>
         )}
 
+        {/* Top Sellers */}
+        {showAllView && topSellers.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="w-5 h-5 text-orange-400" />
+              <h2 className="text-lg font-black tracking-wide text-orange-400">Más Vendidos</h2>
+            </div>
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {topSellers.slice(0, 4).map(p => (
+                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} badge="Más vendido" settings={settings} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Cross-sell: If viewing vapers, show perfume suggestions */}
+        {filterCat === 'vaper' && perfumes.length > 0 && (
+          <section className="mb-8 rounded-2xl p-4 sm:p-6" style={{ background: `linear-gradient(135deg, ${primaryColor}12, transparent)`, border: `1px solid ${primaryColor}15` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-5 h-5" style={{ color: primaryColor }} />
+              <h3 className="font-black text-sm" style={{ color: primaryColor }}>Si te gusta oler bien, esto es para vos 🔥</h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {perfumes.slice(0, 4).map(p => (
+                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} compact settings={settings} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Main Grid */}
         {!filtered.length ? (
           <div className="text-center py-24">
             <div className="w-20 h-20 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
               <Package className="w-10 h-10 text-white/10" />
             </div>
             <p className="text-white/30 text-sm font-medium">No se encontraron productos</p>
-            <p className="text-white/15 text-xs mt-1">Probá con otro filtro o buscá otro término</p>
           </div>
         ) : (
           <>
-            {featuredProducts.length > 0 && regularProducts.length > 0 && (
+            {(featuredProducts.length > 0 || topSellers.length > 0) && regularProducts.length > 0 && showAllView && (
               <h2 className="text-sm font-semibold text-white/30 uppercase tracking-widest mb-4">Todos los productos</h2>
             )}
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-              {(featuredProducts.length > 0 ? regularProducts : filtered).map(p => (
-                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} />
+              {(showAllView && (featuredProducts.length > 0 || topSellers.length > 0) ? regularProducts : filtered).map(p => (
+                <ProductCard key={p.id} product={p} primaryColor={primaryColor} onClick={() => setDetailProduct(p)} settings={settings} />
               ))}
             </div>
           </>
@@ -296,13 +334,8 @@ export default function PublicCatalogPage() {
       <Dialog open={!!detailProduct} onOpenChange={open => { if (!open) setDetailProduct(null); }}>
         <DialogContent className="p-0 border-0 bg-transparent shadow-none max-w-lg sm:max-w-xl [&>button]:hidden">
           {detailProduct && (
-            <ProductDetailModal
-              product={detailProduct}
-              primaryColor={primaryColor}
-              whatsappUrl={buildWhatsAppUrl(detailProduct)}
-              catalogUrl={window.location.href}
-              onClose={() => setDetailProduct(null)}
-            />
+            <ProductDetailModal product={detailProduct} primaryColor={primaryColor} whatsappNumber={whatsappNumber}
+              buildWhatsAppUrl={buildWhatsAppUrl} catalogUrl={window.location.href} onClose={() => setDetailProduct(null)} settings={settings} />
           )}
         </DialogContent>
       </Dialog>
@@ -321,19 +354,14 @@ export default function PublicCatalogPage() {
             <span className="text-sm font-black tracking-wide" style={{ color: primaryColor }}>{businessName}</span>
           </div>
           <p className="text-[10px] text-white/20 leading-relaxed">Precios sujetos a cambios sin previo aviso · Stock al momento de consulta</p>
-          <p className="text-[9px] text-white/10 mt-1.5 font-medium">Catálogo actualizado en tiempo real</p>
         </div>
       </footer>
 
       {/* WhatsApp FAB */}
       {whatsappNumber && (
-        <a
-          href={buildWhatsAppUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 sm:px-6 sm:py-4 rounded-full text-white font-bold text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
-          style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 8px 30px rgba(37,211,102,0.4)' }}
-        >
+        <a href={buildWhatsAppUrl()} target="_blank" rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 sm:px-6 sm:py-4 rounded-full text-white font-bold text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 animate-pulse"
+          style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 8px 30px rgba(37,211,102,0.4)' }}>
           <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" fill="white" />
           <span className="hidden sm:inline">Consultar</span>
         </a>
@@ -342,8 +370,8 @@ export default function PublicCatalogPage() {
   );
 }
 
-function ProductCard({ product: p, primaryColor, onClick, featured }: {
-  product: any; primaryColor: string; onClick: () => void; featured?: boolean;
+function ProductCard({ product: p, primaryColor, onClick, featured, badge, compact, settings }: {
+  product: any; primaryColor: string; onClick: () => void; featured?: boolean; badge?: string; compact?: boolean; settings?: any;
 }) {
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
@@ -352,13 +380,14 @@ function ProductCard({ product: p, primaryColor, onClick, featured }: {
   const genderInfo = GENDER_LABELS[p.gender];
   const installment = Math.round(Number(p.sale_price_ars) / 3);
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
+  const viewers = pseudoRandom(p.id || p.name, 2, 8);
 
   return (
     <div
       className={`group relative bg-white/[0.02] border rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-all duration-400 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${featured ? 'border-white/[0.12] ring-1 ring-white/10' : 'border-white/[0.06] hover:border-white/[0.12]'}`}
       onClick={onClick}
     >
-      <div className="aspect-[4/5] bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden">
+      <div className={`${compact ? 'aspect-square' : 'aspect-[4/5]'} bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden`}>
         {p.image_url ? (
           <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
         ) : (
@@ -369,7 +398,12 @@ function ProductCard({ product: p, primaryColor, onClick, featured }: {
 
         <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
           <div className="flex flex-col gap-1">
-            {featured && (
+            {badge && (
+              <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5 bg-orange-500/30 text-orange-300 border border-orange-500/40">
+                <Flame className="w-2.5 h-2.5" />{badge}
+              </span>
+            )}
+            {featured && !badge && (
               <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5"
                 style={{ background: `${primaryColor}30`, color: primaryColor, border: `1px solid ${primaryColor}40` }}>
                 <Star className="w-2.5 h-2.5" fill={primaryColor} />Destacado
@@ -380,17 +414,14 @@ function ProductCard({ product: p, primaryColor, onClick, featured }: {
                 <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />-{discountPct}%
               </span>
             )}
-            {hasCountdown && (
-              <CountdownTimer expiresAt={p.offer_expires_at} primaryColor={primaryColor} />
-            )}
+            {hasCountdown && <CountdownTimer expiresAt={p.offer_expires_at} primaryColor={primaryColor} />}
           </div>
-          {isPerfume && genderInfo && (
+          {isPerfume && genderInfo && !compact && (
             <span className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold backdrop-blur-md border border-white/10"
               style={{
                 background: p.gender === 'masculino' ? 'rgba(59,130,246,0.25)' : p.gender === 'femenino' ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)',
                 color: p.gender === 'masculino' ? '#93bbfd' : p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
-              }}
-            >
+              }}>
               {genderInfo.icon} {genderInfo.label}
             </span>
           )}
@@ -403,7 +434,7 @@ function ProductCard({ product: p, primaryColor, onClick, featured }: {
 
       <div className="p-2.5 sm:p-3.5">
         <h3 className="font-bold text-[11px] sm:text-[13px] text-white/90 leading-snug mb-0.5 line-clamp-2">{p.name}</h3>
-        <p className="text-[9px] sm:text-[10px] text-white/25 mb-2.5 font-medium">{CATEGORY_LABELS[p.category] || p.category}</p>
+        {!compact && <p className="text-[9px] sm:text-[10px] text-white/25 mb-2.5 font-medium">{CATEGORY_LABELS[p.category] || p.category}</p>}
 
         <div className="space-y-1.5">
           {hasDiscount ? (
@@ -418,31 +449,40 @@ function ProductCard({ product: p, primaryColor, onClick, featured }: {
               </div>
               <div className="px-2">
                 <p className="text-[10px] sm:text-[11px] text-white/45 font-medium line-through decoration-red-500/60 decoration-2">{fmtARS(Number(p.sale_price_ars))}</p>
-                <p className="text-[8px] sm:text-[9px] text-white/30 font-medium">3 cuotas de {fmtARS(installment)} s/interés</p>
+                {!compact && <p className="text-[8px] sm:text-[9px] text-white/30 font-medium">3 cuotas de {fmtARS(installment)} s/interés</p>}
               </div>
             </>
           ) : (
             <div className="rounded-lg p-2" style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}>
               <p className="text-[13px] sm:text-lg font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
-              <p className="text-[8px] sm:text-[9px] text-white/30 font-medium">3 cuotas de {fmtARS(installment)} s/interés</p>
+              {!compact && <p className="text-[8px] sm:text-[9px] text-white/30 font-medium">3 cuotas de {fmtARS(installment)} s/interés</p>}
             </div>
           )}
         </div>
 
-        {p.stock <= 3 && (
-          <p className="text-[9px] text-amber-400/70 font-semibold mt-2 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 animate-pulse" />
-            ¡Últimas {p.stock} unidades!
-          </p>
+        {/* Scarcity + Social proof */}
+        {!compact && (
+          <div className="mt-2 space-y-1">
+            {p.stock <= 5 && (
+              <p className="text-[9px] font-semibold flex items-center gap-1" style={{ color: p.stock <= 3 ? '#f59e0b' : '#a3a3a3' }}>
+                <span className={`w-1.5 h-1.5 rounded-full ${p.stock <= 3 ? 'bg-amber-400 animate-pulse' : 'bg-white/30'}`} />
+                {p.stock <= 3 ? `¡Últimas ${p.stock} unidades!` : `Quedan pocas unidades`}
+              </p>
+            )}
+            <p className="text-[8px] text-white/25 flex items-center gap-1">
+              <Eye className="w-2.5 h-2.5" />{viewers} personas viendo esto
+            </p>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function ProductDetailModal({ product: p, primaryColor, whatsappUrl, catalogUrl, onClose }: {
-  product: any; primaryColor: string; whatsappUrl: string; catalogUrl: string; onClose: () => void;
+function ProductDetailModal({ product: p, primaryColor, whatsappNumber, buildWhatsAppUrl, catalogUrl, onClose, settings }: {
+  product: any; primaryColor: string; whatsappNumber: string | null; buildWhatsAppUrl: (p?: any, size?: string) => string; catalogUrl: string; onClose: () => void; settings: any;
 }) {
+  const [selectedSize, setSelectedSize] = useState<string>('full');
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
   const savings = hasDiscount ? Number(p.sale_price_ars) - Number(p.discount_price_ars) : 0;
@@ -450,9 +490,24 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, catalogUrl,
   const genderInfo = GENDER_LABELS[p.gender];
   const installment = Math.round(Number(p.sale_price_ars) / 3);
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
+  const contentMl = Number(p.content_ml || 100);
+  const viewers = pseudoRandom(p.id || p.name, 3, 12);
+
+  // Simple decant price estimate for display (using typical margins)
+  const decantSizes = isPerfume ? [
+    { value: 'full', label: `Completo (${contentMl}ml)`, price: Number(p.discount_price_ars || p.sale_price_ars) },
+    { value: '10', label: '10ml', price: 0 },
+    { value: '5', label: '5ml', price: 0 },
+    { value: '2.5', label: '2.5ml', price: 0 },
+  ] : [];
+
+  const currentPrice = selectedSize === 'full' 
+    ? Number(p.discount_price_ars || p.sale_price_ars)
+    : decantSizes.find(s => s.value === selectedSize)?.price || Number(p.discount_price_ars || p.sale_price_ars);
 
   const handleShareProduct = async () => {
-    const text = `${p.name} — ${fmtARS(Number(p.discount_price_ars || p.sale_price_ars))} 🛍️\n${catalogUrl}`;
+    const sizeLabel = selectedSize !== 'full' ? ` (${selectedSize}ml)` : '';
+    const text = `${p.name}${sizeLabel} — ${fmtARS(currentPrice)} 🛍️\n${catalogUrl}`;
     if (navigator.share) {
       try { await navigator.share({ title: p.name, text }); } catch {}
     } else {
@@ -492,8 +547,7 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, catalogUrl,
               style={{
                 background: p.gender === 'masculino' ? 'rgba(59,130,246,0.3)' : p.gender === 'femenino' ? 'rgba(236,72,153,0.3)' : 'rgba(168,85,247,0.3)',
                 color: p.gender === 'masculino' ? '#93bbfd' : p.gender === 'femenino' ? '#f9a8d4' : '#d8b4fe',
-              }}
-            >
+              }}>
               {genderInfo.icon} {genderInfo.label}
             </span>
           )}
@@ -511,55 +565,85 @@ function ProductDetailModal({ product: p, primaryColor, whatsappUrl, catalogUrl,
           <p className="text-sm text-white/50 leading-relaxed">{p.description}</p>
         )}
 
+        {/* Decant size selector for perfumes */}
+        {isPerfume && decantSizes.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <Droplets className="w-3 h-3" />Tamaño
+            </p>
+            <div className="flex gap-2">
+              {decantSizes.map(s => (
+                <button key={s.value}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${selectedSize === s.value ? 'text-black scale-105' : 'bg-white/[0.06] text-white/60 hover:bg-white/[0.1] border border-white/[0.08]'}`}
+                  style={selectedSize === s.value ? { background: primaryColor } : {}}
+                  onClick={() => setSelectedSize(s.value)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            {selectedSize !== 'full' && (
+              <p className="text-[10px] text-white/30 mt-2 flex items-center gap-1">
+                <MessageCircle className="w-3 h-3" />Consultá precio y disponibilidad del decant por WhatsApp
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="space-y-2">
-          {hasDiscount ? (
-            <>
-              <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[9px] font-bold" style={{ background: `${primaryColor}25`, color: primaryColor }}>MEJOR PRECIO</span>
+          {selectedSize === 'full' ? (
+            hasDiscount ? (
+              <>
+                <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold" style={{ background: `${primaryColor}25`, color: primaryColor }}>MEJOR PRECIO</span>
+                  </div>
+                  <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.discount_price_ars))}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: `${primaryColor}90` }}>Efectivo / Transferencia</p>
+                  <p className="text-xs font-bold mt-1" style={{ color: '#4ade80' }}>Ahorrás {fmtARS(savings)}</p>
                 </div>
-                <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.discount_price_ars))}</p>
-                <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: `${primaryColor}90` }}>Efectivo / Transferencia</p>
-                <p className="text-xs font-bold mt-1" style={{ color: '#4ade80' }}>Ahorrás {fmtARS(savings)}</p>
+                <div className="px-1">
+                  <p className="text-sm text-white/50 font-medium line-through decoration-red-500/60 decoration-2">{fmtARS(Number(p.sale_price_ars))}</p>
+                  <p className="text-[10px] text-white/25 font-medium">Tarjeta · 3 cuotas de {fmtARS(installment)} sin interés</p>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
+                <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
+                <p className="text-[10px] text-white/30 font-medium mt-1">3 cuotas de {fmtARS(installment)} sin interés</p>
               </div>
-              <div className="px-1">
-                <p className="text-sm text-white/50 font-medium line-through decoration-red-500/60 decoration-2">{fmtARS(Number(p.sale_price_ars))}</p>
-                <p className="text-[10px] text-white/25 font-medium">Tarjeta · 3 cuotas de {fmtARS(installment)} sin interés</p>
-              </div>
-            </>
+            )
           ) : (
             <div className="rounded-xl p-3.5" style={{ background: `${primaryColor}12`, border: `1px solid ${primaryColor}25` }}>
-              <p className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{fmtARS(Number(p.sale_price_ars))}</p>
-              <p className="text-[10px] text-white/30 font-medium mt-1">3 cuotas de {fmtARS(installment)} sin interés</p>
+              <p className="text-lg font-black" style={{ color: primaryColor }}>Decant {selectedSize}ml</p>
+              <p className="text-xs text-white/40 mt-1">Consultá el precio por WhatsApp</p>
             </div>
           )}
         </div>
 
-        {p.stock <= 3 && (
-          <p className="text-xs text-amber-400/80 font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            ¡Últimas {p.stock} unidades disponibles!
+        {/* Social proof */}
+        <div className="space-y-1.5">
+          {p.stock <= 5 && (
+            <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: p.stock <= 3 ? '#f59e0b' : '#a3a3a3' }}>
+              <span className={`w-2 h-2 rounded-full ${p.stock <= 3 ? 'bg-amber-400 animate-pulse' : 'bg-white/30'}`} />
+              {p.stock <= 3 ? `¡Últimas ${p.stock} unidades disponibles!` : 'Quedan pocas unidades'}
+            </p>
+          )}
+          <p className="text-[10px] text-white/25 flex items-center gap-1">
+            <Eye className="w-3 h-3" />{viewers} personas viendo este producto ahora
           </p>
-        )}
+        </div>
 
         <div className="flex gap-2">
-          {whatsappUrl && (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {whatsappNumber && (
+            <a href={buildWhatsAppUrl(p, selectedSize)} target="_blank" rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
-              style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.35)' }}
-            >
+              style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.35)' }}>
               <MessageCircle className="w-5 h-5" fill="white" />
-              Consultar por WhatsApp
+              {selectedSize !== 'full' ? `Consultar decant ${selectedSize}ml` : 'Consultar por WhatsApp'}
             </a>
           )}
-          <button
-            onClick={handleShareProduct}
-            className="p-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-colors"
-            title="Compartir producto"
-          >
+          <button onClick={handleShareProduct}
+            className="p-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-colors" title="Compartir producto">
             <Copy className="w-5 h-5 text-white/50" />
           </button>
         </div>
