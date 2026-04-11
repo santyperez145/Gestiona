@@ -451,6 +451,13 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           <div className="flex justify-between text-xs"><span className="text-muted-foreground">Medio:</span>
             <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
           </div>
+          {isDecant && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Tipo:</span><span className="font-medium">Decant {decantSize}ml</span></div>}
+          {applyVolume && (
+            <div className="flex justify-between text-xs border-t border-border pt-1">
+              <span className="text-muted-foreground">Mayorista:</span>
+              <span className="text-primary font-medium">-{volumeDiscountPct}% ({qty}+ uds){volumeWarning ? ' ⚠️ piso' : ''}</span>
+            </div>
+          )}
         </div>
       )}
       <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Venta' : 'Registrar Venta'}</Button>
