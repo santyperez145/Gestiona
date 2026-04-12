@@ -1009,7 +1009,13 @@ function ProductDetailModal({
               <p className="text-lg font-black" style={{ color: primaryColor }}>
                 Decant {selectedSize}ml
               </p>
-              <p className="text-xs text-white/40 mt-1">Consultá el precio por WhatsApp</p>
+              {currentPrice > 0 ? (
+                <p className="text-2xl font-black tracking-tight mt-1" style={{ color: primaryColor }}>
+                  {fmtARS(currentPrice)}
+                </p>
+              ) : (
+                <p className="text-xs text-white/40 mt-1">Consultá el precio por WhatsApp</p>
+              )}
             </div>
           )}
         </div>
