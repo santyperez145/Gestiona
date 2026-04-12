@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
 import {
   Package,
   Tag,
@@ -17,6 +18,7 @@ import {
   Droplets,
   Zap,
   Heart,
+  Users,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
