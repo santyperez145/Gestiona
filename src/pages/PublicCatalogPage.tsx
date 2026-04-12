@@ -107,12 +107,14 @@ export default function PublicCatalogPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
 
+  const [fullSettings, setFullSettings] = useState<any>(null);
+
   const fetchData = useCallback(async () => {
     if (!userId) {
       setValid(false);
       return;
     }
-    const [pRes, sRes] = await Promise.all([
+    const [pRes, sRes, fsRes] = await Promise.all([
       supabase
         .from("products_public" as any)
         .select("*")
@@ -125,6 +127,11 @@ export default function PublicCatalogPage() {
         .select("*")
         .eq("user_id", userId)
         .maybeSingle(),
+      supabase
+        .from("settings")
+        .select("exchange_rate, customs_percent, volume_discount_threshold, volume_discount_percent, decant_margin_10ml, decant_margin_5ml, decant_margin_2_5ml")
+        .eq("user_id", userId)
+        .maybeSingle(),
     ]);
     if (!sRes.data) {
       setValid(false);
@@ -132,6 +139,7 @@ export default function PublicCatalogPage() {
     }
     setProducts(pRes.data || []);
     setSettings(sRes.data);
+    setFullSettings(fsRes.data || null);
     setValid(true);
   }, [userId]);
 
