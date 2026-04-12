@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
 import {
   Package,
   Tag,
@@ -17,6 +18,7 @@ import {
   Droplets,
   Zap,
   Heart,
+  Users,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -105,12 +107,14 @@ export default function PublicCatalogPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
 
+  const [fullSettings, setFullSettings] = useState<any>(null);
+
   const fetchData = useCallback(async () => {
     if (!userId) {
       setValid(false);
       return;
     }
-    const [pRes, sRes] = await Promise.all([
+    const [pRes, sRes, fsRes] = await Promise.all([
       supabase
         .from("products_public" as any)
         .select("*")
@@ -123,6 +127,11 @@ export default function PublicCatalogPage() {
         .select("*")
         .eq("user_id", userId)
         .maybeSingle(),
+      supabase
+        .from("settings")
+        .select("exchange_rate, customs_percent, volume_discount_threshold, volume_discount_percent, decant_margin_10ml, decant_margin_5ml, decant_margin_2_5ml")
+        .eq("user_id", userId)
+        .maybeSingle(),
     ]);
     if (!sRes.data) {
       setValid(false);
@@ -130,6 +139,7 @@ export default function PublicCatalogPage() {
     }
     setProducts(pRes.data || []);
     setSettings(sRes.data);
+    setFullSettings(fsRes.data || null);
     setValid(true);
   }, [userId]);
 
@@ -416,6 +426,7 @@ export default function PublicCatalogPage() {
                   onClick={() => setDetailProduct(p)}
                   featured
                   settings={settings}
+                  fullSettings={fullSettings}
                 />
               ))}
             </div>
@@ -438,6 +449,7 @@ export default function PublicCatalogPage() {
                   onClick={() => setDetailProduct(p)}
                   badge="Más vendido"
                   settings={settings}
+                  fullSettings={fullSettings}
                 />
               ))}
             </div>
@@ -468,6 +480,7 @@ export default function PublicCatalogPage() {
                   onClick={() => setDetailProduct(p)}
                   compact
                   settings={settings}
+                  fullSettings={fullSettings}
                 />
               ))}
             </div>
@@ -498,6 +511,7 @@ export default function PublicCatalogPage() {
                     primaryColor={primaryColor}
                     onClick={() => setDetailProduct(p)}
                     settings={settings}
+                    fullSettings={fullSettings}
                   />
                 ),
               )}
@@ -523,10 +537,71 @@ export default function PublicCatalogPage() {
               catalogUrl={window.location.href}
               onClose={() => setDetailProduct(null)}
               settings={settings}
+              fullSettings={fullSettings}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Wholesale Section */}
+      {fullSettings && Number(fullSettings.volume_discount_threshold) > 0 && Number(fullSettings.volume_discount_percent) > 0 && (
+        <section className="max-w-7xl mx-auto px-3 sm:px-4 py-8">
+          <div
+            className="rounded-2xl p-5 sm:p-8"
+            style={{
+              background: `linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.02))`,
+              border: `1px solid rgba(167,139,250,0.15)`,
+            }}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <Users className="w-6 h-6 text-purple-400" />
+              <h2 className="text-xl font-black tracking-wide text-purple-300">Precios Mayoristas</h2>
+            </div>
+            <p className="text-sm text-white/50 mb-5">
+              Llevá <span className="font-bold text-purple-300">{fullSettings.volume_discount_threshold}+ unidades</span> del mismo producto y obtené{" "}
+              <span className="font-bold text-purple-300">{fullSettings.volume_discount_percent}% OFF</span> sobre el precio de efectivo
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {products.filter(pr => Number(pr.discount_price_ars || pr.sale_price_ars) > 0).slice(0, 9).map(pr => {
+                const basePrice = Number(pr.discount_price_ars || pr.sale_price_ars);
+                const wholesalePrice = Math.round(basePrice * (1 - Number(fullSettings.volume_discount_percent) / 100));
+                const savingPerUnit = basePrice - wholesalePrice;
+                return (
+                  <div key={pr.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-white/80 truncate">{pr.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-white/35 line-through">{fmtARS(basePrice)}</span>
+                        <span className="text-sm font-black text-purple-300">{fmtARS(wholesalePrice)}</span>
+                      </div>
+                      <p className="text-[9px] font-semibold mt-0.5" style={{ color: "#4ade80" }}>
+                        Ahorrás {fmtARS(savingPerUnit)}/u
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {whatsappNumber && (
+              <a
+                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hola! Me interesa consultar precios mayoristas 📦")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                style={{
+                  background: "linear-gradient(135deg, #25D366, #128C7E)",
+                  boxShadow: "0 6px 20px rgba(37,211,102,0.3)",
+                }}
+              >
+                <MessageCircle className="w-5 h-5" fill="white" />
+                Consultar por mayor
+              </a>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-white/[0.04] mt-12">
@@ -584,6 +659,7 @@ function ProductCard({
   badge,
   compact,
   settings,
+  fullSettings,
 }: {
   product: any;
   primaryColor: string;
@@ -592,6 +668,7 @@ function ProductCard({
   badge?: string;
   compact?: boolean;
   settings?: any;
+  fullSettings?: any;
 }) {
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
@@ -601,6 +678,8 @@ function ProductCard({
   const installment = Math.round(Number(p.sale_price_ars) / 3);
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
   const viewers = pseudoRandom(p.id || p.name, 2, 8);
+  const volThreshold = Number(fullSettings?.volume_discount_threshold || 0);
+  const volPercent = Number(fullSettings?.volume_discount_percent || 0);
 
   return (
     <div
@@ -739,7 +818,7 @@ function ProductCard({
           )}
         </div>
 
-        {/* Scarcity + Social proof */}
+        {/* Scarcity + Social proof + Volume badge */}
         {!compact && (
           <div className="mt-2 space-y-1">
             {p.stock <= 5 && (
@@ -751,6 +830,12 @@ function ProductCard({
                   className={`w-1.5 h-1.5 rounded-full ${p.stock <= 3 ? "bg-amber-400 animate-pulse" : "bg-white/30"}`}
                 />
                 {p.stock <= 3 ? `¡Últimas ${p.stock} unidades!` : `Quedan pocas unidades`}
+              </p>
+            )}
+            {volThreshold > 0 && volPercent > 0 && (
+              <p className="text-[8px] font-semibold flex items-center gap-1" style={{ color: "#a78bfa" }}>
+                <Users className="w-2.5 h-2.5" />
+                Llevá {volThreshold}+ = -{volPercent}% OFF
               </p>
             )}
             <p className="text-[8px] text-white/25 flex items-center gap-1">
@@ -772,6 +857,7 @@ function ProductDetailModal({
   catalogUrl,
   onClose,
   settings,
+  fullSettings,
 }: {
   product: any;
   primaryColor: string;
@@ -780,6 +866,7 @@ function ProductDetailModal({
   catalogUrl: string;
   onClose: () => void;
   settings: any;
+  fullSettings?: any;
 }) {
   const [selectedSize, setSelectedSize] = useState<string>("full");
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
@@ -791,14 +878,15 @@ function ProductDetailModal({
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
   const contentMl = Number(p.content_ml || 100);
   const viewers = pseudoRandom(p.id || p.name, 3, 12);
+  const exchangeRate = Number(fullSettings?.exchange_rate || 1695);
+  const totalCostUSD = Number(p.total_cost_usd || p.cost_usd || 0);
 
-  // Simple decant price estimate for display (using typical margins)
   const decantSizes = isPerfume
     ? [
         { value: "full", label: `Completo (${contentMl}ml)`, price: Number(p.discount_price_ars || p.sale_price_ars) },
-        { value: "10", label: "10ml", price: 0 },
-        { value: "5", label: "5ml", price: 0 },
-        { value: "2.5", label: "2.5ml", price: 0 },
+        { value: "10", label: "10ml", price: calculateDecantPrice(totalCostUSD, contentMl, 10, Number(fullSettings?.decant_margin_10ml || 250), exchangeRate) },
+        { value: "5", label: "5ml", price: calculateDecantPrice(totalCostUSD, contentMl, 5, Number(fullSettings?.decant_margin_5ml || 350), exchangeRate) },
+        { value: "2.5", label: "2.5ml", price: calculateDecantPrice(totalCostUSD, contentMl, 2.5, Number(fullSettings?.decant_margin_2_5ml || 500), exchangeRate) },
       ]
     : [];
 
@@ -908,7 +996,12 @@ function ProductDetailModal({
                 </button>
               ))}
             </div>
-            {selectedSize !== "full" && (
+            {selectedSize !== "full" && currentPrice > 0 && (
+              <p className="text-[10px] text-white/40 mt-2">
+                Precio calculado para decant de {selectedSize}ml
+              </p>
+            )}
+            {selectedSize !== "full" && currentPrice === 0 && (
               <p className="text-[10px] text-white/30 mt-2 flex items-center gap-1">
                 <MessageCircle className="w-3 h-3" />
                 Consultá precio y disponibilidad del decant por WhatsApp
@@ -976,7 +1069,13 @@ function ProductDetailModal({
               <p className="text-lg font-black" style={{ color: primaryColor }}>
                 Decant {selectedSize}ml
               </p>
-              <p className="text-xs text-white/40 mt-1">Consultá el precio por WhatsApp</p>
+              {currentPrice > 0 ? (
+                <p className="text-2xl font-black tracking-tight mt-1" style={{ color: primaryColor }}>
+                  {fmtARS(currentPrice)}
+                </p>
+              ) : (
+                <p className="text-xs text-white/40 mt-1">Consultá el precio por WhatsApp</p>
+              )}
             </div>
           )}
         </div>

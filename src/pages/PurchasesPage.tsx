@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, formatARS, formatUSD, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
+import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, getSalesAggregatedDB, formatARS, formatUSD, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2 } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -306,9 +306,57 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
 
   if (loading) return <div className="py-8 text-center text-muted-foreground text-sm">Cargando productos...</div>;
 
+  const [restockLoading, setRestockLoading] = useState(false);
+  const [restockDays, setRestockDays] = useState(30);
+
+  const handlePreloadRestock = async () => {
+    setRestockLoading(true);
+    try {
+      const agg = await getSalesAggregatedDB(userId, restockDays);
+      if (!agg.length) { toast.info('No hay ventas en el período seleccionado'); setRestockLoading(false); return; }
+      const newOrders = { ...orders };
+      agg.forEach(item => {
+        if (newOrders[item.product_id]) {
+          newOrders[item.product_id] = { ...newOrders[item.product_id], qty: item.total_qty };
+        }
+      });
+      setOrders(newOrders);
+      toast.success(`Pre-cargado: ${agg.length} productos basado en ventas de ${restockDays} días`);
+    } catch (err) {
+      toast.error('Error al cargar datos de ventas');
+    }
+    setRestockLoading(false);
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Seleccioná los productos y cantidades para generar el Excel de orden de compra.</p>
+
+      {/* Auto-restock section */}
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
+        <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+          <RotateCcw className="w-3.5 h-3.5" /> Recompra automática
+        </p>
+        <p className="text-[11px] text-muted-foreground">Pre-carga las cantidades vendidas en un período para reponerlas.</p>
+        <div className="flex items-center gap-2">
+          <Select value={String(restockDays)} onValueChange={v => setRestockDays(Number(v))}>
+            <SelectTrigger className="w-32 h-8 text-xs bg-background border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Últimos 7 días</SelectItem>
+              <SelectItem value="15">Últimos 15 días</SelectItem>
+              <SelectItem value="30">Últimos 30 días</SelectItem>
+              <SelectItem value="60">Últimos 60 días</SelectItem>
+              <SelectItem value="90">Últimos 90 días</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handlePreloadRestock} disabled={restockLoading} className="text-xs h-8">
+            {restockLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RotateCcw className="w-3.5 h-3.5 mr-1" />}
+            Pre-cargar recompra
+          </Button>
+        </div>
+      </div>
 
       <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
         {products.map(p => (
