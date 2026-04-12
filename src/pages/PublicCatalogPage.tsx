@@ -543,6 +543,66 @@ export default function PublicCatalogPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Wholesale Section */}
+      {fullSettings && Number(fullSettings.volume_discount_threshold) > 0 && Number(fullSettings.volume_discount_percent) > 0 && (
+        <section className="max-w-7xl mx-auto px-3 sm:px-4 py-8">
+          <div
+            className="rounded-2xl p-5 sm:p-8"
+            style={{
+              background: `linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.02))`,
+              border: `1px solid rgba(167,139,250,0.15)`,
+            }}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <Users className="w-6 h-6 text-purple-400" />
+              <h2 className="text-xl font-black tracking-wide text-purple-300">Precios Mayoristas</h2>
+            </div>
+            <p className="text-sm text-white/50 mb-5">
+              Llevá <span className="font-bold text-purple-300">{fullSettings.volume_discount_threshold}+ unidades</span> del mismo producto y obtené{" "}
+              <span className="font-bold text-purple-300">{fullSettings.volume_discount_percent}% OFF</span> sobre el precio de efectivo
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {products.filter(pr => Number(pr.discount_price_ars || pr.sale_price_ars) > 0).slice(0, 9).map(pr => {
+                const basePrice = Number(pr.discount_price_ars || pr.sale_price_ars);
+                const wholesalePrice = Math.round(basePrice * (1 - Number(fullSettings.volume_discount_percent) / 100));
+                const savingPerUnit = basePrice - wholesalePrice;
+                return (
+                  <div key={pr.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-white/80 truncate">{pr.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-white/35 line-through">{fmtARS(basePrice)}</span>
+                        <span className="text-sm font-black text-purple-300">{fmtARS(wholesalePrice)}</span>
+                      </div>
+                      <p className="text-[9px] font-semibold mt-0.5" style={{ color: "#4ade80" }}>
+                        Ahorrás {fmtARS(savingPerUnit)}/u
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {whatsappNumber && (
+              <a
+                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hola! Me interesa consultar precios mayoristas 📦")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                style={{
+                  background: "linear-gradient(135deg, #25D366, #128C7E)",
+                  boxShadow: "0 6px 20px rgba(37,211,102,0.3)",
+                }}
+              >
+                <MessageCircle className="w-5 h-5" fill="white" />
+                Consultar por mayor
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Footer */}
       <footer className="border-t border-white/[0.04] mt-12">
         <div className="max-w-7xl mx-auto px-4 py-8 text-center">
