@@ -1,109 +1,55 @@
 
+# Plan: Sección Mayorista en Catálogo + Recompra Automática en Órdenes + Mejoras
 
-# Plan Actualizado: Máquina de Ventas — Decants con IA, Precios Mayoristas Rentables
+## 1. Sección "Precios Mayoristas" en Catálogo Público
 
-## Cambios respecto al plan anterior
+**Archivo:** `src/pages/PublicCatalogPage.tsx`
 
-1. **Descripciones generadas por IA** (no hardcodeadas): Usar Lovable AI (edge function) para generar descripciones de perfumes basadas en nombre, marca, categoría y género. Botón "Auto-generar" en ProductsPage que llama a la edge function.
-2. **Márgenes de decants realistas**: Basados en el mercado argentino de decants (margen típico 200-400% sobre costo proporcional). Valores por defecto: 10ml = 250%, 5ml = 350%, 2.5ml = 500%. Configurables en Settings.
-3. **Precio mayorista sobre precio con descuento**: El descuento mayorista se aplica sobre el `discount_price_ars` (precio efectivo/oferta), no sobre el precio de lista. Con un piso de rentabilidad: nunca menor al costo total + 20%.
+Nueva sección visible en el catálogo público, después de los productos destacados:
+- Titulo: "Precios Mayoristas" con ícono
+- Muestra todos los productos con su precio mayorista calculado (descuento sobre precio efectivo)
+- Texto: "Llevá {threshold}+ unidades y obtené {percent}% OFF"
+- Tabla/grid con: producto, precio unitario, precio mayorista, ahorro por unidad
+- Botón WhatsApp "Consultar por mayor" con mensaje pre-armado
+- Solo se muestra si `volume_discount_threshold` y `volume_discount_percent` están configurados
+
+## 2. Recompra Automática en Órdenes de Compra
+
+**Archivo:** `src/pages/PurchasesPage.tsx` (componente `PurchaseOrderGenerator`)
+
+Agregar botón "Pre-cargar recompra" que:
+- Consulta las ventas recientes (últimos 30 días por defecto, configurable)
+- Agrupa por `product_id`, suma las cantidades vendidas
+- Auto-rellena el formulario de orden de compra con esas cantidades
+- Muestra un resumen: "Basado en ventas de los últimos 30 días"
+- El usuario puede ajustar cantidades antes de generar el Excel
+
+**Lógica:** `SELECT product_id, SUM(quantity) FROM sales WHERE date > now() - interval '30 days' GROUP BY product_id`
+
+Nuevo helper en `supabaseStore.ts`:
+```typescript
+export async function getSalesAggregatedDB(userId: string, days: number = 30)
+```
+
+## 3. Mejoras adicionales detectadas
+
+### 3a. Decant prices en catálogo público muestran $0
+En `PublicCatalogPage.tsx` líneas 799-801, los precios de decants (10ml, 5ml, 2.5ml) están hardcodeados a `price: 0`. Hay que calcularlos usando `calculateDecantPrice` con los settings del negocio (ya disponibles en la página).
+
+### 3b. Badges de volumen en cards del catálogo
+Agregar texto sutil en cada card: "Llevá {X}+ = -{Y}% OFF" para incentivar compras mayoristas desde el grid principal.
 
 ---
 
-## Parte 1: Migración SQL
-
-Nuevos campos en `settings`:
-```sql
-volume_discount_threshold integer DEFAULT 3
-volume_discount_percent numeric DEFAULT 10
-decant_margin_10ml numeric DEFAULT 250
-decant_margin_5ml numeric DEFAULT 350
-decant_margin_2_5ml numeric DEFAULT 500
-```
-
-Nuevos campos en `products`:
-```sql
-content_ml integer DEFAULT 100
-total_sold integer DEFAULT 0
-```
-
-Actualizar vista `products_public` para incluir `content_ml` y `total_sold`.
-
-## Parte 2: Edge Function para descripciones con IA
-
-**Archivo:** `supabase/functions/generate-description/index.ts`
-
-- Recibe `{ name, brand, category, gender }` 
-- Usa Lovable AI (gemini-3-flash-preview) con prompt: "Genera una descripción de venta para este perfume árabe: {name} de {brand}. Incluye notas olfativas probables, duración estimada, proyección y situaciones de uso recomendadas (citas, salir, diario). En español, máximo 3 oraciones, tono persuasivo de venta."
-- Retorna `{ description: string }`
-
-**En ProductsPage:** Botón "Generar descripción con IA" en el formulario de producto. Botón masivo "Auto-generar todas las descripciones faltantes" en la toolbar.
-
-## Parte 3: Sistema de Decants
-
-**En SettingsPage:** Nueva sección "Decants" con 3 campos de margen configurables:
-- 10ml: 250% (default) — precio típico de mercado
-- 5ml: 350%
-- 2.5ml: 500%
-
-**Fórmula:**
-```
-costo_proporcional = (total_cost_usd / content_ml) * ml_decant
-precio_decant_ARS = costo_proporcional * exchange_rate * (1 + margen%)
-```
-
-**En PublicCatalogPage:** Para perfumes con content_ml > 0, mostrar tabs "Completo | 10ml | 5ml | 2.5ml" con precio calculado.
-
-**En SalesPage:** Selector de tamaño al vender un perfume.
-
-## Parte 4: Descuento Mayorista (sobre precio con descuento)
-
-**Lógica:**
-```
-precio_base = discount_price_ars || sale_price_ars  // precio efectivo
-precio_mayorista = precio_base * (1 - volume_discount_percent/100)
-piso_minimo = total_cost_usd * exchange_rate * 1.20  // mínimo 20% ganancia
-precio_final = Math.max(precio_mayorista, piso_minimo)
-```
-
-**En SalesPage:** Cuando qty >= threshold, aplicar automáticamente y mostrar badge "Precio mayorista -X%". Si el descuento bajaría por debajo del piso, mostrar warning.
-
-**En PublicCatalogPage:** Texto "Llevá {X}+ y obtené {Y}% off sobre precio efectivo".
-
-## Parte 5: Catálogo — Conversión Agresiva
-
-Todo lo del plan anterior (secciones destacados, más vendidos, cross-sell vaper→perfume, escasez, countdown, compartir, animaciones) se mantiene igual.
-
-## Parte 6: Dashboard + Admin
-
-Ranking de margen, alertas, toggle featured, venta rápida — se mantiene igual del plan anterior.
-
----
-
-## Archivos a modificar/crear
+## Archivos a modificar
 
 | Archivo | Cambio |
 |---|---|
-| Migración SQL | Campos en settings y products, actualizar vista |
-| `supabase/functions/generate-description/index.ts` | **Nuevo** — IA para descripciones |
-| `src/pages/SettingsPage.tsx` | Config decants margins + mayorista |
-| `src/pages/ProductsPage.tsx` | Botón generar descripción IA, content_ml, featured |
-| `src/pages/SalesPage.tsx` | Selector decant, descuento mayorista con piso, fix fecha, combobox clientes |
-| `src/pages/PurchasesPage.tsx` | Fix fecha |
-| `src/pages/DebtsPage.tsx` | Fix fecha |
-| `src/pages/PublicCatalogPage.tsx` | Secciones, decants, precios psicológicos, cross-sell, animaciones |
-| `src/pages/Dashboard.tsx` | Ranking margen, sparklines |
-| `src/components/AppLayout.tsx` | Badge notificaciones |
-| `src/lib/supabaseStore.ts` | Helpers decants + mayorista |
+| `src/pages/PublicCatalogPage.tsx` | Sección mayorista, fix precios decants $0, badge volumen en cards |
+| `src/pages/PurchasesPage.tsx` | Botón "Pre-cargar recompra" en PurchaseOrderGenerator |
+| `src/lib/supabaseStore.ts` | Nueva función `getSalesAggregatedDB()` |
 
 ## Orden de implementación
-1. Migración SQL
-2. Edge function IA para descripciones
-3. Settings: config decants + mayorista
-4. Fix fechas en todas las páginas
-5. Products: content_ml, generar descripciones IA, featured
-6. Sales: combobox clientes, selector decant, descuento mayorista
-7. Catálogo público: reestructura completa
-8. Dashboard: ranking + alertas
-9. Sidebar: badge notificaciones
-
+1. `supabaseStore.ts` — helper de ventas agregadas
+2. `PurchasesPage.tsx` — botón recompra automática
+3. `PublicCatalogPage.tsx` — sección mayorista + fix decants + badges
