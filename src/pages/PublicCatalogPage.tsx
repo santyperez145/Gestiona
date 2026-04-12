@@ -426,6 +426,7 @@ export default function PublicCatalogPage() {
                   onClick={() => setDetailProduct(p)}
                   featured
                   settings={settings}
+                  fullSettings={fullSettings}
                 />
               ))}
             </div>
@@ -448,6 +449,7 @@ export default function PublicCatalogPage() {
                   onClick={() => setDetailProduct(p)}
                   badge="Más vendido"
                   settings={settings}
+                  fullSettings={fullSettings}
                 />
               ))}
             </div>
@@ -478,6 +480,7 @@ export default function PublicCatalogPage() {
                   onClick={() => setDetailProduct(p)}
                   compact
                   settings={settings}
+                  fullSettings={fullSettings}
                 />
               ))}
             </div>
@@ -508,6 +511,7 @@ export default function PublicCatalogPage() {
                     primaryColor={primaryColor}
                     onClick={() => setDetailProduct(p)}
                     settings={settings}
+                    fullSettings={fullSettings}
                   />
                 ),
               )}
@@ -533,6 +537,7 @@ export default function PublicCatalogPage() {
               catalogUrl={window.location.href}
               onClose={() => setDetailProduct(null)}
               settings={settings}
+              fullSettings={fullSettings}
             />
           )}
         </DialogContent>
