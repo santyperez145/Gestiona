@@ -204,6 +204,25 @@ export async function getAuditLogsDB(limit = 50) {
   return data || [];
 }
 
+// ========= SALES AGGREGATED (for auto-restock) =========
+export async function getSalesAggregatedDB(userId: string, days: number = 30) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const { data, error } = await supabase
+    .from('sales')
+    .select('product_id, product_name, quantity')
+    .eq('user_id', userId)
+    .gte('date', since.toISOString());
+  if (error) throw error;
+  const agg: Record<string, { product_id: string; product_name: string; total_qty: number }> = {};
+  (data || []).forEach(s => {
+    if (!s.product_id) return;
+    if (!agg[s.product_id]) agg[s.product_id] = { product_id: s.product_id, product_name: s.product_name, total_qty: 0 };
+    agg[s.product_id].total_qty += s.quantity;
+  });
+  return Object.values(agg).sort((a, b) => b.total_qty - a.total_qty);
+}
+
 // ========= CUSTOMERS =========
 export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
   const { data, error } = await supabase.from('sales').select('customer_name').eq('user_id', userId).not('customer_name', 'is', null);
