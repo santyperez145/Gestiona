@@ -936,7 +936,12 @@ function ProductDetailModal({
                 </button>
               ))}
             </div>
-            {selectedSize !== "full" && (
+            {selectedSize !== "full" && currentPrice > 0 && (
+              <p className="text-[10px] text-white/40 mt-2">
+                Precio calculado para decant de {selectedSize}ml
+              </p>
+            )}
+            {selectedSize !== "full" && currentPrice === 0 && (
               <p className="text-[10px] text-white/30 mt-2 flex items-center gap-1">
                 <MessageCircle className="w-3 h-3" />
                 Consultá precio y disponibilidad del decant por WhatsApp
