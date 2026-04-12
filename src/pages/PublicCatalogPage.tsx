@@ -599,6 +599,7 @@ function ProductCard({
   badge,
   compact,
   settings,
+  fullSettings,
 }: {
   product: any;
   primaryColor: string;
@@ -607,6 +608,7 @@ function ProductCard({
   badge?: string;
   compact?: boolean;
   settings?: any;
+  fullSettings?: any;
 }) {
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
@@ -616,6 +618,8 @@ function ProductCard({
   const installment = Math.round(Number(p.sale_price_ars) / 3);
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
   const viewers = pseudoRandom(p.id || p.name, 2, 8);
+  const volThreshold = Number(fullSettings?.volume_discount_threshold || 0);
+  const volPercent = Number(fullSettings?.volume_discount_percent || 0);
 
   return (
     <div
@@ -754,7 +758,7 @@ function ProductCard({
           )}
         </div>
 
-        {/* Scarcity + Social proof */}
+        {/* Scarcity + Social proof + Volume badge */}
         {!compact && (
           <div className="mt-2 space-y-1">
             {p.stock <= 5 && (
@@ -766,6 +770,12 @@ function ProductCard({
                   className={`w-1.5 h-1.5 rounded-full ${p.stock <= 3 ? "bg-amber-400 animate-pulse" : "bg-white/30"}`}
                 />
                 {p.stock <= 3 ? `¡Últimas ${p.stock} unidades!` : `Quedan pocas unidades`}
+              </p>
+            )}
+            {volThreshold > 0 && volPercent > 0 && (
+              <p className="text-[8px] font-semibold flex items-center gap-1" style={{ color: "#a78bfa" }}>
+                <Users className="w-2.5 h-2.5" />
+                Llevá {volThreshold}+ = -{volPercent}% OFF
               </p>
             )}
             <p className="text-[8px] text-white/25 flex items-center gap-1">
@@ -787,6 +797,7 @@ function ProductDetailModal({
   catalogUrl,
   onClose,
   settings,
+  fullSettings,
 }: {
   product: any;
   primaryColor: string;
@@ -795,6 +806,7 @@ function ProductDetailModal({
   catalogUrl: string;
   onClose: () => void;
   settings: any;
+  fullSettings?: any;
 }) {
   const [selectedSize, setSelectedSize] = useState<string>("full");
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
@@ -806,14 +818,15 @@ function ProductDetailModal({
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
   const contentMl = Number(p.content_ml || 100);
   const viewers = pseudoRandom(p.id || p.name, 3, 12);
+  const exchangeRate = Number(fullSettings?.exchange_rate || 1695);
+  const totalCostUSD = Number(p.total_cost_usd || p.cost_usd || 0);
 
-  // Simple decant price estimate for display (using typical margins)
   const decantSizes = isPerfume
     ? [
         { value: "full", label: `Completo (${contentMl}ml)`, price: Number(p.discount_price_ars || p.sale_price_ars) },
-        { value: "10", label: "10ml", price: 0 },
-        { value: "5", label: "5ml", price: 0 },
-        { value: "2.5", label: "2.5ml", price: 0 },
+        { value: "10", label: "10ml", price: calculateDecantPrice(totalCostUSD, contentMl, 10, Number(fullSettings?.decant_margin_10ml || 250), exchangeRate) },
+        { value: "5", label: "5ml", price: calculateDecantPrice(totalCostUSD, contentMl, 5, Number(fullSettings?.decant_margin_5ml || 350), exchangeRate) },
+        { value: "2.5", label: "2.5ml", price: calculateDecantPrice(totalCostUSD, contentMl, 2.5, Number(fullSettings?.decant_margin_2_5ml || 500), exchangeRate) },
       ]
     : [];
 
