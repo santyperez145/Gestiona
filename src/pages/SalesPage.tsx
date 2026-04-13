@@ -20,6 +20,7 @@ const PAGE_SIZE = 20;
 const PAYMENT_METHODS = [
   { value: 'efectivo', label: 'Efectivo', usesDiscount: true },
   { value: 'transferencia', label: 'Transferencia', usesDiscount: true },
+  { value: 'mayorista', label: 'Mayorista', usesDiscount: true },
   { value: 'debito', label: 'Débito', usesDiscount: false },
   { value: 'credito', label: 'Crédito', usesDiscount: false },
   { value: 'fiado', label: 'Fiado', usesDiscount: false },
@@ -36,6 +37,7 @@ const CATEGORIES = [
 const PAYMENT_BADGE: Record<string, string> = {
   efectivo: 'bg-success/15 text-success',
   transferencia: 'bg-blue-500/15 text-blue-400',
+  mayorista: 'bg-purple-500/15 text-purple-400',
   debito: 'bg-primary/15 text-primary',
   credito: 'bg-warning/15 text-warning',
   fiado: 'bg-destructive/15 text-destructive',
@@ -270,6 +272,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const methodConfig = PAYMENT_METHODS.find(m => m.value === paymentMethod);
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isFiado = paymentMethod === 'fiado';
+  const isMayorista = paymentMethod === 'mayorista';
 
   const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
   const contentMl = Number(product?.content_ml || 100);
@@ -288,8 +291,8 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const normalPrice = Number(product?.sale_price_ars) || 0;
   const baseUnitPrice = isDecant ? decantPrice : (usesDiscount && discountPrice ? discountPrice : normalPrice);
   
-  // Volume discount
-  const applyVolume = qty >= volumeThreshold && !isDecant;
+  // Volume discount: auto-apply for mayorista payment or when qty >= threshold
+  const applyVolume = (isMayorista || qty >= volumeThreshold) && !isDecant;
   let autoUnitPrice = baseUnitPrice;
   let volumeWarning = false;
   if (applyVolume) {

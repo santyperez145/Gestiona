@@ -250,6 +250,8 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
   const [settings, setSettings] = useState<any>(null);
   const [orders, setOrders] = useState<Record<string, { qty: number; supplier: string }>>({});
   const [loading, setLoading] = useState(true);
+  const [restockLoading, setRestockLoading] = useState(false);
+  const [restockDays, setRestockDays] = useState(30);
 
   useEffect(() => {
     (async () => {
@@ -275,7 +277,6 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
     const wb = utils.book_new();
     const businessName = settings?.business_name || 'EXENTRY IMPORTS';
 
-    // Group by supplier
     const bySupplier: Record<string, any[]> = {};
     selectedProducts.forEach(p => {
       const supplier = orders[p.id]?.supplier?.trim() || 'Sin proveedor';
@@ -289,7 +290,6 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
         'Precio Unit. USD': Number(p.cost_usd),
         'Total USD': (orders[p.id]?.qty || 0) * Number(p.cost_usd),
       }));
-      // Add total row
       const totalUSD = rows.reduce((s, r) => s + r['Total USD'], 0);
       rows.push({ 'Producto': 'TOTAL', 'Cantidad': rows.reduce((s, r) => s + r['Cantidad'], 0), 'Precio Unit. USD': 0, 'Total USD': totalUSD } as any);
 
@@ -305,9 +305,6 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
   };
 
   if (loading) return <div className="py-8 text-center text-muted-foreground text-sm">Cargando productos...</div>;
-
-  const [restockLoading, setRestockLoading] = useState(false);
-  const [restockDays, setRestockDays] = useState(30);
 
   const handlePreloadRestock = async () => {
     setRestockLoading(true);
