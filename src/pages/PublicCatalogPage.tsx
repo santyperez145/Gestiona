@@ -116,8 +116,8 @@ export default function PublicCatalogPage() {
     }
     const [pRes, sRes, fsRes] = await Promise.all([
       supabase
-        .from("products_public" as any)
-        .select("*")
+        .from("products")
+        .select("id, name, brand, category, gender, sale_price_ars, discount_price_ars, stock, description, image_url, content_ml, total_sold, featured, offer_expires_at, total_cost_usd, user_id")
         .eq("user_id", userId)
         .gt("stock", 0)
         .order("category")

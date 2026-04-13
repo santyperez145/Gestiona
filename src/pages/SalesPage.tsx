@@ -20,6 +20,7 @@ const PAGE_SIZE = 20;
 const PAYMENT_METHODS = [
   { value: 'efectivo', label: 'Efectivo', usesDiscount: true },
   { value: 'transferencia', label: 'Transferencia', usesDiscount: true },
+  { value: 'mayorista', label: 'Mayorista', usesDiscount: true },
   { value: 'debito', label: 'Débito', usesDiscount: false },
   { value: 'credito', label: 'Crédito', usesDiscount: false },
   { value: 'fiado', label: 'Fiado', usesDiscount: false },
