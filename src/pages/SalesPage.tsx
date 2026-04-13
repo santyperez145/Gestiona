@@ -291,8 +291,8 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const normalPrice = Number(product?.sale_price_ars) || 0;
   const baseUnitPrice = isDecant ? decantPrice : (usesDiscount && discountPrice ? discountPrice : normalPrice);
   
-  // Volume discount
-  const applyVolume = qty >= volumeThreshold && !isDecant;
+  // Volume discount: auto-apply for mayorista payment or when qty >= threshold
+  const applyVolume = (isMayorista || qty >= volumeThreshold) && !isDecant;
   let autoUnitPrice = baseUnitPrice;
   let volumeWarning = false;
   if (applyVolume) {
