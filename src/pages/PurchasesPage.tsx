@@ -360,7 +360,7 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
           <div key={p.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${(orders[p.id]?.qty || 0) > 0 ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30'}`}>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{p.name}</p>
-              <p className="text-[10px] text-muted-foreground">Stock: {p.stock} · {formatUSD(Number(p.cost_usd))}/u</p>
+              <p className="text-[10px] text-muted-foreground">Stock: {p.stock} · {formatUSD(Number(p.total_cost_usd))}/u (costo total)</p>
             </div>
             <Input
               type="text"
@@ -386,8 +386,8 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
           <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{selectedProducts.length}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Unidades:</span><span className="font-medium">{selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0), 0)}</span></div>
           <div className="flex justify-between font-bold border-t border-border pt-1">
-            <span>Total USD:</span>
-            <span>{formatUSD(selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0) * Number(p.cost_usd), 0))}</span>
+            <span>Total USD (con pasero):</span>
+            <span>{formatUSD(selectedProducts.reduce((s, p) => s + (orders[p.id]?.qty || 0) * Number(p.total_cost_usd), 0))}</span>
           </div>
         </div>
       )}
