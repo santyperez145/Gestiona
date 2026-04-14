@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -256,7 +256,10 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
   const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
-  const [decantSize, setDecantSize] = useState<string>('full'); // 'full' | '10' | '5' | '2.5'
+  const [decantSize, setDecantSize] = useState<string>('full');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponResult, setCouponResult] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -303,12 +306,27 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     volumeWarning = belowFloor;
   }
 
-  const unitPrice = customPrice ? (parseFloat(customPrice) || autoUnitPrice) : autoUnitPrice;
+  // Apply coupon discount
+  const couponDiscount = couponResult?.valid && couponResult.coupon ? 
+    (couponResult.coupon.discount_percent > 0 ? autoUnitPrice * (Number(couponResult.coupon.discount_percent) / 100) : Number(couponResult.coupon.discount_fixed_ars || 0)) : 0;
+  const priceAfterCoupon = Math.max(0, autoUnitPrice - couponDiscount);
+
+  const unitPrice = customPrice ? (parseFloat(customPrice) || priceAfterCoupon) : priceAfterCoupon;
   const total = unitPrice * qty;
   const costPerUnitUSD = isDecant ? (Number(product?.total_cost_usd || 0) / contentMl) * decantMl : Number(product?.total_cost_usd || 0);
   const costPerUnitARS = costPerUnitUSD * exchangeRate;
   const profitARS = total - (costPerUnitARS * qty);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const result = await validateCouponDB(userId, couponCode);
+      setCouponResult(result);
+    } catch { setCouponResult({ valid: false, reason: 'Error al validar' }); }
+    setValidatingCoupon(false);
+  };
 
   const filteredCustomers = customers.filter(c => 
     c.toLowerCase().includes((customerFilter || customerName).toLowerCase())
@@ -330,6 +348,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       profit_ars: profitARS, profit_usd: profitUSD,
       customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
+      coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
     };
 
     if (editItem) {
@@ -341,6 +360,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       await addSaleDB({ id: saleId, user_id: userId, ...saleData });
       await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
+      if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
       if (productId && !isDecant) await checkStockAfterSale(productId, product!.name);
     }
     onSave();
@@ -438,8 +458,30 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </p>
         )}
       </div>
+      {/* Coupon code */}
+      <div>
+        <label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="w-3.5 h-3.5" />Cupón de descuento</label>
+        <div className="flex gap-2 mt-1">
+          <Input 
+            value={couponCode} 
+            onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }} 
+            placeholder="Ej: EXENTRY10" 
+            className="bg-muted border-border flex-1" 
+          />
+          <Button type="button" variant="outline" size="sm" onClick={handleValidateCoupon} disabled={validatingCoupon || !couponCode.trim()}>
+            {validatingCoupon ? '...' : 'Validar'}
+          </Button>
+        </div>
+        {couponResult && (
+          <p className={`text-[10px] mt-1 font-medium ${couponResult.valid ? 'text-success' : 'text-destructive'}`}>
+            {couponResult.valid 
+              ? `✓ Cupón aplicado: ${couponResult.coupon.discount_percent > 0 ? `-${couponResult.coupon.discount_percent}%` : `-${formatARS(Number(couponResult.coupon.discount_fixed_ars))}`}`
+              : `✗ ${couponResult.reason}`}
+          </p>
+        )}
+      </div>
       <div><label className="text-sm text-muted-foreground">Precio personalizado (opcional)</label>
-        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(autoUnitPrice)}`} className="bg-muted border-border" /></div>
+        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(priceAfterCoupon)}`} className="bg-muted border-border" /></div>
       {product && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
           <div className="flex justify-between"><span className="text-muted-foreground">Precio unitario:</span><span>{formatARS(unitPrice)}</span></div>

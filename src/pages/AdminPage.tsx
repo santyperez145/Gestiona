@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS, formatUSD, getAuditLogsDB } from "@/lib/supabaseStore";
-import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3, ClipboardList } from "lucide-react";
+import { formatARS, formatUSD, getAuditLogsDB, getSellerGoalsDB, upsertSellerGoalDB } from "@/lib/supabaseStore";
+import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3, ClipboardList, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
 
@@ -32,9 +33,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState<VendorStats[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [sellerGoals, setSellerGoals] = useState<any[]>([]);
   const [period, setPeriod] = useState('all');
   const [addRoleOpen, setAddRoleOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'audit'>('overview');
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +51,7 @@ export default function AdminPage() {
     if (admin) {
       await loadVendorData();
       getAuditLogsDB(50).then(setAuditLogs).catch(() => {});
+      getSellerGoalsDB(user.id).then(setSellerGoals).catch(() => {});
     }
     setLoading(false);
   };
@@ -155,6 +158,7 @@ export default function AdminPage() {
         <div className="flex gap-2">
           <div className="flex bg-muted rounded-lg p-0.5">
             <Button variant={activeTab === 'overview' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('overview')}>Rendimiento</Button>
+            <Button variant={activeTab === 'goals' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('goals')} className="gap-1"><Target className="w-3.5 h-3.5" />Metas</Button>
             <Button variant={activeTab === 'audit' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('audit')} className="gap-1"><ClipboardList className="w-3.5 h-3.5" />Auditoría</Button>
           </div>
           <AssignRoleDialog onDone={loadVendorData} />
@@ -284,6 +288,16 @@ export default function AdminPage() {
       </div>
       </>)}
 
+      {/* Seller Goals Tab */}
+      {activeTab === 'goals' && (
+        <SellerGoalsTab 
+          vendors={vendors} 
+          goals={sellerGoals} 
+          ownerId={user!.id} 
+          onUpdate={() => getSellerGoalsDB(user!.id).then(setSellerGoals)} 
+        />
+      )}
+
       {/* Audit Log Tab */}
       {activeTab === 'audit' && (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -389,5 +403,115 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: { vendors: VendorStats[]; goals: any[]; ownerId: string; onUpdate: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState('');
+  const [targetArs, setTargetArs] = useState('');
+  const [commissionPct, setCommissionPct] = useState('5');
+  const [saving, setSaving] = useState(false);
+
+  const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
+  const sellers = vendors.filter(v => v.role.includes('vendedor') || v.role.includes('admin'));
+
+  const handleSave = async () => {
+    if (!selectedVendor || !targetArs) return;
+    setSaving(true);
+    try {
+      const vendorSales = goals.find(g => g.user_id === selectedVendor && g.month === currentMonth);
+      const vendor = vendors.find(v => v.userId === selectedVendor);
+      const totalSales = vendor?.totalRevenue || 0;
+      const commission = totalSales * (parseFloat(commissionPct) / 100);
+      
+      await upsertSellerGoalDB({
+        user_id: selectedVendor,
+        owner_id: ownerId,
+        month: currentMonth,
+        target_ars: parseFloat(targetArs),
+        commission_percent: parseFloat(commissionPct),
+        total_sales_ars: totalSales,
+        total_commission_ars: commission,
+      });
+      toast.success('Meta asignada');
+      setOpen(false);
+      onUpdate();
+    } catch (err: any) { toast.error(err.message); }
+    setSaving(false);
+  };
+
+  const goalsWithVendor = goals.filter(g => g.month === currentMonth).map(g => {
+    const vendor = vendors.find(v => v.userId === g.user_id);
+    return { ...g, vendor };
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-display font-semibold text-lg flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary" />Metas del Mes
+        </h3>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="gradient-gold text-primary-foreground"><Target className="w-3.5 h-3.5 mr-1" />Asignar Meta</Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader><DialogTitle className="font-display">Asignar Meta Mensual</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-muted-foreground">Vendedor</label>
+                <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {sellers.map(s => (
+                      <SelectItem key={s.userId} value={s.userId}>{s.displayName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><label className="text-sm text-muted-foreground">Meta mensual (ARS)</label>
+                <Input type="number" value={targetArs} onChange={e => setTargetArs(e.target.value)} placeholder="500000" className="bg-muted border-border mt-1" /></div>
+              <div><label className="text-sm text-muted-foreground">Comisión (%)</label>
+                <Input type="number" value={commissionPct} onChange={e => setCommissionPct(e.target.value)} placeholder="5" className="bg-muted border-border mt-1" /></div>
+              <Button onClick={handleSave} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">
+                {saving ? 'Guardando...' : 'Guardar Meta'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {goalsWithVendor.length === 0 ? (
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
+          <Target className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">No hay metas asignadas para este mes</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {goalsWithVendor.map(g => {
+            const progress = g.target_ars > 0 ? Math.min((g.total_sales_ars / g.target_ars) * 100, 100) : 0;
+            const commission = g.total_sales_ars * (g.commission_percent / 100);
+            return (
+              <div key={g.id} className="bg-card border border-border rounded-lg p-4 shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-medium text-sm">{g.vendor?.displayName || 'Vendedor'}</p>
+                    <span className="text-[10px] text-muted-foreground">{g.commission_percent}% comisión</span>
+                  </div>
+                  <span className={`text-lg font-bold ${progress >= 100 ? 'text-success' : 'text-primary'}`}>{progress.toFixed(0)}%</span>
+                </div>
+                <Progress value={progress} className="h-2.5 mb-2" />
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div><span className="text-muted-foreground">Vendido</span><p className="font-medium">{formatARS(g.total_sales_ars)}</p></div>
+                  <div><span className="text-muted-foreground">Meta</span><p className="font-medium">{formatARS(g.target_ars)}</p></div>
+                  <div><span className="text-muted-foreground">Comisión</span><p className="font-medium text-success">{formatARS(commission)}</p></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

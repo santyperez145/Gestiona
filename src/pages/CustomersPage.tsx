@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, getDebtsDB, formatARS } from "@/lib/supabaseStore";
-import { Users, TrendingUp, ShoppingBag, Star, Crown, AlertCircle, ArrowUpDown } from "lucide-react";
+import { getSalesDB, getDebtsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
+import { Users, TrendingUp, ShoppingBag, Star, Crown, AlertCircle, ArrowUpDown, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,6 +49,7 @@ export default function CustomersPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
@@ -58,9 +59,10 @@ export default function CustomersPage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [s, d] = await Promise.all([getSalesDB(user.id), getDebtsDB(user.id)]);
+      const [s, d, st] = await Promise.all([getSalesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id)]);
       setSales(s);
       setDebts(d);
+      setSettings(st);
       setLoading(false);
     })();
   }, [user]);
@@ -269,6 +271,45 @@ export default function CustomersPage() {
                       <p className="font-medium">{c.totalUnits}</p>
                     </div>
                   </div>
+
+                  {/* WhatsApp Remarketing */}
+                  {settings?.whatsapp_number && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <MessageCircle className="w-3 h-3" />Remarketing WhatsApp
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {(() => {
+                          const templates: { label: string; msg: string; color: string }[] = [];
+                          const name = c.name.split(' ')[0];
+                          if (c.segment === 'VIP' || c.segment === 'Premium') {
+                            templates.push({ label: '👑 Oferta VIP', msg: `Hola ${name}! Como cliente VIP tenés acceso a ofertas exclusivas antes que nadie. ¿Querés que te cuente las novedades? 🔥`, color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' });
+                          }
+                          if (c.segment === 'Dormido' || c.segment === 'Perdido') {
+                            templates.push({ label: '💤 Re-activar', msg: `¡Hola ${name}! Te extrañamos 😊 Tenemos novedades que te van a encantar. ¿Querés que te reserve algo? 🔥`, color: 'bg-red-500/20 text-red-300 border-red-500/30' });
+                          }
+                          if (c.segment === 'En riesgo') {
+                            templates.push({ label: '⚠️ Retener', msg: `Hola ${name}, hace tiempo no nos visitás. Tenemos productos nuevos que seguro te gustan. ¿Querés que te cuente? 😊`, color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' });
+                          }
+                          templates.push({ label: '📦 Nuevo producto', msg: `Hola ${name}! Llegaron productos nuevos que te van a interesar. ¿Querés que te mande el catálogo? 🛍️`, color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' });
+                          templates.push({ label: '🎉 Promo', msg: `Hola ${name}! Tenemos una promo especial solo por hoy. ¿Te interesa? 🔥`, color: 'bg-green-500/20 text-green-400 border-green-500/30' });
+                          
+                          const waNum = settings.whatsapp_number.replace(/[^0-9]/g, '');
+                          return templates.map(t => (
+                            <a
+                              key={t.label}
+                              href={`https://wa.me/${waNum}?text=${encodeURIComponent(t.msg)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border transition-all hover:scale-105 ${t.color}`}
+                            >
+                              {t.label}
+                            </a>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
