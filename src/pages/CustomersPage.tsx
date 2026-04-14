@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, getDebtsDB, formatARS } from "@/lib/supabaseStore";
-import { Users, TrendingUp, ShoppingBag, Star, Crown, AlertCircle, ArrowUpDown } from "lucide-react";
+import { getSalesDB, getDebtsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
+import { Users, TrendingUp, ShoppingBag, Star, Crown, AlertCircle, ArrowUpDown, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
