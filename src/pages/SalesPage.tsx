@@ -306,12 +306,27 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     volumeWarning = belowFloor;
   }
 
-  const unitPrice = customPrice ? (parseFloat(customPrice) || autoUnitPrice) : autoUnitPrice;
+  // Apply coupon discount
+  const couponDiscount = couponResult?.valid && couponResult.coupon ? 
+    (couponResult.coupon.discount_percent > 0 ? autoUnitPrice * (Number(couponResult.coupon.discount_percent) / 100) : Number(couponResult.coupon.discount_fixed_ars || 0)) : 0;
+  const priceAfterCoupon = Math.max(0, autoUnitPrice - couponDiscount);
+
+  const unitPrice = customPrice ? (parseFloat(customPrice) || priceAfterCoupon) : priceAfterCoupon;
   const total = unitPrice * qty;
   const costPerUnitUSD = isDecant ? (Number(product?.total_cost_usd || 0) / contentMl) * decantMl : Number(product?.total_cost_usd || 0);
   const costPerUnitARS = costPerUnitUSD * exchangeRate;
   const profitARS = total - (costPerUnitARS * qty);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const result = await validateCouponDB(userId, couponCode);
+      setCouponResult(result);
+    } catch { setCouponResult({ valid: false, reason: 'Error al validar' }); }
+    setValidatingCoupon(false);
+  };
 
   const filteredCustomers = customers.filter(c => 
     c.toLowerCase().includes((customerFilter || customerName).toLowerCase())
