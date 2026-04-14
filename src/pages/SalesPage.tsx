@@ -348,6 +348,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       profit_ars: profitARS, profit_usd: profitUSD,
       customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
+      coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
     };
 
     if (editItem) {
