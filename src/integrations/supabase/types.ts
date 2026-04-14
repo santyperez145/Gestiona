@@ -44,6 +44,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          current_uses: number
+          discount_fixed_ars: number | null
+          discount_percent: number | null
+          id: string
+          max_uses: number | null
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          current_uses?: number
+          discount_fixed_ars?: number | null
+          discount_percent?: number | null
+          id?: string
+          max_uses?: number | null
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          current_uses?: number
+          discount_fixed_ars?: number | null
+          discount_percent?: number | null
+          id?: string
+          max_uses?: number | null
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           amount_ars: number
@@ -421,6 +463,7 @@ export type Database = {
       sales: {
         Row: {
           cost_per_unit_usd: number
+          coupon_id: string | null
           created_at: string
           customer_name: string | null
           date: string
@@ -439,6 +482,7 @@ export type Database = {
         }
         Insert: {
           cost_per_unit_usd?: number
+          coupon_id?: string | null
           created_at?: string
           customer_name?: string | null
           date?: string
@@ -457,6 +501,7 @@ export type Database = {
         }
         Update: {
           cost_per_unit_usd?: number
+          coupon_id?: string | null
           created_at?: string
           customer_name?: string | null
           date?: string
@@ -489,6 +534,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_goals: {
+        Row: {
+          commission_percent: number
+          created_at: string
+          id: string
+          month: string
+          owner_id: string
+          target_ars: number
+          total_commission_ars: number
+          total_sales_ars: number
+          user_id: string
+        }
+        Insert: {
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          month: string
+          owner_id: string
+          target_ars?: number
+          total_commission_ars?: number
+          total_sales_ars?: number
+          user_id: string
+        }
+        Update: {
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          month?: string
+          owner_id?: string
+          target_ars?: number
+          total_commission_ars?: number
+          total_sales_ars?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       settings: {
         Row: {
