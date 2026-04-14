@@ -231,6 +231,69 @@ export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
   return names.sort((a, b) => a.localeCompare(b, 'es'));
 }
 
+// ========= COUPONS =========
+export async function getCouponsDB(userId: string) {
+  const { data, error } = await supabase.from('coupons').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addCouponDB(coupon: any) {
+  const { error } = await supabase.from('coupons').insert(coupon);
+  if (error) throw error;
+}
+
+export async function updateCouponDB(id: string, updates: any) {
+  const { error } = await supabase.from('coupons').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteCouponDB(id: string) {
+  const { error } = await supabase.from('coupons').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function validateCouponDB(userId: string, code: string) {
+  const { data, error } = await supabase
+    .from('coupons')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('code', code.toUpperCase().trim())
+    .eq('active', true)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return { valid: false, reason: 'Cupón no encontrado' };
+  if (data.max_uses && data.current_uses >= data.max_uses) return { valid: false, reason: 'Cupón agotado' };
+  if (data.valid_from && new Date(data.valid_from) > new Date()) return { valid: false, reason: 'Cupón aún no vigente' };
+  if (data.valid_until && new Date(data.valid_until) < new Date()) return { valid: false, reason: 'Cupón expirado' };
+  return { valid: true, coupon: data };
+}
+
+export async function incrementCouponUse(id: string) {
+  const { data } = await supabase.from('coupons').select('current_uses').eq('id', id).single();
+  if (data) {
+    await supabase.from('coupons').update({ current_uses: (data.current_uses || 0) + 1 }).eq('id', id);
+  }
+}
+
+// ========= SELLER GOALS =========
+export async function getSellerGoalsDB(ownerId: string) {
+  const { data, error } = await supabase.from('seller_goals').select('*').eq('owner_id', ownerId).order('month', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function upsertSellerGoalDB(goal: any) {
+  const { error } = await supabase.from('seller_goals').upsert(goal, { onConflict: 'user_id,month' });
+  if (error) throw error;
+}
+
+export async function getMyGoalsDB(userId: string) {
+  const { data, error } = await supabase.from('seller_goals').select('*').eq('user_id', userId).order('month', { ascending: false }).limit(3);
+  if (error) throw error;
+  return data || [];
+}
+
 // ========= HELPERS =========
 export function formatARS(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n); }
 export function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
