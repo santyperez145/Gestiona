@@ -1,55 +1,86 @@
 
-# Plan: Sección Mayorista en Catálogo + Recompra Automática en Órdenes + Mejoras
 
-## 1. Sección "Precios Mayoristas" en Catálogo Público
+# Plan: Mega Mejoras — Cupones, Comisiones, Ventas Automáticas, Finanzas y Catálogo
 
-**Archivo:** `src/pages/PublicCatalogPage.tsx`
+## 1. Sistema de Cupones de Descuento
 
-Nueva sección visible en el catálogo público, después de los productos destacados:
-- Titulo: "Precios Mayoristas" con ícono
-- Muestra todos los productos con su precio mayorista calculado (descuento sobre precio efectivo)
-- Texto: "Llevá {threshold}+ unidades y obtené {percent}% OFF"
-- Tabla/grid con: producto, precio unitario, precio mayorista, ahorro por unidad
-- Botón WhatsApp "Consultar por mayor" con mensaje pre-armado
-- Solo se muestra si `volume_discount_threshold` y `volume_discount_percent` están configurados
-
-## 2. Recompra Automática en Órdenes de Compra
-
-**Archivo:** `src/pages/PurchasesPage.tsx` (componente `PurchaseOrderGenerator`)
-
-Agregar botón "Pre-cargar recompra" que:
-- Consulta las ventas recientes (últimos 30 días por defecto, configurable)
-- Agrupa por `product_id`, suma las cantidades vendidas
-- Auto-rellena el formulario de orden de compra con esas cantidades
-- Muestra un resumen: "Basado en ventas de los últimos 30 días"
-- El usuario puede ajustar cantidades antes de generar el Excel
-
-**Lógica:** `SELECT product_id, SUM(quantity) FROM sales WHERE date > now() - interval '30 days' GROUP BY product_id`
-
-Nuevo helper en `supabaseStore.ts`:
-```typescript
-export async function getSalesAggregatedDB(userId: string, days: number = 30)
+**Migración SQL:** Nueva tabla `coupons`
+```sql
+id, user_id, code (unique), discount_percent, discount_fixed_ars,
+max_uses, current_uses, valid_from, valid_until, active, created_at
 ```
 
-## 3. Mejoras adicionales detectadas
+**En SalesPage:** Campo "Código de cupón" que valida en tiempo real, muestra el descuento y lo aplica al total. Se registra `coupon_id` en la venta.
 
-### 3a. Decant prices en catálogo público muestran $0
-En `PublicCatalogPage.tsx` líneas 799-801, los precios de decants (10ml, 5ml, 2.5ml) están hardcodeados a `price: 0`. Hay que calcularlos usando `calculateDecantPrice` con los settings del negocio (ya disponibles en la página).
+**En SettingsPage o nueva sección:** CRUD de cupones — crear códigos como EXENTRY10, definir % o monto fijo, usos máximos, vigencia.
 
-### 3b. Badges de volumen en cards del catálogo
-Agregar texto sutil en cada card: "Llevá {X}+ = -{Y}% OFF" para incentivar compras mayoristas desde el grid principal.
+**En catálogo público:** Input para ingresar cupón antes de contactar por WhatsApp, mostrando el precio final con descuento.
+
+## 2. Metas y Comisiones para Vendedores
+
+**Migración SQL:** Nueva tabla `seller_goals`
+```sql
+id, user_id (vendedor), month (date), target_ars, commission_percent,
+total_sales_ars, total_commission_ars, created_at
+```
+
+**En AdminPage:** Sección para asignar metas mensuales y % de comisión por vendedor.
+
+**En Dashboard (vendedor):** Barra de progreso hacia la meta, monto de comisión ganada, ranking si hay múltiples vendedores.
+
+**En Dashboard (admin):** Vista consolidada de rendimiento de vendedores con comisiones acumuladas.
+
+## 3. Remarketing por WhatsApp
+
+**En CustomersPage:** Botón "Enviar mensaje" por segmento (dormidos, en riesgo, VIP) con templates pre-armados:
+- Dormidos: "¡Te extrañamos! Tenemos novedades que te van a encantar 🔥"
+- En riesgo: "Hola {nombre}, hace tiempo no nos visitás. ¿Querés que te reserve algo?"
+- VIP: "Como cliente VIP tenés acceso a ofertas exclusivas"
+
+Genera link `wa.me/{phone}?text=...` con mensaje personalizado.
+
+## 4. Gestión Financiera Avanzada
+
+**En Dashboard:** Nuevas cards:
+- **Flujo de caja proyectado** (ventas promedio × 30 - gastos fijos estimados)
+- **Punto de equilibrio**: unidades necesarias para cubrir costos del mes
+- **Simulador tipo de cambio**: slider que muestra impacto en márgenes si el dólar sube/baja
+
+**En ReportsPage:** Nuevo reporte "Rentabilidad por producto" con columnas de margen %, ROI, velocidad de rotación (stock / ventas mensuales).
+
+## 5. Mejoras del Catálogo Público
+
+- **Comparador de perfumes**: Seleccionar 2-3 perfumes y ver tabla comparativa (precio, duración, notas, género)
+- **Favoritos con localStorage**: Corazón en cada producto, sección "Mis favoritos" persistente
+- **Filtros avanzados**: Por rango de precio (slider), género, marca, "solo ofertas", "solo con stock"
+- **SEO básico**: Meta tags dinámicos con nombre de producto en el título
+
+## 6. Carrito y Checkout Simplificado
+
+**En PublicCatalogPage:** Botón "Agregar al carrito" (localStorage). Vista de carrito flotante con resumen. Botón "Pedir por WhatsApp" que envía todo el carrito en un solo mensaje con detalle de productos, cantidades, tamaños (decant/completo) y total.
 
 ---
 
-## Archivos a modificar
+## Archivos a crear/modificar
 
 | Archivo | Cambio |
 |---|---|
-| `src/pages/PublicCatalogPage.tsx` | Sección mayorista, fix precios decants $0, badge volumen en cards |
-| `src/pages/PurchasesPage.tsx` | Botón "Pre-cargar recompra" en PurchaseOrderGenerator |
-| `src/lib/supabaseStore.ts` | Nueva función `getSalesAggregatedDB()` |
+| Migración SQL | Tablas `coupons`, `seller_goals` + RLS |
+| `src/pages/SalesPage.tsx` | Input cupón, validación, aplicar descuento |
+| `src/pages/SettingsPage.tsx` | CRUD cupones |
+| `src/pages/AdminPage.tsx` | Metas y comisiones por vendedor |
+| `src/pages/Dashboard.tsx` | Progreso vendedor, flujo de caja, simulador TC |
+| `src/pages/CustomersPage.tsx` | Botones remarketing WhatsApp por segmento |
+| `src/pages/ReportsPage.tsx` | Reporte rentabilidad por producto |
+| `src/pages/PublicCatalogPage.tsx` | Carrito, comparador, favoritos, filtros avanzados |
+| `src/lib/supabaseStore.ts` | Helpers cupones, metas, validaciones |
 
 ## Orden de implementación
-1. `supabaseStore.ts` — helper de ventas agregadas
-2. `PurchasesPage.tsx` — botón recompra automática
-3. `PublicCatalogPage.tsx` — sección mayorista + fix decants + badges
+1. Migración SQL (coupons + seller_goals)
+2. Sistema de cupones (CRUD + aplicación en ventas)
+3. Metas y comisiones vendedores
+4. Remarketing WhatsApp en clientes
+5. Dashboard financiero avanzado (flujo caja, simulador TC)
+6. Catálogo: carrito + favoritos + comparador + filtros
+7. Reportes de rentabilidad por producto
+
