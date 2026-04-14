@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS, formatUSD, getAuditLogsDB } from "@/lib/supabaseStore";
-import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3, ClipboardList } from "lucide-react";
+import { formatARS, formatUSD, getAuditLogsDB, getSellerGoalsDB, upsertSellerGoalDB } from "@/lib/supabaseStore";
+import { Shield, Users, TrendingUp, DollarSign, Package, Crown, UserPlus, BarChart3, ClipboardList, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
 
