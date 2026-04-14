@@ -360,6 +360,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       await addSaleDB({ id: saleId, user_id: userId, ...saleData });
       await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
+      if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
       if (productId && !isDecant) await checkStockAfterSale(productId, product!.name);
     }
     onSave();
