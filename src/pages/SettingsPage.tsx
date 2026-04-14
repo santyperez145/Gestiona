@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2 } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -354,8 +355,120 @@ export default function SettingsPage() {
               Datos protegidos con autenticación, cifrado y auditoría. Cada usuario solo ve sus propios datos. Sistema multi-tenant con aislamiento completo.
             </p>
           </div>
+
+          {/* Coupons CRUD */}
+          <CouponsManager userId={user!.id} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function CouponsManager({ userId }: { userId: string }) {
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [discountFixed, setDiscountFixed] = useState('');
+  const [maxUses, setMaxUses] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+
+  const load = async () => {
+    const data = await getCouponsDB(userId);
+    setCoupons(data);
+  };
+
+  useEffect(() => { load(); }, [userId]);
+
+  const handleCreate = async () => {
+    if (!code.trim()) { toast.error('Ingresá un código'); return; }
+    try {
+      await addCouponDB({
+        user_id: userId,
+        code: code.toUpperCase().trim(),
+        discount_percent: parseFloat(discountPercent) || 0,
+        discount_fixed_ars: parseFloat(discountFixed) || 0,
+        max_uses: maxUses ? parseInt(maxUses) : null,
+        valid_until: validUntil || null,
+      });
+      toast.success(`Cupón ${code.toUpperCase()} creado`);
+      setOpen(false); setCode(''); setDiscountPercent(''); setDiscountFixed(''); setMaxUses(''); setValidUntil('');
+      load();
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleToggle = async (id: string, active: boolean) => {
+    await updateCouponDB(id, { active: !active });
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteCouponDB(id);
+    toast.success('Cupón eliminado');
+    load();
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <Ticket className="w-4 h-4 text-primary" />Cupones de Descuento
+        </h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="gradient-gold text-primary-foreground"><Plus className="w-3.5 h-3.5 mr-1" />Nuevo</Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader><DialogTitle className="font-display">Crear Cupón</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><label className="text-sm text-muted-foreground">Código</label>
+                <Input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="EXENTRY10" className="bg-muted border-border mt-1" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-sm text-muted-foreground">Descuento %</label>
+                  <Input type="number" value={discountPercent} onChange={e => setDiscountPercent(e.target.value)} placeholder="10" className="bg-muted border-border mt-1" /></div>
+                <div><label className="text-sm text-muted-foreground">Desc. fijo ARS</label>
+                  <Input type="number" value={discountFixed} onChange={e => setDiscountFixed(e.target.value)} placeholder="5000" className="bg-muted border-border mt-1" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-sm text-muted-foreground">Usos máximos</label>
+                  <Input type="number" value={maxUses} onChange={e => setMaxUses(e.target.value)} placeholder="Ilimitado" className="bg-muted border-border mt-1" /></div>
+                <div><label className="text-sm text-muted-foreground">Válido hasta</label>
+                  <Input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} className="bg-muted border-border mt-1" /></div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Si ponés % y monto fijo, se aplica el porcentaje. Dejá vacío lo que no uses.</p>
+              <Button onClick={handleCreate} className="w-full gradient-gold text-primary-foreground font-semibold">Crear Cupón</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {coupons.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-4">No hay cupones creados. Creá uno para compartir con tus clientes.</p>
+      ) : (
+        <div className="space-y-2">
+          {coupons.map(c => (
+            <div key={c.id} className={`flex items-center justify-between p-3 rounded-lg border ${c.active ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50 opacity-60'}`}>
+              <div>
+                <p className="font-mono font-bold text-sm">{c.code}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {c.discount_percent > 0 ? `${c.discount_percent}% OFF` : `${formatARS(Number(c.discount_fixed_ars))} OFF`}
+                  {c.max_uses ? ` · ${c.current_uses}/${c.max_uses} usos` : ` · ${c.current_uses} usos`}
+                  {c.valid_until ? ` · Hasta ${new Date(c.valid_until).toLocaleDateString('es-AR')}` : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={c.active} onCheckedChange={() => handleToggle(c.id, c.active)} />
+                <ConfirmDialog
+                  trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                  title="¿Eliminar cupón?"
+                  confirmText="Eliminar"
+                  onConfirm={() => handleDelete(c.id)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
