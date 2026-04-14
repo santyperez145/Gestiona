@@ -49,6 +49,7 @@ export default function CustomersPage() {
   const { user } = useAuth();
   const [sales, setSales] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
@@ -58,9 +59,10 @@ export default function CustomersPage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [s, d] = await Promise.all([getSalesDB(user.id), getDebtsDB(user.id)]);
+      const [s, d, st] = await Promise.all([getSalesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id)]);
       setSales(s);
       setDebts(d);
+      setSettings(st);
       setLoading(false);
     })();
   }, [user]);
