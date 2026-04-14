@@ -33,9 +33,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState<VendorStats[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [sellerGoals, setSellerGoals] = useState<any[]>([]);
   const [period, setPeriod] = useState('all');
   const [addRoleOpen, setAddRoleOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'audit'>('overview');
 
   useEffect(() => {
     if (!user) return;
@@ -50,6 +51,7 @@ export default function AdminPage() {
     if (admin) {
       await loadVendorData();
       getAuditLogsDB(50).then(setAuditLogs).catch(() => {});
+      getSellerGoalsDB(user.id).then(setSellerGoals).catch(() => {});
     }
     setLoading(false);
   };
@@ -156,6 +158,7 @@ export default function AdminPage() {
         <div className="flex gap-2">
           <div className="flex bg-muted rounded-lg p-0.5">
             <Button variant={activeTab === 'overview' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('overview')}>Rendimiento</Button>
+            <Button variant={activeTab === 'goals' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('goals')} className="gap-1"><Target className="w-3.5 h-3.5" />Metas</Button>
             <Button variant={activeTab === 'audit' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab('audit')} className="gap-1"><ClipboardList className="w-3.5 h-3.5" />Auditoría</Button>
           </div>
           <AssignRoleDialog onDone={loadVendorData} />
