@@ -288,6 +288,16 @@ export default function AdminPage() {
       </div>
       </>)}
 
+      {/* Seller Goals Tab */}
+      {activeTab === 'goals' && (
+        <SellerGoalsTab 
+          vendors={vendors} 
+          goals={sellerGoals} 
+          ownerId={user!.id} 
+          onUpdate={() => getSellerGoalsDB(user!.id).then(setSellerGoals)} 
+        />
+      )}
+
       {/* Audit Log Tab */}
       {activeTab === 'audit' && (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
