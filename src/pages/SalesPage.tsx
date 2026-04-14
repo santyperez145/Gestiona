@@ -458,8 +458,30 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </p>
         )}
       </div>
+      {/* Coupon code */}
+      <div>
+        <label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="w-3.5 h-3.5" />Cupón de descuento</label>
+        <div className="flex gap-2 mt-1">
+          <Input 
+            value={couponCode} 
+            onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }} 
+            placeholder="Ej: EXENTRY10" 
+            className="bg-muted border-border flex-1" 
+          />
+          <Button type="button" variant="outline" size="sm" onClick={handleValidateCoupon} disabled={validatingCoupon || !couponCode.trim()}>
+            {validatingCoupon ? '...' : 'Validar'}
+          </Button>
+        </div>
+        {couponResult && (
+          <p className={`text-[10px] mt-1 font-medium ${couponResult.valid ? 'text-success' : 'text-destructive'}`}>
+            {couponResult.valid 
+              ? `✓ Cupón aplicado: ${couponResult.coupon.discount_percent > 0 ? `-${couponResult.coupon.discount_percent}%` : `-${formatARS(Number(couponResult.coupon.discount_fixed_ars))}`}`
+              : `✗ ${couponResult.reason}`}
+          </p>
+        )}
+      </div>
       <div><label className="text-sm text-muted-foreground">Precio personalizado (opcional)</label>
-        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(autoUnitPrice)}`} className="bg-muted border-border" /></div>
+        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(priceAfterCoupon)}`} className="bg-muted border-border" /></div>
       {product && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
           <div className="flex justify-between"><span className="text-muted-foreground">Precio unitario:</span><span>{formatARS(unitPrice)}</span></div>
