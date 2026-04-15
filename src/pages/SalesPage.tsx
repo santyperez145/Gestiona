@@ -280,6 +280,11 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const isFiado = paymentMethod === 'fiado';
   const isMayorista = paymentMethod === 'mayorista';
 
+  // Variants for current product
+  const productVariants = allVariants.filter(v => v.product_id === productId && v.stock > 0);
+  const hasVariants = productVariants.length > 0;
+  const selectedVariant = productVariants.find(v => v.id === selectedVariantId);
+
   const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
   const contentMl = Number(product?.content_ml || 100);
   const exchangeRate = Number(settings?.exchange_rate || 1695);
