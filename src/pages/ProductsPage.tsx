@@ -547,6 +547,66 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           <Input type="number" min="1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border" />
         </div>
       </div>
+      {/* Variant/Flavor Management for Vapers */}
+      {isVaper && (
+        <div className="bg-muted/50 rounded-lg p-3 border border-border space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-success" />Sabores / Variantes</label>
+            <button type="button" onClick={() => setShowBulkImport(!showBulkImport)} className="text-[10px] text-primary hover:underline">
+              {showBulkImport ? 'Cerrar' : 'Importar lista'}
+            </button>
+          </div>
+          {showBulkImport && (
+            <div className="space-y-2">
+              <Input value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder="Menta, Frutilla, Uva Ice, Sandía..." className="bg-muted border-border text-xs" />
+              <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => {
+                const names = bulkVariants.split(',').map(n => n.trim()).filter(Boolean);
+                const existing = new Set(variants.map(v => v.variant_name.toLowerCase()));
+                const newVars = names.filter(n => !existing.has(n.toLowerCase())).map(n => ({
+                  variant_name: n, stock: 0, active: true, _new: true,
+                }));
+                setVariants([...variants, ...newVars]);
+                setBulkVariants('');
+                setShowBulkImport(false);
+                if (newVars.length > 0) toast.success(`${newVars.length} sabores agregados`);
+              }}>Agregar todos</Button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre del sabor" className="bg-muted border-border text-xs flex-1" />
+            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-20" placeholder="Stock" />
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              if (!newVariantName.trim()) return;
+              if (variants.some(v => v.variant_name.toLowerCase() === newVariantName.trim().toLowerCase())) {
+                toast.error('Ese sabor ya existe'); return;
+              }
+              setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true }]);
+              setNewVariantName(''); setNewVariantStock('0');
+            }}><Plus className="w-3 h-3" /></Button>
+          </div>
+          {variants.length > 0 && (
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {variants.map((v, i) => (
+                <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border">
+                  <span className="text-xs font-medium flex-1 truncate">{v.variant_name}</span>
+                  <Input type="number" min="0" value={String(v.stock)} onChange={e => {
+                    const updated = [...variants];
+                    updated[i] = { ...updated[i], stock: parseInt(e.target.value) || 0 };
+                    setVariants(updated);
+                  }} className="bg-muted border-border text-xs w-16 h-7" />
+                  <span className="text-[10px] text-muted-foreground">uds</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => {
+                    setVariants(variants.filter((_, j) => j !== i));
+                  }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Stock total (suma de variantes): <span className="font-bold text-success">{variants.reduce((s, v) => s + (v.stock || 0), 0)}</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       {(category === 'perfume_arabe' || category === 'perfume_diseñador') && (
         <Button type="button" variant="outline" size="sm" disabled={generatingDesc || !name.trim()} className="text-xs"
           onClick={async () => {
