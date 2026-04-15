@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits } from "@/lib/supabaseStore";
+import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
