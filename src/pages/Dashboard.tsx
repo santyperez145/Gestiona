@@ -175,6 +175,24 @@ export default function Dashboard() {
       .sort((a: any, b: any) => b.soldQty - a.soldQty)
       .slice(0, 5);
 
+    // Financial projections
+    const daysWithSales = new Set(sales.map((s: any) => new Date(s.date).toISOString().slice(0, 10))).size;
+    const avgDailySalesARS = daysWithSales > 0 ? totalSalesARS / Math.max(daysWithSales, 1) : 0;
+    const avgDailyProfitARS = daysWithSales > 0 ? grossProfitARS / Math.max(daysWithSales, 1) : 0;
+    const projectedMonthlySalesARS = avgDailySalesARS * 30;
+    const projectedMonthlyProfitARS = avgDailyProfitARS * 30;
+    const avgMonthlyPurchasesARS = totalPurchasesARS > 0 ? totalPurchasesARS / Math.max(Object.keys(monthMap).length, 1) : 0;
+    const projectedCashFlowARS = projectedMonthlySalesARS - avgMonthlyPurchasesARS;
+    
+    // Break-even
+    const avgMarginPerUnit = sales.length > 0 ? grossProfitARS / sales.reduce((s: number, v: any) => s + v.quantity, 0) : 0;
+    const fixedCostsEstimate = avgMonthlyPurchasesARS;
+    const breakEvenUnits = avgMarginPerUnit > 0 ? Math.ceil(fixedCostsEstimate / avgMarginPerUnit) : 0;
+
+    // Exchange rate impact data
+    const currentRate = Number(settings.exchange_rate);
+    const totalCostUSDInInventory = products.reduce((s: number, p: any) => s + Number(p.total_cost_usd), 0);
+
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
@@ -195,6 +213,10 @@ export default function Dashboard() {
       recentSales: sales.slice(0, 5),
       paidSalesARS, unpaidSalesARS,
       topMarginProducts, lowMarginProducts, minPriceForMargin,
+      // Financial
+      projectedMonthlySalesARS, projectedMonthlyProfitARS, projectedCashFlowARS,
+      avgMonthlyPurchasesARS, breakEvenUnits, avgMarginPerUnit,
+      currentRate, totalCostUSDInInventory, products: allProducts,
     };
   }, [rawData, filterCat]);
 
