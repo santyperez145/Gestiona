@@ -74,11 +74,15 @@ export default function ProductsPage() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
 
   const reload = async () => {
     if (!user) return;
-    const [p, s] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id)]);
+    const [p, s, allVariants] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id), getVariantsByUserDB(user.id)]);
     setProducts(p); setSettings(s); setLoading(false);
+    const counts: Record<string, number> = {};
+    allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
+    setVariantCounts(counts);
   };
   useEffect(() => { reload(); }, [user]);
 
