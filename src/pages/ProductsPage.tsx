@@ -214,13 +214,18 @@ export default function ProductsPage() {
                   <tbody>
                      {items.map((p: any) => (
                        <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                         <td className="p-3 font-medium max-w-[200px] truncate">
-                           <div className="flex items-center gap-2">
-                             {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
-                             <span className="truncate">{p.name}</span>
-                             {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
-                           </div>
-                         </td>
+                          <td className="p-3 font-medium max-w-[200px] truncate">
+                            <div className="flex items-center gap-2">
+                              {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
+                              <span className="truncate">{p.name}</span>
+                              {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
+                              {variantCounts[p.id] > 0 && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
+                                  <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
                          <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
