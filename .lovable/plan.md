@@ -1,63 +1,69 @@
 
 
-# Plan: Mega Mejoras — Cupones, Comisiones, Ventas Automáticas, Finanzas y Catálogo
+# Plan: Sistema de Variantes (Sabores) para Vapers + Profesionalización General
 
-## 1. Sistema de Cupones de Descuento
+## Concepto clave: Variantes sin duplicar productos
 
-**Migración SQL:** Nueva tabla `coupons`
-```sql
-id, user_id, code (unique), discount_percent, discount_fixed_ars,
-max_uses, current_uses, valid_from, valid_until, active, created_at
+En vez de crear un producto por cada sabor de vaper, se agrega una tabla `product_variants` que almacena los sabores/variantes de cada producto. El stock se trackea **por variante**, y las ventas registran qué variante se vendió. El producto padre mantiene el stock total (suma de variantes).
+
+```text
+┌─────────────────┐       ┌──────────────────────┐
+│   products      │ 1───N │  product_variants     │
+│                 │       │                      │
+│ VAPORESSO X     │       │ variant: "Menta"     │
+│ stock: 15 (sum) │       │ stock: 5             │
+│                 │       │ variant: "Frutilla"  │
+│                 │       │ stock: 4             │
+│                 │       │ variant: "Uva"       │
+│                 │       │ stock: 6             │
+└─────────────────┘       └──────────────────────┘
 ```
 
-**En SalesPage:** Campo "Código de cupón" que valida en tiempo real, muestra el descuento y lo aplica al total. Se registra `coupon_id` en la venta.
+---
 
-**En SettingsPage o nueva sección:** CRUD de cupones — crear códigos como EXENTRY10, definir % o monto fijo, usos máximos, vigencia.
+## 1. Migración SQL
 
-**En catálogo público:** Input para ingresar cupón antes de contactar por WhatsApp, mostrando el precio final con descuento.
+**Nueva tabla `product_variants`:**
+- `id`, `product_id` (FK), `user_id`, `variant_name` (ej: "Menta", "Uva Ice"), `stock` (integer), `sku` (opcional), `active`, `created_at`
+- Constraint UNIQUE en `(product_id, variant_name)`
+- RLS: mismo patrón que products (admin full, authenticated read own, anon read)
 
-## 2. Metas y Comisiones para Vendedores
+**Columna en `sales`:** `variant_id UUID` nullable para registrar qué sabor se vendió.
 
-**Migración SQL:** Nueva tabla `seller_goals`
-```sql
-id, user_id (vendedor), month (date), target_ars, commission_percent,
-total_sales_ars, total_commission_ars, created_at
-```
+## 2. Gestión de Variantes en ProductsPage
 
-**En AdminPage:** Sección para asignar metas mensuales y % de comisión por vendedor.
+- En el formulario de producto, si la categoría es `vaper`, aparece sección "Sabores / Variantes"
+- Input para agregar sabores con stock individual: `[Menta: 5] [Frutilla: 3] [+ Agregar]`
+- El stock total del producto = suma de stocks de variantes
+- Al editar un producto existente, se cargan las variantes actuales
+- Botón "Importar sabores" que permite pegar lista separada por comas
 
-**En Dashboard (vendedor):** Barra de progreso hacia la meta, monto de comisión ganada, ranking si hay múltiples vendedores.
+## 3. Variantes en SalesPage
 
-**En Dashboard (admin):** Vista consolidada de rendimiento de vendedores con comisiones acumuladas.
+- Al seleccionar un producto tipo vaper que tiene variantes, aparece un selector extra "Sabor/Variante"
+- Solo muestra variantes con stock > 0
+- Al registrar la venta, se descuenta stock de la variante específica y se actualiza el total del producto
+- El `product_name` registrado incluye el sabor: "VAPORESSO X (Menta)"
 
-## 3. Remarketing por WhatsApp
+## 4. Profesionalización General
 
-**En CustomersPage:** Botón "Enviar mensaje" por segmento (dormidos, en riesgo, VIP) con templates pre-armados:
-- Dormidos: "¡Te extrañamos! Tenemos novedades que te van a encantar 🔥"
-- En riesgo: "Hola {nombre}, hace tiempo no nos visitás. ¿Querés que te reserve algo?"
-- VIP: "Como cliente VIP tenés acceso a ofertas exclusivas"
+### 4a. Dashboard financiero avanzado
+- **Flujo de caja proyectado**: ventas promedio diarias × 30 - compras promedio mensuales
+- **Punto de equilibrio**: costos fijos / margen promedio por unidad
+- **Simulador tipo de cambio**: slider que muestra impacto en márgenes globales
 
-Genera link `wa.me/{phone}?text=...` con mensaje personalizado.
+### 4b. Reportes mejorados
+- Nuevo reporte "Rentabilidad por Producto" con columnas: Margen %, ROI individual, velocidad de rotación (ventas/mes vs stock)
+- Reporte de variantes más vendidas (para vapers)
 
-## 4. Gestión Financiera Avanzada
+### 4c. UX del catálogo público
+- Filtros avanzados: slider de precio, filtro por marca, "solo con stock"
+- Favoritos con localStorage + sección "Mis favoritos"
+- Carrito con localStorage + botón "Pedir todo por WhatsApp"
 
-**En Dashboard:** Nuevas cards:
-- **Flujo de caja proyectado** (ventas promedio × 30 - gastos fijos estimados)
-- **Punto de equilibrio**: unidades necesarias para cubrir costos del mes
-- **Simulador tipo de cambio**: slider que muestra impacto en márgenes si el dólar sube/baja
-
-**En ReportsPage:** Nuevo reporte "Rentabilidad por producto" con columnas de margen %, ROI, velocidad de rotación (stock / ventas mensuales).
-
-## 5. Mejoras del Catálogo Público
-
-- **Comparador de perfumes**: Seleccionar 2-3 perfumes y ver tabla comparativa (precio, duración, notas, género)
-- **Favoritos con localStorage**: Corazón en cada producto, sección "Mis favoritos" persistente
-- **Filtros avanzados**: Por rango de precio (slider), género, marca, "solo ofertas", "solo con stock"
-- **SEO básico**: Meta tags dinámicos con nombre de producto en el título
-
-## 6. Carrito y Checkout Simplificado
-
-**En PublicCatalogPage:** Botón "Agregar al carrito" (localStorage). Vista de carrito flotante con resumen. Botón "Pedir por WhatsApp" que envía todo el carrito en un solo mensaje con detalle de productos, cantidades, tamaños (decant/completo) y total.
+### 4d. Mejoras en la tabla de productos
+- Indicador visual de variantes (badge con cantidad de sabores)
+- Tooltip hover que muestra los sabores disponibles y stock de cada uno
 
 ---
 
@@ -65,22 +71,20 @@ Genera link `wa.me/{phone}?text=...` con mensaje personalizado.
 
 | Archivo | Cambio |
 |---|---|
-| Migración SQL | Tablas `coupons`, `seller_goals` + RLS |
-| `src/pages/SalesPage.tsx` | Input cupón, validación, aplicar descuento |
-| `src/pages/SettingsPage.tsx` | CRUD cupones |
-| `src/pages/AdminPage.tsx` | Metas y comisiones por vendedor |
-| `src/pages/Dashboard.tsx` | Progreso vendedor, flujo de caja, simulador TC |
-| `src/pages/CustomersPage.tsx` | Botones remarketing WhatsApp por segmento |
-| `src/pages/ReportsPage.tsx` | Reporte rentabilidad por producto |
-| `src/pages/PublicCatalogPage.tsx` | Carrito, comparador, favoritos, filtros avanzados |
-| `src/lib/supabaseStore.ts` | Helpers cupones, metas, validaciones |
+| Migración SQL | Tabla `product_variants` + `variant_id` en sales |
+| `src/lib/supabaseStore.ts` | CRUD variantes, helpers financieros |
+| `src/pages/ProductsPage.tsx` | Sección variantes en form, badge en tabla |
+| `src/pages/SalesPage.tsx` | Selector de variante, descuento stock variante |
+| `src/pages/Dashboard.tsx` | Flujo caja, punto equilibrio, simulador TC |
+| `src/pages/ReportsPage.tsx` | Reporte rentabilidad, reporte variantes |
+| `src/pages/PublicCatalogPage.tsx` | Carrito, favoritos, filtros avanzados, variantes |
 
 ## Orden de implementación
-1. Migración SQL (coupons + seller_goals)
-2. Sistema de cupones (CRUD + aplicación en ventas)
-3. Metas y comisiones vendedores
-4. Remarketing WhatsApp en clientes
-5. Dashboard financiero avanzado (flujo caja, simulador TC)
-6. Catálogo: carrito + favoritos + comparador + filtros
-7. Reportes de rentabilidad por producto
+1. Migración SQL (product_variants + variant_id en sales)
+2. Store helpers para variantes
+3. ProductsPage: gestión de variantes para vapers
+4. SalesPage: selector de variante + descuento stock
+5. Dashboard: herramientas financieras avanzadas
+6. Catálogo público: carrito + favoritos + filtros + variantes
+7. Reportes: rentabilidad por producto + variantes
 
