@@ -441,23 +441,45 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     
     const imageUrl = await uploadImage();
+    // If vaper with variants, stock = sum of variant stocks
+    const variantTotal = isVaper && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
     const data = {
       name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
       cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
       sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-      stock: parseInt(stock) || 0,
+      stock: variantTotal,
       image_url: imageUrl,
       featured,
       offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
       content_ml: parseInt(contentMl) || 100,
     };
+    let productId = product?.id;
     if (product) {
       await updateProductDB(product.id, data);
       await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
     } else {
-      await addProductDB({ ...data, user_id: userId });
-      await logAudit(userId, 'create', 'product', undefined, { name: data.name });
+      productId = crypto.randomUUID();
+      await addProductDB({ ...data, user_id: userId, id: productId });
+      await logAudit(userId, 'create', 'product', productId, { name: data.name });
+    }
+    // Save variants for vapers
+    if (isVaper && productId) {
+      const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
+      const existingIds = new Set(existingVariants.map((v: any) => v.id));
+      const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
+      // Delete removed variants
+      for (const ev of existingVariants) {
+        if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+      }
+      // Update existing / add new variants
+      for (const v of variants) {
+        if (v.id && existingIds.has(v.id)) {
+          await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
+        } else if (v._new || !v.id) {
+          await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true });
+        }
+      }
     }
     toast.success(product ? "Producto actualizado" : "Producto agregado");
     onSave();
