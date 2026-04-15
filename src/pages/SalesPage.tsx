@@ -388,7 +388,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); }}>
+        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); setSelectedVariantId(''); }}>
           <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
           <SelectContent>
             {products.filter(p => editItem || p.stock > 0).map(p => (
@@ -397,6 +397,20 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </SelectContent>
         </Select>
       </div>
+      {/* Variant/Flavor selector */}
+      {product && hasVariants && (
+        <div>
+          <label className="text-sm text-muted-foreground">Sabor / Variante</label>
+          <Select value={selectedVariantId} onValueChange={setSelectedVariantId}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar sabor..." /></SelectTrigger>
+            <SelectContent>
+              {productVariants.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.variant_name} (Stock: {v.stock})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       {/* Decant selector for perfumes */}
       {product && isPerfume && (
         <div>
