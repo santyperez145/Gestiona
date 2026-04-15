@@ -289,6 +289,54 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variants: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          product_id: string
+          sku: string | null
+          stock: number
+          user_id: string
+          variant_name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          product_id: string
+          sku?: string | null
+          stock?: number
+          user_id: string
+          variant_name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          product_id?: string
+          sku?: string | null
+          stock?: number
+          user_id?: string
+          variant_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand: string
@@ -479,6 +527,7 @@ export type Database = {
           total_ars: number
           unit_price_ars: number
           user_id: string
+          variant_id: string | null
         }
         Insert: {
           cost_per_unit_usd?: number
@@ -498,6 +547,7 @@ export type Database = {
           total_ars?: number
           unit_price_ars?: number
           user_id: string
+          variant_id?: string | null
         }
         Update: {
           cost_per_unit_usd?: number
@@ -517,6 +567,7 @@ export type Database = {
           total_ars?: number
           unit_price_ars?: number
           user_id?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -531,6 +582,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]

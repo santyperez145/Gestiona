@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits } from "@/lib/supabaseStore";
+import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -74,11 +74,15 @@ export default function ProductsPage() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
 
   const reload = async () => {
     if (!user) return;
-    const [p, s] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id)]);
+    const [p, s, allVariants] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id), getVariantsByUserDB(user.id)]);
     setProducts(p); setSettings(s); setLoading(false);
+    const counts: Record<string, number> = {};
+    allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
+    setVariantCounts(counts);
   };
   useEffect(() => { reload(); }, [user]);
 
@@ -210,13 +214,18 @@ export default function ProductsPage() {
                   <tbody>
                      {items.map((p: any) => (
                        <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                         <td className="p-3 font-medium max-w-[200px] truncate">
-                           <div className="flex items-center gap-2">
-                             {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
-                             <span className="truncate">{p.name}</span>
-                             {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
-                           </div>
-                         </td>
+                          <td className="p-3 font-medium max-w-[200px] truncate">
+                            <div className="flex items-center gap-2">
+                              {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
+                              <span className="truncate">{p.name}</span>
+                              {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
+                              {variantCounts[p.id] > 0 && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
+                                  <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
                          <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
@@ -346,6 +355,20 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Variants state
+  const [variants, setVariants] = useState<any[]>([]);
+  const [newVariantName, setNewVariantName] = useState('');
+  const [newVariantStock, setNewVariantStock] = useState('0');
+  const [bulkVariants, setBulkVariants] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
+
+  const isVaper = category === 'vaper';
+
+  useEffect(() => {
+    if (product?.id && isVaper) {
+      getVariantsDB(product.id).then(v => setVariants(v));
+    }
+  }, [product?.id, isVaper]);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
@@ -418,23 +441,45 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     
     const imageUrl = await uploadImage();
+    // If vaper with variants, stock = sum of variant stocks
+    const variantTotal = isVaper && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
     const data = {
       name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
       cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
       sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-      stock: parseInt(stock) || 0,
+      stock: variantTotal,
       image_url: imageUrl,
       featured,
       offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
       content_ml: parseInt(contentMl) || 100,
     };
+    let productId = product?.id;
     if (product) {
       await updateProductDB(product.id, data);
       await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
     } else {
-      await addProductDB({ ...data, user_id: userId });
-      await logAudit(userId, 'create', 'product', undefined, { name: data.name });
+      productId = crypto.randomUUID();
+      await addProductDB({ ...data, user_id: userId, id: productId });
+      await logAudit(userId, 'create', 'product', productId, { name: data.name });
+    }
+    // Save variants for vapers
+    if (isVaper && productId) {
+      const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
+      const existingIds = new Set(existingVariants.map((v: any) => v.id));
+      const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
+      // Delete removed variants
+      for (const ev of existingVariants) {
+        if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+      }
+      // Update existing / add new variants
+      for (const v of variants) {
+        if (v.id && existingIds.has(v.id)) {
+          await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
+        } else if (v._new || !v.id) {
+          await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true });
+        }
+      }
     }
     toast.success(product ? "Producto actualizado" : "Producto agregado");
     onSave();
@@ -524,6 +569,66 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           <Input type="number" min="1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border" />
         </div>
       </div>
+      {/* Variant/Flavor Management for Vapers */}
+      {isVaper && (
+        <div className="bg-muted/50 rounded-lg p-3 border border-border space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-success" />Sabores / Variantes</label>
+            <button type="button" onClick={() => setShowBulkImport(!showBulkImport)} className="text-[10px] text-primary hover:underline">
+              {showBulkImport ? 'Cerrar' : 'Importar lista'}
+            </button>
+          </div>
+          {showBulkImport && (
+            <div className="space-y-2">
+              <Input value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder="Menta, Frutilla, Uva Ice, Sandía..." className="bg-muted border-border text-xs" />
+              <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => {
+                const names = bulkVariants.split(',').map(n => n.trim()).filter(Boolean);
+                const existing = new Set(variants.map(v => v.variant_name.toLowerCase()));
+                const newVars = names.filter(n => !existing.has(n.toLowerCase())).map(n => ({
+                  variant_name: n, stock: 0, active: true, _new: true,
+                }));
+                setVariants([...variants, ...newVars]);
+                setBulkVariants('');
+                setShowBulkImport(false);
+                if (newVars.length > 0) toast.success(`${newVars.length} sabores agregados`);
+              }}>Agregar todos</Button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre del sabor" className="bg-muted border-border text-xs flex-1" />
+            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-20" placeholder="Stock" />
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              if (!newVariantName.trim()) return;
+              if (variants.some(v => v.variant_name.toLowerCase() === newVariantName.trim().toLowerCase())) {
+                toast.error('Ese sabor ya existe'); return;
+              }
+              setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true }]);
+              setNewVariantName(''); setNewVariantStock('0');
+            }}><Plus className="w-3 h-3" /></Button>
+          </div>
+          {variants.length > 0 && (
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {variants.map((v, i) => (
+                <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border">
+                  <span className="text-xs font-medium flex-1 truncate">{v.variant_name}</span>
+                  <Input type="number" min="0" value={String(v.stock)} onChange={e => {
+                    const updated = [...variants];
+                    updated[i] = { ...updated[i], stock: parseInt(e.target.value) || 0 };
+                    setVariants(updated);
+                  }} className="bg-muted border-border text-xs w-16 h-7" />
+                  <span className="text-[10px] text-muted-foreground">uds</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => {
+                    setVariants(variants.filter((_, j) => j !== i));
+                  }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Stock total (suma de variantes): <span className="font-bold text-success">{variants.reduce((s, v) => s + (v.stock || 0), 0)}</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       {(category === 'perfume_arabe' || category === 'perfume_diseñador') && (
         <Button type="button" variant="outline" size="sm" disabled={generatingDesc || !name.trim()} className="text-xs"
           onClick={async () => {

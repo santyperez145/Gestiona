@@ -294,6 +294,74 @@ export async function getMyGoalsDB(userId: string) {
   return data || [];
 }
 
+// ========= PRODUCT VARIANTS =========
+export async function getVariantsDB(productId: string) {
+  const { data, error } = await supabase.from('product_variants').select('*').eq('product_id', productId).order('variant_name');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getVariantsByUserDB(userId: string) {
+  const { data, error } = await supabase.from('product_variants').select('*').eq('user_id', userId).eq('active', true).order('variant_name');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addVariantDB(variant: any) {
+  const { error } = await supabase.from('product_variants').insert(variant);
+  if (error) throw error;
+}
+
+export async function updateVariantDB(id: string, updates: any) {
+  const { error } = await supabase.from('product_variants').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteVariantDB(id: string) {
+  const { error } = await supabase.from('product_variants').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function syncProductStockFromVariants(productId: string) {
+  const variants = await getVariantsDB(productId);
+  const totalStock = variants.filter(v => v.active).reduce((s: number, v: any) => s + (v.stock || 0), 0);
+  await supabase.from('products').update({ stock: totalStock }).eq('id', productId);
+  return totalStock;
+}
+
+export async function addSaleWithVariantDB(sale: any, variantId?: string) {
+  const { error } = await supabase.from('sales').insert(sale);
+  if (error) throw error;
+  if (variantId) {
+    // Deduct variant stock
+    const { data: variant } = await supabase.from('product_variants').select('stock, product_id').eq('id', variantId).single();
+    if (variant) {
+      const newStock = Math.max(0, variant.stock - sale.quantity);
+      await supabase.from('product_variants').update({ stock: newStock }).eq('id', variantId);
+      await syncProductStockFromVariants(variant.product_id);
+    }
+  } else if (sale.product_id) {
+    const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
+    if (prod) {
+      const newStock = Math.max(0, prod.stock - sale.quantity);
+      await supabase.from('products').update({ stock: newStock }).eq('id', sale.product_id);
+    }
+  }
+  if (!sale.paid) {
+    await supabase.from('debts').insert({
+      user_id: sale.user_id,
+      sale_id: sale.id,
+      customer_name: sale.customer_name || 'Sin nombre',
+      amount_ars: sale.total_ars,
+      paid_ars: 0,
+      remaining_ars: sale.total_ars,
+      description: `Venta de ${sale.quantity}x ${sale.product_name}`,
+      date: sale.date,
+      status: 'pending',
+    });
+  }
+}
+
 // ========= HELPERS =========
 export function formatARS(n: number) { return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n); }
 export function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }

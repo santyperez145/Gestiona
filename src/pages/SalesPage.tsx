@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -260,13 +260,16 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [couponCode, setCouponCode] = useState('');
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [allVariants, setAllVariants] = useState<any[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(editItem?.variant_id || '');
 
   useEffect(() => {
     (async () => {
-      const [p, s, c] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId)]);
+      const [p, s, c, v] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId), getVariantsByUserDB(userId)]);
       setProducts(p);
       setSettings(s);
       setCustomers(c);
+      setAllVariants(v);
     })();
   }, [userId]);
 
@@ -276,6 +279,11 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const usesDiscount = methodConfig?.usesDiscount ?? false;
   const isFiado = paymentMethod === 'fiado';
   const isMayorista = paymentMethod === 'mayorista';
+
+  // Variants for current product
+  const productVariants = allVariants.filter(v => v.product_id === productId && v.stock > 0);
+  const hasVariants = productVariants.length > 0;
+  const selectedVariant = productVariants.find(v => v.id === selectedVariantId);
 
   const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
   const contentMl = Number(product?.content_ml || 100);
@@ -335,11 +343,14 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
-    if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
+    if (hasVariants && !selectedVariantId) { toast.error("Seleccioná un sabor/variante"); return; }
+    if (hasVariants && selectedVariant && qty > selectedVariant.stock) { toast.error(`Stock de variante insuficiente (${selectedVariant.stock})`); return; }
+    if (!editItem && product && !hasVariants && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
 
     const paid = !isFiado;
     const discountApplied = usesDiscount || !!customPrice || applyVolume;
-    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : product!.name;
+    const variantLabel = selectedVariant ? ` (${selectedVariant.variant_name})` : '';
+    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : `${product!.name}${variantLabel}`;
 
     const saleData: any = {
       product_id: productId, product_name: productLabel,
@@ -349,6 +360,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
       coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+      variant_id: selectedVariantId || null,
     };
 
     if (editItem) {
@@ -357,11 +369,15 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       toast.success("Venta actualizada");
     } else {
       const saleId = crypto.randomUUID();
-      await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+      if (selectedVariantId) {
+        await addSaleWithVariantDB({ id: saleId, user_id: userId, ...saleData }, selectedVariantId);
+      } else {
+        await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+      }
       await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
-      if (productId && !isDecant) await checkStockAfterSale(productId, product!.name);
+      if (productId && !isDecant && !selectedVariantId) await checkStockAfterSale(productId, product!.name);
     }
     onSave();
   };
@@ -372,7 +388,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); }}>
+        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); setSelectedVariantId(''); }}>
           <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
           <SelectContent>
             {products.filter(p => editItem || p.stock > 0).map(p => (
@@ -381,6 +397,20 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </SelectContent>
         </Select>
       </div>
+      {/* Variant/Flavor selector */}
+      {product && hasVariants && (
+        <div>
+          <label className="text-sm text-muted-foreground">Sabor / Variante</label>
+          <Select value={selectedVariantId} onValueChange={setSelectedVariantId}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar sabor..." /></SelectTrigger>
+            <SelectContent>
+              {productVariants.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.variant_name} (Stock: {v.stock})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       {/* Decant selector for perfumes */}
       {product && isPerfume && (
         <div>
