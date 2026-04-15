@@ -343,11 +343,14 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
-    if (!editItem && product && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
+    if (hasVariants && !selectedVariantId) { toast.error("Seleccioná un sabor/variante"); return; }
+    if (hasVariants && selectedVariant && qty > selectedVariant.stock) { toast.error(`Stock de variante insuficiente (${selectedVariant.stock})`); return; }
+    if (!editItem && product && !hasVariants && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
 
     const paid = !isFiado;
     const discountApplied = usesDiscount || !!customPrice || applyVolume;
-    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : product!.name;
+    const variantLabel = selectedVariant ? ` (${selectedVariant.variant_name})` : '';
+    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : `${product!.name}${variantLabel}`;
 
     const saleData: any = {
       product_id: productId, product_name: productLabel,
@@ -357,6 +360,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       customer_name: customerName || null, date: dateToNoon(date), paid,
       payment_method: paymentMethod,
       coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+      variant_id: selectedVariantId || null,
     };
 
     if (editItem) {
@@ -365,11 +369,15 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       toast.success("Venta actualizada");
     } else {
       const saleId = crypto.randomUUID();
-      await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+      if (selectedVariantId) {
+        await addSaleWithVariantDB({ id: saleId, user_id: userId, ...saleData }, selectedVariantId);
+      } else {
+        await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+      }
       await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
       toast.success("Venta registrada");
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
-      if (productId && !isDecant) await checkStockAfterSale(productId, product!.name);
+      if (productId && !isDecant && !selectedVariantId) await checkStockAfterSale(productId, product!.name);
     }
     onSave();
   };
