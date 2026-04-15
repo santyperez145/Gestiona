@@ -260,13 +260,16 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [couponCode, setCouponCode] = useState('');
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [allVariants, setAllVariants] = useState<any[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(editItem?.variant_id || '');
 
   useEffect(() => {
     (async () => {
-      const [p, s, c] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId)]);
+      const [p, s, c, v] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId), getVariantsByUserDB(userId)]);
       setProducts(p);
       setSettings(s);
       setCustomers(c);
+      setAllVariants(v);
     })();
   }, [userId]);
 
