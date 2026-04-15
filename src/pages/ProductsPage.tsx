@@ -355,6 +355,20 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Variants state
+  const [variants, setVariants] = useState<any[]>([]);
+  const [newVariantName, setNewVariantName] = useState('');
+  const [newVariantStock, setNewVariantStock] = useState('0');
+  const [bulkVariants, setBulkVariants] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
+
+  const isVaper = category === 'vaper';
+
+  useEffect(() => {
+    if (product?.id && isVaper) {
+      getVariantsDB(product.id).then(v => setVariants(v));
+    }
+  }, [product?.id, isVaper]);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
