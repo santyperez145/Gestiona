@@ -42,6 +42,54 @@ function GaugeChart({ value, max, label, color }: { value: number; max: number; 
   );
 }
 
+function FinancialSection({ stats }: { stats: any }) {
+  const [simRate, setSimRate] = useState<number[]>([stats.currentRate || 1695]);
+  const currentRate = stats.currentRate || 1695;
+  const rateChange = simRate[0] - currentRate;
+  const ratePct = currentRate > 0 ? ((rateChange / currentRate) * 100).toFixed(1) : '0';
+  const simProducts = (stats.products || []).filter((p: any) => Number(p.sale_price_ars) > 0).map((p: any) => {
+    const costARS = Number(p.total_cost_usd) * simRate[0];
+    const profit = Number(p.sale_price_ars) - costARS;
+    const margin = (profit / Number(p.sale_price_ars)) * 100;
+    return { name: p.name, profit, margin };
+  });
+  const avgSimMargin = simProducts.length > 0 ? simProducts.reduce((s: number, p: any) => s + p.margin, 0) / simProducts.length : 0;
+  const losers = simProducts.filter((p: any) => p.profit < 0).length;
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
+        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Banknote className="w-4 h-4 text-success" />Flujo de Caja Proyectado</h3>
+        <div className="space-y-2.5">
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Ventas/mes (proy.)</span><span className="text-success font-bold">{formatARS(stats.projectedMonthlySalesARS)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Compras/mes (prom.)</span><span className="text-warning font-bold">-{formatARS(stats.avgMonthlyPurchasesARS)}</span></div>
+          <div className="flex justify-between text-sm border-t border-border pt-2"><span className="font-medium">Flujo neto</span><span className={`font-bold ${stats.projectedCashFlowARS >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(stats.projectedCashFlowARS)}</span></div>
+          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Ganancia/mes (proy.)</span><span className="text-success">{formatARS(stats.projectedMonthlyProfitARS)}</span></div>
+        </div>
+      </div>
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
+        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Target className="w-4 h-4 text-primary" />Punto de Equilibrio</h3>
+        <div className="text-center py-3"><p className="text-3xl font-black font-display text-primary">{stats.breakEvenUnits}</p><p className="text-xs text-muted-foreground mt-1">unidades/mes para cubrir gastos</p></div>
+        <div className="space-y-1.5 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">Gastos fijos est.</span><span>{formatARS(stats.avgMonthlyPurchasesARS)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Margen prom./unidad</span><span className="text-success">{formatARS(stats.avgMarginPerUnit)}</span></div>
+        </div>
+      </div>
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
+        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4 text-warning" />Simulador Tipo de Cambio</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TC Simulado:</span><span className="font-bold">${simRate[0].toLocaleString('es-AR')}</span></div>
+          <Slider value={simRate} onValueChange={setSimRate} min={Math.round(currentRate * 0.7)} max={Math.round(currentRate * 1.5)} step={10} className="w-full" />
+          <div className="flex justify-between text-[10px] text-muted-foreground"><span>-30%</span><span className={`font-bold ${rateChange > 0 ? 'text-destructive' : rateChange < 0 ? 'text-success' : ''}`}>{rateChange > 0 ? '+' : ''}{ratePct}%</span><span>+50%</span></div>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between"><span className="text-muted-foreground">Margen prom.</span><span className={avgSimMargin > 20 ? 'text-success font-bold' : 'text-destructive font-bold'}>{avgSimMargin.toFixed(1)}%</span></div>
+            {losers > 0 && <p className="text-destructive text-[10px] font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{losers} productos a pérdida con este TC</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any } | null>(null);
