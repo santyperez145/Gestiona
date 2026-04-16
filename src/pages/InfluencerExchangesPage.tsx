@@ -86,7 +86,7 @@ export default function InfluencerExchangesPage() {
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo Canje</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-lg">
+          <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Canje' : 'Registrar Canje'}</DialogTitle></DialogHeader>
             <ExchangeForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>

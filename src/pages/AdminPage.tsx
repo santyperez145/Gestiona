@@ -372,7 +372,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm"><UserPlus className="w-4 h-4 mr-2" />Asignar Rol</Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-display">Asignar Rol a Usuario</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div>
@@ -456,7 +456,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: { vendors: Vendor
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-gold text-primary-foreground"><Target className="w-3.5 h-3.5 mr-1" />Asignar Meta</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Asignar Meta Mensual</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div>
