@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -42,6 +43,20 @@ const PAYMENT_BADGE: Record<string, string> = {
   credito: 'bg-warning/15 text-warning',
   fiado: 'bg-destructive/15 text-destructive',
 };
+
+// ============ LINE ITEM TYPE ============
+interface SaleLineItem {
+  id: string;
+  productId: string;
+  variantId: string;
+  quantity: number;
+  decantSize: string;
+  customPrice: string;
+}
+
+function createLineItem(): SaleLineItem {
+  return { id: crypto.randomUUID(), productId: '', variantId: '', quantity: 1, decantSize: 'full', customPrice: '' };
+}
 
 export default function SalesPage() {
   const { user } = useAuth();
@@ -120,9 +135,11 @@ export default function SalesPage() {
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Venta</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-lg">
-            <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
-            <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+          <DialogContent className="bg-card border-border max-w-2xl p-0">
+            <DialogHeader className="p-6 pb-0"><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
+            <ScrollArea className="max-h-[75vh] px-6 pb-6">
+              <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+            </ScrollArea>
           </DialogContent>
           </Dialog>
         </div>
@@ -244,87 +261,127 @@ export default function SalesPage() {
   );
 }
 
-function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
-  const [products, setProducts] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
-  const [customers, setCustomers] = useState<string[]>([]);
-  const [productId, setProductId] = useState(editItem?.product_id || '');
-  const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
-  const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
-  const [customerFilter, setCustomerFilter] = useState('');
-  const [showCustomerList, setShowCustomerList] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
-  const [customPrice, setCustomPrice] = useState(editItem ? String(editItem.unit_price_ars) : '');
-  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
-  const [decantSize, setDecantSize] = useState<string>('full');
-  const [couponCode, setCouponCode] = useState('');
-  const [couponResult, setCouponResult] = useState<any>(null);
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
-  const [allVariants, setAllVariants] = useState<any[]>([]);
-  const [selectedVariantId, setSelectedVariantId] = useState<string>(editItem?.variant_id || '');
+// ============ HELPER: Calculate line item pricing ============
+function calcLineItem(
+  line: SaleLineItem,
+  products: any[],
+  allVariants: any[],
+  settings: any,
+  paymentMethod: string,
+  couponResult: any,
+) {
+  const product = products.find(p => p.id === line.productId);
+  if (!product) return null;
 
-  useEffect(() => {
-    (async () => {
-      const [p, s, c, v] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId), getVariantsByUserDB(userId)]);
-      setProducts(p);
-      setSettings(s);
-      setCustomers(c);
-      setAllVariants(v);
-    })();
-  }, [userId]);
-
-  const product = products.find(p => p.id === productId);
-  const qty = parseInt(quantity) || 0;
   const methodConfig = PAYMENT_METHODS.find(m => m.value === paymentMethod);
   const usesDiscount = methodConfig?.usesDiscount ?? false;
-  const isFiado = paymentMethod === 'fiado';
   const isMayorista = paymentMethod === 'mayorista';
-
-  // Variants for current product
-  const productVariants = allVariants.filter(v => v.product_id === productId && v.stock > 0);
-  const hasVariants = productVariants.length > 0;
-  const selectedVariant = productVariants.find(v => v.id === selectedVariantId);
-
-  const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
-  const contentMl = Number(product?.content_ml || 100);
+  const isPerfume = product.category === 'perfume_arabe' || product.category === 'perfume_diseñador';
+  const contentMl = Number(product.content_ml || 100);
   const exchangeRate = Number(settings?.exchange_rate || 1695);
   const volumeThreshold = Number(settings?.volume_discount_threshold || 3);
   const volumeDiscountPct = Number(settings?.volume_discount_percent || 10);
 
-  // Decant price calculation
-  const isDecant = decantSize !== 'full' && isPerfume;
-  const decantMl = decantSize === '10' ? 10 : decantSize === '5' ? 5 : decantSize === '2.5' ? 2.5 : 0;
-  const decantMargin = decantSize === '10' ? Number(settings?.decant_margin_10ml || 250) :
-    decantSize === '5' ? Number(settings?.decant_margin_5ml || 350) : Number(settings?.decant_margin_2_5ml || 500);
-  const decantPrice = isDecant ? calculateDecantPrice(Number(product?.total_cost_usd || 0), contentMl, decantMl, decantMargin, exchangeRate) : 0;
+  const isDecant = line.decantSize !== 'full' && isPerfume;
+  const decantMl = line.decantSize === '10' ? 10 : line.decantSize === '5' ? 5 : line.decantSize === '2.5' ? 2.5 : 0;
+  const decantMargin = line.decantSize === '10' ? Number(settings?.decant_margin_10ml || 250) :
+    line.decantSize === '5' ? Number(settings?.decant_margin_5ml || 350) : Number(settings?.decant_margin_2_5ml || 500);
+  const decantPrice = isDecant ? calculateDecantPrice(Number(product.total_cost_usd || 0), contentMl, decantMl, decantMargin, exchangeRate) : 0;
 
-  const discountPrice = product?.discount_price_ars ? Number(product.discount_price_ars) : null;
-  const normalPrice = Number(product?.sale_price_ars) || 0;
+  const discountPrice = product.discount_price_ars ? Number(product.discount_price_ars) : null;
+  const normalPrice = Number(product.sale_price_ars) || 0;
   const baseUnitPrice = isDecant ? decantPrice : (usesDiscount && discountPrice ? discountPrice : normalPrice);
-  
-  // Volume discount: auto-apply for mayorista payment or when qty >= threshold
-  const applyVolume = (isMayorista || qty >= volumeThreshold) && !isDecant;
+
+  const applyVolume = (isMayorista || line.quantity >= volumeThreshold) && !isDecant;
   let autoUnitPrice = baseUnitPrice;
   let volumeWarning = false;
   if (applyVolume) {
     const { wholesalePrice, belowFloor } = calculateWholesalePrice(
-      discountPrice || 0, normalPrice, volumeDiscountPct, Number(product?.total_cost_usd || 0), exchangeRate
+      discountPrice || 0, normalPrice, volumeDiscountPct, Number(product.total_cost_usd || 0), exchangeRate
     );
     autoUnitPrice = wholesalePrice;
     volumeWarning = belowFloor;
   }
 
-  // Apply coupon discount
-  const couponDiscount = couponResult?.valid && couponResult.coupon ? 
+  const couponDiscount = couponResult?.valid && couponResult.coupon ?
     (couponResult.coupon.discount_percent > 0 ? autoUnitPrice * (Number(couponResult.coupon.discount_percent) / 100) : Number(couponResult.coupon.discount_fixed_ars || 0)) : 0;
   const priceAfterCoupon = Math.max(0, autoUnitPrice - couponDiscount);
 
-  const unitPrice = customPrice ? (parseFloat(customPrice) || priceAfterCoupon) : priceAfterCoupon;
-  const total = unitPrice * qty;
-  const costPerUnitUSD = isDecant ? (Number(product?.total_cost_usd || 0) / contentMl) * decantMl : Number(product?.total_cost_usd || 0);
+  const unitPrice = line.customPrice ? (parseFloat(line.customPrice) || priceAfterCoupon) : priceAfterCoupon;
+  const total = unitPrice * line.quantity;
+  const costPerUnitUSD = isDecant ? (Number(product.total_cost_usd || 0) / contentMl) * decantMl : Number(product.total_cost_usd || 0);
   const costPerUnitARS = costPerUnitUSD * exchangeRate;
-  const profitARS = total - (costPerUnitARS * qty);
+  const profitARS = total - (costPerUnitARS * line.quantity);
   const profitUSD = exchangeRate > 0 ? profitARS / exchangeRate : 0;
+
+  const productVariants = allVariants.filter(v => v.product_id === line.productId && v.stock > 0);
+  const selectedVariant = productVariants.find(v => v.id === line.variantId);
+  const variantLabel = selectedVariant ? ` (${selectedVariant.variant_name})` : '';
+  const productLabel = isDecant ? `${product.name} (${line.decantSize}ml)` : `${product.name}${variantLabel}`;
+
+  return {
+    product, productVariants, selectedVariant, isPerfume, isDecant,
+    unitPrice, total, costPerUnitUSD, profitARS, profitUSD,
+    priceAfterCoupon, autoUnitPrice, volumeWarning, applyVolume,
+    productLabel, usesDiscount, discountPrice, normalPrice, decantPrice,
+    volumeDiscountPct,
+  };
+}
+
+// ============ MULTI-PRODUCT SALE FORM ============
+function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [customers, setCustomers] = useState<string[]>([]);
+  const [allVariants, setAllVariants] = useState<any[]>([]);
+
+  // For edit mode, single line item
+  const isEditMode = !!editItem;
+  const [lines, setLines] = useState<SaleLineItem[]>(
+    editItem
+      ? [{ id: '1', productId: editItem.product_id || '', variantId: editItem.variant_id || '', quantity: editItem.quantity || 1, decantSize: 'full', customPrice: String(editItem.unit_price_ars || '') }]
+      : [createLineItem()]
+  );
+
+  const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [showCustomerList, setShowCustomerList] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
+  const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [couponCode, setCouponCode] = useState('');
+  const [couponResult, setCouponResult] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const [p, s, c, v] = await Promise.all([getProductsDB(userId), getSettingsDB(userId), getUniqueCustomersDB(userId), getVariantsByUserDB(userId)]);
+      setProducts(p); setSettings(s); setCustomers(c); setAllVariants(v);
+    })();
+  }, [userId]);
+
+  const isFiado = paymentMethod === 'fiado';
+
+  const updateLine = (lineId: string, updates: Partial<SaleLineItem>) => {
+    setLines(prev => prev.map(l => l.id === lineId ? { ...l, ...updates } : l));
+  };
+
+  const addLine = () => setLines(prev => [...prev, createLineItem()]);
+  const removeLine = (lineId: string) => {
+    if (lines.length <= 1) return;
+    setLines(prev => prev.filter(l => l.id !== lineId));
+  };
+
+  // Calculate all line items
+  const lineCalcs = lines.map(line => ({
+    line,
+    calc: calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult),
+  }));
+
+  const grandTotal = lineCalcs.reduce((s, { calc }) => s + (calc?.total || 0), 0);
+  const grandProfit = lineCalcs.reduce((s, { calc }) => s + (calc?.profitARS || 0), 0);
+  const grandProfitUSD = lineCalcs.reduce((s, { calc }) => s + (calc?.profitUSD || 0), 0);
+  const totalItems = lines.reduce((s, l) => s + l.quantity, 0);
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -336,167 +393,174 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     setValidatingCoupon(false);
   };
 
-  const filteredCustomers = customers.filter(c => 
+  const filteredCustomers = customers.filter(c =>
     c.toLowerCase().includes((customerFilter || customerName).toLowerCase())
   ).slice(0, 8);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productId || qty <= 0) { toast.error("Seleccioná un producto y cantidad"); return; }
-    if (hasVariants && !selectedVariantId) { toast.error("Seleccioná un sabor/variante"); return; }
-    if (hasVariants && selectedVariant && qty > selectedVariant.stock) { toast.error(`Stock de variante insuficiente (${selectedVariant.stock})`); return; }
-    if (!editItem && product && !hasVariants && qty > product.stock) { toast.error(`Stock insuficiente (${product.stock})`); return; }
+    if (submitting) return;
 
-    const paid = !isFiado;
-    const discountApplied = usesDiscount || !!customPrice || applyVolume;
-    const variantLabel = selectedVariant ? ` (${selectedVariant.variant_name})` : '';
-    const productLabel = isDecant ? `${product!.name} (${decantSize}ml)` : `${product!.name}${variantLabel}`;
-
-    const saleData: any = {
-      product_id: productId, product_name: productLabel,
-      quantity: qty, unit_price_ars: unitPrice, discount_applied: discountApplied,
-      total_ars: total, cost_per_unit_usd: costPerUnitUSD,
-      profit_ars: profitARS, profit_usd: profitUSD,
-      customer_name: customerName || null, date: dateToNoon(date), paid,
-      payment_method: paymentMethod,
-      coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
-      variant_id: selectedVariantId || null,
-    };
-
-    if (editItem) {
-      await updateSaleDB(editItem.id, saleData, editItem);
-      await logAudit(userId, 'update', 'sale', editItem.id, { product: productLabel, total, profit: profitARS });
-      toast.success("Venta actualizada");
-    } else {
-      const saleId = crypto.randomUUID();
-      if (selectedVariantId) {
-        await addSaleWithVariantDB({ id: saleId, user_id: userId, ...saleData }, selectedVariantId);
-      } else {
-        await addSaleDB({ id: saleId, user_id: userId, ...saleData });
+    // Validate all lines
+    for (const { line, calc } of lineCalcs) {
+      if (!line.productId) { toast.error("Seleccioná un producto en cada línea"); return; }
+      if (line.quantity <= 0) { toast.error("Cantidad inválida"); return; }
+      if (!calc) { toast.error("Error al calcular precios"); return; }
+      const productVariants = allVariants.filter(v => v.product_id === line.productId && v.stock > 0);
+      const hasVariants = productVariants.length > 0;
+      if (hasVariants && !line.variantId) { toast.error(`Seleccioná sabor para ${calc.product.name}`); return; }
+      if (hasVariants && calc.selectedVariant && line.quantity > calc.selectedVariant.stock) {
+        toast.error(`Stock insuficiente de ${calc.selectedVariant.variant_name} (${calc.selectedVariant.stock})`); return;
       }
-      await logAudit(userId, 'create', 'sale', saleId, { product: productLabel, total, profit: profitARS, paymentMethod });
-      toast.success("Venta registrada");
-      if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
-      if (productId && !isDecant && !selectedVariantId) await checkStockAfterSale(productId, product!.name);
+      if (!hasVariants && !isEditMode && line.quantity > calc.product.stock) {
+        toast.error(`Stock insuficiente de ${calc.product.name} (${calc.product.stock})`); return;
+      }
     }
-    onSave();
+
+    setSubmitting(true);
+    try {
+      const paid = !isFiado;
+      const discountApplied = PAYMENT_METHODS.find(m => m.value === paymentMethod)?.usesDiscount || false;
+
+      if (isEditMode) {
+        // Edit mode: single line
+        const { line, calc } = lineCalcs[0];
+        if (!calc) return;
+        const saleData: any = {
+          product_id: line.productId, product_name: calc.productLabel,
+          quantity: line.quantity, unit_price_ars: calc.unitPrice, discount_applied: discountApplied,
+          total_ars: calc.total, cost_per_unit_usd: calc.costPerUnitUSD,
+          profit_ars: calc.profitARS, profit_usd: calc.profitUSD,
+          customer_name: customerName || null, date: dateToNoon(date), paid,
+          payment_method: paymentMethod,
+          coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+          variant_id: line.variantId || null,
+        };
+        await updateSaleDB(editItem.id, saleData, editItem);
+        await logAudit(userId, 'update', 'sale', editItem.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS });
+        toast.success("Venta actualizada");
+      } else {
+        // New: create one sale per line item
+        for (const { line, calc } of lineCalcs) {
+          if (!calc) continue;
+          const saleId = crypto.randomUUID();
+          const saleData: any = {
+            id: saleId, user_id: userId,
+            product_id: line.productId, product_name: calc.productLabel,
+            quantity: line.quantity, unit_price_ars: calc.unitPrice, discount_applied: discountApplied,
+            total_ars: calc.total, cost_per_unit_usd: calc.costPerUnitUSD,
+            profit_ars: calc.profitARS, profit_usd: calc.profitUSD,
+            customer_name: customerName || null, date: dateToNoon(date), paid,
+            payment_method: paymentMethod,
+            coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+            variant_id: line.variantId || null,
+          };
+
+          if (line.variantId) {
+            await addSaleWithVariantDB(saleData, line.variantId);
+          } else {
+            await addSaleDB(saleData);
+          }
+          await logAudit(userId, 'create', 'sale', saleId, { product: calc.productLabel, total: calc.total, profit: calc.profitARS, paymentMethod });
+          if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
+        }
+        if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
+        toast.success(`${lines.length === 1 ? 'Venta registrada' : `${lines.length} ventas registradas`}`);
+      }
+      onSave();
+    } catch (err: any) {
+      toast.error(err.message || "Error al guardar");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!settings) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="text-sm text-muted-foreground">Producto</label>
-        <Select value={productId} onValueChange={v => { setProductId(v); setCustomPrice(''); setDecantSize('full'); setSelectedVariantId(''); }}>
-          <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-          <SelectContent>
-            {products.filter(p => editItem || p.stock > 0).map(p => (
-              <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      {/* LINE ITEMS */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <ShoppingCart className="w-4 h-4 text-primary" />
+            Productos ({lines.length})
+          </label>
+          {!isEditMode && (
+            <Button type="button" variant="outline" size="sm" onClick={addLine} className="h-7 text-xs">
+              <Plus className="w-3 h-3 mr-1" />Agregar producto
+            </Button>
+          )}
+        </div>
+
+        {lines.map((line, idx) => (
+          <LineItemRow
+            key={line.id}
+            line={line}
+            index={idx}
+            products={products}
+            allVariants={allVariants}
+            settings={settings}
+            paymentMethod={paymentMethod}
+            couponResult={couponResult}
+            canRemove={lines.length > 1 && !isEditMode}
+            isEditMode={isEditMode}
+            onUpdate={(updates) => updateLine(line.id, updates)}
+            onRemove={() => removeLine(line.id)}
+          />
+        ))}
       </div>
-      {/* Variant/Flavor selector */}
-      {product && hasVariants && (
+
+      {/* Shared fields */}
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="text-sm text-muted-foreground">Fecha</label>
+          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
         <div>
-          <label className="text-sm text-muted-foreground">Sabor / Variante</label>
-          <Select value={selectedVariantId} onValueChange={setSelectedVariantId}>
-            <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar sabor..." /></SelectTrigger>
+          <label className="text-sm text-muted-foreground">Medio de Pago</label>
+          <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); lines.forEach(l => updateLine(l.id, { customPrice: '' })); }}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {productVariants.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.variant_name} (Stock: {v.stock})</SelectItem>
+              {PAYMENT_METHODS.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-      )}
-      {/* Decant selector for perfumes */}
-      {product && isPerfume && (
-        <div>
-          <label className="text-sm text-muted-foreground">Tamaño</label>
-          <div className="flex gap-2 mt-1">
-            {[
-              { value: 'full', label: `Completo (${contentMl}ml)` },
-              { value: '10', label: '10ml' },
-              { value: '5', label: '5ml' },
-              { value: '2.5', label: '2.5ml' },
-            ].map(s => (
-              <button key={s.value} type="button"
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${decantSize === s.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border hover:bg-accent'}`}
-                onClick={() => { setDecantSize(s.value); setCustomPrice(''); }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-          {isDecant && <p className="text-[10px] text-muted-foreground mt-1">Decant {decantSize}ml · Precio auto: {formatARS(decantPrice)}</p>}
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-sm text-muted-foreground">Cantidad</label>
-          <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">Fecha</label>
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
       </div>
-      {/* Customer combobox */}
+
+      {/* Customer */}
       <div className="relative">
         <label className="text-sm text-muted-foreground">Cliente</label>
-        <Input 
-          value={customerName} 
-          onChange={e => { setCustomerName(e.target.value); setCustomerFilter(e.target.value); setShowCustomerList(true); }} 
+        <Input
+          value={customerName}
+          onChange={e => { setCustomerName(e.target.value); setCustomerFilter(e.target.value); setShowCustomerList(true); }}
           onFocus={() => setShowCustomerList(true)}
           onBlur={() => setTimeout(() => setShowCustomerList(false), 200)}
           placeholder="Buscar o escribir nombre..."
-          className="bg-muted border-border" 
+          className="bg-muted border-border"
         />
         {showCustomerList && filteredCustomers.length > 0 && (
           <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
             {filteredCustomers.map(c => (
-              <button
-                key={c}
-                type="button"
+              <button key={c} type="button"
                 className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg"
-                onMouseDown={() => { setCustomerName(c); setShowCustomerList(false); }}
-              >
+                onMouseDown={() => { setCustomerName(c); setShowCustomerList(false); }}>
                 {c}
               </button>
             ))}
           </div>
         )}
       </div>
-      <div>
-        <label className="text-sm text-muted-foreground">Medio de Pago</label>
-        <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); setCustomPrice(''); }}>
-          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {PAYMENT_METHODS.map(m => (
-              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {product && (
-          <p className="text-[10px] text-muted-foreground mt-1">
-            {isDecant 
-              ? `Decant ${decantSize}ml: ${formatARS(decantPrice)}`
-              : usesDiscount && discountPrice
-                ? `Precio c/descuento: ${formatARS(discountPrice)}`
-                : `Precio normal: ${formatARS(normalPrice)}`
-            }
-            {applyVolume && ` · Mayorista -${volumeDiscountPct}%`}
-            {volumeWarning && ' ⚠️ Ajustado al piso de rentabilidad'}
-            {isFiado && ' · Se genera deuda automáticamente'}
-          </p>
-        )}
-      </div>
-      {/* Coupon code */}
+
+      {/* Coupon */}
       <div>
         <label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="w-3.5 h-3.5" />Cupón de descuento</label>
         <div className="flex gap-2 mt-1">
-          <Input 
-            value={couponCode} 
-            onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }} 
-            placeholder="Ej: EXENTRY10" 
-            className="bg-muted border-border flex-1" 
+          <Input
+            value={couponCode}
+            onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+            placeholder="Ej: EXENTRY10"
+            className="bg-muted border-border flex-1"
           />
           <Button type="button" variant="outline" size="sm" onClick={handleValidateCoupon} disabled={validatingCoupon || !couponCode.trim()}>
             {validatingCoupon ? '...' : 'Validar'}
@@ -504,38 +568,149 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         </div>
         {couponResult && (
           <p className={`text-[10px] mt-1 font-medium ${couponResult.valid ? 'text-success' : 'text-destructive'}`}>
-            {couponResult.valid 
+            {couponResult.valid
               ? `✓ Cupón aplicado: ${couponResult.coupon.discount_percent > 0 ? `-${couponResult.coupon.discount_percent}%` : `-${formatARS(Number(couponResult.coupon.discount_fixed_ars))}`}`
               : `✗ ${couponResult.reason}`}
           </p>
         )}
       </div>
-      <div><label className="text-sm text-muted-foreground">Precio personalizado (opcional)</label>
-        <Input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder={`Automático: ${formatARS(priceAfterCoupon)}`} className="bg-muted border-border" /></div>
-      {product && (
-        <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
-          <div className="flex justify-between"><span className="text-muted-foreground">Precio unitario:</span><span>{formatARS(unitPrice)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span className="text-warning">{formatARS(costPerUnitARS)}</span></div>
-          <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total ({qty} uds):</span><span className="text-primary">{formatARS(total)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Ganancia:</span>
-            <span className={profitARS > 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{formatARS(profitARS)} ({formatUSD(profitUSD)})</span>
-          </div>
-          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Margen:</span>
-            <span className={profitARS > 0 ? 'text-success' : 'text-destructive'}>{total > 0 ? Math.round(profitARS / total * 100) : 0}%</span>
-          </div>
-          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Medio:</span>
-            <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
-          </div>
-          {isDecant && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Tipo:</span><span className="font-medium">Decant {decantSize}ml</span></div>}
-          {applyVolume && (
-            <div className="flex justify-between text-xs border-t border-border pt-1">
-              <span className="text-muted-foreground">Mayorista:</span>
-              <span className="text-primary font-medium">-{volumeDiscountPct}% ({qty}+ uds){volumeWarning ? ' ⚠️ piso' : ''}</span>
-            </div>
-          )}
+
+      {/* Grand total summary */}
+      <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
+        <div className="flex justify-between font-bold text-base border-b border-border pb-2 mb-1">
+          <span>Total General ({totalItems} uds en {lines.length} {lines.length === 1 ? 'producto' : 'productos'}):</span>
+          <span className="text-primary">{formatARS(grandTotal)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Ganancia total:</span>
+          <span className={grandProfit > 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{formatARS(grandProfit)} ({formatUSD(grandProfitUSD)})</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Margen:</span>
+          <span className={grandProfit > 0 ? 'text-success' : 'text-destructive'}>{grandTotal > 0 ? Math.round(grandProfit / grandTotal * 100) : 0}%</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Medio:</span>
+          <span className="capitalize font-medium">{paymentMethod}{!isFiado ? ' · Pagado' : ' · Deuda'}</span>
+        </div>
+      </div>
+
+      <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">
+        {submitting ? 'Guardando...' : editItem ? 'Actualizar Venta' : lines.length > 1 ? `Registrar ${lines.length} Ventas` : 'Registrar Venta'}
+      </Button>
+    </form>
+  );
+}
+
+// ============ SINGLE LINE ITEM ROW ============
+function LineItemRow({
+  line, index, products, allVariants, settings, paymentMethod, couponResult,
+  canRemove, isEditMode, onUpdate, onRemove,
+}: {
+  line: SaleLineItem;
+  index: number;
+  products: any[];
+  allVariants: any[];
+  settings: any;
+  paymentMethod: string;
+  couponResult: any;
+  canRemove: boolean;
+  isEditMode: boolean;
+  onUpdate: (updates: Partial<SaleLineItem>) => void;
+  onRemove: () => void;
+}) {
+  const calc = calcLineItem(line, products, allVariants, settings, paymentMethod, couponResult);
+  const product = products.find(p => p.id === line.productId);
+  const productVariants = allVariants.filter(v => v.product_id === line.productId && v.stock > 0);
+  const hasVariants = productVariants.length > 0;
+  const isPerfume = product?.category === 'perfume_arabe' || product?.category === 'perfume_diseñador';
+  const contentMl = Number(product?.content_ml || 100);
+
+  return (
+    <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-2 relative">
+      {canRemove && (
+        <button type="button" onClick={onRemove}
+          className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      )}
+
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xs font-bold text-primary bg-primary/10 rounded-full w-5 h-5 flex items-center justify-center">{index + 1}</span>
+        <span className="text-xs text-muted-foreground font-medium">
+          {product ? getCategoryLabel(product.category) : 'Seleccionar producto'}
+        </span>
+      </div>
+
+      {/* Product selector */}
+      <Select value={line.productId} onValueChange={v => onUpdate({ productId: v, variantId: '', customPrice: '', decantSize: 'full' })}>
+        <SelectTrigger className="bg-background border-border text-sm"><SelectValue placeholder="Seleccionar producto..." /></SelectTrigger>
+        <SelectContent>
+          {products.filter(p => isEditMode || p.stock > 0).map(p => (
+            <SelectItem key={p.id} value={p.id}>{p.name} ({getCategoryLabel(p.category)}) — Stock: {p.stock}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Variant selector for vapers or products with variants */}
+      {product && hasVariants && (
+        <Select value={line.variantId} onValueChange={v => onUpdate({ variantId: v })}>
+          <SelectTrigger className="bg-background border-border text-sm"><SelectValue placeholder="Seleccionar sabor..." /></SelectTrigger>
+          <SelectContent>
+            {productVariants.map(v => (
+              <SelectItem key={v.id} value={v.id}>{v.variant_name} (Stock: {v.stock})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Decant selector for perfumes */}
+      {product && isPerfume && (
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { value: 'full', label: `${contentMl}ml` },
+            { value: '10', label: '10ml' },
+            { value: '5', label: '5ml' },
+            { value: '2.5', label: '2.5ml' },
+          ].map(s => (
+            <button key={s.value} type="button"
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${line.decantSize === s.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-accent'}`}
+              onClick={() => onUpdate({ decantSize: s.value, customPrice: '' })}>
+              {s.label}
+            </button>
+          ))}
         </div>
       )}
-      <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Venta' : 'Registrar Venta'}</Button>
-    </form>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-muted-foreground">Cantidad</label>
+          <Input type="number" min="1" value={String(line.quantity)}
+            onChange={e => onUpdate({ quantity: parseInt(e.target.value) || 1 })}
+            className="bg-background border-border h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">Precio custom (opc.)</label>
+          <Input type="number" value={line.customPrice}
+            onChange={e => onUpdate({ customPrice: e.target.value })}
+            placeholder={calc ? formatARS(calc.priceAfterCoupon) : '—'}
+            className="bg-background border-border h-8 text-sm" />
+        </div>
+      </div>
+
+      {/* Line subtotal */}
+      {calc && (
+        <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+          <span className="text-muted-foreground">
+            {formatARS(calc.unitPrice)} × {line.quantity}
+            {calc.applyVolume && <span className="text-primary ml-1">-{calc.volumeDiscountPct}%</span>}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-medium">{formatARS(calc.total)}</span>
+            <span className={calc.profitARS > 0 ? 'text-success' : 'text-destructive'}>+{formatARS(calc.profitARS)}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
