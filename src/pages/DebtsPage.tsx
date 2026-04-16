@@ -59,7 +59,7 @@ export default function DebtsPage() {
       </div>
 
       <Dialog open={!!payingDebt} onOpenChange={v => { if (!v) setPayingDebt(null); }}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Registrar Pago</DialogTitle></DialogHeader>
           {payingDebt && <PaymentForm debt={payingDebt} userId={user!.id} onSave={() => { setPayingDebt(null); reload(); }} />}
         </DialogContent>
