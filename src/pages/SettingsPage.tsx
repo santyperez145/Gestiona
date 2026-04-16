@@ -418,7 +418,7 @@ function CouponsManager({ userId }: { userId: string }) {
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-gold text-primary-foreground"><Plus className="w-3.5 h-3.5 mr-1" />Nuevo</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Crear Cupón</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><label className="text-sm text-muted-foreground">Código</label>
