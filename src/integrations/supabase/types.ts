@@ -86,6 +86,33 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_notes: {
+        Row: {
+          created_at: string
+          customer_name: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           amount_ars: number
@@ -141,6 +168,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      expenses: {
+        Row: {
+          amount_ars: number
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          recurring: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_ars?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          recurring?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_ars?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          recurring?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       influencer_exchanges: {
         Row: {
