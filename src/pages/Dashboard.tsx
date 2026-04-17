@@ -9,6 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
 } from "recharts";
+import { Link } from "react-router-dom";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
@@ -241,6 +242,56 @@ export default function Dashboard() {
     const currentRate = Number(settings.exchange_rate);
     const totalCostUSDInInventory = products.reduce((s: number, p: any) => s + Number(p.total_cost_usd), 0);
 
+    // ===== EXPENSES (current month) =====
+    const nowD = new Date();
+    const curY = nowD.getFullYear(); const curM = nowD.getMonth();
+    const monthExpenses = (expenses || []).filter((e: any) => {
+      const d = new Date(e.date); return d.getFullYear() === curY && d.getMonth() === curM;
+    });
+    const totalMonthExpenses = monthExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
+    const expensesByCat: Record<string, number> = {};
+    monthExpenses.forEach((e: any) => { expensesByCat[e.category] = (expensesByCat[e.category] || 0) + Number(e.amount_ars); });
+    const expensesChartData = Object.entries(expensesByCat).map(([cat, value]) => ({
+      name: getExpenseCategoryLabel(cat), value,
+      color: EXPENSE_CATEGORIES.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
+    }));
+
+    // Net profit: gross - expenses - taxes (if enabled)
+    const monthSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === curY && d.getMonth() === curM; });
+    const monthGrossProfit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+    const monthSalesARS = monthSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const monthTaxes = settings.tax_enabled ? calculateTaxes(monthGrossProfit, settings).totalTax : 0;
+    const netMonthProfitARS = monthGrossProfit - totalMonthExpenses - monthTaxes;
+
+    // ===== Month-over-month growth =====
+    const prevDate = new Date(curY, curM - 1, 1);
+    const prevY = prevDate.getFullYear(); const prevM = prevDate.getMonth();
+    const prevSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === prevY && d.getMonth() === prevM; });
+    const prevSalesARS = prevSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const prevProfit = prevSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+    const salesGrowth = prevSalesARS > 0 ? ((monthSalesARS - prevSalesARS) / prevSalesARS) * 100 : (monthSalesARS > 0 ? 100 : 0);
+    const profitGrowth = prevProfit > 0 ? ((monthGrossProfit - prevProfit) / prevProfit) * 100 : (monthGrossProfit > 0 ? 100 : 0);
+
+    // ===== Top customers (this month) =====
+    const custMap: Record<string, { total: number; count: number }> = {};
+    monthSales.forEach((s: any) => {
+      const name = s.customer_name || 'Sin nombre';
+      if (!custMap[name]) custMap[name] = { total: 0, count: 0 };
+      custMap[name].total += Number(s.total_ars); custMap[name].count++;
+    });
+    const topCustomers = Object.entries(custMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5)
+      .map(([name, d]) => ({ name, ...d }));
+
+    // ===== Smart alerts =====
+    const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < 30).length;
+    const dueDebtsWeek = debts.filter((d: any) => d.status !== 'paid' && d.due_date && new Date(d.due_date) > new Date() && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000)).length;
+    const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
+    const smartAlerts: { type: 'destructive' | 'warning' | 'success'; icon: any; msg: string; link?: string }[] = [];
+    if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${outOfStockProducts.length} productos sin stock`, link: '/productos' });
+    if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${lowMarginCount} productos con margen menor a 30%`, link: '/productos' });
+    if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${dueDebtsWeek} deudas vencen esta semana`, link: '/deudas' });
+    if (expensesRatio > 50 && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas del mes`, link: '/gastos' });
+
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
@@ -265,6 +316,9 @@ export default function Dashboard() {
       projectedMonthlySalesARS, projectedMonthlyProfitARS, projectedCashFlowARS,
       avgMonthlyPurchasesARS, breakEvenUnits, avgMarginPerUnit,
       currentRate, totalCostUSDInInventory, products: allProducts,
+      // New
+      monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
+      salesGrowth, profitGrowth, topCustomers, smartAlerts,
     };
   }, [rawData, filterCat]);
 
