@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2 } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -356,9 +356,84 @@ export default function SettingsPage() {
             </p>
           </div>
 
+          {/* Backup / Export */}
+          <BackupExport userId={user!.id} />
+
           {/* Coupons CRUD */}
           <CouponsManager userId={user!.id} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BackupExport({ userId }: { userId: string }) {
+  const [busy, setBusy] = useState(false);
+
+  const collectAll = async () => {
+    const [products, sales, purchases, debts, settings, expenses, notes] = await Promise.all([
+      getProductsDB(userId), getSalesDB(userId), getPurchasesDB(userId),
+      getDebtsDB(userId), getSettingsDB(userId), getExpensesDB(userId), getCustomerNotesDB(userId),
+    ]);
+    return { products, sales, purchases, debts, settings, expenses, customer_notes: notes };
+  };
+
+  const exportExcel = async () => {
+    setBusy(true);
+    try {
+      const XLSX = await import('xlsx');
+      const data = await collectAll();
+      const wb = XLSX.utils.book_new();
+      const sheets: Record<string, any[]> = {
+        Productos: data.products,
+        Ventas: data.sales,
+        Compras: data.purchases,
+        Deudas: data.debts,
+        Gastos: data.expenses,
+        Notas_Clientes: data.customer_notes,
+      };
+      Object.entries(sheets).forEach(([name, rows]) => {
+        const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ vacio: 'Sin datos' }]);
+        XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+      });
+      const fileName = `exentry-backup-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      toast.success(`Excel descargado: ${fileName}`);
+    } catch (err: any) {
+      toast.error("Error al exportar: " + err.message);
+    } finally { setBusy(false); }
+  };
+
+  const exportJSON = async () => {
+    setBusy(true);
+    try {
+      const data = await collectAll();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `exentry-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Backup JSON descargado");
+    } catch (err: any) {
+      toast.error("Error al exportar: " + err.message);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+      <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+        <Download className="w-4 h-4 text-primary" />Backup y Exportación
+      </h2>
+      <p className="text-xs text-muted-foreground mb-4">Descargá toda tu base de datos para análisis externo o respaldo.</p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button onClick={exportExcel} disabled={busy} variant="outline" className="flex-1">
+          <FileSpreadsheet className="w-4 h-4 mr-2" />Excel (.xlsx)
+        </Button>
+        <Button onClick={exportJSON} disabled={busy} variant="outline" className="flex-1">
+          <FileJson className="w-4 h-4 mr-2" />JSON
+        </Button>
       </div>
     </div>
   );
