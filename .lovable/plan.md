@@ -1,90 +1,92 @@
 
 
-# Plan: Sistema de Variantes (Sabores) para Vapers + Profesionalización General
+## Plan: Edición Multi-Producto + Gestor de Gastos + Mejoras Profesionales
 
-## Concepto clave: Variantes sin duplicar productos
+### 1. Edición Multi-Producto en Ventas
 
-En vez de crear un producto por cada sabor de vaper, se agrega una tabla `product_variants` que almacena los sabores/variantes de cada producto. El stock se trackea **por variante**, y las ventas registran qué variante se vendió. El producto padre mantiene el stock total (suma de variantes).
+**`SalesPage.tsx`:** Reutilizar el sistema de `SaleLineItem` que ya existe para creación, ahora también al editar. Al abrir una venta histórica para editar:
+- Cargar la venta como una línea inicial editable
+- Permitir agregar más líneas (productos adicionales) que se registran como nuevas ventas vinculadas a la misma fecha/cliente
+- Si se modifica una línea existente, ajustar stock con el delta correcto
+- Si se agrega una línea nueva, crear nuevo registro de venta y descontar stock
+- Si se elimina una línea, revertir stock y borrar la venta
 
-```text
-┌─────────────────┐       ┌──────────────────────┐
-│   products      │ 1───N │  product_variants     │
-│                 │       │                      │
-│ VAPORESSO X     │       │ variant: "Menta"     │
-│ stock: 15 (sum) │       │ stock: 5             │
-│                 │       │ variant: "Frutilla"  │
-│                 │       │ stock: 4             │
-│                 │       │ variant: "Uva"       │
-│                 │       │ stock: 6             │
-└─────────────────┘       └──────────────────────┘
+### 2. Gestor de Gastos Operativos
+
+**Nueva tabla SQL `expenses`:**
+```
+id, user_id, amount_ars, category (alquiler/servicios/marketing/sueldos/logistica/otros),
+description, date, recurring (boolean), created_at
 ```
 
----
+**Nueva página `ExpensesPage.tsx`** (ruta `/gastos`):
+- CRUD de gastos con categorías predefinidas
+- Filtros por mes y categoría
+- Total mensual de gastos por categoría (gráfico)
+- Marca de gasto recurrente (se replica automáticamente cada mes)
 
-## 1. Migración SQL
+**Integración en Dashboard:**
+- Nueva card "Ganancia Neta del Mes" = Ganancia bruta − Gastos del mes − Impuestos
+- Card "Gastos del mes" con desglose por categoría
+- Punto de equilibrio recalculado usando gastos reales (no estimados desde compras)
+- Flujo de caja proyectado ajustado: ventas − compras − gastos
 
-**Nueva tabla `product_variants`:**
-- `id`, `product_id` (FK), `user_id`, `variant_name` (ej: "Menta", "Uva Ice"), `stock` (integer), `sku` (opcional), `active`, `created_at`
-- Constraint UNIQUE en `(product_id, variant_name)`
-- RLS: mismo patrón que products (admin full, authenticated read own, anon read)
+**Integración en Reports:**
+- Reporte mensual con columnas: Ingresos, Costos, Gastos, Impuestos, Ganancia Neta
 
-**Columna en `sales`:** `variant_id UUID` nullable para registrar qué sabor se vendió.
+### 3. Scroll Mobile en Modales
 
-## 2. Gestión de Variantes en ProductsPage
+Auditar todos los Dialog components y agregar `max-h-[90vh] overflow-y-auto` o `ScrollArea` en:
+- ProductsPage (form de producto con variantes/decants)
+- SalesPage (form multi-producto)
+- PurchasesPage, DebtsPage, AdminPage, SettingsPage, InfluencerExchangesPage, MarketingPage
+- Asegurar que el footer con botones de acción quede sticky al fondo en mobile
 
-- En el formulario de producto, si la categoría es `vaper`, aparece sección "Sabores / Variantes"
-- Input para agregar sabores con stock individual: `[Menta: 5] [Frutilla: 3] [+ Agregar]`
-- El stock total del producto = suma de stocks de variantes
-- Al editar un producto existente, se cargan las variantes actuales
-- Botón "Importar sabores" que permite pegar lista separada por comas
+### 4. Mejoras Profesionales Adicionales
 
-## 3. Variantes en SalesPage
+**a. Backup/Export de datos** (`SettingsPage`):
+- Botón "Exportar todo a Excel" — genera .xlsx con hojas: productos, ventas, compras, deudas, gastos, clientes
+- Botón "Backup JSON" — descarga snapshot completo
 
-- Al seleccionar un producto tipo vaper que tiene variantes, aparece un selector extra "Sabor/Variante"
-- Solo muestra variantes con stock > 0
-- Al registrar la venta, se descuenta stock de la variante específica y se actualiza el total del producto
-- El `product_name` registrado incluye el sabor: "VAPORESSO X (Menta)"
+**b. Comparativa mes vs mes** en Dashboard:
+- Card con % de crecimiento vs mes anterior (ventas, ganancia, clientes nuevos)
+- Indicador visual ↑↓ con color
 
-## 4. Profesionalización General
+**c. Top 5 clientes del mes** en Dashboard:
+- Ranking por monto facturado con avatar inicial
 
-### 4a. Dashboard financiero avanzado
-- **Flujo de caja proyectado**: ventas promedio diarias × 30 - compras promedio mensuales
-- **Punto de equilibrio**: costos fijos / margen promedio por unidad
-- **Simulador tipo de cambio**: slider que muestra impacto en márgenes globales
+**d. Alertas inteligentes** en Dashboard (banner superior):
+- "X productos con margen < 30%"
+- "Y deudas vencen esta semana"
+- "Stock crítico: Z productos sin stock"
+- "Gastos superan X% de ingresos"
 
-### 4b. Reportes mejorados
-- Nuevo reporte "Rentabilidad por Producto" con columnas: Margen %, ROI individual, velocidad de rotación (ventas/mes vs stock)
-- Reporte de variantes más vendidas (para vapers)
+**e. Notas rápidas por cliente** (`CustomersPage`):
+- Campo de texto libre por cliente para anotar preferencias, alergias, fechas importantes
 
-### 4c. UX del catálogo público
-- Filtros avanzados: slider de precio, filtro por marca, "solo con stock"
-- Favoritos con localStorage + sección "Mis favoritos"
-- Carrito con localStorage + botón "Pedir todo por WhatsApp"
-
-### 4d. Mejoras en la tabla de productos
-- Indicador visual de variantes (badge con cantidad de sabores)
-- Tooltip hover que muestra los sabores disponibles y stock de cada uno
-
----
-
-## Archivos a crear/modificar
+### Archivos
 
 | Archivo | Cambio |
 |---|---|
-| Migración SQL | Tabla `product_variants` + `variant_id` en sales |
-| `src/lib/supabaseStore.ts` | CRUD variantes, helpers financieros |
-| `src/pages/ProductsPage.tsx` | Sección variantes en form, badge en tabla |
-| `src/pages/SalesPage.tsx` | Selector de variante, descuento stock variante |
-| `src/pages/Dashboard.tsx` | Flujo caja, punto equilibrio, simulador TC |
-| `src/pages/ReportsPage.tsx` | Reporte rentabilidad, reporte variantes |
-| `src/pages/PublicCatalogPage.tsx` | Carrito, favoritos, filtros avanzados, variantes |
+| Migración SQL | Tabla `expenses` + columna `notes` en customers (vía sales aggregation) o nueva tabla `customer_notes` |
+| `src/pages/SalesPage.tsx` | Edición multi-línea con ajuste de stock |
+| `src/pages/ExpensesPage.tsx` | Nueva — CRUD gastos |
+| `src/pages/Dashboard.tsx` | Ganancia neta, gastos, comparativa, top clientes, alertas |
+| `src/pages/ReportsPage.tsx` | Columna gastos en reportes mensuales |
+| `src/pages/SettingsPage.tsx` | Botones export Excel/JSON |
+| `src/pages/CustomersPage.tsx` | Notas por cliente |
+| `src/components/AppLayout.tsx` | Link "Gastos" en sidebar |
+| `src/App.tsx` | Ruta `/gastos` |
+| `src/lib/supabaseStore.ts` | Helpers `getExpensesDB`, `addExpenseDB`, etc + `getMonthlyExpenses` |
+| Todos los modales | Scroll mobile con `max-h-[90vh] overflow-y-auto` |
 
-## Orden de implementación
-1. Migración SQL (product_variants + variant_id en sales)
-2. Store helpers para variantes
-3. ProductsPage: gestión de variantes para vapers
-4. SalesPage: selector de variante + descuento stock
-5. Dashboard: herramientas financieras avanzadas
-6. Catálogo público: carrito + favoritos + filtros + variantes
-7. Reportes: rentabilidad por producto + variantes
+### Orden de implementación
+1. Migración SQL (`expenses` + `customer_notes`)
+2. Scroll mobile en todos los modales
+3. Edición multi-producto en ventas
+4. Página de Gastos (CRUD + ruta + sidebar)
+5. Integración de gastos en Dashboard (ganancia neta, alertas)
+6. Top clientes y comparativa mes vs mes
+7. Export Excel/JSON en Settings
+8. Notas por cliente en CRM
 
