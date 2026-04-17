@@ -92,7 +92,7 @@ function FinancialSection({ stats }: { stats: any }) {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any } | null>(null);
+  const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
 
@@ -100,17 +100,17 @@ export default function Dashboard() {
     if (!user) return;
     (async () => {
       await seedProductsForUser(user.id);
-      const [products, sales, purchases, debts, settings] = await Promise.all([
-        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id),
+      const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
+        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
       ]);
-      setRawData({ products, sales, purchases, debts, settings });
+      setRawData({ products, sales, purchases, debts, settings, expenses });
       setLoading(false);
     })();
   }, [user]);
 
   const stats = useMemo(() => {
     if (!rawData) return null;
-    const { products: allProducts, sales: allSales, purchases: allPurchases, debts, settings } = rawData;
+    const { products: allProducts, sales: allSales, purchases: allPurchases, debts, settings, expenses } = rawData;
 
     // Filter by category: get product IDs in category, then filter sales/purchases
     const products = filterCat === 'all' ? allProducts : allProducts.filter(p => p.category === filterCat);
