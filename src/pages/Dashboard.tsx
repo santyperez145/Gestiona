@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal } from "lucide-react";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, EXPENSE_CATEGORIES } from "@/lib/supabaseStore";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -9,6 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
 } from "recharts";
+import { Link } from "react-router-dom";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
@@ -92,7 +93,7 @@ function FinancialSection({ stats }: { stats: any }) {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any } | null>(null);
+  const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
 
@@ -100,17 +101,17 @@ export default function Dashboard() {
     if (!user) return;
     (async () => {
       await seedProductsForUser(user.id);
-      const [products, sales, purchases, debts, settings] = await Promise.all([
-        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id),
+      const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
+        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
       ]);
-      setRawData({ products, sales, purchases, debts, settings });
+      setRawData({ products, sales, purchases, debts, settings, expenses });
       setLoading(false);
     })();
   }, [user]);
 
   const stats = useMemo(() => {
     if (!rawData) return null;
-    const { products: allProducts, sales: allSales, purchases: allPurchases, debts, settings } = rawData;
+    const { products: allProducts, sales: allSales, purchases: allPurchases, debts, settings, expenses } = rawData;
 
     // Filter by category: get product IDs in category, then filter sales/purchases
     const products = filterCat === 'all' ? allProducts : allProducts.filter(p => p.category === filterCat);
@@ -241,6 +242,56 @@ export default function Dashboard() {
     const currentRate = Number(settings.exchange_rate);
     const totalCostUSDInInventory = products.reduce((s: number, p: any) => s + Number(p.total_cost_usd), 0);
 
+    // ===== EXPENSES (current month) =====
+    const nowD = new Date();
+    const curY = nowD.getFullYear(); const curM = nowD.getMonth();
+    const monthExpenses = (expenses || []).filter((e: any) => {
+      const d = new Date(e.date); return d.getFullYear() === curY && d.getMonth() === curM;
+    });
+    const totalMonthExpenses = monthExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
+    const expensesByCat: Record<string, number> = {};
+    monthExpenses.forEach((e: any) => { expensesByCat[e.category] = (expensesByCat[e.category] || 0) + Number(e.amount_ars); });
+    const expensesChartData = Object.entries(expensesByCat).map(([cat, value]) => ({
+      name: getExpenseCategoryLabel(cat), value,
+      color: EXPENSE_CATEGORIES.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
+    }));
+
+    // Net profit: gross - expenses - taxes (if enabled)
+    const monthSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === curY && d.getMonth() === curM; });
+    const monthGrossProfit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+    const monthSalesARS = monthSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const monthTaxes = settings.tax_enabled ? calculateTaxes(monthGrossProfit, settings).totalTax : 0;
+    const netMonthProfitARS = monthGrossProfit - totalMonthExpenses - monthTaxes;
+
+    // ===== Month-over-month growth =====
+    const prevDate = new Date(curY, curM - 1, 1);
+    const prevY = prevDate.getFullYear(); const prevM = prevDate.getMonth();
+    const prevSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === prevY && d.getMonth() === prevM; });
+    const prevSalesARS = prevSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const prevProfit = prevSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+    const salesGrowth = prevSalesARS > 0 ? ((monthSalesARS - prevSalesARS) / prevSalesARS) * 100 : (monthSalesARS > 0 ? 100 : 0);
+    const profitGrowth = prevProfit > 0 ? ((monthGrossProfit - prevProfit) / prevProfit) * 100 : (monthGrossProfit > 0 ? 100 : 0);
+
+    // ===== Top customers (this month) =====
+    const custMap: Record<string, { total: number; count: number }> = {};
+    monthSales.forEach((s: any) => {
+      const name = s.customer_name || 'Sin nombre';
+      if (!custMap[name]) custMap[name] = { total: 0, count: 0 };
+      custMap[name].total += Number(s.total_ars); custMap[name].count++;
+    });
+    const topCustomers = Object.entries(custMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5)
+      .map(([name, d]) => ({ name, ...d }));
+
+    // ===== Smart alerts =====
+    const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < 30).length;
+    const dueDebtsWeek = debts.filter((d: any) => d.status !== 'paid' && d.due_date && new Date(d.due_date) > new Date() && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000)).length;
+    const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
+    const smartAlerts: { type: 'destructive' | 'warning' | 'success'; icon: any; msg: string; link?: string }[] = [];
+    if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${outOfStockProducts.length} productos sin stock`, link: '/productos' });
+    if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${lowMarginCount} productos con margen menor a 30%`, link: '/productos' });
+    if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${dueDebtsWeek} deudas vencen esta semana`, link: '/deudas' });
+    if (expensesRatio > 50 && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas del mes`, link: '/gastos' });
+
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
@@ -265,6 +316,9 @@ export default function Dashboard() {
       projectedMonthlySalesARS, projectedMonthlyProfitARS, projectedCashFlowARS,
       avgMonthlyPurchasesARS, breakEvenUnits, avgMarginPerUnit,
       currentRate, totalCostUSDInInventory, products: allProducts,
+      // New
+      monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
+      salesGrowth, profitGrowth, topCustomers, smartAlerts,
     };
   }, [rawData, filterCat]);
 
@@ -272,7 +326,8 @@ export default function Dashboard() {
 
   const kpiCards = [
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
-    ...(stats.taxEnabled ? [{ label: "Ganancia Neta", value: formatARS(stats.netProfitARS), sub: "Post impuestos", icon: TrendingUp, color: stats.netProfitARS >= 0 ? "text-success" : "text-destructive" }] : []),
+    { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-success" : "text-destructive" },
+    { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-warning" },
     { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, color: "text-primary" },
     { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, color: "text-warning" },
     { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, color: "text-destructive" },
@@ -538,6 +593,57 @@ export default function Dashboard() {
 
       {/* Financial Tools */}
       <FinancialSection stats={stats} />
+
+      {/* MoM Growth + Top Customers */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Crecimiento Mes a Mes</h2>
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Ventas</span>
+                <span className={`font-bold flex items-center gap-1 ${stats.salesGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {stats.salesGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                  {Math.abs(stats.salesGrowth).toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{formatARS(stats.monthSalesARS)} este mes</p>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Ganancia</span>
+                <span className={`font-bold flex items-center gap-1 ${stats.profitGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {stats.profitGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                  {Math.abs(stats.profitGrowth).toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{formatARS(stats.monthGrossProfit)} bruta</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Crown className="w-4 h-4 text-primary" />Top 5 Clientes del Mes
+          </h2>
+          {stats.topCustomers.length > 0 ? (
+            <div className="space-y-2">
+              {stats.topCustomers.map((c: any, i: number) => (
+                <div key={c.name} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                    {c.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{i + 1}. {c.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{c.count} compras</p>
+                  </div>
+                  <span className="text-sm font-bold text-primary shrink-0">{formatARS(c.total)}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-muted-foreground text-sm py-4 text-center">Sin ventas este mes</p>}
+        </div>
+      </div>
 
       {/* Top Products + Recent Sales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -431,6 +431,63 @@ export function calculateTaxes(profitARS: number, settings: any) {
   return { iva, iibb, monotributo, totalTax, netProfit: profitARS - totalTax };
 }
 
+// ========= EXPENSES =========
+export async function getExpensesDB(userId: string) {
+  const { data, error } = await supabase.from('expenses' as any).select('*').eq('user_id', userId).order('date', { ascending: false });
+  if (error) throw error;
+  return (data as any[]) || [];
+}
+
+export async function addExpenseDB(expense: any) {
+  const { error } = await supabase.from('expenses' as any).insert(expense);
+  if (error) throw error;
+}
+
+export async function updateExpenseDB(id: string, updates: any) {
+  const { error } = await supabase.from('expenses' as any).update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteExpenseDB(id: string) {
+  const { error } = await supabase.from('expenses' as any).delete().eq('id', id);
+  if (error) throw error;
+}
+
+export function getMonthlyExpenses(expenses: any[], year: number, month: number) {
+  return expenses.filter(e => {
+    const d = new Date(e.date);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+}
+
+export const EXPENSE_CATEGORIES = [
+  { value: 'alquiler', label: 'Alquiler', color: 'hsl(20, 70%, 50%)' },
+  { value: 'servicios', label: 'Servicios', color: 'hsl(200, 60%, 50%)' },
+  { value: 'marketing', label: 'Marketing', color: 'hsl(280, 60%, 50%)' },
+  { value: 'sueldos', label: 'Sueldos', color: 'hsl(150, 60%, 40%)' },
+  { value: 'logistica', label: 'Logística', color: 'hsl(40, 70%, 50%)' },
+  { value: 'impuestos', label: 'Impuestos', color: 'hsl(0, 70%, 50%)' },
+  { value: 'otros', label: 'Otros', color: 'hsl(220, 10%, 55%)' },
+];
+
+export function getExpenseCategoryLabel(cat: string) {
+  return EXPENSE_CATEGORIES.find(c => c.value === cat)?.label || cat;
+}
+
+// ========= CUSTOMER NOTES =========
+export async function getCustomerNotesDB(userId: string) {
+  const { data, error } = await supabase.from('customer_notes' as any).select('*').eq('user_id', userId);
+  if (error) throw error;
+  return (data as any[]) || [];
+}
+
+export async function upsertCustomerNoteDB(userId: string, customerName: string, notes: string) {
+  const { error } = await supabase
+    .from('customer_notes' as any)
+    .upsert({ user_id: userId, customer_name: customerName, notes }, { onConflict: 'user_id,customer_name' });
+  if (error) throw error;
+}
+
 // Seed products for a new user
 export async function seedProductsForUser(userId: string) {
   const { data: existing } = await supabase.from('products').select('id').eq('user_id', userId).limit(1);

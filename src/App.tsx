@@ -15,6 +15,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
+import ExpensesPage from "@/pages/ExpensesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
 import CatalogPage from "@/pages/CatalogPage";
@@ -89,6 +90,7 @@ function ProtectedRoutes() {
             <Route path="/canjes" element={<InfluencerExchangesPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
             <Route path="/ia" element={<AIInsightsPage />} />
+            <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </>
