@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSalesDB, getDebtsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
-import { Users, TrendingUp, ShoppingBag, Star, Crown, AlertCircle, ArrowUpDown, MessageCircle } from "lucide-react";
+import { getSalesDB, getDebtsDB, getSettingsDB, formatARS, getCustomerNotesDB, upsertCustomerNoteDB } from "@/lib/supabaseStore";
+import { Users, TrendingUp, ShoppingBag, Star, Crown, AlertCircle, ArrowUpDown, MessageCircle, StickyNote, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { toast } from "sonner";
 
 type CustomerData = {
   name: string;

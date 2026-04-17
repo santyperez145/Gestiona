@@ -326,7 +326,8 @@ export default function Dashboard() {
 
   const kpiCards = [
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
-    ...(stats.taxEnabled ? [{ label: "Ganancia Neta", value: formatARS(stats.netProfitARS), sub: "Post impuestos", icon: TrendingUp, color: stats.netProfitARS >= 0 ? "text-success" : "text-destructive" }] : []),
+    { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-success" : "text-destructive" },
+    { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-warning" },
     { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, color: "text-primary" },
     { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, color: "text-warning" },
     { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, color: "text-destructive" },
@@ -592,6 +593,57 @@ export default function Dashboard() {
 
       {/* Financial Tools */}
       <FinancialSection stats={stats} />
+
+      {/* MoM Growth + Top Customers */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Crecimiento Mes a Mes</h2>
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Ventas</span>
+                <span className={`font-bold flex items-center gap-1 ${stats.salesGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {stats.salesGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                  {Math.abs(stats.salesGrowth).toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{formatARS(stats.monthSalesARS)} este mes</p>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Ganancia</span>
+                <span className={`font-bold flex items-center gap-1 ${stats.profitGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {stats.profitGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                  {Math.abs(stats.profitGrowth).toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{formatARS(stats.monthGrossProfit)} bruta</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Crown className="w-4 h-4 text-primary" />Top 5 Clientes del Mes
+          </h2>
+          {stats.topCustomers.length > 0 ? (
+            <div className="space-y-2">
+              {stats.topCustomers.map((c: any, i: number) => (
+                <div key={c.name} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                    {c.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{i + 1}. {c.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{c.count} compras</p>
+                  </div>
+                  <span className="text-sm font-bold text-primary shrink-0">{formatARS(c.total)}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-muted-foreground text-sm py-4 text-center">Sin ventas este mes</p>}
+        </div>
+      </div>
 
       {/* Top Products + Recent Sales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
