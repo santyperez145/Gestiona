@@ -513,9 +513,11 @@ export type Database = {
           date: string
           exchange_rate: number
           id: string
+          is_scheduled: boolean
           product_id: string | null
           product_name: string
           quantity: number
+          scheduled_date: string | null
           supplier: string | null
           total_ars: number
           total_usd: number
@@ -529,9 +531,11 @@ export type Database = {
           date?: string
           exchange_rate?: number
           id?: string
+          is_scheduled?: boolean
           product_id?: string | null
           product_name: string
           quantity?: number
+          scheduled_date?: string | null
           supplier?: string | null
           total_ars?: number
           total_usd?: number
@@ -545,9 +549,11 @@ export type Database = {
           date?: string
           exchange_rate?: number
           id?: string
+          is_scheduled?: boolean
           product_id?: string | null
           product_name?: string
           quantity?: number
+          scheduled_date?: string | null
           supplier?: string | null
           total_ars?: number
           total_usd?: number
@@ -695,6 +701,7 @@ export type Database = {
       settings: {
         Row: {
           business_name: string | null
+          cash_flow_warning_threshold_ars: number
           created_at: string
           customs_percent: number
           decant_margin_10ml: number | null
@@ -706,8 +713,16 @@ export type Database = {
           discount_debit_percent: number
           discount_transfer_percent: number
           exchange_rate: number
+          expense_categories: Json
+          expense_ratio_alert_percent: number
           id: string
+          initial_cash_ars: number
+          large_sale_threshold_ars: number
           logo_url: string | null
+          low_stock_threshold: number
+          margin_alert_percent: number
+          overdue_check_window_hours: number
+          pasero_commission_percent: number
           primary_color: string | null
           secondary_color: string | null
           tax_enabled: boolean
@@ -715,6 +730,10 @@ export type Database = {
           tax_iva_percent: number
           tax_monotributo_monthly: number
           updated_at: string
+          usd_rate_blue: number | null
+          usd_rate_mep: number | null
+          usd_rate_oficial: number | null
+          usd_rate_updated_at: string | null
           user_id: string
           volume_discount_percent: number | null
           volume_discount_threshold: number | null
@@ -722,6 +741,7 @@ export type Database = {
         }
         Insert: {
           business_name?: string | null
+          cash_flow_warning_threshold_ars?: number
           created_at?: string
           customs_percent?: number
           decant_margin_10ml?: number | null
@@ -733,8 +753,16 @@ export type Database = {
           discount_debit_percent?: number
           discount_transfer_percent?: number
           exchange_rate?: number
+          expense_categories?: Json
+          expense_ratio_alert_percent?: number
           id?: string
+          initial_cash_ars?: number
+          large_sale_threshold_ars?: number
           logo_url?: string | null
+          low_stock_threshold?: number
+          margin_alert_percent?: number
+          overdue_check_window_hours?: number
+          pasero_commission_percent?: number
           primary_color?: string | null
           secondary_color?: string | null
           tax_enabled?: boolean
@@ -742,6 +770,10 @@ export type Database = {
           tax_iva_percent?: number
           tax_monotributo_monthly?: number
           updated_at?: string
+          usd_rate_blue?: number | null
+          usd_rate_mep?: number | null
+          usd_rate_oficial?: number | null
+          usd_rate_updated_at?: string | null
           user_id: string
           volume_discount_percent?: number | null
           volume_discount_threshold?: number | null
@@ -749,6 +781,7 @@ export type Database = {
         }
         Update: {
           business_name?: string | null
+          cash_flow_warning_threshold_ars?: number
           created_at?: string
           customs_percent?: number
           decant_margin_10ml?: number | null
@@ -760,8 +793,16 @@ export type Database = {
           discount_debit_percent?: number
           discount_transfer_percent?: number
           exchange_rate?: number
+          expense_categories?: Json
+          expense_ratio_alert_percent?: number
           id?: string
+          initial_cash_ars?: number
+          large_sale_threshold_ars?: number
           logo_url?: string | null
+          low_stock_threshold?: number
+          margin_alert_percent?: number
+          overdue_check_window_hours?: number
+          pasero_commission_percent?: number
           primary_color?: string | null
           secondary_color?: string | null
           tax_enabled?: boolean
@@ -769,6 +810,10 @@ export type Database = {
           tax_iva_percent?: number
           tax_monotributo_monthly?: number
           updated_at?: string
+          usd_rate_blue?: number | null
+          usd_rate_mep?: number | null
+          usd_rate_oficial?: number | null
+          usd_rate_updated_at?: string | null
           user_id?: string
           volume_discount_percent?: number | null
           volume_discount_threshold?: number | null
