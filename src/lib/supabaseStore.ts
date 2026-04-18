@@ -90,13 +90,43 @@ export async function getDebtsDB(userId: string) {
 }
 
 export async function updateDebtDB(id: string, updates: any) {
+  // Fetch previous to detect status transition for sale sync
+  const { data: prev } = await supabase.from('debts').select('*').eq('id', id).maybeSingle();
   const { error } = await supabase.from('debts').update(updates).eq('id', id);
   if (error) throw error;
+  // Sync linked sale.paid based on debt status transition
+  if (prev?.sale_id) {
+    const newStatus = updates.status ?? prev.status;
+    const becamePaid = newStatus === 'paid' && prev.status !== 'paid';
+    const becameUnpaid = newStatus !== 'paid' && prev.status === 'paid';
+    if (becamePaid) {
+      await supabase.from('sales').update({ paid: true }).eq('id', prev.sale_id);
+      await supabase.from('notifications').insert({
+        user_id: prev.user_id,
+        title: 'Venta cobrada',
+        message: `Se marcó como pagada la venta de ${prev.customer_name}`,
+        type: 'venta_cobrada', entity_type: 'sale', entity_id: prev.sale_id,
+      });
+    } else if (becameUnpaid) {
+      await supabase.from('sales').update({ paid: false }).eq('id', prev.sale_id);
+    }
+  }
 }
 
 export async function deleteDebtDB(id: string) {
   const { error } = await supabase.from('debts').delete().eq('id', id);
   if (error) throw error;
+}
+
+/** Register a debt payment and auto-sync sale status if fully paid. */
+export async function addDebtPaymentDB(debtId: string, paymentARS: number) {
+  const { data: debt } = await supabase.from('debts').select('*').eq('id', debtId).maybeSingle();
+  if (!debt) throw new Error('Deuda no encontrada');
+  const newPaid = Number(debt.paid_ars) + paymentARS;
+  const newRemaining = Math.max(0, Number(debt.amount_ars) - newPaid);
+  const newStatus = newRemaining <= 0.01 ? 'paid' : 'partial';
+  await updateDebtDB(debtId, { paid_ars: newPaid, remaining_ars: newRemaining, status: newStatus });
+  return { newPaid, newRemaining, newStatus, debt };
 }
 
 // ========= SETTINGS =========
