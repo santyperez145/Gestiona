@@ -423,22 +423,34 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       const discountApplied = PAYMENT_METHODS.find(m => m.value === paymentMethod)?.usesDiscount || false;
 
       if (isEditMode) {
-        // Edit mode: single line
-        const { line, calc } = lineCalcs[0];
-        if (!calc) return;
-        const saleData: any = {
-          product_id: line.productId, product_name: calc.productLabel,
-          quantity: line.quantity, unit_price_ars: calc.unitPrice, discount_applied: discountApplied,
-          total_ars: calc.total, cost_per_unit_usd: calc.costPerUnitUSD,
-          profit_ars: calc.profitARS, profit_usd: calc.profitUSD,
-          customer_name: customerName || null, date: dateToNoon(date), paid,
-          payment_method: paymentMethod,
-          coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
-          variant_id: line.variantId || null,
-        };
-        await updateSaleDB(editItem.id, saleData, editItem);
-        await logAudit(userId, 'update', 'sale', editItem.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS });
-        toast.success("Venta actualizada");
+        // Edit mode: line 0 updates existing sale; additional lines create NEW sales
+        for (let i = 0; i < lineCalcs.length; i++) {
+          const { line, calc } = lineCalcs[i];
+          if (!calc) continue;
+          const baseData: any = {
+            product_id: line.productId, product_name: calc.productLabel,
+            quantity: line.quantity, unit_price_ars: calc.unitPrice, discount_applied: discountApplied,
+            total_ars: calc.total, cost_per_unit_usd: calc.costPerUnitUSD,
+            profit_ars: calc.profitARS, profit_usd: calc.profitUSD,
+            customer_name: customerName || null, date: dateToNoon(date), paid,
+            payment_method: paymentMethod,
+            coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+            variant_id: line.variantId || null,
+          };
+
+          if (i === 0) {
+            await updateSaleDB(editItem.id, baseData, editItem);
+            await logAudit(userId, 'update', 'sale', editItem.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS });
+          } else {
+            const saleId = crypto.randomUUID();
+            const newSale = { ...baseData, id: saleId, user_id: userId };
+            if (line.variantId) await addSaleWithVariantDB(newSale, line.variantId);
+            else await addSaleDB(newSale);
+            await logAudit(userId, 'create', 'sale', saleId, { product: calc.productLabel, total: calc.total, addedToEdit: editItem.id });
+            if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
+          }
+        }
+        toast.success(lineCalcs.length === 1 ? "Venta actualizada" : `Venta actualizada + ${lineCalcs.length - 1} línea(s) agregada(s)`);
       } else {
         // New: create one sale per line item
         for (const { line, calc } of lineCalcs) {
