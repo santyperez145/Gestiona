@@ -152,7 +152,7 @@ export default function ProductsPage() {
 
       {/* Bulk price adjustment modal */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
           <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
         </DialogContent>

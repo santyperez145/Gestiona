@@ -92,7 +92,7 @@ export default function MarketingPage() {
                 <Sparkles className="w-4 h-4 mr-2" />Generar con IA
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display">Generar Contenido con IA</DialogTitle></DialogHeader>
               <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} />
             </DialogContent>
@@ -101,7 +101,7 @@ export default function MarketingPage() {
             <DialogTrigger asChild>
               <Button variant="outline"><Plus className="w-4 h-4 mr-2" />Manual</Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display">Crear Publicación</DialogTitle></DialogHeader>
               <ManualPostForm userId={user?.id || ''} onSave={reload} />
             </DialogContent>
