@@ -606,7 +606,9 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       </div>
 
       <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">
-        {submitting ? 'Guardando...' : editItem ? 'Actualizar Venta' : lines.length > 1 ? `Registrar ${lines.length} Ventas` : 'Registrar Venta'}
+        {submitting ? 'Guardando...' : editItem
+          ? (lines.length > 1 ? `Actualizar + ${lines.length - 1} línea(s)` : 'Actualizar Venta')
+          : (lines.length > 1 ? `Registrar ${lines.length} Ventas` : 'Registrar Venta')}
       </Button>
     </form>
   );
