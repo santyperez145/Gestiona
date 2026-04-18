@@ -498,11 +498,9 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             <ShoppingCart className="w-4 h-4 text-primary" />
             Productos ({lines.length})
           </label>
-          {!isEditMode && (
-            <Button type="button" variant="outline" size="sm" onClick={addLine} className="h-7 text-xs">
-              <Plus className="w-3 h-3 mr-1" />Agregar producto
-            </Button>
-          )}
+          <Button type="button" variant="outline" size="sm" onClick={addLine} className="h-7 text-xs">
+            <Plus className="w-3 h-3 mr-1" />Agregar producto
+          </Button>
         </div>
 
         {lines.map((line, idx) => (
@@ -515,8 +513,8 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             settings={settings}
             paymentMethod={paymentMethod}
             couponResult={couponResult}
-            canRemove={lines.length > 1 && !isEditMode}
-            isEditMode={isEditMode}
+            canRemove={lines.length > 1 && (!isEditMode || idx > 0)}
+            isEditMode={isEditMode && idx === 0}
             onUpdate={(updates) => updateLine(line.id, updates)}
             onRemove={() => removeLine(line.id)}
           />
