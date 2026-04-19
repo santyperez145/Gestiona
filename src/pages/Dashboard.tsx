@@ -100,10 +100,12 @@ export default function Dashboard() {
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
+      setLoading(true);
       await seedProductsForUser(user.id);
       const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
         getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
@@ -111,7 +113,7 @@ export default function Dashboard() {
       setRawData({ products, sales, purchases, debts, settings, expenses });
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   const stats = useMemo(() => {
     if (!rawData) return null;
@@ -386,7 +388,7 @@ export default function Dashboard() {
       {user && <ConsistencyAlerts
         sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
         userId={user.id}
-        onRepair={() => { setRawData(null); setLoading(true); /* trigger refetch */ }}
+        onRepair={() => setReloadKey(k => k + 1)}
       />}
 
       {/* KPI Cards */}
