@@ -3,9 +3,10 @@ import { useAuth } from "@/lib/auth";
 import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, getSalesAggregatedDB, formatARS, formatUSD, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -28,13 +29,17 @@ export default function PurchasesPage() {
   const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
+  const [tab, setTab] = useState<'all' | 'scheduled'>('all');
   const filtered = purchases.filter(p => {
+    if (tab === 'scheduled' && !p.is_scheduled) return false;
+    if (tab === 'all' && p.is_scheduled) return false;
     if (!dateFrom) return true;
     const d = new Date(p.date);
     if (d < dateFrom) return false;
     if (dateTo) { const end = new Date(dateTo); end.setHours(23,59,59,999); if (d > end) return false; }
     return true;
   });
+  const scheduledCount = purchases.filter(p => p.is_scheduled).length;
   const totalUSD = filtered.reduce((s, p) => s + Number(p.total_usd), 0);
   const totalARS = filtered.reduce((s, p) => s + Number(p.total_ars), 0);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -51,7 +56,7 @@ export default function PurchasesPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Compras</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
@@ -71,6 +76,18 @@ export default function PurchasesPage() {
           </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      {/* Tabs: All vs Scheduled */}
+      <div className="flex gap-2 mb-4 border-b border-border">
+        <button
+          onClick={() => { setTab('all'); setPage(0); }}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${tab === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >Realizadas</button>
+        <button
+          onClick={() => { setTab('scheduled'); setPage(0); }}
+          className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'scheduled' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        ><CalendarClock className="w-3.5 h-3.5" /> Programadas {scheduledCount > 0 && <span className="text-[10px] bg-primary/20 text-primary px-1.5 rounded-full">{scheduledCount}</span>}</button>
       </div>
 
       {/* Purchase Order Generator Dialog */}
@@ -177,6 +194,8 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const [exchangeRate, setExchangeRate] = useState(editItem ? String(editItem.exchange_rate) : '');
   const [supplier, setSupplier] = useState(editItem?.supplier || '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [isScheduled, setIsScheduled] = useState(!!editItem?.is_scheduled);
+  const [scheduledDate, setScheduledDate] = useState(editItem?.scheduled_date ? new Date(editItem.scheduled_date).toISOString().slice(0, 10) : new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
@@ -198,19 +217,21 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productId || qty <= 0) { toast.error("Seleccioná producto y cantidad"); return; }
-    const purchaseData = {
+    const purchaseData: any = {
       product_id: productId, product_name: product!.name,
       quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
       total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date: dateToNoon(date), supplier,
+      is_scheduled: isScheduled,
+      scheduled_date: isScheduled ? dateToNoon(scheduledDate) : null,
     };
     if (editItem) {
       await updatePurchaseDB(editItem.id, purchaseData, editItem);
-      await logAudit(userId, 'update', 'purchase', editItem.id, { product: product!.name, totalUSD, qty });
-      toast.success("Compra actualizada");
+      await logAudit(userId, 'update', 'purchase', editItem.id, { product: product!.name, totalUSD, qty, scheduled: isScheduled });
+      toast.success(isScheduled ? "Compra programada actualizada" : "Compra actualizada");
     } else {
       await addPurchaseDB({ user_id: userId, ...purchaseData });
-      await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty });
-      toast.success("Compra registrada");
+      await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty, scheduled: isScheduled });
+      toast.success(isScheduled ? "Compra programada registrada (no descuenta stock)" : "Compra registrada");
     }
     onSave();
   };
@@ -219,6 +240,13 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+        <div>
+          <p className="text-sm font-medium flex items-center gap-1.5"><Clock className="w-4 h-4 text-warning" />Compra programada</p>
+          <p className="text-[11px] text-muted-foreground">No descuenta stock; aparece en el flujo de caja proyectado.</p>
+        </div>
+        <Switch checked={isScheduled} onCheckedChange={setIsScheduled} />
+      </div>
       <div><label className="text-sm text-muted-foreground">Producto</label>
         <Select value={productId} onValueChange={setProductId}><SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
           <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({formatUSD(Number(p.cost_usd))})</SelectItem>)}</SelectContent>
@@ -227,8 +255,14 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
       <div className="grid grid-cols-3 gap-3">
         <div><label className="text-sm text-muted-foreground">Cantidad</label><Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="bg-muted border-border" /></div>
         <div><label className="text-sm text-muted-foreground">TC (auto)</label><Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border" /></div>
-        <div><label className="text-sm text-muted-foreground">Fecha</label><Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
+        <div><label className="text-sm text-muted-foreground">{isScheduled ? 'Fecha registro' : 'Fecha'}</label><Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" /></div>
       </div>
+      {isScheduled && (
+        <div>
+          <label className="text-sm text-muted-foreground">Fecha programada (cuándo se concretará)</label>
+          <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} className="bg-muted border-border mt-1" required />
+        </div>
+      )}
       <div><label className="text-sm text-muted-foreground">Proveedor</label><Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Opcional" className="bg-muted border-border" /></div>
       {product && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
