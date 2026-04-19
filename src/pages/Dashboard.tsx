@@ -382,6 +382,13 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Consistency Alerts (auto-repair) */}
+      {user && <ConsistencyAlerts
+        sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
+        userId={user.id}
+        onRepair={() => { setRawData(null); setLoading(true); /* trigger refetch */ }}
+      />}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
         {kpiCards.map((c, i) => (
@@ -536,11 +543,11 @@ export default function Dashboard() {
           {stats.lowMarginProducts?.length > 0 && (
             <div className="bg-card border border-warning/30 rounded-lg p-4 md:p-5 shadow-card">
               <h2 className="text-sm font-display font-semibold mb-3 text-warning uppercase tracking-wider flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Margen Bajo (&lt;30%) — Subir precio
+                <AlertTriangle className="w-4 h-4" /> Margen Bajo (&lt;{stats.marginAlertPct}%) — Subir precio
               </h2>
               <div className="space-y-2.5">
                 {stats.lowMarginProducts.map((p: any, i: number) => {
-                  const suggestedPrice = stats.minPriceForMargin(p.costUSD, 30);
+                  const suggestedPrice = stats.minPriceForMargin(p.costUSD, stats.marginAlertPct);
                   return (
                     <div key={p.name} className="flex items-center justify-between text-sm">
                       <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
@@ -603,6 +610,19 @@ export default function Dashboard() {
 
       {/* Financial Tools */}
       <FinancialSection stats={stats} />
+
+      {/* Cash Flow + Health + AI */}
+      <CashFlowProjector
+        sales={stats.rawSales} debts={stats.rawDebts} expenses={stats.rawExpenses}
+        purchases={stats.rawPurchases} settings={stats.rawSettings}
+      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
+        <HealthScore
+          sales={stats.rawSales} expenses={stats.rawExpenses} debts={stats.rawDebts}
+          products={stats.products} settings={stats.rawSettings}
+        />
+        <AIPrediction sales={stats.rawSales} />
+      </div>
 
       {/* MoM Growth + Top Customers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
