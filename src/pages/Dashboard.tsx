@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, EXPENSE_CATEGORIES } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,10 @@ import {
   LineChart, Line, Legend, AreaChart, Area,
 } from "recharts";
 import { Link } from "react-router-dom";
+import CashFlowProjector from "@/components/dashboard/CashFlowProjector";
+import HealthScore from "@/components/dashboard/HealthScore";
+import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
+import AIPrediction from "@/components/dashboard/AIPrediction";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
@@ -197,7 +201,10 @@ export default function Dashboard() {
     const paidSalesARS = sales.filter((s: any) => s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
     const unpaidSalesARS = sales.filter((s: any) => !s.paid).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
 
-    const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 3);
+    const lowStockThreshold = Number(settings.low_stock_threshold ?? 3);
+    const marginAlertPct = Number(settings.margin_alert_percent ?? 30);
+    const expenseRatioAlertPct = Number(settings.expense_ratio_alert_percent ?? 40);
+    const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= lowStockThreshold);
     const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
 
     // Margin rankings
@@ -209,7 +216,7 @@ export default function Dashboard() {
       costUSD: Number(p.total_cost_usd),
     }));
     const topMarginProducts = [...productsWithMargin].sort((a, b) => b.margin - a.margin).slice(0, 5);
-    const lowMarginProducts = [...productsWithMargin].filter(p => p.margin > 0 && p.margin < 30).sort((a, b) => a.margin - b.margin).slice(0, 5);
+    const lowMarginProducts = [...productsWithMargin].filter(p => p.margin > 0 && p.margin < marginAlertPct).sort((a, b) => a.margin - b.margin).slice(0, 5);
     const minPriceForMargin = (costUSD: number, targetMargin: number) => {
       const costARS = costUSD * Number(settings.exchange_rate);
       return costARS / (1 - targetMargin / 100);
@@ -220,7 +227,7 @@ export default function Dashboard() {
         const prod = products.find((p: any) => p.id === id);
         return prod ? { name: prod.name, stock: prod.stock, soldQty: data.qty, revenue: data.revenue } : null;
       })
-      .filter((r: any) => r && r.stock <= 3)
+      .filter((r: any) => r && r.stock <= lowStockThreshold)
       .sort((a: any, b: any) => b.soldQty - a.soldQty)
       .slice(0, 5);
 
@@ -249,11 +256,12 @@ export default function Dashboard() {
       const d = new Date(e.date); return d.getFullYear() === curY && d.getMonth() === curM;
     });
     const totalMonthExpenses = monthExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
+    const expenseCats = buildExpenseCategories(settings);
     const expensesByCat: Record<string, number> = {};
     monthExpenses.forEach((e: any) => { expensesByCat[e.category] = (expensesByCat[e.category] || 0) + Number(e.amount_ars); });
     const expensesChartData = Object.entries(expensesByCat).map(([cat, value]) => ({
-      name: getExpenseCategoryLabel(cat), value,
-      color: EXPENSE_CATEGORIES.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
+      name: getExpenseCategoryLabel(cat, settings), value,
+      color: expenseCats.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
     }));
 
     // Net profit: gross - expenses - taxes (if enabled)
@@ -282,15 +290,14 @@ export default function Dashboard() {
     const topCustomers = Object.entries(custMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5)
       .map(([name, d]) => ({ name, ...d }));
 
-    // ===== Smart alerts =====
-    const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < 30).length;
     const dueDebtsWeek = debts.filter((d: any) => d.status !== 'paid' && d.due_date && new Date(d.due_date) > new Date() && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000)).length;
     const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
+    const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < marginAlertPct).length;
     const smartAlerts: { type: 'destructive' | 'warning' | 'success'; icon: any; msg: string; link?: string }[] = [];
     if (outOfStockProducts.length > 0) smartAlerts.push({ type: 'destructive', icon: AlertTriangle, msg: `${outOfStockProducts.length} productos sin stock`, link: '/productos' });
-    if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${lowMarginCount} productos con margen menor a 30%`, link: '/productos' });
+    if (lowMarginCount > 0) smartAlerts.push({ type: 'warning', icon: TrendingDown, msg: `${lowMarginCount} productos con margen < ${marginAlertPct}%`, link: '/productos' });
     if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${dueDebtsWeek} deudas vencen esta semana`, link: '/deudas' });
-    if (expensesRatio > 50 && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas del mes`, link: '/gastos' });
+    if (expensesRatio > expenseRatioAlertPct && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas (límite ${expenseRatioAlertPct}%)`, link: '/gastos' });
 
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
@@ -319,6 +326,9 @@ export default function Dashboard() {
       // New
       monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
       salesGrowth, profitGrowth, topCustomers, smartAlerts,
+      lowStockThreshold, marginAlertPct,
+      // raw passthrough
+      rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
   }, [rawData, filterCat]);
 
@@ -567,7 +577,7 @@ export default function Dashboard() {
             )}
             {stats.lowStockProducts?.length > 0 && (
               <div className="bg-warning/10 rounded-lg p-3">
-                <p className="text-xs font-semibold text-warning mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stock Bajo ≤3 ({stats.lowStockProducts.length})</p>
+                <p className="text-xs font-semibold text-warning mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stock Bajo ≤{stats.lowStockThreshold} ({stats.lowStockProducts.length})</p>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {stats.lowStockProducts.map((p: any) => (
                     <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name} — <span className="text-warning font-medium">{p.stock}u</span></p>
