@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -356,6 +356,15 @@ export default function SettingsPage() {
             </p>
           </div>
 
+          {/* USD Real-time Quote */}
+          <USDQuoteSection userId={user!.id} onApply={(rate) => setExchangeRate(String(rate))} />
+
+          {/* Thresholds & Alerts */}
+          <ThresholdsSection userId={user!.id} />
+
+          {/* Expense Categories CRUD */}
+          <ExpenseCategoriesSection userId={user!.id} />
+
           {/* Backup / Export */}
           <BackupExport userId={user!.id} />
 
@@ -363,6 +372,174 @@ export default function SettingsPage() {
           <CouponsManager userId={user!.id} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ===== USD Real-time Quote =====
+function USDQuoteSection({ userId, onApply }: { userId: string; onApply: (rate: number) => void }) {
+  const [loading, setLoading] = useState(false);
+  const [rates, setRates] = useState<{ oficial?: number; blue?: number; mep?: number; updated?: string }>({});
+
+  useEffect(() => {
+    (async () => {
+      const s: any = await getSettingsDB(userId);
+      setRates({
+        oficial: s.usd_rate_oficial ? Number(s.usd_rate_oficial) : undefined,
+        blue: s.usd_rate_blue ? Number(s.usd_rate_blue) : undefined,
+        mep: s.usd_rate_mep ? Number(s.usd_rate_mep) : undefined,
+        updated: s.usd_rate_updated_at,
+      });
+    })();
+  }, [userId]);
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-usd-rate', { body: { user_id: userId } });
+      if (error) throw error;
+      setRates({ oficial: data?.oficial, blue: data?.blue, mep: data?.mep, updated: new Date().toISOString() });
+      toast.success('Cotizaciones actualizadas');
+    } catch (e: any) { toast.error('Error: ' + e.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <DollarSign className="w-4 h-4 text-primary" />Cotización USD (tiempo real)
+      </h2>
+      <p className="text-xs text-muted-foreground">Datos públicos de mercado. Aplicá la cotización que usás operativamente.</p>
+      <div className="grid grid-cols-3 gap-2">
+        {(['oficial', 'blue', 'mep'] as const).map(k => (
+          <button
+            key={k}
+            disabled={!rates[k]}
+            onClick={() => rates[k] && onApply(rates[k]!)}
+            className="bg-muted border border-border rounded-lg p-2.5 hover:border-primary/50 transition-colors disabled:opacity-50 text-left"
+          >
+            <p className="text-[10px] uppercase text-muted-foreground">{k}</p>
+            <p className="text-sm font-bold">{rates[k] ? `$${rates[k]!.toLocaleString('es-AR')}` : '—'}</p>
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] text-muted-foreground">{rates.updated ? `Última: ${new Date(rates.updated).toLocaleString('es-AR')}` : 'Sin datos'}</p>
+        <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
+          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />Actualizar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ===== Thresholds / Alerts =====
+function ThresholdsSection({ userId }: { userId: string }) {
+  const [s, setS] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { (async () => setS(await getSettingsDB(userId)))(); }, [userId]);
+
+  if (!s) return null;
+
+  const update = (k: string, v: any) => setS({ ...s, [k]: v });
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveSettingsDB(userId, {
+        initial_cash_ars: Number(s.initial_cash_ars) || 0,
+        low_stock_threshold: parseInt(s.low_stock_threshold) || 3,
+        large_sale_threshold_ars: Number(s.large_sale_threshold_ars) || 50000,
+        margin_alert_percent: Number(s.margin_alert_percent) || 30,
+        expense_ratio_alert_percent: Number(s.expense_ratio_alert_percent) || 40,
+        overdue_check_window_hours: parseInt(s.overdue_check_window_hours) || 24,
+        cash_flow_warning_threshold_ars: Number(s.cash_flow_warning_threshold_ars) || 0,
+      });
+      toast.success('Umbrales guardados');
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <Bell className="w-4 h-4 text-primary" />Umbrales y Alertas
+      </h2>
+      <p className="text-xs text-muted-foreground">Configurables. Los triggers de notificaciones (stock bajo, ventas grandes, deudas vencidas) usan estos valores.</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="text-xs text-muted-foreground">Caja inicial (ARS)</label>
+          <Input type="number" value={s.initial_cash_ars ?? 0} onChange={e => update('initial_cash_ars', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Stock bajo (≤)</label>
+          <Input type="number" value={s.low_stock_threshold ?? 3} onChange={e => update('low_stock_threshold', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Venta grande ≥ (ARS)</label>
+          <Input type="number" value={s.large_sale_threshold_ars ?? 50000} onChange={e => update('large_sale_threshold_ars', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Margen mínimo (%)</label>
+          <Input type="number" value={s.margin_alert_percent ?? 30} onChange={e => update('margin_alert_percent', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Ratio gastos/ventas alerta (%)</label>
+          <Input type="number" value={s.expense_ratio_alert_percent ?? 40} onChange={e => update('expense_ratio_alert_percent', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Ventana deuda vencida (h)</label>
+          <Input type="number" value={s.overdue_check_window_hours ?? 24} onChange={e => update('overdue_check_window_hours', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div className="col-span-2"><label className="text-xs text-muted-foreground">Aviso flujo caja (ARS mín. proyectado)</label>
+          <Input type="number" value={s.cash_flow_warning_threshold_ars ?? 0} onChange={e => update('cash_flow_warning_threshold_ars', e.target.value)} className="bg-muted border-border mt-1" /></div>
+      </div>
+      <Button onClick={save} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Umbrales'}</Button>
+    </div>
+  );
+}
+
+// ===== Expense Categories CRUD =====
+function ExpenseCategoriesSection({ userId }: { userId: string }) {
+  const [cats, setCats] = useState<string[]>([]);
+  const [newCat, setNewCat] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const s: any = await getSettingsDB(userId);
+      setCats(buildExpenseCategories(s).map(c => c.value));
+    })();
+  }, [userId]);
+
+  const add = () => {
+    const slug = newCat.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!slug || cats.includes(slug)) return;
+    setCats([...cats, slug]);
+    setNewCat('');
+  };
+
+  const remove = (c: string) => setCats(cats.filter(x => x !== c));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveSettingsDB(userId, { expense_categories: cats });
+      toast.success('Categorías guardadas');
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <Tags className="w-4 h-4 text-primary" />Categorías de Gastos
+      </h2>
+      <p className="text-xs text-muted-foreground">Personalizá las categorías disponibles al cargar gastos.</p>
+      <div className="flex flex-wrap gap-2">
+        {cats.map(c => (
+          <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted rounded-full text-xs">
+            {c}
+            <button onClick={() => remove(c)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-3 h-3" /></button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="nueva_categoria"
+          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())}
+          className="bg-muted border-border" />
+        <Button variant="outline" onClick={add}><Plus className="w-3.5 h-3.5" /></Button>
+      </div>
+      <Button onClick={save} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Categorías'}</Button>
     </div>
   );
 }

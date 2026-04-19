@@ -32,7 +32,8 @@ export async function getPurchasesDB(userId: string) {
 export async function addPurchaseDB(purchase: any) {
   const { error } = await supabase.from('purchases').insert(purchase);
   if (error) throw error;
-  if (purchase.product_id) {
+  // Skip stock update for scheduled (future) purchases — they aren't received yet
+  if (purchase.product_id && !purchase.is_scheduled) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', purchase.product_id).single();
     if (prod) {
       await supabase.from('products').update({ stock: prod.stock + purchase.quantity }).eq('id', purchase.product_id);
@@ -490,6 +491,7 @@ export function getMonthlyExpenses(expenses: any[], year: number, month: number)
   });
 }
 
+// Default fallback. Real categories come from settings.expense_categories per-user.
 export const EXPENSE_CATEGORIES = [
   { value: 'alquiler', label: 'Alquiler', color: 'hsl(20, 70%, 50%)' },
   { value: 'servicios', label: 'Servicios', color: 'hsl(200, 60%, 50%)' },
@@ -500,8 +502,29 @@ export const EXPENSE_CATEGORIES = [
   { value: 'otros', label: 'Otros', color: 'hsl(220, 10%, 55%)' },
 ];
 
-export function getExpenseCategoryLabel(cat: string) {
-  return EXPENSE_CATEGORIES.find(c => c.value === cat)?.label || cat;
+const PALETTE = [
+  'hsl(20, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)',
+  'hsl(150, 60%, 40%)', 'hsl(40, 70%, 50%)', 'hsl(0, 70%, 50%)',
+  'hsl(220, 10%, 55%)', 'hsl(330, 60%, 50%)', 'hsl(180, 60%, 45%)',
+];
+
+/** Build user-facing expense categories from settings.expense_categories (string[]). */
+export function buildExpenseCategories(settings: any): { value: string; label: string; color: string }[] {
+  const list: string[] = Array.isArray(settings?.expense_categories) ? settings.expense_categories : [];
+  if (!list.length) return EXPENSE_CATEGORIES;
+  return list.map((slug, i) => {
+    const def = EXPENSE_CATEGORIES.find(c => c.value === slug);
+    return {
+      value: slug,
+      label: def?.label || slug.charAt(0).toUpperCase() + slug.slice(1),
+      color: def?.color || PALETTE[i % PALETTE.length],
+    };
+  });
+}
+
+export function getExpenseCategoryLabel(cat: string, settings?: any) {
+  const cats = settings ? buildExpenseCategories(settings) : EXPENSE_CATEGORIES;
+  return cats.find(c => c.value === cat)?.label || cat;
 }
 
 // ========= CUSTOMER NOTES =========

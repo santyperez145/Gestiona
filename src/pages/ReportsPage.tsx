@@ -28,19 +28,22 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
 
+  const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+  const [tab, setTab] = useState<'overview' | 'income'>('overview');
+
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [products, sales, purchases, debts, settings] = await Promise.all([
-        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id),
+      const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
+        getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
       ]);
-      setData({ products, sales, purchases, debts, settings });
+      setData({ products, sales, purchases, debts, settings, expenses });
     })();
   }, [user]);
 
   if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
-  const { products, sales, purchases, debts, settings } = data;
+  const { products, sales, purchases, debts, settings, expenses } = data;
   const totalSalesARS = sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
   const grossProfitARS = sales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
   const grossProfitUSD = sales.reduce((s: number, v: any) => s + Number(v.profit_usd), 0);
