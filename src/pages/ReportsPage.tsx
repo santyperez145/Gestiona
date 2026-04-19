@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt } from "lucide-react";
 import { toast } from "sonner";
