@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   getExpensesDB, addExpenseDB, updateExpenseDB, deleteExpenseDB,
-  EXPENSE_CATEGORIES, getExpenseCategoryLabel, formatARS, dateToNoon, formatDateAR,
+  buildExpenseCategories, getExpenseCategoryLabel, getSettingsDB,
+  formatARS, dateToNoon, formatDateAR,
 } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 export default function ExpensesPage() {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
@@ -30,10 +32,13 @@ export default function ExpensesPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  const categories = useMemo(() => buildExpenseCategories(settings), [settings]);
+
   const reload = async () => {
     if (!user) return;
-    const data = await getExpensesDB(user.id);
+    const [data, s] = await Promise.all([getExpensesDB(user.id), getSettingsDB(user.id)]);
     setExpenses(data);
+    setSettings(s);
     setLoading(false);
   };
 
@@ -58,12 +63,12 @@ export default function ExpensesPage() {
       byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount_ars);
     });
     const chartData = Object.entries(byCat).map(([cat, value]) => ({
-      name: getExpenseCategoryLabel(cat),
+      name: getExpenseCategoryLabel(cat, settings),
       value,
-      color: EXPENSE_CATEGORIES.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
+      color: categories.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
     }));
     return { total, chartData, recurring: filtered.filter(e => e.recurring).length };
-  }, [filtered]);
+  }, [filtered, settings, categories]);
 
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
@@ -107,7 +112,7 @@ export default function ExpensesPage() {
             <SelectTrigger className="bg-card border-border w-[140px] h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas categorías</SelectItem>
-              {EXPENSE_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+              {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
@@ -124,6 +129,7 @@ export default function ExpensesPage() {
                 <ExpenseForm
                   userId={user!.id}
                   editItem={editItem}
+                  categories={categories}
                   onSave={() => { setOpen(false); setEditItem(null); reload(); }}
                 />
               </ScrollArea>
@@ -187,13 +193,13 @@ export default function ExpensesPage() {
                   </thead>
                   <tbody>
                     {filtered.map(e => {
-                      const catCfg = EXPENSE_CATEGORIES.find(c => c.value === e.category);
+                      const catCfg = categories.find(c => c.value === e.category);
                       return (
                         <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                           <td className="p-3">{formatDateAR(e.date)}</td>
                           <td className="p-3">
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
-                              {getExpenseCategoryLabel(e.category)}
+                              {getExpenseCategoryLabel(e.category, settings)}
                               {e.recurring && <Repeat className="w-2.5 h-2.5" />}
                             </span>
                           </td>
@@ -220,14 +226,14 @@ export default function ExpensesPage() {
 
               <div className="md:hidden space-y-2 p-3">
                 {filtered.map(e => {
-                  const catCfg = EXPENSE_CATEGORIES.find(c => c.value === e.category);
+                  const catCfg = categories.find(c => c.value === e.category);
                   return (
                     <div key={e.id} className="bg-muted/30 border border-border rounded-lg p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
-                              {getExpenseCategoryLabel(e.category)}
+                              {getExpenseCategoryLabel(e.category, settings)}
                             </span>
                             {e.recurring && <Repeat className="w-3 h-3 text-warning" />}
                           </div>
@@ -269,9 +275,9 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string
   );
 }
 
-function ExpenseForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
+function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string; editItem?: any; categories: { value: string; label: string; color: string }[]; onSave: () => void }) {
   const [amount, setAmount] = useState(editItem ? String(editItem.amount_ars) : '');
-  const [category, setCategory] = useState(editItem?.category || 'otros');
+  const [category, setCategory] = useState(editItem?.category || categories[0]?.value || 'otros');
   const [description, setDescription] = useState(editItem?.description || '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
@@ -323,7 +329,7 @@ function ExpenseForm({ userId, editItem, onSave }: { userId: string; editItem?: 
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {EXPENSE_CATEGORIES.map(c => (
+            {categories.map(c => (
               <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
             ))}
           </SelectContent>
