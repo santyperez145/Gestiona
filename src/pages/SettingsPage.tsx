@@ -727,3 +727,84 @@ function CouponsManager({ userId }: { userId: string }) {
     </div>
   );
 }
+
+// ===== Cloud Backups =====
+function CloudBackupsSection({ userId }: { userId: string }) {
+  const [files, setFiles] = useState<Array<{ name: string; created_at?: string; size?: number }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.storage.from('backups').list(userId, {
+        limit: 100, sortBy: { column: 'created_at', order: 'desc' },
+      });
+      if (error) throw error;
+      setFiles((data || []).filter(f => f.name?.endsWith('.json')).map(f => ({
+        name: f.name, created_at: (f as any).created_at, size: (f.metadata as any)?.size,
+      })));
+    } catch (e: any) {
+      // bucket may be empty or RLS denial — silent
+      setFiles([]);
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [userId]);
+
+  const downloadFile = async (name: string) => {
+    try {
+      const { data, error } = await supabase.storage.from('backups').createSignedUrl(`${userId}/${name}`, 60);
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (e: any) { toast.error('Error: ' + e.message); }
+  };
+
+  const runManual = async () => {
+    setRunning(true);
+    try {
+      const { error } = await supabase.functions.invoke('weekly-backup');
+      if (error) throw error;
+      toast.success('Backup generado. Refrescando lista…');
+      setTimeout(load, 1500);
+    } catch (e: any) { toast.error('Error: ' + e.message); }
+    finally { setRunning(false); }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <Cloud className="w-4 h-4 text-primary" />Backups en la Nube
+        </h2>
+        <Button size="sm" variant="outline" onClick={runManual} disabled={running}>
+          <RefreshCw className={`w-3.5 h-3.5 mr-1 ${running ? 'animate-spin' : ''}`} />
+          {running ? 'Generando…' : 'Backup ahora'}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">Respaldo automático cada domingo 23:59 UTC. Conservás los últimos 100 archivos.</p>
+      {loading ? (
+        <p className="text-xs text-muted-foreground">Cargando…</p>
+      ) : files.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-3">No hay backups todavía. Generá el primero manualmente.</p>
+      ) : (
+        <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
+          {files.map(f => (
+            <div key={f.name} className="flex items-center justify-between p-2 rounded bg-muted/30 border border-border/50 text-xs">
+              <div className="flex-1 min-w-0">
+                <p className="font-mono truncate">{f.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {f.created_at ? new Date(f.created_at).toLocaleString('es-AR') : '—'}
+                  {f.size ? ` · ${(f.size / 1024).toFixed(1)} KB` : ''}
+                </p>
+              </div>
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => downloadFile(f.name)}>
+                <Download className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
