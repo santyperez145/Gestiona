@@ -368,6 +368,9 @@ export default function SettingsPage() {
           {/* Backup / Export */}
           <BackupExport userId={user!.id} />
 
+          {/* Cloud Backups */}
+          <CloudBackupsSection userId={user!.id} />
+
           {/* Coupons CRUD */}
           <CouponsManager userId={user!.id} />
         </div>
