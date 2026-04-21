@@ -1,14 +1,27 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getActiveOrgId, requireActiveOrgId } from './orgContext';
+
+/** Get the active org id, falling back to looking it up by user (for legacy callers). */
+async function orgIdFor(_userId?: string): Promise<string> {
+  const cached = getActiveOrgId();
+  if (cached) return cached;
+  if (!_userId) throw new Error('No active organization');
+  const { data } = await supabase.from('memberships').select('org_id').eq('user_id', _userId).limit(1).maybeSingle();
+  if (!data?.org_id) throw new Error('User has no organization');
+  return data.org_id;
+}
 
 // ========= PRODUCTS =========
 export async function getProductsDB(userId: string) {
-  const { data, error } = await supabase.from('products').select('*').eq('user_id', userId).order('name');
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('products').select('*').eq('org_id', orgId).order('name');
   if (error) throw error;
   return data || [];
 }
 
 export async function addProductDB(product: any) {
-  const { error } = await supabase.from('products').insert(product);
+  const orgId = product.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('products').insert({ ...product, org_id: orgId });
   if (error) throw error;
 }
 
