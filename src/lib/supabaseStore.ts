@@ -37,13 +37,15 @@ export async function deleteProductDB(id: string) {
 
 // ========= PURCHASES =========
 export async function getPurchasesDB(userId: string) {
-  const { data, error } = await supabase.from('purchases').select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('purchases').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 export async function addPurchaseDB(purchase: any) {
-  const { error } = await supabase.from('purchases').insert(purchase);
+  const orgId = purchase.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('purchases').insert({ ...purchase, org_id: orgId });
   if (error) throw error;
   // Skip stock update for scheduled (future) purchases — they aren't received yet
   if (purchase.product_id && !purchase.is_scheduled) {
@@ -61,13 +63,16 @@ export async function deletePurchaseDB(id: string) {
 
 // ========= SALES =========
 export async function getSalesDB(userId: string) {
-  const { data, error } = await supabase.from('sales').select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('sales').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 export async function addSaleDB(sale: any) {
-  const { error } = await supabase.from('sales').insert(sale);
+  const orgId = sale.org_id || requireActiveOrgId();
+  sale.org_id = orgId;
+  const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
   if (error) throw error;
   if (sale.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
@@ -79,6 +84,7 @@ export async function addSaleDB(sale: any) {
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
+      org_id: orgId,
       sale_id: sale.id,
       customer_name: sale.customer_name || 'Sin nombre',
       amount_ars: sale.total_ars,
