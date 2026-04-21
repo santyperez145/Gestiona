@@ -7,6 +7,7 @@ import { useUserRole } from "@/lib/useUserRole";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
+import OrgSwitcher from "@/components/shared/OrgSwitcher";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'], section: 'principal' },
@@ -161,6 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <div className={`${collapsed ? 'px-2 py-3' : 'px-4 py-4'} border-t border-sidebar-border space-y-2`}>
+          <OrgSwitcher collapsed={collapsed} />
           <NotificationBell collapsed={collapsed} />
           {!collapsed && (
             <div className="px-1 pt-1">

@@ -74,7 +74,7 @@ export default function AuthPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-gold shadow-gold mb-4">
             <Sparkles className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-gradient-gold tracking-wide mb-1">Exentry Imports</h1>
+          <h1 className="font-display text-3xl font-bold text-gradient-gold tracking-wide mb-1">Gestiona</h1>
           <p className="text-muted-foreground text-sm">Sistema de Gestión Integral</p>
         </div>
 
@@ -165,7 +165,7 @@ export default function AuthPage() {
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground/40 mt-8">
-          Exentry Imports © {new Date().getFullYear()} · Todos los derechos reservados
+          Gestiona © {new Date().getFullYear()} · Todos los derechos reservados
         </p>
       </div>
     </div>
