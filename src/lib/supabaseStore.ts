@@ -123,6 +123,7 @@ export async function updateDebtDB(id: string, updates: any) {
       await supabase.from('sales').update({ paid: true }).eq('id', prev.sale_id);
       await supabase.from('notifications').insert({
         user_id: prev.user_id,
+        org_id: (prev as any).org_id || requireActiveOrgId(),
         title: 'Venta cobrada',
         message: `Se marcó como pagada la venta de ${prev.customer_name}`,
         type: 'venta_cobrada', entity_type: 'sale', entity_id: prev.sale_id,
@@ -151,10 +152,11 @@ export async function addDebtPaymentDB(debtId: string, paymentARS: number) {
 
 // ========= SETTINGS =========
 export async function getSettingsDB(userId: string) {
-  const { data } = await supabase.from('settings').select('*').eq('user_id', userId).single();
+  const orgId = await orgIdFor(userId);
+  const { data } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
   if (data) return data;
-  const defaults = {
-    user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20,
+  const defaults: any = {
+    org_id: orgId, user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20,
     tax_enabled: false, tax_iva_percent: 21, tax_iibb_percent: 3.5, tax_monotributo_monthly: 0,
   };
   await supabase.from('settings').insert(defaults);
@@ -162,9 +164,10 @@ export async function getSettingsDB(userId: string) {
 }
 
 export async function saveSettingsDB(userId: string, settings: Record<string, any>) {
+  const orgId = await orgIdFor(userId);
   const { error } = await supabase
     .from('settings')
-    .upsert({ user_id: userId, ...settings }, { onConflict: 'user_id' });
+    .upsert({ org_id: orgId, user_id: userId, ...settings } as any, { onConflict: 'org_id' });
   if (error) throw error;
 }
 
