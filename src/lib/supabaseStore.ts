@@ -403,6 +403,7 @@ export async function addSaleWithVariantDB(sale: any, variantId?: string) {
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
+      org_id: sale.org_id || requireActiveOrgId(),
       sale_id: sale.id,
       customer_name: sale.customer_name || 'Sin nombre',
       amount_ars: sale.total_ars,
@@ -565,10 +566,11 @@ export async function upsertCustomerNoteDB(userId: string, customerName: string,
 
 // Seed products for a new user
 export async function seedProductsForUser(userId: string) {
-  const { data: existing } = await supabase.from('products').select('id').eq('user_id', userId).limit(1);
+  const orgId = await orgIdFor(userId);
+  const { data: existing } = await supabase.from('products').select('id').eq('org_id', orgId).limit(1);
   if (existing && existing.length > 0) return;
   const { seedProductsList } = await import('./seedData');
-  const products = seedProductsList.map(p => ({ ...p, user_id: userId, id: crypto.randomUUID() }));
+  const products = seedProductsList.map(p => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
   for (let i = 0; i < products.length; i += 50) {
     await supabase.from('products').insert(products.slice(i, i + 50));
   }
