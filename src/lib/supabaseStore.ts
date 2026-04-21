@@ -1,14 +1,27 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getActiveOrgId, requireActiveOrgId } from './orgContext';
+
+/** Get the active org id, falling back to looking it up by user (for legacy callers). */
+async function orgIdFor(_userId?: string): Promise<string> {
+  const cached = getActiveOrgId();
+  if (cached) return cached;
+  if (!_userId) throw new Error('No active organization');
+  const { data } = await supabase.from('memberships').select('org_id').eq('user_id', _userId).limit(1).maybeSingle();
+  if (!data?.org_id) throw new Error('User has no organization');
+  return data.org_id;
+}
 
 // ========= PRODUCTS =========
 export async function getProductsDB(userId: string) {
-  const { data, error } = await supabase.from('products').select('*').eq('user_id', userId).order('name');
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('products').select('*').eq('org_id', orgId).order('name');
   if (error) throw error;
   return data || [];
 }
 
 export async function addProductDB(product: any) {
-  const { error } = await supabase.from('products').insert(product);
+  const orgId = product.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('products').insert({ ...product, org_id: orgId });
   if (error) throw error;
 }
 
@@ -24,13 +37,15 @@ export async function deleteProductDB(id: string) {
 
 // ========= PURCHASES =========
 export async function getPurchasesDB(userId: string) {
-  const { data, error } = await supabase.from('purchases').select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('purchases').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 export async function addPurchaseDB(purchase: any) {
-  const { error } = await supabase.from('purchases').insert(purchase);
+  const orgId = purchase.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('purchases').insert({ ...purchase, org_id: orgId });
   if (error) throw error;
   // Skip stock update for scheduled (future) purchases — they aren't received yet
   if (purchase.product_id && !purchase.is_scheduled) {
@@ -48,13 +63,16 @@ export async function deletePurchaseDB(id: string) {
 
 // ========= SALES =========
 export async function getSalesDB(userId: string) {
-  const { data, error } = await supabase.from('sales').select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('sales').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 export async function addSaleDB(sale: any) {
-  const { error } = await supabase.from('sales').insert(sale);
+  const orgId = sale.org_id || requireActiveOrgId();
+  sale.org_id = orgId;
+  const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
   if (error) throw error;
   if (sale.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
@@ -66,6 +84,7 @@ export async function addSaleDB(sale: any) {
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
+      org_id: orgId,
       sale_id: sale.id,
       customer_name: sale.customer_name || 'Sin nombre',
       amount_ars: sale.total_ars,
@@ -104,6 +123,7 @@ export async function updateDebtDB(id: string, updates: any) {
       await supabase.from('sales').update({ paid: true }).eq('id', prev.sale_id);
       await supabase.from('notifications').insert({
         user_id: prev.user_id,
+        org_id: (prev as any).org_id || requireActiveOrgId(),
         title: 'Venta cobrada',
         message: `Se marcó como pagada la venta de ${prev.customer_name}`,
         type: 'venta_cobrada', entity_type: 'sale', entity_id: prev.sale_id,
@@ -132,10 +152,11 @@ export async function addDebtPaymentDB(debtId: string, paymentARS: number) {
 
 // ========= SETTINGS =========
 export async function getSettingsDB(userId: string) {
-  const { data } = await supabase.from('settings').select('*').eq('user_id', userId).single();
+  const orgId = await orgIdFor(userId);
+  const { data } = await supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle();
   if (data) return data;
-  const defaults = {
-    user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20,
+  const defaults: any = {
+    org_id: orgId, user_id: userId, exchange_rate: 1695, customs_percent: 15, default_discount_percent: 20,
     tax_enabled: false, tax_iva_percent: 21, tax_iibb_percent: 3.5, tax_monotributo_monthly: 0,
   };
   await supabase.from('settings').insert(defaults);
@@ -143,9 +164,10 @@ export async function getSettingsDB(userId: string) {
 }
 
 export async function saveSettingsDB(userId: string, settings: Record<string, any>) {
+  const orgId = await orgIdFor(userId);
   const { error } = await supabase
     .from('settings')
-    .upsert({ user_id: userId, ...settings }, { onConflict: 'user_id' });
+    .upsert({ org_id: orgId, user_id: userId, ...settings } as any, { onConflict: 'org_id' });
   if (error) throw error;
 }
 
@@ -381,6 +403,7 @@ export async function addSaleWithVariantDB(sale: any, variantId?: string) {
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
+      org_id: sale.org_id || requireActiveOrgId(),
       sale_id: sale.id,
       customer_name: sale.customer_name || 'Sin nombre',
       amount_ars: sale.total_ars,
@@ -543,10 +566,11 @@ export async function upsertCustomerNoteDB(userId: string, customerName: string,
 
 // Seed products for a new user
 export async function seedProductsForUser(userId: string) {
-  const { data: existing } = await supabase.from('products').select('id').eq('user_id', userId).limit(1);
+  const orgId = await orgIdFor(userId);
+  const { data: existing } = await supabase.from('products').select('id').eq('org_id', orgId).limit(1);
   if (existing && existing.length > 0) return;
   const { seedProductsList } = await import('./seedData');
-  const products = seedProductsList.map(p => ({ ...p, user_id: userId, id: crypto.randomUUID() }));
+  const products = seedProductsList.map(p => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
   for (let i = 0; i < products.length; i += 50) {
     await supabase.from('products').insert(products.slice(i, i + 50));
   }
