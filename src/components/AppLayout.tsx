@@ -22,6 +22,7 @@ const allNavItems = [
   { to: "/canjes", label: "Canjes", icon: Gift, roles: ['admin'], section: 'analytics' },
   { to: "/catalogo", label: "Catálogo", icon: BookOpen, roles: ['admin'], section: 'analytics' },
   { to: "/ia", label: "IA Insights", icon: Brain, roles: ['admin'], section: 'analytics' },
+  { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
   { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'config' },
 ];
