@@ -14,14 +14,26 @@ serve(async (req) => {
 
     const { type, data } = await req.json();
 
+    // Guardrail base aplicado a TODOS los modos
+    const baseGuardrails = `
+REGLAS NO NEGOCIABLES:
+- Sos un asistente especializado EXCLUSIVAMENTE en negocios de perfumería árabe/de diseñador y vapers/pods en Argentina.
+- Solo respondé sobre: análisis de ventas, stock, restock, precios, márgenes, marketing de perfumes/vapers, tendencias del rubro.
+- Si te piden algo fuera de rubro (recetas, política, código, terapia, opiniones generales), respondé EXACTAMENTE: "Solo puedo ayudarte con análisis de tu negocio de perfumes y vapers."
+- NUNCA inventes datos: si no hay ventas suficientes para una predicción, decilo claramente.
+- Usá los datos REALES provistos. Citá nombres de productos textuales, números reales (stock, precios, ganancias).
+- Idioma: español rioplatense, directo, profesional, sin clichés.
+- Marcas árabes que conocés: Lattafa, Armaf, Al Haramain, Rasasi, Maison Alhambra, Asdaaf, Khadlaj, Ard Al Zaafaran, Afnan, Swiss Arabian, Paris Corner.
+- Vocabulario obligatorio: familia olfativa (oriental, amaderada, gourmand, ámbar, floral), proyección, longevidad, decants, tester, original/clon.
+- Para vapers: hablás de pods, descartables, puffs, nicotina (mg/ml), sabores, autonomía.
+- Formato: secciones con emoji + título en MAYÚSCULAS, bullets cortos, números concretos. Sin relleno.`;
+
     let systemPrompt = "";
     let userPrompt = "";
 
     if (type === "predict_sales") {
-      systemPrompt = `Sos un analista de negocios experto en retail de perfumes y vapers en Argentina. 
-Analizás datos de ventas y das predicciones claras y accionables en español rioplatense.
-Respondé siempre en formato estructurado con secciones claras usando emojis.`;
-      userPrompt = `Analizá estos datos de ventas y productos de mi negocio de perfumes árabes y vapers:
+      systemPrompt = `Sos un analista de negocios senior especializado en retail de perfumería árabe/diseñador y vapers en Argentina.${baseGuardrails}`;
+      userPrompt = `Analizá ESTOS datos reales de mi negocio (no inventes productos que no estén en la lista):
 
 PRODUCTOS (${data.products?.length || 0}):
 ${JSON.stringify(data.products?.slice(0, 30) || [], null, 1)}
@@ -29,17 +41,17 @@ ${JSON.stringify(data.products?.slice(0, 30) || [], null, 1)}
 VENTAS RECIENTES (${data.sales?.length || 0}):
 ${JSON.stringify(data.sales?.slice(0, 20) || [], null, 1)}
 
-Dame:
-1. 📈 PREDICCIÓN DE VENTAS: Qué productos se van a vender más esta semana/mes
-2. 📦 RESTOCK URGENTE: Qué productos necesito reponer ya (stock bajo + alta demanda)
-3. 💰 OPTIMIZACIÓN DE PRECIOS: Sugerencias para ajustar precios y maximizar ganancia
-4. 🎯 PRODUCTOS ESTRELLA: Los más rentables vs los que debería dejar de comprar
-5. 📊 TENDENCIAS: Patrones que detectás en las ventas`;
+Dame SOLO lo siguiente, citando nombres reales y números:
+1. 📈 PREDICCIÓN: 3-5 productos con mayor probabilidad de venta esta semana (justificá con histórico).
+2. 📦 RESTOCK URGENTE: productos con stock ≤ 3 que tuvieron ventas recientes.
+3. 💰 PRECIOS: productos con margen < 30% en ARS o sobreprecio que frena ventas.
+4. 🎯 ESTRELLAS vs LASTRE: top 3 más rentables y bottom 3 que conviene liquidar.
+5. 📊 PATRONES: marca/familia olfativa/categoría con mayor tracción.
+
+Si los datos son insuficientes (menos de 5 ventas), decilo y pedí más historial en vez de inventar.`;
     } else if (type === "marketing_copy") {
-      systemPrompt = `Sos un experto en marketing digital y copywriting para Instagram, especializado en perfumes y vapers.
-Creás contenido viral, atractivo y enfocado en el público joven argentino (18-35 años).
-Usás español rioplatense informal pero profesional. Incluí emojis relevantes.`;
-      userPrompt = `Creá contenido de marketing para Instagram sobre estos productos:
+      systemPrompt = `Sos copywriter experto en Instagram para tiendas argentinas de perfumería árabe/diseñador y vapers. Público 18-35.${baseGuardrails}`;
+      userPrompt = `Creá contenido de Instagram SOLO para estos productos reales (no menciones otros):
 
 ${JSON.stringify(data.products || [], null, 1)}
 
@@ -47,14 +59,16 @@ Tipo de publicación: ${data.postType || 'post'}
 Tema/enfoque: ${data.theme || 'promoción general'}
 
 Generá:
-1. 📝 CAPTION: Texto principal para el post (máx 2200 caracteres, con CTA claro)
-2. #️⃣ HASHTAGS: 20-30 hashtags relevantes separados por espacios
-3. 📱 HISTORIA: Texto corto para story (con encuesta/pregunta interactiva)
-4. 💡 IDEA VISUAL: Descripción de la imagen/video ideal para acompañar
-5. ⏰ MEJOR HORARIO: Sugerencia de horario para publicar en Argentina`;
+1. 📝 CAPTION: hasta 600 caracteres, con notas olfativas reales del perfume y CTA por DM/WhatsApp.
+2. #️⃣ HASHTAGS: 20 hashtags mezclando nicho (#perfumeArabe #lattafa #decants), genéricos (#perfumesargentina) y locales (#caba #buenosaires). Sin hashtags genéricos basura (#love #instagood).
+3. 📱 STORY: 1 frase + 1 sticker interactivo (pregunta o encuesta) coherente con perfume/vaper.
+4. 💡 IDEA VISUAL: descripción concreta (fondo, iluminación, ángulo, props).
+5. ⏰ HORARIO ARG: franja específica (ej: "21:00-23:00 jueves").
+
+PROHIBIDO: promesas falsas ("atrae personas"), comparar con productos no listados, palabras como "mágico", "único e irrepetible".`;
     } else if (type === "restock_analysis") {
-      systemPrompt = `Sos un analista de inventario experto en retail. Analizás datos de stock y ventas para sugerir reposiciones inteligentes. Respondé en español rioplatense.`;
-      userPrompt = `Analizá el inventario de mi negocio de perfumes y vapers:
+      systemPrompt = `Sos analista de inventario senior para retail de perfumería árabe/diseñador y vapers en Argentina. Pensás en USD (compra) y ARS (venta), considerando comisión de pasero del 15%.${baseGuardrails}`;
+      userPrompt = `Analizá el inventario REAL de mi negocio (no inventes productos):
 
 PRODUCTOS CON STOCK:
 ${JSON.stringify(data.products?.filter((p: any) => p.stock > 0)?.slice(0, 30) || [], null, 1)}
@@ -65,11 +79,13 @@ ${JSON.stringify(data.products?.filter((p: any) => p.stock === 0)?.slice(0, 20) 
 ÚLTIMAS VENTAS:
 ${JSON.stringify(data.sales?.slice(0, 15) || [], null, 1)}
 
-Dame un plan de restock con:
-1. 🚨 URGENTE: Productos a reponer inmediatamente
-2. 📋 PLANIFICADO: Productos a pedir en el próximo lote
-3. ❌ NO REPONER: Productos que no vale la pena reponer
-4. 💵 INVERSIÓN ESTIMADA: Cuánto necesito en USD para el próximo lote`;
+Dame un plan de restock concreto:
+1. 🚨 URGENTE: stock ≤ 2 con ventas en los últimos 30 días. Cantidad sugerida = 2x velocidad mensual.
+2. 📋 PRÓXIMO LOTE: rotación media, reponer en 2-4 semanas.
+3. ❌ DESCARTAR: sin ventas en 60+ días o margen < 20%. Sugerí liquidación con descuento.
+4. 💵 INVERSIÓN USD: total estimado del lote urgente + próximo, recordando sumar 15% pasero.
+
+Citá nombres exactos de los productos y cantidades. No inventes velocidades de venta si no hay datos suficientes.`;
     } else {
       throw new Error("Invalid analysis type");
     }
