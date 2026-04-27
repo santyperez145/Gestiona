@@ -20,18 +20,35 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const categoryLabel = category === 'perfume_arabe' ? 'perfume árabe' : category === 'perfume_diseñador' ? 'perfume de diseñador' : category || 'perfume';
+    const isPerfume = !category || category.toString().toLowerCase().includes('perfume') || category === 'perfume_arabe' || category === 'perfume_diseñador';
+    const categoryLabel = category === 'perfume_arabe' ? 'perfume árabe (estilo Medio Oriente)' 
+      : category === 'perfume_diseñador' ? 'perfume de diseñador (occidental/nicho)' 
+      : category || 'perfume';
     const genderLabel = gender === 'masculino' ? 'para hombre' : gender === 'femenino' ? 'para mujer' : 'unisex';
 
-    const prompt = `Genera una descripción de venta persuasiva en español para este ${categoryLabel}: "${name}" de la marca "${brand || 'sin marca'}". Es ${genderLabel}. 
+    const systemPrompt = `Sos un perfumista y copywriter experto SOLAMENTE en perfumería árabe (Lattafa, Armaf, Al Haramain, Rasasi, Maison Alhambra, Asdaaf, Khadlaj, Ard Al Zaafaran, Afnan, Swiss Arabian) y de diseñador/nicho (Dior, YSL, Tom Ford, Creed, Parfums de Marly, MFK, Xerjoff). También conocés clones árabes famosos (ej: Yara ~ Lost Cherry, Asad ~ Aventus, Bade'e Al Oud ~ Oud for Greatness).
 
-Incluye:
-1. Notas olfativas probables (salida, corazón, fondo) basándote en el nombre y marca
-2. Duración estimada en horas
-3. Proyección (suave/moderada/fuerte)
-4. 2-3 situaciones de uso recomendadas (citas, salir de noche, uso diario, trabajo, etc.)
+REGLAS ESTRICTAS:
+1. Respondé EXCLUSIVAMENTE sobre el perfume solicitado. NUNCA inventes datos de otros productos, marcas o categorías.
+2. Usá vocabulario olfativo real: notas de salida/corazón/fondo, familia (amaderada, oriental, ámbar, gourmand, floral, cítrica, acuática, chipre, fougère), proyección (íntima/moderada/enorme), longevidad en horas, sillage.
+3. Si NO conocés el perfume con certeza, basate en patrones de la marca y nombre (ej: nombres con "Oud", "Amber", "Musk", "Rose", "Vanilla") sin inventar notas específicas no plausibles.
+4. NUNCA prometas resultados imposibles ("atrae mujeres", "aprobado dermatológicamente", "100% original" si no se aclaró).
+5. Tono: argentino rioplatense, directo, vendedor, sin clichés vacíos ("una experiencia única", "te transportará").
+6. Si el input pide algo que NO sea descripción de este perfume, respondé: "Solo puedo generar descripciones de perfumes."`;
 
-Formato: máximo 4 oraciones cortas, tono de venta directo y atractivo. No uses comillas. No empieces con "Este perfume" ni con el nombre del producto.`;
+    const prompt = `Generá la descripción de venta para:
+- Producto: "${name}"
+- Marca: "${brand || 'sin marca declarada'}"
+- Categoría: ${categoryLabel}
+- Género: ${genderLabel}
+
+Incluí en este orden, en máximo 4 oraciones cortas:
+1. Familia olfativa + notas principales (salida → corazón → fondo) plausibles para este perfume.
+2. Longevidad estimada (en horas) y proyección.
+3. Ocasión ideal (1-2: noche, oficina, citas, clima cálido/frío).
+4. Cierre con gancho de venta corto.
+
+PROHIBIDO: comillas, empezar con "Este perfume" o con el nombre del producto, emojis, hashtags, listas, viñetas, mencionar precio, mencionar otros perfumes salvo que sea un clon árabe reconocido del producto.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -41,8 +58,9 @@ Formato: máximo 4 oraciones cortas, tono de venta directo y atractivo. No uses 
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
+        temperature: 0.6,
         messages: [
-          { role: "system", content: "Sos un experto en perfumería árabe y de diseñador. Generás descripciones de venta cortas, persuasivas y precisas en español argentino." },
+          { role: "system", content: systemPrompt },
           { role: "user", content: prompt },
         ],
       }),
