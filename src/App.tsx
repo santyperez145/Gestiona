@@ -24,9 +24,16 @@ import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicCatalogPage from "@/pages/PublicCatalogPage";
+import LandingPage from "@/pages/LandingPage";
+import PricingPage from "@/pages/PricingPage";
+import OnboardingPage from "@/pages/OnboardingPage";
+import TeamPage from "@/pages/TeamPage";
+import InvitationAcceptPage from "@/pages/InvitationAcceptPage";
+import PlatformAdminPage from "@/pages/PlatformAdminPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
+import { useOrg } from "@/lib/orgContext";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +64,7 @@ function ViewerGate() {
 function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
+  const { activeOrg, isPlatformAdmin } = useOrg();
 
   if (authLoading || roleLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -69,6 +77,13 @@ function ProtectedRoutes() {
   if (!user) return <AuthPage />;
   if (isViewer) return <ViewerGate />;
 
+  // Force onboarding for fresh orgs
+  const onboarded = activeOrg ? localStorage.getItem(`gestiona.onboarded.${activeOrg.id}`) : '1';
+  const onOnboardingRoute = window.location.pathname === '/onboarding';
+  if (activeOrg && !onboarded && !onOnboardingRoute) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   // Vendedor: restricted routes
   const vendedorRoutes = ['/', '/ventas', '/clientes'];
 
@@ -77,6 +92,7 @@ function ProtectedRoutes() {
       <CommandPalette />
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/ventas" element={<SalesPage />} />
         <Route path="/clientes" element={<CustomersPage />} />
         
@@ -94,7 +110,13 @@ function ProtectedRoutes() {
             <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/equipo" element={<TeamPage />} />
           </>
+        )}
+
+        {/* Platform-admin only */}
+        {isPlatformAdmin && (
+          <Route path="/platform/admin" element={<PlatformAdminPage />} />
         )}
         
         {/* Redirect vendedor from admin routes */}
@@ -117,8 +139,12 @@ const App = () => (
         <OrgProvider>
           <BrowserRouter>
             <Routes>
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+              <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
+              <Route path="/app/*" element={<ProtectedRoutes />} />
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
           </BrowserRouter>
