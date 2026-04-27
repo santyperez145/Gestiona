@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Sparkles, Instagram, Copy, Calendar, Image, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
 
 export default function MarketingPage() {
   const { user } = useAuth();
@@ -86,6 +87,7 @@ export default function MarketingPage() {
           <p className="text-muted-foreground text-sm">{posts.length} publicaciones · Contenido para Instagram</p>
         </div>
         <div className="flex gap-2">
+          <InstagramStoryGenerator />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
