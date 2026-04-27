@@ -33,7 +33,6 @@ import PlatformAdminPage from "@/pages/PlatformAdminPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
-import { useOrg } from "@/lib/orgContext";
 
 const queryClient = new QueryClient();
 
