@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sparkles, Download, Image as ImageIcon, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { listStoryTemplates } from "@/lib/marketingExtraDB";
 
-type Template = "promo" | "nuevo" | "flash" | "recomendado" | "limpio";
+type Template = string;
 
-const TEMPLATES: { id: Template; name: string; badge: string; emoji: string }[] = [
+const FALLBACK_TEMPLATES: { id: Template; name: string; badge: string; emoji: string }[] = [
   { id: "promo", name: "Promoción", badge: "OFERTA", emoji: "🔥" },
   { id: "flash", name: "Oferta Flash", badge: "SOLO HOY", emoji: "⚡" },
   { id: "nuevo", name: "Nuevo Ingreso", badge: "NUEVO", emoji: "✨" },
