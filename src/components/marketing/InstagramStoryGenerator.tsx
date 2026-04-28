@@ -240,8 +240,8 @@ export function InstagramStoryGenerator() {
         if (def) setTemplate(def.code);
       }
     });
-    supabase.from('settings').select('default_cta_text').eq('org_id', config.orgId || '').maybeSingle().then(({ data }) => {
-      if (data?.default_cta_text) setDefaultCta(data.default_cta_text);
+    supabase.from('settings').select('default_cta_text').limit(1).maybeSingle().then(({ data }) => {
+      if ((data as any)?.default_cta_text) setDefaultCta((data as any).default_cta_text);
     });
   }, [user, open]);
 
