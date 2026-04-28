@@ -212,10 +212,12 @@ export function InstagramStoryGenerator() {
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [productId, setProductId] = useState<string>("");
+  const [templates, setTemplates] = useState<{ id: Template; name: string; badge: string; emoji: string }[]>(FALLBACK_TEMPLATES);
   const [template, setTemplate] = useState<Template>("promo");
   const [customText, setCustomText] = useState("");
   const [customPrice, setCustomPrice] = useState("");
-  const [ctaText, setCtaText] = useState("ESCRIBINOS YA 📲");
+  const [ctaText, setCtaText] = useState("");
+  const [defaultCta, setDefaultCta] = useState("ESCRIBINOS YA 📲");
   const [aiCaption, setAiCaption] = useState("");
   const [loadingAi, setLoadingAi] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -229,9 +231,22 @@ export function InstagramStoryGenerator() {
       setProducts(inStock);
       if (inStock.length && !productId) setProductId(inStock[0].id);
     });
+    // Load templates + default CTA from DB (no hardcode)
+    listStoryTemplates().then((rows) => {
+      if (rows && rows.length > 0) {
+        const mapped = rows.map((r: any) => ({ id: r.code, name: r.name, badge: r.badge_text || '', emoji: r.emoji || '' }));
+        setTemplates(mapped);
+        const def = rows.find((r: any) => r.is_default) || rows[0];
+        if (def) setTemplate(def.code);
+      }
+    });
+    supabase.from('settings').select('default_cta_text').eq('org_id', config.orgId || '').maybeSingle().then(({ data }) => {
+      if (data?.default_cta_text) setDefaultCta(data.default_cta_text);
+    });
   }, [user, open]);
 
   const product = products.find((p) => p.id === productId);
+  const tplData = templates.find((t) => t.id === template);
 
   const generatePreview = async () => {
     if (!product) return;
@@ -239,12 +254,13 @@ export function InstagramStoryGenerator() {
     try {
       const canvas = await renderStory({
         template,
+        templateData: tplData,
         product,
         primaryColor: config.primaryColor,
         businessName: config.businessName,
         customText: customText || undefined,
         customPrice: customPrice || undefined,
-        ctaText: ctaText || undefined,
+        ctaText: ctaText || defaultCta,
       });
       setPreviewUrl(canvas.toDataURL("image/png"));
     } catch (e: any) {
@@ -263,12 +279,13 @@ export function InstagramStoryGenerator() {
     if (!product) return;
     const canvas = await renderStory({
       template,
+      templateData: tplData,
       product,
       primaryColor: config.primaryColor,
       businessName: config.businessName,
       customText: customText || undefined,
       customPrice: customPrice || undefined,
-      ctaText: ctaText || undefined,
+      ctaText: ctaText || defaultCta,
     });
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -292,7 +309,7 @@ export function InstagramStoryGenerator() {
           data: {
             products: [{ name: product.name, brand: product.brand, category: product.category, price: product.sale_price_ars }],
             postType: "story",
-            theme: TEMPLATES.find((t) => t.id === template)?.name || "promoción",
+            theme: tplData?.name || "promoción",
           },
         },
       });
@@ -343,7 +360,7 @@ export function InstagramStoryGenerator() {
             <div>
               <label className="text-sm text-muted-foreground mb-2 block">Plantilla</label>
               <div className="grid grid-cols-3 gap-2">
-                {TEMPLATES.map((t) => (
+                {templates.map((t) => (
                   <button
                     key={t.id}
                     type="button"
@@ -385,7 +402,7 @@ export function InstagramStoryGenerator() {
                 <Input
                   value={ctaText}
                   onChange={(e) => setCtaText(e.target.value)}
-                  placeholder="ESCRIBINOS YA 📲"
+                  placeholder={defaultCta}
                   className="bg-muted border-border"
                 />
               </div>
