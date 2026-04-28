@@ -38,7 +38,6 @@ function InfluencersTab() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Influencer | null>(null);
-  const [confirmDel, setConfirmDel] = useState<Influencer | null>(null);
 
   const reload = async () => { setItems(await listInfluencers()); setLoading(false); };
   useEffect(() => { reload(); }, []);
