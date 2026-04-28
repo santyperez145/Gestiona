@@ -19,7 +19,7 @@ const allNavItems = [
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'analytics' },
-  { to: "/canjes", label: "Canjes", icon: Gift, roles: ['admin'], section: 'analytics' },
+  { to: "/influencers", label: "Influencers", icon: Gift, roles: ['admin'], section: 'analytics' },
   { to: "/catalogo", label: "Catálogo", icon: BookOpen, roles: ['admin'], section: 'analytics' },
   { to: "/ia", label: "IA Insights", icon: Brain, roles: ['admin'], section: 'analytics' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },

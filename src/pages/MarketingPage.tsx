@@ -10,6 +10,7 @@ import { Plus, Trash2, Sparkles, Instagram, Copy, Calendar, Image, Send } from "
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
+import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel";
 
 export default function MarketingPage() {
   const { user } = useAuth();
@@ -117,6 +118,10 @@ export default function MarketingPage() {
             {s === 'all' ? 'Todos' : statusLabels[s]}
           </Button>
         ))}
+      </div>
+
+      <div className="mb-8 p-4 rounded-xl border border-border bg-card/50">
+        <OfferRecommenderPanel />
       </div>
 
       {!filtered.length ? (
