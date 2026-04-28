@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_offer_recommendations: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          duration_hours: number | null
+          id: string
+          offer_type: string
+          org_id: string
+          payload: Json | null
+          probability: string | null
+          product_id: string | null
+          reason: string
+          recommended_channel: string | null
+          resulting_margin_percent: number | null
+          status: string | null
+          suggested_discount_percent: number | null
+          suggested_price_ars: number | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          duration_hours?: number | null
+          id?: string
+          offer_type: string
+          org_id: string
+          payload?: Json | null
+          probability?: string | null
+          product_id?: string | null
+          reason: string
+          recommended_channel?: string | null
+          resulting_margin_percent?: number | null
+          status?: string | null
+          suggested_discount_percent?: number | null
+          suggested_price_ars?: number | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          duration_hours?: number | null
+          id?: string
+          offer_type?: string
+          org_id?: string
+          payload?: Json | null
+          probability?: string | null
+          product_id?: string | null
+          reason?: string
+          recommended_channel?: string | null
+          resulting_margin_percent?: number | null
+          status?: string | null
+          suggested_discount_percent?: number | null
+          suggested_price_ars?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -47,6 +107,96 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_knowledge: {
+        Row: {
+          active: boolean | null
+          brand: string
+          category: string
+          clone_of: string | null
+          created_at: string
+          description: string | null
+          id: string
+          notes_typical: string | null
+          org_id: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          brand: string
+          category?: string
+          clone_of?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes_typical?: string | null
+          org_id?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          brand?: string
+          category?: string
+          clone_of?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes_typical?: string | null
+          org_id?: string | null
+        }
+        Relationships: []
+      }
+      catalog_banners: {
+        Row: {
+          active: boolean | null
+          background_color: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          org_id: string
+          sort_order: number | null
+          starts_at: string | null
+          subtitle: string | null
+          text_color: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          background_color?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          org_id: string
+          sort_order?: number | null
+          starts_at?: string | null
+          subtitle?: string | null
+          text_color?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          background_color?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          org_id?: string
+          sort_order?: number | null
+          starts_at?: string | null
+          subtitle?: string | null
+          text_color?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coupons: {
         Row: {
           active: boolean
@@ -56,6 +206,7 @@ export type Database = {
           discount_fixed_ars: number | null
           discount_percent: number | null
           id: string
+          influencer_id: string | null
           max_uses: number | null
           org_id: string
           user_id: string
@@ -70,6 +221,7 @@ export type Database = {
           discount_fixed_ars?: number | null
           discount_percent?: number | null
           id?: string
+          influencer_id?: string | null
           max_uses?: number | null
           org_id: string
           user_id: string
@@ -84,6 +236,7 @@ export type Database = {
           discount_fixed_ars?: number | null
           discount_percent?: number | null
           id?: string
+          influencer_id?: string | null
           max_uses?: number | null
           org_id?: string
           user_id?: string
@@ -251,6 +404,42 @@ export type Database = {
           },
         ]
       }
+      industry_presets: {
+        Row: {
+          active: boolean | null
+          ai_tone: string | null
+          code: string
+          default_color: string | null
+          default_secondary_color: string | null
+          default_settings: Json | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          ai_tone?: string | null
+          code: string
+          default_color?: string | null
+          default_secondary_color?: string | null
+          default_settings?: Json | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          ai_tone?: string | null
+          code?: string
+          default_color?: string | null
+          default_secondary_color?: string | null
+          default_settings?: Json | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       influencer_exchanges: {
         Row: {
           actual_posts: number | null
@@ -260,6 +449,7 @@ export type Database = {
           expected_posts: number | null
           id: string
           influencer_followers: number | null
+          influencer_id: string | null
           influencer_instagram: string | null
           influencer_name: string
           notes: string | null
@@ -280,6 +470,7 @@ export type Database = {
           expected_posts?: number | null
           id?: string
           influencer_followers?: number | null
+          influencer_id?: string | null
           influencer_instagram?: string | null
           influencer_name: string
           notes?: string | null
@@ -300,6 +491,7 @@ export type Database = {
           expected_posts?: number | null
           id?: string
           influencer_followers?: number | null
+          influencer_id?: string | null
           influencer_instagram?: string | null
           influencer_name?: string
           notes?: string | null
@@ -321,6 +513,174 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      influencer_payouts: {
+        Row: {
+          amount_ars: number
+          created_at: string
+          created_by: string
+          id: string
+          influencer_id: string
+          notes: string | null
+          org_id: string
+          paid_at: string
+          payment_method: string | null
+          period_end: string | null
+          period_start: string | null
+          sales_count: number | null
+        }
+        Insert: {
+          amount_ars?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          influencer_id: string
+          notes?: string | null
+          org_id: string
+          paid_at?: string
+          payment_method?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          sales_count?: number | null
+        }
+        Update: {
+          amount_ars?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          influencer_id?: string
+          notes?: string | null
+          org_id?: string
+          paid_at?: string
+          payment_method?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          sales_count?: number | null
+        }
+        Relationships: []
+      }
+      influencer_sales: {
+        Row: {
+          commission_ars: number
+          created_at: string
+          id: string
+          influencer_id: string
+          org_id: string
+          paid: boolean
+          paid_at: string | null
+          payout_id: string | null
+          referral_code: string
+          sale_id: string
+          sale_total_ars: number
+        }
+        Insert: {
+          commission_ars?: number
+          created_at?: string
+          id?: string
+          influencer_id: string
+          org_id: string
+          paid?: boolean
+          paid_at?: string | null
+          payout_id?: string | null
+          referral_code: string
+          sale_id: string
+          sale_total_ars?: number
+        }
+        Update: {
+          commission_ars?: number
+          created_at?: string
+          id?: string
+          influencer_id?: string
+          org_id?: string
+          paid?: boolean
+          paid_at?: string | null
+          payout_id?: string | null
+          referral_code?: string
+          sale_id?: string
+          sale_total_ars?: number
+        }
+        Relationships: []
+      }
+      influencers: {
+        Row: {
+          avatar_url: string | null
+          commission_fixed_ars: number | null
+          commission_percent: number | null
+          commission_type: string | null
+          created_at: string
+          email: string | null
+          engagement_rate: number | null
+          followers_ig: number | null
+          followers_tiktok: number | null
+          id: string
+          instagram: string | null
+          name: string
+          notes: string | null
+          org_id: string
+          phone: string | null
+          referral_code: string
+          status: string | null
+          tier: string | null
+          tiktok: string | null
+          total_commissions_ars: number | null
+          total_generated_ars: number | null
+          total_sales_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          commission_fixed_ars?: number | null
+          commission_percent?: number | null
+          commission_type?: string | null
+          created_at?: string
+          email?: string | null
+          engagement_rate?: number | null
+          followers_ig?: number | null
+          followers_tiktok?: number | null
+          id?: string
+          instagram?: string | null
+          name: string
+          notes?: string | null
+          org_id: string
+          phone?: string | null
+          referral_code: string
+          status?: string | null
+          tier?: string | null
+          tiktok?: string | null
+          total_commissions_ars?: number | null
+          total_generated_ars?: number | null
+          total_sales_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          commission_fixed_ars?: number | null
+          commission_percent?: number | null
+          commission_type?: string | null
+          created_at?: string
+          email?: string | null
+          engagement_rate?: number | null
+          followers_ig?: number | null
+          followers_tiktok?: number | null
+          id?: string
+          instagram?: string | null
+          name?: string
+          notes?: string | null
+          org_id?: string
+          phone?: string | null
+          referral_code?: string
+          status?: string | null
+          tier?: string | null
+          tiktok?: string | null
+          total_commissions_ars?: number | null
+          total_generated_ars?: number | null
+          total_sales_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       marketing_posts: {
         Row: {
@@ -638,6 +998,54 @@ export type Database = {
         }
         Relationships: []
       }
+      product_combos: {
+        Row: {
+          active: boolean
+          combo_price_ars: number
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          name: string
+          org_id: string
+          original_price_ars: number
+          product_ids: string[]
+          savings_ars: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          combo_price_ars?: number
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          name: string
+          org_id: string
+          original_price_ars?: number
+          product_ids?: string[]
+          savings_ars?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          combo_price_ars?: number
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          original_price_ars?: number
+          product_ids?: string[]
+          savings_ars?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_variants: {
         Row: {
           active: boolean
@@ -911,6 +1319,7 @@ export type Database = {
           profit_ars: number
           profit_usd: number
           quantity: number
+          referral_code: string | null
           total_ars: number
           unit_price_ars: number
           user_id: string
@@ -932,6 +1341,7 @@ export type Database = {
           profit_ars?: number
           profit_usd?: number
           quantity?: number
+          referral_code?: string | null
           total_ars?: number
           unit_price_ars?: number
           user_id: string
@@ -953,6 +1363,7 @@ export type Database = {
           profit_ars?: number
           profit_usd?: number
           quantity?: number
+          referral_code?: string | null
           total_ars?: number
           unit_price_ars?: number
           user_id?: string
@@ -1038,6 +1449,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          ai_tone: string | null
           business_name: string | null
           cash_flow_warning_threshold_ars: number
           created_at: string
@@ -1045,6 +1457,7 @@ export type Database = {
           decant_margin_10ml: number | null
           decant_margin_2_5ml: number | null
           decant_margin_5ml: number | null
+          default_cta_text: string | null
           default_discount_percent: number
           discount_cash_percent: number
           discount_credit_percent: number
@@ -1054,16 +1467,20 @@ export type Database = {
           expense_categories: Json
           expense_ratio_alert_percent: number
           id: string
+          industry_code: string | null
           initial_cash_ars: number
           large_sale_threshold_ars: number
           logo_url: string | null
           low_stock_threshold: number
           margin_alert_percent: number
+          max_ai_discount_percent: number | null
+          max_overstock_units: number | null
           org_id: string
           overdue_check_window_hours: number
           pasero_commission_percent: number
           primary_color: string | null
           secondary_color: string | null
+          stock_dormido_days: number | null
           tax_enabled: boolean
           tax_iibb_percent: number
           tax_iva_percent: number
@@ -1079,6 +1496,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          ai_tone?: string | null
           business_name?: string | null
           cash_flow_warning_threshold_ars?: number
           created_at?: string
@@ -1086,6 +1504,7 @@ export type Database = {
           decant_margin_10ml?: number | null
           decant_margin_2_5ml?: number | null
           decant_margin_5ml?: number | null
+          default_cta_text?: string | null
           default_discount_percent?: number
           discount_cash_percent?: number
           discount_credit_percent?: number
@@ -1095,16 +1514,20 @@ export type Database = {
           expense_categories?: Json
           expense_ratio_alert_percent?: number
           id?: string
+          industry_code?: string | null
           initial_cash_ars?: number
           large_sale_threshold_ars?: number
           logo_url?: string | null
           low_stock_threshold?: number
           margin_alert_percent?: number
+          max_ai_discount_percent?: number | null
+          max_overstock_units?: number | null
           org_id: string
           overdue_check_window_hours?: number
           pasero_commission_percent?: number
           primary_color?: string | null
           secondary_color?: string | null
+          stock_dormido_days?: number | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
           tax_iva_percent?: number
@@ -1120,6 +1543,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          ai_tone?: string | null
           business_name?: string | null
           cash_flow_warning_threshold_ars?: number
           created_at?: string
@@ -1127,6 +1551,7 @@ export type Database = {
           decant_margin_10ml?: number | null
           decant_margin_2_5ml?: number | null
           decant_margin_5ml?: number | null
+          default_cta_text?: string | null
           default_discount_percent?: number
           discount_cash_percent?: number
           discount_credit_percent?: number
@@ -1136,16 +1561,20 @@ export type Database = {
           expense_categories?: Json
           expense_ratio_alert_percent?: number
           id?: string
+          industry_code?: string | null
           initial_cash_ars?: number
           large_sale_threshold_ars?: number
           logo_url?: string | null
           low_stock_threshold?: number
           margin_alert_percent?: number
+          max_ai_discount_percent?: number | null
+          max_overstock_units?: number | null
           org_id?: string
           overdue_check_window_hours?: number
           pasero_commission_percent?: number
           primary_color?: string | null
           secondary_color?: string | null
+          stock_dormido_days?: number | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
           tax_iva_percent?: number
@@ -1169,6 +1598,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      story_templates: {
+        Row: {
+          active: boolean | null
+          badge_color: string | null
+          badge_text: string | null
+          code: string
+          created_at: string
+          emoji: string | null
+          id: string
+          is_default: boolean | null
+          layout: string | null
+          name: string
+          org_id: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          badge_color?: string | null
+          badge_text?: string | null
+          code: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_default?: boolean | null
+          layout?: string | null
+          name: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          badge_color?: string | null
+          badge_text?: string | null
+          code?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_default?: boolean | null
+          layout?: string | null
+          name?: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
