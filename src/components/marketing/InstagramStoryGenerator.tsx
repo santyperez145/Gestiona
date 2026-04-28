@@ -64,6 +64,7 @@ function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 
 async function renderStory(opts: {
   template: Template;
+  templateData?: { name: string; badge: string; emoji: string };
   product: any;
   primaryColor: string;
   businessName: string;
@@ -71,7 +72,7 @@ async function renderStory(opts: {
   customPrice?: string;
   ctaText?: string;
 }): Promise<HTMLCanvasElement> {
-  const { template, product, primaryColor, businessName, customText, customPrice, ctaText } = opts;
+  const { template, templateData, product, primaryColor, businessName, customText, customPrice, ctaText } = opts;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -136,7 +137,7 @@ async function renderStory(opts: {
     imgH = 1200;
   }
 
-  const tpl = TEMPLATES.find((t) => t.id === template)!;
+  const tpl = templateData || FALLBACK_TEMPLATES.find((t) => t.id === template) || FALLBACK_TEMPLATES[0];
 
   // Top: business name
   ctx.textAlign = "center";
