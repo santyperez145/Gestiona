@@ -58,10 +58,10 @@ function InfluencersTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Influencers" value={items.length.toString()} icon={Users} />
-        <KPICard title="Generado" value={fmt(totalGen)} icon={TrendingUp} />
-        <KPICard title="Comisiones" value={fmt(totalCom)} icon={DollarSign} />
-        <KPICard title="Ventas" value={totalSales.toString()} icon={Award} />
+        <KPICard label="Influencers" value={items.length.toString()} icon={Users} />
+        <KPICard label="Generado" value={fmt(totalGen)} icon={TrendingUp} />
+        <KPICard label="Comisiones" value={fmt(totalCom)} icon={DollarSign} />
+        <KPICard label="Ventas" value={totalSales.toString()} icon={Award} />
       </div>
 
       <div className="flex justify-between items-center">
@@ -112,7 +112,12 @@ function InfluencersTab() {
                   <td className="p-3 text-right text-success">{fmt(Number(i.total_commissions_ars))}</td>
                   <td className="p-3 text-right">
                     <Button size="icon" variant="ghost" onClick={() => { setEdit(i); setOpen(true); }}><Edit className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setConfirmDel(i)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    <ConfirmDialog
+                      trigger={<Button size="icon" variant="ghost"><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                      title="Eliminar influencer"
+                      description={`¿Eliminar a ${i.name}? Esto NO borra sus ventas históricas.`}
+                      onConfirm={async () => { await deleteInfluencer(i.id); toast.success('Eliminado'); reload(); }}
+                    />
                   </td>
                 </tr>
               ))}
@@ -121,7 +126,6 @@ function InfluencersTab() {
         </div>
       )}
 
-      <ConfirmDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)} title="Eliminar influencer" description={`¿Eliminar a ${confirmDel?.name}? Esto NO borra sus ventas históricas.`} onConfirm={async () => { if (confirmDel) { await deleteInfluencer(confirmDel.id); toast.success('Eliminado'); setConfirmDel(null); reload(); } }} />
     </div>
   );
 }
@@ -209,9 +213,9 @@ function SalesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3">
-        <KPICard title="Ventas atribuidas" value={sales.length.toString()} icon={TrendingUp} />
-        <KPICard title="Comisiones a pagar" value={fmt(totalPending)} icon={DollarSign} />
+      <div className="grid grid-cols-2 gap-3">
+        <KPICard label="Ventas atribuidas" value={sales.length.toString()} icon={TrendingUp} />
+        <KPICard label="Comisiones a pagar" value={fmt(totalPending)} icon={DollarSign} />
       </div>
       {sales.length === 0 ? <EmptyState icon={TrendingUp} title="Sin ventas con código aún" description="Cuando una venta use código de referido, aparecerá acá." /> : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
