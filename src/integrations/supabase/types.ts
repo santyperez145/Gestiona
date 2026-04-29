@@ -357,6 +357,42 @@ export type Database = {
           },
         ]
       }
+      exchange_configs: {
+        Row: {
+          active: boolean | null
+          code: string
+          color_class: string | null
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          org_id: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          code: string
+          color_class?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          code?: string
+          color_class?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount_ars: number
@@ -682,6 +718,39 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_post_types: {
+        Row: {
+          active: boolean | null
+          code: string
+          created_at: string
+          emoji: string | null
+          id: string
+          label: string
+          org_id: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          code: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          label: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          code?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          label?: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       marketing_posts: {
         Row: {
           ai_generated: boolean
@@ -743,6 +812,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      marketing_themes: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          industry_code: string | null
+          label: string
+          org_id: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          industry_code?: string | null
+          label: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          industry_code?: string | null
+          label?: string
+          org_id?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       memberships: {
         Row: {
