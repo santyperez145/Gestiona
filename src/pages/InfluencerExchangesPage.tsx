@@ -13,17 +13,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import KPICard from "@/components/shared/KPICard";
 import { logAudit } from "@/lib/auditLog";
-
-const STATUS_MAP: Record<string, { label: string; class: string }> = {
-  pendiente: { label: 'Pendiente', class: 'bg-warning/20 text-warning' },
-  entregado: { label: 'Entregado', class: 'bg-blue-500/20 text-blue-400' },
-  publicado: { label: 'Publicado', class: 'bg-success/20 text-success' },
-  completado: { label: 'Completado', class: 'bg-primary/20 text-primary' },
-};
-
-const TYPE_MAP: Record<string, string> = {
-  canje: 'Canje', regalo: 'Regalo', colaboracion: 'Colaboración',
-};
+import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 
 export default function InfluencerExchangesPage() {
   const { user } = useAuth();
@@ -33,11 +23,28 @@ export default function InfluencerExchangesPage() {
   const [editItem, setEditItem] = useState<any>(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [statusConfigs, setStatusConfigs] = useState<ExchangeConfig[]>([]);
+  const [typeConfigs, setTypeConfigs] = useState<ExchangeConfig[]>([]);
+
+  const STATUS_MAP = useMemo(() => {
+    const m: Record<string, { label: string; class: string }> = {};
+    statusConfigs.forEach(s => { m[s.code] = { label: s.label, class: s.color_class }; });
+    return m;
+  }, [statusConfigs]);
+  const TYPE_MAP = useMemo(() => {
+    const m: Record<string, string> = {};
+    typeConfigs.forEach(t => { m[t.code] = t.label; });
+    return m;
+  }, [typeConfigs]);
 
   const reload = async () => {
     if (user) { setExchanges(await getExchangesDB(user.id)); setLoading(false); }
   };
-  useEffect(() => { reload(); }, [user]);
+  useEffect(() => {
+    reload();
+    listExchangeConfigs('status').then(setStatusConfigs).catch(() => {});
+    listExchangeConfigs('type').then(setTypeConfigs).catch(() => {});
+  }, [user]);
 
   const filtered = exchanges.filter(e => {
     if (filter !== 'all' && e.status !== filter) return false;
@@ -108,10 +115,9 @@ export default function InfluencerExchangesPage() {
           <SelectTrigger className="bg-muted border-border w-full sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="pendiente">Pendiente</SelectItem>
-            <SelectItem value="entregado">Entregado</SelectItem>
-            <SelectItem value="publicado">Publicado</SelectItem>
-            <SelectItem value="completado">Completado</SelectItem>
+            {statusConfigs.map(s => (
+              <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
