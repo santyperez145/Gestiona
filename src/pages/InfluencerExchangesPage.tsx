@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, formatARS } from "@/lib/supabaseStore";
 import { getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB } from "@/lib/supabaseStore";
@@ -171,7 +171,7 @@ export default function InfluencerExchangesPage() {
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_MAP[ex.status]?.class}`}>{STATUS_MAP[ex.status]?.label}</span>
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                            {statusConfigs.map(s => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </td>
