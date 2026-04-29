@@ -1,0 +1,401 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag } from "lucide-react";
+import { TableSkeleton } from "@/components/shared/PageSkeleton";
+
+function csvEscape(v: any) {
+  if (v === null || v === undefined) return "";
+  const s = String(v).replace(/"/g, '""');
+  return /[",\n;]/.test(s) ? `"${s}"` : s;
+}
+
+function downloadCSV(filename: string, rows: string[][]) {
+  const csv = "\uFEFF" + rows.map(r => r.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const PRICE_MODES = [
+  { value: "sale_price_ars", label: "Precio de lista (sin descuento)" },
+  { value: "discount_price_ars", label: "Precio con descuento" },
+];
+
+export default function TiendanubeExportPage() {
+  const { activeOrg } = useOrg();
+  const orgId = activeOrg?.id;
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [integration, setIntegration] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [logs, setLogs] = useState<any[]>([]);
+
+  // form
+  const [storeId, setStoreId] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [storeUrl, setStoreUrl] = useState("");
+  const [priceMode, setPriceMode] = useState("sale_price_ars");
+  const [markupPercent, setMarkupPercent] = useState("0");
+  const [syncStock, setSyncStock] = useState(true);
+  const [syncImages, setSyncImages] = useState(true);
+  const [publishStatus, setPublishStatus] = useState("visible");
+
+  const load = useCallback(async () => {
+    if (!orgId) return;
+    setLoading(true);
+    const [intRes, prodRes, logRes] = await Promise.all([
+      supabase.from("tiendanube_integrations").select("*").eq("org_id", orgId).maybeSingle(),
+      supabase.from("products").select("id,name,brand,category,sale_price_ars,discount_price_ars,stock,image_url,tiendanube_product_id").eq("org_id", orgId).order("name"),
+      supabase.from("tiendanube_sync_log").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(50),
+    ]);
+    if (intRes.data) {
+      setIntegration(intRes.data);
+      setStoreId(intRes.data.store_id);
+      setAccessToken(intRes.data.access_token);
+      setStoreUrl(intRes.data.store_url || "");
+      setPriceMode(intRes.data.price_mode);
+      setMarkupPercent(String(intRes.data.markup_percent));
+      setSyncStock(intRes.data.sync_stock);
+      setSyncImages(intRes.data.sync_images);
+      setPublishStatus(intRes.data.publish_status);
+    }
+    setProducts(prodRes.data || []);
+    setLogs(logRes.data || []);
+    setLoading(false);
+  }, [orgId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    if (!orgId) return;
+    if (!storeId || !accessToken) {
+      toast.error("Store ID y Access Token son obligatorios");
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      org_id: orgId,
+      store_id: storeId.trim(),
+      access_token: accessToken.trim(),
+      store_url: storeUrl.trim() || null,
+      price_mode: priceMode,
+      markup_percent: Number(markupPercent) || 0,
+      sync_stock: syncStock,
+      sync_images: syncImages,
+      publish_status: publishStatus,
+    };
+    const { error } = integration
+      ? await supabase.from("tiendanube_integrations").update(payload).eq("org_id", orgId)
+      : await supabase.from("tiendanube_integrations").insert(payload);
+    setSaving(false);
+    if (error) { toast.error("Error: " + error.message); return; }
+    toast.success("Configuración guardada");
+    load();
+  };
+
+  const handleTest = async () => {
+    if (!integration) { toast.error("Primero guardá la configuración"); return; }
+    setTesting(true);
+    const { data, error } = await supabase.functions.invoke("tiendanube-export", {
+      body: { org_id: orgId, action: "test" },
+    });
+    setTesting(false);
+    if (error || !data?.success) {
+      toast.error("Conexión fallida: " + (data?.error || error?.message || "error"));
+      return;
+    }
+    toast.success(`Conectado a "${data.store?.name?.es || data.store?.name || "tu tienda"}"`);
+  };
+
+  const handleSync = async (all: boolean) => {
+    if (!integration) { toast.error("Configurá la integración primero"); return; }
+    const ids = all ? undefined : Array.from(selected);
+    if (!all && ids?.length === 0) { toast.error("Seleccioná al menos un producto"); return; }
+    setSyncing(true);
+    const { data, error } = await supabase.functions.invoke("tiendanube-export", {
+      body: { org_id: orgId, product_ids: ids, action: "sync" },
+    });
+    setSyncing(false);
+    if (error || !data?.success) {
+      toast.error("Error: " + (data?.error || error?.message || "fallo"));
+      return;
+    }
+    toast.success(`Sincronizados: ${data.ok} ok, ${data.fail} fallidos (de ${data.total})`);
+    load();
+  };
+
+  const handleExportCSV = () => {
+    const rows: string[][] = [
+      ["Identificador de URL", "Nombre", "Categorías", "Marca", "Precio", "Precio promocional", "Peso (kg)", "Stock", "SKU", "Mostrar en tienda", "Imágenes (separadas por coma)", "Descripción"],
+    ];
+    const list = selected.size > 0 ? products.filter(p => selected.has(p.id)) : products;
+    for (const p of list) {
+      const price = priceMode === "discount_price_ars" && p.discount_price_ars ? p.discount_price_ars : p.sale_price_ars;
+      const finalPrice = Math.round(Number(price) * (1 + (Number(markupPercent) || 0) / 100));
+      const promo = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars
+        ? Math.round(Number(p.discount_price_ars) * (1 + (Number(markupPercent) || 0) / 100)) : "";
+      rows.push([
+        (p.name || "").toLowerCase().replace(/[^a-z0-9]+/gi, "-").slice(0, 60),
+        (p.name || "").toUpperCase(),
+        p.category || "",
+        (p.brand || "").toUpperCase(),
+        String(finalPrice),
+        String(promo),
+        "0.300",
+        String(p.stock || 0),
+        p.id.slice(0, 12),
+        publishStatus === "draft" ? "No" : "Sí",
+        p.image_url || "",
+        "",
+      ]);
+    }
+    downloadCSV(`tiendanube-productos-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+    toast.success(`CSV generado con ${list.length} productos`);
+  };
+
+  const toggleAll = () => {
+    if (selected.size === products.length) setSelected(new Set());
+    else setSelected(new Set(products.map(p => p.id)));
+  };
+
+  if (loading) return <TableSkeleton rows={6} cols={3} />;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-primary/15">
+          <ShoppingBag className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Exportar a Tiendanube</h1>
+          <p className="text-sm text-muted-foreground">Sincronizá tus productos con tu ecommerce automáticamente.</p>
+        </div>
+        {integration && (
+          <Badge variant="outline" className="ml-auto bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+            <CheckCircle2 className="w-3 h-3 mr-1" /> Conectado
+          </Badge>
+        )}
+      </div>
+
+      <Tabs defaultValue={integration ? "sync" : "config"} className="w-full">
+        <TabsList>
+          <TabsTrigger value="config"><Store className="w-4 h-4 mr-1" /> Configuración</TabsTrigger>
+          <TabsTrigger value="sync" disabled={!integration}><Upload className="w-4 h-4 mr-1" /> Sincronizar API</TabsTrigger>
+          <TabsTrigger value="csv"><Download className="w-4 h-4 mr-1" /> Exportar CSV</TabsTrigger>
+          <TabsTrigger value="logs"><RefreshCw className="w-4 h-4 mr-1" /> Historial</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="config" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Credenciales de Tiendanube</CardTitle>
+              <CardDescription>
+                Obtené tu Store ID y Access Token desde tu panel de Tiendanube → Configuración → API.
+                Si todavía no tenés app, podés crear una en <a className="underline text-primary" href="https://partners.tiendanube.com" target="_blank" rel="noreferrer">partners.tiendanube.com</a>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Store ID *</Label>
+                  <Input value={storeId} onChange={e => setStoreId(e.target.value)} placeholder="123456" />
+                </div>
+                <div>
+                  <Label>Access Token *</Label>
+                  <Input type="password" value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="••••••••••••" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>URL de tu tienda (opcional)</Label>
+                  <Input value={storeUrl} onChange={e => setStoreUrl(e.target.value)} placeholder="https://mitienda.com.ar" />
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Precio a publicar</Label>
+                  <Select value={priceMode} onValueChange={setPriceMode}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PRICE_MODES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Markup adicional (%)</Label>
+                  <Input type="number" value={markupPercent} onChange={e => setMarkupPercent(e.target.value)} placeholder="0" />
+                  <p className="text-xs text-muted-foreground mt-1">Suma este % sobre el precio antes de publicar</p>
+                </div>
+                <div>
+                  <Label>Estado al publicar</Label>
+                  <Select value={publishStatus} onValueChange={setPublishStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible en tienda</SelectItem>
+                      <SelectItem value="draft">Borrador (oculto)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-3 justify-end">
+                  <div className="flex items-center justify-between">
+                    <Label>Sincronizar stock</Label>
+                    <Switch checked={syncStock} onCheckedChange={setSyncStock} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Sincronizar imágenes</Label>
+                    <Switch checked={syncImages} onCheckedChange={setSyncImages} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleSave} disabled={saving}>{saving ? "Guardando..." : "Guardar configuración"}</Button>
+                <Button variant="outline" onClick={handleTest} disabled={testing || !integration}>
+                  <Link2 className="w-4 h-4 mr-1" />
+                  {testing ? "Probando..." : "Probar conexión"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sync" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sincronizar productos vía API</CardTitle>
+              <CardDescription>
+                Crea o actualiza los productos seleccionados en tu tienda. Los productos ya sincronizados se actualizan; los nuevos se crean.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => handleSync(true)} disabled={syncing}>
+                  <Upload className="w-4 h-4 mr-1" />
+                  {syncing ? "Sincronizando..." : `Sincronizar TODOS (${products.length})`}
+                </Button>
+                <Button variant="outline" onClick={() => handleSync(false)} disabled={syncing || selected.size === 0}>
+                  Sincronizar seleccionados ({selected.size})
+                </Button>
+                <Button variant="ghost" size="sm" onClick={toggleAll} className="ml-auto">
+                  {selected.size === products.length ? "Deseleccionar todo" : "Seleccionar todo"}
+                </Button>
+              </div>
+
+              <div className="border border-border rounded-lg overflow-hidden max-h-[480px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 sticky top-0">
+                    <tr className="text-left">
+                      <th className="p-2 w-10"></th>
+                      <th className="p-2">Producto</th>
+                      <th className="p-2">Marca</th>
+                      <th className="p-2 text-right">Precio</th>
+                      <th className="p-2 text-right">Stock</th>
+                      <th className="p-2 text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map(p => (
+                      <tr key={p.id} className="border-t border-border hover:bg-muted/20">
+                        <td className="p-2">
+                          <Checkbox
+                            checked={selected.has(p.id)}
+                            onCheckedChange={(c) => {
+                              const next = new Set(selected);
+                              if (c) next.add(p.id); else next.delete(p.id);
+                              setSelected(next);
+                            }}
+                          />
+                        </td>
+                        <td className="p-2 font-medium">{p.name}</td>
+                        <td className="p-2 text-muted-foreground">{p.brand}</td>
+                        <td className="p-2 text-right">${Number(p.sale_price_ars).toLocaleString("es-AR")}</td>
+                        <td className="p-2 text-right">{p.stock}</td>
+                        <td className="p-2 text-center">
+                          {p.tiendanube_product_id
+                            ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">Sincronizado</Badge>
+                            : <Badge variant="outline" className="text-xs">Pendiente</Badge>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="csv" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Exportar CSV para Tiendanube</CardTitle>
+              <CardDescription>
+                Generá el CSV en el formato oficial de Tiendanube y subilo desde tu panel: Productos → Importar/Exportar.
+                No requiere credenciales de API.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleExportCSV} disabled={!products.length}>
+                <Download className="w-4 h-4 mr-1" />
+                Descargar CSV ({selected.size > 0 ? `${selected.size} seleccionados` : `${products.length} productos`})
+              </Button>
+              <p className="text-xs text-muted-foreground mt-3">
+                El CSV usa el modo de precio y markup configurado en la pestaña de Configuración.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial de sincronización</CardTitle>
+              <CardDescription>Últimas 50 operaciones</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {logs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Todavía no hay sincronizaciones registradas.</p>
+              ) : (
+                <div className="space-y-2 max-h-[480px] overflow-y-auto">
+                  {logs.map(l => (
+                    <div key={l.id} className="flex items-start gap-3 p-3 rounded-lg border border-border">
+                      {l.status === "success"
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5" />
+                        : <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-sm truncate">{l.product_name}</p>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(l.created_at).toLocaleString("es-AR")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {l.action} · {l.status}
+                          {l.error_message && <span className="text-destructive"> — {l.error_message}</span>}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
