@@ -20,6 +20,9 @@ import ExpensesPage from "@/pages/ExpensesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
 import InfluencersPage from "@/pages/InfluencersPage";
+import SettlementsPage from "@/pages/SettlementsPage";
+import BrandKnowledgePage from "@/pages/BrandKnowledgePage";
+import CombosBannersPage from "@/pages/CombosBannersPage";
 import CatalogPage from "@/pages/CatalogPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
@@ -106,6 +109,9 @@ function ProtectedRoutes() {
             <Route path="/marketing" element={<MarketingPage />} />
             <Route path="/canjes" element={<InfluencerExchangesPage />} />
             <Route path="/influencers" element={<InfluencersPage />} />
+            <Route path="/liquidaciones" element={<SettlementsPage />} />
+            <Route path="/marca-ia" element={<BrandKnowledgePage />} />
+            <Route path="/combos-banners" element={<CombosBannersPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
             <Route path="/ia" element={<AIInsightsPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
