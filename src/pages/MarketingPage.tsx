@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Sparkles, Instagram, Copy, Calendar, Image, Send } from "lucide-react";
+import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
 import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel";
+import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 
 export default function MarketingPage() {
   const { user } = useAuth();
@@ -19,6 +20,9 @@ export default function MarketingPage() {
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [postTypes, setPostTypes] = useState<any[]>([]);
+  const [themes, setThemes] = useState<any[]>([]);
+  const [industryCode, setIndustryCode] = useState<string | null>(null);
 
   const reload = async () => {
     if (!user) return;
@@ -26,7 +30,16 @@ export default function MarketingPage() {
     setPosts(p);
     setProducts(pr);
   };
-  useEffect(() => { reload(); }, [user]);
+  useEffect(() => {
+    reload();
+    if (!user) return;
+    listPostTypes().then(setPostTypes).catch(() => {});
+    supabase.from('settings').select('industry_code').limit(1).maybeSingle().then(({ data }) => {
+      const code = (data as any)?.industry_code || null;
+      setIndustryCode(code);
+      listMarketingThemes(code).then(setThemes).catch(() => {});
+    });
+  }, [user]);
 
   const filtered = posts.filter(p => filter === 'all' || p.status === filter);
 
@@ -37,19 +50,29 @@ export default function MarketingPage() {
       const topProducts = products.filter(p => p.stock > 0).slice(0, 5).map(p => ({
         name: p.name, brand: p.brand, category: p.category, price: p.sale_price_ars, stock: p.stock
       }));
+      if (topProducts.length === 0) {
+        toast.error("No hay productos con stock para generar contenido");
+        setGenerating(false);
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('ai-analysis', {
-        body: { type: 'marketing_copy', data: { products: topProducts, postType, theme } }
+        body: { type: 'marketing_copy', data: { products: topProducts, postType, theme, industry: industryCode } }
       });
       if (error) throw error;
-
-      const content = data.content || '';
+      const content = data?.content || '';
+      if (!content) {
+        toast.error("La IA no devolvió contenido. Probá de nuevo.");
+        setGenerating(false);
+        return;
+      }
       const hashtagMatch = content.match(/#[\w\u00C0-\u024F]+/g);
       const hashtags = hashtagMatch ? hashtagMatch.slice(0, 30) : [];
 
+      const ptLabel = postTypes.find(t => t.code === postType)?.label || postType;
       await addMarketingPostDB({
         user_id: user.id,
-        title: `${postType === 'story' ? 'Historia' : postType === 'reel' ? 'Reel' : 'Post'} - ${theme}`,
+        title: `${ptLabel} — ${theme}`,
         content,
         post_type: postType,
         hashtags,
@@ -76,7 +99,7 @@ export default function MarketingPage() {
     published: 'bg-success/20 text-success',
   };
   const statusLabels: Record<string, string> = { draft: 'Borrador', scheduled: 'Programado', published: 'Publicado' };
-  const typeIcons: Record<string, string> = { post: '📸', story: '📱', reel: '🎬' };
+  const typeIcons: Record<string, string> = postTypes.reduce((acc: any, t: any) => ({ ...acc, [t.code]: t.emoji || '📸' }), { post: '📸', story: '📱', reel: '🎬', carousel: '🖼️' });
 
   return (
     <div>
@@ -97,7 +120,7 @@ export default function MarketingPage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display">Generar Contenido con IA</DialogTitle></DialogHeader>
-              <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} />
+              <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} postTypes={postTypes} themes={themes} />
             </DialogContent>
           </Dialog>
           <Dialog>
@@ -106,7 +129,7 @@ export default function MarketingPage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display">Crear Publicación</DialogTitle></DialogHeader>
-              <ManualPostForm userId={user?.id || ''} onSave={reload} />
+              <ManualPostForm userId={user?.id || ''} onSave={reload} postTypes={postTypes} />
             </DialogContent>
           </Dialog>
         </div>
@@ -187,19 +210,13 @@ export default function MarketingPage() {
   );
 }
 
-function AIContentForm({ onGenerate, generating }: { onGenerate: (type: string, theme: string) => void; generating: boolean }) {
+function AIContentForm({ onGenerate, generating, postTypes, themes }: { onGenerate: (type: string, theme: string) => void; generating: boolean; postTypes: any[]; themes: any[] }) {
   const [postType, setPostType] = useState('post');
   const [theme, setTheme] = useState('');
 
-  const themes = [
-    'Promoción de perfumes árabes',
-    'Nuevos ingresos de vapers',
-    'Descuentos especiales',
-    'Fragancias para regalar',
-    'Comparativa de perfumes',
-    'Tips de fragancias',
-    'Perfume del día',
-  ];
+  useEffect(() => {
+    if (postTypes.length && !postTypes.find(t => t.code === postType)) setPostType(postTypes[0].code);
+  }, [postTypes]);
 
   return (
     <div className="space-y-4">
@@ -208,19 +225,17 @@ function AIContentForm({ onGenerate, generating }: { onGenerate: (type: string, 
         <Select value={postType} onValueChange={setPostType}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="post">📸 Post de Feed</SelectItem>
-            <SelectItem value="story">📱 Historia</SelectItem>
-            <SelectItem value="reel">🎬 Reel</SelectItem>
+            {postTypes.map(t => <SelectItem key={t.code} value={t.code}>{t.emoji} {t.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Tema o enfoque</label>
-        <Input value={theme} onChange={e => setTheme(e.target.value)} placeholder="Ej: Promoción de perfumes árabes" className="bg-muted border-border" />
+        <Input value={theme} onChange={e => setTheme(e.target.value)} placeholder="Escribí tu propio tema o elegí uno" className="bg-muted border-border" />
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {themes.map(t => (
-            <button key={t} onClick={() => setTheme(t)} className="text-xs bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors">
-              {t}
+          {themes.map((t: any) => (
+            <button type="button" key={t.id} onClick={() => setTheme(t.label)} className="text-xs bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors">
+              {t.label}
             </button>
           ))}
         </div>
@@ -236,7 +251,7 @@ function AIContentForm({ onGenerate, generating }: { onGenerate: (type: string, 
   );
 }
 
-function ManualPostForm({ userId, onSave }: { userId: string; onSave: () => void }) {
+function ManualPostForm({ userId, onSave, postTypes }: { userId: string; onSave: () => void; postTypes: any[] }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [postType, setPostType] = useState('post');
@@ -267,9 +282,9 @@ function ManualPostForm({ userId, onSave }: { userId: string; onSave: () => void
         <Select value={postType} onValueChange={setPostType}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="post">📸 Post</SelectItem>
-            <SelectItem value="story">📱 Historia</SelectItem>
-            <SelectItem value="reel">🎬 Reel</SelectItem>
+            {postTypes.length === 0
+              ? <SelectItem value="post">📸 Post</SelectItem>
+              : postTypes.map(t => <SelectItem key={t.code} value={t.code}>{t.emoji} {t.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -280,8 +295,4 @@ function ManualPostForm({ userId, onSave }: { userId: string; onSave: () => void
       <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">Crear Publicación</Button>
     </form>
   );
-}
-
-function Megaphone(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>;
 }
