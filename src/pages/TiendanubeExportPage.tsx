@@ -94,8 +94,11 @@ function genderLabel(g: string) {
 function collectImages(p: any): string[] {
   const arr: string[] = Array.isArray(p.image_urls) ? p.image_urls.filter(Boolean) : [];
   if (arr.length === 0 && p.image_url) arr.push(p.image_url);
-  // dedup preservando orden
-  return Array.from(new Set(arr));
+  // Tiendanube exige URLs absolutas https. Limpio espacios y dedup preservando orden.
+  const clean = arr
+    .map((u) => String(u).trim())
+    .filter((u) => /^https?:\/\//i.test(u));
+  return Array.from(new Set(clean));
 }
 
 const PRICE_MODES = [
@@ -227,7 +230,7 @@ export default function TiendanubeExportPage() {
       const seoDesc = (p.description || `${p.name} - ${p.brand}`).replace(/<[^>]+>/g, "").slice(0, 160);
 
       rows.push([
-        slugify(p.name || ""),                         // Identificador de URL
+        `${slugify(p.name || "producto")}-${(p.id || "").slice(0, 6)}`, // Identificador de URL (único)
         (p.name || "").toUpperCase(),                  // Nombre
         categoryLabel(p.category),                     // Categorías
         "", "", "", "", "", "",                        // Propiedades 1/2/3 (sin variantes en export)
@@ -240,14 +243,14 @@ export default function TiendanubeExportPage() {
         String(p.stock ?? 0),                          // Stock
         (p.id || "").slice(0, 12).toUpperCase(),       // SKU
         "",                                            // Código de barras
-        publishStatus === "draft" ? "No" : "Sí",       // Mostrar en tienda
-        "No",                                          // Envío sin cargo
+        publishStatus === "draft" ? "NO" : "SI",       // Mostrar en tienda (Tiendanube exige SI/NO)
+        "NO",                                          // Envío sin cargo
         desc,                                          // Descripción
         [p.brand, p.category, p.gender].filter(Boolean).join(","), // Tags
         `${(p.name || "").toUpperCase()} ${p.brand || ""}`.trim(), // Título para SEO
         seoDesc,                                       // Descripción para SEO
         (p.brand || "").toUpperCase(),                 // Marca
-        "Sí",                                          // Producto Físico
+        "SI",                                          // Producto Físico (mayúsculas)
         "",                                            // MPN
         genderLabel(p.gender),                         // Sexo
         "",                                            // Rango de edad
