@@ -230,7 +230,7 @@ export default function TiendanubeExportPage() {
       const seoDesc = (p.description || `${p.name} - ${p.brand}`).replace(/<[^>]+>/g, "").slice(0, 160);
 
       rows.push([
-        slugify(p.name || ""),                         // Identificador de URL
+        `${slugify(p.name || "producto")}-${(p.id || "").slice(0, 6)}`, // Identificador de URL (único)
         (p.name || "").toUpperCase(),                  // Nombre
         categoryLabel(p.category),                     // Categorías
         "", "", "", "", "", "",                        // Propiedades 1/2/3 (sin variantes en export)
@@ -243,14 +243,14 @@ export default function TiendanubeExportPage() {
         String(p.stock ?? 0),                          // Stock
         (p.id || "").slice(0, 12).toUpperCase(),       // SKU
         "",                                            // Código de barras
-        publishStatus === "draft" ? "No" : "Sí",       // Mostrar en tienda
-        "No",                                          // Envío sin cargo
+        publishStatus === "draft" ? "NO" : "SI",       // Mostrar en tienda (Tiendanube exige SI/NO)
+        "NO",                                          // Envío sin cargo
         desc,                                          // Descripción
         [p.brand, p.category, p.gender].filter(Boolean).join(","), // Tags
         `${(p.name || "").toUpperCase()} ${p.brand || ""}`.trim(), // Título para SEO
         seoDesc,                                       // Descripción para SEO
         (p.brand || "").toUpperCase(),                 // Marca
-        "Sí",                                          // Producto Físico
+        "SI",                                          // Producto Físico (mayúsculas)
         "",                                            // MPN
         genderLabel(p.gender),                         // Sexo
         "",                                            // Rango de edad
