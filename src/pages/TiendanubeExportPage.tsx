@@ -94,8 +94,11 @@ function genderLabel(g: string) {
 function collectImages(p: any): string[] {
   const arr: string[] = Array.isArray(p.image_urls) ? p.image_urls.filter(Boolean) : [];
   if (arr.length === 0 && p.image_url) arr.push(p.image_url);
-  // dedup preservando orden
-  return Array.from(new Set(arr));
+  // Tiendanube exige URLs absolutas https. Limpio espacios y dedup preservando orden.
+  const clean = arr
+    .map((u) => String(u).trim())
+    .filter((u) => /^https?:\/\//i.test(u));
+  return Array.from(new Set(clean));
 }
 
 const PRICE_MODES = [
