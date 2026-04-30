@@ -14,19 +14,88 @@ import { toast } from "sonner";
 import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 
+// Tiendanube usa ; como separador y comillas dobles para escapar
 function csvEscape(v: any) {
   if (v === null || v === undefined) return "";
   const s = String(v).replace(/"/g, '""');
-  return /[",\n;]/.test(s) ? `"${s}"` : s;
+  return /[";\n\r]/.test(s) ? `"${s}"` : s;
 }
 
 function downloadCSV(filename: string, rows: string[][]) {
-  const csv = "\uFEFF" + rows.map(r => r.map(csvEscape).join(",")).join("\n");
+  const csv = "\uFEFF" + rows.map(r => r.map(csvEscape).join(";")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Plantilla OFICIAL de Tiendanube (orden y nombres exactos)
+const TN_HEADERS = [
+  "Identificador de URL",
+  "Nombre",
+  "Categorías",
+  "Nombre de propiedad 1",
+  "Valor de propiedad 1",
+  "Nombre de propiedad 2",
+  "Valor de propiedad 2",
+  "Nombre de propiedad 3",
+  "Valor de propiedad 3",
+  "Precio",
+  "Precio promocional",
+  "Peso (kg)",
+  "Alto (cm)",
+  "Ancho (cm)",
+  "Profundidad (cm)",
+  "Stock",
+  "SKU",
+  "Código de barras",
+  "Mostrar en tienda",
+  "Envío sin cargo",
+  "Descripción",
+  "Tags",
+  "Título para SEO",
+  "Descripción para SEO",
+  "Marca",
+  "Producto Físico",
+  "MPN (Número de pieza del fabricante)",
+  "Sexo",
+  "Rango de edad",
+  "Costo",
+  "Imágenes",
+];
+
+function slugify(s: string) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function categoryLabel(cat: string) {
+  const map: Record<string, string> = {
+    perfume_arabe: "Perfumes Árabes",
+    "perfume_diseñador": "Perfumes de Diseñador",
+    perfume_disenador: "Perfumes de Diseñador",
+    vaper: "Vapers",
+    electronico: "Electrónica",
+  };
+  return map[cat] || cat || "Productos";
+}
+
+function genderLabel(g: string) {
+  if (g === "masculino") return "Hombre";
+  if (g === "femenino") return "Mujer";
+  return "Sin género";
+}
+
+function collectImages(p: any): string[] {
+  const arr: string[] = Array.isArray(p.image_urls) ? p.image_urls.filter(Boolean) : [];
+  if (arr.length === 0 && p.image_url) arr.push(p.image_url);
+  // dedup preservando orden
+  return Array.from(new Set(arr));
 }
 
 const PRICE_MODES = [
