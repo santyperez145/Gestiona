@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
+import { useEntitlements } from '@/lib/useEntitlements';
+import UpgradePrompt from '@/components/shared/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +31,7 @@ interface Invite {
 
 export default function TeamPage() {
   const { activeOrg, activeRole } = useOrg();
+  const { userLimit, plan } = useEntitlements();
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +110,22 @@ export default function TeamPage() {
 
       {canManage && (
         <div className="bg-card border border-border rounded-2xl p-5">
-          <h2 className="font-semibold mb-3 flex items-center gap-2"><Mail className="w-4 h-4" /> Invitar miembro</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold flex items-center gap-2"><Mail className="w-4 h-4" /> Invitar miembro</h2>
+            {userLimit !== null && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${members.length >= userLimit ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                {members.length}/{userLimit} usuarios
+              </span>
+            )}
+          </div>
+          {userLimit !== null && members.length >= userLimit ? (
+            <UpgradePrompt
+              inline
+              title={`Límite de ${userLimit} usuarios alcanzado`}
+              description={`El plan ${plan?.name} permite hasta ${userLimit} miembros por organización. Actualizá para agregar más.`}
+              currentPlan={plan?.name}
+            />
+          ) : (
           <div className="flex flex-col md:flex-row gap-3">
             <div className="flex-1">
               <Label htmlFor="email" className="text-xs">Email</Label>
@@ -128,6 +146,7 @@ export default function TeamPage() {
               <Button onClick={invite} disabled={sending || !email.trim()}>{sending ? 'Enviando...' : 'Invitar'}</Button>
             </div>
           </div>
+          )}
         </div>
       )}
 

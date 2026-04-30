@@ -22,6 +22,7 @@ export interface Subscription {
   id: string;
   org_id: string;
   plan_id: string;
+  stripe_subscription_id: string | null;
   status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'paused';
   current_period_end: string | null;
   cancel_at_period_end: boolean;

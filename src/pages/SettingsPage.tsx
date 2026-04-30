@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
+import { useEntitlements } from "@/lib/useEntitlements";
 import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -15,7 +17,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [exchangeRate, setExchangeRate] = useState('');
   const [customsPercent, setCustomsPercent] = useState('');
   const [defaultDiscountPercent, setDefaultDiscountPercent] = useState('');
@@ -314,6 +316,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4 md:space-y-6">
+          {/* Subscription */}
+          <SubscriptionPanel session={session} />
+
           {/* Taxes */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
@@ -375,6 +380,140 @@ export default function SettingsPage() {
           <CouponsManager userId={user!.id} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ===== Subscription Panel =====
+function SubscriptionPanel({ session }: { session: any }) {
+  const { activeOrg } = useOrg();
+  const { plan, subscription, isTrialing, trialDaysLeft, loading, refresh } = useEntitlements();
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [canceling, setCanceling] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      toast.success('¡Suscripción activada! Gracias por confiar en Gestiona.');
+      refresh();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const handleUpgrade = async (planCode: string) => {
+    if (!activeOrg || !session) return;
+    setCheckingOut(planCode);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planCode, orgId: activeOrg.id, yearly: false },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error || !data?.url) { toast.error('No se pudo iniciar el pago.'); return; }
+      window.location.href = data.url;
+    } catch { toast.error('Error al conectar con pagos.'); }
+    finally { setCheckingOut(null); }
+  };
+
+  const handleCancel = async () => {
+    if (!subscription?.stripe_subscription_id) return;
+    setCanceling(true);
+    try {
+      const { error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { subscriptionId: subscription.stripe_subscription_id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw error;
+      toast.success('Suscripción cancelada. Seguirás teniendo acceso hasta el fin del período.');
+      await refresh();
+    } catch { toast.error('Error al cancelar.'); }
+    finally { setCanceling(false); }
+  };
+
+  const statusColor = {
+    active: 'text-green-500',
+    trialing: 'text-blue-500',
+    past_due: 'text-yellow-500',
+    canceled: 'text-red-500',
+    paused: 'text-muted-foreground',
+  }[subscription?.status ?? 'canceled'] ?? 'text-muted-foreground';
+
+  const StatusIcon = subscription?.status === 'active' ? CheckCircle2
+    : subscription?.status === 'trialing' ? Zap
+    : subscription?.status === 'past_due' ? AlertTriangle
+    : XCircle;
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <CreditCard className="w-4 h-4 text-primary" />Suscripción
+      </h2>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Cargando...
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">{plan?.name ?? 'Sin plan'}</p>
+              <div className={`flex items-center gap-1.5 text-sm mt-0.5 ${statusColor}`}>
+                <StatusIcon className="w-3.5 h-3.5" />
+                <span>
+                  {subscription?.status === 'trialing' ? `Trial — ${trialDaysLeft} días restantes`
+                    : subscription?.status === 'active' ? 'Activo'
+                    : subscription?.status === 'past_due' ? 'Pago pendiente'
+                    : subscription?.status === 'canceled' ? 'Cancelado'
+                    : 'Sin suscripción'}
+                </span>
+              </div>
+              {subscription?.current_period_end && subscription.status !== 'canceled' && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Próximo cobro: {new Date(subscription.current_period_end).toLocaleDateString('es-AR')}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              {plan && plan.price_usd_monthly > 0 && (
+                <p className="text-2xl font-bold">${plan.price_usd_monthly}<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+              )}
+            </div>
+          </div>
+
+          {/* Plan limits */}
+          {plan && (
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { label: 'Productos', val: plan.max_products ?? '∞' },
+                { label: 'Usuarios', val: plan.max_users ?? '∞' },
+                { label: 'IA', val: plan.ai_enabled ? 'Sí' : 'No' },
+              ].map(item => (
+                <div key={item.label} className="bg-muted rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="font-semibold text-sm">{String(item.val)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            {(!subscription || subscription.status === 'canceled' || subscription.status === 'trialing') && (
+              <Button onClick={() => handleUpgrade('pro')} disabled={!!checkingOut} className="w-full gradient-gold text-primary-foreground font-semibold">
+                {checkingOut === 'pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><Zap className="w-4 h-4 mr-2" />Actualizar al plan Pro</>}
+              </Button>
+            )}
+            {subscription?.status === 'active' && !subscription.cancel_at_period_end && (
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleCancel} disabled={canceling}>
+                {canceling ? 'Cancelando...' : 'Cancelar suscripción'}
+              </Button>
+            )}
+            {subscription?.cancel_at_period_end && (
+              <p className="text-xs text-yellow-500 text-center">Cancelación programada al fin del período</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -68,6 +68,7 @@ function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
   const { activeOrg, isPlatformAdmin } = useOrg();
+  const { pathname } = useLocation();
 
   if (authLoading || roleLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -77,6 +78,8 @@ function ProtectedRoutes() {
       </div>
     </div>
   );
+  // Root path shows landing page for unauthenticated visitors
+  if (!user && pathname === '/') return <LandingPage />;
   if (!user) return <AuthPage />;
   if (isViewer) return <ViewerGate />;
 
@@ -146,7 +149,8 @@ const App = () => (
         <OrgProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/landing" element={<Navigate to="/" replace />} />
+              <Route path="/login" element={<AuthPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />

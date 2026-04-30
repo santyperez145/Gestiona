@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { useOrg } from '@/lib/orgContext';
 import { Button } from '@/components/ui/button';
-import { Check, Sparkles, ArrowLeft } from 'lucide-react';
+import { Check, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Plan } from '@/lib/useEntitlements';
 
 const FEATURES: Record<string, string[]> = {
@@ -14,10 +16,12 @@ const FEATURES: Record<string, string[]> = {
 };
 
 export default function PricingPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const { activeOrg } = useOrg();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [yearly, setYearly] = useState(false);
 
   useEffect(() => {
@@ -27,11 +31,35 @@ export default function PricingPage() {
     });
   }, []);
 
-  const handleSelect = (code: string) => {
+  const handleSelect = async (code: string) => {
     if (!user) { navigate('/?signup=1'); return; }
     if (code === 'trial') { navigate('/'); return; }
-    // TODO: trigger Stripe checkout
-    navigate(`/ajustes?upgrade=${code}`);
+
+    if (!activeOrg) {
+      toast.error('Necesitás tener una organización activa para suscribirte.');
+      return;
+    }
+
+    setCheckingOut(code);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planCode: code, orgId: activeOrg.id, yearly },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+
+      if (error || !data?.url) {
+        console.error('Checkout error:', error);
+        toast.error('No se pudo iniciar el pago. Intentá de nuevo.');
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al conectar con el sistema de pagos.');
+    } finally {
+      setCheckingOut(null);
+    }
   };
 
   return (
@@ -53,37 +81,77 @@ export default function PricingPage() {
         <p className="text-muted-foreground max-w-2xl mx-auto">Probá Gestiona 14 días gratis. Sin tarjeta. Cancelás cuando quieras.</p>
 
         <div className="inline-flex items-center gap-2 mt-8 p-1 rounded-xl bg-muted border border-border">
-          <button onClick={() => setYearly(false)} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${!yearly ? 'bg-background shadow' : 'text-muted-foreground'}`}>Mensual</button>
-          <button onClick={() => setYearly(true)} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${yearly ? 'bg-background shadow' : 'text-muted-foreground'}`}>Anual <span className="ml-1 text-xs text-primary">-17%</span></button>
+          <button
+            onClick={() => setYearly(false)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${!yearly ? 'bg-background shadow' : 'text-muted-foreground'}`}
+          >
+            Mensual
+          </button>
+          <button
+            onClick={() => setYearly(true)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${yearly ? 'bg-background shadow' : 'text-muted-foreground'}`}
+          >
+            Anual <span className="ml-1 text-xs text-primary">-17%</span>
+          </button>
         </div>
       </section>
 
       <section className="max-w-7xl mx-auto px-6 pb-24 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {loading ? Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-2xl border border-border bg-card p-6 h-96 animate-pulse" />
-        )) : plans.map(p => {
-          const price = yearly ? p.price_usd_yearly : p.price_usd_monthly;
-          const isPro = p.code === 'pro';
-          return (
-            <div key={p.id} className={`relative rounded-2xl border p-6 flex flex-col ${isPro ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-card'}`}>
-              {isPro && <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold">Más elegido</div>}
-              <h3 className="font-display text-xl font-bold">{p.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1 min-h-[40px]">{p.description || ''}</p>
-              <div className="my-6">
-                <span className="text-4xl font-bold">${price}</span>
-                <span className="text-sm text-muted-foreground"> / {yearly ? 'año' : 'mes'} USD</span>
-              </div>
-              <ul className="space-y-2.5 text-sm mb-6 flex-1">
-                {(FEATURES[p.code] || []).map(f => (
-                  <li key={f} className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />{f}</li>
-                ))}
-              </ul>
-              <Button onClick={() => handleSelect(p.code)} className="w-full" variant={isPro ? 'default' : 'outline'}>
-                {p.code === 'trial' ? 'Empezar gratis' : `Elegir ${p.name}`}
-              </Button>
-            </div>
-          );
-        })}
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card p-6 h-96 animate-pulse" />
+            ))
+          : plans.map(p => {
+              const price = yearly ? p.price_usd_yearly : p.price_usd_monthly;
+              const isPro = p.code === 'pro';
+              const isLoading = checkingOut === p.code;
+              return (
+                <div
+                  key={p.id}
+                  className={`relative rounded-2xl border p-6 flex flex-col ${isPro ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-card'}`}
+                >
+                  {isPro && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                      Más elegido
+                    </div>
+                  )}
+                  <h3 className="font-display text-xl font-bold">{p.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1 min-h-[40px]">{p.description || ''}</p>
+                  <div className="my-6">
+                    {p.price_usd_monthly === 0 ? (
+                      <span className="text-4xl font-bold">Gratis</span>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold">${price}</span>
+                        <span className="text-sm text-muted-foreground"> / {yearly ? 'año' : 'mes'} USD</span>
+                      </>
+                    )}
+                  </div>
+                  <ul className="space-y-2.5 text-sm mb-6 flex-1">
+                    {(FEATURES[p.code] || []).map(f => (
+                      <li key={f} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    onClick={() => handleSelect(p.code)}
+                    className="w-full"
+                    variant={isPro ? 'default' : 'outline'}
+                    disabled={!!checkingOut}
+                  >
+                    {isLoading ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirigiendo...</>
+                    ) : p.code === 'trial' ? (
+                      'Empezar gratis'
+                    ) : (
+                      `Elegir ${p.name}`
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
       </section>
     </div>
   );

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { useEntitlements } from "@/lib/useEntitlements";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -64,6 +66,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
 
 export default function ProductsPage() {
   const { user } = useAuth();
+  const { productLimit, plan } = useEntitlements();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [open, setOpen] = useState(false);
@@ -129,7 +132,11 @@ export default function ProductsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
          <div>
            <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
-           <p className="text-muted-foreground text-sm">{filtered.length} productos · {totalStock} uds · Inversión: {formatUSD(totalValue)}</p>
+           <p className="text-muted-foreground text-sm">
+             {filtered.length} productos
+             {productLimit !== null && <span className={`ml-1 font-medium ${products.length >= productLimit ? 'text-destructive' : products.length >= productLimit * 0.8 ? 'text-yellow-500' : ''}`}>({products.length}/{productLimit})</span>}
+             {' '}· {totalStock} uds · Inversión: {formatUSD(totalValue)}
+           </p>
          </div>
          <div className="flex gap-2">
            <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
@@ -138,15 +145,24 @@ export default function ProductsPage() {
            <Button variant="outline" onClick={() => setBulkOpen(true)}>
              <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
            </Button>
-           <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
-             <DialogTrigger asChild>
-               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
-             </DialogTrigger>
-             <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-               <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-               <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
-             </DialogContent>
-           </Dialog>
+           {productLimit !== null && products.length >= productLimit ? (
+             <Button
+               className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+               onClick={() => toast.error(`Límite de ${productLimit} productos alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
+             >
+               <Plus className="w-4 h-4 mr-2" />Nuevo
+             </Button>
+           ) : (
+             <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+               <DialogTrigger asChild>
+                 <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+               </DialogTrigger>
+               <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                 <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
+                 <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+               </DialogContent>
+             </Dialog>
+           )}
          </div>
       </div>
 
