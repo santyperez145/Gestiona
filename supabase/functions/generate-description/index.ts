@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const client = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -17,12 +20,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    const isPerfume = !category || category.toString().toLowerCase().includes('perfume') || category === 'perfume_arabe' || category === 'perfume_diseñador';
-    const categoryLabel = category === 'perfume_arabe' ? 'perfume árabe (estilo Medio Oriente)' 
-      : category === 'perfume_diseñador' ? 'perfume de diseñador (occidental/nicho)' 
+    const categoryLabel = category === 'perfume_arabe' ? 'perfume árabe (estilo Medio Oriente)'
+      : category === 'perfume_diseñador' ? 'perfume de diseñador (occidental/nicho)'
       : category || 'perfume';
     const genderLabel = gender === 'masculino' ? 'para hombre' : gender === 'femenino' ? 'para mujer' : 'unisex';
 
@@ -50,45 +49,15 @@ Incluí en este orden, en máximo 4 oraciones cortas:
 
 PROHIBIDO: comillas, empezar con "Este perfume" o con el nombre del producto, emojis, hashtags, listas, viñetas, mencionar precio, mencionar otros perfumes salvo que sea un clon árabe reconocido del producto.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        temperature: 0.6,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-      }),
+    const message = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      temperature: 0.6,
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }] as any,
+      messages: [{ role: "user", content: prompt }],
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Demasiadas solicitudes, intentá de nuevo en unos segundos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA agotados." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "Error del servicio de IA" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await response.json();
-    const description = data.choices?.[0]?.message?.content?.trim() || "";
+    const description = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
 
     return new Response(JSON.stringify({ description }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

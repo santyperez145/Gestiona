@@ -38,6 +38,9 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import InvoicesPage from "@/pages/InvoicesPage";
 import POSPage from "@/pages/POSPage";
 import CashSessionPage from "@/pages/CashSessionPage";
+import IntegrationsPage from "@/pages/IntegrationsPage";
+import ProveedoresPage from "@/pages/ProveedoresPage";
+import PresupuestosPage from "@/pages/PresupuestosPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
@@ -105,7 +108,9 @@ function ProtectedRoutes() {
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/ventas" element={<SalesPage />} />
         <Route path="/clientes" element={<CustomersPage />} />
-        
+        {/* Vendedor + admin */}
+        <Route path="/caja" element={<POSPage />} />
+
         {/* Admin-only routes */}
         {isAdmin && (
           <>
@@ -123,9 +128,11 @@ function ProtectedRoutes() {
             <Route path="/ia" element={<AIInsightsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/facturas" element={<InvoicesPage />} />
-            <Route path="/caja" element={<POSPage />} />
             <Route path="/caja/turno" element={<CashSessionPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
+            <Route path="/proveedores" element={<ProveedoresPage />} />
+            <Route path="/presupuestos" element={<PresupuestosPage />} />
+            <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/equipo" element={<TeamPage />} />

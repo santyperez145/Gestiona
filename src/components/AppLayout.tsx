@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -20,6 +20,8 @@ const allNavItems = [
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
   { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
+  { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
+  { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'analytics' },
@@ -31,6 +33,7 @@ const allNavItems = [
   { to: "/catalogo", label: "Catálogo", icon: BookOpen, roles: ['admin'], section: 'analytics' },
   { to: "/ia", label: "IA Insights", icon: Brain, roles: ['admin'], section: 'analytics' },
   { to: "/marca-ia", label: "Marcas IA", icon: Brain, roles: ['admin'], section: 'analytics' },
+  { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
   { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'config' },

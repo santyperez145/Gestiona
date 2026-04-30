@@ -38,7 +38,7 @@ export default function MarketingPage() {
       const code = (data as any)?.industry_code || null;
       setIndustryCode(code);
       listMarketingThemes(code).then(setThemes).catch(() => {});
-    });
+    }).catch(() => {});
   }, [user]);
 
   const filtered = posts.filter(p => filter === 'all' || p.status === filter);

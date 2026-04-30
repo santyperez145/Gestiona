@@ -23,6 +23,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "No autenticado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Resolve the user's active org for multi-tenant isolation
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("org_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    const orgId = membership?.org_id;
+    if (!orgId) {
+      return new Response(JSON.stringify({ error: "Sin organización activa" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // Fetch live rates from public API (free, no key)
     const [oficialR, blueR, mepR] = await Promise.all([
       fetch("https://dolarapi.com/v1/dolares/oficial").then(r => r.ok ? r.json() : null).catch(() => null),
@@ -41,13 +53,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "No se pudo obtener cotización" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Persist to settings (admin only via existing RLS)
+    // Persist to settings scoped to the user's org (multi-tenant safe)
     await supabase.from("settings").update({
       usd_rate_oficial: rates.oficial,
       usd_rate_blue: rates.blue,
       usd_rate_mep: rates.mep,
       usd_rate_updated_at: rates.updatedAt,
-    }).eq("user_id", userId);
+    }).eq("org_id", orgId);
 
     return new Response(JSON.stringify(rates), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
