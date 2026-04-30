@@ -80,9 +80,12 @@ function buildProductPayload(p: any, integration: any) {
       for (const u of p.image_urls) if (u && typeof u === "string") imgs.push(u);
     }
     if (imgs.length === 0 && p.image_url) imgs.push(p.image_url);
-    // dedup conservando orden
+    // limpio + valido https + dedup conservando orden
     const seen = new Set<string>();
-    const unique = imgs.filter(u => (seen.has(u) ? false : (seen.add(u), true)));
+    const unique = imgs
+      .map((u) => String(u).trim())
+      .filter((u) => /^https?:\/\//i.test(u))
+      .filter((u) => (seen.has(u) ? false : (seen.add(u), true)));
     if (unique.length > 0) {
       payload.images = unique.map((src, i) => ({ src, position: i + 1 }));
     }
