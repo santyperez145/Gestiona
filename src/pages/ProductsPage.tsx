@@ -526,31 +526,43 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   return (
     <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
-      {/* Image upload */}
+      {/* Image upload (multi) */}
       <div>
-        <label className="text-sm text-muted-foreground">Imagen del producto</label>
-        <div className="mt-1 flex items-center gap-3">
-          {imagePreview ? (
-            <div className="relative">
-              <img src={imagePreview} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
-              <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
+        <div className="flex items-center justify-between">
+          <label className="text-sm text-muted-foreground">Imágenes del producto (HD, máx 8)</label>
+          <span className="text-[10px] text-muted-foreground/60">La primera es la principal · arrastrá con ◀ ▶</span>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {imageItems.map((it, idx) => (
+            <div key={idx} className="relative group">
+              <img
+                src={it.url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="w-20 h-20 rounded-lg object-cover border border-border"
+              />
+              {idx === 0 && (
+                <span className="absolute -top-1.5 -left-1.5 px-1.5 rounded bg-primary text-[9px] font-bold text-primary-foreground">PPAL</span>
+              )}
+              <button type="button" onClick={() => removeImageAt(idx)} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
                 <X className="w-3 h-3" />
               </button>
+              <div className="absolute bottom-0 inset-x-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition">
+                <button type="button" onClick={() => moveImage(idx, idx - 1)} className="text-[10px] bg-black/60 text-white rounded px-1">◀</button>
+                <button type="button" onClick={() => moveImage(idx, idx + 1)} className="text-[10px] bg-black/60 text-white rounded px-1">▶</button>
+              </div>
             </div>
-          ) : (
+          ))}
+          {imageItems.length < 8 && (
             <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
               <Upload className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5">Subir</span>
+              <span className="text-[10px] mt-0.5">Agregar</span>
             </button>
           )}
-          {imagePreview && (
-            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Cambiar</Button>
-          )}
-          {!imagePreview && (
-            <span className="text-[10px] text-muted-foreground/60">o pegá una imagen (Ctrl+V)</span>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
         </div>
+        <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
       <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>
       <div className="grid grid-cols-2 gap-3">
