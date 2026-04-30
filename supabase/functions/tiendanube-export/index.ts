@@ -14,13 +14,28 @@ function categoryToHandle(cat: string): string {
   return cat?.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "general";
 }
 
-function buildPrice(p: any, mode: string, markup: number): { price: string; promo?: string } {
+// markup + comisión Tiendanube + comisión pasarela + redondeo opcional
+function applyAllFees(base: number, markup: number, platformFee: number, paymentFee: number, roundTo: number): number {
+  if (!base || base <= 0) return 0;
+  const neto = base * (1 + (markup || 0) / 100);
+  const totalFee = ((platformFee || 0) + (paymentFee || 0)) / 100;
+  const grossed = totalFee >= 1 ? neto : neto / (1 - totalFee);
+  if (roundTo && roundTo > 0) return Math.ceil(grossed / roundTo) * roundTo;
+  return Math.round(grossed);
+}
+
+function buildPrice(p: any, integ: any): { price: string; promo?: string } {
+  const mode = integ.price_mode;
+  const markup = Number(integ.markup_percent) || 0;
+  const pf = Number(integ.platform_fee_percent) || 0;
+  const pay = Number(integ.payment_fee_percent) || 0;
+  const rt = Number(integ.round_to) || 0;
   const base = mode === "discount_price_ars" && p.discount_price_ars
     ? Number(p.discount_price_ars)
     : Number(p.sale_price_ars);
-  const finalPrice = Math.round(base * (1 + (markup || 0) / 100));
-  const promo = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars
-    ? Math.round(Number(p.discount_price_ars) * (1 + (markup || 0) / 100)).toString()
+  const finalPrice = applyAllFees(base, markup, pf, pay, rt);
+  const promo = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+    ? applyAllFees(Number(p.discount_price_ars), markup, pf, pay, rt).toString()
     : undefined;
   return { price: finalPrice.toString(), promo };
 }
@@ -46,7 +61,7 @@ async function tnRequest(storeId: string, token: string, path: string, method = 
 }
 
 function buildProductPayload(p: any, integration: any) {
-  const { price, promo } = buildPrice(p, integration.price_mode, Number(integration.markup_percent));
+  const { price, promo } = buildPrice(p, integration);
   const desc = [
     p.description || "",
     p.brand ? `<p><strong>Marca:</strong> ${p.brand}</p>` : "",

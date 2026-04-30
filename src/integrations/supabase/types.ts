@@ -1815,8 +1815,11 @@ export type Database = {
           last_sync_at: string | null
           markup_percent: number
           org_id: string
+          payment_fee_percent: number
+          platform_fee_percent: number
           price_mode: string
           publish_status: string
+          round_to: number
           store_id: string
           store_name: string | null
           store_url: string | null
@@ -1832,8 +1835,11 @@ export type Database = {
           last_sync_at?: string | null
           markup_percent?: number
           org_id: string
+          payment_fee_percent?: number
+          platform_fee_percent?: number
           price_mode?: string
           publish_status?: string
+          round_to?: number
           store_id: string
           store_name?: string | null
           store_url?: string | null
@@ -1849,8 +1855,11 @@ export type Database = {
           last_sync_at?: string | null
           markup_percent?: number
           org_id?: string
+          payment_fee_percent?: number
+          platform_fee_percent?: number
           price_mode?: string
           publish_status?: string
+          round_to?: number
           store_id?: string
           store_name?: string | null
           store_url?: string | null

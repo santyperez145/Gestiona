@@ -106,6 +106,27 @@ const PRICE_MODES = [
   { value: "discount_price_ars", label: "Precio con descuento" },
 ];
 
+// Aplica markup + comisión Tiendanube + comisión pasarela y redondeo opcional.
+// Las comisiones se "inflan" sobre el neto que querés cobrar:
+//   precio_publicado = neto / (1 - (fee_tn + fee_pago)/100)
+// Así, después de que la plataforma descuenta, te queda el neto deseado.
+function applyAllFees(
+  base: number,
+  markup: number,
+  platformFee: number,
+  paymentFee: number,
+  roundTo: number
+): number {
+  if (!base || base <= 0) return 0;
+  const neto = base * (1 + (markup || 0) / 100);
+  const totalFee = ((platformFee || 0) + (paymentFee || 0)) / 100;
+  const grossed = totalFee >= 1 ? neto : neto / (1 - totalFee);
+  if (roundTo && roundTo > 0) {
+    return Math.ceil(grossed / roundTo) * roundTo;
+  }
+  return Math.round(grossed);
+}
+
 export default function TiendanubeExportPage() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id;
@@ -127,6 +148,9 @@ export default function TiendanubeExportPage() {
   const [syncStock, setSyncStock] = useState(true);
   const [syncImages, setSyncImages] = useState(true);
   const [publishStatus, setPublishStatus] = useState("visible");
+  const [platformFeePercent, setPlatformFeePercent] = useState("0");
+  const [paymentFeePercent, setPaymentFeePercent] = useState("0");
+  const [roundTo, setRoundTo] = useState("0");
 
   const load = useCallback(async () => {
     if (!orgId) return;
@@ -146,6 +170,9 @@ export default function TiendanubeExportPage() {
       setSyncStock(intRes.data.sync_stock);
       setSyncImages(intRes.data.sync_images);
       setPublishStatus(intRes.data.publish_status);
+      setPlatformFeePercent(String(intRes.data.platform_fee_percent ?? 0));
+      setPaymentFeePercent(String(intRes.data.payment_fee_percent ?? 0));
+      setRoundTo(String(intRes.data.round_to ?? 0));
     }
     setProducts(prodRes.data || []);
     setLogs(logRes.data || []);
@@ -171,6 +198,9 @@ export default function TiendanubeExportPage() {
       sync_stock: syncStock,
       sync_images: syncImages,
       publish_status: publishStatus,
+      platform_fee_percent: Number(platformFeePercent) || 0,
+      payment_fee_percent: Number(paymentFeePercent) || 0,
+      round_to: Number(roundTo) || 0,
     };
     const { error } = integration
       ? await supabase.from("tiendanube_integrations").update(payload).eq("org_id", orgId)
@@ -216,11 +246,14 @@ export default function TiendanubeExportPage() {
     const rows: string[][] = [TN_HEADERS];
     const list = selected.size > 0 ? products.filter(p => selected.has(p.id)) : products;
     const markup = Number(markupPercent) || 0;
+    const pf = Number(platformFeePercent) || 0;
+    const pay = Number(paymentFeePercent) || 0;
+    const rt = Number(roundTo) || 0;
     for (const p of list) {
       const basePrice = priceMode === "discount_price_ars" && p.discount_price_ars ? p.discount_price_ars : p.sale_price_ars;
-      const finalPrice = Math.round(Number(basePrice) * (1 + markup / 100));
+      const finalPrice = applyAllFees(Number(basePrice), markup, pf, pay, rt);
       const promo = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
-        ? Math.round(Number(p.discount_price_ars) * (1 + markup / 100))
+        ? applyAllFees(Number(p.discount_price_ars), markup, pf, pay, rt)
         : "";
       const images = collectImages(p);
       const desc = [
@@ -343,6 +376,31 @@ export default function TiendanubeExportPage() {
                       <SelectItem value="draft">Borrador (oculto)</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Comisión Tiendanube (%)</Label>
+                  <Input type="number" step="0.1" value={platformFeePercent} onChange={e => setPlatformFeePercent(e.target.value)} placeholder="9" />
+                  <p className="text-xs text-muted-foreground mt-1">Plan Inicial 9% · Avanzado 4.5% · Evolución 2%</p>
+                </div>
+                <div>
+                  <Label>Comisión pasarela de pago (%)</Label>
+                  <Input type="number" step="0.1" value={paymentFeePercent} onChange={e => setPaymentFeePercent(e.target.value)} placeholder="6" />
+                  <p className="text-xs text-muted-foreground mt-1">Mercado Pago acreditación inmediata ~6.29%</p>
+                </div>
+                <div>
+                  <Label>Redondear precio a múltiplo de</Label>
+                  <Select value={roundTo} onValueChange={setRoundTo}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sin redondeo</SelectItem>
+                      <SelectItem value="10">$10</SelectItem>
+                      <SelectItem value="50">$50</SelectItem>
+                      <SelectItem value="100">$100</SelectItem>
+                      <SelectItem value="500">$500</SelectItem>
+                      <SelectItem value="1000">$1.000</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Redondea hacia arriba para precios "lindos"</p>
                 </div>
                 <div className="flex flex-col gap-3 justify-end">
                   <div className="flex items-center justify-between">
