@@ -1217,6 +1217,7 @@ export type Database = {
           gender: string
           id: string
           image_url: string | null
+          image_urls: string[] | null
           name: string
           offer_expires_at: string | null
           org_id: string
@@ -1243,6 +1244,7 @@ export type Database = {
           gender?: string
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           name: string
           offer_expires_at?: string | null
           org_id: string
@@ -1269,6 +1271,7 @@ export type Database = {
           gender?: string
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           name?: string
           offer_expires_at?: string | null
           org_id?: string
