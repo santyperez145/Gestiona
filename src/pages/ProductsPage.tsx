@@ -351,8 +351,13 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
+  // Multi-imagen: mezclar imagenes ya guardadas (urls) y archivos nuevos (File)
+  const initialImages: string[] = (product?.image_urls && product.image_urls.length > 0)
+    ? product.image_urls
+    : (product?.image_url ? [product.image_url] : []);
+  const [imageItems, setImageItems] = useState<Array<{ url: string; file?: File }>>(
+    initialImages.map((u: string) => ({ url: u }))
+  );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Variants state
@@ -392,44 +397,76 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
 
   const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
 
+  const addFiles = (files: File[]) => {
+    const valid: Array<{ url: string; file: File }> = [];
+    for (const f of files) {
+      if (f.size > 10 * 1024 * 1024) { toast.error(`"${f.name}" supera 10MB`); continue; }
+      if (!f.type.startsWith('image/')) continue;
+      valid.push({ url: URL.createObjectURL(f), file: f });
+    }
+    if (valid.length === 0) return;
+    setImageItems(prev => [...prev, ...valid].slice(0, 8));
+  };
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
+    addFiles(files);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  const removeImageAt = (idx: number) => {
+    setImageItems(prev => prev.filter((_, i) => i !== idx));
+  };
+  const moveImage = (from: number, to: number) => {
+    setImageItems(prev => {
+      if (to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      const [it] = next.splice(from, 1);
+      next.splice(to, 0, it);
+      return next;
+    });
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
+    const files: File[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
-        setImageFile(file);
-        setImagePreview(URL.createObjectURL(file));
-        toast.success('Imagen pegada correctamente');
-        return;
+        const f = item.getAsFile();
+        if (f) files.push(f);
       }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      addFiles(files);
+      toast.success(`${files.length} imagen(es) pegada(s)`);
     }
   };
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return imagePreview;
+  const uploadAllImages = async (): Promise<string[]> => {
+    if (imageItems.length === 0) return [];
+    const toUpload = imageItems.filter(it => it.file);
+    if (toUpload.length === 0) return imageItems.map(it => it.url);
     setUploading(true);
     try {
-      const ext = imageFile.name.split('.').pop();
-      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(path, imageFile);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      return urlData.publicUrl;
+      const uploaded: Record<number, string> = {};
+      await Promise.all(imageItems.map(async (it, idx) => {
+        if (!it.file) { uploaded[idx] = it.url; return; }
+        const ext = (it.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from('product-images').upload(path, it.file, {
+          cacheControl: '31536000',
+          contentType: it.file.type || `image/${ext}`,
+          upsert: false,
+        });
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+        uploaded[idx] = urlData.publicUrl;
+      }));
+      return imageItems.map((_, i) => uploaded[i]);
     } catch (err: any) {
       toast.error('Error subiendo imagen: ' + err.message);
-      return product?.image_url || null;
+      return imageItems.map(it => it.url);
     } finally {
       setUploading(false);
     }
@@ -440,7 +477,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     
-    const imageUrl = await uploadImage();
+    const urls = await uploadAllImages();
+    const imageUrl = urls[0] || null;
     // If vaper with variants, stock = sum of variant stocks
     const variantTotal = isVaper && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
     const data = {
@@ -450,6 +488,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
       stock: variantTotal,
       image_url: imageUrl,
+      image_urls: urls,
       featured,
       offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
       content_ml: parseInt(contentMl) || 100,
