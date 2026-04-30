@@ -694,7 +694,10 @@ function ProductCard({
             src={p.image_url}
             alt={p.name}
             loading="lazy"
+            decoding="async"
+            fetchPriority={featured ? "high" : "auto" as any}
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+            style={{ imageRendering: "auto" }}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2">

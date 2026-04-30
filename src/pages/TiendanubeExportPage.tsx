@@ -14,19 +14,88 @@ import { toast } from "sonner";
 import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 
+// Tiendanube usa ; como separador y comillas dobles para escapar
 function csvEscape(v: any) {
   if (v === null || v === undefined) return "";
   const s = String(v).replace(/"/g, '""');
-  return /[",\n;]/.test(s) ? `"${s}"` : s;
+  return /[";\n\r]/.test(s) ? `"${s}"` : s;
 }
 
 function downloadCSV(filename: string, rows: string[][]) {
-  const csv = "\uFEFF" + rows.map(r => r.map(csvEscape).join(",")).join("\n");
+  const csv = "\uFEFF" + rows.map(r => r.map(csvEscape).join(";")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Plantilla OFICIAL de Tiendanube (orden y nombres exactos)
+const TN_HEADERS = [
+  "Identificador de URL",
+  "Nombre",
+  "Categorías",
+  "Nombre de propiedad 1",
+  "Valor de propiedad 1",
+  "Nombre de propiedad 2",
+  "Valor de propiedad 2",
+  "Nombre de propiedad 3",
+  "Valor de propiedad 3",
+  "Precio",
+  "Precio promocional",
+  "Peso (kg)",
+  "Alto (cm)",
+  "Ancho (cm)",
+  "Profundidad (cm)",
+  "Stock",
+  "SKU",
+  "Código de barras",
+  "Mostrar en tienda",
+  "Envío sin cargo",
+  "Descripción",
+  "Tags",
+  "Título para SEO",
+  "Descripción para SEO",
+  "Marca",
+  "Producto Físico",
+  "MPN (Número de pieza del fabricante)",
+  "Sexo",
+  "Rango de edad",
+  "Costo",
+  "Imágenes",
+];
+
+function slugify(s: string) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function categoryLabel(cat: string) {
+  const map: Record<string, string> = {
+    perfume_arabe: "Perfumes Árabes",
+    "perfume_diseñador": "Perfumes de Diseñador",
+    perfume_disenador: "Perfumes de Diseñador",
+    vaper: "Vapers",
+    electronico: "Electrónica",
+  };
+  return map[cat] || cat || "Productos";
+}
+
+function genderLabel(g: string) {
+  if (g === "masculino") return "Hombre";
+  if (g === "femenino") return "Mujer";
+  return "Sin género";
+}
+
+function collectImages(p: any): string[] {
+  const arr: string[] = Array.isArray(p.image_urls) ? p.image_urls.filter(Boolean) : [];
+  if (arr.length === 0 && p.image_url) arr.push(p.image_url);
+  // dedup preservando orden
+  return Array.from(new Set(arr));
 }
 
 const PRICE_MODES = [
@@ -61,7 +130,7 @@ export default function TiendanubeExportPage() {
     setLoading(true);
     const [intRes, prodRes, logRes] = await Promise.all([
       supabase.from("tiendanube_integrations").select("*").eq("org_id", orgId).maybeSingle(),
-      supabase.from("products").select("id,name,brand,category,sale_price_ars,discount_price_ars,stock,image_url,tiendanube_product_id").eq("org_id", orgId).order("name"),
+      supabase.from("products").select("id,name,brand,category,gender,content_ml,description,sale_price_ars,discount_price_ars,stock,image_url,image_urls,tiendanube_product_id").eq("org_id", orgId).order("name"),
       supabase.from("tiendanube_sync_log").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(50),
     ]);
     if (intRes.data) {
@@ -141,32 +210,53 @@ export default function TiendanubeExportPage() {
   };
 
   const handleExportCSV = () => {
-    const rows: string[][] = [
-      ["Identificador de URL", "Nombre", "Categorías", "Marca", "Precio", "Precio promocional", "Peso (kg)", "Stock", "SKU", "Mostrar en tienda", "Imágenes (separadas por coma)", "Descripción"],
-    ];
+    const rows: string[][] = [TN_HEADERS];
     const list = selected.size > 0 ? products.filter(p => selected.has(p.id)) : products;
+    const markup = Number(markupPercent) || 0;
     for (const p of list) {
-      const price = priceMode === "discount_price_ars" && p.discount_price_ars ? p.discount_price_ars : p.sale_price_ars;
-      const finalPrice = Math.round(Number(price) * (1 + (Number(markupPercent) || 0) / 100));
-      const promo = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars
-        ? Math.round(Number(p.discount_price_ars) * (1 + (Number(markupPercent) || 0) / 100)) : "";
+      const basePrice = priceMode === "discount_price_ars" && p.discount_price_ars ? p.discount_price_ars : p.sale_price_ars;
+      const finalPrice = Math.round(Number(basePrice) * (1 + markup / 100));
+      const promo = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+        ? Math.round(Number(p.discount_price_ars) * (1 + markup / 100))
+        : "";
+      const images = collectImages(p);
+      const desc = [
+        p.description || "",
+        p.content_ml ? `<p><strong>Contenido:</strong> ${p.content_ml} ml</p>` : "",
+      ].filter(Boolean).join("\n");
+      const seoDesc = (p.description || `${p.name} - ${p.brand}`).replace(/<[^>]+>/g, "").slice(0, 160);
+
       rows.push([
-        (p.name || "").toLowerCase().replace(/[^a-z0-9]+/gi, "-").slice(0, 60),
-        (p.name || "").toUpperCase(),
-        p.category || "",
-        (p.brand || "").toUpperCase(),
-        String(finalPrice),
-        String(promo),
-        "0.300",
-        String(p.stock || 0),
-        p.id.slice(0, 12),
-        publishStatus === "draft" ? "No" : "Sí",
-        p.image_url || "",
-        "",
+        slugify(p.name || ""),                         // Identificador de URL
+        (p.name || "").toUpperCase(),                  // Nombre
+        categoryLabel(p.category),                     // Categorías
+        "", "", "", "", "", "",                        // Propiedades 1/2/3 (sin variantes en export)
+        String(finalPrice),                            // Precio
+        promo === "" ? "" : String(promo),             // Precio promocional
+        "0.300",                                       // Peso (kg)
+        "15",                                          // Alto (cm)
+        "8",                                           // Ancho (cm)
+        "8",                                           // Profundidad (cm)
+        String(p.stock ?? 0),                          // Stock
+        (p.id || "").slice(0, 12).toUpperCase(),       // SKU
+        "",                                            // Código de barras
+        publishStatus === "draft" ? "No" : "Sí",       // Mostrar en tienda
+        "No",                                          // Envío sin cargo
+        desc,                                          // Descripción
+        [p.brand, p.category, p.gender].filter(Boolean).join(","), // Tags
+        `${(p.name || "").toUpperCase()} ${p.brand || ""}`.trim(), // Título para SEO
+        seoDesc,                                       // Descripción para SEO
+        (p.brand || "").toUpperCase(),                 // Marca
+        "Sí",                                          // Producto Físico
+        "",                                            // MPN
+        genderLabel(p.gender),                         // Sexo
+        "",                                            // Rango de edad
+        "",                                            // Costo (lo dejamos vacío para no exponer)
+        images.join(","),                              // Imágenes (separadas por coma)
       ]);
     }
     downloadCSV(`tiendanube-productos-${new Date().toISOString().slice(0, 10)}.csv`, rows);
-    toast.success(`CSV generado con ${list.length} productos`);
+    toast.success(`CSV generado con ${list.length} productos (plantilla oficial Tiendanube)`);
   };
 
   const toggleAll = () => {
