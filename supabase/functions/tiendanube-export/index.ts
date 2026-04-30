@@ -74,8 +74,18 @@ function buildProductPayload(p: any, integration: any) {
     seo_description: { es: (p.description || `${p.name} - ${p.brand}`).slice(0, 160) },
   };
 
-  if (integration.sync_images && p.image_url) {
-    payload.images = [{ src: p.image_url }];
+  if (integration.sync_images) {
+    const imgs: string[] = [];
+    if (Array.isArray(p.image_urls)) {
+      for (const u of p.image_urls) if (u && typeof u === "string") imgs.push(u);
+    }
+    if (imgs.length === 0 && p.image_url) imgs.push(p.image_url);
+    // dedup conservando orden
+    const seen = new Set<string>();
+    const unique = imgs.filter(u => (seen.has(u) ? false : (seen.add(u), true)));
+    if (unique.length > 0) {
+      payload.images = unique.map((src, i) => ({ src, position: i + 1 }));
+    }
   }
   return payload;
 }
