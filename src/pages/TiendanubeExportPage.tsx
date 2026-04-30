@@ -377,6 +377,31 @@ export default function TiendanubeExportPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label>Comisión Tiendanube (%)</Label>
+                  <Input type="number" step="0.1" value={platformFeePercent} onChange={e => setPlatformFeePercent(e.target.value)} placeholder="9" />
+                  <p className="text-xs text-muted-foreground mt-1">Plan Inicial 9% · Avanzado 4.5% · Evolución 2%</p>
+                </div>
+                <div>
+                  <Label>Comisión pasarela de pago (%)</Label>
+                  <Input type="number" step="0.1" value={paymentFeePercent} onChange={e => setPaymentFeePercent(e.target.value)} placeholder="6" />
+                  <p className="text-xs text-muted-foreground mt-1">Mercado Pago acreditación inmediata ~6.29%</p>
+                </div>
+                <div>
+                  <Label>Redondear precio a múltiplo de</Label>
+                  <Select value={roundTo} onValueChange={setRoundTo}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sin redondeo</SelectItem>
+                      <SelectItem value="10">$10</SelectItem>
+                      <SelectItem value="50">$50</SelectItem>
+                      <SelectItem value="100">$100</SelectItem>
+                      <SelectItem value="500">$500</SelectItem>
+                      <SelectItem value="1000">$1.000</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Redondea hacia arriba para precios "lindos"</p>
+                </div>
                 <div className="flex flex-col gap-3 justify-end">
                   <div className="flex items-center justify-between">
                     <Label>Sincronizar stock</Label>
