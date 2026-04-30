@@ -36,6 +36,8 @@ import InvitationAcceptPage from "@/pages/InvitationAcceptPage";
 import PlatformAdminPage from "@/pages/PlatformAdminPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import InvoicesPage from "@/pages/InvoicesPage";
+import POSPage from "@/pages/POSPage";
+import CashSessionPage from "@/pages/CashSessionPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
@@ -121,6 +123,8 @@ function ProtectedRoutes() {
             <Route path="/ia" element={<AIInsightsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/facturas" element={<InvoicesPage />} />
+            <Route path="/caja" element={<POSPage />} />
+            <Route path="/caja/turno" element={<CashSessionPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />

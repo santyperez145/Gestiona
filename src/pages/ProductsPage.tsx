@@ -364,6 +364,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [featured, setFeatured] = useState(product?.featured || false);
   const [offerExpiresAt, setOfferExpiresAt] = useState(product?.offer_expires_at ? new Date(product.offer_expires_at).toISOString().slice(0, 16) : '');
   const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '100');
+  const [barcode, setBarcode] = useState(product?.barcode || '');
+  const [sku, setSku] = useState(product?.sku || '');
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
@@ -373,18 +375,29 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Variants state
   const [variants, setVariants] = useState<any[]>([]);
+  const [variantType, setVariantType] = useState(product?.variant_type || 'sabor');
   const [newVariantName, setNewVariantName] = useState('');
   const [newVariantStock, setNewVariantStock] = useState('0');
   const [bulkVariants, setBulkVariants] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showVariants, setShowVariants] = useState(false);
 
   const isVaper = category === 'vaper';
+  const VARIANT_TYPE_LABELS: Record<string, string> = {
+    sabor: 'Sabores', talle: 'Talles', color: 'Colores',
+    medida: 'Medidas', otro: 'Variantes',
+  };
+  const variantLabel = VARIANT_TYPE_LABELS[variantType] || 'Variantes';
 
   useEffect(() => {
-    if (product?.id && isVaper) {
-      getVariantsDB(product.id).then(v => setVariants(v));
+    if (product?.id) {
+      getVariantsDB(product.id).then(v => {
+        setVariants(v);
+        if (v.length > 0) setShowVariants(true);
+        if (v[0]?.variant_type) setVariantType(v[0].variant_type);
+      });
     }
-  }, [product?.id, isVaper]);
+  }, [product?.id]);
 
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
@@ -457,8 +470,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     
     const imageUrl = await uploadImage();
-    // If vaper with variants, stock = sum of variant stocks
-    const variantTotal = isVaper && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
+    // If using variants, stock = sum of variant stocks
+    const variantTotal = showVariants && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
     const data = {
       name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
       cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
@@ -469,6 +482,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       featured,
       offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
       content_ml: parseInt(contentMl) || 100,
+      barcode: barcode.trim() || null,
+      sku: sku.trim() || null,
     };
     let productId = product?.id;
     if (product) {
@@ -479,8 +494,8 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
       await addProductDB({ ...data, user_id: userId, id: productId });
       await logAudit(userId, 'create', 'product', productId, { name: data.name });
     }
-    // Save variants for vapers
-    if (isVaper && productId) {
+    // Save variants for all categories
+    if (showVariants && productId) {
       const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
       const existingIds = new Set(existingVariants.map((v: any) => v.id));
       const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
@@ -493,7 +508,7 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
         if (v.id && existingIds.has(v.id)) {
           await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
         } else if (v._new || !v.id) {
-          await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true });
+          await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
         }
       }
     }
@@ -585,11 +600,49 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           <Input type="number" min="1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border" />
         </div>
       </div>
-      {/* Variant/Flavor Management for Vapers */}
-      {isVaper && (
+      {/* Barcode & SKU */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm text-muted-foreground">Código de barras</label>
+          <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="EAN-13, UPC..." className="bg-muted border-border font-mono text-sm" />
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">SKU interno</label>
+          <Input value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: LAT-KHA-100" className="bg-muted border-border font-mono text-sm" />
+        </div>
+      </div>
+      {/* Variants — available for all categories */}
+      <div className="border border-border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowVariants(!showVariants)}
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/40 hover:bg-muted/70 transition-colors text-sm font-medium"
+        >
+          <span className="flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-success" />
+            {variantLabel}
+            {variants.length > 0 && <span className="text-xs text-success font-bold">({variants.length})</span>}
+          </span>
+          <span className="text-xs text-muted-foreground">{showVariants ? '▲' : '▼'}</span>
+        </button>
+      </div>
+      {showVariants && (
         <div className="bg-muted/50 rounded-lg p-3 border border-border space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-success" />Sabores / Variantes</label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-success" />{variantLabel}</label>
+              <select
+                value={variantType}
+                onChange={e => setVariantType(e.target.value)}
+                className="text-[10px] bg-muted border border-border rounded px-1.5 py-0.5 text-muted-foreground"
+              >
+                <option value="sabor">Sabor</option>
+                <option value="talle">Talle</option>
+                <option value="color">Color</option>
+                <option value="medida">Medida</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
             <button type="button" onClick={() => setShowBulkImport(!showBulkImport)} className="text-[10px] text-primary hover:underline">
               {showBulkImport ? 'Cerrar' : 'Importar lista'}
             </button>
