@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/lib/useUserRole";
+import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ const allNavItems = [
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
+  { to: "/perfil", label: "Mi Perfil", icon: UserCircle, roles: ['admin', 'vendedor'], section: 'config' },
   { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'config' },
 ];
 
@@ -53,6 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const { role } = useUserRole();
+  const { isPlatformAdmin } = useOrg();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -180,6 +183,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className={`${collapsed ? 'px-2 py-3' : 'px-4 py-4'} border-t border-sidebar-border space-y-2`}>
           <OrgSwitcher collapsed={collapsed} />
           <NotificationBell collapsed={collapsed} />
+          {isPlatformAdmin && (
+            <Link
+              to="/platform/admin"
+              title={collapsed ? 'Platform Admin' : undefined}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors w-full ${
+                collapsed ? 'justify-center' : ''
+              } ${
+                pathname === '/platform/admin'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-primary'
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5 shrink-0" />
+              {!collapsed && <span>Platform Admin</span>}
+            </Link>
+          )}
           {!collapsed && (
             <div className="px-1 pt-1">
               <p className="text-[11px] text-muted-foreground/70 truncate">{user?.email}</p>

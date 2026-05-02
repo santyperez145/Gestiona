@@ -42,6 +42,7 @@ import IntegrationsPage from "@/pages/IntegrationsPage";
 import ProveedoresPage from "@/pages/ProveedoresPage";
 import PresupuestosPage from "@/pages/PresupuestosPage";
 import DevolucionesPage from "@/pages/DevolucionesPage";
+import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
@@ -147,6 +148,7 @@ function ProtectedRoutes() {
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/equipo" element={<TeamPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
           </>
         )}
 
