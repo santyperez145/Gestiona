@@ -383,7 +383,8 @@ export async function syncProductStockFromVariants(productId: string) {
 }
 
 export async function addSaleWithVariantDB(sale: any, variantId?: string) {
-  const { error } = await supabase.from('sales').insert(sale);
+  const orgId = sale.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
   if (error) throw error;
   if (variantId) {
     // Deduct variant stock
