@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
-import { getProductsDB, getSettingsDB, addSaleDB, formatARS } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
+  Ticket, Tag,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -282,6 +283,9 @@ export default function POSPage() {
   const [receipt, setReceipt] = useState<{ items: CartItem[]; total: number; cash: number } | null>(null);
   const [showCart, setShowCart] = useState(false); // mobile toggle
   const [loadingProds, setLoadingProds] = useState(true);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponResult, setCouponResult] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   // Barcode scanner
   const handleBarcode = useCallback((code: string) => {
@@ -328,8 +332,29 @@ export default function POSPage() {
   const priceFor = (item: CartItem) =>
     usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
 
-  const cartTotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
+  const cartSubtotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
+  const couponDiscount = couponResult?.valid
+    ? couponResult.coupon.discount_type === "percentage"
+      ? cartSubtotal * (couponResult.coupon.discount_value / 100)
+      : Math.min(couponResult.coupon.discount_value, cartSubtotal)
+    : 0;
+  const cartTotal = Math.max(0, cartSubtotal - couponDiscount);
   const cartQty = cart.reduce((s, it) => s + it.quantity, 0);
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim() || !user) return;
+    setValidatingCoupon(true);
+    try {
+      const result = await validateCouponDB(user.id, couponCode);
+      setCouponResult(result);
+      if (result.valid) toast.success(`Cupón aplicado: ${result.coupon.code}`);
+      else toast.error(result.reason || "Cupón inválido");
+    } catch {
+      toast.error("Error al validar cupón");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
 
   const addToCart = useCallback((prod: any) => {
     setCart((prev) => {
@@ -370,11 +395,12 @@ export default function POSPage() {
 
   const removeItem = (productId: string) => setCart((prev) => prev.filter((it) => it.productId !== productId));
 
-  const clearCart = () => { setCart([]); setCustomer(""); setCashGiven(""); setPayMethod("efectivo"); };
+  const clearCart = () => { setCart([]); setCustomer(""); setCashGiven(""); setPayMethod("efectivo"); setCouponCode(""); setCouponResult(null); };
 
   // ── Confirm sale ──
   const confirmSale = async () => {
-    if (!user || !cart.length) return;
+    if (!user || !activeOrg || !cart.length) return;
+    const orgId = activeOrg.id;
     setSubmitting(true);
     try {
       const paid = payMethod !== "fiado";
@@ -390,6 +416,7 @@ export default function POSPage() {
         const saleData: any = {
           id: crypto.randomUUID(),
           user_id: user.id,
+          org_id: orgId,
           product_id: item.productId,
           product_name: item.name,
           quantity: item.quantity,
@@ -403,6 +430,7 @@ export default function POSPage() {
           date,
           paid,
           payment_method: payMethod,
+          coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
         };
 
         await addSaleDB(saleData);
@@ -411,9 +439,10 @@ export default function POSPage() {
         });
       }
 
+      if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
+
       // Refresh stock
-      const [prods] = await Promise.all([getProductsDB(user.id)]);
-      setProducts(prods);
+      setProducts(await getProductsDB(user.id));
 
       setReceipt({ items: [...cart], total: cartTotal, cash: Number(cashGiven) || 0 });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
@@ -546,10 +575,60 @@ export default function POSPage() {
           </div>
         )}
 
+        {/* Coupon */}
+        <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <div className="relative flex-1">
+              <Ticket className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Código de cupón"
+                value={couponCode}
+                onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); if (couponResult) setCouponResult(null); }}
+                className="h-8 text-sm bg-muted pl-8 uppercase"
+                onKeyDown={(e) => e.key === "Enter" && handleValidateCoupon()}
+              />
+            </div>
+            <Button
+              variant="outline" size="sm" className="h-8 px-3 text-xs shrink-0"
+              onClick={handleValidateCoupon}
+              disabled={!couponCode.trim() || validatingCoupon}
+            >
+              {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Aplicar"}
+            </Button>
+          </div>
+          {couponResult?.valid && (
+            <div className="flex items-center justify-between text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg border border-success/20">
+              <span className="flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5" />
+                {couponResult.coupon.code} — {couponResult.coupon.discount_type === "percentage"
+                  ? `${couponResult.coupon.discount_value}% off`
+                  : `${formatARS(couponResult.coupon.discount_value)} off`}
+              </span>
+              <button onClick={() => { setCouponResult(null); setCouponCode(""); }}>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Total + confirm */}
-        <div className="bg-primary/10 rounded-xl px-4 py-3 flex items-center justify-between border border-primary/20">
-          <span className="text-xs text-muted-foreground uppercase tracking-wide">Total</span>
-          <span className="text-xl font-display font-bold text-primary">{formatARS(cartTotal)}</span>
+        <div className="bg-primary/10 rounded-xl px-4 py-3 border border-primary/20 space-y-1">
+          {couponDiscount > 0 && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="font-mono">{formatARS(cartSubtotal)}</span>
+            </div>
+          )}
+          {couponDiscount > 0 && (
+            <div className="flex items-center justify-between text-xs text-success">
+              <span>Descuento cupón</span>
+              <span className="font-mono">-{formatARS(couponDiscount)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Total</span>
+            <span className="text-xl font-display font-bold text-primary">{formatARS(cartTotal)}</span>
+          </div>
         </div>
 
         <Button

@@ -46,7 +46,16 @@ import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 1000 * 60 * 2, // 2 min before considering data stale
+      retry: 1,
+    },
+  },
+});
 
 function ViewerGate() {
   return (

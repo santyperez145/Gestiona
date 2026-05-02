@@ -53,13 +53,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "No se pudo obtener cotización" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Persist to settings scoped to the user's org (multi-tenant safe)
-    await supabase.from("settings").update({
+    // Upsert settings scoped to the user's org (creates row if it doesn't exist yet)
+    await supabase.from("settings").upsert({
+      org_id: orgId,
       usd_rate_oficial: rates.oficial,
       usd_rate_blue: rates.blue,
       usd_rate_mep: rates.mep,
       usd_rate_updated_at: rates.updatedAt,
-    }).eq("org_id", orgId);
+    }, { onConflict: "org_id" });
 
     return new Response(JSON.stringify(rates), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

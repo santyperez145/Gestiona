@@ -17,7 +17,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
+      injectRegister: "auto",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "Gestiona — Sistema de Gestión",
@@ -39,7 +40,12 @@ export default defineConfig(({ mode }) => ({
           },
         ],
       },
+      devOptions: {
+        enabled: false,
+      },
       workbox: {
+        skipWaiting: false,
+        clientsClaim: false,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
