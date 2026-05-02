@@ -5,10 +5,13 @@ import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImpo
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
+  Eye, EyeOff, Save, Webhook,
 } from "lucide-react";
 
 const TIENDANUBE_APP_ID = import.meta.env.VITE_TIENDANUBE_APP_ID || "";
@@ -38,6 +41,14 @@ export default function IntegrationsPage() {
   const [syncing, setSyncing] = useState<"products" | "orders" | "all" | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [registeringWebhooks, setRegisteringWebhooks] = useState(false);
+
+  // Mercado Pago settings
+  const [mpToken, setMpToken] = useState("");
+  const [mpEnabled, setMpEnabled] = useState(false);
+  const [mpTokenVisible, setMpTokenVisible] = useState(false);
+  const [savingMp, setSavingMp] = useState(false);
+  const [mpLoaded, setMpLoaded] = useState(false);
 
   const loadConnection = async () => {
     if (!activeOrg) return;
@@ -49,6 +60,54 @@ export default function IntegrationsPage() {
       .maybeSingle();
     setConn(data as TiendanubeConnection | null);
     setLoadingConn(false);
+  };
+
+  const loadMpSettings = async () => {
+    if (!activeOrg) return;
+    const { data } = await supabase
+      .from("settings")
+      .select("mp_access_token, mp_enabled")
+      .eq("org_id", activeOrg.id)
+      .maybeSingle();
+    if (data) {
+      setMpToken(data.mp_access_token || "");
+      setMpEnabled(!!data.mp_enabled);
+    }
+    setMpLoaded(true);
+  };
+
+  const handleSaveMp = async () => {
+    if (!activeOrg) return;
+    setSavingMp(true);
+    const { error } = await supabase
+      .from("settings")
+      .upsert({ org_id: activeOrg.id, mp_access_token: mpToken, mp_enabled: mpEnabled }, { onConflict: "org_id" });
+    setSavingMp(false);
+    if (error) {
+      toast.error("Error al guardar: " + error.message);
+    } else {
+      toast.success("Configuración de Mercado Pago guardada");
+    }
+  };
+
+  const handleRegisterWebhooks = async () => {
+    if (!activeOrg) return;
+    setRegisteringWebhooks(true);
+    const { data, error } = await supabase.functions.invoke("tiendanube-register-webhooks", {
+      body: { orgId: activeOrg.id },
+    });
+    setRegisteringWebhooks(false);
+    if (error || data?.error) {
+      toast.error("Error al registrar webhooks: " + (data?.error || error?.message));
+    } else {
+      const { registered = [], skipped = [], errors = [] } = data;
+      if (errors.length > 0) {
+        toast.error(`Errores: ${errors.join(", ")}`);
+      } else {
+        toast.success(`Webhooks: ${registered.length} registrados, ${skipped.length} ya existían`);
+        loadConnection();
+      }
+    }
   };
 
   // Handle OAuth callback: code param is present after Tiendanube redirects back
@@ -74,6 +133,7 @@ export default function IntegrationsPage() {
 
   useEffect(() => {
     loadConnection();
+    loadMpSettings();
   }, [activeOrg]);
 
   const handleConnect = () => {
@@ -265,6 +325,41 @@ export default function IntegrationsPage() {
               {syncing === "all" ? "Sincronizando todo…" : "Sincronizar todo ahora"}
             </Button>
 
+            {/* Webhook registration */}
+            <div className="border border-border rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium flex items-center gap-1.5">
+                    <Webhook className="w-3.5 h-3.5 text-primary" />
+                    Webhooks en tiempo real
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Recibí nuevos pedidos y cambios de productos automáticamente.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs shrink-0"
+                  onClick={handleRegisterWebhooks}
+                  disabled={registeringWebhooks}
+                >
+                  {registeringWebhooks ? (
+                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                  ) : (
+                    <Zap className="w-3 h-3 mr-1" />
+                  )}
+                  {(conn as any)?.webhook_id ? "Re-registrar" : "Activar"}
+                </Button>
+              </div>
+              {(conn as any)?.webhook_id && (
+                <div className="flex items-center gap-1.5 text-[10px] text-success">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Webhooks activos
+                </div>
+              )}
+            </div>
+
             {/* Excel import */}
             <TiendanubeExcelImport />
           </div>
@@ -279,9 +374,9 @@ export default function IntegrationsPage() {
         )}
       </div>
 
-      {/* Mercado Pago — coming soon */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-card opacity-60">
-        <div className="px-5 py-4 flex items-center justify-between gap-3">
+      {/* Mercado Pago */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-card">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
               <span className="text-blue-400 font-bold text-lg">$</span>
@@ -289,18 +384,72 @@ export default function IntegrationsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold">Mercado Pago</h2>
-                <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Próximamente</Badge>
+                {mpEnabled && mpToken ? (
+                  <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Activo</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Generá links de pago y reconciliá cobros automáticamente
+                Generá links de pago desde el POS y recibí cobros
               </p>
             </div>
           </div>
-          <Button size="sm" disabled className="h-8 text-xs">
-            <Link2 className="w-3.5 h-3.5 mr-1.5" />
-            Conectar
-          </Button>
         </div>
+
+        {mpLoaded && (
+          <div className="px-5 py-4 space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1.5">
+                Access Token de producción
+              </label>
+              <div className="relative">
+                <Input
+                  type={mpTokenVisible ? "text" : "password"}
+                  value={mpToken}
+                  onChange={e => setMpToken(e.target.value)}
+                  placeholder="APP_USR-..."
+                  className="bg-muted border-border pr-10 font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setMpTokenVisible(v => !v)}
+                >
+                  {mpTokenVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Encontralo en{" "}
+                <a
+                  href="https://www.mercadopago.com.ar/developers/panel/app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Mercado Pago → Developers → Credenciales
+                </a>
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Habilitar Mercado Pago</p>
+                <p className="text-[11px] text-muted-foreground">Activa el botón de link de pago en el POS</p>
+              </div>
+              <Switch checked={mpEnabled} onCheckedChange={setMpEnabled} />
+            </div>
+
+            <Button
+              className="w-full h-9 text-sm gradient-gold text-primary-foreground shadow-gold"
+              onClick={handleSaveMp}
+              disabled={savingMp}
+            >
+              {savingMp ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar configuración
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

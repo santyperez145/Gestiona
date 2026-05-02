@@ -4,6 +4,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { getProductsDB, getSettingsDB, addSaleDB, formatARS } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, Zap, Printer,
-  QrCode, ChevronUp, Package, MessageCircle, RotateCcw,
+  QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -113,21 +114,50 @@ function buildReceiptText(
 // Receipt Modal
 // ─────────────────────────────────────────────────────────────
 function ReceiptModal({
-  items, payMethod, customer, total, cashGiven, businessName,
+  items, payMethod, customer, total, cashGiven, businessName, orgId,
   onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod; customer: string;
-  total: number; cashGiven: number; businessName: string;
+  total: number; cashGiven: number; businessName: string; orgId: string;
   onClose: () => void; onNewSale: () => void;
 }) {
   const change = payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
   const receiptText = buildReceiptText(items, payMethod, customer, total, cashGiven, businessName);
+  const [mpLink, setMpLink] = useState("");
+  const [mpLoading, setMpLoading] = useState(false);
 
   const shareWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(receiptText)}`, "_blank");
   };
 
   const print = () => window.print();
+
+  const generateMpLink = async () => {
+    setMpLoading(true);
+    const { data, error } = await supabase.functions.invoke("mercadopago-link", {
+      body: {
+        orgId,
+        title: `Venta ${businessName}${customer ? ` - ${customer}` : ""}`,
+        total,
+      },
+    });
+    setMpLoading(false);
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Error al generar link MP");
+      return;
+    }
+    setMpLink(data.url);
+  };
+
+  const copyMpLink = () => {
+    navigator.clipboard.writeText(mpLink);
+    toast.success("Link copiado");
+  };
+
+  const shareMpWhatsApp = () => {
+    const text = `💳 Pagá tu compra acá: ${mpLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -187,14 +217,43 @@ function ReceiptModal({
         </div>
 
         {/* Actions */}
-        <div className="px-5 pb-5 grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5">
-            <MessageCircle className="w-4 h-4 text-green-400" />WhatsApp
-          </Button>
-          <Button variant="outline" size="sm" onClick={print} className="gap-1.5">
-            <Printer className="w-4 h-4" />Imprimir
-          </Button>
-          <Button className="col-span-2 gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>
+        <div className="px-5 pb-5 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5">
+              <MessageCircle className="w-4 h-4 text-green-400" />WhatsApp
+            </Button>
+            <Button variant="outline" size="sm" onClick={print} className="gap-1.5">
+              <Printer className="w-4 h-4" />Imprimir
+            </Button>
+          </div>
+
+          {/* Mercado Pago link */}
+          {!mpLink ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/5"
+              onClick={generateMpLink}
+              disabled={mpLoading}
+            >
+              {mpLoading
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Generando link…</>
+                : <><Link2 className="w-4 h-4" />Generar link Mercado Pago</>
+              }
+            </Button>
+          ) : (
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs truncate border-blue-500/30 text-blue-400" onClick={shareMpWhatsApp}>
+                <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">MP por WhatsApp</span>
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 border-blue-500/30 text-blue-400" onClick={copyMpLink}>
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+
+          <Button className="w-full gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>
             <RotateCcw className="w-4 h-4" />Nueva venta
           </Button>
         </div>
@@ -519,6 +578,7 @@ export default function POSPage() {
           total={receipt.total}
           cashGiven={receipt.cash}
           businessName={config.businessName || "Gestiona"}
+          orgId={activeOrg?.id || ""}
           onClose={() => setReceipt(null)}
           onNewSale={() => { setReceipt(null); clearCart(); }}
         />

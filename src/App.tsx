@@ -41,6 +41,7 @@ import CashSessionPage from "@/pages/CashSessionPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import ProveedoresPage from "@/pages/ProveedoresPage";
 import PresupuestosPage from "@/pages/PresupuestosPage";
+import DevolucionesPage from "@/pages/DevolucionesPage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
@@ -132,6 +133,7 @@ function ProtectedRoutes() {
             <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/proveedores" element={<ProveedoresPage />} />
             <Route path="/presupuestos" element={<PresupuestosPage />} />
+            <Route path="/devoluciones" element={<DevolucionesPage />} />
             <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />

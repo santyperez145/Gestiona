@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
+import { supabase } from "@/integrations/supabase/client";
 import { getPurchasesDB, addPurchaseDB, deletePurchaseDB, updatePurchaseDB, getProductsDB, getSettingsDB, getSalesAggregatedDB, formatARS, formatUSD, formatDateAR, dateToNoon } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,12 +189,16 @@ export default function PurchasesPage() {
 }
 
 function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
+  const { org } = useOrg();
+  const orgId = org?.id;
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [productId, setProductId] = useState(editItem?.product_id || '');
   const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
   const [exchangeRate, setExchangeRate] = useState(editItem ? String(editItem.exchange_rate) : '');
   const [supplier, setSupplier] = useState(editItem?.supplier || '');
+  const [supplierId, setSupplierId] = useState(editItem?.supplier_id || '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [isScheduled, setIsScheduled] = useState(!!editItem?.is_scheduled);
   const [scheduledDate, setScheduledDate] = useState(editItem?.scheduled_date ? new Date(editItem.scheduled_date).toISOString().slice(0, 10) : new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
@@ -202,8 +208,12 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
       const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
       setProducts(p); setSettings(s);
       setExchangeRate(String(s?.exchange_rate || 1695));
+      if (orgId) {
+        const { data } = await supabase.from("suppliers").select("id,name").eq("org_id", orgId).order("name");
+        if (data) setSuppliers(data);
+      }
     })();
-  }, [userId]);
+  }, [userId, orgId]);
 
   const product = products.find(p => p.id === productId);
   const qty = parseInt(quantity) || 0;
@@ -220,7 +230,7 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
     const purchaseData: any = {
       product_id: productId, product_name: product!.name,
       quantity: qty, unit_cost_usd: unitCost, customs_fee: customsFee,
-      total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date: dateToNoon(date), supplier,
+      total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date: dateToNoon(date), supplier, supplier_id: supplierId || null,
       is_scheduled: isScheduled,
       scheduled_date: isScheduled ? dateToNoon(scheduledDate) : null,
     };
@@ -263,7 +273,27 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
           <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} className="bg-muted border-border mt-1" required />
         </div>
       )}
-      <div><label className="text-sm text-muted-foreground">Proveedor</label><Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Opcional" className="bg-muted border-border" /></div>
+      <div>
+        <label className="text-sm text-muted-foreground">Proveedor</label>
+        {suppliers.length > 0 ? (
+          <Select value={supplierId || '__none'} onValueChange={v => {
+            if (v === '__none') { setSupplierId(''); setSupplier(''); }
+            else {
+              setSupplierId(v);
+              const found = suppliers.find(s => s.id === v);
+              if (found) setSupplier(found.name);
+            }
+          }}>
+            <SelectTrigger className="bg-muted border-border mt-1"><SelectValue placeholder="Sin proveedor" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Sin proveedor</SelectItem>
+              {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Opcional" className="bg-muted border-border" />
+        )}
+      </div>
       {product && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
           <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span>{formatUSD(unitCost)}</span></div>
