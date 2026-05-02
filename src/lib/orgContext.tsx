@@ -59,14 +59,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (isInitial = false) => {
     if (!user) {
       setMemberships([]); setActiveOrg(null); setActiveRole(null);
       _activeOrgId = null; _activeRole = null;
       setLoading(false);
       return;
     }
-    setLoading(true);
+    // Only show the loading spinner on first load — background refreshes are silent
+    if (isInitial) setLoading(true);
     const { data, error } = await supabase
       .from('memberships')
       .select('org_id, role, organization:organizations(*)')
@@ -103,7 +104,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { if (!authLoading) refresh(); }, [authLoading, user, refresh]);
+  useEffect(() => {
+    if (!authLoading) refresh(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id]); // user?.id — avoids re-run on same-user token refreshes
 
   const switchOrg = useCallback((orgId: string) => {
     const m = memberships.find(x => x.org_id === orgId);
