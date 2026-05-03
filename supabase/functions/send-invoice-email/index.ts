@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  if (checkRateLimit(req, "send-invoice-email", { max: 30, windowMs: 60_000 })) return rateLimitResponse();
 
   try {
     const { to, subject, invoiceNumber, customerName, orgName, totalARS, dueDate, pdfBase64, notes } = await req.json();
