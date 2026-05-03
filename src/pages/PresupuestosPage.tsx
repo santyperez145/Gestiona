@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Trash2, Search, FileText, Download, Send,
-  CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp,
+  CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
 } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { formatARS } from "@/lib/supabaseStore";
@@ -160,6 +160,21 @@ export default function PresupuestosPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [orgName, setOrgName] = useState("Mi Negocio");
+  const [mpLinks, setMpLinks] = useState<Record<string, string>>({});
+  const [mpLoading, setMpLoading] = useState<string | null>(null);
+
+  const generateMpLink = async (q: Quote) => {
+    if (mpLinks[q.id]) { navigator.clipboard.writeText(mpLinks[q.id]); toast.success("Link copiado"); return; }
+    setMpLoading(q.id);
+    const { data, error } = await supabase.functions.invoke("mercadopago-link", {
+      body: { orgId: activeOrg?.id, title: `Presupuesto ${q.quote_number} — ${q.customer_name}`, total: q.total },
+    });
+    setMpLoading(null);
+    if (error || data?.error) { toast.error(data?.error || "Error al generar link MP"); return; }
+    setMpLinks(prev => ({ ...prev, [q.id]: data.url }));
+    navigator.clipboard.writeText(data.url);
+    toast.success("Link de pago MercadoPago copiado");
+  };
 
   const load = async () => {
     if (!activeOrg) return;
@@ -417,6 +432,30 @@ export default function PresupuestosPage() {
                           <XCircle className="w-3 h-3 mr-1" /> Rechazado
                         </Button>
                       </>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-blue-500/40 text-blue-400 hover:bg-blue-500/10 gap-1"
+                      onClick={() => generateMpLink(q)}
+                      disabled={mpLoading === q.id}
+                      title={mpLinks[q.id] ? "Link generado — click para copiar" : "Generar link de pago MercadoPago"}
+                    >
+                      {mpLoading === q.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Link2 className="w-3 h-3" />
+                      }
+                      {mpLinks[q.id] ? "Copiar link MP" : "Link MP"}
+                    </Button>
+                    {q.customer_phone && mpLinks[q.id] && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-green-500/40 text-green-400 hover:bg-green-500/10 gap-1"
+                        onClick={() => window.open(`https://wa.me/${q.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${q.customer_name.split(" ")[0]}! Te comparto el link para pagar tu presupuesto ${q.quote_number} (${formatARS(q.total)}): ${mpLinks[q.id]}`)}`, "_blank")}
+                      >
+                        <Send className="w-3 h-3" />WhatsApp
+                      </Button>
                     )}
                   </div>
                 </div>
