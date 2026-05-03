@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
@@ -66,6 +67,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
 
 export default function ProductsPage() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -159,7 +161,7 @@ export default function ProductsPage() {
                </DialogTrigger>
                <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
                  <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-                 <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+                 <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
                </DialogContent>
              </Dialog>
            )}
@@ -351,7 +353,7 @@ export default function ProductsPage() {
   );
 }
 
-function ProductForm({ product, settings, userId, onSave }: { product: any; settings: any; userId: string; onSave: () => void }) {
+function ProductForm({ product, settings, userId, orgId, onSave }: { product: any; settings: any; userId: string; orgId?: string; onSave: () => void }) {
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || 'perfume_arabe');
@@ -468,52 +470,57 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
-    
-    const imageUrl = await uploadImage();
-    // If using variants, stock = sum of variant stocks
-    const variantTotal = showVariants && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
-    const data = {
-      name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
-      cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
-      sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
-      profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-      stock: variantTotal,
-      image_url: imageUrl,
-      featured,
-      offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
-      content_ml: parseInt(contentMl) || 100,
-      barcode: barcode.trim() || null,
-      sku: sku.trim() || null,
-    };
-    let productId = product?.id;
-    if (product) {
-      await updateProductDB(product.id, data);
-      await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
-    } else {
-      productId = crypto.randomUUID();
-      await addProductDB({ ...data, user_id: userId, id: productId });
-      await logAudit(userId, 'create', 'product', productId, { name: data.name });
-    }
-    // Save variants for all categories
-    if (showVariants && productId) {
-      const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
-      const existingIds = new Set(existingVariants.map((v: any) => v.id));
-      const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
-      // Delete removed variants
-      for (const ev of existingVariants) {
-        if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+
+    try {
+      const imageUrl = await uploadImage();
+      // If using variants, stock = sum of variant stocks
+      const variantTotal = showVariants && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
+      const data = {
+        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
+        cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
+        sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
+        profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
+        stock: variantTotal,
+        image_url: imageUrl,
+        featured,
+        offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
+        content_ml: parseInt(contentMl) || 100,
+        barcode: barcode.trim() || null,
+        sku: sku.trim() || null,
+      };
+      let productId = product?.id;
+      if (product) {
+        await updateProductDB(product.id, data);
+        await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
+      } else {
+        productId = crypto.randomUUID();
+        await addProductDB({ ...data, user_id: userId, id: productId, org_id: orgId });
+        await logAudit(userId, 'create', 'product', productId, { name: data.name });
       }
-      // Update existing / add new variants
-      for (const v of variants) {
-        if (v.id && existingIds.has(v.id)) {
-          await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
-        } else if (v._new || !v.id) {
-          await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
+      // Save variants for all categories
+      if (showVariants && productId) {
+        const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
+        const existingIds = new Set(existingVariants.map((v: any) => v.id));
+        const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
+        // Delete removed variants
+        for (const ev of existingVariants) {
+          if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+        }
+        // Update existing / add new variants
+        for (const v of variants) {
+          if (v.id && existingIds.has(v.id)) {
+            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
+          } else if (v._new || !v.id) {
+            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
+          }
         }
       }
+      toast.success(product ? "Producto actualizado" : "Producto agregado");
+      onSave();
+    } catch (err: any) {
+      console.error('Error guardando producto:', err);
+      toast.error(err?.message || "Error al guardar el producto");
     }
-    toast.success(product ? "Producto actualizado" : "Producto agregado");
-    onSave();
   };
 
   return (
