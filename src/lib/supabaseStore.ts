@@ -565,6 +565,48 @@ export async function upsertCustomerNoteDB(userId: string, customerName: string,
   if (error) throw error;
 }
 
+// ========= CUSTOMERS (perfil completo) =========
+export async function getCustomersDB(userId: string) {
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase
+    .from('customers' as any)
+    .select('*')
+    .eq('org_id', orgId)
+    .order('name');
+  if (error) throw error;
+  return (data || []) as any[];
+}
+
+export async function createCustomerDB(userId: string, customer: {
+  name: string; email?: string; phone?: string; address?: string;
+  birthday?: string; tags?: string[]; notes?: string;
+}) {
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase
+    .from('customers' as any)
+    .insert({ ...customer, user_id: userId, org_id: orgId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateCustomerDB(id: string, updates: Partial<{
+  name: string; email: string; phone: string; address: string;
+  birthday: string; tags: string[]; notes: string;
+}>) {
+  const { error } = await supabase
+    .from('customers' as any)
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteCustomerDB(id: string) {
+  const { error } = await supabase.from('customers' as any).delete().eq('id', id);
+  if (error) throw error;
+}
+
 // Seed products for a new user
 export async function seedProductsForUser(userId: string) {
   const orgId = await orgIdFor(userId);
