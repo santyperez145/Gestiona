@@ -1,4 +1,5 @@
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,7 @@ const client = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (checkRateLimit(req, "predict-sales", { max: 10, windowMs: 60_000 })) return rateLimitResponse();
 
   try {
     const { sales } = await req.json();

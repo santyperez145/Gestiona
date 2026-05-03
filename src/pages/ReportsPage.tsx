@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -51,14 +51,17 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [period, setPeriod] = useState<PeriodKey>('current_month');
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
+      const [products, sales, purchases, debts, settings, expenses, orgMembers] = await Promise.all([
         getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
+        getOrgMembersWithProfilesDB(user.id).catch(() => []),
       ]);
       setData({ products, sales, purchases, debts, settings, expenses });
+      setMembers(orgMembers as any[]);
     })();
   }, [user]);
 
@@ -227,6 +230,9 @@ export default function ReportsPage() {
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
           <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>
+          <TabsTrigger value="sellers">Vendedores</TabsTrigger>
+          <TabsTrigger value="taxes">Impuestos</TabsTrigger>
+          <TabsTrigger value="budget">Presupuesto</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -351,6 +357,18 @@ export default function ReportsPage() {
 
         <TabsContent value="inventory">
           <InventoryTab products={products} settings={settings} />
+        </TabsContent>
+
+        <TabsContent value="sellers">
+          <SellersTab sales={data.sales} members={members} period={period} />
+        </TabsContent>
+
+        <TabsContent value="taxes">
+          <TaxesTab sales={data.sales} settings={settings} />
+        </TabsContent>
+
+        <TabsContent value="budget">
+          <BudgetTab sales={data.sales} expenses={data.expenses} settings={settings} userId={user?.id || ""} />
         </TabsContent>
       </Tabs>
     </div>
@@ -600,6 +618,478 @@ function Row({ label, value, bold, negative, dim, highlight }: { label: string; 
     <div className={`flex justify-between items-center px-3 py-2 border-b ${bg} ${dim ? 'opacity-70 text-xs' : ''}`}>
       <span className={bold ? 'font-bold' : ''}>{label}</span>
       <span className={`${bold ? 'font-bold' : ''} ${valColor}`}>{value}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Vendedores Tab
+// ─────────────────────────────────────────────────────────────
+function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; period: PeriodKey }) {
+  const { from, to, label } = getPeriodRange(period);
+  const inRange = (d: string) => { const x = new Date(d); return x >= from && x <= to; };
+
+  const sellerMap = useMemo(() => {
+    const map: Record<string, { name: string; role: string; totalARS: number; profit: number; count: number; customers: Set<string>; byMonth: Record<string, number> }> = {};
+    const memberByUserId: Record<string, any> = {};
+    members.forEach(m => { memberByUserId[m.user_id] = m; });
+
+    sales.filter(s => inRange(s.date)).forEach(s => {
+      const uid = s.user_id || 'unknown';
+      if (!map[uid]) {
+        const m = memberByUserId[uid];
+        map[uid] = {
+          name: m?.display_name || `Vendedor ${uid.slice(0, 6)}`,
+          role: m?.role || 'vendedor',
+          totalARS: 0, profit: 0, count: 0,
+          customers: new Set(),
+          byMonth: {},
+        };
+      }
+      map[uid].totalARS += Number(s.total_ars);
+      map[uid].profit += Number(s.profit_ars);
+      map[uid].count += s.quantity;
+      if (s.customer_name) map[uid].customers.add(s.customer_name);
+      const mo = String(s.date).slice(0, 7);
+      map[uid].byMonth[mo] = (map[uid].byMonth[mo] || 0) + Number(s.total_ars);
+    });
+    return map;
+  }, [sales, members, period]);
+
+  const rows = useMemo(() =>
+    Object.entries(sellerMap)
+      .map(([uid, d]) => ({ uid, ...d, margin: d.totalARS > 0 ? (d.profit / d.totalARS) * 100 : 0, customersCount: d.customers.size, avgTicket: d.count > 0 ? d.totalARS / d.count : 0 }))
+      .sort((a, b) => b.totalARS - a.totalARS),
+    [sellerMap]
+  );
+
+  const totalARS = rows.reduce((s, r) => s + r.totalARS, 0);
+
+  const chartData = rows.map(r => ({ name: r.name.split(' ')[0], total: Math.round(r.totalARS) }));
+
+  if (rows.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm">Sin ventas registradas en el período seleccionado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Período: {label}</h3>
+        <Button variant="outline" size="sm" onClick={() => {
+          exportCSV(`vendedores_${label.replace(/\s/g, '_')}.csv`,
+            ['Vendedor', 'Rol', 'Ventas ARS', 'Ganancia ARS', 'Margen %', 'Unidades', 'Clientes únicos', 'Ticket prom.'],
+            rows.map(r => [r.name, r.role, r.totalARS.toFixed(0), r.profit.toFixed(0), r.margin.toFixed(1), String(r.count), String(r.customersCount), r.avgTicket.toFixed(0)])
+          );
+        }}><FileDown className="w-3.5 h-3.5 mr-1.5" />CSV</Button>
+      </div>
+
+      {/* Bar chart */}
+      {chartData.length > 1 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Facturación por vendedor</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 8 }}>
+              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+              <Tooltip formatter={(v: any) => formatARS(v)} contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                {chartData.map((_, i) => <Cell key={i} fill={SELLER_COLORS[i % SELLER_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {rows.map((r, i) => {
+          const sharePct = totalARS > 0 ? (r.totalARS / totalARS) * 100 : 0;
+          return (
+            <div key={r.uid} className="bg-card border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: SELLER_COLORS[i % SELLER_COLORS.length] }}>
+                    {r.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{r.name}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-2 py-0.5">{sharePct.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5">
+                <div className="h-1.5 rounded-full transition-all" style={{ width: `${sharePct}%`, background: SELLER_COLORS[i % SELLER_COLORS.length] }} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><p className="text-muted-foreground">Facturado</p><p className="font-bold text-success">{formatARS(r.totalARS)}</p></div>
+                <div><p className="text-muted-foreground">Ganancia</p><p className="font-bold">{formatARS(r.profit)}</p></div>
+                <div><p className="text-muted-foreground">Margen</p><p className={`font-bold ${r.margin >= 30 ? "text-success" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>{r.margin.toFixed(1)}%</p></div>
+                <div><p className="text-muted-foreground">Unidades</p><p className="font-bold">{r.count}</p></div>
+                <div><p className="text-muted-foreground">Clientes</p><p className="font-bold">{r.customersCount}</p></div>
+                <div><p className="text-muted-foreground">Ticket prom.</p><p className="font-bold">{formatARS(r.avgTicket)}</p></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const SELLER_COLORS = ['hsl(40,70%,50%)', 'hsl(152,58%,42%)', 'hsl(200,60%,50%)', 'hsl(280,60%,50%)', 'hsl(0,70%,50%)', 'hsl(35,90%,55%)'];
+
+// ─────────────────────────────────────────────────────────────
+// Impuestos Tab
+// ─────────────────────────────────────────────────────────────
+function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
+  const taxEnabled = settings?.tax_enabled;
+  const ivaRate = Number(settings?.tax_iva_percent || 21);
+  const iibbRate = Number(settings?.tax_iibb_percent || 3.5);
+  const monotributoMonthly = Number(settings?.tax_monotributo_monthly || 0);
+
+  // Group sales by month and calculate taxes
+  const monthlyData = useMemo(() => {
+    const map: Record<string, { revenue: number; profit: number; count: number }> = {};
+    sales.forEach((s: any) => {
+      const key = String(s.date).slice(0, 7);
+      if (!map[key]) map[key] = { revenue: 0, profit: 0, count: 0 };
+      map[key].revenue += Number(s.total_ars);
+      map[key].profit += Number(s.profit_ars);
+      map[key].count++;
+    });
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, d]) => {
+        const [y, mo] = key.split('-');
+        const iva = taxEnabled ? d.profit * (ivaRate / 100) : 0;
+        const iibb = taxEnabled ? d.profit * (iibbRate / 100) : 0;
+        const total = iva + iibb + (taxEnabled ? monotributoMonthly : 0);
+        return {
+          key,
+          label: `${months[parseInt(mo) - 1]} ${y.slice(2)}`,
+          revenue: d.revenue,
+          profit: d.profit,
+          salesCount: d.count,
+          iva, iibb,
+          monotributo: taxEnabled ? monotributoMonthly : 0,
+          total,
+          netProfit: d.profit - total,
+        };
+      });
+  }, [sales, settings]);
+
+  const totals = monthlyData.reduce((acc, row) => ({
+    revenue: acc.revenue + row.revenue,
+    profit: acc.profit + row.profit,
+    iva: acc.iva + row.iva,
+    iibb: acc.iibb + row.iibb,
+    monotributo: acc.monotributo + row.monotributo,
+    total: acc.total + row.total,
+    netProfit: acc.netProfit + row.netProfit,
+  }), { revenue: 0, profit: 0, iva: 0, iibb: 0, monotributo: 0, total: 0, netProfit: 0 });
+
+  return (
+    <div className="space-y-6">
+      {!taxEnabled && (
+        <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
+          <TrendingUp className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-warning">Impuestos desactivados</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Activá los impuestos en Ajustes → Impuestos para ver el impacto real en tu rentabilidad.
+              Las tasas configuradas son: IVA {ivaRate}%, IIBB {iibbRate}%, Monotributo ${monotributoMonthly.toLocaleString("es-AR")}/mes.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Facturación total", value: formatARS(totals.revenue), color: "text-primary" },
+          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-success" },
+          { label: "Total impuestos", value: formatARS(totals.total), color: "text-destructive" },
+          { label: "Ganancia neta", value: formatARS(totals.netProfit), color: totals.netProfit >= 0 ? "text-success" : "text-destructive" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border rounded-xl p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
+            <p className={`text-lg font-bold font-display ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tax breakdown header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Detalle mensual</h3>
+        <Button variant="outline" size="sm" onClick={() => exportCSV(
+          'impuestos.csv',
+          ['Mes', 'Ventas', 'Ganancia bruta', `IVA (${ivaRate}%)`, `IIBB (${iibbRate}%)`, 'Monotributo', 'Total impuestos', 'Ganancia neta'],
+          monthlyData.map(r => [r.label, r.revenue.toFixed(0), r.profit.toFixed(0), r.iva.toFixed(0), r.iibb.toFixed(0), r.monotributo.toFixed(0), r.total.toFixed(0), r.netProfit.toFixed(0)])
+        )}>
+          <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
+      </div>
+
+      {monthlyData.length === 0 ? (
+        <p className="text-center text-sm text-muted-foreground py-10">Sin ventas registradas</p>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2.5 text-left text-xs text-muted-foreground uppercase tracking-wide">Mes</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide">Ventas</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide">G. Bruta</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">IVA {ivaRate}%</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">IIBB {iibbRate}%</th>
+                  {monotributoMonthly > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">Monotributo</th>}
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-destructive">Total imp.</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-success">G. Neta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyData.map((row, i) => (
+                  <tr key={row.key} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}>
+                    <td className="px-3 py-2.5 font-medium">{row.label}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(row.revenue)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(row.profit)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.iva)}` : '—'}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.iibb)}` : '—'}</td>
+                    {monotributoMonthly > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.monotributo)}` : '—'}</td>}
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-bold text-destructive">{taxEnabled ? `-${formatARS(row.total)}` : '—'}</td>
+                    <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${row.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(row.netProfit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/40 font-bold">
+                  <td className="px-3 py-2.5">TOTAL</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(totals.profit)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.iva)}` : '—'}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.iibb)}` : '—'}</td>
+                  {monotributoMonthly > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.monotributo)}` : '—'}</td>}
+                  <td className="px-3 py-2.5 text-right font-mono text-xs font-bold text-destructive">{taxEnabled ? `-${formatARS(totals.total)}` : '—'}</td>
+                  <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${totals.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(totals.netProfit)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {taxEnabled && (
+        <div className="bg-muted/30 border border-border/50 rounded-xl p-4 text-xs text-muted-foreground space-y-1">
+          <p className="font-semibold text-foreground text-[11px] uppercase tracking-wide mb-2">Configuración de tasas</p>
+          <p>IVA: {ivaRate}% sobre ganancia bruta</p>
+          <p>IIBB (Ingresos Brutos): {iibbRate}% sobre ganancia bruta</p>
+          {monotributoMonthly > 0 && <p>Monotributo: ${monotributoMonthly.toLocaleString("es-AR")} fijos por mes</p>}
+          <p className="text-[10px] mt-2 opacity-70">Modificar tasas: Ajustes → Impuestos. Importante: este reporte es orientativo. Consultá con tu contador para declaraciones oficiales.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Presupuesto Tab — Meta mensual vs. Real
+// ─────────────────────────────────────────────────────────────
+function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expenses: any[]; settings: any; userId: string }) {
+  const [targets, setTargets] = useState({
+    sales_ars: String(settings?.monthly_targets?.sales_ars || ""),
+    profit_ars: String(settings?.monthly_targets?.profit_ars || ""),
+    expenses_ars: String(settings?.monthly_targets?.expenses_ars || ""),
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await supabase.from("settings").update({
+        monthly_targets: {
+          sales_ars: Number(targets.sales_ars) || null,
+          profit_ars: Number(targets.profit_ars) || null,
+          expenses_ars: Number(targets.expenses_ars) || null,
+        },
+      }).eq("user_id", userId);
+      toast.success("Metas guardadas");
+    } catch { toast.error("Error al guardar metas"); }
+    finally { setSaving(false); }
+  };
+
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  const monthlyActual = useMemo(() => {
+    const salesMap: Record<string, number> = {};
+    const profitMap: Record<string, number> = {};
+    const expMap: Record<string, number> = {};
+    sales.forEach((s: any) => {
+      const key = String(s.date).slice(0, 7);
+      salesMap[key] = (salesMap[key] || 0) + Number(s.total_ars);
+      profitMap[key] = (profitMap[key] || 0) + Number(s.profit_ars);
+    });
+    expenses.forEach((e: any) => {
+      const key = String(e.date).slice(0, 7);
+      expMap[key] = (expMap[key] || 0) + Number(e.amount_ars);
+    });
+    const allKeys = new Set([...Object.keys(salesMap), ...Object.keys(expMap)]);
+    return Array.from(allKeys).sort().map(key => {
+      const [y, mo] = key.split('-');
+      return {
+        key, label: `${months[parseInt(mo) - 1]} ${y.slice(2)}`,
+        sales: salesMap[key] || 0,
+        profit: profitMap[key] || 0,
+        expenses: expMap[key] || 0,
+      };
+    });
+  }, [sales, expenses]);
+
+  const tSales = Number(targets.sales_ars) || 0;
+  const tProfit = Number(targets.profit_ars) || 0;
+  const tExpenses = Number(targets.expenses_ars) || 0;
+  const hasTargets = tSales > 0 || tProfit > 0 || tExpenses > 0;
+
+  function BudgetBar({ actual, target, color }: { actual: number; target: number; color: string }) {
+    if (!target) return <span className="text-xs text-muted-foreground">Sin meta</span>;
+    const pct = Math.min((actual / target) * 100, 100);
+    const over = actual > target;
+    return (
+      <div className="space-y-0.5">
+        <div className="flex justify-between text-[10px]">
+          <span className={over ? "text-success font-bold" : "text-muted-foreground"}>{pct.toFixed(0)}%</span>
+          <span className="text-muted-foreground">{formatARS(actual)} / {formatARS(target)}</span>
+        </div>
+        <div className="w-full bg-muted rounded-full h-1.5">
+          <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: over ? 'hsl(152,58%,42%)' : color }} />
+        </div>
+      </div>
+    );
+  }
+
+  const now = new Date();
+  const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonth = monthlyActual.find(m => m.key === curKey) || { sales: 0, profit: 0, expenses: 0 };
+
+  return (
+    <div className="space-y-6">
+      {/* Set targets */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h3 className="font-semibold text-sm mb-4">Metas mensuales</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { key: "sales_ars" as const, label: "Meta de ventas (ARS)", color: "text-primary" },
+            { key: "profit_ars" as const, label: "Meta de ganancia (ARS)", color: "text-success" },
+            { key: "expenses_ars" as const, label: "Límite de gastos (ARS)", color: "text-warning" },
+          ].map(f => (
+            <div key={f.key}>
+              <label className={`text-xs font-medium mb-1 block ${f.color}`}>{f.label}</label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={targets[f.key]}
+                onChange={e => setTargets(prev => ({ ...prev, [f.key]: e.target.value }))}
+                className="bg-muted"
+              />
+            </div>
+          ))}
+        </div>
+        <Button className="mt-4 gradient-gold text-primary-foreground gap-2" onClick={handleSave} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar metas"}
+        </Button>
+      </div>
+
+      {/* Current month progress */}
+      {hasTargets && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="font-semibold text-sm mb-4">Mes actual</h3>
+          <div className="space-y-4">
+            {tSales > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Ventas</p>
+                <BudgetBar actual={currentMonth.sales} target={tSales} color="hsl(40,70%,50%)" />
+              </div>
+            )}
+            {tProfit > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Ganancia bruta</p>
+                <BudgetBar actual={currentMonth.profit} target={tProfit} color="hsl(152,58%,42%)" />
+              </div>
+            )}
+            {tExpenses > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Gastos (límite)</p>
+                <BudgetBar actual={currentMonth.expenses} target={tExpenses} color="hsl(30,80%,55%)" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly comparison table */}
+      {monthlyActual.length > 0 && hasTargets && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Historial vs. meta</h3>
+            <Button variant="outline" size="sm" onClick={() => exportCSV(
+              'presupuesto_vs_real.csv',
+              ['Mes', 'Ventas real', 'Meta ventas', '% cumpl.', 'Ganancia real', 'Meta ganancia', 'Gastos real', 'Límite gastos'],
+              monthlyActual.map(r => [r.label, r.sales.toFixed(0), tSales.toFixed(0), tSales > 0 ? ((r.sales / tSales) * 100).toFixed(1) : '—', r.profit.toFixed(0), tProfit.toFixed(0), r.expenses.toFixed(0), tExpenses.toFixed(0)])
+            )}>
+              <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2.5 text-left text-xs text-muted-foreground uppercase">Mes</th>
+                  {tSales > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">Ventas</th>}
+                  {tSales > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">% meta</th>}
+                  {tProfit > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">Ganancia</th>}
+                  {tProfit > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">% meta</th>}
+                  {tExpenses > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">Gastos</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyActual.map((row, i) => {
+                  const salesPct = tSales > 0 ? (row.sales / tSales) * 100 : null;
+                  const profitPct = tProfit > 0 ? (row.profit / tProfit) * 100 : null;
+                  const expOver = tExpenses > 0 && row.expenses > tExpenses;
+                  return (
+                    <tr key={row.key} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}>
+                      <td className="px-3 py-2.5 font-medium">{row.label}</td>
+                      {tSales > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(row.sales)}</td>}
+                      {tSales > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${salesPct !== null && salesPct >= 100 ? 'text-success' : salesPct !== null && salesPct >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                        {salesPct !== null ? `${salesPct.toFixed(0)}%` : '—'}
+                      </td>}
+                      {tProfit > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(row.profit)}</td>}
+                      {tProfit > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${profitPct !== null && profitPct >= 100 ? 'text-success' : profitPct !== null && profitPct >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                        {profitPct !== null ? `${profitPct.toFixed(0)}%` : '—'}
+                      </td>}
+                      {tExpenses > 0 && <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${expOver ? 'text-destructive' : 'text-success'}`}>{formatARS(row.expenses)}</td>}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!hasTargets && (
+        <div className="text-center py-12 text-muted-foreground">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
+          <p className="text-sm">Configurá tus metas mensuales arriba para ver el seguimiento real vs. presupuesto</p>
+        </div>
+      )}
     </div>
   );
 }

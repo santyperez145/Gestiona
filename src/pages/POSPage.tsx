@@ -12,7 +12,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -193,7 +193,62 @@ function ReceiptModal({
     window.open(`https://wa.me/?text=${encodeURIComponent(receiptText)}`, "_blank");
   };
 
-  const print = () => window.print();
+  const print = () => {
+    const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+    const rows = items.map(it =>
+      `<tr><td>${it.name}</td><td align="center">x${it.quantity}</td><td align="right">${formatARS(it.price * it.quantity)}</td></tr>`
+    ).join("");
+
+    let discountRows = "";
+    if (couponDiscount > 0) discountRows += `<tr><td colspan="2">Desc. cupón</td><td align="right" style="color:green">-${formatARS(couponDiscount)}</td></tr>`;
+    if (globalDiscountARS > 0) discountRows += `<tr><td colspan="2">Desc. adicional</td><td align="right" style="color:green">-${formatARS(globalDiscountARS)}</td></tr>`;
+
+    let paymentInfo = "";
+    if (splitMode) {
+      paymentInfo = `<p>${splitMethod1}: ${formatARS(splitAmount1)} | ${splitMethod2}: ${formatARS(splitAmount2)}</p>`;
+    } else {
+      paymentInfo = `<p>Pago: ${payMethod.toUpperCase()}</p>`;
+      if (payMethod === "efectivo" && cashGiven >= total) {
+        paymentInfo += `<p>Recibido: ${formatARS(cashGiven)} — Cambio: ${formatARS(change)}</p>`;
+      }
+    }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  * { font-family: 'Courier New', monospace; font-size: 12px; color: #000; }
+  body { width: 72mm; margin: 0; }
+  h1 { font-size: 16px; text-align: center; margin: 4px 0; }
+  .center { text-align: center; }
+  .divider { border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 2px 0; }
+  .total-row td { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 4px; }
+  .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+</style></head><body>
+<h1>${businessName}</h1>
+<p class="center">${new Date().toLocaleString("es-AR")}</p>
+${customer ? `<p class="center">Cliente: ${customer}</p>` : ""}
+<div class="divider"></div>
+<table>
+  <tbody>${rows}</tbody>
+</table>
+<div class="divider"></div>
+<table>
+  <tbody>
+    ${discountRows}
+    <tr class="total-row"><td colspan="2">TOTAL</td><td align="right">${formatARS(total)}</td></tr>
+  </tbody>
+</table>
+<div class="divider"></div>
+${paymentInfo}
+<p class="center">${payMethod === "fiado" ? "⚠ PENDIENTE DE PAGO" : "✓ PAGADO"}</p>
+<div class="footer">¡Gracias por tu compra!</div>
+</body></html>`;
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
+  };
 
   const generateMpLink = async () => {
     setMpLoading(true);
@@ -351,6 +406,206 @@ function ReceiptModal({
 }
 
 // ─────────────────────────────────────────────────────────────
+// Quick Return Modal
+// ─────────────────────────────────────────────────────────────
+const REFUND_METHODS = ["efectivo", "transferencia", "credito"] as const;
+
+function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: string; onClose: () => void }) {
+  const [recentSales, setRecentSales] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [qty, setQty] = useState(1);
+  const [reason, setReason] = useState("");
+  const [refundMethod, setRefundMethod] = useState<string>("efectivo");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("sales")
+        .select("id, product_name, product_id, quantity, total_ars, customer_name, date, returned")
+        .eq("org_id", orgId)
+        .eq("returned", false)
+        .order("date", { ascending: false })
+        .limit(50);
+      setRecentSales(data || []);
+      setLoading(false);
+    })();
+  }, [orgId]);
+
+  const filtered = useMemo(() => {
+    if (!search) return recentSales;
+    const s = search.toLowerCase();
+    return recentSales.filter(
+      (s2: any) =>
+        s2.product_name?.toLowerCase().includes(s) ||
+        s2.customer_name?.toLowerCase().includes(s),
+    );
+  }, [recentSales, search]);
+
+  const handleReturn = async () => {
+    if (!selected) return;
+    if (!reason.trim()) { toast.error("Ingresá el motivo de la devolución"); return; }
+    if (qty < 1 || qty > selected.quantity) { toast.error(`Cantidad inválida (máx ${selected.quantity})`); return; }
+    setSubmitting(true);
+    try {
+      const amountARS = (Number(selected.total_ars) / selected.quantity) * qty;
+      await supabase.from("returns" as any).insert({
+        org_id: orgId,
+        user_id: userId,
+        sale_id: selected.id,
+        product_name: selected.product_name,
+        quantity: qty,
+        amount_ars: amountARS,
+        reason,
+        refund_method: refundMethod,
+        notes: "",
+      });
+      // Restore stock
+      if (selected.product_id) {
+        const { data: prod } = await supabase
+          .from("products")
+          .select("stock")
+          .eq("id", selected.product_id)
+          .single();
+        if (prod) {
+          await supabase
+            .from("products")
+            .update({ stock: prod.stock + qty })
+            .eq("id", selected.product_id);
+        }
+      }
+      // Mark sale as returned
+      await supabase.from("sales").update({ returned: true }).eq("id", selected.id);
+      toast.success(`Devolución registrada — ${formatARS(amountARS)}`);
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Error al registrar devolución");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Undo2 className="w-5 h-5 text-orange-400" />
+            <h2 className="font-semibold">Devolución rápida</h2>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {!selected ? (
+            <>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por producto o cliente…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 bg-muted"
+                />
+              </div>
+              {loading ? (
+                <div className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div>
+              ) : filtered.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">Sin ventas recientes</p>
+              ) : (
+                <div className="space-y-2">
+                  {filtered.slice(0, 20).map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => { setSelected(s); setQty(1); }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-left"
+                    >
+                      <Package className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{s.product_name}</p>
+                        <p className="text-xs text-muted-foreground">{s.customer_name || "Sin nombre"} · {new Date(s.date).toLocaleDateString("es-AR")}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-mono font-semibold">{formatARS(Number(s.total_ars))}</p>
+                        <p className="text-[10px] text-muted-foreground">x{s.quantity}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-muted rounded-xl p-3 flex items-center gap-3">
+                <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{selected.product_name}</p>
+                  <p className="text-xs text-muted-foreground">{selected.customer_name || "Sin nombre"} · x{selected.quantity} · {formatARS(Number(selected.total_ars))}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Cantidad a devolver (máx {selected.quantity})</label>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-muted"><Minus className="w-3 h-3" /></button>
+                  <span className="text-lg font-bold font-display w-10 text-center">{qty}</span>
+                  <button onClick={() => setQty(q => Math.min(selected.quantity, q + 1))} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-muted"><Plus className="w-3 h-3" /></button>
+                  <span className="text-sm text-muted-foreground ml-2">= {formatARS((Number(selected.total_ars) / selected.quantity) * qty)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Motivo *</label>
+                <Input
+                  placeholder="Ej: producto defectuoso, cambio de talla…"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="bg-muted"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Método de reintegro</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {REFUND_METHODS.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setRefundMethod(m)}
+                      className={`py-2 rounded-xl border text-xs font-medium capitalize transition-all ${
+                        refundMethod === m
+                          ? "border-orange-500/60 bg-orange-500/10 text-orange-400"
+                          : "border-border bg-card text-muted-foreground"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold gap-2"
+                onClick={handleReturn}
+                disabled={submitting || !reason.trim()}
+              >
+                {submitting
+                  ? <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Registrando…</>
+                  : <><Undo2 className="w-4 h-4" />Confirmar devolución</>
+                }
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Main POS Page
 // ─────────────────────────────────────────────────────────────
 export default function POSPage() {
@@ -390,6 +645,7 @@ export default function POSPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [showReturn, setShowReturn] = useState(false);
 
   // Barcode scanner
   const handleBarcode = useCallback((code: string) => {
@@ -933,6 +1189,15 @@ export default function POSPage() {
 
   return (
     <>
+      {/* Quick Return modal */}
+      {showReturn && user && activeOrg && (
+        <QuickReturnModal
+          userId={user.id}
+          orgId={activeOrg.id}
+          onClose={() => setShowReturn(false)}
+        />
+      )}
+
       {/* Receipt modal */}
       {receipt && (
         <ReceiptModal
@@ -982,6 +1247,10 @@ export default function POSPage() {
               autoFocus
             />
           </div>
+          <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0 border-orange-500/40 text-orange-400 hover:bg-orange-500/10" onClick={() => setShowReturn(true)}>
+            <Undo2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Devolver</span>
+          </Button>
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" onClick={() => scanning ? stopScan() : startScan()}>
             <QrCode className="w-4 h-4" />
             <span className="hidden sm:inline">Escanear</span>

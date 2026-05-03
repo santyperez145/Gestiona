@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,12 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
+  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard,
 } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { formatARS } from "@/lib/supabaseStore";
 
 type Supplier = {
   id: string;
@@ -35,6 +39,22 @@ type PurchaseSummary = {
 
 const EMPTY: Partial<Supplier> = { name: "", contact: "", phone: "", email: "", address: "", notes: "", active: true };
 
+type SupplierDebt = {
+  id: string;
+  supplier_name: string;
+  supplier_id: string | null;
+  description: string;
+  amount_ars: number;
+  paid_ars: number;
+  remaining_ars: number;
+  due_date: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+};
+
+const DEBT_EMPTY = { supplier_name: "", supplier_id: "", description: "", amount_ars: "", due_date: "", notes: "" };
+
 export default function ProveedoresPage() {
   const { activeOrg } = useOrg();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -48,19 +68,78 @@ export default function ProveedoresPage() {
   const [purchases, setPurchases] = useState<Record<string, PurchaseSummary[]>>({});
   const [loadingPurchases, setLoadingPurchases] = useState(false);
 
+  // Cuentas a pagar
+  const [debts, setDebts] = useState<SupplierDebt[]>([]);
+  const [debtForm, setDebtForm] = useState(DEBT_EMPTY);
+  const [debtOpen, setDebtOpen] = useState(false);
+  const [payDebtId, setPayDebtId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payMethod, setPayMethod] = useState("transferencia");
+  const [savingDebt, setSavingDebt] = useState(false);
+
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("suppliers")
-      .select("*")
-      .eq("org_id", activeOrg.id)
-      .order("name");
-    setSuppliers((data as Supplier[]) || []);
+    const [{ data: suppData }, { data: debtData }] = await Promise.all([
+      supabase.from("suppliers").select("*").eq("org_id", activeOrg.id).order("name"),
+      supabase.from("supplier_debts" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+    ]);
+    setSuppliers((suppData as Supplier[]) || []);
+    setDebts((debtData as any[]) || []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [activeOrg]);
+
+  const handleCreateDebt = async () => {
+    if (!activeOrg || !debtForm.description.trim() || !debtForm.amount_ars) return;
+    setSavingDebt(true);
+    try {
+      const { error } = await supabase.from("supplier_debts" as any).insert({
+        org_id: activeOrg.id,
+        supplier_name: debtForm.supplier_name || "Sin proveedor",
+        supplier_id: debtForm.supplier_id || null,
+        description: debtForm.description,
+        amount_ars: Number(debtForm.amount_ars),
+        paid_ars: 0,
+        due_date: debtForm.due_date || null,
+        notes: debtForm.notes || null,
+        status: "pending",
+      });
+      if (error) throw error;
+      toast.success("Deuda registrada");
+      setDebtOpen(false);
+      setDebtForm(DEBT_EMPTY);
+      load();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSavingDebt(false); }
+  };
+
+  const handlePayDebt = async () => {
+    if (!payDebtId || !payAmount || !activeOrg) return;
+    const debt = debts.find(d => d.id === payDebtId);
+    if (!debt) return;
+    const amount = Math.min(Number(payAmount), debt.remaining_ars);
+    setSavingDebt(true);
+    try {
+      const newPaid = debt.paid_ars + amount;
+      const newStatus = newPaid >= debt.amount_ars ? "paid" : "partial";
+      const [r1, r2] = await Promise.all([
+        supabase.from("supplier_debts" as any).update({ paid_ars: newPaid, status: newStatus, updated_at: new Date().toISOString() }).eq("id", payDebtId),
+        supabase.from("supplier_payments" as any).insert({ org_id: activeOrg.id, supplier_debt_id: payDebtId, amount_ars: amount, method: payMethod }),
+      ]);
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      toast.success(`Pago de ${formatARS(amount)} registrado`);
+      setPayDebtId(null);
+      setPayAmount("");
+      load();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSavingDebt(false); }
+  };
+
+  const pendingDebts = useMemo(() => debts.filter(d => d.status !== "paid"), [debts]);
+  const totalPending = useMemo(() => pendingDebts.reduce((s, d) => s + Number(d.remaining_ars), 0), [pendingDebts]);
 
   const loadPurchases = async (supplierId: string) => {
     if (purchases[supplierId]) return;
@@ -135,13 +214,28 @@ export default function ProveedoresPage() {
             <Truck className="w-6 h-6 text-primary" /> Proveedores
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {suppliers.filter(s => s.active).length} proveedores activos
+            {suppliers.filter(s => s.active).length} activos · {formatARS(totalPending)} pendiente de pago
           </p>
         </div>
-        <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
+            <Plus className="w-4 h-4" />Nueva deuda
+          </Button>
+          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
+          </Button>
+        </div>
       </div>
+
+      <Tabs defaultValue="suppliers">
+        <TabsList className="mb-5">
+          <TabsTrigger value="suppliers">Proveedores ({suppliers.length})</TabsTrigger>
+          <TabsTrigger value="debts" className={pendingDebts.length > 0 ? "text-destructive" : ""}>
+            Cuentas a Pagar {pendingDebts.length > 0 && `(${pendingDebts.length})`}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="suppliers">
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -240,6 +334,8 @@ export default function ProveedoresPage() {
         </div>
       )}
 
+      </TabsContent>
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -284,6 +380,157 @@ export default function ProveedoresPage() {
             >
               {saving ? "Guardando…" : editing ? "Guardar cambios" : "Agregar proveedor"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Cuentas a Pagar Tab ── */}
+        <TabsContent value="debts">
+          <div className="space-y-4">
+            {/* KPI */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-card border border-border rounded-xl p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Pendiente total</p>
+                <p className="text-xl font-bold font-display text-destructive">{formatARS(totalPending)}</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Deudas activas</p>
+                <p className="text-xl font-bold font-display">{pendingDebts.length}</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Vencen esta semana</p>
+                <p className={`text-xl font-bold font-display ${debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length > 0 ? 'text-warning' : ''}`}>
+                  {debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length}
+                </p>
+              </div>
+            </div>
+
+            {debts.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                <p className="text-sm">Sin deudas registradas</p>
+                <Button variant="outline" className="mt-4 gap-2" onClick={() => setDebtOpen(true)}>
+                  <Plus className="w-4 h-4" />Registrar primera deuda
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {debts.map(d => {
+                  const overdue = d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date();
+                  const sc = d.status === 'paid'
+                    ? { color: 'text-success', bg: 'bg-success/10', label: 'Pagada', icon: CheckCircle2 }
+                    : d.status === 'partial'
+                    ? { color: 'text-warning', bg: 'bg-warning/10', label: 'Parcial', icon: Clock }
+                    : { color: 'text-destructive', bg: 'bg-destructive/10', label: overdue ? 'Vencida' : 'Pendiente', icon: AlertCircle };
+                  return (
+                    <div key={d.id} className={`bg-card border rounded-xl p-4 space-y-2 ${overdue ? 'border-destructive/40' : 'border-border'}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm truncate">{d.supplier_name}</span>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${sc.bg} ${sc.color}`}>
+                              <sc.icon className="w-3 h-3" />{sc.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{d.description}</p>
+                          {d.due_date && (
+                            <p className={`text-[10px] mt-0.5 ${overdue ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                              Vence: {new Date(d.due_date).toLocaleDateString('es-AR')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-mono font-bold text-sm">{formatARS(Number(d.remaining_ars))}</p>
+                          {d.paid_ars > 0 && <p className="text-[10px] text-muted-foreground">{formatARS(Number(d.amount_ars))} total</p>}
+                        </div>
+                      </div>
+                      {d.status !== 'paid' && (
+                        <div className="flex gap-2 pt-1">
+                          {payDebtId === d.id ? (
+                            <div className="flex gap-2 flex-1">
+                              <Input
+                                type="number"
+                                placeholder={`Máx ${formatARS(Number(d.remaining_ars))}`}
+                                value={payAmount}
+                                onChange={e => setPayAmount(e.target.value)}
+                                className="h-8 text-xs bg-muted flex-1"
+                              />
+                              <Select value={payMethod} onValueChange={setPayMethod}>
+                                <SelectTrigger className="h-8 text-xs bg-muted w-32"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="efectivo">Efectivo</SelectItem>
+                                  <SelectItem value="transferencia">Transferencia</SelectItem>
+                                  <SelectItem value="cheque">Cheque</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button size="sm" className="h-8 text-xs px-3" onClick={handlePayDebt} disabled={savingDebt || !payAmount}>
+                                {savingDebt ? "…" : "Pagar"}
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setPayDebtId(null); setPayAmount(""); }}>×</Button>
+                            </div>
+                          ) : (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success/40 text-success hover:bg-success/10" onClick={() => { setPayDebtId(d.id); setPayAmount(""); }}>
+                              <CreditCard className="w-3 h-3" />Registrar pago
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* New Debt Dialog */}
+      <Dialog open={debtOpen} onOpenChange={v => { setDebtOpen(v); if (!v) setDebtForm(DEBT_EMPTY); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nueva deuda con proveedor</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Proveedor</label>
+              <Select value={debtForm.supplier_id} onValueChange={v => {
+                const s = suppliers.find(s => s.id === v);
+                setDebtForm(f => ({ ...f, supplier_id: v, supplier_name: s?.name || "" }));
+              }}>
+                <SelectTrigger className="bg-muted"><SelectValue placeholder="Seleccionar proveedor (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {!debtForm.supplier_id && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nombre del proveedor (manual)</label>
+                <Input placeholder="Ej: Distribuidora Norte" value={debtForm.supplier_name} onChange={e => setDebtForm(f => ({ ...f, supplier_name: e.target.value }))} className="bg-muted" />
+              </div>
+            )}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Descripción *</label>
+              <Input placeholder="Ej: Factura N° 0001 — mercadería mayo" value={debtForm.description} onChange={e => setDebtForm(f => ({ ...f, description: e.target.value }))} className="bg-muted" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Monto ARS *</label>
+                <Input type="number" placeholder="0" value={debtForm.amount_ars} onChange={e => setDebtForm(f => ({ ...f, amount_ars: e.target.value }))} className="bg-muted" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Vencimiento</label>
+                <Input type="date" value={debtForm.due_date} onChange={e => setDebtForm(f => ({ ...f, due_date: e.target.value }))} className="bg-muted" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Notas</label>
+              <Input placeholder="Condiciones, referencia, etc." value={debtForm.notes} onChange={e => setDebtForm(f => ({ ...f, notes: e.target.value }))} className="bg-muted" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setDebtOpen(false)}>Cancelar</Button>
+              <Button className="flex-1 gradient-gold text-primary-foreground" disabled={!debtForm.description.trim() || !debtForm.amount_ars || savingDebt} onClick={handleCreateDebt}>
+                {savingDebt ? "Guardando…" : "Registrar deuda"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

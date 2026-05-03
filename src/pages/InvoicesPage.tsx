@@ -12,7 +12,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
-  Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText,
+  Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
 } from "lucide-react";
 
 interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number }
@@ -156,8 +156,35 @@ export default function InvoicesPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [items, setItems] = useState<InvoiceItem[]>([emptyItem()]);
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   const canManage = activeRole === "owner" || activeRole === "admin";
+
+  const handleSendEmail = async (inv: Invoice) => {
+    if (!inv.customer_email) { toast.error("Esta factura no tiene email del cliente"); return; }
+    setSendingEmail(inv.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-invoice-email", {
+        body: {
+          to: inv.customer_email,
+          subject: `Factura N° ${inv.number} — ${activeOrg?.name || ""}`,
+          invoiceNumber: inv.number,
+          customerName: inv.customer_name,
+          orgName: activeOrg?.name || "",
+          totalARS: new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(inv.total)),
+          dueDate: inv.due_date,
+          notes: inv.notes,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email enviado a ${inv.customer_email}`);
+      if (inv.status === "draft") await updateStatus(inv.id, "sent");
+    } catch (e: any) {
+      toast.error(e.message || "Error al enviar email");
+    } finally {
+      setSendingEmail(null);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
@@ -464,6 +491,17 @@ export default function InvoicesPage() {
                       >
                         <FileDown className="w-4 h-4" />
                       </Button>
+                      {inv.customer_email && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title={`Enviar por email a ${inv.customer_email}`}
+                          onClick={() => handleSendEmail(inv)}
+                          disabled={sendingEmail === inv.id}
+                        >
+                          {sendingEmail === inv.id
+                            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            : <Mail className="w-4 h-4 text-blue-400" />
+                          }
+                        </Button>
+                      )}
                       {canManage && inv.status === "draft" && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Marcar como enviada"
                           onClick={() => updateStatus(inv.id, "sent")}

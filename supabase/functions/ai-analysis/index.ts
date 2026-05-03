@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -148,6 +149,7 @@ Citá precios y márgenes reales. No inventes cifras.`,
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (checkRateLimit(req, "ai-analysis", { max: 20, windowMs: 60_000 })) return rateLimitResponse();
 
   try {
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");

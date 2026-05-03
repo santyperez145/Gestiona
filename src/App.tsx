@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -42,6 +43,7 @@ import IntegrationsPage from "@/pages/IntegrationsPage";
 import ProveedoresPage from "@/pages/ProveedoresPage";
 import PresupuestosPage from "@/pages/PresupuestosPage";
 import DevolucionesPage from "@/pages/DevolucionesPage";
+import AutoRestockPage from "@/pages/AutoRestockPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
@@ -144,6 +146,7 @@ function ProtectedRoutes() {
             <Route path="/proveedores" element={<ProveedoresPage />} />
             <Route path="/presupuestos" element={<PresupuestosPage />} />
             <Route path="/devoluciones" element={<DevolucionesPage />} />
+            <Route path="/restock" element={<AutoRestockPage />} />
             <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
@@ -169,6 +172,17 @@ function ProtectedRoutes() {
 }
 
 const App = () => (
+  <Sentry.ErrorBoundary fallback={
+    <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
+      <div>
+        <h1 className="text-xl font-bold mb-2">Algo salió mal</h1>
+        <p className="text-muted-foreground text-sm mb-4">El error fue reportado automáticamente.</p>
+        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm" onClick={() => window.location.reload()}>
+          Recargar
+        </button>
+      </div>
+    </div>
+  }>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -191,6 +205,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </Sentry.ErrorBoundary>
 );
 
 export default App;

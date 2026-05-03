@@ -607,6 +607,28 @@ export async function deleteCustomerDB(id: string) {
   if (error) throw error;
 }
 
+export async function getOrgMembersWithProfilesDB(userId: string) {
+  const orgId = await orgIdFor(userId);
+  const { data: members, error } = await supabase
+    .from('memberships')
+    .select('user_id, role')
+    .eq('org_id', orgId);
+  if (error) throw error;
+  if (!members || members.length === 0) return [];
+  const userIds = members.map((m: any) => m.user_id);
+  const { data: profiles } = await supabase
+    .from('profiles' as any)
+    .select('user_id, display_name')
+    .in('user_id', userIds);
+  const profileMap: Record<string, string> = {};
+  (profiles || []).forEach((p: any) => { if (p.display_name) profileMap[p.user_id] = p.display_name; });
+  return members.map((m: any) => ({
+    user_id: m.user_id,
+    role: m.role,
+    display_name: profileMap[m.user_id] || `Usuario ${m.user_id.slice(0, 6)}`,
+  }));
+}
+
 // Seed products for a new user
 export async function seedProductsForUser(userId: string) {
   const orgId = await orgIdFor(userId);
