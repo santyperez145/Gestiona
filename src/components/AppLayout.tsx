@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -17,6 +17,7 @@ const allNavItems = [
   { to: "/caja/turno", label: "Turno de Caja", icon: Banknote, roles: ['admin'], section: 'principal' },
   { to: "/productos", label: "Productos", icon: Package, roles: ['admin'], section: 'inventario' },
   { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
+  { to: "/restock", label: "Auto-Restock", icon: PackageOpen, roles: ['admin'], section: 'inventario' },
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
   { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
