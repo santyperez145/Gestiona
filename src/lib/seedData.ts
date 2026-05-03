@@ -1,5 +1,5 @@
 import { ProductCategory, ProductGender } from './types';
-import { calculateProductProfits } from './store';
+import { calculateProductProfits } from './supabaseStore';
 
 interface RawProduct {
   name: string;
