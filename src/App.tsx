@@ -44,6 +44,7 @@ import ProveedoresPage from "@/pages/ProveedoresPage";
 import PresupuestosPage from "@/pages/PresupuestosPage";
 import DevolucionesPage from "@/pages/DevolucionesPage";
 import AutoRestockPage from "@/pages/AutoRestockPage";
+import StockCountPage from "@/pages/StockCountPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
@@ -147,6 +148,7 @@ function ProtectedRoutes() {
             <Route path="/presupuestos" element={<PresupuestosPage />} />
             <Route path="/devoluciones" element={<DevolucionesPage />} />
             <Route path="/restock" element={<AutoRestockPage />} />
+            <Route path="/toma-fisica" element={<StockCountPage />} />
             <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
