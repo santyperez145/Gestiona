@@ -231,6 +231,7 @@ export default function ReportsPage() {
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
           <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>
           <TabsTrigger value="sellers">Vendedores</TabsTrigger>
+          <TabsTrigger value="taxes">Impuestos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -359,6 +360,10 @@ export default function ReportsPage() {
 
         <TabsContent value="sellers">
           <SellersTab sales={data.sales} members={members} period={period} />
+        </TabsContent>
+
+        <TabsContent value="taxes">
+          <TaxesTab sales={data.sales} settings={settings} />
         </TabsContent>
       </Tabs>
     </div>
@@ -733,3 +738,158 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
 }
 
 const SELLER_COLORS = ['hsl(40,70%,50%)', 'hsl(152,58%,42%)', 'hsl(200,60%,50%)', 'hsl(280,60%,50%)', 'hsl(0,70%,50%)', 'hsl(35,90%,55%)'];
+
+// ─────────────────────────────────────────────────────────────
+// Impuestos Tab
+// ─────────────────────────────────────────────────────────────
+function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
+  const taxEnabled = settings?.tax_enabled;
+  const ivaRate = Number(settings?.tax_iva_percent || 21);
+  const iibbRate = Number(settings?.tax_iibb_percent || 3.5);
+  const monotributoMonthly = Number(settings?.tax_monotributo_monthly || 0);
+
+  // Group sales by month and calculate taxes
+  const monthlyData = useMemo(() => {
+    const map: Record<string, { revenue: number; profit: number; count: number }> = {};
+    sales.forEach((s: any) => {
+      const key = String(s.date).slice(0, 7);
+      if (!map[key]) map[key] = { revenue: 0, profit: 0, count: 0 };
+      map[key].revenue += Number(s.total_ars);
+      map[key].profit += Number(s.profit_ars);
+      map[key].count++;
+    });
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, d]) => {
+        const [y, mo] = key.split('-');
+        const iva = taxEnabled ? d.profit * (ivaRate / 100) : 0;
+        const iibb = taxEnabled ? d.profit * (iibbRate / 100) : 0;
+        const total = iva + iibb + (taxEnabled ? monotributoMonthly : 0);
+        return {
+          key,
+          label: `${months[parseInt(mo) - 1]} ${y.slice(2)}`,
+          revenue: d.revenue,
+          profit: d.profit,
+          salesCount: d.count,
+          iva, iibb,
+          monotributo: taxEnabled ? monotributoMonthly : 0,
+          total,
+          netProfit: d.profit - total,
+        };
+      });
+  }, [sales, settings]);
+
+  const totals = monthlyData.reduce((acc, row) => ({
+    revenue: acc.revenue + row.revenue,
+    profit: acc.profit + row.profit,
+    iva: acc.iva + row.iva,
+    iibb: acc.iibb + row.iibb,
+    monotributo: acc.monotributo + row.monotributo,
+    total: acc.total + row.total,
+    netProfit: acc.netProfit + row.netProfit,
+  }), { revenue: 0, profit: 0, iva: 0, iibb: 0, monotributo: 0, total: 0, netProfit: 0 });
+
+  return (
+    <div className="space-y-6">
+      {!taxEnabled && (
+        <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
+          <TrendingUp className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-warning">Impuestos desactivados</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Activá los impuestos en Ajustes → Impuestos para ver el impacto real en tu rentabilidad.
+              Las tasas configuradas son: IVA {ivaRate}%, IIBB {iibbRate}%, Monotributo ${monotributoMonthly.toLocaleString("es-AR")}/mes.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Facturación total", value: formatARS(totals.revenue), color: "text-primary" },
+          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-success" },
+          { label: "Total impuestos", value: formatARS(totals.total), color: "text-destructive" },
+          { label: "Ganancia neta", value: formatARS(totals.netProfit), color: totals.netProfit >= 0 ? "text-success" : "text-destructive" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border rounded-xl p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
+            <p className={`text-lg font-bold font-display ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tax breakdown header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Detalle mensual</h3>
+        <Button variant="outline" size="sm" onClick={() => exportCSV(
+          'impuestos.csv',
+          ['Mes', 'Ventas', 'Ganancia bruta', `IVA (${ivaRate}%)`, `IIBB (${iibbRate}%)`, 'Monotributo', 'Total impuestos', 'Ganancia neta'],
+          monthlyData.map(r => [r.label, r.revenue.toFixed(0), r.profit.toFixed(0), r.iva.toFixed(0), r.iibb.toFixed(0), r.monotributo.toFixed(0), r.total.toFixed(0), r.netProfit.toFixed(0)])
+        )}>
+          <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
+      </div>
+
+      {monthlyData.length === 0 ? (
+        <p className="text-center text-sm text-muted-foreground py-10">Sin ventas registradas</p>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2.5 text-left text-xs text-muted-foreground uppercase tracking-wide">Mes</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide">Ventas</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide">G. Bruta</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">IVA {ivaRate}%</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">IIBB {iibbRate}%</th>
+                  {monotributoMonthly > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">Monotributo</th>}
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-destructive">Total imp.</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-success">G. Neta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyData.map((row, i) => (
+                  <tr key={row.key} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}>
+                    <td className="px-3 py-2.5 font-medium">{row.label}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(row.revenue)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(row.profit)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.iva)}` : '—'}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.iibb)}` : '—'}</td>
+                    {monotributoMonthly > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.monotributo)}` : '—'}</td>}
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-bold text-destructive">{taxEnabled ? `-${formatARS(row.total)}` : '—'}</td>
+                    <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${row.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(row.netProfit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/40 font-bold">
+                  <td className="px-3 py-2.5">TOTAL</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(totals.profit)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.iva)}` : '—'}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.iibb)}` : '—'}</td>
+                  {monotributoMonthly > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.monotributo)}` : '—'}</td>}
+                  <td className="px-3 py-2.5 text-right font-mono text-xs font-bold text-destructive">{taxEnabled ? `-${formatARS(totals.total)}` : '—'}</td>
+                  <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${totals.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(totals.netProfit)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {taxEnabled && (
+        <div className="bg-muted/30 border border-border/50 rounded-xl p-4 text-xs text-muted-foreground space-y-1">
+          <p className="font-semibold text-foreground text-[11px] uppercase tracking-wide mb-2">Configuración de tasas</p>
+          <p>IVA: {ivaRate}% sobre ganancia bruta</p>
+          <p>IIBB (Ingresos Brutos): {iibbRate}% sobre ganancia bruta</p>
+          {monotributoMonthly > 0 && <p>Monotributo: ${monotributoMonthly.toLocaleString("es-AR")} fijos por mes</p>}
+          <p className="text-[10px] mt-2 opacity-70">Modificar tasas: Ajustes → Impuestos. Importante: este reporte es orientativo. Consultá con tu contador para declaraciones oficiales.</p>
+        </div>
+      )}
+    </div>
+  );
+}
