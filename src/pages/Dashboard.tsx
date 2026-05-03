@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
@@ -101,6 +102,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
   const [reloadKey, setReloadKey] = useState(0);
+  const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -114,6 +117,40 @@ export default function Dashboard() {
       setLoading(false);
     })();
   }, [user, reloadKey]);
+
+  // Realtime: subscribe to today's sales updates
+  useEffect(() => {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+
+    // subscribe
+    const channel = supabase
+      .channel('dashboard-sales-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, (payload) => {
+        const row = payload.new as any;
+        const rowDate = row.date ? String(row.date).slice(0, 10) : '';
+        if (rowDate !== today) return;
+        setLiveTodaySales(prev => {
+          const base = prev ?? { total: 0, count: 0 };
+          return { total: base.total + Number(row.total_ars || 0), count: base.count + 1 };
+        });
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Seed liveTodaySales from initial data load
+  useEffect(() => {
+    if (!rawData) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
+    setLiveTodaySales({
+      total: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0),
+      count: todaySales.length,
+    });
+  }, [rawData]);
 
   const stats = useMemo(() => {
     if (!rawData) return null;
@@ -337,6 +374,7 @@ export default function Dashboard() {
   if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
+    { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: `${liveTodaySales?.count ?? 0} ventas hoy`, icon: Zap, color: "text-success", live: true },
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
     { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-success" : "text-destructive" },
     { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-warning" },
@@ -394,15 +432,23 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
         {kpiCards.map((c, i) => (
-          <div key={c.label} className="group bg-card border border-border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300"
+          <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-success/40 ring-1 ring-success/20' : 'border-border'}`}
             style={{ animationDelay: `${i * 50}ms` }}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{c.label}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{c.label}</span>
+                {'live' in c && c.live && (
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-success bg-success/10 rounded-full px-1.5 py-0.5 leading-none">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                    LIVE
+                  </span>
+                )}
+              </div>
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                c.color === 'text-success' ? 'bg-success/10' : 
-                c.color === 'text-destructive' ? 'bg-destructive/10' : 
-                c.color === 'text-warning' ? 'bg-warning/10' : 
+                c.color === 'text-success' ? 'bg-success/10' :
+                c.color === 'text-destructive' ? 'bg-destructive/10' :
+                c.color === 'text-warning' ? 'bg-warning/10' :
                 c.color === 'text-accent' ? 'bg-accent/10' : 'bg-primary/10'
               } group-hover:scale-110 transition-transform duration-200`}>
                 <c.icon className={`w-4 h-4 ${c.color}`} />

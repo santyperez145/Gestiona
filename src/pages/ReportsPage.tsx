@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -221,9 +223,10 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 flex-wrap">
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
+          <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -345,8 +348,248 @@ export default function ReportsPage() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="inventory">
+          <InventoryTab products={products} settings={settings} />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Inventario Valorado Tab
+// ─────────────────────────────────────────────────────────────
+function InventoryTab({ products, settings }: { products: any[]; settings: any }) {
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<"cost_value" | "retail_value" | "stock" | "margin">("cost_value");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [catFilter, setCatFilter] = useState("all");
+  const rate = Number(settings?.exchange_rate) || 1695;
+
+  const rows = useMemo(() => {
+    return products
+      .filter(p => p.stock >= 0)
+      .filter(p => catFilter === "all" || p.category === catFilter)
+      .filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase()))
+      .map(p => {
+        const costUSD = Number(p.total_cost_usd) || 0;
+        const costARS = costUSD * rate;
+        const retailARS = Number(p.sale_price_ars) || 0;
+        const margin = retailARS > 0 ? ((retailARS - costARS) / retailARS) * 100 : 0;
+        const costValue = costARS * p.stock;
+        const retailValue = retailARS * p.stock;
+        return { ...p, costARS, margin, costValue, retailValue };
+      })
+      .sort((a, b) => {
+        const dir = sortAsc ? 1 : -1;
+        return (a[sortKey] - b[sortKey]) * dir;
+      });
+  }, [products, search, catFilter, sortKey, sortAsc, rate]);
+
+  const totalCostValue = rows.reduce((s, r) => s + r.costValue, 0);
+  const totalRetailValue = rows.reduce((s, r) => s + r.retailValue, 0);
+  const totalUnits = rows.reduce((s, r) => s + r.stock, 0);
+  const totalCostUSD = rows.reduce((s, r) => s + (Number(r.total_cost_usd) || 0) * r.stock, 0);
+  const unrealizedMargin = totalRetailValue > 0 ? ((totalRetailValue - totalCostValue) / totalRetailValue) * 100 : 0;
+
+  // Top 10 by cost value for chart
+  const top10 = [...rows].sort((a, b) => b.costValue - a.costValue).slice(0, 10);
+
+  const categories = ["all", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else { setSortKey(key); setSortAsc(false); }
+  };
+
+  const exportInventoryCSV = () => {
+    exportCSV("inventario-valorado.csv",
+      ["Producto", "Marca", "Categoría", "Stock", "Costo USD", "Costo ARS", "Precio ARS", "Margen %", "Valor Costo (ARS)", "Valor Retail (ARS)"],
+      rows.map(r => [
+        r.name, r.brand || "", getCategoryLabel(r.category),
+        r.stock, (Number(r.total_cost_usd) || 0).toFixed(2),
+        Math.round(r.costARS).toString(), r.sale_price_ars || "",
+        r.margin.toFixed(1), Math.round(r.costValue).toString(), Math.round(r.retailValue).toString(),
+      ])
+    );
+  };
+
+  const tooltipStyle = { background: "hsl(220, 18%, 12%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8, color: "hsl(40, 20%, 92%)" };
+  const PALETTE = ["hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)", "hsl(280,60%,55%)", "hsl(0,65%,55%)", "hsl(60,70%,50%)", "hsl(25,70%,50%)", "hsl(320,60%,50%)", "hsl(180,60%,45%)", "hsl(100,55%,40%)"];
+
+  return (
+    <div className="space-y-5">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Unidades en stock", value: totalUnits.toLocaleString("es-AR"), icon: Boxes, color: "text-primary" },
+          { label: "Valor al costo (ARS)", value: formatARS(totalCostValue), icon: DollarSign, color: "text-warning" },
+          { label: "Valor retail (ARS)", value: formatARS(totalRetailValue), icon: TrendingUp, color: "text-success" },
+          { label: "Margen no realizado", value: `${unrealizedMargin.toFixed(1)}%`, icon: Package, color: unrealizedMargin >= 30 ? "text-success" : unrealizedMargin >= 15 ? "text-warning" : "text-destructive" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border rounded-lg p-3 md:p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider leading-tight">{k.label}</span>
+              <k.icon className={`w-3.5 h-3.5 shrink-0 ${k.color}`} />
+            </div>
+            <p className={`text-lg md:text-xl font-bold font-display ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Additional metric */}
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="flex flex-wrap gap-4 text-sm">
+          <div>
+            <span className="text-muted-foreground">Inversión inmovilizada (USD): </span>
+            <span className="font-bold text-warning">{formatUSD(totalCostUSD)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Ganancia potencial: </span>
+            <span className="font-bold text-success">{formatARS(totalRetailValue - totalCostValue)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Productos sin stock: </span>
+            <span className="font-bold text-destructive">{products.filter(p => p.stock <= 0).length}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart */}
+      {top10.length > 0 && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Top 10 productos por valor al costo</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={top10} layout="vertical">
+              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(220, 10%, 55%)", fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "hsl(220, 10%, 55%)", fontSize: 10 }} width={110} tickFormatter={(v) => v.length > 18 ? v.slice(0, 18) + "…" : v} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), "Valor al costo"]} />
+              <Bar dataKey="costValue" radius={[0, 4, 4, 0]}>
+                {top10.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Table controls */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <Input
+            placeholder="Buscar producto..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-muted border-border w-52"
+          />
+          <Select value={catFilter} onValueChange={setCatFilter}>
+            <SelectTrigger className="bg-muted border-border w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {categories.map(c => (
+                <SelectItem key={c} value={c}>{c === "all" ? "Todas las categorías" : getCategoryLabel(c)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="outline" size="sm" onClick={exportInventoryCSV}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Exportar CSV
+        </Button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium">Producto</th>
+                <th className="text-left px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium hidden md:table-cell">Categoría</th>
+                <SortTh label="Stock" sortKey="stock" current={sortKey} asc={sortAsc} onClick={handleSort} />
+                <th className="text-right px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium hidden lg:table-cell">Costo/u ARS</th>
+                <th className="text-right px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium">Precio ARS</th>
+                <SortTh label="Margen %" sortKey="margin" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+                <SortTh label="Val. Costo" sortKey="cost_value" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+                <SortTh label="Val. Retail" sortKey="retail_value" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-10 text-muted-foreground text-sm">Sin productos</td>
+                </tr>
+              ) : rows.map(r => {
+                const pct = totalCostValue > 0 ? (r.costValue / totalCostValue) * 100 : 0;
+                return (
+                  <tr key={r.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-3 py-2.5">
+                      <div>
+                        <p className="font-medium text-sm leading-tight">{r.name}</p>
+                        {r.brand && <p className="text-[10px] text-muted-foreground">{r.brand}</p>}
+                        {/* Inline progress bar showing % of total stock value */}
+                        <div className="w-full bg-muted h-1 rounded-full mt-1">
+                          <div
+                            className="h-1 rounded-full bg-primary/60"
+                            style={{ width: `${Math.min(100, pct * 5)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{getCategoryLabel(r.category)}</td>
+                    <td className="px-3 py-2.5 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        r.stock <= 0 ? "bg-red-500/15 text-red-400" :
+                        r.stock <= 3 ? "bg-yellow-500/15 text-yellow-400" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {r.stock}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden lg:table-cell font-mono">{formatARS(r.costARS)}</td>
+                    <td className="px-3 py-2.5 text-right text-xs font-mono">{formatARS(Number(r.sale_price_ars) || 0)}</td>
+                    <td className={`px-3 py-2.5 text-right text-xs font-bold ${r.margin >= 30 ? "text-success" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>
+                      {r.margin.toFixed(1)}%
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-xs font-mono text-warning">{formatARS(r.costValue)}</td>
+                    <td className="px-3 py-2.5 text-right text-xs font-mono text-success">{formatARS(r.retailValue)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/40 font-bold text-sm">
+                  <td className="px-3 py-2.5">TOTAL ({rows.length} productos)</td>
+                  <td className="hidden md:table-cell" />
+                  <td className="px-3 py-2.5 text-center">{totalUnits}</td>
+                  <td className="hidden lg:table-cell" />
+                  <td />
+                  <td className="px-3 py-2.5 text-right">{unrealizedMargin.toFixed(1)}%</td>
+                  <td className="px-3 py-2.5 text-right text-warning font-mono">{formatARS(totalCostValue)}</td>
+                  <td className="px-3 py-2.5 text-right text-success font-mono">{formatARS(totalRetailValue)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SortTh({ label, sortKey, current, asc, onClick, right }: {
+  label: string; sortKey: string; current: string; asc: boolean; onClick: (k: any) => void; right?: boolean;
+}) {
+  const active = current === sortKey;
+  return (
+    <th
+      className={`px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium cursor-pointer hover:text-foreground transition-colors ${right ? "text-right" : "text-center"}`}
+      onClick={() => onClick(sortKey)}
+    >
+      <span className={`flex items-center gap-1 ${right ? "justify-end" : "justify-center"}`}>
+        {label}
+        <ArrowUpDown className={`w-3 h-3 ${active ? "text-primary" : "opacity-40"}`} />
+      </span>
+    </th>
   );
 }
 
