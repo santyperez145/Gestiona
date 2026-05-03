@@ -193,7 +193,62 @@ function ReceiptModal({
     window.open(`https://wa.me/?text=${encodeURIComponent(receiptText)}`, "_blank");
   };
 
-  const print = () => window.print();
+  const print = () => {
+    const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+    const rows = items.map(it =>
+      `<tr><td>${it.name}</td><td align="center">x${it.quantity}</td><td align="right">${formatARS(it.price * it.quantity)}</td></tr>`
+    ).join("");
+
+    let discountRows = "";
+    if (couponDiscount > 0) discountRows += `<tr><td colspan="2">Desc. cupón</td><td align="right" style="color:green">-${formatARS(couponDiscount)}</td></tr>`;
+    if (globalDiscountARS > 0) discountRows += `<tr><td colspan="2">Desc. adicional</td><td align="right" style="color:green">-${formatARS(globalDiscountARS)}</td></tr>`;
+
+    let paymentInfo = "";
+    if (splitMode) {
+      paymentInfo = `<p>${splitMethod1}: ${formatARS(splitAmount1)} | ${splitMethod2}: ${formatARS(splitAmount2)}</p>`;
+    } else {
+      paymentInfo = `<p>Pago: ${payMethod.toUpperCase()}</p>`;
+      if (payMethod === "efectivo" && cashGiven >= total) {
+        paymentInfo += `<p>Recibido: ${formatARS(cashGiven)} — Cambio: ${formatARS(change)}</p>`;
+      }
+    }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  * { font-family: 'Courier New', monospace; font-size: 12px; color: #000; }
+  body { width: 72mm; margin: 0; }
+  h1 { font-size: 16px; text-align: center; margin: 4px 0; }
+  .center { text-align: center; }
+  .divider { border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 2px 0; }
+  .total-row td { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 4px; }
+  .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+</style></head><body>
+<h1>${businessName}</h1>
+<p class="center">${new Date().toLocaleString("es-AR")}</p>
+${customer ? `<p class="center">Cliente: ${customer}</p>` : ""}
+<div class="divider"></div>
+<table>
+  <tbody>${rows}</tbody>
+</table>
+<div class="divider"></div>
+<table>
+  <tbody>
+    ${discountRows}
+    <tr class="total-row"><td colspan="2">TOTAL</td><td align="right">${formatARS(total)}</td></tr>
+  </tbody>
+</table>
+<div class="divider"></div>
+${paymentInfo}
+<p class="center">${payMethod === "fiado" ? "⚠ PENDIENTE DE PAGO" : "✓ PAGADO"}</p>
+<div class="footer">¡Gracias por tu compra!</div>
+</body></html>`;
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
+  };
 
   const generateMpLink = async () => {
     setMpLoading(true);
