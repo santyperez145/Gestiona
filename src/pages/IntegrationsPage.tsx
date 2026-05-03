@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
-  Eye, EyeOff, Save, Webhook,
+  Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
 } from "lucide-react";
 
 const TIENDANUBE_APP_ID = import.meta.env.VITE_TIENDANUBE_APP_ID || "";
@@ -50,6 +50,11 @@ export default function IntegrationsPage() {
   const [savingMp, setSavingMp] = useState(false);
   const [mpLoaded, setMpLoaded] = useState(false);
 
+  // API key
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [generatingKey, setGeneratingKey] = useState(false);
+
   const loadConnection = async () => {
     if (!activeOrg) return;
     setLoadingConn(true);
@@ -66,14 +71,39 @@ export default function IntegrationsPage() {
     if (!activeOrg) return;
     const { data } = await supabase
       .from("settings")
-      .select("mp_access_token, mp_enabled")
+      .select("mp_access_token, mp_enabled, api_key")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (data) {
       setMpToken(data.mp_access_token || "");
       setMpEnabled(!!data.mp_enabled);
+      setApiKey((data as any).api_key || null);
     }
     setMpLoaded(true);
+  };
+
+  const handleGenerateApiKey = async () => {
+    if (!activeOrg) return;
+    setGeneratingKey(true);
+    try {
+      const newKey = "gst_" + Array.from(crypto.getRandomValues(new Uint8Array(24)))
+        .map(b => b.toString(16).padStart(2, "0")).join("");
+      const { error } = await supabase
+        .from("settings")
+        .upsert({ org_id: activeOrg.id, api_key: newKey }, { onConflict: "org_id" });
+      if (error) throw error;
+      setApiKey(newKey);
+      setApiKeyVisible(true);
+      toast.success("API key generada");
+    } catch { toast.error("Error al generar API key"); }
+    finally { setGeneratingKey(false); }
+  };
+
+  const handleRevokeApiKey = async () => {
+    if (!activeOrg || !confirm("¿Revocar la API key? Las integraciones dejarán de funcionar.")) return;
+    await supabase.from("settings").update({ api_key: null } as any).eq("org_id", activeOrg.id);
+    setApiKey(null);
+    toast.success("API key revocada");
   };
 
   const handleSaveMp = async () => {
@@ -449,6 +479,54 @@ export default function IntegrationsPage() {
               Guardar configuración
             </Button>
           </div>
+        )}
+      </div>
+
+      {/* API REST pública */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-emerald-500/10">
+            <KeyRound className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">API REST Pública</h3>
+            <p className="text-sm text-muted-foreground">Integrá Gestiona con cualquier sistema externo</p>
+          </div>
+        </div>
+
+        <div className="space-y-2 text-sm text-muted-foreground rounded-lg bg-muted/20 p-3">
+          <p className="font-medium text-foreground">Endpoints disponibles:</p>
+          <code className="block text-xs">GET  /functions/v1/public-api/products</code>
+          <code className="block text-xs">GET  /functions/v1/public-api/sales?limit=50</code>
+          <code className="block text-xs">POST /functions/v1/public-api/sales</code>
+          <code className="block text-xs">PATCH /functions/v1/public-api/stock/:productId</code>
+          <code className="block text-xs">GET  /functions/v1/public-api/customers</code>
+          <p className="text-xs mt-2">Header: <code>Authorization: Bearer &lt;tu_api_key&gt;</code></p>
+        </div>
+
+        {apiKey ? (
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Tu API Key</label>
+            <div className="flex gap-2">
+              <div className="flex-1 font-mono text-xs bg-muted/30 rounded-lg border border-border px-3 py-2 overflow-hidden">
+                {apiKeyVisible ? apiKey : "gst_" + "•".repeat(40)}
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setApiKeyVisible(v => !v)}>
+                {apiKeyVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(apiKey); toast.success("Copiado"); }}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleRevokeApiKey}>
+              <RotateCcw className="w-4 h-4 mr-2" /> Revocar y generar nueva
+            </Button>
+          </div>
+        ) : (
+          <Button className="w-full" onClick={handleGenerateApiKey} disabled={generatingKey}>
+            {generatingKey ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+            Generar API Key
+          </Button>
         )}
       </div>
     </div>
