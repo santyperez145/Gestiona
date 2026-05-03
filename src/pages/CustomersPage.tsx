@@ -474,6 +474,41 @@ export default function CustomersPage() {
         </div>
       )}
 
+      {/* At-risk alert panel */}
+      {(() => {
+        const atRisk = customers.filter(c => c.segment === "En riesgo" || c.segment === "Dormido");
+        if (atRisk.length === 0) return null;
+        return (
+          <div className="bg-orange-500/5 border border-orange-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="w-4 h-4 text-orange-400 shrink-0" />
+              <p className="text-sm font-semibold text-orange-400">{atRisk.length} cliente{atRisk.length !== 1 ? "s" : ""} que necesitan reactivación</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {atRisk.slice(0, 6).map(c => (
+                <a
+                  key={c.name}
+                  href={c.phone ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${c.name.split(' ')[0]}! 👋 Hace ${c.daysSinceLastPurchase} días que no te vemos por acá. ¿Se te ofrece algo? Tenemos novedades para vos 🛍️`)}` : undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${c.phone ? "border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 cursor-pointer" : "border-border bg-muted text-muted-foreground cursor-default"}`}
+                  title={c.phone ? "Enviar WhatsApp de reactivación" : "Sin teléfono registrado"}
+                  onClick={e => { if (!c.phone) e.preventDefault(); }}
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  {c.name.split(' ')[0]} ({c.daysSinceLastPurchase}d)
+                </a>
+              ))}
+              {atRisk.length > 6 && (
+                <button onClick={() => setSegmentFilter(segmentFilter === "En riesgo" ? "all" : "En riesgo")} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted/80">
+                  +{atRisk.length - 6} más →
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <Input
