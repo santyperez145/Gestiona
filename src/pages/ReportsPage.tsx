@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -51,14 +51,17 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [period, setPeriod] = useState<PeriodKey>('current_month');
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [products, sales, purchases, debts, settings, expenses] = await Promise.all([
+      const [products, sales, purchases, debts, settings, expenses, orgMembers] = await Promise.all([
         getProductsDB(user.id), getSalesDB(user.id), getPurchasesDB(user.id), getDebtsDB(user.id), getSettingsDB(user.id), getExpensesDB(user.id),
+        getOrgMembersWithProfilesDB(user.id).catch(() => []),
       ]);
       setData({ products, sales, purchases, debts, settings, expenses });
+      setMembers(orgMembers as any[]);
     })();
   }, [user]);
 
@@ -227,6 +230,7 @@ export default function ReportsPage() {
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
           <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>
+          <TabsTrigger value="sellers">Vendedores</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -351,6 +355,10 @@ export default function ReportsPage() {
 
         <TabsContent value="inventory">
           <InventoryTab products={products} settings={settings} />
+        </TabsContent>
+
+        <TabsContent value="sellers">
+          <SellersTab sales={data.sales} members={members} period={period} />
         </TabsContent>
       </Tabs>
     </div>
@@ -603,3 +611,125 @@ function Row({ label, value, bold, negative, dim, highlight }: { label: string; 
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Vendedores Tab
+// ─────────────────────────────────────────────────────────────
+function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; period: PeriodKey }) {
+  const { from, to, label } = getPeriodRange(period);
+  const inRange = (d: string) => { const x = new Date(d); return x >= from && x <= to; };
+
+  const sellerMap = useMemo(() => {
+    const map: Record<string, { name: string; role: string; totalARS: number; profit: number; count: number; customers: Set<string>; byMonth: Record<string, number> }> = {};
+    const memberByUserId: Record<string, any> = {};
+    members.forEach(m => { memberByUserId[m.user_id] = m; });
+
+    sales.filter(s => inRange(s.date)).forEach(s => {
+      const uid = s.user_id || 'unknown';
+      if (!map[uid]) {
+        const m = memberByUserId[uid];
+        map[uid] = {
+          name: m?.display_name || `Vendedor ${uid.slice(0, 6)}`,
+          role: m?.role || 'vendedor',
+          totalARS: 0, profit: 0, count: 0,
+          customers: new Set(),
+          byMonth: {},
+        };
+      }
+      map[uid].totalARS += Number(s.total_ars);
+      map[uid].profit += Number(s.profit_ars);
+      map[uid].count += s.quantity;
+      if (s.customer_name) map[uid].customers.add(s.customer_name);
+      const mo = String(s.date).slice(0, 7);
+      map[uid].byMonth[mo] = (map[uid].byMonth[mo] || 0) + Number(s.total_ars);
+    });
+    return map;
+  }, [sales, members, period]);
+
+  const rows = useMemo(() =>
+    Object.entries(sellerMap)
+      .map(([uid, d]) => ({ uid, ...d, margin: d.totalARS > 0 ? (d.profit / d.totalARS) * 100 : 0, customersCount: d.customers.size, avgTicket: d.count > 0 ? d.totalARS / d.count : 0 }))
+      .sort((a, b) => b.totalARS - a.totalARS),
+    [sellerMap]
+  );
+
+  const totalARS = rows.reduce((s, r) => s + r.totalARS, 0);
+
+  const chartData = rows.map(r => ({ name: r.name.split(' ')[0], total: Math.round(r.totalARS) }));
+
+  if (rows.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm">Sin ventas registradas en el período seleccionado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Período: {label}</h3>
+        <Button variant="outline" size="sm" onClick={() => {
+          exportCSV(`vendedores_${label.replace(/\s/g, '_')}.csv`,
+            ['Vendedor', 'Rol', 'Ventas ARS', 'Ganancia ARS', 'Margen %', 'Unidades', 'Clientes únicos', 'Ticket prom.'],
+            rows.map(r => [r.name, r.role, r.totalARS.toFixed(0), r.profit.toFixed(0), r.margin.toFixed(1), String(r.count), String(r.customersCount), r.avgTicket.toFixed(0)])
+          );
+        }}><FileDown className="w-3.5 h-3.5 mr-1.5" />CSV</Button>
+      </div>
+
+      {/* Bar chart */}
+      {chartData.length > 1 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Facturación por vendedor</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 8 }}>
+              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+              <Tooltip formatter={(v: any) => formatARS(v)} contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                {chartData.map((_, i) => <Cell key={i} fill={SELLER_COLORS[i % SELLER_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {rows.map((r, i) => {
+          const sharePct = totalARS > 0 ? (r.totalARS / totalARS) * 100 : 0;
+          return (
+            <div key={r.uid} className="bg-card border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: SELLER_COLORS[i % SELLER_COLORS.length] }}>
+                    {r.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{r.name}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-2 py-0.5">{sharePct.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5">
+                <div className="h-1.5 rounded-full transition-all" style={{ width: `${sharePct}%`, background: SELLER_COLORS[i % SELLER_COLORS.length] }} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><p className="text-muted-foreground">Facturado</p><p className="font-bold text-success">{formatARS(r.totalARS)}</p></div>
+                <div><p className="text-muted-foreground">Ganancia</p><p className="font-bold">{formatARS(r.profit)}</p></div>
+                <div><p className="text-muted-foreground">Margen</p><p className={`font-bold ${r.margin >= 30 ? "text-success" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>{r.margin.toFixed(1)}%</p></div>
+                <div><p className="text-muted-foreground">Unidades</p><p className="font-bold">{r.count}</p></div>
+                <div><p className="text-muted-foreground">Clientes</p><p className="font-bold">{r.customersCount}</p></div>
+                <div><p className="text-muted-foreground">Ticket prom.</p><p className="font-bold">{formatARS(r.avgTicket)}</p></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const SELLER_COLORS = ['hsl(40,70%,50%)', 'hsl(152,58%,42%)', 'hsl(200,60%,50%)', 'hsl(280,60%,50%)', 'hsl(0,70%,50%)', 'hsl(35,90%,55%)'];
