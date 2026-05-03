@@ -232,6 +232,7 @@ export default function ReportsPage() {
           <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>
           <TabsTrigger value="sellers">Vendedores</TabsTrigger>
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
+          <TabsTrigger value="budget">Presupuesto</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -364,6 +365,10 @@ export default function ReportsPage() {
 
         <TabsContent value="taxes">
           <TaxesTab sales={data.sales} settings={settings} />
+        </TabsContent>
+
+        <TabsContent value="budget">
+          <BudgetTab sales={data.sales} expenses={data.expenses} settings={settings} userId={user?.id || ""} />
         </TabsContent>
       </Tabs>
     </div>
@@ -888,6 +893,201 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
           <p>IIBB (Ingresos Brutos): {iibbRate}% sobre ganancia bruta</p>
           {monotributoMonthly > 0 && <p>Monotributo: ${monotributoMonthly.toLocaleString("es-AR")} fijos por mes</p>}
           <p className="text-[10px] mt-2 opacity-70">Modificar tasas: Ajustes → Impuestos. Importante: este reporte es orientativo. Consultá con tu contador para declaraciones oficiales.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Presupuesto Tab — Meta mensual vs. Real
+// ─────────────────────────────────────────────────────────────
+function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expenses: any[]; settings: any; userId: string }) {
+  const [targets, setTargets] = useState({
+    sales_ars: String(settings?.monthly_targets?.sales_ars || ""),
+    profit_ars: String(settings?.monthly_targets?.profit_ars || ""),
+    expenses_ars: String(settings?.monthly_targets?.expenses_ars || ""),
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await supabase.from("settings").update({
+        monthly_targets: {
+          sales_ars: Number(targets.sales_ars) || null,
+          profit_ars: Number(targets.profit_ars) || null,
+          expenses_ars: Number(targets.expenses_ars) || null,
+        },
+      }).eq("user_id", userId);
+      toast.success("Metas guardadas");
+    } catch { toast.error("Error al guardar metas"); }
+    finally { setSaving(false); }
+  };
+
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  const monthlyActual = useMemo(() => {
+    const salesMap: Record<string, number> = {};
+    const profitMap: Record<string, number> = {};
+    const expMap: Record<string, number> = {};
+    sales.forEach((s: any) => {
+      const key = String(s.date).slice(0, 7);
+      salesMap[key] = (salesMap[key] || 0) + Number(s.total_ars);
+      profitMap[key] = (profitMap[key] || 0) + Number(s.profit_ars);
+    });
+    expenses.forEach((e: any) => {
+      const key = String(e.date).slice(0, 7);
+      expMap[key] = (expMap[key] || 0) + Number(e.amount_ars);
+    });
+    const allKeys = new Set([...Object.keys(salesMap), ...Object.keys(expMap)]);
+    return Array.from(allKeys).sort().map(key => {
+      const [y, mo] = key.split('-');
+      return {
+        key, label: `${months[parseInt(mo) - 1]} ${y.slice(2)}`,
+        sales: salesMap[key] || 0,
+        profit: profitMap[key] || 0,
+        expenses: expMap[key] || 0,
+      };
+    });
+  }, [sales, expenses]);
+
+  const tSales = Number(targets.sales_ars) || 0;
+  const tProfit = Number(targets.profit_ars) || 0;
+  const tExpenses = Number(targets.expenses_ars) || 0;
+  const hasTargets = tSales > 0 || tProfit > 0 || tExpenses > 0;
+
+  function BudgetBar({ actual, target, color }: { actual: number; target: number; color: string }) {
+    if (!target) return <span className="text-xs text-muted-foreground">Sin meta</span>;
+    const pct = Math.min((actual / target) * 100, 100);
+    const over = actual > target;
+    return (
+      <div className="space-y-0.5">
+        <div className="flex justify-between text-[10px]">
+          <span className={over ? "text-success font-bold" : "text-muted-foreground"}>{pct.toFixed(0)}%</span>
+          <span className="text-muted-foreground">{formatARS(actual)} / {formatARS(target)}</span>
+        </div>
+        <div className="w-full bg-muted rounded-full h-1.5">
+          <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: over ? 'hsl(152,58%,42%)' : color }} />
+        </div>
+      </div>
+    );
+  }
+
+  const now = new Date();
+  const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonth = monthlyActual.find(m => m.key === curKey) || { sales: 0, profit: 0, expenses: 0 };
+
+  return (
+    <div className="space-y-6">
+      {/* Set targets */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h3 className="font-semibold text-sm mb-4">Metas mensuales</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { key: "sales_ars" as const, label: "Meta de ventas (ARS)", color: "text-primary" },
+            { key: "profit_ars" as const, label: "Meta de ganancia (ARS)", color: "text-success" },
+            { key: "expenses_ars" as const, label: "Límite de gastos (ARS)", color: "text-warning" },
+          ].map(f => (
+            <div key={f.key}>
+              <label className={`text-xs font-medium mb-1 block ${f.color}`}>{f.label}</label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={targets[f.key]}
+                onChange={e => setTargets(prev => ({ ...prev, [f.key]: e.target.value }))}
+                className="bg-muted"
+              />
+            </div>
+          ))}
+        </div>
+        <Button className="mt-4 gradient-gold text-primary-foreground gap-2" onClick={handleSave} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar metas"}
+        </Button>
+      </div>
+
+      {/* Current month progress */}
+      {hasTargets && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="font-semibold text-sm mb-4">Mes actual</h3>
+          <div className="space-y-4">
+            {tSales > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Ventas</p>
+                <BudgetBar actual={currentMonth.sales} target={tSales} color="hsl(40,70%,50%)" />
+              </div>
+            )}
+            {tProfit > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Ganancia bruta</p>
+                <BudgetBar actual={currentMonth.profit} target={tProfit} color="hsl(152,58%,42%)" />
+              </div>
+            )}
+            {tExpenses > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Gastos (límite)</p>
+                <BudgetBar actual={currentMonth.expenses} target={tExpenses} color="hsl(30,80%,55%)" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly comparison table */}
+      {monthlyActual.length > 0 && hasTargets && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Historial vs. meta</h3>
+            <Button variant="outline" size="sm" onClick={() => exportCSV(
+              'presupuesto_vs_real.csv',
+              ['Mes', 'Ventas real', 'Meta ventas', '% cumpl.', 'Ganancia real', 'Meta ganancia', 'Gastos real', 'Límite gastos'],
+              monthlyActual.map(r => [r.label, r.sales.toFixed(0), tSales.toFixed(0), tSales > 0 ? ((r.sales / tSales) * 100).toFixed(1) : '—', r.profit.toFixed(0), tProfit.toFixed(0), r.expenses.toFixed(0), tExpenses.toFixed(0)])
+            )}>
+              <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2.5 text-left text-xs text-muted-foreground uppercase">Mes</th>
+                  {tSales > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">Ventas</th>}
+                  {tSales > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">% meta</th>}
+                  {tProfit > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">Ganancia</th>}
+                  {tProfit > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">% meta</th>}
+                  {tExpenses > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase">Gastos</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyActual.map((row, i) => {
+                  const salesPct = tSales > 0 ? (row.sales / tSales) * 100 : null;
+                  const profitPct = tProfit > 0 ? (row.profit / tProfit) * 100 : null;
+                  const expOver = tExpenses > 0 && row.expenses > tExpenses;
+                  return (
+                    <tr key={row.key} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}>
+                      <td className="px-3 py-2.5 font-medium">{row.label}</td>
+                      {tSales > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(row.sales)}</td>}
+                      {tSales > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${salesPct !== null && salesPct >= 100 ? 'text-success' : salesPct !== null && salesPct >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                        {salesPct !== null ? `${salesPct.toFixed(0)}%` : '—'}
+                      </td>}
+                      {tProfit > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(row.profit)}</td>}
+                      {tProfit > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${profitPct !== null && profitPct >= 100 ? 'text-success' : profitPct !== null && profitPct >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                        {profitPct !== null ? `${profitPct.toFixed(0)}%` : '—'}
+                      </td>}
+                      {tExpenses > 0 && <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${expOver ? 'text-destructive' : 'text-success'}`}>{formatARS(row.expenses)}</td>}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!hasTargets && (
+        <div className="text-center py-12 text-muted-foreground">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
+          <p className="text-sm">Configurá tus metas mensuales arriba para ver el seguimiento real vs. presupuesto</p>
         </div>
       )}
     </div>
