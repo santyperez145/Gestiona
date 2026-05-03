@@ -7,13 +7,12 @@ import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -86,17 +85,69 @@ function useBarcodeScanner(onDetect: (code: string) => void) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Payment method mini selector
+// ─────────────────────────────────────────────────────────────
+function PayMethodGrid({
+  value,
+  onChange,
+  compact = false,
+}: {
+  value: PayMethod;
+  onChange: (m: PayMethod) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-1">
+      {PAY_METHODS.map((m) => {
+        const Icon = m.icon;
+        const active = value === m.value;
+        return (
+          <button
+            key={m.value}
+            onClick={() => onChange(m.value)}
+            className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border text-[10px] font-medium transition-all ${
+              active
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            <Icon className={`w-3.5 h-3.5 ${active ? "text-primary" : m.color}`} />
+            {m.label.split(" ")[0]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Receipt generator (WhatsApp text)
 // ─────────────────────────────────────────────────────────────
 function buildReceiptText(
-  items: CartItem[], payMethod: PayMethod, customer: string,
-  total: number, cashGiven: number, businessName: string,
+  items: CartItem[],
+  payMethod: PayMethod,
+  splitMode: boolean,
+  splitMethod1: PayMethod,
+  splitMethod2: PayMethod,
+  splitAmount1: number,
+  splitAmount2: number,
+  customer: string,
+  total: number,
+  cashGiven: number,
+  businessName: string,
+  globalDiscountARS: number,
+  couponDiscount: number,
 ) {
   const lines = items.map(
     (it) => `• ${it.name} x${it.quantity} → ${formatARS(it.price * it.quantity)}`
   );
-  const change = payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
+  const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
   const date = new Date().toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+
+  const paymentLine = splitMode
+    ? `Pago: ${PAY_METHODS.find(m => m.value === splitMethod1)?.label} ${formatARS(splitAmount1)} + ${PAY_METHODS.find(m => m.value === splitMethod2)?.label} ${formatARS(splitAmount2)}`
+    : `Método: ${PAY_METHODS.find(m => m.value === payMethod)?.label}`;
+
   return [
     `🧾 *${businessName}*`,
     `📅 ${date}`,
@@ -104,8 +155,10 @@ function buildReceiptText(
     "",
     ...lines,
     "",
+    couponDiscount > 0 ? `🏷️ Descuento cupón: -${formatARS(couponDiscount)}` : "",
+    globalDiscountARS > 0 ? `🔖 Descuento adicional: -${formatARS(globalDiscountARS)}` : "",
     `💰 *Total: ${formatARS(total)}*`,
-    PAY_METHODS.find(m => m.value === payMethod)?.label ? `Método: ${PAY_METHODS.find(m => m.value === payMethod)!.label}` : "",
+    paymentLine,
     change > 0 ? `Cambio: ${formatARS(change)}` : "",
     payMethod === "fiado" ? "⚠️ Pendiente de pago" : "✅ Pagado",
   ].filter(Boolean).join("\n");
@@ -115,15 +168,24 @@ function buildReceiptText(
 // Receipt Modal
 // ─────────────────────────────────────────────────────────────
 function ReceiptModal({
-  items, payMethod, customer, total, cashGiven, businessName, orgId,
+  items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
+  customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount,
   onClose, onNewSale,
 }: {
-  items: CartItem[]; payMethod: PayMethod; customer: string;
-  total: number; cashGiven: number; businessName: string; orgId: string;
+  items: CartItem[]; payMethod: PayMethod;
+  splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
+  splitAmount1: number; splitAmount2: number;
+  customer: string; total: number; cashGiven: number;
+  businessName: string; orgId: string;
+  globalDiscountARS: number; couponDiscount: number;
   onClose: () => void; onNewSale: () => void;
 }) {
-  const change = payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
-  const receiptText = buildReceiptText(items, payMethod, customer, total, cashGiven, businessName);
+  const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
+  const receiptText = buildReceiptText(
+    items, payMethod, splitMode, splitMethod1, splitMethod2,
+    splitAmount1, splitAmount2, customer, total, cashGiven, businessName,
+    globalDiscountARS, couponDiscount,
+  );
   const [mpLink, setMpLink] = useState("");
   const [mpLoading, setMpLoading] = useState(false);
 
@@ -194,11 +256,23 @@ function ReceiptModal({
           </div>
 
           <div className="border-t border-dashed border-border pt-3 space-y-1">
+            {couponDiscount > 0 && (
+              <div className="flex justify-between text-xs text-success">
+                <span>Descuento cupón</span>
+                <span className="font-mono">-{formatARS(couponDiscount)}</span>
+              </div>
+            )}
+            {globalDiscountARS > 0 && (
+              <div className="flex justify-between text-xs text-success">
+                <span>Descuento adicional</span>
+                <span className="font-mono">-{formatARS(globalDiscountARS)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm font-bold text-primary">
               <span>TOTAL</span>
               <span className="font-mono">{formatARS(total)}</span>
             </div>
-            {payMethod === "efectivo" && cashGiven >= total && (
+            {!splitMode && payMethod === "efectivo" && cashGiven >= total && (
               <>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Recibido</span>
@@ -210,10 +284,23 @@ function ReceiptModal({
                 </div>
               </>
             )}
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Pago</span>
-              <span className="capitalize">{PAY_METHODS.find(m => m.value === payMethod)?.label}</span>
-            </div>
+            {splitMode ? (
+              <div className="space-y-0.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{PAY_METHODS.find(m => m.value === splitMethod1)?.label}</span>
+                  <span className="font-mono">{formatARS(splitAmount1)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{PAY_METHODS.find(m => m.value === splitMethod2)?.label}</span>
+                  <span className="font-mono">{formatARS(splitAmount2)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Pago</span>
+                <span className="capitalize">{PAY_METHODS.find(m => m.value === payMethod)?.label}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -277,11 +364,28 @@ export default function POSPage() {
   const [cat, setCat] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState("");
+
+  // Single payment
   const [payMethod, setPayMethod] = useState<PayMethod>("efectivo");
   const [cashGiven, setCashGiven] = useState("");
+
+  // Split payment
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitMethod1, setSplitMethod1] = useState<PayMethod>("efectivo");
+  const [splitMethod2, setSplitMethod2] = useState<PayMethod>("transferencia");
+  const [splitAmount1, setSplitAmount1] = useState("");
+
+  // Global discount
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
+  const [discountValue, setDiscountValue] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
-  const [receipt, setReceipt] = useState<{ items: CartItem[]; total: number; cash: number } | null>(null);
-  const [showCart, setShowCart] = useState(false); // mobile toggle
+  const [receipt, setReceipt] = useState<{
+    items: CartItem[]; total: number; cash: number;
+    globalDiscountARS: number; couponDiscount: number;
+  } | null>(null);
+  const [showCart, setShowCart] = useState(false);
   const [loadingProds, setLoadingProds] = useState(true);
   const [couponCode, setCouponCode] = useState("");
   const [couponResult, setCouponResult] = useState<any>(null);
@@ -326,20 +430,35 @@ export default function POSPage() {
     return list;
   }, [products, cat, search]);
 
-  // ── Cart helpers ──
-  const usesDiscount = PAY_METHODS.find(m => m.value === payMethod)?.usesDiscount ?? false;
+  // ── Cart calculations ──
+  const effectivePayMethod = splitMode ? splitMethod1 : payMethod;
+  const usesDiscount = PAY_METHODS.find(m => m.value === effectivePayMethod)?.usesDiscount ?? false;
 
   const priceFor = (item: CartItem) =>
     usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
 
   const cartSubtotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
+
   const couponDiscount = couponResult?.valid
     ? couponResult.coupon.discount_type === "percentage"
       ? cartSubtotal * (couponResult.coupon.discount_value / 100)
       : Math.min(couponResult.coupon.discount_value, cartSubtotal)
     : 0;
-  const cartTotal = Math.max(0, cartSubtotal - couponDiscount);
+
+  const afterCoupon = Math.max(0, cartSubtotal - couponDiscount);
+
+  const globalDiscountARS = showDiscount && discountValue
+    ? discountType === "percent"
+      ? afterCoupon * (Math.min(100, Number(discountValue)) / 100)
+      : Math.min(Number(discountValue), afterCoupon)
+    : 0;
+
+  const cartTotal = Math.max(0, afterCoupon - globalDiscountARS);
   const cartQty = cart.reduce((s, it) => s + it.quantity, 0);
+
+  // Split amounts
+  const splitAmt1 = Number(splitAmount1) || 0;
+  const splitAmt2 = Math.max(0, cartTotal - splitAmt1);
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim() || !user) return;
@@ -395,23 +514,61 @@ export default function POSPage() {
 
   const removeItem = (productId: string) => setCart((prev) => prev.filter((it) => it.productId !== productId));
 
-  const clearCart = () => { setCart([]); setCustomer(""); setCashGiven(""); setPayMethod("efectivo"); setCouponCode(""); setCouponResult(null); };
+  const clearCart = () => {
+    setCart([]);
+    setCustomer("");
+    setCashGiven("");
+    setPayMethod("efectivo");
+    setSplitMode(false);
+    setSplitAmount1("");
+    setSplitMethod1("efectivo");
+    setSplitMethod2("transferencia");
+    setCouponCode("");
+    setCouponResult(null);
+    setShowDiscount(false);
+    setDiscountValue("");
+  };
 
   // ── Confirm sale ──
   const confirmSale = async () => {
     if (!user || !activeOrg || !cart.length) return;
+
+    // Validate split payment
+    if (splitMode) {
+      if (splitAmt1 <= 0) { toast.error("Ingresá el monto del primer método"); return; }
+      if (splitAmt1 > cartTotal) { toast.error("El primer monto supera el total"); return; }
+      if (splitMethod1 === splitMethod2) { toast.error("Los dos métodos deben ser diferentes"); return; }
+    }
+
     const orgId = activeOrg.id;
     setSubmitting(true);
     try {
-      const paid = payMethod !== "fiado";
+      const isPaid = splitMode
+        ? splitMethod1 !== "fiado" && splitMethod2 !== "fiado"
+        : payMethod !== "fiado";
+      const primaryMethod = splitMode
+        ? (splitAmt1 >= splitAmt2 ? splitMethod1 : splitMethod2)
+        : payMethod;
       const date = new Date().toISOString();
 
       for (const item of cart) {
         const unitPrice = priceFor(item);
-        const totalARS = unitPrice * item.quantity;
+        const lineTotal = unitPrice * item.quantity;
+        const proportion = cartTotal > 0 ? lineTotal / cartSubtotal : 0;
+
+        // Distribute global discount proportionally across items
+        const itemGlobalDiscount = globalDiscountARS * proportion;
+        const itemCouponDiscount = couponDiscount * proportion;
+        const adjustedTotal = Math.max(0, lineTotal - itemGlobalDiscount - itemCouponDiscount);
+
         const costARS = item.costUSD * item.exchangeRate;
-        const profitARS = totalARS - costARS * item.quantity;
+        const profitARS = adjustedTotal - costARS * item.quantity;
         const profitUSD = item.exchangeRate > 0 ? profitARS / item.exchangeRate : 0;
+
+        const splitPayments = splitMode ? [
+          { method: splitMethod1, amount: Math.round(adjustedTotal * (splitAmt1 / cartTotal)) },
+          { method: splitMethod2, amount: Math.round(adjustedTotal * (splitAmt2 / cartTotal)) },
+        ] : null;
 
         const saleData: any = {
           id: crypto.randomUUID(),
@@ -422,29 +579,38 @@ export default function POSPage() {
           quantity: item.quantity,
           unit_price_ars: unitPrice,
           discount_applied: usesDiscount && !!item.discountPrice,
-          total_ars: totalARS,
+          total_ars: adjustedTotal,
           cost_per_unit_usd: item.costUSD,
           profit_ars: profitARS,
           profit_usd: profitUSD,
           customer_name: customer.trim() || null,
           date,
-          paid,
-          payment_method: payMethod,
+          paid: isPaid,
+          payment_method: primaryMethod,
+          split_payments: splitPayments,
+          global_discount_ars: itemGlobalDiscount > 0 ? itemGlobalDiscount : null,
           coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
         };
 
         await addSaleDB(saleData);
         await logAudit(user.id, "create", "sale", saleData.id, {
-          product: item.name, total: totalARS, method: payMethod, source: "pos",
+          product: item.name,
+          total: adjustedTotal,
+          method: splitMode ? `split:${splitMethod1}+${splitMethod2}` : payMethod,
+          source: "pos",
         });
       }
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
-
-      // Refresh stock
       setProducts(await getProductsDB(user.id));
 
-      setReceipt({ items: [...cart], total: cartTotal, cash: Number(cashGiven) || 0 });
+      setReceipt({
+        items: [...cart],
+        total: cartTotal,
+        cash: Number(cashGiven) || 0,
+        globalDiscountARS,
+        couponDiscount,
+      });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
@@ -453,8 +619,15 @@ export default function POSPage() {
     }
   };
 
+  // ── Confirm button disabled condition ──
+  const confirmDisabled =
+    cart.length === 0 ||
+    submitting ||
+    (splitMode && splitAmt1 <= 0) ||
+    (!splitMode && payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal);
+
   // ─────────────────────────────────────────────────────────
-  // Render
+  // Cart panel
   // ─────────────────────────────────────────────────────────
   const cartPanel = (
     <div className="flex flex-col h-full">
@@ -531,49 +704,81 @@ export default function POSPage() {
           className="h-8 text-sm bg-muted"
         />
 
-        {/* Payment method grid */}
-        <div className="grid grid-cols-3 gap-1">
-          {PAY_METHODS.map((m) => {
-            const Icon = m.icon;
-            const active = payMethod === m.value;
-            return (
-              <button
-                key={m.value}
-                onClick={() => setPayMethod(m.value)}
-                className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border text-[10px] font-medium transition-all ${
-                  active
-                    ? "border-primary/60 bg-primary/10 text-primary"
-                    : "border-border bg-card text-muted-foreground hover:border-primary/30"
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${active ? "text-primary" : m.color}`} />
-                {m.label.split(" ")[0]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Cash calculator */}
-        {payMethod === "efectivo" && (
-          <div className="space-y-1">
-            <Input
-              type="number" placeholder="Monto recibido ($)"
-              value={cashGiven}
-              onChange={(e) => setCashGiven(e.target.value)}
-              className="h-8 text-sm bg-muted"
-            />
-            {Number(cashGiven) > 0 && (
-              <div className={`text-xs text-center font-semibold px-2 py-1 rounded-lg ${
-                Number(cashGiven) >= cartTotal ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-              }`}>
-                {Number(cashGiven) >= cartTotal
-                  ? `Cambio: ${formatARS(Number(cashGiven) - cartTotal)}`
-                  : `Faltan: ${formatARS(cartTotal - Number(cashGiven))}`
-                }
-              </div>
-            )}
+        {/* Payment section */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Método de pago</span>
+            <button
+              onClick={() => { setSplitMode(!splitMode); setSplitAmount1(""); }}
+              className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg border transition-all ${
+                splitMode
+                  ? "border-primary/60 bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
+              }`}
+            >
+              <SplitSquareHorizontal className="w-3 h-3" />
+              Dividir pago
+            </button>
           </div>
-        )}
+
+          {!splitMode ? (
+            <>
+              <PayMethodGrid value={payMethod} onChange={setPayMethod} />
+              {/* Cash calculator */}
+              {payMethod === "efectivo" && (
+                <div className="space-y-1">
+                  <Input
+                    type="number" placeholder="Monto recibido ($)"
+                    value={cashGiven}
+                    onChange={(e) => setCashGiven(e.target.value)}
+                    className="h-8 text-sm bg-muted"
+                  />
+                  {Number(cashGiven) > 0 && (
+                    <div className={`text-xs text-center font-semibold px-2 py-1 rounded-lg ${
+                      Number(cashGiven) >= cartTotal ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                    }`}>
+                      {Number(cashGiven) >= cartTotal
+                        ? `Cambio: ${formatARS(Number(cashGiven) - cartTotal)}`
+                        : `Faltan: ${formatARS(cartTotal - Number(cashGiven))}`
+                      }
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            /* Split payment mode */
+            <div className="space-y-2">
+              {/* Method 1 */}
+              <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 1</span>
+                <PayMethodGrid value={splitMethod1} onChange={setSplitMethod1} />
+                <Input
+                  type="number"
+                  placeholder="Monto ($)"
+                  value={splitAmount1}
+                  onChange={(e) => setSplitAmount1(e.target.value)}
+                  className="h-8 text-sm bg-card"
+                />
+              </div>
+              {/* Method 2 */}
+              <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 2</span>
+                <PayMethodGrid value={splitMethod2} onChange={setSplitMethod2} />
+                <div className={`h-8 flex items-center px-3 rounded-lg border text-sm font-mono ${
+                  splitAmt2 > 0 ? "bg-primary/10 border-primary/30 text-primary" : "bg-card border-border text-muted-foreground"
+                }`}>
+                  {splitAmt1 > 0 ? formatARS(splitAmt2) : "Resto automático"}
+                </div>
+              </div>
+              {splitAmt1 > 0 && splitAmt2 >= 0 && (
+                <div className="text-[10px] text-center text-muted-foreground">
+                  {formatARS(splitAmt1)} + {formatARS(splitAmt2)} = {formatARS(cartTotal)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Coupon */}
         <div className="space-y-1.5">
@@ -611,9 +816,71 @@ export default function POSPage() {
           )}
         </div>
 
+        {/* Global discount toggle */}
+        <div className="space-y-1.5">
+          <button
+            onClick={() => { setShowDiscount(!showDiscount); setDiscountValue(""); }}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+              showDiscount
+                ? "border-primary/40 bg-primary/5 text-primary"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5" />
+              Descuento adicional
+            </span>
+            {showDiscount && globalDiscountARS > 0 && (
+              <span className="text-success font-mono">-{formatARS(globalDiscountARS)}</span>
+            )}
+          </button>
+
+          {showDiscount && (
+            <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+              {/* Type toggle */}
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => { setDiscountType("percent"); setDiscountValue(""); }}
+                  className={`flex items-center justify-center gap-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                    discountType === "percent"
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  <Percent className="w-3 h-3" />Porcentaje
+                </button>
+                <button
+                  onClick={() => { setDiscountType("fixed"); setDiscountValue(""); }}
+                  className={`flex items-center justify-center gap-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                    discountType === "fixed"
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  <DollarSign className="w-3 h-3" />Monto fijo
+                </button>
+              </div>
+              <Input
+                type="number"
+                placeholder={discountType === "percent" ? "Ej: 10 (para 10%)" : "Monto en $"}
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                className="h-8 text-sm bg-card"
+                min={0}
+                max={discountType === "percent" ? 100 : undefined}
+              />
+              {globalDiscountARS > 0 && (
+                <div className="text-xs text-center text-success font-medium">
+                  Descuento: -{formatARS(globalDiscountARS)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Total + confirm */}
         <div className="bg-primary/10 rounded-xl px-4 py-3 border border-primary/20 space-y-1">
-          {couponDiscount > 0 && (
+          {cartSubtotal !== cartTotal && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
               <span className="font-mono">{formatARS(cartSubtotal)}</span>
@@ -625,16 +892,34 @@ export default function POSPage() {
               <span className="font-mono">-{formatARS(couponDiscount)}</span>
             </div>
           )}
+          {globalDiscountARS > 0 && (
+            <div className="flex items-center justify-between text-xs text-success">
+              <span>Desc. adicional</span>
+              <span className="font-mono">-{formatARS(globalDiscountARS)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground uppercase tracking-wide">Total</span>
             <span className="text-xl font-display font-bold text-primary">{formatARS(cartTotal)}</span>
           </div>
+          {splitMode && splitAmt1 > 0 && (
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+              <span>{PAY_METHODS.find(m => m.value === splitMethod1)?.label}</span>
+              <span className="font-mono">{formatARS(splitAmt1)}</span>
+            </div>
+          )}
+          {splitMode && splitAmt1 > 0 && (
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{PAY_METHODS.find(m => m.value === splitMethod2)?.label}</span>
+              <span className="font-mono">{formatARS(splitAmt2)}</span>
+            </div>
+          )}
         </div>
 
         <Button
           className="w-full gradient-gold text-primary-foreground font-semibold h-11 text-base gap-2"
           onClick={confirmSale}
-          disabled={cart.length === 0 || submitting || (payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal)}
+          disabled={confirmDisabled}
         >
           {submitting ? (
             <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Registrando...</>
@@ -653,11 +938,18 @@ export default function POSPage() {
         <ReceiptModal
           items={receipt.items}
           payMethod={payMethod}
+          splitMode={splitMode}
+          splitMethod1={splitMethod1}
+          splitMethod2={splitMethod2}
+          splitAmount1={splitAmt1}
+          splitAmount2={splitAmt2}
           customer={customer}
           total={receipt.total}
           cashGiven={receipt.cash}
           businessName={config.businessName || "Gestiona"}
           orgId={activeOrg?.id || ""}
+          globalDiscountARS={receipt.globalDiscountARS}
+          couponDiscount={receipt.couponDiscount}
           onClose={() => setReceipt(null)}
           onNewSale={() => { setReceipt(null); clearCart(); }}
         />
