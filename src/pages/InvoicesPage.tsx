@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
+  ShieldCheck, ShieldAlert, Loader2, QrCode,
 } from "lucide-react";
 
+// ─────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────
 interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number }
 interface Invoice {
   id: string; number: string; customer_name: string; customer_email: string | null;
@@ -23,7 +28,28 @@ interface Invoice {
   currency: string; subtotal: number; tax_pct: number; tax_amount: number; total: number;
   paid_at: string | null; created_at: string;
   invoice_items?: InvoiceItem[];
+  // AFIP fields
+  tipo_comprobante: number | null;
+  cae: string | null;
+  cae_vencimiento: string | null;
+  afip_status: string | null;
+  afip_error: string | null;
+  numero_afip: number | null;
 }
+
+interface AfipSettings {
+  afip_cuit: string | null;
+  afip_razon_social: string | null;
+  afip_domicilio: string | null;
+  afip_punto_venta: number | null;
+  afip_tipo_emisor: string | null;
+  afip_environment: string | null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────
+const TIPO_CBTE: Record<number, string> = { 1: "A", 6: "B", 11: "C" };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   draft:    { label: "Borrador",  color: "bg-muted text-muted-foreground border-border",              icon: FileText },
@@ -35,54 +61,93 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
 
 const EMPTY_FORM = {
   customer_name: "", customer_email: "", customer_address: "", customer_tax_id: "",
-  due_date: "", notes: "", tax_pct: "21",
+  due_date: "", notes: "", tax_pct: "21", tipo_comprobante: "",
 };
 
 function emptyItem(): InvoiceItem { return { description: "", quantity: 1, unit_price: 0, total: 0 }; }
 
-function generatePDF(inv: Invoice, orgName: string) {
+// ─────────────────────────────────────────────────────────────
+// PDF generator — includes AFIP data when authorized
+// ─────────────────────────────────────────────────────────────
+function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings | null) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
+  const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;
 
-  // Header band
+  // ── Header band ──────────────────────────────────────────
   doc.setFillColor(26, 26, 46);
   doc.rect(0, 0, W, 80, "F");
   doc.setTextColor(212, 168, 67);
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text(orgName.toUpperCase(), 40, 38);
+  doc.text((afipSettings?.afip_razon_social || orgName).toUpperCase(), 40, 38);
   doc.setFontSize(11);
   doc.setTextColor(200, 200, 220);
-  doc.text("FACTURA / COMPROBANTE", 40, 58);
+  doc.text(tipoCbte ? `FACTURA ${tipoCbte}` : "FACTURA / COMPROBANTE", 40, 58);
+  if (afipSettings?.afip_cuit) {
+    doc.setFontSize(9);
+    doc.setTextColor(160, 160, 190);
+    doc.text(`CUIT: ${afipSettings.afip_cuit}`, 40, 72);
+  }
   doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
   doc.text(`N° ${inv.number}`, W - 40, 38, { align: "right" });
   doc.setFontSize(10);
   doc.setTextColor(180, 180, 200);
   doc.text(`Fecha: ${new Date(inv.issue_date).toLocaleDateString("es-AR")}`, W - 40, 56, { align: "right" });
+  if (inv.numero_afip && tipoCbte) {
+    doc.setFontSize(9);
+    doc.text(`Comprobante ${tipoCbte} Nro ${String(inv.numero_afip).padStart(8, "0")}`, W - 40, 72, { align: "right" });
+  }
 
-  // Customer box
+  // ── Punto de venta divider (AFIP layout) ─────────────────
+  if (tipoCbte) {
+    doc.setFillColor(212, 168, 67);
+    doc.rect(W / 2 - 20, 0, 40, 80, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(28);
+    doc.setTextColor(26, 26, 46);
+    doc.text(tipoCbte, W / 2, 50, { align: "center" });
+    if (afipSettings?.afip_punto_venta) {
+      doc.setFontSize(8);
+      doc.text(`Pto.Vta: ${String(afipSettings.afip_punto_venta).padStart(4, "0")}`, W / 2, 64, { align: "center" });
+    }
+  }
+
+  // ── Domicilio comercial ───────────────────────────────────
+  let yStart = 95;
+  if (afipSettings?.afip_domicilio) {
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Domicilio: ${afipSettings.afip_domicilio}`, 40, yStart);
+    yStart += 12;
+  }
+
+  // ── Customer box ──────────────────────────────────────────
   doc.setTextColor(50, 50, 50);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("CLIENTE", 40, 105);
+  doc.text("CLIENTE", 40, yStart + 10);
   doc.setFont("helvetica", "normal");
-  doc.text(inv.customer_name, 40, 118);
-  if (inv.customer_tax_id) doc.text(`CUIT/DNI: ${inv.customer_tax_id}`, 40, 130);
-  if (inv.customer_email) doc.text(inv.customer_email, 40, inv.customer_tax_id ? 142 : 130);
-  if (inv.customer_address) doc.text(inv.customer_address, 40, 155);
+  doc.text(inv.customer_name, 40, yStart + 23);
+  let cy = yStart + 23;
+  if (inv.customer_tax_id) { cy += 12; doc.text(`CUIT/DNI: ${inv.customer_tax_id}`, 40, cy); }
+  if (inv.customer_email) { cy += 12; doc.text(inv.customer_email, 40, cy); }
+  if (inv.customer_address) { cy += 12; doc.text(inv.customer_address, 40, cy); }
 
   if (inv.due_date) {
     doc.setFont("helvetica", "bold");
-    doc.text("VENCIMIENTO", W / 2, 105);
+    doc.text("VENCIMIENTO", W / 2, yStart + 10);
     doc.setFont("helvetica", "normal");
-    doc.text(new Date(inv.due_date).toLocaleDateString("es-AR"), W / 2, 118);
+    doc.text(new Date(inv.due_date).toLocaleDateString("es-AR"), W / 2, yStart + 23);
   }
 
-  // Items table
+  // ── Items table ───────────────────────────────────────────
   const items = inv.invoice_items || [];
+  const tableY = Math.max(cy + 18, yStart + 60);
   autoTable(doc, {
-    startY: 175,
+    startY: tableY,
     head: [["Descripción", "Cant.", "Precio unit.", "Total"]],
     body: items.map((it) => [
       it.description,
@@ -96,22 +161,13 @@ function generatePDF(inv: Invoice, orgName: string) {
     columnStyles: { 0: { cellWidth: "auto" }, 1: { cellWidth: 45, halign: "right" }, 2: { cellWidth: 90, halign: "right" }, 3: { cellWidth: 90, halign: "right" } },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 16;
+  let y = (doc as any).lastAutoTable.finalY + 16;
   const right = W - 40;
 
-  const summaryRow = (label: string, value: string, bold = false, gold = false) => {
-    doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.setFontSize(bold ? 10 : 9);
-    doc.setTextColor(gold ? 26 : 60, gold ? 26 : 60, gold ? 46 : 60);
-    if (gold) { doc.setFillColor(212, 168, 67); doc.rect(W / 2, finalY - 4, W / 2 - 40, 18, "F"); }
-    doc.text(label, W / 2 + 8, finalY + 9);
-    doc.text(value, right, finalY + 9, { align: "right" });
-    return finalY + 20;
-  };
-
-  let y = finalY;
+  // ── Totals ────────────────────────────────────────────────
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
+  doc.setFont("helvetica", "normal");
   doc.text(`Subtotal: ${formatARS(inv.subtotal)}`, W / 2 + 8, y + 9);
   doc.text(formatARS(inv.subtotal), right, y + 9, { align: "right" });
   y += 20;
@@ -127,25 +183,81 @@ function generatePDF(inv: Invoice, orgName: string) {
   doc.setTextColor(26, 26, 46);
   doc.text("TOTAL:", W / 2 + 8, y + 13);
   doc.text(formatARS(inv.total), right, y + 13, { align: "right" });
+  y += 28;
 
-  // Notes
+  // ── Notes ─────────────────────────────────────────────────
   if (inv.notes) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(120, 120, 120);
-    doc.text(`Notas: ${inv.notes}`, 40, y + 40);
+    doc.text(`Notas: ${inv.notes}`, 40, y + 10);
+    y += 20;
   }
 
-  // Footer
+  // ── CAE block ─────────────────────────────────────────────
+  if (inv.cae && inv.cae_vencimiento) {
+    y += 10;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(40, y, W - 40, y);
+    y += 14;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    doc.text("CAE:", 40, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(inv.cae, 80, y);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Vto. CAE:", W / 2, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(new Date(inv.cae_vencimiento).toLocaleDateString("es-AR"), W / 2 + 60, y);
+    y += 16;
+
+    // ── AFIP QR code (text-based — real QR requires a library) ──
+    // AFIP QR payload per RG 4291/2018
+    const qrData = {
+      ver: 1,
+      fecha: inv.issue_date,
+      cuit: parseInt((afipSettings?.afip_cuit || "0").replace(/[-\s]/g, "")),
+      ptoVta: afipSettings?.afip_punto_venta || 1,
+      tipoCmp: inv.tipo_comprobante || 11,
+      nroCmp: inv.numero_afip || 0,
+      importe: Number(inv.total),
+      moneda: "PES",
+      ctz: 1,
+      tipoDocRec: inv.customer_tax_id ? (inv.customer_tax_id.replace(/[-\s]/g, "").length === 11 ? 80 : 96) : 99,
+      nroDocRec: inv.customer_tax_id ? parseInt(inv.customer_tax_id.replace(/[-\s]/g, "")) : 0,
+      tipoCodAut: "E",
+      codAut: parseInt(inv.cae),
+    };
+    const qrUrl = `https://www.afip.gob.ar/fe/qr/?p=${btoa(JSON.stringify(qrData))}`;
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Verificá en AFIP:", 40, y);
+    y += 10;
+    doc.setTextColor(26, 86, 219);
+    doc.text(qrUrl.slice(0, 90), 40, y);
+  }
+
+  // ── Footer ────────────────────────────────────────────────
   const fY = doc.internal.pageSize.getHeight() - 24;
   doc.setFontSize(8);
   doc.setTextColor(160, 160, 160);
-  doc.text("Documento generado automáticamente — Gestiona SaaS", W / 2, fY, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  const footerText = inv.cae
+    ? "Comprobante Electrónico Autorizado — AFIP"
+    : "Documento generado automáticamente — Gestiona SaaS";
+  doc.text(footerText, W / 2, fY, { align: "center" });
 
   doc.save(`factura-${inv.number}.pdf`);
   toast.success("PDF generado");
 }
 
+// ─────────────────────────────────────────────────────────────
+// Main page
+// ─────────────────────────────────────────────────────────────
 export default function InvoicesPage() {
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
@@ -157,8 +269,23 @@ export default function InvoicesPage() {
   const [items, setItems] = useState<InvoiceItem[]>([emptyItem()]);
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [authorizingId, setAuthorizingId] = useState<string | null>(null);
+  const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
 
   const canManage = activeRole === "owner" || activeRole === "admin";
+
+  // Load AFIP org settings
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      const { data } = await supabase
+        .from("settings" as any)
+        .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_tipo_emisor,afip_environment")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle();
+      if (data) setAfipSettings(data as AfipSettings);
+    })();
+  }, [activeOrg]);
 
   const handleSendEmail = async (inv: Invoice) => {
     if (!inv.customer_email) { toast.error("Esta factura no tiene email del cliente"); return; }
@@ -183,6 +310,32 @@ export default function InvoicesPage() {
       toast.error(e.message || "Error al enviar email");
     } finally {
       setSendingEmail(null);
+    }
+  };
+
+  const handleAuthorizeAfip = async (inv: Invoice) => {
+    if (!afipSettings?.afip_cuit) {
+      toast.error("Configurá AFIP en Ajustes antes de autorizar facturas");
+      return;
+    }
+    if (inv.cae) { toast.info("Esta factura ya tiene CAE"); return; }
+
+    setAuthorizingId(inv.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("afip-authorize", {
+        body: { invoice_id: inv.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`CAE obtenido: ${data.cae}`);
+      load();
+    } catch (e: any) {
+      // Persist error on invoice
+      await supabase.from("invoices").update({ afip_status: "rejected", afip_error: e.message }).eq("id", inv.id);
+      toast.error("Error AFIP: " + e.message);
+      load();
+    } finally {
+      setAuthorizingId(null);
     }
   };
 
@@ -226,6 +379,8 @@ export default function InvoicesPage() {
     setSaving(true);
     try {
       const number = await nextNumber();
+      const tipoCbte = form.tipo_comprobante ? parseInt(form.tipo_comprobante) : null;
+
       const { data: inv, error } = await supabase.from("invoices").insert({
         org_id: activeOrg.id,
         number,
@@ -243,6 +398,8 @@ export default function InvoicesPage() {
         tax_amount: taxAmt,
         total,
         created_by: user.id,
+        tipo_comprobante: tipoCbte,
+        afip_status: tipoCbte ? "pending" : "not_applicable",
       }).select().single();
 
       if (error) throw error;
@@ -290,6 +447,11 @@ export default function InvoicesPage() {
     overdue: invoices.filter((i) => i.status === "overdue").length,
   };
 
+  const afipConfigured = !!afipSettings?.afip_cuit;
+
+  // Default tipo_comprobante based on emisor type
+  const defaultTipoCbte = afipSettings?.afip_tipo_emisor === "responsable_inscripto" ? "6" : "11";
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -300,7 +462,14 @@ export default function InvoicesPage() {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold">Facturas</h1>
-            <p className="text-sm text-muted-foreground">Creá y gestioná comprobantes para tus clientes</p>
+            <p className="text-sm text-muted-foreground">
+              Creá y gestioná comprobantes
+              {afipConfigured && (
+                <span className="ml-2 inline-flex items-center gap-1 text-green-400 text-xs">
+                  <ShieldCheck className="w-3 h-3" />AFIP configurado
+                </span>
+              )}
+            </p>
           </div>
         </div>
         {canManage && (
@@ -309,6 +478,17 @@ export default function InvoicesPage() {
           </Button>
         )}
       </div>
+
+      {/* AFIP not configured warning */}
+      {!afipConfigured && canManage && (
+        <div className="p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2 text-sm text-yellow-400">
+          <ShieldAlert className="w-4 h-4 shrink-0" />
+          <span>
+            AFIP no configurado. Las facturas generadas <strong>no tienen validez fiscal</strong>.
+            Configurá tus credenciales en <strong>Ajustes → AFIP</strong>.
+          </span>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -358,6 +538,25 @@ export default function InvoicesPage() {
               <Label className="text-xs">IVA %</Label>
               <Input type="number" min={0} max={100} value={form.tax_pct} onChange={(e) => setForm({ ...form, tax_pct: e.target.value })} />
             </div>
+            {afipConfigured && (
+              <div className="md:col-span-2">
+                <Label className="text-xs">Tipo de comprobante AFIP</Label>
+                <Select
+                  value={form.tipo_comprobante || defaultTipoCbte}
+                  onValueChange={(v) => setForm({ ...form, tipo_comprobante: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="11">Factura C (monotributista → cualquier receptor)</SelectItem>
+                    <SelectItem value="6">Factura B (R.I. → consumidor final / monotributista)</SelectItem>
+                    <SelectItem value="1">Factura A (R.I. → responsable inscripto — requiere CUIT cliente)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Podés autorizar con AFIP después de crear la factura usando el botón de escudo.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Items */}
@@ -467,16 +666,35 @@ export default function InvoicesPage() {
               const sc = STATUS_CONFIG[inv.status] || STATUS_CONFIG.draft;
               const Icon = sc.icon;
               const isOpen = expanded === inv.id;
+              const tipoCbte = inv.tipo_comprobante ? TIPO_CBTE[inv.tipo_comprobante] : null;
+              const isAuthorizing = authorizingId === inv.id;
+
               return (
                 <div key={inv.id}>
                   <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors">
                     <button className="flex-1 flex items-center gap-3 min-w-0 text-left" onClick={() => setExpanded(isOpen ? null : inv.id)}>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-sm font-semibold">{inv.number}</span>
+                          {tipoCbte && (
+                            <span className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-bold border border-primary/30 text-primary bg-primary/5">
+                              F{tipoCbte}
+                            </span>
+                          )}
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${sc.color}`}>
                             <Icon className="w-3 h-3" />{sc.label}
                           </span>
+                          {/* AFIP status badge */}
+                          {inv.afip_status === "authorized" && inv.cae && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                              <ShieldCheck className="w-3 h-3" />CAE
+                            </span>
+                          )}
+                          {inv.afip_status === "rejected" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                              <ShieldAlert className="w-3 h-3" />Rechazada AFIP
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground truncate">{inv.customer_name}</p>
                         <p className="text-xs text-muted-foreground/60">{new Date(inv.issue_date).toLocaleDateString("es-AR")}</p>
@@ -487,18 +705,31 @@ export default function InvoicesPage() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Descargar PDF"
-                        onClick={() => generatePDF({ ...inv, invoice_items: inv.invoice_items || [] }, activeOrg?.name || "Gestiona")}
+                        onClick={() => generatePDF({ ...inv, invoice_items: inv.invoice_items || [] }, activeOrg?.name || "Gestiona", afipSettings)}
                       >
                         <FileDown className="w-4 h-4" />
                       </Button>
                       {inv.customer_email && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title={`Enviar por email a ${inv.customer_email}`}
-                          onClick={() => handleSendEmail(inv)}
-                          disabled={sendingEmail === inv.id}
+                          onClick={() => handleSendEmail(inv)} disabled={sendingEmail === inv.id}
                         >
                           {sendingEmail === inv.id
-                            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             : <Mail className="w-4 h-4 text-blue-400" />
+                          }
+                        </Button>
+                      )}
+                      {/* AFIP authorize button */}
+                      {canManage && afipConfigured && inv.tipo_comprobante && !inv.cae && inv.afip_status !== "authorized" && (
+                        <Button
+                          size="icon" variant="ghost" className="h-8 w-8"
+                          title="Autorizar con AFIP (obtener CAE)"
+                          onClick={() => handleAuthorizeAfip(inv)}
+                          disabled={isAuthorizing}
+                        >
+                          {isAuthorizing
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <ShieldCheck className="w-4 h-4 text-green-400" />
                           }
                         </Button>
                       )}
@@ -530,6 +761,33 @@ export default function InvoicesPage() {
                       {inv.customer_email && <p className="text-xs text-muted-foreground">Email: {inv.customer_email}</p>}
                       {inv.customer_tax_id && <p className="text-xs text-muted-foreground">CUIT/DNI: {inv.customer_tax_id}</p>}
                       {inv.due_date && <p className="text-xs text-muted-foreground">Vence: {new Date(inv.due_date).toLocaleDateString("es-AR")}</p>}
+
+                      {/* CAE info */}
+                      {inv.cae && (
+                        <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20 space-y-1">
+                          <p className="text-xs font-semibold text-green-400 flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5" />Autorizada por AFIP
+                          </p>
+                          <p className="text-xs text-muted-foreground font-mono">CAE: {inv.cae}</p>
+                          {inv.cae_vencimiento && (
+                            <p className="text-xs text-muted-foreground">Vto. CAE: {new Date(inv.cae_vencimiento).toLocaleDateString("es-AR")}</p>
+                          )}
+                          {inv.numero_afip && tipoCbte && (
+                            <p className="text-xs text-muted-foreground">
+                              Comprobante F{tipoCbte} Nro {String(inv.numero_afip).padStart(8, "0")}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {inv.afip_status === "rejected" && inv.afip_error && (
+                        <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                          <p className="text-xs font-semibold text-red-400 flex items-center gap-1 mb-1">
+                            <ShieldAlert className="w-3.5 h-3.5" />Error AFIP
+                          </p>
+                          <p className="text-xs text-muted-foreground">{inv.afip_error}</p>
+                        </div>
+                      )}
+
                       {inv.invoice_items && inv.invoice_items.length > 0 && (
                         <table className="w-full text-xs">
                           <thead>
