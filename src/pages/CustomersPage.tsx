@@ -4,10 +4,12 @@ import {
   getSalesDB, getDebtsDB, getSettingsDB, formatARS,
   getCustomersDB, createCustomerDB, updateCustomerDB, deleteCustomerDB,
 } from "@/lib/supabaseStore";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
-  Calendar, Tag, ChevronDown, ChevronUp, Upload,
+  Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,10 +223,130 @@ function CustomerFormModal({
 }
 
 // ─────────────────────────────────────────────────────────────
+// Communications log component
+// ─────────────────────────────────────────────────────────────
+const COMM_TYPES = [
+  { value: "note", label: "Nota", icon: "📝" },
+  { value: "call", label: "Llamada", icon: "📞" },
+  { value: "whatsapp", label: "WhatsApp", icon: "💬" },
+  { value: "email", label: "Email", icon: "📧" },
+  { value: "visit", label: "Visita", icon: "🏪" },
+  { value: "other", label: "Otro", icon: "📌" },
+];
+
+type CommEntry = { id: string; type: string; summary: string; created_at: string };
+
+function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; userId: string; customerName: string }) {
+  const [entries, setEntries] = useState<CommEntry[]>([]);
+  const [type, setType] = useState("note");
+  const [summary, setSummary] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("customer_communications" as any)
+      .select("id,type,summary,created_at")
+      .eq("org_id", orgId)
+      .eq("customer_name", customerName)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => setEntries((data || []) as CommEntry[]));
+  }, [orgId, customerName]);
+
+  const handleAdd = async () => {
+    if (!summary.trim()) return;
+    setAdding(true);
+    try {
+      const { data, error } = await supabase
+        .from("customer_communications" as any)
+        .insert({ org_id: orgId, user_id: userId, customer_name: customerName, type, summary: summary.trim() })
+        .select("id,type,summary,created_at")
+        .single();
+      if (error) throw error;
+      setEntries(prev => [data as CommEntry, ...prev]);
+      setSummary("");
+      setShowForm(false);
+      toast.success("Interacción registrada");
+    } catch { toast.error("Error al guardar"); }
+    finally { setAdding(false); }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Clock className="w-3 h-3" />Historial de comunicaciones
+        </h3>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+        >
+          <Plus className="w-3 h-3" />Agregar
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-muted/40 rounded-xl p-3 space-y-2">
+          <div className="grid grid-cols-3 gap-1">
+            {COMM_TYPES.map(t => (
+              <button
+                key={t.value}
+                onClick={() => setType(t.value)}
+                className={`flex items-center gap-1 justify-center py-1.5 rounded-lg border text-[10px] font-medium transition-all ${
+                  type === t.value ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                <span>{t.icon}</span>{t.label}
+              </button>
+            ))}
+          </div>
+          <Textarea
+            value={summary}
+            onChange={e => setSummary(e.target.value)}
+            placeholder="Descripción de la interacción..."
+            className="bg-card resize-none text-xs"
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" className="flex-1 text-xs h-7" onClick={handleAdd} disabled={adding || !summary.trim()}>
+              {adding ? "Guardando…" : "Guardar"}
+            </Button>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowForm(false)}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+
+      {entries.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/50 italic py-1">Sin interacciones registradas</p>
+      ) : (
+        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          {entries.map(e => {
+            const t = COMM_TYPES.find(ct => ct.value === e.type);
+            return (
+              <div key={e.id} className="flex gap-2 text-xs bg-muted/30 rounded-lg px-2.5 py-2">
+                <span className="shrink-0">{t?.icon || "📌"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground leading-tight">{e.summary}</p>
+                  <p className="text-muted-foreground text-[10px] mt-0.5">
+                    {t?.label} · {new Date(e.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} {new Date(e.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────────────────────
 export default function CustomersPage() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const [sales, setSales] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -784,6 +906,15 @@ export default function CustomersPage() {
                           <p className="font-medium">{c.totalUnits}</p>
                         </div>
                       </div>
+                    )}
+
+                    {/* Communications log */}
+                    {activeOrg && user && (
+                      <CommunicationsLog
+                        orgId={activeOrg.id}
+                        userId={user.id}
+                        customerName={c.name}
+                      />
                     )}
 
                     {/* WhatsApp Remarketing */}
