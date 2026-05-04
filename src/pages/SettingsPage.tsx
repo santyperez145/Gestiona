@@ -7,8 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -409,6 +411,9 @@ export default function SettingsPage() {
 
           {/* Cloud Backups */}
           <CloudBackupsSection userId={user!.id} />
+
+          {/* AFIP Facturación Electrónica */}
+          <AfipSection />
 
           {/* Coupons CRUD */}
           <CouponsManager userId={user!.id} />
@@ -983,6 +988,220 @@ function CloudBackupsSection({ userId }: { userId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ===== AFIP Facturación Electrónica =====
+function AfipSection() {
+  const { activeOrg } = useOrg();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const [cuit, setCuit] = useState("");
+  const [razonSocial, setRazonSocial] = useState("");
+  const [domicilio, setDomicilio] = useState("");
+  const [puntoVenta, setPuntoVenta] = useState("1");
+  const [environment, setEnvironment] = useState("homologacion");
+  const [tipoEmisor, setTipoEmisor] = useState("monotributo");
+  const [certificate, setCertificate] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
+  const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      const { data } = await supabase
+        .from("settings" as any)
+        .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_environment,afip_tipo_emisor,afip_certificate,afip_private_key,afip_ta_expires_at")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle();
+      if (data) {
+        setCuit((data as any).afip_cuit || "");
+        setRazonSocial((data as any).afip_razon_social || "");
+        setDomicilio((data as any).afip_domicilio || "");
+        setPuntoVenta(String((data as any).afip_punto_venta || 1));
+        setEnvironment((data as any).afip_environment || "homologacion");
+        setTipoEmisor((data as any).afip_tipo_emisor || "monotributo");
+        setCertificate((data as any).afip_certificate || "");
+        setPrivateKey((data as any).afip_private_key || "");
+        if ((data as any).afip_ta_expires_at) {
+          setTaStatus(new Date((data as any).afip_ta_expires_at) > new Date() ? "valid" : "expired");
+        }
+      }
+      setLoading(false);
+    })();
+  }, [activeOrg]);
+
+  const doSave = async () => {
+    if (!activeOrg) return;
+    await supabase.from("settings" as any).update({
+      afip_cuit: cuit.replace(/[-\s]/g, "") || null,
+      afip_razon_social: razonSocial || null,
+      afip_domicilio: domicilio || null,
+      afip_punto_venta: parseInt(puntoVenta) || 1,
+      afip_environment: environment,
+      afip_tipo_emisor: tipoEmisor,
+      afip_certificate: certificate || null,
+      afip_private_key: privateKey || null,
+      afip_ta_token: null,
+      afip_ta_sign: null,
+      afip_ta_expires_at: null,
+    }).eq("org_id", activeOrg.id);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await doSave();
+      toast.success("Configuración AFIP guardada");
+      setTaStatus("none");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!cuit || !certificate || !privateKey) {
+      toast.error("Completá CUIT, certificado y clave privada antes de probar");
+      return;
+    }
+    setTesting(true);
+    try {
+      await doSave();
+      const resp = await supabase.functions.invoke("afip-authorize", {
+        body: { invoice_id: "__test__" },
+      });
+      const errMsg: string = resp.error?.message || (resp.data as any)?.error || "";
+      // "Factura no encontrada" means credentials worked — AFIP auth succeeded
+      if (errMsg.includes("Factura no encontrada") || errMsg.includes("invoice_id")) {
+        toast.success("✓ Conexión con AFIP verificada correctamente");
+        setTaStatus("valid");
+      } else if (errMsg) {
+        toast.error("Error AFIP: " + errMsg);
+      } else {
+        toast.success("✓ Credenciales AFIP válidas");
+        setTaStatus("valid");
+      }
+    } catch (e: any) {
+      toast.error("Error al probar: " + e.message);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (loading) return null;
+
+  const isConfigured = !!(cuit && certificate && privateKey);
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <FileCheck className="w-4 h-4 text-primary" />AFIP — Facturación Electrónica
+        </h2>
+        {isConfigured && (
+          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${
+            taStatus === "valid" ? "bg-green-500/10 text-green-400" :
+            taStatus === "expired" ? "bg-yellow-500/10 text-yellow-400" :
+            "bg-muted text-muted-foreground"
+          }`}>
+            {taStatus === "valid" ? <><CheckCircle2 className="w-3 h-3" />TA activo</> :
+             taStatus === "expired" ? <><AlertTriangle className="w-3 h-3" />TA vencido</> :
+             "No verificado"}
+          </span>
+        )}
+      </div>
+
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground space-y-1">
+        <p className="font-medium text-foreground">Requisitos previos</p>
+        <ol className="list-decimal list-inside space-y-0.5">
+          <li>Solicitá el certificado en <strong>CLAVE FISCAL → Administrador de Relaciones de Clave Fiscal</strong></li>
+          <li>Vinculá el servicio <strong>wsfe</strong> a tu CUIT</li>
+          <li>Pegá el certificado (.crt) y clave privada (.key) en formato PEM abajo</li>
+          <li>Probá con <strong>Homologación</strong> antes de pasar a Producción</li>
+        </ol>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
+          <Input value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Razón social</label>
+          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Mi Empresa SRL" className="bg-muted border-border" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
+          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Av. Corrientes 1234, CABA" className="bg-muted border-border" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
+          <Input type="number" min="1" max="9999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
+          <Select value={tipoEmisor} onValueChange={setTipoEmisor}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monotributo">Monotributista → Factura C</SelectItem>
+              <SelectItem value="responsable_inscripto">Responsable Inscripto → Factura A / B</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
+          <Select value={environment} onValueChange={setEnvironment}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="homologacion">🧪 Homologación (pruebas)</SelectItem>
+              <SelectItem value="produccion">🚀 Producción (facturas reales)</SelectItem>
+            </SelectContent>
+          </Select>
+          {environment === "produccion" && (
+            <p className="text-[10px] text-destructive mt-1">⚠ Las facturas emitidas en producción son definitivas ante AFIP.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Certificado AFIP (PEM)</label>
+          <Textarea
+            value={certificate}
+            onChange={e => setCertificate(e.target.value)}
+            placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+            className="bg-muted border-border font-mono text-xs h-28 resize-none"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Clave privada (PEM)</label>
+          <Textarea
+            value={privateKey}
+            onChange={e => setPrivateKey(e.target.value)}
+            placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
+            className="bg-muted border-border font-mono text-xs h-28 resize-none"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Almacenada en tu base de datos con acceso restringido a tu organización (RLS).
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
+          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar AFIP"}
+        </Button>
+        {isConfigured && (
+          <Button onClick={handleTestConnection} disabled={testing} variant="outline">
+            {testing ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Verificando…</> : "Verificar conexión"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
