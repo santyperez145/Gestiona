@@ -24,6 +24,7 @@ const allNavItems = [
   { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/pipeline", label: "Pipeline", icon: Kanban, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
+  { to: "/referidos", label: "Referidos", icon: Users, roles: ['admin'], section: 'ventas' },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
   { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
   { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
