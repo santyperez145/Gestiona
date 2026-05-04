@@ -34,6 +34,7 @@ import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicCatalogPage from "@/pages/PublicCatalogPage";
+import PublicPaymentPage from "@/pages/PublicPaymentPage";
 import LandingPage from "@/pages/LandingPage";
 import PricingPage from "@/pages/PricingPage";
 import OnboardingPage from "@/pages/OnboardingPage";
@@ -218,6 +219,7 @@ const App = () => (
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+              <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
               <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
               <Route path="/app/*" element={<ProtectedRoutes />} />
               <Route path="/*" element={<ProtectedRoutes />} />

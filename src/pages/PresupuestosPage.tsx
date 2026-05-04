@@ -162,6 +162,40 @@ export default function PresupuestosPage() {
   const [orgName, setOrgName] = useState("Mi Negocio");
   const [mpLinks, setMpLinks] = useState<Record<string, string>>({});
   const [mpLoading, setMpLoading] = useState<string | null>(null);
+  const [payLinks, setPayLinks] = useState<Record<string, string>>({});
+  const [payLinkLoading, setPayLinkLoading] = useState<string | null>(null);
+
+  const generatePayLink = async (q: Quote) => {
+    if (payLinks[q.id]) { navigator.clipboard.writeText(payLinks[q.id]); toast.success("Link copiado"); return; }
+    setPayLinkLoading(q.id);
+    try {
+      const { data, error } = await supabase
+        .from("payment_links" as any)
+        .insert({
+          org_id: activeOrg!.id,
+          quote_id: q.id,
+          quote_number: q.quote_number,
+          customer_name: q.customer_name,
+          customer_phone: q.customer_phone || null,
+          items: q.items,
+          total_ars: q.total,
+          mp_link: mpLinks[q.id] || null,
+          notes: q.notes || null,
+          expires_at: q.valid_until || null,
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw error || new Error("Error creating payment link");
+      const url = `${window.location.origin}/pagar/${(data as any).id}`;
+      setPayLinks(prev => ({ ...prev, [q.id]: url }));
+      navigator.clipboard.writeText(url);
+      toast.success("Link de pago copiado — compartilo por WhatsApp");
+    } catch {
+      toast.error("Error al generar link de pago");
+    } finally {
+      setPayLinkLoading(null);
+    }
+  };
 
   const generateMpLink = async (q: Quote) => {
     if (mpLinks[q.id]) { navigator.clipboard.writeText(mpLinks[q.id]); toast.success("Link copiado"); return; }
@@ -503,6 +537,30 @@ export default function PresupuestosPage() {
                         onClick={() => window.open(`https://wa.me/${q.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${q.customer_name.split(" ")[0]}! Te comparto el link para pagar tu presupuesto ${q.quote_number} (${formatARS(q.total)}): ${mpLinks[q.id]}`)}`, "_blank")}
                       >
                         <Send className="w-3 h-3" />WhatsApp
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1"
+                      onClick={() => generatePayLink(q)}
+                      disabled={payLinkLoading === q.id}
+                      title={payLinks[q.id] ? "Link generado — click para copiar" : "Generar link de pago universal (MP + transferencia + efectivo)"}
+                    >
+                      {payLinkLoading === q.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Link2 className="w-3 h-3" />
+                      }
+                      {payLinks[q.id] ? "Copiar link pago" : "Link pago"}
+                    </Button>
+                    {q.customer_phone && payLinks[q.id] && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-green-500/40 text-green-400 hover:bg-green-500/10 gap-1"
+                        onClick={() => window.open(`https://wa.me/${q.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${q.customer_name.split(" ")[0]}! 🛍️ Tu presupuesto ${q.quote_number} por ${formatARS(q.total)}.\n\nPodés pagar con tarjeta, transferencia o efectivo desde este link:\n${payLinks[q.id]}`)}`, "_blank")}
+                      >
+                        <Send className="w-3 h-3" />Enviar
                       </Button>
                     )}
                   </div>

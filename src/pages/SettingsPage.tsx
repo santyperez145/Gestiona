@@ -41,6 +41,10 @@ export default function SettingsPage() {
   const [discountDebit, setDiscountDebit] = useState('0');
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [bankCbu, setBankCbu] = useState('');
+  const [bankAlias, setBankAlias] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
 
   // Volume / wholesale discount
   const [volumeThreshold, setVolumeThreshold] = useState('3');
@@ -76,6 +80,10 @@ export default function SettingsPage() {
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
+      setBankCbu(s.bank_cbu || '');
+      setBankAlias(s.bank_alias || '');
+      setBankName(s.bank_name || '');
+      setBankHolder(s.bank_holder || '');
       setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
       setVolumeDiscount(String(s.volume_discount_percent ?? 10));
       setDecantMargin10(String(s.decant_margin_10ml ?? 250));
@@ -130,6 +138,10 @@ export default function SettingsPage() {
         discount_debit_percent: parseFloat(discountDebit) || 0,
         discount_credit_percent: parseFloat(discountCredit) || 0,
         whatsapp_number: whatsappNumber || null,
+        bank_cbu: bankCbu || null,
+        bank_alias: bankAlias || null,
+        bank_name: bankName || null,
+        bank_holder: bankHolder || null,
         volume_discount_threshold: parseInt(volumeThreshold) || 3,
         volume_discount_percent: parseFloat(volumeDiscount) || 10,
         decant_margin_10ml: parseFloat(decantMargin10) || 250,
@@ -237,6 +249,28 @@ export default function SettingsPage() {
               <label className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />WhatsApp (catálogo público)</label>
               <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />
               <p className="text-[10px] text-muted-foreground mt-1">Número con código de país. Aparecerá como botón flotante en tu catálogo público.</p>
+            </div>
+            <div className="border-t border-border pt-4">
+              <label className="text-sm font-medium flex items-center gap-1.5 mb-3"><CreditCard className="w-3.5 h-3.5 text-primary" />Cuenta bancaria (para links de pago)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">CBU</label>
+                  <Input value={bankCbu} onChange={e => setBankCbu(e.target.value)} placeholder="0000000000000000000000" className="bg-muted border-border mt-1 font-mono text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Alias</label>
+                  <Input value={bankAlias} onChange={e => setBankAlias(e.target.value)} placeholder="tu.alias.banco" className="bg-muted border-border mt-1 font-mono text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Banco</label>
+                  <Input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Banco Galicia" className="bg-muted border-border mt-1 text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Titular</label>
+                  <Input value={bankHolder} onChange={e => setBankHolder(e.target.value)} placeholder="Juan Pérez" className="bg-muted border-border mt-1 text-xs" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">Aparecerá en los links de pago que generés para tus presupuestos.</p>
             </div>
           </div>
 
