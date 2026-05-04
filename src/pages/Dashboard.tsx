@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2 } from "lucide-react";
@@ -104,6 +105,7 @@ export default function Dashboard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
   const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
+  const [urgentTasks, setUrgentTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -141,6 +143,25 @@ export default function Dashboard() {
       setBirthdayCustomers(upcoming);
     })();
   }, [user]);
+
+  // Urgent/overdue tasks widget
+  const { activeOrg: orgForTasks } = useOrg();
+  useEffect(() => {
+    if (!orgForTasks) return;
+    (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("tasks" as any)
+        .select("id, title, priority, due_date")
+        .eq("org_id", orgForTasks.id)
+        .in("status", ["pending", "in_progress"])
+        .in("priority", ["urgent", "high"])
+        .order("priority")
+        .order("due_date", { nullsFirst: false })
+        .limit(5);
+      setUrgentTasks((data || []) as any[]);
+    })();
+  }, [orgForTasks]);
 
   // Realtime: subscribe to today's sales updates
   useEffect(() => {
@@ -493,6 +514,35 @@ export default function Dashboard() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Urgent Tasks Widget */}
+      {urgentTasks.length > 0 && (
+        <div className="mb-5 bg-card border border-orange-500/20 rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-orange-400" />Tareas urgentes / altas
+            </h3>
+            <Link to="/tareas" className="text-[10px] text-primary hover:underline">Ver todas →</Link>
+          </div>
+          <div className="space-y-1.5">
+            {urgentTasks.map(task => {
+              const today = new Date().toISOString().slice(0, 10);
+              const isOverdue = task.due_date && task.due_date < today;
+              return (
+                <div key={task.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/30"}`}>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${task.priority === "urgent" ? "bg-destructive" : "bg-orange-400"}`} />
+                  <span className="flex-1 truncate text-xs font-medium">{task.title}</span>
+                  {task.due_date && (
+                    <span className={`text-[10px] shrink-0 ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                      {isOverdue ? "⚠️ " : ""}{new Date(task.due_date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
