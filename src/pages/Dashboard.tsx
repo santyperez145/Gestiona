@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -103,6 +103,7 @@ export default function Dashboard() {
   const [filterCat, setFilterCat] = useState('all');
   const [reloadKey, setReloadKey] = useState(0);
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
+  const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -117,6 +118,29 @@ export default function Dashboard() {
       setLoading(false);
     })();
   }, [user, reloadKey]);
+
+  // Birthday reminders: customers with birthday in next 7 days
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from('customers' as any).select('name, phone, birthday').not('birthday', 'is', null);
+      if (!data?.length) return;
+      const today = new Date();
+      const upcoming: { name: string; phone?: string; birthday: string; daysUntil: number }[] = [];
+      for (const c of data as any[]) {
+        if (!c.birthday) continue;
+        const [, mm, dd] = c.birthday.split('-').map(Number);
+        const next = new Date(today.getFullYear(), mm - 1, dd);
+        if (next < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+          next.setFullYear(today.getFullYear() + 1);
+        }
+        const diff = Math.round((next.getTime() - today.getTime()) / 86400000);
+        if (diff <= 7) upcoming.push({ name: c.name, phone: c.phone, birthday: c.birthday, daysUntil: diff });
+      }
+      upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+      setBirthdayCustomers(upcoming);
+    })();
+  }, [user]);
 
   // Realtime: subscribe to today's sales updates
   useEffect(() => {
@@ -428,6 +452,36 @@ export default function Dashboard() {
         userId={user.id}
         onRepair={() => setReloadKey(k => k + 1)}
       />}
+
+      {/* Birthday Reminders */}
+      {birthdayCustomers.length > 0 && (
+        <div className="mb-5 mt-4 bg-card border border-primary/20 rounded-xl p-4 shadow-card">
+          <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Cake className="w-4 h-4 text-primary" />Cumpleaños próximos
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {birthdayCustomers.map((c) => (
+              <div key={c.name} className="flex items-center gap-2 bg-primary/5 border border-primary/15 rounded-lg px-3 py-2">
+                <span className="text-lg">{c.daysUntil === 0 ? '🎂' : '🎁'}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold leading-tight truncate max-w-[140px]">{c.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{c.daysUntil === 0 ? '¡Hoy!' : `En ${c.daysUntil} día${c.daysUntil !== 1 ? 's' : ''}`}</p>
+                </div>
+                {c.phone && (
+                  <a
+                    href={`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Feliz cumpleaños ${c.name}! 🎉 Desde el equipo te deseamos un excelente día.`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="ml-1 p-1.5 rounded-md bg-success/10 hover:bg-success/20 text-success transition-colors"
+                    title="Saludar por WhatsApp"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
