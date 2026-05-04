@@ -77,6 +77,7 @@ export default function ProductsPage() {
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
   const [filterExpiry, setFilterExpiry] = useState('all');
+  const [filterTag, setFilterTag] = useState('');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -114,8 +115,12 @@ export default function ProductsPage() {
     if (filterExpiry === 'soon30') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in30Days) return false; }
     if (filterExpiry === 'soon90') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in90Days) return false; }
     if (filterExpiry === 'has_expiry' && !p.expiry_date) return false;
+    if (filterTag && !(p.tags || []).includes(filterTag)) return false;
     return true;
   });
+
+  // Collect all unique tags from products for the filter dropdown
+  const allTags = Array.from(new Set(products.flatMap((p: any) => p.tags || []))).sort();
 
   // Group first, then paginate by brand groups to avoid splitting a brand across pages
   const allGrouped = filtered.reduce<Record<string, any[]>>((acc, p) => {
@@ -247,6 +252,15 @@ export default function ProductsPage() {
               <SelectItem value="expired">Vencidos</SelectItem>
             </SelectContent>
           </Select>
+          {allTags.length > 0 && (
+            <Select value={filterTag || '__all'} onValueChange={v => { setFilterTag(v === '__all' ? '' : v); setPage(0); }}>
+              <SelectTrigger className="w-[120px] bg-muted border-border h-9 text-sm"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Etiquetas: todas</SelectItem>
+                {allTags.map((t: string) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -299,6 +313,9 @@ export default function ProductsPage() {
                                   </span>
                                 );
                               })()}
+                              {(p.tags || []).slice(0, 2).map((t: string) => (
+                                <span key={t} className="px-1.5 py-0.5 rounded-full text-[9px] bg-primary/10 text-primary shrink-0">{t}</span>
+                              ))}
                             </div>
                           </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
@@ -428,6 +445,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [sku, setSku] = useState(product?.sku || '');
   const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
   const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
+  const [tags, setTags] = useState<string[]>(product?.tags || []);
+  const [tagInput, setTagInput] = useState('');
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
@@ -549,6 +568,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         sku: sku.trim() || null,
         lot_number: lotNumber.trim() || null,
         expiry_date: expiryDate || null,
+        tags: tags.length > 0 ? tags : null,
       };
       let productId = product?.id;
       if (product) {
@@ -691,6 +711,48 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <Input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="bg-muted border-border text-sm" />
         </div>
       </div>
+      {/* Tags */}
+      <div>
+        <label className="text-sm text-muted-foreground">Etiquetas</label>
+        <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
+          {tags.map(t => (
+            <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/15 text-primary border border-primary/20">
+              {t}
+              <button type="button" onClick={() => setTags(tags.filter(x => x !== t))} className="hover:text-destructive ml-0.5">×</button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={tagInput}
+            onChange={e => setTagInput(e.target.value)}
+            onKeyDown={e => {
+              if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                e.preventDefault();
+                const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
+                if (t && !tags.includes(t)) setTags([...tags, t]);
+                setTagInput('');
+              }
+            }}
+            placeholder="nuevo, importado, oferta... (Enter para agregar)"
+            className="bg-muted border-border text-sm flex-1"
+          />
+          <Button type="button" variant="outline" size="sm" onClick={() => {
+            const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
+            if (t && !tags.includes(t)) setTags([...tags, t]);
+            setTagInput('');
+          }}><Plus className="w-3.5 h-3.5" /></Button>
+        </div>
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          {['nuevo', 'oferta', 'importado', 'exclusivo', 'temporada', 'agotándose'].filter(s => !tags.includes(s)).map(s => (
+            <button key={s} type="button" onClick={() => setTags([...tags, s])}
+              className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border hover:border-primary/40 text-muted-foreground">
+              + {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Variants — available for all categories */}
       <div className="border border-border rounded-lg overflow-hidden">
         <button
