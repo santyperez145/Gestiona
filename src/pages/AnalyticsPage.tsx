@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import {
   getProductsDB, getSalesDB, getPurchasesDB, getExpensesDB,
   formatARS,
 } from "@/lib/supabaseStore";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,7 +13,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, BarChart3, Users, DollarSign,
-  Package, Calendar, Percent, Clock,
+  Package, Calendar, Percent, Clock, Filter,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -172,6 +174,7 @@ const tooltipStyle = {
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const [rawData, setRawData] = useState<any>(null);
   const [year, setYear] = useState<"0" | "1">("0");
 
@@ -182,13 +185,19 @@ export default function AnalyticsPage() {
         getProductsDB(user.id), getSalesDB(user.id),
         getPurchasesDB(user.id), getExpensesDB(user.id),
       ]);
-      setRawData({ products, sales, purchases, expenses });
+      // Load quotes for funnel
+      let quotes: any[] = [];
+      if (activeOrg) {
+        const { data } = await supabase.from("presupuestos" as any).select("id,status,total_ars,created_at").eq("org_id", activeOrg.id);
+        quotes = data || [];
+      }
+      setRawData({ products, sales, purchases, expenses, quotes });
     })();
-  }, [user]);
+  }, [user, activeOrg]);
 
   const derived = useMemo(() => {
     if (!rawData) return null;
-    const { products, sales, purchases, expenses } = rawData;
+    const { products, sales, purchases, expenses, quotes = [] } = rawData;
     const offset = Number(year);
     const monthly = buildMonthlyData(sales, expenses, purchases, offset);
     const prevMonthly = buildMonthlyData(sales, expenses, purchases, offset + 1);
@@ -217,11 +226,26 @@ export default function AnalyticsPage() {
     const avgTicket = totalUnits > 0 ? totalRevenue / totalUnits : 0;
     const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
+    // Funnel: quotes → won → sales
+    const yearStart = new Date(new Date().getFullYear() - Number(year), 0, 1);
+    const yearQuotes = quotes.filter((q: any) => new Date(q.created_at) >= yearStart);
+    const totalQuotes = yearQuotes.length;
+    const wonQuotes = yearQuotes.filter((q: any) => q.status === "approved" || q.status === "won").length;
+    const conversionRate = totalQuotes > 0 ? Math.round((wonQuotes / totalQuotes) * 100) : 0;
+    const totalSalesCount = monthly.reduce((s, m) => s + m.units, 0);
+    const quotesValue = yearQuotes.reduce((s: number, q: any) => s + Number(q.total_ars || 0), 0);
+    const funnel = [
+      { name: "Presupuestos", value: totalQuotes, pct: 100, color: "hsl(200,70%,55%)" },
+      { name: "Aprobados", value: wonQuotes, pct: totalQuotes > 0 ? Math.round(wonQuotes / totalQuotes * 100) : 0, color: "hsl(40,70%,50%)" },
+      { name: "Ventas totales", value: totalSalesCount, pct: 100, color: "hsl(150,60%,40%)" },
+    ];
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
+      funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
     };
   }, [rawData, year]);
 
@@ -272,6 +296,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
           <TabsTrigger value="mix" className="text-xs">Mix</TabsTrigger>
           <TabsTrigger value="horarios" className="text-xs">Horarios</TabsTrigger>
+          <TabsTrigger value="funnel" className="text-xs">Conversión</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -609,6 +634,90 @@ export default function AnalyticsPage() {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </TabsContent>
+        {/* FUNNEL TAB */}
+        <TabsContent value="funnel" className="mt-4 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Presupuestos</div>
+              <div className="text-3xl font-bold">{derived.totalQuotes}</div>
+              <div className="text-xs text-muted-foreground mt-1">este año</div>
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Conversión</div>
+              <div className={`text-3xl font-bold ${derived.conversionRate >= 50 ? "text-green-400" : derived.conversionRate >= 25 ? "text-yellow-400" : "text-red-400"}`}>
+                {derived.conversionRate}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">{derived.wonQuotes} aprobados</div>
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Valor total</div>
+              <div className="text-2xl font-bold">{formatARS(derived.quotesValue)}</div>
+              <div className="text-xs text-muted-foreground mt-1">presupuestado</div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-6">
+              <Filter className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Embudo de conversión — {currentYear}</h3>
+            </div>
+            <div className="space-y-3">
+              {derived.funnel.map((stage: any, i: number) => (
+                <div key={stage.name}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ background: stage.color }} />
+                      <span className="text-sm font-medium">{stage.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{stage.value} unidades</span>
+                      {i > 0 && (
+                        <span className="text-xs font-mono font-semibold" style={{ color: stage.color }}>
+                          {stage.pct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="h-8 bg-muted/40 rounded-lg overflow-hidden">
+                    <div
+                      className="h-full rounded-lg transition-all duration-700 flex items-center justify-end pr-3"
+                      style={{
+                        width: `${Math.max(stage.pct, 2)}%`,
+                        background: stage.color,
+                        opacity: 0.8,
+                      }}
+                    >
+                      {stage.value > 0 && (
+                        <span className="text-xs font-bold text-white">{stage.value}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {derived.totalQuotes === 0 && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Aún no hay presupuestos registrados. Creá presupuestos en la sección <strong>Presupuestos</strong> para ver tu tasa de conversión.
+              </p>
+            )}
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <h3 className="text-sm font-semibold mb-3">Cómo mejorar la conversión</h3>
+            <div className="space-y-2">
+              {[
+                { tip: "Seguí tus presupuestos a los 48hs de enviarlos — el 60% de las conversiones ocurren en las primeras 72hs", ok: derived.conversionRate >= 40 },
+                { tip: "Incluí un link de pago en cada presupuesto para facilitar el cierre", ok: derived.conversionRate >= 50 },
+                { tip: `Tenés ${derived.totalQuotes - derived.wonQuotes} presupuesto(s) sin convertir — considerá hacer seguimiento`, ok: derived.totalQuotes - derived.wonQuotes === 0 },
+              ].map((item, i) => (
+                <div key={i} className={`flex items-start gap-2 p-3 rounded-lg text-sm ${item.ok ? "bg-green-500/10 text-green-300" : "bg-muted/40 text-muted-foreground"}`}>
+                  <span className="mt-0.5">{item.ok ? "✓" : "→"}</span>
+                  <span>{item.tip}</span>
+                </div>
+              ))}
             </div>
           </div>
         </TabsContent>
