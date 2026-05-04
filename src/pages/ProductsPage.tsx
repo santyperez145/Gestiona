@@ -76,6 +76,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
+  const [filterExpiry, setFilterExpiry] = useState('all');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -92,12 +93,27 @@ export default function ProductsPage() {
   };
   useEffect(() => { reload(); }, [user]);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in30Days = new Date(today); in30Days.setDate(today.getDate() + 30);
+  const in90Days = new Date(today); in90Days.setDate(today.getDate() + 90);
+
+  const expiringSoon = products.filter(p => {
+    if (!p.expiry_date) return false;
+    const exp = new Date(p.expiry_date);
+    return exp <= in30Days && p.stock > 0;
+  });
+
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
     if (filterStock === 'instock' && p.stock <= 0) return false;
     if (filterStock === 'low' && (p.stock > 3 || p.stock <= 0)) return false;
     if (filterStock === 'out' && p.stock > 0) return false;
+    if (filterExpiry === 'expired') { if (!p.expiry_date || new Date(p.expiry_date) >= today) return false; }
+    if (filterExpiry === 'soon30') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in30Days) return false; }
+    if (filterExpiry === 'soon90') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in90Days) return false; }
+    if (filterExpiry === 'has_expiry' && !p.expiry_date) return false;
     return true;
   });
 
@@ -185,12 +201,23 @@ export default function ProductsPage() {
         onClose={() => setPriceHistoryProduct(null)}
       />
 
+      {expiringSoon.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold text-orange-400">{expiringSoon.length} producto{expiringSoon.length !== 1 ? 's' : ''} vence{expiringSoon.length !== 1 ? 'n' : ''} en menos de 30 días: </span>
+            <span className="text-orange-300/80">{expiringSoon.slice(0, 3).map(p => p.name).join(', ')}{expiringSoon.length > 3 ? ` +${expiringSoon.length - 3}` : ''}</span>
+          </div>
+          <button onClick={() => setFilterExpiry('soon30')} className="text-xs text-orange-400 hover:underline shrink-0">Ver</button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
             <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -208,6 +235,16 @@ export default function ProductsPage() {
               <SelectItem value="instock">En stock</SelectItem>
               <SelectItem value="low">Stock bajo</SelectItem>
               <SelectItem value="out">Sin stock</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterExpiry} onValueChange={v => { setFilterExpiry(v); setPage(0); }}>
+            <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue placeholder="Vencimiento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Venc.: Todos</SelectItem>
+              <SelectItem value="has_expiry">Con vencimiento</SelectItem>
+              <SelectItem value="soon30">Vence en 30 días</SelectItem>
+              <SelectItem value="soon90">Vence en 90 días</SelectItem>
+              <SelectItem value="expired">Vencidos</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -251,6 +288,17 @@ export default function ProductsPage() {
                                   <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
                                 </span>
                               )}
+                              {p.expiry_date && (() => {
+                                const exp = new Date(p.expiry_date);
+                                const isExpired = exp < today;
+                                const isSoon = exp <= in30Days;
+                                if (!isExpired && !isSoon) return null;
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${isExpired ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/20 text-orange-400'}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
+                                    {isExpired ? 'VENC.' : 'PROX.'}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
@@ -378,6 +426,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '100');
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [sku, setSku] = useState(product?.sku || '');
+  const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
+  const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
@@ -497,6 +547,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         content_ml: parseInt(contentMl) || 100,
         barcode: barcode.trim() || null,
         sku: sku.trim() || null,
+        lot_number: lotNumber.trim() || null,
+        expiry_date: expiryDate || null,
       };
       let productId = product?.id;
       if (product) {
@@ -626,6 +678,17 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         <div>
           <label className="text-sm text-muted-foreground">SKU interno</label>
           <Input value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: LAT-KHA-100" className="bg-muted border-border font-mono text-sm" />
+        </div>
+      </div>
+      {/* Lot & Expiry */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm text-muted-foreground">N° de lote</label>
+          <Input value={lotNumber} onChange={e => setLotNumber(e.target.value)} placeholder="Ej: LOT-2025-04" className="bg-muted border-border font-mono text-sm" />
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">Fecha de vencimiento</label>
+          <Input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="bg-muted border-border text-sm" />
         </div>
       </div>
       {/* Variants — available for all categories */}

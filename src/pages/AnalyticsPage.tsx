@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, BarChart3, Users, DollarSign,
-  Package, Calendar, Percent,
+  Package, Calendar, Percent, Clock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -107,6 +107,51 @@ function buildCustomerData(sales: any[]) {
   return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 20);
 }
 
+const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+function buildHeatmapData(sales: any[]) {
+  // day-of-week × hour grid, counting sales count and revenue
+  const grid: Record<string, { count: number; revenue: number }> = {};
+  for (const s of sales) {
+    if (!s.created_at && !s.date) continue;
+    const d = new Date(s.created_at || s.date);
+    const dow = d.getDay(); // 0=Sun
+    const hour = d.getHours();
+    const key = `${dow}-${hour}`;
+    if (!grid[key]) grid[key] = { count: 0, revenue: 0 };
+    grid[key].count += 1;
+    grid[key].revenue += Number(s.total_ars) || 0;
+  }
+  return grid;
+}
+
+function buildHourlyBars(sales: any[]) {
+  const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0, revenue: 0 }));
+  for (const s of sales) {
+    if (!s.created_at && !s.date) continue;
+    const d = new Date(s.created_at || s.date);
+    const h = d.getHours();
+    hours[h].count += 1;
+    hours[h].revenue += Number(s.total_ars) || 0;
+  }
+  return hours.map(h => ({ ...h, label: `${String(h.hour).padStart(2, "0")}h` }));
+}
+
+function buildDailyBars(sales: any[]) {
+  const days = DAYS_ES.map((name, i) => ({ name, dow: i, count: 0, revenue: 0 }));
+  for (const s of sales) {
+    if (!s.created_at && !s.date) continue;
+    const d = new Date(s.created_at || s.date);
+    const dow = d.getDay();
+    days[dow].count += 1;
+    days[dow].revenue += Number(s.total_ars) || 0;
+  }
+  // reorder to start on Monday
+  const mon = days.slice(1).concat(days[0]);
+  return mon;
+}
+
 function buildCategoryMix(sales: any[], products: any[]) {
   const map: Record<string, number> = {};
   for (const s of sales) {
@@ -150,6 +195,9 @@ export default function AnalyticsPage() {
     const productPerf = buildProductPerformance(sales, products);
     const customerData = buildCustomerData(sales);
     const categoryMix = buildCategoryMix(sales, products);
+    const heatmap = buildHeatmapData(sales);
+    const hourlyBars = buildHourlyBars(sales);
+    const dailyBars = buildDailyBars(sales);
 
     const totalRevenue = monthly.reduce((s, m) => s + m.revenue, 0);
     const totalProfit = monthly.reduce((s, m) => s + m.profit, 0);
@@ -171,6 +219,7 @@ export default function AnalyticsPage() {
 
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
+      heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
     };
@@ -222,6 +271,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
           <TabsTrigger value="mix" className="text-xs">Mix</TabsTrigger>
+          <TabsTrigger value="horarios" className="text-xs">Horarios</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -464,6 +514,101 @@ export default function AnalyticsPage() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </TabsContent>
+        {/* HORARIOS TAB */}
+        <TabsContent value="horarios" className="mt-4 space-y-4">
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Ventas por hora del día</h3>
+              <span className="text-xs text-muted-foreground ml-auto">Cantidad de transacciones</span>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={derived.hourlyBars} barSize={10} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} interval={2} />
+                <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={24} />
+                <Tooltip {...tooltipStyle} formatter={(v: number, name: string) => [v, name === "count" ? "Ventas" : formatARS(v)]} />
+                <Bar dataKey="count" name="Ventas" radius={[3, 3, 0, 0]}>
+                  {derived.hourlyBars.map((h: any, i: number) => {
+                    const maxCount = Math.max(...derived.hourlyBars.map((x: any) => x.count), 1);
+                    const intensity = h.count / maxCount;
+                    return (
+                      <Cell key={i} fill={`hsl(40,70%,${30 + intensity * 30}%)`} opacity={0.4 + intensity * 0.6} />
+                    );
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold">Ventas por día de la semana</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={derived.dailyBars} barSize={20} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={24} />
+                  <Tooltip {...tooltipStyle} formatter={(v: number) => [v, "Ventas"]} />
+                  <Bar dataKey="count" name="Ventas" radius={[4, 4, 0, 0]}>
+                    {derived.dailyBars.map((d: any, i: number) => {
+                      const maxCount = Math.max(...derived.dailyBars.map((x: any) => x.count), 1);
+                      const intensity = d.count / maxCount;
+                      return <Cell key={i} fill={`hsl(200,70%,${35 + intensity * 25}%)`} opacity={0.5 + intensity * 0.5} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <h3 className="text-sm font-semibold mb-3">Pico de actividad</h3>
+              {(() => {
+                const topHour = derived.hourlyBars.reduce((a: any, b: any) => b.count > a.count ? b : a, derived.hourlyBars[0]);
+                const topDay = derived.dailyBars.reduce((a: any, b: any) => b.count > a.count ? b : a, derived.dailyBars[0]);
+                const quietHour = derived.hourlyBars.reduce((a: any, b: any) => b.count < a.count ? b : a, derived.hourlyBars[0]);
+                const totalWithTime = derived.hourlyBars.reduce((s: number, h: any) => s + h.count, 0);
+                return (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-primary/10 border border-primary/20">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Hora pico</div>
+                        <div className="text-lg font-bold">{topHour?.label}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">ventas</div>
+                        <div className="text-lg font-bold text-primary">{topHour?.count}</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Día más activo</div>
+                        <div className="text-lg font-bold">{topDay?.name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">ventas</div>
+                        <div className="text-lg font-bold text-blue-400">{topDay?.count}</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-muted/40">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Registros con horario</div>
+                        <div className="text-sm font-semibold">{totalWithTime} ventas</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Hora silenciosa</div>
+                        <div className="text-sm font-semibold text-muted-foreground">{quietHour?.label}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </TabsContent>
