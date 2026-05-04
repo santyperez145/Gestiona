@@ -48,6 +48,7 @@ import StockCountPage from "@/pages/StockCountPage";
 import EmailCampaignsPage from "@/pages/EmailCampaignsPage";
 import BankReconciliationPage from "@/pages/BankReconciliationPage";
 import SalesPipelinePage from "@/pages/SalesPipelinePage";
+import LoyaltyPage from "@/pages/LoyaltyPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
@@ -155,6 +156,7 @@ function ProtectedRoutes() {
             <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
             <Route path="/banco" element={<BankReconciliationPage />} />
             <Route path="/pipeline" element={<SalesPipelinePage />} />
+            <Route path="/fidelidad" element={<LoyaltyPage />} />
             <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
