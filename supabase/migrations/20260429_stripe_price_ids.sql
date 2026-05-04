@@ -41,7 +41,7 @@ WHERE code = 'business';
 --   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
 
 -- Paso 5: Registrar el webhook en Stripe Dashboard:
---   URL: https://wcfohngxrtopgggumjmw.supabase.co/functions/v1/stripe-webhook
+--   URL: https://wkpzfriwtelbtvadloap.supabase.co/functions/v1/stripe-webhook
 --   Eventos a escuchar:
 --     checkout.session.completed
 --     customer.subscription.created
