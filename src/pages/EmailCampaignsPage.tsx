@@ -33,6 +33,7 @@ interface Campaign {
   failed_count: number;
   created_at: string;
   sent_at: string | null;
+  scheduled_at: string | null;
 }
 
 interface Customer {
@@ -78,6 +79,7 @@ export default function EmailCampaignsPage() {
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
   const [segment, setSegment] = useState("all");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [saving, setSaving] = useState(false);
 
   // ── Load ────────────────────────────────────────────────────────────────────
@@ -145,10 +147,11 @@ export default function EmailCampaignsPage() {
         status: "draft",
         sent_count: 0,
         failed_count: 0,
+        scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
       });
       if (error) throw error;
-      toast.success("Campaña creada como borrador");
-      setOpen(false); setSubject(""); setBodyHtml(""); setSegment("all");
+      toast.success(scheduledAt ? `Campaña programada para ${new Date(scheduledAt).toLocaleString("es-AR")}` : "Campaña creada como borrador");
+      setOpen(false); setSubject(""); setBodyHtml(""); setSegment("all"); setScheduledAt("");
       load();
     } catch {
       toast.error("Error al guardar campaña");
@@ -283,6 +286,9 @@ export default function EmailCampaignsPage() {
                       <span>{aud.length} destinatario(s)</span>
                       {camp.sent_count > 0 && <><span>·</span><span className="text-emerald-400">{camp.sent_count} enviados</span></>}
                       {camp.failed_count > 0 && <><span>·</span><span className="text-red-400">{camp.failed_count} fallidos</span></>}
+                      {camp.scheduled_at && camp.status === "draft" && (
+                        <><span>·</span><span className="text-blue-400 flex items-center gap-1"><Clock className="w-3 h-3" />Programado: {new Date(camp.scheduled_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span></>
+                      )}
                       <span>·</span>
                       <span>{new Date(camp.created_at).toLocaleDateString("es-AR")}</span>
                     </div>
@@ -364,12 +370,23 @@ export default function EmailCampaignsPage() {
                 Podés usar <code>{"{{nombre}}"}</code> para personalizar el saludo.
               </p>
             </div>
+            <div className="space-y-1.5">
+              <Label>Programar envío (opcional)</Label>
+              <Input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={e => setScheduledAt(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground">Dejá vacío para enviar manualmente cuando quieras.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-              Guardar borrador
+              {scheduledAt ? "Programar" : "Guardar borrador"}
             </Button>
           </DialogFooter>
         </DialogContent>
