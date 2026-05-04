@@ -50,6 +50,7 @@ import ProveedoresPage from "@/pages/ProveedoresPage";
 import PresupuestosPage from "@/pages/PresupuestosPage";
 import DevolucionesPage from "@/pages/DevolucionesPage";
 import CuotasPage from "@/pages/CuotasPage";
+import ChequesPage from "@/pages/ChequesPage";
 import AutoRestockPage from "@/pages/AutoRestockPage";
 import StockCountPage from "@/pages/StockCountPage";
 import EmailCampaignsPage from "@/pages/EmailCampaignsPage";
@@ -164,6 +165,7 @@ function ProtectedRoutes() {
             <Route path="/presupuestos" element={<PresupuestosPage />} />
             <Route path="/devoluciones" element={<DevolucionesPage />} />
             <Route path="/cuotas" element={<CuotasPage />} />
+            <Route path="/cheques" element={<ChequesPage />} />
             <Route path="/restock" element={<AutoRestockPage />} />
             <Route path="/toma-fisica" element={<StockCountPage />} />
             <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
