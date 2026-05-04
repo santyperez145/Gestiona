@@ -658,7 +658,12 @@ function ThresholdsSection({ userId }: { userId: string }) {
           <Input type="number" value={s.overdue_check_window_hours ?? 24} onChange={e => update('overdue_check_window_hours', e.target.value)} className="bg-muted border-border mt-1" /></div>
         <div className="col-span-2"><label className="text-xs text-muted-foreground">Aviso flujo caja (ARS mín. proyectado)</label>
           <Input type="number" value={s.cash_flow_warning_threshold_ars ?? 0} onChange={e => update('cash_flow_warning_threshold_ars', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Alerta ventas diarias mín. (ARS, 0 = desactivado)</label>
+          <Input type="number" value={s.daily_sales_alert_threshold ?? 0} onChange={e => update('daily_sales_alert_threshold', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Alerta margen diario mín. (%, 0 = desactivado)</label>
+          <Input type="number" value={s.daily_margin_alert_threshold ?? 0} onChange={e => update('daily_margin_alert_threshold', e.target.value)} className="bg-muted border-border mt-1" /></div>
       </div>
+      <p className="text-[10px] text-muted-foreground">Las alertas de resumen diario se envían cada mañana con las métricas del día anterior.</p>
       <Button onClick={save} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Umbrales'}</Button>
     </div>
   );
