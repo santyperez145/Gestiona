@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen, ListChecks, Mail, Landmark } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen, ListChecks, Mail, Landmark, Kanban } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -22,6 +22,7 @@ const allNavItems = [
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
   { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/pipeline", label: "Pipeline", icon: Kanban, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
   { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
   { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
