@@ -905,6 +905,21 @@ export default function POSPage() {
         awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
       }
 
+      // Outbound webhook: sale.created (best-effort)
+      if (settings?.webhook_enabled && settings?.webhook_url) {
+        supabase.functions.invoke("send-webhook", {
+          body: {
+            event: "sale.created",
+            data: {
+              customer: customer.trim() || null,
+              total_ars: cartTotal,
+              items: cart.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+              payment_method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
+            },
+          },
+        }).catch(() => {});
+      }
+
       // Large sale notification (best-effort)
       const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
       if (cartTotal >= largeThreshold && user) {
