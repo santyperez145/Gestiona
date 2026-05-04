@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2 } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -397,6 +397,17 @@ export default function Dashboard() {
 
   if (loading || !stats) return <DashboardSkeleton />;
 
+  const shareDailyResume = () => {
+    const today = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+    const revenue = formatARS(liveTodaySales?.total ?? 0);
+    const count = liveTodaySales?.count ?? 0;
+    const margin = stats.grossProfitARS > 0 && stats.totalSalesARS > 0
+      ? ` · Margen ${((stats.grossProfitARS / stats.totalSalesARS) * 100).toFixed(1)}%`
+      : "";
+    const text = `📊 Resumen ${today}\n💰 Ventas: ${revenue} (${count} venta${count !== 1 ? "s" : ""}${margin})\n\nVía Gestiona`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   const kpiCards = [
     { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: `${liveTodaySales?.count ?? 0} ventas hoy`, icon: Zap, color: "text-success", live: true },
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
@@ -442,6 +453,9 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
+          <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-success transition-colors">
+            <Share2 className="w-3.5 h-3.5" />Compartir
+          </button>
           <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
