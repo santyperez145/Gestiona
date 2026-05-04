@@ -19,6 +19,7 @@ import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
 import AIChatPage from "@/pages/AIChatPage";
 import AutomationFlowsPage from "@/pages/AutomationFlowsPage";
+import LocationsPage from "@/pages/LocationsPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
@@ -148,6 +149,7 @@ function ProtectedRoutes() {
             <Route path="/ia" element={<AIInsightsPage />} />
             <Route path="/chat-ia" element={<AIChatPage />} />
             <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
+            <Route path="/sucursales" element={<LocationsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/facturas" element={<InvoicesPage />} />
             <Route path="/caja/turno" element={<CashSessionPage />} />
