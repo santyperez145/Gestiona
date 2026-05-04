@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
-import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -858,6 +858,12 @@ export default function POSPage() {
       }
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
+
+      // Award loyalty points (best-effort, don't block sale on failure)
+      if (customer.trim()) {
+        awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
+      }
+
       setProducts(await getProductsDB(user.id));
 
       setReceipt({
