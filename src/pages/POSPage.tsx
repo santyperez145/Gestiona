@@ -859,9 +859,22 @@ export default function POSPage() {
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
 
-      // Award loyalty points (best-effort, don't block sale on failure)
+      // Award loyalty points (best-effort)
       if (customer.trim()) {
         awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
+      }
+
+      // Large sale notification (best-effort)
+      const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
+      if (cartTotal >= largeThreshold && user) {
+        supabase.from("notifications").insert({
+          user_id: user.id,
+          org_id: orgId,
+          type: "venta_grande",
+          title: `Venta grande: ${formatARS(cartTotal)}`,
+          message: customer.trim() ? `Cliente: ${customer.trim()}` : "Venta sin nombre de cliente",
+          read: false,
+        }).then(() => {}).catch(() => {});
       }
 
       setProducts(await getProductsDB(user.id));
