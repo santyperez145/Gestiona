@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen, ListChecks, Mail, Landmark, Kanban, Star, MapPin } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen, ListChecks, Mail, Landmark, Kanban, Star, MapPin, CreditCard } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -26,6 +26,7 @@ const allNavItems = [
   { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
   { to: "/referidos", label: "Referidos", icon: Users, roles: ['admin'], section: 'ventas' },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
+  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
   { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
   { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
