@@ -140,6 +140,64 @@ async function generatePDF(quote: Quote, orgName: string) {
   doc.save(`presupuesto_${quote.quote_number}.pdf`);
 }
 
+async function generateRemito(quote: Quote, orgName: string) {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const PW = 210;
+
+  // Header band — green for delivery
+  doc.setFillColor(20, 83, 45);
+  doc.rect(0, 0, PW, 35, "F");
+  doc.setTextColor(134, 239, 172);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text(orgName, 15, 15);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.text("REMITO DE ENTREGA", 15, 25);
+  doc.setFontSize(10);
+  doc.text(`Ref: ${quote.quote_number}`, PW - 15, 15, { align: "right" });
+  doc.setFontSize(9);
+  doc.text(`Fecha: ${new Date().toLocaleDateString("es-AR")}`, PW - 15, 22, { align: "right" });
+
+  // Recipient
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("ENTREGAR A:", 15, 50);
+  doc.setFont("helvetica", "normal");
+  doc.text(quote.customer_name, 15, 57);
+  if (quote.customer_phone) doc.text(quote.customer_phone, 15, 63);
+
+  // Items table — quantity and description only (no prices)
+  const rows = quote.items.map(item => [
+    item.qty.toString(),
+    item.description,
+    "□ Recibido",
+  ]);
+
+  autoTable(doc, {
+    startY: 73,
+    head: [["Cant.", "Descripción", "Confirmación"]],
+    body: rows,
+    theme: "striped",
+    headStyles: { fillColor: [20, 83, 45], textColor: [255, 255, 255], fontStyle: "bold" },
+    columnStyles: { 0: { cellWidth: 15, halign: "center" }, 1: { cellWidth: 130 }, 2: { cellWidth: 35, halign: "center" } },
+    styles: { fontSize: 9, cellPadding: 5 },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Firma recepción: __________________________________", 15, finalY);
+  doc.text(`Aclaración: __________________________  DNI: ______________`, 15, finalY + 12);
+  doc.text(`Fecha de recepción: ______________`, 15, finalY + 24);
+
+  doc.save(`remito_${quote.quote_number}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 export default function PresupuestosPage() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
@@ -442,8 +500,11 @@ export default function PresupuestosPage() {
                   >
                     {expandedId === q.id ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => generatePDF(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Descargar PDF">
+                  <button onClick={() => generatePDF(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Descargar PDF presupuesto">
                     <Download className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => generateRemito(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Remito de entrega">
+                    <FileText className="w-4 h-4" />
                   </button>
                   <button onClick={() => copyWhatsApp(q)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Copiar para WhatsApp">
                     <Copy className="w-4 h-4" />
