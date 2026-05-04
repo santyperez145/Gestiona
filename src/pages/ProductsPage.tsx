@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
@@ -66,6 +67,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
 
 export default function ProductsPage() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -74,10 +76,13 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
+  const [filterExpiry, setFilterExpiry] = useState('all');
+  const [filterTag, setFilterTag] = useState('');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
+  const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
 
   const reload = async () => {
     if (!user) return;
@@ -89,14 +94,33 @@ export default function ProductsPage() {
   };
   useEffect(() => { reload(); }, [user]);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in30Days = new Date(today); in30Days.setDate(today.getDate() + 30);
+  const in90Days = new Date(today); in90Days.setDate(today.getDate() + 90);
+
+  const expiringSoon = products.filter(p => {
+    if (!p.expiry_date) return false;
+    const exp = new Date(p.expiry_date);
+    return exp <= in30Days && p.stock > 0;
+  });
+
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
     if (filterStock === 'instock' && p.stock <= 0) return false;
     if (filterStock === 'low' && (p.stock > 3 || p.stock <= 0)) return false;
     if (filterStock === 'out' && p.stock > 0) return false;
+    if (filterExpiry === 'expired') { if (!p.expiry_date || new Date(p.expiry_date) >= today) return false; }
+    if (filterExpiry === 'soon30') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in30Days) return false; }
+    if (filterExpiry === 'soon90') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in90Days) return false; }
+    if (filterExpiry === 'has_expiry' && !p.expiry_date) return false;
+    if (filterTag && !(p.tags || []).includes(filterTag)) return false;
     return true;
   });
+
+  // Collect all unique tags from products for the filter dropdown
+  const allTags = Array.from(new Set(products.flatMap((p: any) => p.tags || []))).sort();
 
   // Group first, then paginate by brand groups to avoid splitting a brand across pages
   const allGrouped = filtered.reduce<Record<string, any[]>>((acc, p) => {
@@ -159,7 +183,7 @@ export default function ProductsPage() {
                </DialogTrigger>
                <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
                  <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-                 <ProductForm product={editing} settings={settings} userId={user!.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+                 <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
                </DialogContent>
              </Dialog>
            )}
@@ -174,12 +198,31 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Price history modal */}
+      <PriceHistoryModal
+        productId={priceHistoryProduct?.id || ""}
+        productName={priceHistoryProduct?.name || ""}
+        open={!!priceHistoryProduct}
+        onClose={() => setPriceHistoryProduct(null)}
+      />
+
+      {expiringSoon.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold text-orange-400">{expiringSoon.length} producto{expiringSoon.length !== 1 ? 's' : ''} vence{expiringSoon.length !== 1 ? 'n' : ''} en menos de 30 días: </span>
+            <span className="text-orange-300/80">{expiringSoon.slice(0, 3).map(p => p.name).join(', ')}{expiringSoon.length > 3 ? ` +${expiringSoon.length - 3}` : ''}</span>
+          </div>
+          <button onClick={() => setFilterExpiry('soon30')} className="text-xs text-orange-400 hover:underline shrink-0">Ver</button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
             <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -199,6 +242,25 @@ export default function ProductsPage() {
               <SelectItem value="out">Sin stock</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterExpiry} onValueChange={v => { setFilterExpiry(v); setPage(0); }}>
+            <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue placeholder="Vencimiento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Venc.: Todos</SelectItem>
+              <SelectItem value="has_expiry">Con vencimiento</SelectItem>
+              <SelectItem value="soon30">Vence en 30 días</SelectItem>
+              <SelectItem value="soon90">Vence en 90 días</SelectItem>
+              <SelectItem value="expired">Vencidos</SelectItem>
+            </SelectContent>
+          </Select>
+          {allTags.length > 0 && (
+            <Select value={filterTag || '__all'} onValueChange={v => { setFilterTag(v === '__all' ? '' : v); setPage(0); }}>
+              <SelectTrigger className="w-[120px] bg-muted border-border h-9 text-sm"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Etiquetas: todas</SelectItem>
+                {allTags.map((t: string) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -240,6 +302,20 @@ export default function ProductsPage() {
                                   <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
                                 </span>
                               )}
+                              {p.expiry_date && (() => {
+                                const exp = new Date(p.expiry_date);
+                                const isExpired = exp < today;
+                                const isSoon = exp <= in30Days;
+                                if (!isExpired && !isSoon) return null;
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${isExpired ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/20 text-orange-400'}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
+                                    {isExpired ? 'VENC.' : 'PROX.'}
+                                  </span>
+                                );
+                              })()}
+                              {(p.tags || []).slice(0, 2).map((t: string) => (
+                                <span key={t} className="px-1.5 py-0.5 rounded-full text-[9px] bg-primary/10 text-primary shrink-0">{t}</span>
+                              ))}
                             </div>
                           </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
@@ -273,6 +349,7 @@ export default function ProductsPage() {
                          </td>
                          <td className="p-3 text-center space-x-1">
                            <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                           <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                            <ConfirmDialog
                              trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                              title="¿Eliminar producto?"
@@ -351,7 +428,7 @@ export default function ProductsPage() {
   );
 }
 
-function ProductForm({ product, settings, userId, onSave }: { product: any; settings: any; userId: string; onSave: () => void }) {
+function ProductForm({ product, settings, userId, orgId, onSave }: { product: any; settings: any; userId: string; orgId?: string; onSave: () => void }) {
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || 'perfume_arabe');
@@ -366,6 +443,10 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
   const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '100');
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [sku, setSku] = useState(product?.sku || '');
+  const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
+  const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
+  const [tags, setTags] = useState<string[]>(product?.tags || []);
+  const [tagInput, setTagInput] = useState('');
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
@@ -468,52 +549,60 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
-    
-    const imageUrl = await uploadImage();
-    // If using variants, stock = sum of variant stocks
-    const variantTotal = showVariants && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
-    const data = {
-      name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
-      cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
-      sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
-      profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-      stock: variantTotal,
-      image_url: imageUrl,
-      featured,
-      offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
-      content_ml: parseInt(contentMl) || 100,
-      barcode: barcode.trim() || null,
-      sku: sku.trim() || null,
-    };
-    let productId = product?.id;
-    if (product) {
-      await updateProductDB(product.id, data);
-      await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
-    } else {
-      productId = crypto.randomUUID();
-      await addProductDB({ ...data, user_id: userId, id: productId });
-      await logAudit(userId, 'create', 'product', productId, { name: data.name });
-    }
-    // Save variants for all categories
-    if (showVariants && productId) {
-      const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
-      const existingIds = new Set(existingVariants.map((v: any) => v.id));
-      const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
-      // Delete removed variants
-      for (const ev of existingVariants) {
-        if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+
+    try {
+      const imageUrl = await uploadImage();
+      // If using variants, stock = sum of variant stocks
+      const variantTotal = showVariants && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
+      const data = {
+        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
+        cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
+        sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
+        profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
+        stock: variantTotal,
+        image_url: imageUrl,
+        featured,
+        offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
+        content_ml: parseInt(contentMl) || 100,
+        barcode: barcode.trim() || null,
+        sku: sku.trim() || null,
+        lot_number: lotNumber.trim() || null,
+        expiry_date: expiryDate || null,
+        tags: tags.length > 0 ? tags : null,
+      };
+      let productId = product?.id;
+      if (product) {
+        await updateProductDB(product.id, data);
+        await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
+      } else {
+        productId = crypto.randomUUID();
+        await addProductDB({ ...data, user_id: userId, id: productId, org_id: orgId });
+        await logAudit(userId, 'create', 'product', productId, { name: data.name });
       }
-      // Update existing / add new variants
-      for (const v of variants) {
-        if (v.id && existingIds.has(v.id)) {
-          await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
-        } else if (v._new || !v.id) {
-          await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
+      // Save variants for all categories
+      if (showVariants && productId) {
+        const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
+        const existingIds = new Set(existingVariants.map((v: any) => v.id));
+        const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
+        // Delete removed variants
+        for (const ev of existingVariants) {
+          if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
+        }
+        // Update existing / add new variants
+        for (const v of variants) {
+          if (v.id && existingIds.has(v.id)) {
+            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
+          } else if (v._new || !v.id) {
+            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
+          }
         }
       }
+      toast.success(product ? "Producto actualizado" : "Producto agregado");
+      onSave();
+    } catch (err: any) {
+      console.error('Error guardando producto:', err);
+      toast.error(err?.message || "Error al guardar el producto");
     }
-    toast.success(product ? "Producto actualizado" : "Producto agregado");
-    onSave();
   };
 
   return (
@@ -611,6 +700,59 @@ function ProductForm({ product, settings, userId, onSave }: { product: any; sett
           <Input value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: LAT-KHA-100" className="bg-muted border-border font-mono text-sm" />
         </div>
       </div>
+      {/* Lot & Expiry */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm text-muted-foreground">N° de lote</label>
+          <Input value={lotNumber} onChange={e => setLotNumber(e.target.value)} placeholder="Ej: LOT-2025-04" className="bg-muted border-border font-mono text-sm" />
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">Fecha de vencimiento</label>
+          <Input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="bg-muted border-border text-sm" />
+        </div>
+      </div>
+      {/* Tags */}
+      <div>
+        <label className="text-sm text-muted-foreground">Etiquetas</label>
+        <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
+          {tags.map(t => (
+            <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/15 text-primary border border-primary/20">
+              {t}
+              <button type="button" onClick={() => setTags(tags.filter(x => x !== t))} className="hover:text-destructive ml-0.5">×</button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={tagInput}
+            onChange={e => setTagInput(e.target.value)}
+            onKeyDown={e => {
+              if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                e.preventDefault();
+                const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
+                if (t && !tags.includes(t)) setTags([...tags, t]);
+                setTagInput('');
+              }
+            }}
+            placeholder="nuevo, importado, oferta... (Enter para agregar)"
+            className="bg-muted border-border text-sm flex-1"
+          />
+          <Button type="button" variant="outline" size="sm" onClick={() => {
+            const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ-]/g, '');
+            if (t && !tags.includes(t)) setTags([...tags, t]);
+            setTagInput('');
+          }}><Plus className="w-3.5 h-3.5" /></Button>
+        </div>
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          {['nuevo', 'oferta', 'importado', 'exclusivo', 'temporada', 'agotándose'].filter(s => !tags.includes(s)).map(s => (
+            <button key={s} type="button" onClick={() => setTags([...tags, s])}
+              className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border hover:border-primary/40 text-muted-foreground">
+              + {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Variants — available for all categories */}
       <div className="border border-border rounded-lg overflow-hidden">
         <button
@@ -829,5 +971,67 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
         {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
       </Button>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Price History Modal
+// ─────────────────────────────────────────────────────────────
+export function PriceHistoryModal({ productId, productName, open, onClose }: {
+  productId: string; productName: string; open: boolean; onClose: () => void;
+}) {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !productId) return;
+    setLoading(true);
+    supabase
+      .from("price_history" as any)
+      .select("*")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setHistory((data || []) as any[]);
+        setLoading(false);
+      });
+  }, [open, productId]);
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="bg-card border-border max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display text-sm">Historial de precios — {productName}</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Cargando…</p>
+        ) : history.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Sin cambios de precio registrados aún.<br />Los cambios futuros aparecerán acá automáticamente.</p>
+        ) : (
+          <div className="space-y-2">
+            {history.map((h: any) => {
+              const pct = Number(h.change_pct);
+              const up = pct > 0;
+              return (
+                <div key={h.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/40 text-xs">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-muted-foreground">{new Date(h.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
+                    <p className="font-medium">
+                      {h.old_price_ars ? formatARS(Number(h.old_price_ars)) : "—"} → <span className="text-primary font-bold">{formatARS(Number(h.new_price_ars))}</span>
+                    </p>
+                  </div>
+                  {h.change_pct != null && (
+                    <span className={`font-bold shrink-0 ${up ? "text-success" : "text-destructive"}`}>
+                      {up ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -14,7 +14,7 @@ import {
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
 } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, addSaleDB } from "@/lib/supabaseStore";
 
 type QuoteItem = { description: string; qty: number; unitPrice: number; total: number };
 type Quote = {
@@ -140,6 +140,64 @@ async function generatePDF(quote: Quote, orgName: string) {
   doc.save(`presupuesto_${quote.quote_number}.pdf`);
 }
 
+async function generateRemito(quote: Quote, orgName: string) {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const PW = 210;
+
+  // Header band — green for delivery
+  doc.setFillColor(20, 83, 45);
+  doc.rect(0, 0, PW, 35, "F");
+  doc.setTextColor(134, 239, 172);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text(orgName, 15, 15);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.text("REMITO DE ENTREGA", 15, 25);
+  doc.setFontSize(10);
+  doc.text(`Ref: ${quote.quote_number}`, PW - 15, 15, { align: "right" });
+  doc.setFontSize(9);
+  doc.text(`Fecha: ${new Date().toLocaleDateString("es-AR")}`, PW - 15, 22, { align: "right" });
+
+  // Recipient
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("ENTREGAR A:", 15, 50);
+  doc.setFont("helvetica", "normal");
+  doc.text(quote.customer_name, 15, 57);
+  if (quote.customer_phone) doc.text(quote.customer_phone, 15, 63);
+
+  // Items table — quantity and description only (no prices)
+  const rows = quote.items.map(item => [
+    item.qty.toString(),
+    item.description,
+    "□ Recibido",
+  ]);
+
+  autoTable(doc, {
+    startY: 73,
+    head: [["Cant.", "Descripción", "Confirmación"]],
+    body: rows,
+    theme: "striped",
+    headStyles: { fillColor: [20, 83, 45], textColor: [255, 255, 255], fontStyle: "bold" },
+    columnStyles: { 0: { cellWidth: 15, halign: "center" }, 1: { cellWidth: 130 }, 2: { cellWidth: 35, halign: "center" } },
+    styles: { fontSize: 9, cellPadding: 5 },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Firma recepción: __________________________________", 15, finalY);
+  doc.text(`Aclaración: __________________________  DNI: ______________`, 15, finalY + 12);
+  doc.text(`Fecha de recepción: ______________`, 15, finalY + 24);
+
+  doc.save(`remito_${quote.quote_number}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 export default function PresupuestosPage() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
@@ -162,6 +220,40 @@ export default function PresupuestosPage() {
   const [orgName, setOrgName] = useState("Mi Negocio");
   const [mpLinks, setMpLinks] = useState<Record<string, string>>({});
   const [mpLoading, setMpLoading] = useState<string | null>(null);
+  const [payLinks, setPayLinks] = useState<Record<string, string>>({});
+  const [payLinkLoading, setPayLinkLoading] = useState<string | null>(null);
+
+  const generatePayLink = async (q: Quote) => {
+    if (payLinks[q.id]) { navigator.clipboard.writeText(payLinks[q.id]); toast.success("Link copiado"); return; }
+    setPayLinkLoading(q.id);
+    try {
+      const { data, error } = await supabase
+        .from("payment_links" as any)
+        .insert({
+          org_id: activeOrg!.id,
+          quote_id: q.id,
+          quote_number: q.quote_number,
+          customer_name: q.customer_name,
+          customer_phone: q.customer_phone || null,
+          items: q.items,
+          total_ars: q.total,
+          mp_link: mpLinks[q.id] || null,
+          notes: q.notes || null,
+          expires_at: q.valid_until || null,
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw error || new Error("Error creating payment link");
+      const url = `${window.location.origin}/pagar/${(data as any).id}`;
+      setPayLinks(prev => ({ ...prev, [q.id]: url }));
+      navigator.clipboard.writeText(url);
+      toast.success("Link de pago copiado — compartilo por WhatsApp");
+    } catch {
+      toast.error("Error al generar link de pago");
+    } finally {
+      setPayLinkLoading(null);
+    }
+  };
 
   const generateMpLink = async (q: Quote) => {
     if (mpLinks[q.id]) { navigator.clipboard.writeText(mpLinks[q.id]); toast.success("Link copiado"); return; }
@@ -256,6 +348,38 @@ export default function PresupuestosPage() {
     const { error } = await supabase.from("quotes").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success(`Estado actualizado: ${STATUS_CONFIG[status]?.label}`); load(); }
+  };
+
+  const [converting, setConverting] = useState<string | null>(null);
+  const convertToSale = async (q: Quote) => {
+    if (!activeOrg || !user) return;
+    if (!confirm(`Registrar venta de ${formatARS(q.total)} para ${q.customer_name}?`)) return;
+    setConverting(q.id);
+    try {
+      const saleId = crypto.randomUUID();
+      await addSaleDB({
+        id: saleId,
+        user_id: user.id,
+        org_id: activeOrg.id,
+        product_name: q.items.map(it => it.description).join(", ").slice(0, 120),
+        quantity: q.items.reduce((s, it) => s + it.qty, 0) || 1,
+        unit_price_ars: q.total,
+        total_ars: q.total,
+        profit_ars: 0,
+        profit_usd: 0,
+        customer_name: q.customer_name || null,
+        date: new Date().toISOString(),
+        paid: true,
+        payment_method: "transferencia",
+        quote_id: q.id,
+      });
+      await updateStatus(q.id, "accepted");
+      toast.success(`Venta de ${formatARS(q.total)} registrada`);
+    } catch (e: any) {
+      toast.error(e.message || "Error al convertir");
+    } finally {
+      setConverting(null);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -376,8 +500,11 @@ export default function PresupuestosPage() {
                   >
                     {expandedId === q.id ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => generatePDF(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Descargar PDF">
+                  <button onClick={() => generatePDF(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Descargar PDF presupuesto">
                     <Download className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => generateRemito(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Remito de entrega">
+                    <FileText className="w-4 h-4" />
                   </button>
                   <button onClick={() => copyWhatsApp(q)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Copiar para WhatsApp">
                     <Copy className="w-4 h-4" />
@@ -433,6 +560,22 @@ export default function PresupuestosPage() {
                         </Button>
                       </>
                     )}
+                    {(q.status === "draft" || q.status === "sent" || q.status === "accepted") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
+                        onClick={() => convertToSale(q)}
+                        disabled={converting === q.id}
+                        title="Convertir en venta registrada"
+                      >
+                        {converting === q.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <CheckCircle2 className="w-3 h-3" />
+                        }
+                        Convertir en venta
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -455,6 +598,30 @@ export default function PresupuestosPage() {
                         onClick={() => window.open(`https://wa.me/${q.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${q.customer_name.split(" ")[0]}! Te comparto el link para pagar tu presupuesto ${q.quote_number} (${formatARS(q.total)}): ${mpLinks[q.id]}`)}`, "_blank")}
                       >
                         <Send className="w-3 h-3" />WhatsApp
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1"
+                      onClick={() => generatePayLink(q)}
+                      disabled={payLinkLoading === q.id}
+                      title={payLinks[q.id] ? "Link generado — click para copiar" : "Generar link de pago universal (MP + transferencia + efectivo)"}
+                    >
+                      {payLinkLoading === q.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Link2 className="w-3 h-3" />
+                      }
+                      {payLinks[q.id] ? "Copiar link pago" : "Link pago"}
+                    </Button>
+                    {q.customer_phone && payLinks[q.id] && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-green-500/40 text-green-400 hover:bg-green-500/10 gap-1"
+                        onClick={() => window.open(`https://wa.me/${q.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${q.customer_name.split(" ")[0]}! 🛍️ Tu presupuesto ${q.quote_number} por ${formatARS(q.total)}.\n\nPodés pagar con tarjeta, transferencia o efectivo desde este link:\n${payLinks[q.id]}`)}`, "_blank")}
+                      >
+                        <Send className="w-3 h-3" />Enviar
                       </Button>
                     )}
                   </div>

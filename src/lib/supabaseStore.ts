@@ -635,8 +635,34 @@ export async function seedProductsForUser(userId: string) {
   const { data: existing } = await supabase.from('products').select('id').eq('org_id', orgId).limit(1);
   if (existing && existing.length > 0) return;
   const { seedProductsList } = await import('./seedData');
-  const products = seedProductsList.map(p => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
+  const products = seedProductsList.map((p: any) => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
   for (let i = 0; i < products.length; i += 50) {
     await supabase.from('products').insert(products.slice(i, i + 50));
   }
+}
+
+// ========= LOYALTY POINTS =========
+export async function awardLoyaltyPointsForSale(
+  orgId: string,
+  customerName: string | null,
+  totalARS: number,
+  saleId: string,
+) {
+  if (!customerName) return;
+  const { data: sett } = await supabase
+    .from('settings')
+    .select('loyalty_enabled, loyalty_points_per_1000')
+    .eq('org_id', orgId)
+    .single();
+  if (!sett?.loyalty_enabled) return;
+  const pointsPer1000 = Number(sett.loyalty_points_per_1000) || 1;
+  const points = Math.floor((totalARS / 1000) * pointsPer1000);
+  if (points <= 0) return;
+  await supabase.from('loyalty_points' as any).insert({
+    org_id: orgId,
+    customer_name: customerName,
+    delta: points,
+    reason: 'sale',
+    reference_id: saleId,
+  });
 }

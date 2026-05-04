@@ -17,6 +17,11 @@ import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
+import AIChatPage from "@/pages/AIChatPage";
+import AutomationFlowsPage from "@/pages/AutomationFlowsPage";
+import LocationsPage from "@/pages/LocationsPage";
+import ReferralsPage from "@/pages/ReferralsPage";
+import MarketingTemplatesPage from "@/pages/MarketingTemplatesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
@@ -29,6 +34,7 @@ import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicCatalogPage from "@/pages/PublicCatalogPage";
+import PublicPaymentPage from "@/pages/PublicPaymentPage";
 import LandingPage from "@/pages/LandingPage";
 import PricingPage from "@/pages/PricingPage";
 import OnboardingPage from "@/pages/OnboardingPage";
@@ -43,10 +49,16 @@ import IntegrationsPage from "@/pages/IntegrationsPage";
 import ProveedoresPage from "@/pages/ProveedoresPage";
 import PresupuestosPage from "@/pages/PresupuestosPage";
 import DevolucionesPage from "@/pages/DevolucionesPage";
+import CuotasPage from "@/pages/CuotasPage";
+import ChequesPage from "@/pages/ChequesPage";
+import SellerCommissionsPage from "@/pages/SellerCommissionsPage";
+import TasksPage from "@/pages/TasksPage";
 import AutoRestockPage from "@/pages/AutoRestockPage";
 import StockCountPage from "@/pages/StockCountPage";
 import EmailCampaignsPage from "@/pages/EmailCampaignsPage";
 import BankReconciliationPage from "@/pages/BankReconciliationPage";
+import SalesPipelinePage from "@/pages/SalesPipelinePage";
+import LoyaltyPage from "@/pages/LoyaltyPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
@@ -142,6 +154,11 @@ function ProtectedRoutes() {
             <Route path="/combos-banners" element={<CombosBannersPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
             <Route path="/ia" element={<AIInsightsPage />} />
+            <Route path="/chat-ia" element={<AIChatPage />} />
+            <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
+            <Route path="/sucursales" element={<LocationsPage />} />
+            <Route path="/referidos" element={<ReferralsPage />} />
+            <Route path="/templates" element={<MarketingTemplatesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/facturas" element={<InvoicesPage />} />
             <Route path="/caja/turno" element={<CashSessionPage />} />
@@ -149,10 +166,16 @@ function ProtectedRoutes() {
             <Route path="/proveedores" element={<ProveedoresPage />} />
             <Route path="/presupuestos" element={<PresupuestosPage />} />
             <Route path="/devoluciones" element={<DevolucionesPage />} />
+            <Route path="/cuotas" element={<CuotasPage />} />
+            <Route path="/cheques" element={<ChequesPage />} />
+            <Route path="/comisiones" element={<SellerCommissionsPage />} />
+            <Route path="/tareas" element={<TasksPage />} />
             <Route path="/restock" element={<AutoRestockPage />} />
             <Route path="/toma-fisica" element={<StockCountPage />} />
             <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
             <Route path="/banco" element={<BankReconciliationPage />} />
+            <Route path="/pipeline" element={<SalesPipelinePage />} />
+            <Route path="/fidelidad" element={<LoyaltyPage />} />
             <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
@@ -202,6 +225,7 @@ const App = () => (
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+              <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
               <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
               <Route path="/app/*" element={<ProtectedRoutes />} />
               <Route path="/*" element={<ProtectedRoutes />} />

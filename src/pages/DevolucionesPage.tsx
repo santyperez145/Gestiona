@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Search, RotateCcw, Package, Calendar, DollarSign,
-  ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Loader2,
+  ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Loader2, FileText,
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -200,6 +200,35 @@ export default function DevolucionesPage() {
     else { toast.success("Devolución eliminada"); load(); }
   };
 
+  const generateCreditNote = (r: Return) => {
+    const date = new Date(r.created_at).toLocaleDateString("es-AR");
+    const refMethod = REFUND_METHODS.find(m => m.value === r.refund_method)?.label || r.refund_method;
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>
+      body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#222}
+      h1{font-size:22px;margin:0 0 4px}p.sub{font-size:12px;color:#666;margin:0 0 24px}
+      table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;font-size:13px;text-align:left}
+      th{background:#f5f5f5;font-weight:600}.total{font-size:18px;font-weight:700;color:#c00}
+      .footer{margin-top:32px;font-size:11px;color:#999}
+    </style></head><body>
+      <h1>NOTA DE CRÉDITO</h1>
+      <p class="sub">Fecha: ${date}</p>
+      <table>
+        <tr><th>Producto</th><th>Cantidad</th><th>Motivo</th><th>Método de reintegro</th><th>Monto</th></tr>
+        <tr>
+          <td>${r.product_name}</td>
+          <td>${r.quantity} u.</td>
+          <td>${r.reason || "—"}</td>
+          <td>${refMethod}</td>
+          <td class="total">${formatARS(r.amount_ars)}</td>
+        </tr>
+      </table>
+      ${r.notes ? `<p style="font-size:12px;color:#555"><strong>Notas:</strong> ${r.notes}</p>` : ""}
+      <div class="footer">Sistema de Gestión — Este documento certifica la devolución y reintegro del monto indicado.</div>
+    </body></html>`;
+    const w = window.open("", "_blank", "width=700,height=600");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
+  };
+
   const filtered = returns.filter(r =>
     r.product_name.toLowerCase().includes(search.toLowerCase()) ||
     (r.reason || "").toLowerCase().includes(search.toLowerCase())
@@ -300,6 +329,13 @@ export default function DevolucionesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => generateCreditNote(r)}
+                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+                    title="Generar nota de crédito"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"

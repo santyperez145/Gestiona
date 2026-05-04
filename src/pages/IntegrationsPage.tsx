@@ -55,6 +55,13 @@ export default function IntegrationsPage() {
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
   const [generatingKey, setGeneratingKey] = useState(false);
 
+  // Outbound webhooks
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [webhookEvents, setWebhookEvents] = useState<string[]>(["sale.created", "stock.low", "debt.overdue"]);
+  const [savingWebhook, setSavingWebhook] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+
   const loadConnection = async () => {
     if (!activeOrg) return;
     setLoadingConn(true);
@@ -78,6 +85,9 @@ export default function IntegrationsPage() {
       setMpToken(data.mp_access_token || "");
       setMpEnabled(!!data.mp_enabled);
       setApiKey((data as any).api_key || null);
+      setWebhookUrl((data as any).webhook_url || "");
+      setWebhookEnabled(!!(data as any).webhook_enabled);
+      if ((data as any).webhook_events) setWebhookEvents((data as any).webhook_events);
     }
     setMpLoaded(true);
   };
@@ -104,6 +114,34 @@ export default function IntegrationsPage() {
     await supabase.from("settings").update({ api_key: null } as any).eq("org_id", activeOrg.id);
     setApiKey(null);
     toast.success("API key revocada");
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!activeOrg) return;
+    if (webhookEnabled && !webhookUrl.startsWith("http")) { toast.error("Ingresá una URL válida (http/https)"); return; }
+    setSavingWebhook(true);
+    const { error } = await supabase.from("settings").upsert({
+      org_id: activeOrg.id,
+      webhook_url: webhookUrl.trim() || null,
+      webhook_enabled: webhookEnabled,
+      webhook_events: webhookEvents,
+    } as any, { onConflict: "org_id" });
+    setSavingWebhook(false);
+    if (error) toast.error("Error al guardar webhook");
+    else toast.success("Webhook guardado");
+  };
+
+  const handleTestWebhook = async () => {
+    if (!webhookUrl.startsWith("http")) { toast.error("Configurá la URL primero"); return; }
+    setTestingWebhook(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-webhook", {
+        body: { event: "test.ping", data: { message: "Webhook de prueba desde Gestiona", timestamp: new Date().toISOString() } },
+      });
+      if (error) throw error;
+      toast.success("Webhook de prueba enviado — revisá tu endpoint");
+    } catch { toast.error("Error al enviar prueba"); }
+    finally { setTestingWebhook(false); }
   };
 
   const handleSaveMp = async () => {
@@ -528,6 +566,71 @@ export default function IntegrationsPage() {
             Generar API Key
           </Button>
         )}
+      </div>
+
+      {/* Outbound Webhooks */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-purple-500/10">
+            <Webhook className="w-5 h-5 text-purple-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Webhooks salientes</h3>
+            <p className="text-sm text-muted-foreground">Notificá Zapier, N8N o Make.com en tiempo real</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Activar webhooks</p>
+            <p className="text-xs text-muted-foreground">Envía eventos a tu URL cuando ocurren acciones en Gestiona</p>
+          </div>
+          <Switch checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">URL del endpoint</label>
+          <Input
+            value={webhookUrl}
+            onChange={e => setWebhookUrl(e.target.value)}
+            placeholder="https://hooks.zapier.com/hooks/catch/..."
+            className="bg-muted border-border font-mono text-xs"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">Eventos a enviar</label>
+          <div className="flex flex-wrap gap-2">
+            {["sale.created", "stock.low", "debt.overdue"].map(ev => (
+              <button
+                key={ev}
+                type="button"
+                onClick={() => setWebhookEvents(prev =>
+                  prev.includes(ev) ? prev.filter(e => e !== ev) : [...prev, ev]
+                )}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                  webhookEvents.includes(ev)
+                    ? "bg-primary/20 text-primary border-primary/30"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                {ev}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">El cuerpo del payload incluye: event, org_id, timestamp, data</p>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleTestWebhook} disabled={testingWebhook || !webhookUrl}>
+            {testingWebhook ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Zap className="w-3.5 h-3.5 mr-1" />}
+            Enviar prueba
+          </Button>
+          <Button size="sm" onClick={handleSaveWebhook} disabled={savingWebhook} className="flex-1">
+            {savingWebhook ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+            Guardar
+          </Button>
+        </div>
       </div>
     </div>
   );

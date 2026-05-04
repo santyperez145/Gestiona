@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
-import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -647,6 +647,47 @@ export default function POSPage() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
 
+  // Saved orders (hold carts)
+  type SavedOrder = { id: string; label: string; cart: CartItem[]; customer: string; savedAt: string };
+  const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
+    try { return JSON.parse(localStorage.getItem("gestiona.pos.saved_orders") || "[]"); } catch { return []; }
+  });
+  const [showSavedOrders, setShowSavedOrders] = useState(false);
+
+  const saveCurrentOrder = () => {
+    if (!cart.length) { toast.error("El carrito está vacío"); return; }
+    const order: SavedOrder = {
+      id: Date.now().toString(),
+      label: customer.trim() || `Pedido ${new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
+      cart,
+      customer,
+      savedAt: new Date().toISOString(),
+    };
+    const next = [...savedOrders, order];
+    setSavedOrders(next);
+    localStorage.setItem("gestiona.pos.saved_orders", JSON.stringify(next));
+    setCart([]);
+    setCustomer("");
+    toast.success(`Pedido guardado: ${order.label}`);
+  };
+
+  const restoreOrder = (order: SavedOrder) => {
+    if (cart.length && !window.confirm("¿Reemplazar el carrito actual con el pedido guardado?")) return;
+    setCart(order.cart);
+    setCustomer(order.customer);
+    const next = savedOrders.filter(o => o.id !== order.id);
+    setSavedOrders(next);
+    localStorage.setItem("gestiona.pos.saved_orders", JSON.stringify(next));
+    setShowSavedOrders(false);
+    toast.success(`Pedido "${order.label}" recuperado`);
+  };
+
+  const deleteSavedOrder = (id: string) => {
+    const next = savedOrders.filter(o => o.id !== id);
+    setSavedOrders(next);
+    localStorage.setItem("gestiona.pos.saved_orders", JSON.stringify(next));
+  };
+
   // Barcode scanner
   const handleBarcode = useCallback((code: string) => {
     const prod = products.find((p) => p.barcode === code || p.sku === code);
@@ -858,6 +899,40 @@ export default function POSPage() {
       }
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
+
+      // Award loyalty points (best-effort)
+      if (customer.trim()) {
+        awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
+      }
+
+      // Outbound webhook: sale.created (best-effort)
+      if (settings?.webhook_enabled && settings?.webhook_url) {
+        supabase.functions.invoke("send-webhook", {
+          body: {
+            event: "sale.created",
+            data: {
+              customer: customer.trim() || null,
+              total_ars: cartTotal,
+              items: cart.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+              payment_method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
+            },
+          },
+        }).catch(() => {});
+      }
+
+      // Large sale notification (best-effort)
+      const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
+      if (cartTotal >= largeThreshold && user) {
+        supabase.from("notifications").insert({
+          user_id: user.id,
+          org_id: orgId,
+          type: "venta_grande",
+          title: `Venta grande: ${formatARS(cartTotal)}`,
+          message: customer.trim() ? `Cliente: ${customer.trim()}` : "Venta sin nombre de cliente",
+          read: false,
+        }).then(() => {}).catch(() => {});
+      }
+
       setProducts(await getProductsDB(user.id));
 
       setReceipt({
@@ -898,12 +973,46 @@ export default function POSPage() {
             </span>
           )}
         </div>
-        {cart.length > 0 && (
-          <button onClick={clearCart} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
-            <Trash2 className="w-3 h-3" />Limpiar
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {savedOrders.length > 0 && (
+            <button onClick={() => setShowSavedOrders(true)} className="text-xs text-primary flex items-center gap-1 hover:opacity-80">
+              <Package className="w-3 h-3" />{savedOrders.length} guardado{savedOrders.length !== 1 ? "s" : ""}
+            </button>
+          )}
+          {cart.length > 0 && (
+            <button onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-warning flex items-center gap-1" title="Guardar carrito para después">
+              <Undo2 className="w-3 h-3" />Guardar
+            </button>
+          )}
+          {cart.length > 0 && (
+            <button onClick={clearCart} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
+              <Trash2 className="w-3 h-3" />Limpiar
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Saved orders panel */}
+      {showSavedOrders && (
+        <div className="border-b border-border bg-muted/20 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium">Pedidos guardados</span>
+            <button onClick={() => setShowSavedOrders(false)} className="text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>
+          </div>
+          {savedOrders.map(order => (
+            <div key={order.id} className="flex items-center justify-between gap-2 bg-card rounded-lg px-3 py-2 text-xs">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{order.label}</p>
+                <p className="text-muted-foreground">{order.cart.length} ítem{order.cart.length !== 1 ? "s" : ""} · {new Date(order.savedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
+              </div>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => restoreOrder(order)}>Recuperar</Button>
+                <button onClick={() => deleteSavedOrder(order.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3 h-3" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Cart items */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">

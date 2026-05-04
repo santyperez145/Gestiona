@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import {
   getProductsDB, getSalesDB, getPurchasesDB, getExpensesDB,
   formatARS,
 } from "@/lib/supabaseStore";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,7 +13,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, BarChart3, Users, DollarSign,
-  Package, Calendar, Percent,
+  Package, Calendar, Percent, Clock, Filter,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -107,6 +109,51 @@ function buildCustomerData(sales: any[]) {
   return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 20);
 }
 
+const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+function buildHeatmapData(sales: any[]) {
+  // day-of-week × hour grid, counting sales count and revenue
+  const grid: Record<string, { count: number; revenue: number }> = {};
+  for (const s of sales) {
+    if (!s.created_at && !s.date) continue;
+    const d = new Date(s.created_at || s.date);
+    const dow = d.getDay(); // 0=Sun
+    const hour = d.getHours();
+    const key = `${dow}-${hour}`;
+    if (!grid[key]) grid[key] = { count: 0, revenue: 0 };
+    grid[key].count += 1;
+    grid[key].revenue += Number(s.total_ars) || 0;
+  }
+  return grid;
+}
+
+function buildHourlyBars(sales: any[]) {
+  const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0, revenue: 0 }));
+  for (const s of sales) {
+    if (!s.created_at && !s.date) continue;
+    const d = new Date(s.created_at || s.date);
+    const h = d.getHours();
+    hours[h].count += 1;
+    hours[h].revenue += Number(s.total_ars) || 0;
+  }
+  return hours.map(h => ({ ...h, label: `${String(h.hour).padStart(2, "0")}h` }));
+}
+
+function buildDailyBars(sales: any[]) {
+  const days = DAYS_ES.map((name, i) => ({ name, dow: i, count: 0, revenue: 0 }));
+  for (const s of sales) {
+    if (!s.created_at && !s.date) continue;
+    const d = new Date(s.created_at || s.date);
+    const dow = d.getDay();
+    days[dow].count += 1;
+    days[dow].revenue += Number(s.total_ars) || 0;
+  }
+  // reorder to start on Monday
+  const mon = days.slice(1).concat(days[0]);
+  return mon;
+}
+
 function buildCategoryMix(sales: any[], products: any[]) {
   const map: Record<string, number> = {};
   for (const s of sales) {
@@ -127,6 +174,7 @@ const tooltipStyle = {
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const [rawData, setRawData] = useState<any>(null);
   const [year, setYear] = useState<"0" | "1">("0");
 
@@ -137,19 +185,28 @@ export default function AnalyticsPage() {
         getProductsDB(user.id), getSalesDB(user.id),
         getPurchasesDB(user.id), getExpensesDB(user.id),
       ]);
-      setRawData({ products, sales, purchases, expenses });
+      // Load quotes for funnel
+      let quotes: any[] = [];
+      if (activeOrg) {
+        const { data } = await supabase.from("presupuestos" as any).select("id,status,total_ars,created_at").eq("org_id", activeOrg.id);
+        quotes = data || [];
+      }
+      setRawData({ products, sales, purchases, expenses, quotes });
     })();
-  }, [user]);
+  }, [user, activeOrg]);
 
   const derived = useMemo(() => {
     if (!rawData) return null;
-    const { products, sales, purchases, expenses } = rawData;
+    const { products, sales, purchases, expenses, quotes = [] } = rawData;
     const offset = Number(year);
     const monthly = buildMonthlyData(sales, expenses, purchases, offset);
     const prevMonthly = buildMonthlyData(sales, expenses, purchases, offset + 1);
     const productPerf = buildProductPerformance(sales, products);
     const customerData = buildCustomerData(sales);
     const categoryMix = buildCategoryMix(sales, products);
+    const heatmap = buildHeatmapData(sales);
+    const hourlyBars = buildHourlyBars(sales);
+    const dailyBars = buildDailyBars(sales);
 
     const totalRevenue = monthly.reduce((s, m) => s + m.revenue, 0);
     const totalProfit = monthly.reduce((s, m) => s + m.profit, 0);
@@ -169,10 +226,26 @@ export default function AnalyticsPage() {
     const avgTicket = totalUnits > 0 ? totalRevenue / totalUnits : 0;
     const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
+    // Funnel: quotes → won → sales
+    const yearStart = new Date(new Date().getFullYear() - Number(year), 0, 1);
+    const yearQuotes = quotes.filter((q: any) => new Date(q.created_at) >= yearStart);
+    const totalQuotes = yearQuotes.length;
+    const wonQuotes = yearQuotes.filter((q: any) => q.status === "approved" || q.status === "won").length;
+    const conversionRate = totalQuotes > 0 ? Math.round((wonQuotes / totalQuotes) * 100) : 0;
+    const totalSalesCount = monthly.reduce((s, m) => s + m.units, 0);
+    const quotesValue = yearQuotes.reduce((s: number, q: any) => s + Number(q.total_ars || 0), 0);
+    const funnel = [
+      { name: "Presupuestos", value: totalQuotes, pct: 100, color: "hsl(200,70%,55%)" },
+      { name: "Aprobados", value: wonQuotes, pct: totalQuotes > 0 ? Math.round(wonQuotes / totalQuotes * 100) : 0, color: "hsl(40,70%,50%)" },
+      { name: "Ventas totales", value: totalSalesCount, pct: 100, color: "hsl(150,60%,40%)" },
+    ];
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
+      heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
+      funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
     };
   }, [rawData, year]);
 
@@ -222,6 +295,8 @@ export default function AnalyticsPage() {
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
           <TabsTrigger value="mix" className="text-xs">Mix</TabsTrigger>
+          <TabsTrigger value="horarios" className="text-xs">Horarios</TabsTrigger>
+          <TabsTrigger value="funnel" className="text-xs">Conversión</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -464,6 +539,185 @@ export default function AnalyticsPage() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </TabsContent>
+        {/* HORARIOS TAB */}
+        <TabsContent value="horarios" className="mt-4 space-y-4">
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Ventas por hora del día</h3>
+              <span className="text-xs text-muted-foreground ml-auto">Cantidad de transacciones</span>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={derived.hourlyBars} barSize={10} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} interval={2} />
+                <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={24} />
+                <Tooltip {...tooltipStyle} formatter={(v: number, name: string) => [v, name === "count" ? "Ventas" : formatARS(v)]} />
+                <Bar dataKey="count" name="Ventas" radius={[3, 3, 0, 0]}>
+                  {derived.hourlyBars.map((h: any, i: number) => {
+                    const maxCount = Math.max(...derived.hourlyBars.map((x: any) => x.count), 1);
+                    const intensity = h.count / maxCount;
+                    return (
+                      <Cell key={i} fill={`hsl(40,70%,${30 + intensity * 30}%)`} opacity={0.4 + intensity * 0.6} />
+                    );
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold">Ventas por día de la semana</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={derived.dailyBars} barSize={20} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={24} />
+                  <Tooltip {...tooltipStyle} formatter={(v: number) => [v, "Ventas"]} />
+                  <Bar dataKey="count" name="Ventas" radius={[4, 4, 0, 0]}>
+                    {derived.dailyBars.map((d: any, i: number) => {
+                      const maxCount = Math.max(...derived.dailyBars.map((x: any) => x.count), 1);
+                      const intensity = d.count / maxCount;
+                      return <Cell key={i} fill={`hsl(200,70%,${35 + intensity * 25}%)`} opacity={0.5 + intensity * 0.5} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <h3 className="text-sm font-semibold mb-3">Pico de actividad</h3>
+              {(() => {
+                const topHour = derived.hourlyBars.reduce((a: any, b: any) => b.count > a.count ? b : a, derived.hourlyBars[0]);
+                const topDay = derived.dailyBars.reduce((a: any, b: any) => b.count > a.count ? b : a, derived.dailyBars[0]);
+                const quietHour = derived.hourlyBars.reduce((a: any, b: any) => b.count < a.count ? b : a, derived.hourlyBars[0]);
+                const totalWithTime = derived.hourlyBars.reduce((s: number, h: any) => s + h.count, 0);
+                return (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-primary/10 border border-primary/20">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Hora pico</div>
+                        <div className="text-lg font-bold">{topHour?.label}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">ventas</div>
+                        <div className="text-lg font-bold text-primary">{topHour?.count}</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Día más activo</div>
+                        <div className="text-lg font-bold">{topDay?.name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">ventas</div>
+                        <div className="text-lg font-bold text-blue-400">{topDay?.count}</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-muted/40">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Registros con horario</div>
+                        <div className="text-sm font-semibold">{totalWithTime} ventas</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Hora silenciosa</div>
+                        <div className="text-sm font-semibold text-muted-foreground">{quietHour?.label}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </TabsContent>
+        {/* FUNNEL TAB */}
+        <TabsContent value="funnel" className="mt-4 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Presupuestos</div>
+              <div className="text-3xl font-bold">{derived.totalQuotes}</div>
+              <div className="text-xs text-muted-foreground mt-1">este año</div>
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Conversión</div>
+              <div className={`text-3xl font-bold ${derived.conversionRate >= 50 ? "text-green-400" : derived.conversionRate >= 25 ? "text-yellow-400" : "text-red-400"}`}>
+                {derived.conversionRate}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">{derived.wonQuotes} aprobados</div>
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Valor total</div>
+              <div className="text-2xl font-bold">{formatARS(derived.quotesValue)}</div>
+              <div className="text-xs text-muted-foreground mt-1">presupuestado</div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-6">
+              <Filter className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Embudo de conversión — {currentYear}</h3>
+            </div>
+            <div className="space-y-3">
+              {derived.funnel.map((stage: any, i: number) => (
+                <div key={stage.name}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ background: stage.color }} />
+                      <span className="text-sm font-medium">{stage.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{stage.value} unidades</span>
+                      {i > 0 && (
+                        <span className="text-xs font-mono font-semibold" style={{ color: stage.color }}>
+                          {stage.pct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="h-8 bg-muted/40 rounded-lg overflow-hidden">
+                    <div
+                      className="h-full rounded-lg transition-all duration-700 flex items-center justify-end pr-3"
+                      style={{
+                        width: `${Math.max(stage.pct, 2)}%`,
+                        background: stage.color,
+                        opacity: 0.8,
+                      }}
+                    >
+                      {stage.value > 0 && (
+                        <span className="text-xs font-bold text-white">{stage.value}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {derived.totalQuotes === 0 && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Aún no hay presupuestos registrados. Creá presupuestos en la sección <strong>Presupuestos</strong> para ver tu tasa de conversión.
+              </p>
+            )}
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <h3 className="text-sm font-semibold mb-3">Cómo mejorar la conversión</h3>
+            <div className="space-y-2">
+              {[
+                { tip: "Seguí tus presupuestos a los 48hs de enviarlos — el 60% de las conversiones ocurren en las primeras 72hs", ok: derived.conversionRate >= 40 },
+                { tip: "Incluí un link de pago en cada presupuesto para facilitar el cierre", ok: derived.conversionRate >= 50 },
+                { tip: `Tenés ${derived.totalQuotes - derived.wonQuotes} presupuesto(s) sin convertir — considerá hacer seguimiento`, ok: derived.totalQuotes - derived.wonQuotes === 0 },
+              ].map((item, i) => (
+                <div key={i} className={`flex items-start gap-2 p-3 rounded-lg text-sm ${item.ok ? "bg-green-500/10 text-green-300" : "bg-muted/40 text-muted-foreground"}`}>
+                  <span className="mt-0.5">{item.ok ? "✓" : "→"}</span>
+                  <span>{item.tip}</span>
+                </div>
+              ))}
             </div>
           </div>
         </TabsContent>

@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -233,6 +235,7 @@ export default function ReportsPage() {
           <TabsTrigger value="sellers">Vendedores</TabsTrigger>
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
           <TabsTrigger value="budget">Presupuesto</TabsTrigger>
+          <TabsTrigger value="audit">Auditoría</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -369,6 +372,10 @@ export default function ReportsPage() {
 
         <TabsContent value="budget">
           <BudgetTab sales={data.sales} expenses={data.expenses} settings={settings} userId={user?.id || ""} />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -1089,6 +1096,156 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
           <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
           <p className="text-sm">Configurá tus metas mensuales arriba para ver el seguimiento real vs. presupuesto</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auditoría Tab
+// ─────────────────────────────────────────────────────────────
+const ACTION_LABELS: Record<string, string> = {
+  create: 'Creación', update: 'Edición', delete: 'Eliminación',
+  settings_change: 'Ajuste', price_change: 'Precio', role_change: 'Rol',
+};
+const ENTITY_LABELS: Record<string, string> = {
+  product: 'Producto', sale: 'Venta', purchase: 'Compra', debt: 'Deuda',
+  settings: 'Ajustes', user_role: 'Usuario', marketing_post: 'Marketing',
+  exchange: 'Canje', expense: 'Gasto',
+};
+const ACTION_COLORS: Record<string, string> = {
+  create: 'text-success bg-success/10',
+  update: 'text-primary bg-primary/10',
+  delete: 'text-destructive bg-destructive/10',
+  settings_change: 'text-warning bg-warning/10',
+  price_change: 'text-orange-400 bg-orange-500/10',
+  role_change: 'text-purple-400 bg-purple-500/10',
+};
+
+function AuditTab() {
+  const { activeOrg } = useOrg();
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    setLoading(true);
+    (async () => {
+      const { data } = await supabase
+        .from('audit_logs' as any)
+        .select('id, action, entity_type, entity_id, details, created_at, user_id')
+        .eq('org_id', activeOrg.id)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      setLogs((data || []) as any[]);
+      setLoading(false);
+    })();
+  }, [activeOrg]);
+
+  const filtered = useMemo(() => {
+    let rows = logs;
+    if (actionFilter !== 'all') rows = rows.filter(l => l.action === actionFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter(l =>
+        l.entity_type?.toLowerCase().includes(q) ||
+        l.action?.toLowerCase().includes(q) ||
+        JSON.stringify(l.details || {}).toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  }, [logs, search, actionFilter]);
+
+  const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  const handleExport = () => {
+    exportCSV('auditoria.csv', ['Fecha', 'Acción', 'Entidad', 'ID', 'Detalles'], filtered.map(l => [
+      new Date(l.created_at).toLocaleString('es-AR'),
+      ACTION_LABELS[l.action] || l.action,
+      ENTITY_LABELS[l.entity_type] || l.entity_type,
+      l.entity_id || '',
+      JSON.stringify(l.details || {}),
+    ]));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <Input placeholder="Buscar en log…" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="w-48 h-8 text-sm" />
+          <Select value={actionFilter} onValueChange={v => { setActionFilter(v); setPage(0); }}>
+            <SelectTrigger className="h-8 w-36 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las acciones</SelectItem>
+              {Object.entries(ACTION_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Exportar CSV
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground text-sm">Cargando log de auditoría…</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12">
+          <Shield className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
+          <p className="text-muted-foreground text-sm">Sin registros de auditoría para este filtro</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Fecha</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Acción</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Entidad</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground hidden sm:table-cell">Detalles</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((log) => (
+                  <tr key={log.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                      {new Date(log.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${ACTION_COLORS[log.action] || 'text-muted-foreground bg-muted'}`}>
+                        {ACTION_LABELS[log.action] || log.action}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 font-medium">
+                      {ENTITY_LABELS[log.entity_type] || log.entity_type}
+                      {log.entity_id && <span className="ml-1.5 text-[10px] text-muted-foreground font-mono">{String(log.entity_id).slice(0, 8)}…</span>}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell max-w-xs truncate">
+                      {log.details && Object.keys(log.details).length > 0
+                        ? Object.entries(log.details).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(' · ')
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{filtered.length} registros</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Anterior</Button>
+                <span className="self-center">Pág {page + 1} / {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
