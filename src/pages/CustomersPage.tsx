@@ -7,7 +7,7 @@ import {
 import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
-  Calendar, Tag, ChevronDown, ChevronUp,
+  Calendar, Tag, ChevronDown, ChevronUp, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -236,6 +236,7 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: CustomerProfile }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const loadData = async () => {
     if (!user) return;
@@ -361,6 +362,43 @@ export default function CustomersPage() {
     await loadData();
   };
 
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { toast.error("El CSV está vacío o mal formateado"); return; }
+      // Skip header row
+      const rows = lines.slice(1);
+      let ok = 0, failed = 0;
+      for (const line of rows) {
+        const [nombre, email, telefono, direccion, cumple] = line.split(",").map(s => s.trim().replace(/^"|"$/g, ""));
+        if (!nombre) continue;
+        try {
+          await createCustomerDB(user.id, {
+            name: nombre,
+            email: email || undefined,
+            phone: telefono || undefined,
+            address: direccion || undefined,
+            birthday: cumple || undefined,
+          });
+          ok++;
+        } catch {
+          failed++;
+        }
+      }
+      toast.success(`${ok} contacto(s) importados${failed > 0 ? ` · ${failed} fallidos` : ""}`);
+      await loadData();
+    } catch {
+      toast.error("Error al leer el archivo CSV");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`¿Eliminar el perfil de "${name}"? (no se eliminarán las ventas asociadas)`)) return;
     setDeletingId(id);
@@ -414,12 +452,32 @@ export default function CustomersPage() {
           <h1 className="text-2xl md:text-3xl font-display font-bold">Clientes / CRM</h1>
           <p className="text-muted-foreground text-sm">{customers.length} clientes · {formatARS(totalRevenue)} facturado</p>
         </div>
-        <Button
-          onClick={() => setFormModal({ open: true })}
-          className="gradient-gold text-primary-foreground gap-2 shrink-0"
-        >
-          <Plus className="w-4 h-4" />Nuevo cliente
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleCsvImport}
+              disabled={importing}
+            />
+            <span
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
+              title="Importar desde CSV (columnas: nombre,email,telefono,direccion,cumpleaños)"
+            >
+              {importing
+                ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : <Upload className="w-4 h-4" />}
+              Importar CSV
+            </span>
+          </label>
+          <Button
+            onClick={() => setFormModal({ open: true })}
+            className="gradient-gold text-primary-foreground gap-2"
+          >
+            <Plus className="w-4 h-4" />Nuevo cliente
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
