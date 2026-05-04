@@ -14,7 +14,7 @@ import {
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
 } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import { formatARS } from "@/lib/supabaseStore";
+import { formatARS, addSaleDB } from "@/lib/supabaseStore";
 
 type QuoteItem = { description: string; qty: number; unitPrice: number; total: number };
 type Quote = {
@@ -258,6 +258,38 @@ export default function PresupuestosPage() {
     else { toast.success(`Estado actualizado: ${STATUS_CONFIG[status]?.label}`); load(); }
   };
 
+  const [converting, setConverting] = useState<string | null>(null);
+  const convertToSale = async (q: Quote) => {
+    if (!activeOrg || !user) return;
+    if (!confirm(`Registrar venta de ${formatARS(q.total)} para ${q.customer_name}?`)) return;
+    setConverting(q.id);
+    try {
+      const saleId = crypto.randomUUID();
+      await addSaleDB({
+        id: saleId,
+        user_id: user.id,
+        org_id: activeOrg.id,
+        product_name: q.items.map(it => it.description).join(", ").slice(0, 120),
+        quantity: q.items.reduce((s, it) => s + it.qty, 0) || 1,
+        unit_price_ars: q.total,
+        total_ars: q.total,
+        profit_ars: 0,
+        profit_usd: 0,
+        customer_name: q.customer_name || null,
+        date: new Date().toISOString(),
+        paid: true,
+        payment_method: "transferencia",
+        quote_id: q.id,
+      });
+      await updateStatus(q.id, "accepted");
+      toast.success(`Venta de ${formatARS(q.total)} registrada`);
+    } catch (e: any) {
+      toast.error(e.message || "Error al convertir");
+    } finally {
+      setConverting(null);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("quotes").delete().eq("id", id);
     if (error) toast.error(error.message);
@@ -432,6 +464,22 @@ export default function PresupuestosPage() {
                           <XCircle className="w-3 h-3 mr-1" /> Rechazado
                         </Button>
                       </>
+                    )}
+                    {(q.status === "draft" || q.status === "sent" || q.status === "accepted") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
+                        onClick={() => convertToSale(q)}
+                        disabled={converting === q.id}
+                        title="Convertir en venta registrada"
+                      >
+                        {converting === q.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <CheckCircle2 className="w-3 h-3" />
+                        }
+                        Convertir en venta
+                      </Button>
                     )}
                     <Button
                       size="sm"
