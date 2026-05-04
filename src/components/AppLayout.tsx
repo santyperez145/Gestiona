@@ -35,6 +35,7 @@ const allNavItems = [
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'analytics' },
   { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'analytics' },
   { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'analytics' },
+  { to: "/templates", label: "Templates", icon: Sparkles, roles: ['admin'], section: 'analytics' },
   { to: "/influencers", label: "Influencers", icon: Gift, roles: ['admin'], section: 'analytics' },
   { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'analytics' },
   { to: "/liquidaciones", label: "Liquidaciones", icon: Receipt, roles: ['admin'], section: 'analytics' },

@@ -21,6 +21,7 @@ import AIChatPage from "@/pages/AIChatPage";
 import AutomationFlowsPage from "@/pages/AutomationFlowsPage";
 import LocationsPage from "@/pages/LocationsPage";
 import ReferralsPage from "@/pages/ReferralsPage";
+import MarketingTemplatesPage from "@/pages/MarketingTemplatesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
@@ -152,6 +153,7 @@ function ProtectedRoutes() {
             <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
             <Route path="/sucursales" element={<LocationsPage />} />
             <Route path="/referidos" element={<ReferralsPage />} />
+            <Route path="/templates" element={<MarketingTemplatesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/facturas" element={<InvoicesPage />} />
             <Route path="/caja/turno" element={<CashSessionPage />} />
