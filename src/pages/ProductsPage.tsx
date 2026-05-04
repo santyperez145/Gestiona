@@ -80,6 +80,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
+  const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
 
   const reload = async () => {
     if (!user) return;
@@ -175,6 +176,14 @@ export default function ProductsPage() {
           <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
         </DialogContent>
       </Dialog>
+
+      {/* Price history modal */}
+      <PriceHistoryModal
+        productId={priceHistoryProduct?.id || ""}
+        productName={priceHistoryProduct?.name || ""}
+        open={!!priceHistoryProduct}
+        onClose={() => setPriceHistoryProduct(null)}
+      />
 
       <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
         <div className="relative flex-1">
@@ -275,6 +284,7 @@ export default function ProductsPage() {
                          </td>
                          <td className="p-3 text-center space-x-1">
                            <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                           <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                            <ConfirmDialog
                              trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                              title="¿Eliminar producto?"
@@ -836,5 +846,67 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
         {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
       </Button>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Price History Modal
+// ─────────────────────────────────────────────────────────────
+export function PriceHistoryModal({ productId, productName, open, onClose }: {
+  productId: string; productName: string; open: boolean; onClose: () => void;
+}) {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !productId) return;
+    setLoading(true);
+    supabase
+      .from("price_history" as any)
+      .select("*")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setHistory((data || []) as any[]);
+        setLoading(false);
+      });
+  }, [open, productId]);
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="bg-card border-border max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display text-sm">Historial de precios — {productName}</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Cargando…</p>
+        ) : history.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Sin cambios de precio registrados aún.<br />Los cambios futuros aparecerán acá automáticamente.</p>
+        ) : (
+          <div className="space-y-2">
+            {history.map((h: any) => {
+              const pct = Number(h.change_pct);
+              const up = pct > 0;
+              return (
+                <div key={h.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/40 text-xs">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-muted-foreground">{new Date(h.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
+                    <p className="font-medium">
+                      {h.old_price_ars ? formatARS(Number(h.old_price_ars)) : "—"} → <span className="text-primary font-bold">{formatARS(Number(h.new_price_ars))}</span>
+                    </p>
+                  </div>
+                  {h.change_pct != null && (
+                    <span className={`font-bold shrink-0 ${up ? "text-success" : "text-destructive"}`}>
+                      {up ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
