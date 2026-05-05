@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { exportCSV, csvDate, csvARS } from "@/lib/exportCSV";
 import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
-  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard,
+  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Download, History,
 } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { formatARS } from "@/lib/supabaseStore";
@@ -217,7 +218,22 @@ export default function ProveedoresPage() {
             {suppliers.filter(s => s.active).length} activos · {formatARS(totalPending)} pendiente de pago
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline" size="sm"
+            disabled={debts.length === 0}
+            onClick={() => exportCSV(
+              `deudas-proveedores-${new Date().toISOString().slice(0, 10)}`,
+              ["Proveedor", "Descripción", "Total", "Pagado", "Pendiente", "Estado", "Vencimiento", "Fecha"],
+              debts.map(d => [
+                d.supplier_name, d.description,
+                csvARS(d.amount_ars), csvARS(d.paid_ars), csvARS(d.remaining_ars),
+                d.status, d.due_date ? csvDate(d.due_date) : "", csvDate(d.created_at),
+              ])
+            )}
+          >
+            <Download className="w-4 h-4 mr-1.5" />CSV
+          </Button>
           <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
             <Plus className="w-4 h-4" />Nueva deuda
           </Button>
@@ -404,6 +420,32 @@ export default function ProveedoresPage() {
                 </p>
               </div>
             </div>
+
+            {/* Balance por proveedor */}
+            {pendingDebts.length > 0 && (() => {
+              const bySupplier: Record<string, number> = {};
+              pendingDebts.forEach(d => {
+                const key = d.supplier_name || "Sin proveedor";
+                bySupplier[key] = (bySupplier[key] || 0) + Number(d.remaining_ars);
+              });
+              const entries = Object.entries(bySupplier).sort(([, a], [, b]) => b - a);
+              if (entries.length <= 1) return null;
+              return (
+                <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5" />Saldo pendiente por proveedor
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {entries.map(([name, total]) => (
+                      <div key={name} className="bg-card border border-border rounded-lg px-3 py-2">
+                        <p className="text-xs font-medium truncate">{name}</p>
+                        <p className="text-sm font-mono font-bold text-destructive">{formatARS(total)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {debts.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
