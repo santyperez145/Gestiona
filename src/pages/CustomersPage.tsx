@@ -236,6 +236,120 @@ const COMM_TYPES = [
 
 type CommEntry = { id: string; type: string; summary: string; created_at: string };
 
+// ─────────────────────────────────────────────────────────────
+// Customer Sales Timeline — 360 view
+// ─────────────────────────────────────────────────────────────
+const PAY_COLOR: Record<string, string> = {
+  efectivo:      "text-green-400",
+  transferencia: "text-blue-400",
+  debito:        "text-primary",
+  credito:       "text-yellow-400",
+  mayorista:     "text-purple-400",
+  fiado:         "text-destructive",
+};
+
+function CustomerSalesTimeline({
+  customerName,
+  sales,
+  debts,
+  onCreateInvoice,
+}: {
+  customerName: string;
+  sales: any[];
+  debts: any[];
+  onCreateInvoice: (sale: any) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+
+  const customerSales = useMemo(
+    () =>
+      sales
+        .filter((s: any) => s.customer_name?.toLowerCase() === customerName.toLowerCase())
+        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [sales, customerName],
+  );
+
+  const customerDebts = useMemo(
+    () => debts.filter((d: any) => d.customer_name?.toLowerCase() === customerName.toLowerCase()),
+    [debts, customerName],
+  );
+
+  const shown = showAll ? customerSales : customerSales.slice(0, 5);
+
+  if (customerSales.length === 0 && customerDebts.filter((d: any) => d.status !== "paid").length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {customerSales.length > 0 && (
+        <div>
+          <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Clock className="w-3 h-3" />Historial de compras ({customerSales.length})
+          </h3>
+          <div className="space-y-1.5">
+            {shown.map((s: any) => (
+              <div key={s.id} className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2 group hover:bg-muted/50 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium truncate">{s.product_name}</span>
+                    {s.quantity > 1 && <span className="text-[10px] bg-muted rounded px-1 text-muted-foreground">x{s.quantity}</span>}
+                    {!s.paid && <span className="text-[10px] bg-destructive/20 text-destructive rounded px-1">DEBE</span>}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(s.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                    {s.payment_method && <span className={`ml-1 ${PAY_COLOR[s.payment_method] ?? ""}`}>· {s.payment_method}</span>}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-mono font-semibold">{formatARS(Number(s.total_ars))}</p>
+                  <button
+                    onClick={() => onCreateInvoice(s)}
+                    className="text-[10px] text-primary hover:underline hidden group-hover:block"
+                    title="Crear factura desde esta venta"
+                  >
+                    + factura
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {customerSales.length > 5 && (
+            <button className="text-xs text-primary hover:underline mt-1.5" onClick={() => setShowAll(v => !v)}>
+              {showAll ? "Mostrar menos" : `Ver ${customerSales.length - 5} más`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {customerDebts.filter((d: any) => d.status !== "paid").length > 0 && (
+        <div>
+          <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <AlertCircle className="w-3 h-3 text-destructive" />Deudas pendientes
+          </h3>
+          <div className="space-y-1.5">
+            {customerDebts
+              .filter((d: any) => d.status !== "paid")
+              .map((d: any) => (
+                <div key={d.id} className="flex items-center justify-between rounded-lg bg-destructive/8 border border-destructive/20 px-3 py-2">
+                  <div>
+                    <p className="text-xs font-medium">{d.description || "Deuda sin descripción"}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(d.date).toLocaleDateString("es-AR")}
+                      {d.due_date && ` · vence ${new Date(d.due_date).toLocaleDateString("es-AR")}`}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-mono font-semibold text-destructive">{formatARS(Number(d.remaining_ars))}</p>
+                    <p className="text-[10px] text-muted-foreground">de {formatARS(Number(d.amount_ars))}</p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; userId: string; customerName: string }) {
   const [entries, setEntries] = useState<CommEntry[]>([]);
   const [type, setType] = useState("note");
@@ -907,6 +1021,16 @@ export default function CustomersPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* 360 — Sales timeline & debts */}
+                    <CustomerSalesTimeline
+                      customerName={c.name}
+                      sales={sales}
+                      debts={debts}
+                      onCreateInvoice={(sale) => {
+                        window.location.href = `/facturas?from_sale=${sale.id}&customer=${encodeURIComponent(sale.customer_name || '')}&total=${sale.total_ars}`;
+                      }}
+                    />
 
                     {/* Communications log */}
                     {activeOrg && user && (

@@ -1,4 +1,4 @@
-project_id = "wkpzfriwtelbtvadloap"
+project_id = "wcfohngxrtopgggumjmw"
 
 [functions.auto-recurring-expenses]
 verify_jwt = true
