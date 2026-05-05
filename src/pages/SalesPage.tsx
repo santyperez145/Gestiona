@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,7 @@ export default function SalesPage() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+  const { checkSalesLimit } = usePlanLimits();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -409,6 +411,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    if (!await checkSalesLimit()) return;
 
     // Validate all lines
     for (const { line, calc } of lineCalcs) {

@@ -351,14 +351,16 @@ export default function PresupuestosPage() {
   };
 
   const [converting, setConverting] = useState<string | null>(null);
-  const convertToSale = async (q: Quote) => {
-    if (!activeOrg || !user) return;
-    if (!confirm(`Registrar venta de ${formatARS(q.total)} para ${q.customer_name}?`)) return;
+  const [convertModal, setConvertModal] = useState<{ quote: Quote; method: string } | null>(null);
+
+  const confirmConvert = async () => {
+    if (!convertModal || !activeOrg || !user) return;
+    const { quote: q, method } = convertModal;
     setConverting(q.id);
+    setConvertModal(null);
     try {
-      const saleId = crypto.randomUUID();
       await addSaleDB({
-        id: saleId,
+        id: crypto.randomUUID(),
         user_id: user.id,
         org_id: activeOrg.id,
         product_name: q.items.map(it => it.description).join(", ").slice(0, 120),
@@ -370,7 +372,7 @@ export default function PresupuestosPage() {
         customer_name: q.customer_name || null,
         date: new Date().toISOString(),
         paid: true,
-        payment_method: "transferencia",
+        payment_method: method,
         quote_id: q.id,
       });
       await updateStatus(q.id, "accepted");
@@ -565,7 +567,7 @@ export default function PresupuestosPage() {
                         size="sm"
                         variant="outline"
                         className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
-                        onClick={() => convertToSale(q)}
+                        onClick={() => setConvertModal({ quote: q, method: "transferencia" })}
                         disabled={converting === q.id}
                         title="Convertir en venta registrada"
                       >
@@ -631,6 +633,49 @@ export default function PresupuestosPage() {
           ))}
         </div>
       )}
+
+      {/* Convert to sale modal */}
+      <Dialog open={!!convertModal} onOpenChange={(v) => { if (!v) setConvertModal(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Convertir en venta</DialogTitle>
+          </DialogHeader>
+          {convertModal && (
+            <div className="space-y-4 pt-1">
+              <div className="bg-muted/30 rounded-xl p-3 space-y-1 text-sm">
+                <p className="font-semibold">{convertModal.quote.customer_name}</p>
+                <p className="text-muted-foreground text-xs">{convertModal.quote.quote_number} · {convertModal.quote.items.length} ítem{convertModal.quote.items.length !== 1 ? "s" : ""}</p>
+                <p className="text-primary font-bold text-base">{formatARS(convertModal.quote.total)}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Método de cobro</label>
+                <Select
+                  value={convertModal.method}
+                  onValueChange={(v) => setConvertModal(prev => prev ? { ...prev, method: v } : null)}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="efectivo">Efectivo</SelectItem>
+                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                    <SelectItem value="tarjeta_debito">Tarjeta débito</SelectItem>
+                    <SelectItem value="tarjeta_credito">Tarjeta crédito</SelectItem>
+                    <SelectItem value="mercadopago">MercadoPago</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-9" onClick={() => setConvertModal(null)}>Cancelar</Button>
+                <Button className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={confirmConvert}>
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Registrar venta
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create dialog */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>

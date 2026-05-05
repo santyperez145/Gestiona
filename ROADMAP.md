@@ -72,7 +72,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 - [x] Definir un flujo unico de stock: compra, venta, devolucion, ajuste, transferencia y toma fisica. _(2026-05-05 — triggers DB en sales/purchases, record_stock_movement, adjust_stock, devolucion con return_in en kardex)_
 - [x] Crear tabla o vista de movimientos de stock para trazabilidad. _(2026-05-05 — tabla stock_movements + vista kardex_summary + pagina KardexPage)_
-- [ ] Unificar venta/POS/factura/deuda para que no haya dobles cargas. _(aun hay pasos manuales entre presupuesto -> venta -> factura)_
+- [x] Unificar presupuesto -> venta: boton "Convertir en venta" en PresupuestosPage con modal de metodo de cobro. _(2026-05-05 — migration 20260505_sales_quote_link.sql agrega sales.quote_id FK; convertToSale reemplaza window.confirm por Dialog con Select de metodo de pago)_
 - [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. _(CashSessionPage + cash_entries + trigger trg_sale_cash_entry + cash_session_summary)_
 - [ ] Completar cuenta corriente de cliente: ventas, pagos, deudas, devoluciones, cuotas y notas. _(vista 360 existe en CustomersPage, falta consolidacion en un unico historial)_
 - [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial. _(supplier_debts table existe; falta flujo de pago parcial en UI)_
@@ -81,7 +81,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 ### P2 - Preparar lanzamiento SaaS
 
-- [ ] Aplicar limites reales por plan: productos, usuarios, ventas mensuales, IA, backups y branding.
+- [x] Aplicar limites reales por plan: productos (ProductsPage), ventas mensuales (POSPage, SalesPage), usuarios (TeamPage). _(2026-05-05 — usePlanLimits.ts hook con checkProductLimit/checkSalesLimit/checkUserLimit; integrado en POSPage.confirmSale y SalesPage.handleSubmit con toast + link a /precios. ProductsPage y TeamPage ya tenian guards visuales)_
 - [x] Persistir onboarding en base de datos por organizacion. _(2026-05-05 — migration agrega organizations.onboarding_completed, OnboardingPage lo setea en DB al finish(), App.tsx lo verifica antes que localStorage)_
 - [ ] Mejorar pantalla de pricing y estado de suscripcion.
 - [ ] Completar ciclo de trial: alta, dias restantes, vencimiento, upgrade, cancelacion y reactivacion.

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
+import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
@@ -612,6 +613,7 @@ export default function POSPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const config = useBusinessConfig();
+  const { checkSalesLimit } = usePlanLimits();
 
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -836,6 +838,8 @@ export default function POSPage() {
       if (splitAmt1 > cartTotal) { toast.error("El primer monto supera el total"); return; }
       if (splitMethod1 === splitMethod2) { toast.error("Los dos métodos deben ser diferentes"); return; }
     }
+
+    if (!await checkSalesLimit()) return;
 
     const orgId = activeOrg.id;
     setSubmitting(true);
