@@ -84,7 +84,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Aplicar limites reales por plan: productos (ProductsPage), ventas mensuales (POSPage, SalesPage), usuarios (TeamPage). _(2026-05-05 — usePlanLimits.ts hook con checkProductLimit/checkSalesLimit/checkUserLimit; integrado en POSPage.confirmSale y SalesPage.handleSubmit con toast + link a /precios. ProductsPage y TeamPage ya tenian guards visuales)_
 - [x] Persistir onboarding en base de datos por organizacion. _(2026-05-05 — migration agrega organizations.onboarding_completed, OnboardingPage lo setea en DB al finish(), App.tsx lo verifica antes que localStorage)_
 - [ ] Mejorar pantalla de pricing y estado de suscripcion.
-- [ ] Completar ciclo de trial: alta, dias restantes, vencimiento, upgrade, cancelacion y reactivacion.
+- [x] Completar ciclo de trial y dunning: invoice.payment_succeeded reactiva past_due; cron expire_overdue_trials expira trials sin tarjeta; portal Stripe para actualizar metodo de pago (create-billing-portal Edge Function + boton en SettingsPage). _(2026-05-05)_
 - [ ] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras.
 - [ ] Crear datos demo por rubro para onboarding y testing.
 - [ ] Preparar politica de privacidad, terminos, cookies y tratamiento de datos.

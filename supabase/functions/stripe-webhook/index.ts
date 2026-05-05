@@ -65,6 +65,25 @@ Deno.serve(async (req) => {
         .eq("org_id", sub.metadata.org_id);
       break;
     }
+
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      // Only handle subscription invoices (not one-off charges)
+      if (!invoice.subscription) break;
+      const sub = await stripe.subscriptions.retrieve(invoice.subscription as string);
+      const orgId = sub.metadata?.org_id;
+      if (!orgId) break;
+      // Reactivate subscription if it was past_due
+      await supabase
+        .from("subscriptions")
+        .update({
+          status: "active",
+          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        })
+        .eq("org_id", orgId)
+        .eq("status", "past_due");
+      break;
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });

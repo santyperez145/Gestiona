@@ -468,6 +468,20 @@ function SubscriptionPanel({ session }: { session: any }) {
     finally { setCanceling(false); }
   };
 
+  const handleBillingPortal = async () => {
+    if (!activeOrg || !session) return;
+    setCheckingOut('portal');
+    try {
+      const { data, error } = await supabase.functions.invoke('create-billing-portal', {
+        body: { orgId: activeOrg.id, returnUrl: window.location.href },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error || !data?.url) { toast.error('No se pudo abrir el portal de facturación.'); return; }
+      window.location.href = data.url;
+    } catch { toast.error('Error al conectar con el portal de pagos.'); }
+    finally { setCheckingOut(null); }
+  };
+
   const statusColor = {
     active: 'text-green-500',
     trialing: 'text-blue-500',
@@ -540,6 +554,17 @@ function SubscriptionPanel({ session }: { session: any }) {
             {(!subscription || subscription.status === 'canceled' || subscription.status === 'trialing') && (
               <Button onClick={() => handleUpgrade('pro')} disabled={!!checkingOut} className="w-full gradient-gold text-primary-foreground font-semibold">
                 {checkingOut === 'pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><Zap className="w-4 h-4 mr-2" />Actualizar al plan Pro</>}
+              </Button>
+            )}
+            {subscription?.status === 'past_due' && (
+              <Button onClick={handleBillingPortal} disabled={!!checkingOut} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
+                {checkingOut === 'portal' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><CreditCard className="w-4 h-4 mr-2" />Actualizar método de pago</>}
+              </Button>
+            )}
+            {(subscription?.status === 'active' || subscription?.status === 'past_due') && subscription?.stripe_subscription_id && (
+              <Button variant="outline" size="sm" className="text-xs w-full" onClick={handleBillingPortal} disabled={!!checkingOut}>
+                {checkingOut === 'portal' ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : null}
+                Gestionar facturación en Stripe
               </Button>
             )}
             {subscription?.status === 'active' && !subscription.cancel_at_period_end && (
