@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen, ListChecks, Mail, Landmark, Kanban, Star, MapPin, CreditCard, CheckSquare } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, Zap, AlertTriangle, X as XIcon, BarChart3, FileText, ScanLine, Banknote, Plug, Truck, ClipboardList, RotateCcw, UserCircle, PackageOpen, ListChecks, Mail, Landmark, Kanban, Star, MapPin, CreditCard, CheckSquare, History } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -19,6 +19,7 @@ const allNavItems = [
   { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
   { to: "/restock", label: "Auto-Restock", icon: PackageOpen, roles: ['admin'], section: 'inventario' },
   { to: "/toma-fisica", label: "Toma Física", icon: ListChecks, roles: ['admin'], section: 'inventario' },
+  { to: "/kardex", label: "Kardex", icon: History, roles: ['admin'], section: 'inventario' },
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
   { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },

@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         skipWaiting: false,
         clientsClaim: false,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
@@ -73,5 +74,21 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-dropdown-menu"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-pdf": ["jspdf", "jspdf-autotable"],
+          "vendor-charts": ["recharts"],
+          "vendor-xlsx": ["xlsx"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1500,
   },
 }));

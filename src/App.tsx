@@ -55,6 +55,7 @@ import SellerCommissionsPage from "@/pages/SellerCommissionsPage";
 import TasksPage from "@/pages/TasksPage";
 import AutoRestockPage from "@/pages/AutoRestockPage";
 import StockCountPage from "@/pages/StockCountPage";
+import KardexPage from "@/pages/KardexPage";
 import EmailCampaignsPage from "@/pages/EmailCampaignsPage";
 import BankReconciliationPage from "@/pages/BankReconciliationPage";
 import SalesPipelinePage from "@/pages/SalesPipelinePage";
@@ -172,6 +173,7 @@ function ProtectedRoutes() {
             <Route path="/tareas" element={<TasksPage />} />
             <Route path="/restock" element={<AutoRestockPage />} />
             <Route path="/toma-fisica" element={<StockCountPage />} />
+            <Route path="/kardex" element={<KardexPage />} />
             <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
             <Route path="/banco" element={<BankReconciliationPage />} />
             <Route path="/pipeline" element={<SalesPipelinePage />} />
