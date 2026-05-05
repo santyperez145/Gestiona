@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -61,6 +62,7 @@ function createLineItem(): SaleLineItem {
 export default function SalesPage() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -188,6 +190,13 @@ export default function SalesPage() {
                     {isAdmin && (
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost" size="sm"
+                          title="Crear factura"
+                          onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}`)}
+                        >
+                          <FileText className="w-3.5 h-3.5 text-primary" />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                         <ConfirmDialog
                           trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}

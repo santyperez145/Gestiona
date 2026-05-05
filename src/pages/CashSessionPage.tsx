@@ -8,10 +8,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   Banknote, Lock, Unlock, Clock, TrendingUp, TrendingDown,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, RotateCcw,
+  ArrowDownCircle, ArrowUpCircle, List,
 } from "lucide-react";
+
+interface CashEntry {
+  id: string;
+  entry_type: string;
+  payment_method: string | null;
+  amount_ars: number;
+  description: string | null;
+  created_at: string;
+}
+
+const ENTRY_TYPE_META: Record<string, { label: string; color: string; sign: string }> = {
+  sale_in:      { label: "Venta",         color: "text-green-400",  sign: "+" },
+  debt_payment: { label: "Cobro deuda",   color: "text-blue-400",   sign: "+" },
+  manual_in:    { label: "Ingreso",       color: "text-emerald-400",sign: "+" },
+  expense_out:  { label: "Gasto",         color: "text-red-400",    sign: "−" },
+  supplier_out: { label: "Proveedor",     color: "text-orange-400", sign: "−" },
+  manual_out:   { label: "Egreso",        color: "text-red-400",    sign: "−" },
+  opening:      { label: "Apertura",      color: "text-muted-foreground", sign: "" },
+  closing:      { label: "Cierre",        color: "text-muted-foreground", sign: "" },
+};
 
 interface CashSession {
   id: string;
@@ -46,6 +69,8 @@ export default function CashSessionPage() {
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cashEntries, setCashEntries] = useState<CashEntry[]>([]);
+  const [showEntries, setShowEntries] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
@@ -70,8 +95,18 @@ export default function CashSessionPage() {
         .eq("org_id", activeOrg.id)
         .gte("date", current.opened_at);
       setSessionSales(sales || []);
+
+      // Load cash entries for active session
+      const { data: entries } = await supabase
+        .from("cash_entries")
+        .select("id, entry_type, payment_method, amount_ars, description, created_at")
+        .eq("session_id", current.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      setCashEntries((entries as CashEntry[]) || []);
     } else {
       setSessionSales([]);
+      setCashEntries([]);
     }
     setLoading(false);
   }, [activeOrg]);
@@ -296,6 +331,56 @@ export default function CashSessionPage() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Cash entries for active session */}
+      {openSession && (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors"
+            onClick={() => setShowEntries(v => !v)}
+          >
+            <h2 className="font-semibold text-sm flex items-center gap-2">
+              <List className="w-4 h-4 text-primary" />
+              Movimientos del turno
+              <Badge variant="secondary" className="ml-1 text-xs">{cashEntries.length}</Badge>
+            </h2>
+            {showEntries ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showEntries && (
+            cashEntries.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                Sin movimientos registrados aún. Los ingresos se registran automáticamente al vender.
+              </div>
+            ) : (
+              <div className="divide-y divide-border/50 max-h-72 overflow-y-auto">
+                {cashEntries.map(e => {
+                  const meta = ENTRY_TYPE_META[e.entry_type] ?? { label: e.entry_type, color: "text-foreground", sign: "" };
+                  const isOut = ["expense_out", "supplier_out", "manual_out"].includes(e.entry_type);
+                  return (
+                    <div key={e.id} className="flex items-center gap-3 px-5 py-2.5">
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${isOut ? "bg-red-500/10" : "bg-green-500/10"}`}>
+                        {isOut
+                          ? <ArrowUpCircle className="w-3.5 h-3.5 text-red-400" />
+                          : <ArrowDownCircle className="w-3.5 h-3.5 text-green-400" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{e.description ?? meta.label}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {meta.label} · {e.payment_method ?? "efectivo"} · {format(new Date(e.created_at), "HH:mm", { locale: es })}
+                        </p>
+                      </div>
+                      <span className={`text-sm font-mono font-semibold shrink-0 ${meta.color}`}>
+                        {meta.sign}{formatARS(e.amount_ars)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
         </div>
       )}
 

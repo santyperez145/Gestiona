@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -261,6 +262,7 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
 export default function InvoicesPage() {
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -271,8 +273,30 @@ export default function InvoicesPage() {
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
+  const fromSaleHandled = useRef(false);
 
   const canManage = activeRole === "owner" || activeRole === "admin";
+
+  // Pre-fill form when navigated from SalesPage with ?from_sale=...
+  useEffect(() => {
+    const fromSale = searchParams.get("from_sale");
+    const customer = searchParams.get("customer") ?? "";
+    const total = searchParams.get("total") ?? "";
+    if (fromSale && !fromSaleHandled.current) {
+      fromSaleHandled.current = true;
+      setForm(f => ({
+        ...f,
+        customer_name: decodeURIComponent(customer),
+        notes: `Factura generada desde venta ID: ${fromSale}`,
+      }));
+      if (total) {
+        setItems([{ ...emptyItem(), description: "Venta", quantity: 1, unit_price: Number(total) }]);
+      }
+      setShowForm(true);
+      // Clean the URL params
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
 
   // Load AFIP org settings
   useEffect(() => {
