@@ -202,8 +202,7 @@ export async function getExchangesDB(userId: string) {
 }
 
 export async function addExchangeDB(exchange: any) {
-  const { requireActiveOrgId } = await import('./orgContext');
-  const orgId = requireActiveOrgId();
+  const orgId = exchange.org_id || requireActiveOrgId();
   const { error } = await supabase.from('influencer_exchanges').insert({ ...exchange, org_id: orgId });
   if (error) throw error;
   // Deduct stock like a sale
