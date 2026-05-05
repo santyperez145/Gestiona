@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,9 +50,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
+    const orgId = getActiveOrgId();
+    if (!orgId) return;
     const [pRes, sRes] = await Promise.all([
-      supabase.from('products').select('*').eq('user_id', userId).gt('stock', 0).order('category').order('name'),
-      supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('products').select('*').eq('org_id', orgId).gt('stock', 0).order('category').order('name'),
+      supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle(),
     ]);
     setProducts(pRes.data || []);
     setSettings(sRes.data);

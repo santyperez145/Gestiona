@@ -104,7 +104,8 @@ export async function deleteSaleDB(id: string) {
 
 // ========= DEBTS =========
 export async function getDebtsDB(userId: string) {
-  const { data, error } = await supabase.from('debts').select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('debts').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -173,7 +174,8 @@ export async function saveSettingsDB(userId: string, settings: Record<string, an
 
 // ========= MARKETING =========
 export async function getMarketingPostsDB(userId: string) {
-  const { data, error } = await supabase.from('marketing_posts').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('marketing_posts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -195,7 +197,8 @@ export async function deleteMarketingPostDB(id: string) {
 
 // ========= INFLUENCER EXCHANGES =========
 export async function getExchangesDB(userId: string) {
-  const { data, error } = await supabase.from('influencer_exchanges').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('influencer_exchanges').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -259,12 +262,13 @@ export async function getAuditLogsDB(limit = 50) {
 
 // ========= SALES AGGREGATED (for auto-restock) =========
 export async function getSalesAggregatedDB(userId: string, days: number = 30) {
+  const orgId = await orgIdFor(userId);
   const since = new Date();
   since.setDate(since.getDate() - days);
   const { data, error } = await supabase
     .from('sales')
     .select('product_id, product_name, quantity')
-    .eq('user_id', userId)
+    .eq('org_id', orgId)
     .gte('date', since.toISOString());
   if (error) throw error;
   const agg: Record<string, { product_id: string; product_name: string; total_qty: number }> = {};
@@ -278,7 +282,8 @@ export async function getSalesAggregatedDB(userId: string, days: number = 30) {
 
 // ========= CUSTOMERS =========
 export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
-  const { data, error } = await supabase.from('sales').select('customer_name').eq('user_id', userId).not('customer_name', 'is', null);
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('sales').select('customer_name').eq('org_id', orgId).not('customer_name', 'is', null);
   if (error) throw error;
   const names = [...new Set((data || []).map(d => d.customer_name).filter(Boolean))] as string[];
   return names.sort((a, b) => a.localeCompare(b, 'es'));
@@ -286,7 +291,8 @@ export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
 
 // ========= COUPONS =========
 export async function getCouponsDB(userId: string) {
-  const { data, error } = await supabase.from('coupons').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('coupons').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -307,10 +313,11 @@ export async function deleteCouponDB(id: string) {
 }
 
 export async function validateCouponDB(userId: string, code: string) {
+  const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
     .from('coupons')
     .select('*')
-    .eq('user_id', userId)
+    .eq('org_id', orgId)
     .eq('code', code.toUpperCase().trim())
     .eq('active', true)
     .maybeSingle();
@@ -355,7 +362,8 @@ export async function getVariantsDB(productId: string) {
 }
 
 export async function getVariantsByUserDB(userId: string) {
-  const { data, error } = await supabase.from('product_variants').select('*').eq('user_id', userId).eq('active', true).order('variant_name');
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('product_variants').select('*').eq('org_id', orgId).eq('active', true).order('variant_name');
   if (error) throw error;
   return data || [];
 }
@@ -488,7 +496,8 @@ export function calculateTaxes(profitARS: number, settings: any) {
 
 // ========= EXPENSES =========
 export async function getExpensesDB(userId: string) {
-  const { data, error } = await supabase.from('expenses' as any).select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('expenses' as any).select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return (data as any[]) || [];
 }
@@ -553,7 +562,8 @@ export function getExpenseCategoryLabel(cat: string, settings?: any) {
 
 // ========= CUSTOMER NOTES =========
 export async function getCustomerNotesDB(userId: string) {
-  const { data, error } = await supabase.from('customer_notes' as any).select('*').eq('user_id', userId);
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('customer_notes' as any).select('*').eq('org_id', orgId);
   if (error) throw error;
   return (data as any[]) || [];
 }

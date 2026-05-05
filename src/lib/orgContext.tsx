@@ -14,6 +14,7 @@ export interface Organization {
   owner_user_id: string;
   plan_id: string | null;
   trial_ends_at: string | null;
+  onboarding_completed: boolean;
 }
 
 export interface Membership {

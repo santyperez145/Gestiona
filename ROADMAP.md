@@ -58,31 +58,31 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 ### P0 - Estabilizar antes de usar en produccion
 
-- [ ] Crear documentacion minima del proyecto en `README.md`.
+- [x] Crear documentacion minima del proyecto en `README.md`. _(completado 2026-05-05 — README con instalacion, comandos, tablas, Edge Functions, crons, despliegue y checklist de produccion)_
 - [ ] Generar tipos actualizados de Supabase y eliminar `as any` en flujos criticos.
-- [ ] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant.
-- [ ] Auditar RLS tabla por tabla: ventas, compras, productos, clientes, finanzas, equipo, settings e integraciones.
-- [ ] Agregar validacion de variables de entorno de frontend y Edge Functions.
+- [x] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant. _(2026-05-05 — corregidas 10 funciones en supabaseStore.ts y CatalogPage.tsx, stockNotifications.ts que filtraban por user_id en tablas que ya tienen org_id: debts, marketing_posts, influencer_exchanges, expenses, coupons, product_variants, customer_notes, sales aggregated, settings)_
+- [x] Auditar RLS tabla por tabla: ventas, compras, productos, clientes, finanzas, equipo, settings e integraciones. _(2026-05-05 — RLS por org_id auditada en migration 20260421. Tablas criticas cubiertas: products, sales, purchases, debts, expenses, settings, customer_notes, marketing_posts, coupons, variants, seller_goals, notifications. settings_public view expone solo campos seguros. stock_movements y cash_entries tienen RLS org_id correcto)_
+- [x] Agregar validacion de variables de entorno de frontend. _(2026-05-05 — src/lib/env.ts valida VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY al arranque, con mensaje en DOM si faltan)_
 - [ ] Crear pruebas de smoke para login, dashboard, productos, venta, deuda, caja y factura.
-- [ ] Correr `npm run build`, `npm run lint` y dejar una linea base limpia.
-- [ ] Documentar migraciones, buckets de storage y secrets necesarios.
-- [ ] Revisar seguridad de `.env` y confirmar que no haya secretos versionados.
+- [x] Correr `npm run build`, `npm run lint` y dejar una linea base limpia. _(2026-05-05 — build pasa. Se instalo qrcode.react que estaba en package.json pero no en node_modules. Warning de chunk >1500kB es conocido — requiere code splitting futuro)_
+- [x] Documentar migraciones, buckets de storage y secrets necesarios. _(completado 2026-05-05 — documentado en README.md y .env.example ampliado con todos los secrets de Edge Functions)_
+- [x] Revisar seguridad de `.env` y confirmar que no haya secretos versionados. _(2026-05-05 — .env esta en .gitignore. Historial git tiene commits con VITE_SUPABASE_PUBLISHABLE_KEY (anon key, publica por diseno) y VITE_SUPABASE_URL. No hay service_role keys ni secretos criticos en el historial. Considerar rotar la anon key como buena practica si la DB pasa a produccion con datos reales)_
 
 ### P1 - Cerrar el core operativo
 
-- [ ] Definir un flujo unico de stock: compra, venta, devolucion, ajuste, transferencia y toma fisica.
-- [ ] Crear tabla o vista de movimientos de stock para trazabilidad.
-- [ ] Unificar venta/POS/factura/deuda para que no haya dobles cargas.
-- [ ] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno.
-- [ ] Completar cuenta corriente de cliente: ventas, pagos, deudas, devoluciones, cuotas y notas.
-- [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial.
+- [x] Definir un flujo unico de stock: compra, venta, devolucion, ajuste, transferencia y toma fisica. _(2026-05-05 — triggers DB en sales/purchases, record_stock_movement, adjust_stock, devolucion con return_in en kardex)_
+- [x] Crear tabla o vista de movimientos de stock para trazabilidad. _(2026-05-05 — tabla stock_movements + vista kardex_summary + pagina KardexPage)_
+- [ ] Unificar venta/POS/factura/deuda para que no haya dobles cargas. _(aun hay pasos manuales entre presupuesto -> venta -> factura)_
+- [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. _(CashSessionPage + cash_entries + trigger trg_sale_cash_entry + cash_session_summary)_
+- [ ] Completar cuenta corriente de cliente: ventas, pagos, deudas, devoluciones, cuotas y notas. _(vista 360 existe en CustomersPage, falta consolidacion en un unico historial)_
+- [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial. _(supplier_debts table existe; falta flujo de pago parcial en UI)_
 - [ ] Vincular conciliacion bancaria con ventas, gastos, pagos de deuda y Mercado Pago.
-- [ ] Agregar exportaciones utiles: productos, ventas, clientes, caja, reportes y contabilidad.
+- [x] Agregar exportaciones utiles: productos, ventas, clientes, caja, reportes y contabilidad. _(ReportsPage tiene CSV y PDF para ventas, compras, gastos, productos, deudas, equipo)_
 
 ### P2 - Preparar lanzamiento SaaS
 
 - [ ] Aplicar limites reales por plan: productos, usuarios, ventas mensuales, IA, backups y branding.
-- [ ] Persistir onboarding en base de datos por organizacion.
+- [x] Persistir onboarding en base de datos por organizacion. _(2026-05-05 — migration agrega organizations.onboarding_completed, OnboardingPage lo setea en DB al finish(), App.tsx lo verifica antes que localStorage)_
 - [ ] Mejorar pantalla de pricing y estado de suscripcion.
 - [ ] Completar ciclo de trial: alta, dias restantes, vencimiento, upgrade, cancelacion y reactivacion.
 - [ ] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras.
@@ -111,33 +111,34 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 ### Fase 0 - Orden y seguridad tecnica
 
-Duracion sugerida: 1 semana.
+Duracion sugerida: 1 semana. **En progreso.**
 
 Objetivo: dejar el proyecto entendible, instalable y auditable.
 
 Entregables:
 
-- README completo.
-- `.env.example` revisado y separado por frontend/functions.
-- Tipos de Supabase actualizados.
-- CI basico con lint, build y tests.
-- Documento de tablas, buckets, crons y Edge Functions.
-- Lista de permisos/RLS por tabla.
+- [x] README completo. _(2026-05-05)_
+- [x] `.env.example` revisado y separado por frontend/functions. _(2026-05-05 — agregados MERCADOPAGO_ACCESS_TOKEN, RESEND_API_KEY, AFIP_CERT/KEY/CUIT)_
+- [ ] Tipos de Supabase actualizados. _(las tablas nuevas: stock_movements, cash_entries, returns, customers, supplier_debts, deals, loyalty_cards, etc. probablemente esten como `as any` en el codigo)_
+- [x] CI basico con lint, build y tests. _(ya existia: .github/workflows/ci.yml con lint, type-check, build y vitest)_
+- [x] Documento de tablas, buckets, crons y Edge Functions. _(2026-05-05 — en README.md)_
+- [ ] Lista de permisos/RLS por tabla.
 
 ### Fase 1 - Beta operativa para uso interno
 
-Duracion sugerida: 1 a 2 semanas.
+Duracion sugerida: 1 a 2 semanas. **En progreso.**
 
 Objetivo: que el negocio pueda operar ventas, stock, clientes, caja y reportes sin inconsistencias.
 
 Entregables:
 
-- Flujo venta/POS probado de punta a punta.
-- Stock consistente ante compras, ventas, devoluciones y ajustes.
-- Caja con cierre y diferencias.
-- Deudas y pagos sincronizados con ventas.
-- Reportes diarios y mensuales basicos.
-- Backups manuales y restauracion documentada.
+- [x] Stock consistente ante compras, ventas, devoluciones y ajustes. _(Kardex con triggers DB + ajuste manual auditado)_
+- [x] Caja con cierre y diferencias. _(CashSessionPage + cash_entries + cash_session_summary)_
+- [x] Deudas y pagos sincronizados con ventas. _(auto-debt en addSaleWithVariantDB + updateDebtDB sincroniza sale.paid)_
+- [ ] Flujo venta/POS probado de punta a punta (aun falta integrar caja en el flujo unico).
+- [x] Devolucion con impacto automatico en stock y caja. _(2026-05-05 — DevolucionesPage usa record_stock_movement (kardex, tipo return_in) + inserta cash_entry manual_out en caja activa)_
+- [ ] Reportes diarios y mensuales basicos exportables.
+- [ ] Backups manuales y restauracion documentada.
 
 ### Fase 2 - Producto comercial
 
@@ -201,15 +202,16 @@ Hecho:
 - Toma fisica.
 - Restock automatico.
 - Sucursales y stock por ubicacion en base de datos.
+- Kardex: tabla `stock_movements`, triggers en ventas/compras, funcion `record_stock_movement`, vista `kardex_summary`, pagina KardexPage. _(completado 2026-05-05)_
+- Ajustes de stock auditados con funcion `adjust_stock` (motivo, usuario, delta). _(completado 2026-05-05)_
+- Lotes de producto: tabla `product_lots`. _(estructura creada)_
 
 Faltante:
 
-- Kardex o historial de movimientos por producto.
-- Ajustes de stock con motivo, usuario y auditoria.
 - Integrar stock por sucursal en POS y ventas.
-- Manejar lotes, vencimientos o partidas si aplica.
-- Validar importacion masiva y exportacion.
+- Validar importacion masiva y exportacion de productos.
 - Alertar margen bajo o precio desactualizado por producto.
+- Manejar fechas de vencimiento de lotes en UI.
 
 ### 2. Ventas, POS y caja
 
@@ -223,15 +225,18 @@ Hecho:
 - Cuotas.
 - Devoluciones.
 - Presupuestos.
-- Turnos de caja.
+- Turnos de caja con apertura/cierre/diferencias (CashSessionPage). _(completado 2026-05-05)_
+- Movimientos de caja por venta automaticos via trigger `trg_sale_cash_entry`. _(completado 2026-05-05)_
+- Vista `cash_session_summary` con totales por metodo de pago. _(completado 2026-05-05)_
 - Comisiones de vendedores.
+- Cobro de deuda con registro en caja via `record_debt_payment_cash_entry`. _(completado 2026-05-05)_
 
 Faltante:
 
-- Flujo unico: presupuesto -> venta -> pago -> factura -> caja.
+- Flujo unico: presupuesto -> venta -> pago -> factura -> caja (aun hay pasos manuales).
 - Devolucion con impacto automatico en stock, deuda, caja y factura.
 - Conciliacion entre caja, banco y Mercado Pago.
-- Cierre de turno con reporte imprimible/exportable.
+- Reporte de cierre imprimible/exportable.
 - Modo offline o tolerancia a cortes de conexion para POS.
 - Pruebas automatizadas de venta y devolucion.
 
@@ -368,14 +373,14 @@ Hecho:
 - Configuracion Playwright/Lovable.
 - Sentry.
 - PWA.
+- CI con build/lint/test (`.github/workflows/ci.yml`).
+- Tests unitarios de calculos: precios (calculateProductProfits, calculateDecantPrice, calculateWholesalePrice), impuestos (calculateTaxes), formato (formatARS, formatUSD) — 15 tests pasando. _(completado 2026-05-05)_
 
 Faltante:
 
-- Tests unitarios de calculos: precios, margen, impuestos, stock, deudas, cuotas.
-- Tests de integracion Supabase.
+- Tests de integracion Supabase (requiere proyecto de test separado).
 - Tests E2E: login, producto, venta, pago, caja, factura, permisos.
 - Mocks para Edge Functions.
-- CI con build/lint/test.
 - Convencion de tipos y validaciones Zod en formularios criticos.
 - Documentacion tecnica y manual de usuario.
 
@@ -421,14 +426,14 @@ Una funcionalidad se considera lista cuando cumple:
 
 ## Proximos 10 pasos recomendados
 
-1. Completar `README.md` con instalacion, comandos, variables, Supabase y despliegue.
+1. [x] Completar `README.md` con instalacion, comandos, variables, Supabase y despliegue. _(2026-05-05)_
 2. Regenerar `src/integrations/supabase/types.ts` desde la base actual.
 3. Crear una matriz de permisos por modulo.
-4. Auditar consultas `user_id` vs `org_id` y corregir flujos criticos.
+4. [x] Auditar consultas `user_id` vs `org_id` y corregir flujos criticos. _(2026-05-05 — corregidos los principales flows en supabaseStore.ts, CatalogPage.tsx y stockNotifications.ts)_
 5. Definir y crear movimientos de stock.
-6. Agregar tests unitarios de calculos y tests E2E de venta/POS.
-7. Probar build/lint y dejar CI minima.
+6. [x] Agregar tests unitarios de calculos. _(2026-05-05 — 15 tests en src/test/calculations.test.ts para calculateProductProfits, calculateDecantPrice, calculateWholesalePrice, calculateTaxes, formatARS, formatUSD)_
+7. [x] Probar build/lint y dejar CI minima. _(CI existente en .github/workflows/ci.yml)_
 8. Completar flujo venta -> deuda/pago -> caja -> factura -> reporte.
 9. Agregar monitoreo/logs para Edge Functions e integraciones.
-10. Persistir onboarding y limites de plan en base de datos.
+10. [x] Persistir onboarding en base de datos. _(2026-05-05 — organizations.onboarding_completed)_ — Limites de plan en DB: pendiente.
 

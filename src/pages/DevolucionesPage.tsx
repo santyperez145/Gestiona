@@ -127,6 +127,18 @@ export default function DevolucionesPage() {
     setSaving(true);
 
     try {
+      let productId: string | null = null;
+
+      // Resolve product_id from linked sale
+      if (selectedSale?.id) {
+        const { data: saleRow } = await supabase
+          .from("sales")
+          .select("product_id")
+          .eq("id", selectedSale.id)
+          .maybeSingle();
+        productId = saleRow?.product_id || null;
+      }
+
       // Insert return record
       const { data: ret, error: retErr } = await supabase
         .from("returns")
@@ -134,6 +146,7 @@ export default function DevolucionesPage() {
           org_id: activeOrg.id,
           user_id: user.id,
           sale_id: selectedSale?.id || null,
+          product_id: productId,
           product_name: productName,
           quantity: qty,
           amount_ars: amount,
@@ -146,41 +159,56 @@ export default function DevolucionesPage() {
 
       if (retErr) throw retErr;
 
-      // Restore stock on the product linked to the sale
+      // Restore stock via kardex (record_stock_movement handles stock update + audit trail)
+      if (productId) {
+        const { error: stockErr } = await supabase.rpc("record_stock_movement", {
+          p_org_id: activeOrg.id,
+          p_product_id: productId,
+          p_variant_id: null,
+          p_product_name: productName,
+          p_variant_name: null,
+          p_movement_type: "return_in",
+          p_quantity: qty,
+          p_reference_type: "sale",
+          p_reference_id: selectedSale?.id || null,
+          p_unit_cost_usd: null,
+          p_unit_price_ars: qty > 0 ? amount / qty : null,
+          p_notes: `Devolución: ${reason}`,
+          p_created_by: user.id,
+        });
+        if (stockErr) console.error("kardex error on return:", stockErr);
+      }
+
+      // Mark original sale as returned
       if (selectedSale?.id) {
-        // Get the product_id from the sale
-        const { data: saleRow } = await supabase
-          .from("sales")
-          .select("product_id")
-          .eq("id", selectedSale.id)
-          .maybeSingle();
-
-        if (saleRow?.product_id) {
-          // Increment stock
-          await supabase.rpc("increment_product_stock", {
-            p_product_id: saleRow.product_id,
-            p_qty: qty,
-          }).catch(async () => {
-            // Fallback: manual increment if RPC doesn't exist
-            const { data: prod } = await supabase
-              .from("products")
-              .select("stock")
-              .eq("id", saleRow.product_id)
-              .maybeSingle();
-            if (prod) {
-              await supabase
-                .from("products")
-                .update({ stock: (prod.stock || 0) + qty })
-                .eq("id", saleRow.product_id);
-            }
-          });
-        }
-
-        // Mark original sale as returned
         await supabase
           .from("sales")
           .update({ returned: true, return_id: ret.id })
           .eq("id", selectedSale.id);
+      }
+
+      // Register refund as cash egress (skip for store credit — it's not a cash movement)
+      if (refundMethod !== "credito_tienda" && amount > 0) {
+        const { data: session } = await supabase
+          .from("cash_sessions")
+          .select("id")
+          .eq("org_id", activeOrg.id)
+          .eq("status", "open")
+          .order("opened_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        await supabase.from("cash_entries").insert({
+          org_id: activeOrg.id,
+          session_id: session?.id || null,
+          entry_type: "manual_out",
+          payment_method: refundMethod,
+          amount_ars: amount,
+          reference_type: "sale",
+          reference_id: selectedSale?.id || null,
+          description: `Reembolso devolución: ${productName}`,
+          created_by: user.id,
+        });
       }
 
       toast.success(`Devolución registrada · Stock restaurado (+${qty} uds)`);

@@ -47,9 +47,14 @@ export default function OnboardingPage() {
       .from('settings')
       .update({ business_name: name, primary_color: color, industry_code: rubroCode, ai_tone: aiTone, ...defaultSettings })
       .eq('org_id', activeOrg.id);
+    // Persist onboarding completion in DB (works across devices)
+    await supabase
+      .from('organizations')
+      .update({ onboarding_completed: true } as any)
+      .eq('id', activeOrg.id);
+    localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
     await refresh();
     toast.success(`¡Bienvenido a Gestiona, ${name}!`);
-    localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
     navigate('/');
     setSaving(false);
   };

@@ -119,8 +119,10 @@ function ProtectedRoutes() {
   if (!user) return <AuthPage />;
   if (isViewer) return <ViewerGate />;
 
-  // Force onboarding for fresh orgs
-  const onboarded = activeOrg ? localStorage.getItem(`gestiona.onboarded.${activeOrg.id}`) : '1';
+  // Force onboarding for fresh orgs — check DB field first, localStorage as fallback
+  const onboarded = activeOrg
+    ? (activeOrg.onboarding_completed || localStorage.getItem(`gestiona.onboarded.${activeOrg.id}`))
+    : '1';
   const onOnboardingRoute = window.location.pathname === '/onboarding';
   if (activeOrg && !onboarded && !onOnboardingRoute) {
     return <Navigate to="/onboarding" replace />;
