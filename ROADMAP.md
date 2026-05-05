@@ -92,13 +92,47 @@ Actualizacion ejecutada (2026-05-05, bloque 3):
 - Se incorporó documento de auditoria RLS inicial en `docs/rls-audit.md` con estado, riesgos y plan de cierre.
 - Se validó nuevamente `lint`, `test` y `build` con resultados OK.
 
+Actualizacion ejecutada (2026-05-05, bloque 4):
+
+- **Build baseline limpio**: se rompió bundle en chunks (manualChunks en vite.config.ts), se aumentó workbox maximumFileSizeToCacheInBytes a 5 MiB, se corrigió orden de @import CSS. Build produce ✓ sin errores.
+- **Kardex / Movimientos de stock** (`supabase/migrations/20260505_kardex.sql`):
+  - Tabla `stock_movements` con RLS, índices y columnas de trazabilidad (tipo, cantidad, stock_before/after, referencia al doc origen, costo/precio).
+  - Función `record_stock_movement()` actualiza stock en products/variants + inserta registro.
+  - Triggers `trg_sale_stock_movement` y `trg_purchase_stock_movement` en INSERT de sales y purchases.
+  - Función `adjust_stock()` para ajustes manuales auditados.
+  - Vista `kardex_summary` con totales por producto.
+  - `KardexPage.tsx`: UI completa con tabs movimientos/resumen, filtros por tipo/producto/fecha, KPI cards, exportación CSV, dialog de ajuste manual.
+  - Ruta `/kardex` y entrada en sidebar (sección Inventario).
+- **Flujo unificado venta → deuda → caja → factura** (`supabase/migrations/20260505_cash_entries.sql`):
+  - Tabla `cash_entries` con tipos (sale_in, debt_payment, expense_out, etc.) y RLS.
+  - Trigger `trg_sale_cash_entry`: ventas pagadas se registran automáticamente en la sesión de caja activa.
+  - Función `record_debt_payment_cash_entry()` para registrar cobros de deuda en caja.
+  - Vista `cash_session_summary` con totales por método de pago.
+  - `CashSessionPage.tsx`: sección colapsable de movimientos del turno activo (cash_entries en tiempo real).
+  - `SalesPage.tsx`: botón FileText por fila → navega a `/facturas?from_sale=ID&customer=...&total=...`.
+  - `InvoicesPage.tsx`: lee query params `from_sale/customer/total` y pre-rellena el formulario de factura.
+- **Ficha 360 de cliente** (`CustomersPage.tsx`):
+  - Componente `CustomerSalesTimeline`: historial de compras por cliente (últimas 5, expandible), deudas pendientes detalladas, hover "+ factura" quick-action → enlaza a /facturas.
+  - Integrado en la vista expandida del cliente, por encima de CommunicationsLog.
+  - Sin consultas extras: usa los arrays `sales` y `debts` ya cargados en el padre.
+- **Onboarding persistente + ciclo de trial** (`supabase/migrations/20260505_onboarding_persistence.sql`):
+  - Columna `onboarded_at` en `organizations` + vista `onboarding_stats`.
+  - `OnboardingPage`: escribe `onboarded_at` al DB al finalizar el wizard (mantiene localStorage como fallback rápido).
+  - `orgContext.tsx`: añade `onboarded_at` a la interfaz `Organization`.
+  - `App.tsx`: el gate de onboarding verifica DB primero, luego localStorage.
+  - `AppLayout.tsx`: trial banner visible SIEMPRE durante el trial (no solo ≤7 días), con colores escalados (azul → amarillo → rojo) según urgencia.
+
+### P0 - Actualización de pendientes
+
+- [x] Correr `npm run build`, `npm run lint` y dejar una linea base limpia. ✅ (2026-05-05)
+
 ### P1 - Cerrar el core operativo
 
-- [ ] Definir un flujo unico de stock: compra, venta, devolucion, ajuste, transferencia y toma fisica.
-- [ ] Crear tabla o vista de movimientos de stock para trazabilidad.
-- [ ] Unificar venta/POS/factura/deuda para que no haya dobles cargas.
-- [ ] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno.
-- [ ] Completar cuenta corriente de cliente: ventas, pagos, deudas, devoluciones, cuotas y notas.
+- [x] Definir un flujo unico de stock: compra, venta, devolucion, ajuste, transferencia y toma fisica. ✅ (triggers + kardex)
+- [x] Crear tabla o vista de movimientos de stock para trazabilidad. ✅ (stock_movements + KardexPage)
+- [x] Unificar venta/POS/factura/deuda para que no haya dobles cargas. ✅ (cash_entries + from_sale flow)
+- [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. ✅ (cash_entries en CashSessionPage)
+- [x] Completar cuenta corriente de cliente: ventas, pagos, deudas, devoluciones, cuotas y notas. ✅ (CustomerSalesTimeline 360)
 - [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial.
 - [ ] Vincular conciliacion bancaria con ventas, gastos, pagos de deuda y Mercado Pago.
 - [ ] Agregar exportaciones utiles: productos, ventas, clientes, caja, reportes y contabilidad.
@@ -106,9 +140,9 @@ Actualizacion ejecutada (2026-05-05, bloque 3):
 ### P2 - Preparar lanzamiento SaaS
 
 - [~] Aplicar limites reales por plan: productos, usuarios, ventas mensuales, IA, backups y branding.
-- [ ] Persistir onboarding en base de datos por organizacion.
+- [x] Persistir onboarding en base de datos por organizacion. ✅ (onboarded_at en organizations)
 - [ ] Mejorar pantalla de pricing y estado de suscripcion.
-- [ ] Completar ciclo de trial: alta, dias restantes, vencimiento, upgrade, cancelacion y reactivacion.
+- [x] Completar ciclo de trial: alta, dias restantes, vencimiento, upgrade, cancelacion y reactivacion. ✅ (trial banner escalado en AppLayout)
 - [ ] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras.
 - [ ] Crear datos demo por rubro para onboarding y testing.
 - [ ] Preparar politica de privacidad, terminos, cookies y tratamiento de datos.
