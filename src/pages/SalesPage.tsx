@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { exportCSV, csvDate, csvARS } from "@/lib/exportCSV";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import { checkStockAfterSale } from "@/lib/stockNotifications";
@@ -63,6 +64,24 @@ export default function SalesPage() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+
+  const handleExport = () => {
+    exportCSV(
+      `ventas-${new Date().toISOString().slice(0, 10)}`,
+      ["Fecha", "Producto", "Cliente", "Cantidad", "Precio Unit.", "Total", "Ganancia", "Método Pago", "Pagado"],
+      filtered.map(s => [
+        csvDate(s.date),
+        s.product_name,
+        s.customer_name ?? "",
+        s.quantity,
+        csvARS(s.unit_price_ars),
+        csvARS(s.total_ars),
+        csvARS(s.profit_ars),
+        s.payment_method ?? "efectivo",
+        s.paid ? "Sí" : "No",
+      ]),
+    );
+  };
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -133,6 +152,9 @@ export default function SalesPage() {
             </SelectContent>
           </Select>
           <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} title="Exportar CSV">
+            <Download className="w-4 h-4 mr-1.5" />CSV
+          </Button>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Venta</Button>

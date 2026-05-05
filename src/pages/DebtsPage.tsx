@@ -4,7 +4,8 @@ import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS, formatDateAR } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash2, DollarSign, AlertCircle } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Download } from "lucide-react";
+import { exportCSV, csvDate, csvARS } from "@/lib/exportCSV";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -49,8 +50,23 @@ export default function DebtsPage() {
           <h1 className="text-2xl md:text-3xl font-display font-bold">Deudas</h1>
           <p className="text-muted-foreground text-sm">Control de deudas de clientes</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+          <Button
+            variant="outline" size="sm"
+            disabled={dateFiltered.length === 0}
+            onClick={() => exportCSV(
+              `deudas-${new Date().toISOString().slice(0, 10)}`,
+              ["Fecha", "Cliente", "Descripción", "Total", "Pagado", "Pendiente", "Estado", "Vencimiento"],
+              dateFiltered.map(d => [
+                csvDate(d.date), d.customer_name ?? "", d.description ?? "",
+                csvARS(d.amount_ars), csvARS(d.paid_ars), csvARS(d.remaining_ars),
+                d.status, d.due_date ? csvDate(d.due_date) : "",
+              ])
+            )}
+          >
+            <Download className="w-4 h-4 mr-1.5" />CSV
+          </Button>
           <div className="bg-card border border-border rounded-lg px-4 py-2">
             <span className="text-sm text-muted-foreground">Pendiente: </span>
             <span className="font-bold text-destructive">{formatARS(totalPending)}</span>

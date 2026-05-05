@@ -9,8 +9,9 @@ import { useOrg } from "@/lib/orgContext";
 import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
-  Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText,
+  Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, Download,
 } from "lucide-react";
+import { exportCSV } from "@/lib/exportCSV";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -707,6 +708,22 @@ export default function CustomersPage() {
               Importar CSV
             </span>
           </label>
+          <Button
+            variant="outline"
+            disabled={filtered.length === 0}
+            onClick={() => exportCSV(
+              `clientes-${new Date().toISOString().slice(0, 10)}`,
+              ["Cliente", "Segmento", "Email", "Teléfono", "Compras", "Facturado (ARS)", "Ganancia (ARS)", "Deuda Pendiente (ARS)", "Última Compra"],
+              filtered.map(c => [
+                c.name, c.segment, c.email ?? "", c.phone ?? "",
+                c.purchaseCount, c.totalSpent.toFixed(2), c.totalProfit.toFixed(2), c.pendingDebt.toFixed(2),
+                c.purchaseCount > 0 ? new Date(c.lastPurchase).toLocaleDateString("es-AR") : "",
+              ])
+            )}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />CSV
+          </Button>
           <Button
             onClick={() => setFormModal({ open: true })}
             className="gradient-gold text-primary-foreground gap-2"

@@ -15,8 +15,9 @@ import autoTable from "jspdf-autotable";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
-  ShieldCheck, ShieldAlert, Loader2, QrCode,
+  ShieldCheck, ShieldAlert, Loader2, QrCode, Download,
 } from "lucide-react";
+import { exportCSV, csvDate, csvARS } from "@/lib/exportCSV";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -496,11 +497,28 @@ export default function InvoicesPage() {
             </p>
           </div>
         </div>
-        {canManage && (
-          <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground">
-            <Plus className="w-4 h-4 mr-2" />Nueva factura
+        <div className="flex gap-2">
+          <Button
+            variant="outline" size="sm"
+            disabled={invoices.length === 0}
+            onClick={() => exportCSV(
+              `facturas-${new Date().toISOString().slice(0, 10)}`,
+              ["Número", "Cliente", "Email", "Fecha", "Vencimiento", "Total", "Estado", "CAE"],
+              invoices.map(i => [
+                i.number, i.customer_name, i.customer_email ?? "",
+                csvDate(i.date), csvDate(i.due_date),
+                csvARS(i.total), i.status, i.cae ?? "",
+              ])
+            )}
+          >
+            <Download className="w-4 h-4 mr-1.5" />CSV
           </Button>
-        )}
+          {canManage && (
+            <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground">
+              <Plus className="w-4 h-4 mr-2" />Nueva factura
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* AFIP not configured warning */}
