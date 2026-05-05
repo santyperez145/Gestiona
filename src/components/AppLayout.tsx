@@ -276,16 +276,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button onClick={() => setBannerDismissed(true)} className="text-yellow-500/60 hover:text-yellow-500 shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );
-          if (isTrialing && trialDaysLeft <= 7) return (
-            <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
-              <Zap className="w-4 h-4 text-primary shrink-0" />
+          if (isTrialing) return (
+            <div className={`border-b px-4 py-2.5 flex items-center gap-3 ${
+              trialDaysLeft <= 3
+                ? "bg-destructive/8 border-destructive/20"
+                : trialDaysLeft <= 7
+                  ? "bg-yellow-500/8 border-yellow-500/20"
+                  : "bg-primary/8 border-primary/20"
+            }`}>
+              <Zap className={`w-4 h-4 shrink-0 ${trialDaysLeft <= 3 ? "text-destructive" : trialDaysLeft <= 7 ? "text-yellow-400" : "text-primary"}`} />
               <p className="text-sm flex-1">
                 {trialDaysLeft === 0
-                  ? <><span className="font-semibold text-destructive">Tu trial venció hoy.</span> Elegí un plan para seguir usando el sistema.</>
-                  : <><span className="font-semibold">Trial: {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'} restantes.</span> Elegí un plan antes de que expire.</>
+                  ? <><span className="font-semibold text-destructive">Tu trial venció hoy.</span> Elegí un plan para seguir usando Gestiona.</>
+                  : trialDaysLeft <= 3
+                  ? <><span className="font-semibold text-destructive">¡Quedan solo {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'}!</span> Elegí tu plan para no perder el acceso.</>
+                  : trialDaysLeft <= 7
+                  ? <><span className="font-semibold text-yellow-400">Trial: {trialDaysLeft} días restantes.</span> Elegí un plan antes de que expire.</>
+                  : <><span className="font-semibold">Estás en el trial gratuito</span> — {trialDaysLeft} días restantes. Sin tarjeta de crédito requerida.</>
                 }
               </p>
-              <Link to="/pricing"><Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground shrink-0">Ver planes</Button></Link>
+              <Link to="/pricing"><Button size="sm" className={`h-7 text-xs shrink-0 ${trialDaysLeft <= 3 ? "bg-destructive hover:bg-destructive/90 text-white" : "gradient-gold text-primary-foreground"}`}>
+                {trialDaysLeft === 0 ? "Elegir plan" : "Ver planes"}
+              </Button></Link>
               <button onClick={() => setBannerDismissed(true)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );

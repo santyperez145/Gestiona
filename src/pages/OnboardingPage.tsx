@@ -38,9 +38,10 @@ export default function OnboardingPage() {
     const ind = industries.find(i => i.code === rubroCode);
     const defaultSettings = ind?.default_settings || {};
     const aiTone = ind?.ai_tone || 'profesional rioplatense argentino';
+    const now = new Date().toISOString();
     const { error: orgErr } = await supabase
       .from('organizations')
-      .update({ name, primary_color: color })
+      .update({ name, primary_color: color, onboarded_at: now } as any)
       .eq('id', activeOrg.id);
     if (orgErr) { toast.error('Error guardando'); setSaving(false); return; }
     await supabase
@@ -49,6 +50,7 @@ export default function OnboardingPage() {
       .eq('org_id', activeOrg.id);
     await refresh();
     toast.success(`¡Bienvenido a Gestiona, ${name}!`);
+    // Persist in localStorage as well for instant local access (fallback)
     localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
     navigate('/');
     setSaving(false);
