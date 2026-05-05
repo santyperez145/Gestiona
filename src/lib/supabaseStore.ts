@@ -179,7 +179,8 @@ export async function getMarketingPostsDB(userId: string) {
 }
 
 export async function addMarketingPostDB(post: any) {
-  const { error } = await supabase.from('marketing_posts').insert(post);
+  const orgId = post.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('marketing_posts').insert({ ...post, org_id: orgId });
   if (error) throw error;
 }
 
@@ -294,7 +295,8 @@ export async function getCouponsDB(userId: string) {
 }
 
 export async function addCouponDB(coupon: any) {
-  const { error } = await supabase.from('coupons').insert(coupon);
+  const orgId = coupon.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('coupons').insert({ ...coupon, org_id: orgId });
   if (error) throw error;
 }
 
@@ -363,7 +365,8 @@ export async function getVariantsByUserDB(userId: string) {
 }
 
 export async function addVariantDB(variant: any) {
-  const { error } = await supabase.from('product_variants').insert(variant);
+  const orgId = variant.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('product_variants').insert({ ...variant, org_id: orgId });
   if (error) throw error;
 }
 
@@ -385,7 +388,8 @@ export async function syncProductStockFromVariants(productId: string) {
 }
 
 export async function addSaleWithVariantDB(sale: any, variantId?: string) {
-  const { error } = await supabase.from('sales').insert(sale);
+  const orgId = sale.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
   if (error) throw error;
   if (variantId) {
     // Deduct variant stock
@@ -495,7 +499,8 @@ export async function getExpensesDB(userId: string) {
 }
 
 export async function addExpenseDB(expense: any) {
-  const { error } = await supabase.from('expenses' as any).insert(expense);
+  const orgId = expense.org_id || requireActiveOrgId();
+  const { error } = await supabase.from('expenses' as any).insert({ ...expense, org_id: orgId });
   if (error) throw error;
 }
 
