@@ -58,39 +58,15 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 ### P0 - Estabilizar antes de usar en produccion
 
-- [x] Crear documentacion minima del proyecto en `README.md`.
+- [ ] Crear documentacion minima del proyecto en `README.md`.
 - [ ] Generar tipos actualizados de Supabase y eliminar `as any` en flujos criticos.
 - [ ] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant.
 - [ ] Auditar RLS tabla por tabla: ventas, compras, productos, clientes, finanzas, equipo, settings e integraciones.
-- [x] Agregar validacion de variables de entorno de frontend y Edge Functions.
-- [x] Crear pruebas de smoke para login, dashboard, productos, venta, deuda, caja y factura.
+- [ ] Agregar validacion de variables de entorno de frontend y Edge Functions.
+- [ ] Crear pruebas de smoke para login, dashboard, productos, venta, deuda, caja y factura.
 - [ ] Correr `npm run build`, `npm run lint` y dejar una linea base limpia.
-- [x] Documentar migraciones, buckets de storage y secrets necesarios.
-- [x] Revisar seguridad de `.env` y confirmar que no haya secretos versionados.
-
-Actualizacion ejecutada (2026-05-05):
-
-- Se completo `README.md` con instalacion, comandos, arquitectura, env vars y despliegue.
-- Se agrego validacion de env en frontend (`src/lib/env.ts`) y en Edge Functions criticas mediante `supabase/functions/_shared/env.ts`.
-- Se crearon smoke tests para modulos criticos en `src/test/smoke-routes.test.ts`.
-- Se ejecuto `npm run lint`, `npm run test` y `npm run build`; build/test OK y lint sin errores (con warnings heredados).
-- Se documentaron migraciones/infra/secrets en `docs/infra.md` y matriz base de permisos en `docs/permisos.md`.
-- Se detecto riesgo: `.env` esta versionado actualmente en Git y debe retirarse del control de versiones en un cambio dedicado.
-
-Actualizacion ejecutada (2026-05-05, bloque 2):
-
-- Se retiro `.env` del control de versiones (`git rm --cached .env`) y se mantiene ignorado por `.gitignore`.
-- Se avanzó en la migracion `user_id -> org_id` en consultas de `supabaseStore` para marketing posts, canjes con influencers, agregados de ventas, clientes unicos, cupones, variantes, gastos y notas de cliente.
-- Se revalidó baseline tecnica: `npm run lint`, `npm run test`, `npm run build` OK (warnings heredados de hooks pendientes).
-
-Actualizacion ejecutada (2026-05-05, bloque 3):
-
-- Se implementó enforcement real de limites por plan en capa de negocio (`src/lib/supabaseStore.ts`):
-  - limite de productos en `addProductDB`
-  - limite de ventas mensuales en `addSaleDB`
-- Se reforzó limite de usuarios al crear invitaciones en `src/pages/TeamPage.tsx`, considerando miembros + invitaciones pendientes.
-- Se incorporó documento de auditoria RLS inicial en `docs/rls-audit.md` con estado, riesgos y plan de cierre.
-- Se validó nuevamente `lint`, `test` y `build` con resultados OK.
+- [ ] Documentar migraciones, buckets de storage y secrets necesarios.
+- [ ] Revisar seguridad de `.env` y confirmar que no haya secretos versionados.
 
 ### P1 - Cerrar el core operativo
 
@@ -105,7 +81,7 @@ Actualizacion ejecutada (2026-05-05, bloque 3):
 
 ### P2 - Preparar lanzamiento SaaS
 
-- [~] Aplicar limites reales por plan: productos, usuarios, ventas mensuales, IA, backups y branding.
+- [ ] Aplicar limites reales por plan: productos, usuarios, ventas mensuales, IA, backups y branding.
 - [ ] Persistir onboarding en base de datos por organizacion.
 - [ ] Mejorar pantalla de pricing y estado de suscripcion.
 - [ ] Completar ciclo de trial: alta, dias restantes, vencimiento, upgrade, cancelacion y reactivacion.
