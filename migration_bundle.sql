@@ -288,7 +288,14 @@ TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.audit_logs;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'audit_logs'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.audit_logs;
+  END IF;
+END $$;
 
 -- CREATE INDEX IF NOT EXISTS for faster queries
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON public.audit_logs(user_id);
@@ -355,8 +362,22 @@ CREATE POLICY "Public can read settings" ON public.settings FOR SELECT USING (tr
 
 -- == MIGRATION: 20260407215031_6308848b-4a1a-41d0-8a38-f405924e904d.sql ==
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.settings;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'products'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'settings'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.settings;
+  END IF;
+END $$;
 
 -- == MIGRATION: 20260407234552_dad31cb4-567e-4f55-8011-bc3eb8f8fbec.sql ==
 
@@ -531,7 +552,14 @@ WITH CHECK (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications (user_id, read, created_at DESC);
 
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;
 
 -- Function: auto-create low stock notification when product stock changes
 CREATE OR REPLACE FUNCTION public.notify_low_stock()
