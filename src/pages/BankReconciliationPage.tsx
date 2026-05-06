@@ -55,7 +55,7 @@ interface Expense {
 
 interface DebtPayment {
   id: string;
-  paid_at: string;
+  updated_at: string;
   customer_name: string;
   amount_ars: number;
   description: string;
@@ -135,7 +135,7 @@ export default function BankReconciliationPage() {
         supabase.from("bank_transactions" as any).select("*").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("sales").select("id,date,customer_name,total_ars,method").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo + "T23:59:59"),
         supabase.from("expenses").select("id,date,description,amount").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo),
-        supabase.from("debts" as any).select("id,paid_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
+        supabase.from("debts" as any).select("id,updated_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("updated_at", dateFrom).lte("updated_at", dateTo + "T23:59:59"),
         supabase.from("supplier_payments" as any).select("id,paid_at,amount_ars,method,supplier_debt_id,supplier_debts(supplier_name)").eq("org_id", activeOrg.id).gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
       ]);
       setTxs((bankTxs || []) as BankTx[]);
@@ -143,7 +143,7 @@ export default function BankReconciliationPage() {
       setExpenses((expData || []) as Expense[]);
       setDebtPayments(((debtData || []) as any[]).map(d => ({
         id: d.id,
-        paid_at: d.paid_at,
+        updated_at: d.updated_at,
         customer_name: d.customer_name,
         amount_ars: d.amount_ars,
         description: d.description,
@@ -236,14 +236,14 @@ export default function BankReconciliationPage() {
         const sale = sales.find(s => Math.abs(s.total_ars - tx.amount_ars) < 1 && s.date.slice(0, 10) === tx.date);
         if (sale) { await handleMatch(tx.id, `Venta ${sale.customer_name} ${sale.id.slice(0, 8)}`); matched++; continue; }
         // Try debt payments (cobros de deuda)
-        const debt = debtPayments.find(d => Math.abs(d.amount_ars - tx.amount_ars) < 1 && d.paid_at?.slice(0, 10) === tx.date);
+        const debt = debtPayments.find(d => Math.abs(d.amount_ars - tx.amount_ars) < 1 && d.updated_at?.slice(0, 10) === tx.date);
         if (debt) { await handleMatch(tx.id, `Cobro deuda: ${debt.customer_name}`); matched++; continue; }
       } else {
         // Try expenses
         const exp = expenses.find(e => Math.abs(e.amount - tx.amount_ars) < 1 && e.date === tx.date);
         if (exp) { await handleMatch(tx.id, `Gasto: ${exp.description}`); matched++; continue; }
         // Try supplier payments
-        const sp = supplierPayments.find(p => Math.abs(p.amount_ars - tx.amount_ars) < 1 && p.paid_at?.slice(0, 10) === tx.date);
+        const sp = supplierPayments.find(p => Math.abs(p.amount_ars - tx.amount_ars) < 1 && p.paid_at.slice(0, 10) === tx.date);
         if (sp) { await handleMatch(tx.id, `Pago proveedor: ${sp.supplier_name}`); matched++; continue; }
       }
     }
@@ -280,13 +280,13 @@ export default function BankReconciliationPage() {
           .map(s => ({ id: s.id, label: `Venta — ${s.customer_name}`, sublabel: s.date?.slice(0, 10), amount: s.total_ars, ref: `Venta ${s.customer_name} ${s.id.slice(0, 8)}` })),
         ...(matchTx.type === "credit" ? debtPayments : [])
           .filter(d => Math.abs(d.amount_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
-          .map(d => ({ id: d.id, label: `Cobro deuda — ${d.customer_name}`, sublabel: d.paid_at?.slice(0, 10), amount: d.amount_ars, ref: `Cobro deuda: ${d.customer_name}` })),
+          .map(d => ({ id: d.id, label: `Cobro deuda — ${d.customer_name}`, sublabel: d.updated_at?.slice(0, 10), amount: d.amount_ars, ref: `Cobro deuda: ${d.customer_name}` })),
         ...(matchTx.type === "debit" ? expenses : [])
           .filter(e => Math.abs(e.amount - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
           .map(e => ({ id: e.id, label: `Gasto — ${e.description}`, sublabel: e.date, amount: e.amount, ref: `Gasto: ${e.description}` })),
         ...(matchTx.type === "debit" ? supplierPayments : [])
           .filter(p => Math.abs(p.amount_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
-          .map(p => ({ id: p.id, label: `Pago proveedor — ${p.supplier_name}`, sublabel: p.paid_at?.slice(0, 10), amount: p.amount_ars, ref: `Pago proveedor: ${p.supplier_name}` })),
+          .map(p => ({ id: p.id, label: `Pago proveedor — ${p.supplier_name}`, sublabel: p.paid_at.slice(0, 10), amount: p.amount_ars, ref: `Pago proveedor: ${p.supplier_name}` })),
       ]
     : [];
 
