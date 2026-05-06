@@ -767,6 +767,7 @@ BEGIN
 END $$;
 
 -- Add unique constraint on user_id only (one role per user)
+ALTER TABLE public.user_roles DROP CONSTRAINT IF EXISTS user_roles_user_id_unique;
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_user_id_unique UNIQUE (user_id);
 
 -- == MIGRATION: 20260410044751_15c0317f-1d1d-467c-8e83-67ac2c35a6ec.sql ==
