@@ -30,6 +30,7 @@ import SettlementsPage from "@/pages/SettlementsPage";
 import BrandKnowledgePage from "@/pages/BrandKnowledgePage";
 import CombosBannersPage from "@/pages/CombosBannersPage";
 import CatalogPage from "@/pages/CatalogPage";
+import TiendanubeExportPage from "@/pages/TiendanubeExportPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
@@ -158,6 +159,7 @@ function ProtectedRoutes() {
             <Route path="/marca-ia" element={<BrandKnowledgePage />} />
             <Route path="/combos-banners" element={<CombosBannersPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
+            <Route path="/tiendanube" element={<TiendanubeExportPage />} />
             <Route path="/ia" element={<AIInsightsPage />} />
             <Route path="/chat-ia" element={<AIChatPage />} />
             <Route path="/automatizaciones" element={<AutomationFlowsPage />} />

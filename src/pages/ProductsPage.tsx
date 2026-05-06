@@ -450,8 +450,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
+  // Multi-imagen: mezclar imagenes ya guardadas (urls) y archivos nuevos (File)
+  const initialImages: string[] = (product?.image_urls && product.image_urls.length > 0)
+    ? product.image_urls
+    : (product?.image_url ? [product.image_url] : []);
+  const [imageItems, setImageItems] = useState<Array<{ url: string; file?: File }>>(
+    initialImages.map((u: string) => ({ url: u }))
+  );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Variants state
@@ -502,44 +507,76 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
 
   const { customsFee, totalCostUSD, totalCostARS, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(cost, customsPercent, salePrice, exchangeRate);
 
+  const addFiles = (files: File[]) => {
+    const valid: Array<{ url: string; file: File }> = [];
+    for (const f of files) {
+      if (f.size > 10 * 1024 * 1024) { toast.error(`"${f.name}" supera 10MB`); continue; }
+      if (!f.type.startsWith('image/')) continue;
+      valid.push({ url: URL.createObjectURL(f), file: f });
+    }
+    if (valid.length === 0) return;
+    setImageItems(prev => [...prev, ...valid].slice(0, 8));
+  };
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
+    addFiles(files);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  const removeImageAt = (idx: number) => {
+    setImageItems(prev => prev.filter((_, i) => i !== idx));
+  };
+  const moveImage = (from: number, to: number) => {
+    setImageItems(prev => {
+      if (to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      const [it] = next.splice(from, 1);
+      next.splice(to, 0, it);
+      return next;
+    });
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
+    const files: File[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar 5MB'); return; }
-        setImageFile(file);
-        setImagePreview(URL.createObjectURL(file));
-        toast.success('Imagen pegada correctamente');
-        return;
+        const f = item.getAsFile();
+        if (f) files.push(f);
       }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      addFiles(files);
+      toast.success(`${files.length} imagen(es) pegada(s)`);
     }
   };
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return imagePreview;
+  const uploadAllImages = async (): Promise<string[]> => {
+    if (imageItems.length === 0) return [];
+    const toUpload = imageItems.filter(it => it.file);
+    if (toUpload.length === 0) return imageItems.map(it => it.url);
     setUploading(true);
     try {
-      const ext = imageFile.name.split('.').pop();
-      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(path, imageFile);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      return urlData.publicUrl;
+      const uploaded: Record<number, string> = {};
+      await Promise.all(imageItems.map(async (it, idx) => {
+        if (!it.file) { uploaded[idx] = it.url; return; }
+        const ext = (it.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from('product-images').upload(path, it.file, {
+          cacheControl: '31536000',
+          contentType: it.file.type || `image/${ext}`,
+          upsert: false,
+        });
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+        uploaded[idx] = urlData.publicUrl;
+      }));
+      return imageItems.map((_, i) => uploaded[i]);
     } catch (err: any) {
       toast.error('Error subiendo imagen: ' + err.message);
-      return product?.image_url || null;
+      return imageItems.map(it => it.url);
     } finally {
       setUploading(false);
     }
@@ -549,35 +586,40 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
-
-    try {
-      const imageUrl = await uploadImage();
-      // If using variants, stock = sum of variant stocks
-      const variantTotal = showVariants && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
-      const data = {
-        name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
-        cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
-        sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
-        profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-        stock: variantTotal,
-        image_url: imageUrl,
-        featured,
-        offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
-        content_ml: parseInt(contentMl) || 100,
-        barcode: barcode.trim() || null,
-        sku: sku.trim() || null,
-        lot_number: lotNumber.trim() || null,
-        expiry_date: expiryDate || null,
-        tags: tags.length > 0 ? tags : null,
-      };
-      let productId = product?.id;
-      if (product) {
-        await updateProductDB(product.id, data);
-        await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
-      } else {
-        productId = crypto.randomUUID();
-        await addProductDB({ ...data, user_id: userId, id: productId, org_id: orgId });
-        await logAudit(userId, 'create', 'product', productId, { name: data.name });
+    
+    const urls = await uploadAllImages();
+    const imageUrl = urls[0] || null;
+    // If vaper with variants, stock = sum of variant stocks
+    const variantTotal = isVaper && variants.length > 0 ? variants.reduce((s, v) => s + (v.stock || 0), 0) : parseInt(stock) || 0;
+    const data = {
+      name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
+      cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
+      sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
+      profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
+      stock: variantTotal,
+      image_url: imageUrl,
+      image_urls: urls,
+      featured,
+      offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
+      content_ml: parseInt(contentMl) || 100,
+    };
+    let productId = product?.id;
+    if (product) {
+      await updateProductDB(product.id, data);
+      await logAudit(userId, 'update', 'product', product.id, { name: data.name, changes: data });
+    } else {
+      productId = crypto.randomUUID();
+      await addProductDB({ ...data, user_id: userId, id: productId });
+      await logAudit(userId, 'create', 'product', productId, { name: data.name });
+    }
+    // Save variants for vapers
+    if (isVaper && productId) {
+      const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
+      const existingIds = new Set(existingVariants.map((v: any) => v.id));
+      const currentIds = new Set(variants.filter(v => v.id).map(v => v.id));
+      // Delete removed variants
+      for (const ev of existingVariants) {
+        if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
       }
       // Save variants for all categories
       if (showVariants && productId) {
@@ -607,31 +649,43 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
 
   return (
     <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
-      {/* Image upload */}
+      {/* Image upload (multi) */}
       <div>
-        <label className="text-sm text-muted-foreground">Imagen del producto</label>
-        <div className="mt-1 flex items-center gap-3">
-          {imagePreview ? (
-            <div className="relative">
-              <img src={imagePreview} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
-              <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
+        <div className="flex items-center justify-between">
+          <label className="text-sm text-muted-foreground">Imágenes del producto (HD, máx 8)</label>
+          <span className="text-[10px] text-muted-foreground/60">La primera es la principal · arrastrá con ◀ ▶</span>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {imageItems.map((it, idx) => (
+            <div key={idx} className="relative group">
+              <img
+                src={it.url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="w-20 h-20 rounded-lg object-cover border border-border"
+              />
+              {idx === 0 && (
+                <span className="absolute -top-1.5 -left-1.5 px-1.5 rounded bg-primary text-[9px] font-bold text-primary-foreground">PPAL</span>
+              )}
+              <button type="button" onClick={() => removeImageAt(idx)} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center">
                 <X className="w-3 h-3" />
               </button>
+              <div className="absolute bottom-0 inset-x-0 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition">
+                <button type="button" onClick={() => moveImage(idx, idx - 1)} className="text-[10px] bg-black/60 text-white rounded px-1">◀</button>
+                <button type="button" onClick={() => moveImage(idx, idx + 1)} className="text-[10px] bg-black/60 text-white rounded px-1">▶</button>
+              </div>
             </div>
-          ) : (
+          ))}
+          {imageItems.length < 8 && (
             <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
               <Upload className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5">Subir</span>
+              <span className="text-[10px] mt-0.5">Agregar</span>
             </button>
           )}
-          {imagePreview && (
-            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Cambiar</Button>
-          )}
-          {!imagePreview && (
-            <span className="text-[10px] text-muted-foreground/60">o pegá una imagen (Ctrl+V)</span>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
         </div>
+        <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
       <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>
       <div className="grid grid-cols-2 gap-3">
