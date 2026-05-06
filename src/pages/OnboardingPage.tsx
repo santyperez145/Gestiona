@@ -33,7 +33,9 @@ export default function OnboardingPage() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   }
 
-  const finish = async () => {
+  const [loadDemo, setLoadDemo] = useState(false);
+
+  const finish = async (withDemo = false) => {
     setSaving(true);
     const ind = industries.find(i => i.code === rubroCode);
     const defaultSettings = ind?.default_settings || {};
@@ -53,6 +55,11 @@ export default function OnboardingPage() {
       .update({ onboarding_completed: true } as any)
       .eq('id', activeOrg.id);
     localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
+    if (withDemo) {
+      setLoadDemo(true);
+      await supabase.functions.invoke('seed-demo', { body: { orgId: activeOrg.id } });
+      setLoadDemo(false);
+    }
     await refresh();
     toast.success(`¡Bienvenido a Gestiona, ${name}!`);
     navigate('/');
@@ -113,9 +120,21 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={saving}>Atrás</Button>
-              <Button onClick={finish} className="flex-1" disabled={saving}>{saving ? 'Guardando...' : 'Empezar'} <ArrowRight className="w-4 h-4 ml-1" /></Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={saving}>Atrás</Button>
+                <Button onClick={() => finish(false)} className="flex-1" disabled={saving}>
+                  {saving && !loadDemo ? 'Guardando...' : 'Empezar'} <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => finish(true)}
+                disabled={saving}
+                className="w-full text-xs border-dashed text-muted-foreground hover:text-foreground"
+              >
+                {loadDemo ? 'Cargando ejemplos...' : '✨ Cargar datos de ejemplo para explorar'}
+              </Button>
             </div>
           </div>
         )}

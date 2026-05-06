@@ -9,7 +9,7 @@ import { useOrg } from "@/lib/orgContext";
 import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
-  Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText,
+  Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -473,6 +473,8 @@ export default function CustomersPage() {
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: CustomerProfile }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [installments, setInstallments] = useState<any[]>([]);
+  const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!user) return;
@@ -490,6 +492,35 @@ export default function CustomersPage() {
   };
 
   useEffect(() => { loadData(); }, [user]);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    supabase
+      .from('installment_schedule' as any)
+      .select('id, sale_id, installment_number, amount_ars, due_date, paid, sale:sale_id(customer_name, product_name)')
+      .eq('org_id', activeOrg.id)
+      .eq('paid', false)
+      .order('due_date', { ascending: true })
+      .then(({ data }) => setInstallments((data || []) as any[]));
+  }, [activeOrg]);
+
+  const payInstallment = async (installmentId: string) => {
+    if (!activeOrg) return;
+    setPayingInstallment(installmentId);
+    try {
+      const { error } = await supabase
+        .from('installment_schedule' as any)
+        .update({ paid: true, paid_at: new Date().toISOString() })
+        .eq('id', installmentId);
+      if (error) throw error;
+      setInstallments(prev => prev.filter(i => i.id !== installmentId));
+      toast.success('Cuota marcada como pagada');
+    } catch (e: any) {
+      toast.error(e.message || 'Error al registrar pago');
+    } finally {
+      setPayingInstallment(null);
+    }
+  };
 
   // Build profile map by name for quick lookup
   const profileByName = useMemo(() => {
@@ -1021,6 +1052,50 @@ export default function CustomersPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Cuotas pendientes */}
+                    {(() => {
+                      const customerInstallments = installments.filter(
+                        i => i.sale?.customer_name?.toLowerCase() === c.name.toLowerCase()
+                      );
+                      if (customerInstallments.length === 0) return null;
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return (
+                        <div>
+                          <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <CreditCard className="w-3 h-3 text-primary" />
+                            Cuotas pendientes ({customerInstallments.length})
+                          </h3>
+                          <div className="space-y-1.5">
+                            {customerInstallments.map(inst => {
+                              const due = new Date(inst.due_date + 'T12:00:00');
+                              const overdue = due < today;
+                              return (
+                                <div key={inst.id} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${overdue ? 'bg-destructive/8 border-destructive/20' : 'bg-muted/30 border-border/50'}`}>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-medium truncate">{inst.sale?.product_name || 'Venta'} — cuota {inst.installment_number}</p>
+                                    <p className={`text-[10px] mt-0.5 ${overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                      {overdue ? '⚠️ Vencida · ' : ''}{due.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs font-mono font-semibold">{formatARS(Number(inst.amount_ars))}</span>
+                                    <button
+                                      onClick={() => payInstallment(inst.id)}
+                                      disabled={payingInstallment === inst.id}
+                                      className="text-[10px] px-2 py-1 rounded-md bg-success/20 text-success hover:bg-success/30 transition-colors font-medium disabled:opacity-50"
+                                    >
+                                      {payingInstallment === inst.id ? '…' : 'Cobrar'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* 360 — Sales timeline & debts */}
                     <CustomerSalesTimeline

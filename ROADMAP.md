@@ -74,7 +74,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Crear tabla o vista de movimientos de stock para trazabilidad. _(2026-05-05 — tabla stock_movements + vista kardex_summary + pagina KardexPage)_
 - [x] Unificar presupuesto -> venta: boton "Convertir en venta" en PresupuestosPage con modal de metodo de cobro. _(2026-05-05 — migration 20260505_sales_quote_link.sql agrega sales.quote_id FK; convertToSale reemplaza window.confirm por Dialog con Select de metodo de pago)_
 - [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. _(CashSessionPage + cash_entries + trigger trg_sale_cash_entry + cash_session_summary)_
-- [ ] Completar cuenta corriente de cliente: ventas, pagos, deudas, devoluciones, cuotas y notas. _(vista 360 existe en CustomersPage, falta consolidacion en un unico historial)_
+- [x] Completar cuenta corriente de cliente: cuotas pendientes del installment_schedule visibles y cobrables directamente desde el perfil expandido en CustomersPage. _(2026-05-05 — seccion "Cuotas pendientes" con boton Cobrar, marca paid=true y muestra vencidas en rojo)_
 - [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial. _(supplier_debts table existe; falta flujo de pago parcial en UI)_
 - [ ] Vincular conciliacion bancaria con ventas, gastos, pagos de deuda y Mercado Pago.
 - [x] Agregar exportaciones utiles: productos, ventas, clientes, caja, reportes y contabilidad. _(ReportsPage tiene CSV y PDF para ventas, compras, gastos, productos, deudas, equipo)_
@@ -86,7 +86,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [ ] Mejorar pantalla de pricing y estado de suscripcion.
 - [x] Completar ciclo de trial y dunning: invoice.payment_succeeded reactiva past_due; cron expire_overdue_trials expira trials sin tarjeta; portal Stripe para actualizar metodo de pago (create-billing-portal Edge Function + boton en SettingsPage). _(2026-05-05)_
 - [ ] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras.
-- [ ] Crear datos demo por rubro para onboarding y testing.
+- [x] Crear datos demo por rubro para onboarding: seed_demo_data() DB function + seed-demo Edge Function + boton "Cargar datos de ejemplo" en paso 3 del OnboardingPage. _(2026-05-05 — 3 productos perfumeria, 3 ventas, 1 deuda, 1 cliente demo)_
 - [ ] Preparar politica de privacidad, terminos, cookies y tratamiento de datos.
 
 ### P3 - Integraciones confiables
