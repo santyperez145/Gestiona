@@ -4351,6 +4351,13 @@ create policy "org_members_manage_stock_movements" on public.stock_movements
     )
   );
 
+-- Ensure columns from v2 schema exist (table may have been created by earlier migration)
+ALTER TABLE public.stock_movements ADD COLUMN IF NOT EXISTS source_type text;
+ALTER TABLE public.stock_movements ADD COLUMN IF NOT EXISTS source_id uuid;
+ALTER TABLE public.stock_movements ADD COLUMN IF NOT EXISTS previous_stock integer;
+ALTER TABLE public.stock_movements ADD COLUMN IF NOT EXISTS new_stock integer;
+ALTER TABLE public.stock_movements ADD COLUMN IF NOT EXISTS note text;
+
 create index if not exists stock_movements_org_created_idx on public.stock_movements (org_id, created_at desc);
 create index if not exists stock_movements_product_idx on public.stock_movements (product_id, created_at desc);
 create index if not exists stock_movements_variant_idx on public.stock_movements (variant_id, created_at desc);
