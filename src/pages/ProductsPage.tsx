@@ -587,6 +587,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     
+    try {
     const urls = await uploadAllImages();
     const imageUrl = urls[0] || null;
     // If vaper with variants, stock = sum of variant stocks
@@ -641,6 +642,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       }
       toast.success(product ? "Producto actualizado" : "Producto agregado");
       onSave();
+    }
     } catch (err: any) {
       console.error('Error guardando producto:', err);
       toast.error(err?.message || "Error al guardar el producto");
