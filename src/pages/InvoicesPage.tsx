@@ -349,7 +349,13 @@ export default function InvoicesPage() {
       const { data, error } = await supabase.functions.invoke("afip-authorize", {
         body: { invoice_id: inv.id },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('failed to send') || msg.includes('networkerror') || msg.includes('fetch')) {
+          throw new Error('No se pudo conectar con AFIP. Verificá tu conexión o reintentá en unos segundos.');
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
       toast.success(`CAE obtenido: ${data.cae}`);
       load();

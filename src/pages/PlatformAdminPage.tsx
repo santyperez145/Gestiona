@@ -80,7 +80,23 @@ const adminCall = async (action: string, params: Record<string, unknown> = {}) =
   const { data, error } = await supabase.functions.invoke('platform-admin-action', {
     body: { action, ...params },
   });
-  if (error) throw new Error(error.message || 'Error de red');
+  if (error) {
+    // Try to extract the real error message from the response body
+    const ctx = (error as any).context;
+    if (ctx) {
+      try {
+        const body = typeof ctx.json === 'function' ? await ctx.json() : null;
+        if (body?.error) throw new Error(body.error);
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message !== error.message) throw parseErr;
+      }
+    }
+    const msg = error.message || '';
+    if (msg.includes('Failed to send') || msg.includes('NetworkError') || msg.includes('fetch')) {
+      throw new Error('No se pudo conectar con la función. Verificá que esté desplegada en Supabase.');
+    }
+    throw new Error(msg || 'Error de red');
+  }
   if (!data?.ok) throw new Error(data?.error || 'Error desconocido');
   return data;
 };
@@ -132,6 +148,7 @@ export default function PlatformAdminPage() {
   const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
   const [orgActivity, setOrgActivity] = useState<any>(null);
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [suspendingOrgId, setSuspendingOrgId] = useState<string | null>(null);
 
   // ── Load functions ─────────────────────────────────────────────────────────
 
@@ -226,7 +243,9 @@ export default function PlatformAdminPage() {
     try {
       const res = await adminCall('getAdminLogs', { limit: 50 });
       setAdminLogs(res.logs || []);
-    } catch { /* silently fail */ }
+    } catch (e: any) {
+      toast.error(`No se pudieron cargar los logs: ${e.message}`);
+    }
     setLoadingLogs(false);
   }, []);
 
@@ -241,19 +260,25 @@ export default function PlatformAdminPage() {
   }, []);
 
   const handleSuspendOrg = async (org: OrgRow) => {
+    setSuspendingOrgId(org.id);
     try {
       await adminCall('suspendOrg', { orgId: org.id });
       toast.success(`${org.name} suspendida`);
+      setSelectedOrg(prev => prev?.id === org.id ? { ...prev, status: 'paused' } : prev);
       loadOrgs();
     } catch (e: any) { toast.error(e.message); }
+    setSuspendingOrgId(null);
   };
 
   const handleReactivateOrg = async (org: OrgRow) => {
+    setSuspendingOrgId(org.id);
     try {
       await adminCall('reactivateOrg', { orgId: org.id });
       toast.success(`${org.name} reactivada`);
+      setSelectedOrg(prev => prev?.id === org.id ? { ...prev, status: 'active' } : prev);
       loadOrgs();
     } catch (e: any) { toast.error(e.message); }
+    setSuspendingOrgId(null);
   };
 
   const supportFilteredOrgs = useMemo(() => {
@@ -747,13 +772,17 @@ export default function PlatformAdminPage() {
                     <div className="flex gap-2">
                       {selectedOrg.status === 'paused' ? (
                         <Button size="sm" variant="outline" className="h-7 text-xs border-success/40 text-success hover:bg-success/10"
-                          onClick={() => handleReactivateOrg(selectedOrg)}>
-                          <Play className="w-3 h-3 mr-1" />Reactivar
+                          onClick={() => handleReactivateOrg(selectedOrg)}
+                          disabled={suspendingOrgId === selectedOrg.id}>
+                          <Play className={`w-3 h-3 mr-1 ${suspendingOrgId === selectedOrg.id ? 'animate-spin' : ''}`} />
+                          {suspendingOrgId === selectedOrg.id ? '...' : 'Reactivar'}
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" className="h-7 text-xs border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
-                          onClick={() => handleSuspendOrg(selectedOrg)}>
-                          <Pause className="w-3 h-3 mr-1" />Suspender
+                          onClick={() => handleSuspendOrg(selectedOrg)}
+                          disabled={suspendingOrgId === selectedOrg.id}>
+                          <Pause className={`w-3 h-3 mr-1 ${suspendingOrgId === selectedOrg.id ? 'animate-spin' : ''}`} />
+                          {suspendingOrgId === selectedOrg.id ? '...' : 'Suspender'}
                         </Button>
                       )}
                     </div>

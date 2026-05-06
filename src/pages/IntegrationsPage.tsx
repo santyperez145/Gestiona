@@ -151,13 +151,17 @@ export default function IntegrationsPage() {
   const loadDeliveries = async () => {
     if (!activeOrg) return;
     setLoadingDeliveries(true);
-    const { data } = await supabase
-      .from("webhook_deliveries" as any)
-      .select("*")
-      .eq("org_id", activeOrg.id)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    setDeliveries((data as any[]) || []);
+    try {
+      const { data, error } = await supabase
+        .from("webhook_deliveries" as any)
+        .select("*")
+        .eq("org_id", activeOrg.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (!error) setDeliveries((data as any[]) || []);
+    } catch {
+      // table may not exist yet — silent fail, empty list
+    }
     setLoadingDeliveries(false);
   };
 

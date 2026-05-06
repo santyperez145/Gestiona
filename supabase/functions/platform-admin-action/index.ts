@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
         action: act,
         target_org_id: opts.orgId || null,
         target_user_id: opts.userId || null,
-        details: opts.details ? JSON.stringify(opts.details) : null,
+        details: opts.details ?? null,
       }).catch(() => {});
     };
 
@@ -114,9 +114,14 @@ Deno.serve(async (req) => {
     // ── SUSPEND ORG ────────────────────────────────────────────
     if (action === "suspendOrg") {
       const { orgId } = body;
-      const { data: sub } = await admin.from("subscriptions").select("id").eq("org_id", orgId).maybeSingle();
+      if (!orgId) return json({ error: "orgId requerido" }, 400);
+      const { data: sub, error: subErr } = await admin
+        .from("subscriptions").select("id").eq("org_id", orgId).maybeSingle();
+      if (subErr) return json({ error: subErr.message }, 500);
       if (sub) {
-        await admin.from("subscriptions").update({ status: "paused" }).eq("id", sub.id);
+        const { error: updErr } = await admin
+          .from("subscriptions").update({ status: "paused" }).eq("id", sub.id);
+        if (updErr) return json({ error: updErr.message }, 500);
       }
       await logAction("suspendOrg", { orgId });
       return json({ ok: true });
@@ -125,9 +130,14 @@ Deno.serve(async (req) => {
     // ── REACTIVATE ORG ─────────────────────────────────────────
     if (action === "reactivateOrg") {
       const { orgId } = body;
-      const { data: sub } = await admin.from("subscriptions").select("id").eq("org_id", orgId).maybeSingle();
+      if (!orgId) return json({ error: "orgId requerido" }, 400);
+      const { data: sub, error: subErr } = await admin
+        .from("subscriptions").select("id").eq("org_id", orgId).maybeSingle();
+      if (subErr) return json({ error: subErr.message }, 500);
       if (sub) {
-        await admin.from("subscriptions").update({ status: "active" }).eq("id", sub.id);
+        const { error: updErr } = await admin
+          .from("subscriptions").update({ status: "active" }).eq("id", sub.id);
+        if (updErr) return json({ error: updErr.message }, 500);
       }
       await logAction("reactivateOrg", { orgId });
       return json({ ok: true });
