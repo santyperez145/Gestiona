@@ -1,5 +1,6 @@
+import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +17,11 @@ import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
+import AIChatPage from "@/pages/AIChatPage";
+import AutomationFlowsPage from "@/pages/AutomationFlowsPage";
+import LocationsPage from "@/pages/LocationsPage";
+import ReferralsPage from "@/pages/ReferralsPage";
+import MarketingTemplatesPage from "@/pages/MarketingTemplatesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
@@ -29,17 +35,49 @@ import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import PublicCatalogPage from "@/pages/PublicCatalogPage";
+import PublicPaymentPage from "@/pages/PublicPaymentPage";
 import LandingPage from "@/pages/LandingPage";
 import PricingPage from "@/pages/PricingPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import TermsPage from "@/pages/TermsPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import TeamPage from "@/pages/TeamPage";
 import InvitationAcceptPage from "@/pages/InvitationAcceptPage";
 import PlatformAdminPage from "@/pages/PlatformAdminPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
+import InvoicesPage from "@/pages/InvoicesPage";
+import POSPage from "@/pages/POSPage";
+import CashSessionPage from "@/pages/CashSessionPage";
+import IntegrationsPage from "@/pages/IntegrationsPage";
+import ProveedoresPage from "@/pages/ProveedoresPage";
+import PresupuestosPage from "@/pages/PresupuestosPage";
+import DevolucionesPage from "@/pages/DevolucionesPage";
+import CuotasPage from "@/pages/CuotasPage";
+import ChequesPage from "@/pages/ChequesPage";
+import SellerCommissionsPage from "@/pages/SellerCommissionsPage";
+import TasksPage from "@/pages/TasksPage";
+import AutoRestockPage from "@/pages/AutoRestockPage";
+import StockCountPage from "@/pages/StockCountPage";
+import KardexPage from "@/pages/KardexPage";
+import EmailCampaignsPage from "@/pages/EmailCampaignsPage";
+import BankReconciliationPage from "@/pages/BankReconciliationPage";
+import SalesPipelinePage from "@/pages/SalesPipelinePage";
+import LoyaltyPage from "@/pages/LoyaltyPage";
+import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 1000 * 60 * 2, // 2 min before considering data stale
+      retry: 1,
+    },
+  },
+});
 
 function ViewerGate() {
   return (
@@ -69,6 +107,7 @@ function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
   const { activeOrg, isPlatformAdmin } = useOrg();
+  const { pathname } = useLocation();
 
   if (authLoading || roleLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -78,11 +117,15 @@ function ProtectedRoutes() {
       </div>
     </div>
   );
+  // Root path shows landing page for unauthenticated visitors
+  if (!user && pathname === '/') return <LandingPage />;
   if (!user) return <AuthPage />;
   if (isViewer) return <ViewerGate />;
 
-  // Force onboarding for fresh orgs
-  const onboarded = activeOrg ? localStorage.getItem(`gestiona.onboarded.${activeOrg.id}`) : '1';
+  // Force onboarding for fresh orgs — check DB field first, localStorage as fallback
+  const onboarded = activeOrg
+    ? (activeOrg.onboarding_completed || localStorage.getItem(`gestiona.onboarded.${activeOrg.id}`))
+    : '1';
   const onOnboardingRoute = window.location.pathname === '/onboarding';
   if (activeOrg && !onboarded && !onOnboardingRoute) {
     return <Navigate to="/onboarding" replace />;
@@ -99,7 +142,9 @@ function ProtectedRoutes() {
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/ventas" element={<SalesPage />} />
         <Route path="/clientes" element={<CustomersPage />} />
-        
+        {/* Vendedor + admin */}
+        <Route path="/caja" element={<POSPage />} />
+
         {/* Admin-only routes */}
         {isAdmin && (
           <>
@@ -116,10 +161,34 @@ function ProtectedRoutes() {
             <Route path="/catalogo" element={<CatalogPage />} />
             <Route path="/tiendanube" element={<TiendanubeExportPage />} />
             <Route path="/ia" element={<AIInsightsPage />} />
+            <Route path="/chat-ia" element={<AIChatPage />} />
+            <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
+            <Route path="/sucursales" element={<LocationsPage />} />
+            <Route path="/referidos" element={<ReferralsPage />} />
+            <Route path="/templates" element={<MarketingTemplatesPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/facturas" element={<InvoicesPage />} />
+            <Route path="/caja/turno" element={<CashSessionPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
+            <Route path="/proveedores" element={<ProveedoresPage />} />
+            <Route path="/presupuestos" element={<PresupuestosPage />} />
+            <Route path="/devoluciones" element={<DevolucionesPage />} />
+            <Route path="/cuotas" element={<CuotasPage />} />
+            <Route path="/cheques" element={<ChequesPage />} />
+            <Route path="/comisiones" element={<SellerCommissionsPage />} />
+            <Route path="/tareas" element={<TasksPage />} />
+            <Route path="/restock" element={<AutoRestockPage />} />
+            <Route path="/toma-fisica" element={<StockCountPage />} />
+            <Route path="/kardex" element={<KardexPage />} />
+            <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
+            <Route path="/banco" element={<BankReconciliationPage />} />
+            <Route path="/pipeline" element={<SalesPipelinePage />} />
+            <Route path="/fidelidad" element={<LoyaltyPage />} />
+            <Route path="/integraciones" element={<IntegrationsPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/equipo" element={<TeamPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
           </>
         )}
 
@@ -140,6 +209,17 @@ function ProtectedRoutes() {
 }
 
 const App = () => (
+  <Sentry.ErrorBoundary fallback={
+    <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
+      <div>
+        <h1 className="text-xl font-bold mb-2">Algo salió mal</h1>
+        <p className="text-muted-foreground text-sm mb-4">El error fue reportado automáticamente.</p>
+        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm" onClick={() => window.location.reload()}>
+          Recargar
+        </button>
+      </div>
+    </div>
+  }>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -148,10 +228,15 @@ const App = () => (
         <OrgProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/landing" element={<Navigate to="/" replace />} />
+              <Route path="/login" element={<AuthPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/precios" element={<PricingPage />} />
+              <Route path="/privacidad" element={<PrivacyPage />} />
+              <Route path="/terminos" element={<TermsPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+              <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
               <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
               <Route path="/app/*" element={<ProtectedRoutes />} />
               <Route path="/*" element={<ProtectedRoutes />} />
@@ -161,6 +246,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </Sentry.ErrorBoundary>
 );
 
 export default App;

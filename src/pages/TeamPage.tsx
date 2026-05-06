@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
+import { useEntitlements } from '@/lib/useEntitlements';
+import UpgradePrompt from '@/components/shared/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,8 +29,35 @@ interface Invite {
   accepted_at: string | null;
 }
 
+async function getOrgUserLimit(orgId: string): Promise<number | null> {
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('plan_id')
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  let planId = sub?.plan_id || null;
+  if (!planId) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('plan_id')
+      .eq('id', orgId)
+      .maybeSingle();
+    planId = org?.plan_id || null;
+  }
+  if (!planId) return null;
+
+  const { data: plan } = await supabase
+    .from('plans')
+    .select('max_users')
+    .eq('id', planId)
+    .maybeSingle();
+  return plan?.max_users ?? null;
+}
+
 export default function TeamPage() {
   const { activeOrg, activeRole } = useOrg();
+  const { userLimit, plan } = useEntitlements();
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,16 +90,40 @@ export default function TeamPage() {
   const invite = async () => {
     if (!activeOrg || !email.trim()) return;
     setSending(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('org_invitations').insert({
-      org_id: activeOrg.id,
-      email: email.trim().toLowerCase(),
-      role,
-      invited_by: user!.id,
-    });
-    if (error) { toast.error(error.message); }
-    else { toast.success('Invitación creada'); setEmail(''); load(); }
-    setSending(false);
+    try {
+      const [authRes, membersRes, invitesRes, limit] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id),
+        supabase.from('org_invitations').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id).is('accepted_at', null),
+        getOrgUserLimit(activeOrg.id),
+      ]);
+
+      if (membersRes.error) throw membersRes.error;
+      if (invitesRes.error) throw invitesRes.error;
+
+      const totalSeatsInUse = (membersRes.count || 0) + (invitesRes.count || 0);
+      if (limit !== null && totalSeatsInUse >= limit) {
+        toast.error(`Límite de ${limit} usuarios alcanzado para este plan.`);
+        return;
+      }
+
+      const user = authRes.data.user;
+      const { error } = await supabase.from('org_invitations').insert({
+        org_id: activeOrg.id,
+        email: email.trim().toLowerCase(),
+        role,
+        invited_by: user!.id,
+      });
+      if (error) throw error;
+
+      toast.success('Invitación creada');
+      setEmail('');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'No se pudo crear la invitación');
+    } finally {
+      setSending(false);
+    }
   };
 
   const updateRole = async (id: string, newRole: OrgRole) => {
@@ -107,7 +160,22 @@ export default function TeamPage() {
 
       {canManage && (
         <div className="bg-card border border-border rounded-2xl p-5">
-          <h2 className="font-semibold mb-3 flex items-center gap-2"><Mail className="w-4 h-4" /> Invitar miembro</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold flex items-center gap-2"><Mail className="w-4 h-4" /> Invitar miembro</h2>
+            {userLimit !== null && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${members.length >= userLimit ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                {members.length}/{userLimit} usuarios
+              </span>
+            )}
+          </div>
+          {userLimit !== null && members.length >= userLimit ? (
+            <UpgradePrompt
+              inline
+              title={`Límite de ${userLimit} usuarios alcanzado`}
+              description={`El plan ${plan?.name} permite hasta ${userLimit} miembros por organización. Actualizá para agregar más.`}
+              currentPlan={plan?.name}
+            />
+          ) : (
           <div className="flex flex-col md:flex-row gap-3">
             <div className="flex-1">
               <Label htmlFor="email" className="text-xs">Email</Label>
@@ -128,6 +196,7 @@ export default function TeamPage() {
               <Button onClick={invite} disabled={sending || !email.trim()}>{sending ? 'Enviando...' : 'Invitar'}</Button>
             </div>
           </div>
+          )}
         </div>
       )}
 

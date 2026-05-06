@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, Package, AlertTriangle, DollarSign, Info, Check, Trash2 } from "lucide-react";
+import { Bell, Package, AlertTriangle, DollarSign, Info, Check, Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -8,6 +8,7 @@ const TYPE_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: string
   stock_bajo: { icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10' },
   deuda_vencida: { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/10' },
   venta_grande: { icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  tiendanube: { icon: ShoppingBag, color: 'text-[#2f6ee4]', bg: 'bg-[#2f6ee4]/10' },
   sistema: { icon: Info, color: 'text-blue-400', bg: 'bg-blue-500/10' },
 };
 
@@ -66,6 +67,12 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
     await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
+  };
+
+  const markOneRead = async (id: string) => {
+    await supabase.from('notifications').update({ read: true }).eq('id', id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const clearAll = async () => {
@@ -138,7 +145,8 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
                   return (
                     <div
                       key={n.id}
-                      className={`px-4 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors ${!n.read ? 'bg-primary/5' : ''}`}
+                      onClick={() => !n.read && markOneRead(n.id)}
+                      className={`px-4 py-3 border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}
                     >
                       <div className="flex gap-3">
                         <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0 mt-0.5`}>

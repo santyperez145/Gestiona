@@ -21,7 +21,7 @@ export default function CashFlowProjector({
     }));
   }, [initialCash, sales, debts, expenses, purchases, settings]);
 
-  const active = windows.find(w => w.days === activeWindow)!;
+  const active = windows.find(w => w.days === activeWindow) ?? windows[0];
   const minBalance = Math.min(...active.daily.map(d => d.balance));
   const status = minBalance < warningThreshold ? 'destructive' : minBalance < initialCash * 0.5 ? 'warning' : 'success';
   const statusLabel = status === 'destructive' ? 'Déficit proyectado' : status === 'warning' ? 'Saldo ajustado' : 'Saldo saludable';

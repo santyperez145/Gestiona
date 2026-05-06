@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, Package, Tag, Download, Share2 } from "lucide-react";
+import { Search, Package, Tag, Download, Share2, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { toast } from "sonner";
@@ -48,9 +50,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
+    const orgId = getActiveOrgId();
+    if (!orgId) return;
     const [pRes, sRes] = await Promise.all([
-      supabase.from('products').select('*').eq('user_id', userId).gt('stock', 0).order('category').order('name'),
-      supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('products').select('*').eq('org_id', orgId).gt('stock', 0).order('category').order('name'),
+      supabase.from('settings').select('*').eq('org_id', orgId).maybeSingle(),
     ]);
     setProducts(pRes.data || []);
     setSettings(sRes.data);
@@ -322,6 +326,19 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     }
   }, [filtered, settings, isPublic]);
 
+  const printQR = useCallback(() => {
+    const url = `${window.location.origin}/catalogo/${userId}`;
+    const name = settings?.business_name || "Catálogo";
+    const svgEl = document.getElementById("catalog-qr-svg");
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>@page{margin:0}body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:40px}h2{font-size:24px;font-weight:700;margin:0 0 8px}p{font-size:12px;color:#666;margin:8px 0}svg{max-width:300px;max-height:300px}</style></head>
+<body><h2>${name}</h2><p>Escaneá para ver el catálogo</p>${svgData}<p>${url}</p></body></html>`;
+    const w = window.open("", "_blank", "width=400,height=500");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
+  }, [userId, settings]);
+
   const shareCatalog = useCallback(async () => {
     const url = `${window.location.origin}/catalogo/${userId}`;
     if (navigator.share) {
@@ -351,9 +368,23 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         </div>
         <div className="flex gap-2">
           {!isPublic && (
-            <Button variant="outline" size="sm" onClick={shareCatalog}>
-              <Share2 className="w-4 h-4 mr-1" /> Compartir
-            </Button>
+            <>
+              {/* Hidden QR for printing */}
+              <div className="hidden">
+                <QRCodeSVG
+                  id="catalog-qr-svg"
+                  value={`${window.location.origin}/catalogo/${userId}`}
+                  size={300}
+                  level="H"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={printQR} title="Imprimir QR del catálogo">
+                <QrCode className="w-4 h-4 mr-1" /> QR
+              </Button>
+              <Button variant="outline" size="sm" onClick={shareCatalog}>
+                <Share2 className="w-4 h-4 mr-1" /> Compartir
+              </Button>
+            </>
           )}
           <Button size="sm" onClick={generatePDF} disabled={generating || !filtered.length}>
             <Download className="w-4 h-4 mr-1" />

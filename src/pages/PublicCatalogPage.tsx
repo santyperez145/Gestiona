@@ -256,7 +256,9 @@ export default function PublicCatalogPage() {
           text: `${filtered.length} productos disponibles`,
           url,
         });
-      } catch {}
+      } catch {
+        return;
+      }
     } else {
       await navigator.clipboard.writeText(url);
     }
@@ -904,7 +906,9 @@ function ProductDetailModal({
     if (navigator.share) {
       try {
         await navigator.share({ title: p.name, text });
-      } catch {}
+      } catch {
+        return;
+      }
     } else {
       await navigator.clipboard.writeText(text);
     }

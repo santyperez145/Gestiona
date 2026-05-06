@@ -1,1 +1,11 @@
 project_id = "wcfohngxrtopgggumjmw"
+
+[functions.auto-recurring-expenses]
+verify_jwt = true
+
+[functions.weekly-backup]
+verify_jwt = false
+
+# Cron schedules — run via pg_cron or Supabase Dashboard > Edge Functions > Schedules
+# auto-recurring-expenses: "0 3 1 * *"   (1st of each month at 3 AM UTC)
+# weekly-backup:           "0 4 * * 0"   (every Sunday at 4 AM UTC)

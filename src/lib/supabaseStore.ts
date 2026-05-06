@@ -104,7 +104,8 @@ export async function deleteSaleDB(id: string) {
 
 // ========= DEBTS =========
 export async function getDebtsDB(userId: string) {
-  const { data, error } = await supabase.from('debts').select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('debts').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -173,7 +174,8 @@ export async function saveSettingsDB(userId: string, settings: Record<string, an
 
 // ========= MARKETING =========
 export async function getMarketingPostsDB(userId: string) {
-  const { data, error } = await supabase.from('marketing_posts').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('marketing_posts').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -196,7 +198,8 @@ export async function deleteMarketingPostDB(id: string) {
 
 // ========= INFLUENCER EXCHANGES =========
 export async function getExchangesDB(userId: string) {
-  const { data, error } = await supabase.from('influencer_exchanges').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('influencer_exchanges').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -261,12 +264,13 @@ export async function getAuditLogsDB(limit = 50) {
 
 // ========= SALES AGGREGATED (for auto-restock) =========
 export async function getSalesAggregatedDB(userId: string, days: number = 30) {
+  const orgId = await orgIdFor(userId);
   const since = new Date();
   since.setDate(since.getDate() - days);
   const { data, error } = await supabase
     .from('sales')
     .select('product_id, product_name, quantity')
-    .eq('user_id', userId)
+    .eq('org_id', orgId)
     .gte('date', since.toISOString());
   if (error) throw error;
   const agg: Record<string, { product_id: string; product_name: string; total_qty: number }> = {};
@@ -280,7 +284,8 @@ export async function getSalesAggregatedDB(userId: string, days: number = 30) {
 
 // ========= CUSTOMERS =========
 export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
-  const { data, error } = await supabase.from('sales').select('customer_name').eq('user_id', userId).not('customer_name', 'is', null);
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('sales').select('customer_name').eq('org_id', orgId).not('customer_name', 'is', null);
   if (error) throw error;
   const names = [...new Set((data || []).map(d => d.customer_name).filter(Boolean))] as string[];
   return names.sort((a, b) => a.localeCompare(b, 'es'));
@@ -288,7 +293,8 @@ export async function getUniqueCustomersDB(userId: string): Promise<string[]> {
 
 // ========= COUPONS =========
 export async function getCouponsDB(userId: string) {
-  const { data, error } = await supabase.from('coupons').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('coupons').select('*').eq('org_id', orgId).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
@@ -310,10 +316,11 @@ export async function deleteCouponDB(id: string) {
 }
 
 export async function validateCouponDB(userId: string, code: string) {
+  const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
     .from('coupons')
     .select('*')
-    .eq('user_id', userId)
+    .eq('org_id', orgId)
     .eq('code', code.toUpperCase().trim())
     .eq('active', true)
     .maybeSingle();
@@ -358,7 +365,8 @@ export async function getVariantsDB(productId: string) {
 }
 
 export async function getVariantsByUserDB(userId: string) {
-  const { data, error } = await supabase.from('product_variants').select('*').eq('user_id', userId).eq('active', true).order('variant_name');
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('product_variants').select('*').eq('org_id', orgId).eq('active', true).order('variant_name');
   if (error) throw error;
   return data || [];
 }
@@ -492,7 +500,8 @@ export function calculateTaxes(profitARS: number, settings: any) {
 
 // ========= EXPENSES =========
 export async function getExpensesDB(userId: string) {
-  const { data, error } = await supabase.from('expenses' as any).select('*').eq('user_id', userId).order('date', { ascending: false });
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('expenses' as any).select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return (data as any[]) || [];
 }
@@ -558,16 +567,82 @@ export function getExpenseCategoryLabel(cat: string, settings?: any) {
 
 // ========= CUSTOMER NOTES =========
 export async function getCustomerNotesDB(userId: string) {
-  const { data, error } = await supabase.from('customer_notes' as any).select('*').eq('user_id', userId);
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase.from('customer_notes' as any).select('*').eq('org_id', orgId);
   if (error) throw error;
   return (data as any[]) || [];
 }
 
 export async function upsertCustomerNoteDB(userId: string, customerName: string, notes: string) {
+  const orgId = await orgIdFor(userId);
   const { error } = await supabase
     .from('customer_notes' as any)
-    .upsert({ user_id: userId, customer_name: customerName, notes }, { onConflict: 'user_id,customer_name' });
+    .upsert({ org_id: orgId, user_id: userId, customer_name: customerName, notes }, { onConflict: 'org_id,customer_name' });
   if (error) throw error;
+}
+
+// ========= CUSTOMERS (perfil completo) =========
+export async function getCustomersDB(userId: string) {
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase
+    .from('customers' as any)
+    .select('*')
+    .eq('org_id', orgId)
+    .order('name');
+  if (error) throw error;
+  return (data || []) as any[];
+}
+
+export async function createCustomerDB(userId: string, customer: {
+  name: string; email?: string; phone?: string; address?: string;
+  birthday?: string; tags?: string[]; notes?: string;
+}) {
+  const orgId = await orgIdFor(userId);
+  const { data, error } = await supabase
+    .from('customers' as any)
+    .insert({ ...customer, user_id: userId, org_id: orgId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateCustomerDB(id: string, updates: Partial<{
+  name: string; email: string; phone: string; address: string;
+  birthday: string; tags: string[]; notes: string;
+}>) {
+  const { error } = await supabase
+    .from('customers' as any)
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteCustomerDB(id: string) {
+  const { error } = await supabase.from('customers' as any).delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function getOrgMembersWithProfilesDB(userId: string) {
+  const orgId = await orgIdFor(userId);
+  const { data: members, error } = await supabase
+    .from('memberships')
+    .select('user_id, role')
+    .eq('org_id', orgId);
+  if (error) throw error;
+  if (!members || members.length === 0) return [];
+  const userIds = members.map((m: any) => m.user_id);
+  const { data: profiles } = await supabase
+    .from('profiles' as any)
+    .select('user_id, display_name')
+    .in('user_id', userIds);
+  const profileMap: Record<string, string> = {};
+  (profiles || []).forEach((p: any) => { if (p.display_name) profileMap[p.user_id] = p.display_name; });
+  return members.map((m: any) => ({
+    user_id: m.user_id,
+    role: m.role,
+    display_name: profileMap[m.user_id] || `Usuario ${m.user_id.slice(0, 6)}`,
+  }));
 }
 
 // Seed products for a new user
@@ -576,8 +651,65 @@ export async function seedProductsForUser(userId: string) {
   const { data: existing } = await supabase.from('products').select('id').eq('org_id', orgId).limit(1);
   if (existing && existing.length > 0) return;
   const { seedProductsList } = await import('./seedData');
-  const products = seedProductsList.map(p => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
+  const products = seedProductsList.map((p: any) => ({ ...p, user_id: userId, org_id: orgId, id: crypto.randomUUID() }));
   for (let i = 0; i < products.length; i += 50) {
     await supabase.from('products').insert(products.slice(i, i + 50));
   }
+}
+
+// ========= LOYALTY POINTS =========
+export async function addSupplierPaymentDB(
+  debtId: string,
+  amount: number,
+  opts: { paymentMethod?: string; note?: string } = {},
+) {
+  const { data: debt } = await supabase
+    .from('supplier_debts' as any)
+    .select('org_id, paid_ars, amount_ars, remaining_ars')
+    .eq('id', debtId)
+    .single();
+  if (!debt) throw new Error('Deuda no encontrada');
+
+  const newPaid = Number(debt.paid_ars) + amount;
+  const isFullyPaid = newPaid >= Number(debt.amount_ars) - 0.01;
+
+  await supabase.from('supplier_payments' as any).insert({
+    org_id: debt.org_id,
+    supplier_debt_id: debtId,
+    amount_ars: amount,
+    method: opts.paymentMethod || 'transferencia',
+    note: opts.note || null,
+  });
+
+  const { error } = await supabase.from('supplier_debts' as any).update({
+    paid_ars: newPaid,
+    status: isFullyPaid ? 'paid' : 'partial',
+  }).eq('id', debtId);
+
+  if (error) throw error;
+}
+
+export async function awardLoyaltyPointsForSale(
+  orgId: string,
+  customerName: string | null,
+  totalARS: number,
+  saleId: string,
+) {
+  if (!customerName) return;
+  const { data: sett } = await supabase
+    .from('settings')
+    .select('loyalty_enabled, loyalty_points_per_1000')
+    .eq('org_id', orgId)
+    .single();
+  if (!sett?.loyalty_enabled) return;
+  const pointsPer1000 = Number(sett.loyalty_points_per_1000) || 1;
+  const points = Math.floor((totalARS / 1000) * pointsPer1000);
+  if (points <= 0) return;
+  await supabase.from('loyalty_points' as any).insert({
+    org_id: orgId,
+    customer_name: customerName,
+    delta: points,
+    reason: 'sale',
+    reference_id: saleId,
+  });
 }

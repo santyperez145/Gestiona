@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
+import { useEntitlements } from "@/lib/useEntitlements";
 import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -15,7 +19,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [exchangeRate, setExchangeRate] = useState('');
   const [customsPercent, setCustomsPercent] = useState('');
   const [defaultDiscountPercent, setDefaultDiscountPercent] = useState('');
@@ -39,6 +43,10 @@ export default function SettingsPage() {
   const [discountDebit, setDiscountDebit] = useState('0');
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [bankCbu, setBankCbu] = useState('');
+  const [bankAlias, setBankAlias] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
 
   // Volume / wholesale discount
   const [volumeThreshold, setVolumeThreshold] = useState('3');
@@ -74,6 +82,10 @@ export default function SettingsPage() {
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
+      setBankCbu(s.bank_cbu || '');
+      setBankAlias(s.bank_alias || '');
+      setBankName(s.bank_name || '');
+      setBankHolder(s.bank_holder || '');
       setVolumeThreshold(String(s.volume_discount_threshold ?? 3));
       setVolumeDiscount(String(s.volume_discount_percent ?? 10));
       setDecantMargin10(String(s.decant_margin_10ml ?? 250));
@@ -128,6 +140,10 @@ export default function SettingsPage() {
         discount_debit_percent: parseFloat(discountDebit) || 0,
         discount_credit_percent: parseFloat(discountCredit) || 0,
         whatsapp_number: whatsappNumber || null,
+        bank_cbu: bankCbu || null,
+        bank_alias: bankAlias || null,
+        bank_name: bankName || null,
+        bank_holder: bankHolder || null,
         volume_discount_threshold: parseInt(volumeThreshold) || 3,
         volume_discount_percent: parseFloat(volumeDiscount) || 10,
         decant_margin_10ml: parseFloat(decantMargin10) || 250,
@@ -236,6 +252,28 @@ export default function SettingsPage() {
               <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />
               <p className="text-[10px] text-muted-foreground mt-1">Número con código de país. Aparecerá como botón flotante en tu catálogo público.</p>
             </div>
+            <div className="border-t border-border pt-4">
+              <label className="text-sm font-medium flex items-center gap-1.5 mb-3"><CreditCard className="w-3.5 h-3.5 text-primary" />Cuenta bancaria (para links de pago)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">CBU</label>
+                  <Input value={bankCbu} onChange={e => setBankCbu(e.target.value)} placeholder="0000000000000000000000" className="bg-muted border-border mt-1 font-mono text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Alias</label>
+                  <Input value={bankAlias} onChange={e => setBankAlias(e.target.value)} placeholder="tu.alias.banco" className="bg-muted border-border mt-1 font-mono text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Banco</label>
+                  <Input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Banco Galicia" className="bg-muted border-border mt-1 text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Titular</label>
+                  <Input value={bankHolder} onChange={e => setBankHolder(e.target.value)} placeholder="Juan Pérez" className="bg-muted border-border mt-1 text-xs" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">Aparecerá en los links de pago que generés para tus presupuestos.</p>
+            </div>
           </div>
 
           {/* Financial params */}
@@ -314,6 +352,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4 md:space-y-6">
+          {/* Subscription */}
+          <SubscriptionPanel session={session} />
+
           {/* Taxes */}
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
@@ -371,10 +412,172 @@ export default function SettingsPage() {
           {/* Cloud Backups */}
           <CloudBackupsSection userId={user!.id} />
 
+          {/* AFIP Facturación Electrónica */}
+          <AfipSection />
+
           {/* Coupons CRUD */}
           <CouponsManager userId={user!.id} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ===== Subscription Panel =====
+function SubscriptionPanel({ session }: { session: any }) {
+  const { activeOrg } = useOrg();
+  const { plan, subscription, isTrialing, trialDaysLeft, loading, refresh } = useEntitlements();
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [canceling, setCanceling] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      toast.success('¡Suscripción activada! Gracias por confiar en Gestiona.');
+      refresh();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const handleUpgrade = async (planCode: string) => {
+    if (!activeOrg || !session) return;
+    setCheckingOut(planCode);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planCode, orgId: activeOrg.id, yearly: false },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error || !data?.url) { toast.error('No se pudo iniciar el pago.'); return; }
+      window.location.href = data.url;
+    } catch { toast.error('Error al conectar con pagos.'); }
+    finally { setCheckingOut(null); }
+  };
+
+  const handleCancel = async () => {
+    if (!subscription?.stripe_subscription_id) return;
+    setCanceling(true);
+    try {
+      const { error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { subscriptionId: subscription.stripe_subscription_id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw error;
+      toast.success('Suscripción cancelada. Seguirás teniendo acceso hasta el fin del período.');
+      await refresh();
+    } catch { toast.error('Error al cancelar.'); }
+    finally { setCanceling(false); }
+  };
+
+  const handleBillingPortal = async () => {
+    if (!activeOrg || !session) return;
+    setCheckingOut('portal');
+    try {
+      const { data, error } = await supabase.functions.invoke('create-billing-portal', {
+        body: { orgId: activeOrg.id, returnUrl: window.location.href },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error || !data?.url) { toast.error('No se pudo abrir el portal de facturación.'); return; }
+      window.location.href = data.url;
+    } catch { toast.error('Error al conectar con el portal de pagos.'); }
+    finally { setCheckingOut(null); }
+  };
+
+  const statusColor = {
+    active: 'text-green-500',
+    trialing: 'text-blue-500',
+    past_due: 'text-yellow-500',
+    canceled: 'text-red-500',
+    paused: 'text-muted-foreground',
+  }[subscription?.status ?? 'canceled'] ?? 'text-muted-foreground';
+
+  const StatusIcon = subscription?.status === 'active' ? CheckCircle2
+    : subscription?.status === 'trialing' ? Zap
+    : subscription?.status === 'past_due' ? AlertTriangle
+    : XCircle;
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <CreditCard className="w-4 h-4 text-primary" />Suscripción
+      </h2>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Cargando...
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">{plan?.name ?? 'Sin plan'}</p>
+              <div className={`flex items-center gap-1.5 text-sm mt-0.5 ${statusColor}`}>
+                <StatusIcon className="w-3.5 h-3.5" />
+                <span>
+                  {subscription?.status === 'trialing' ? `Trial — ${trialDaysLeft} días restantes`
+                    : subscription?.status === 'active' ? 'Activo'
+                    : subscription?.status === 'past_due' ? 'Pago pendiente'
+                    : subscription?.status === 'canceled' ? 'Cancelado'
+                    : 'Sin suscripción'}
+                </span>
+              </div>
+              {subscription?.current_period_end && subscription.status !== 'canceled' && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Próximo cobro: {new Date(subscription.current_period_end).toLocaleDateString('es-AR')}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              {plan && plan.price_usd_monthly > 0 && (
+                <p className="text-2xl font-bold">${plan.price_usd_monthly}<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+              )}
+            </div>
+          </div>
+
+          {/* Plan limits */}
+          {plan && (
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { label: 'Productos', val: plan.max_products ?? '∞' },
+                { label: 'Usuarios', val: plan.max_users ?? '∞' },
+                { label: 'IA', val: plan.ai_enabled ? 'Sí' : 'No' },
+              ].map(item => (
+                <div key={item.label} className="bg-muted rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="font-semibold text-sm">{String(item.val)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            {(!subscription || subscription.status === 'canceled' || subscription.status === 'trialing') && (
+              <Button onClick={() => handleUpgrade('pro')} disabled={!!checkingOut} className="w-full gradient-gold text-primary-foreground font-semibold">
+                {checkingOut === 'pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><Zap className="w-4 h-4 mr-2" />Actualizar al plan Pro</>}
+              </Button>
+            )}
+            {subscription?.status === 'past_due' && (
+              <Button onClick={handleBillingPortal} disabled={!!checkingOut} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
+                {checkingOut === 'portal' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : <><CreditCard className="w-4 h-4 mr-2" />Actualizar método de pago</>}
+              </Button>
+            )}
+            {(subscription?.status === 'active' || subscription?.status === 'past_due') && subscription?.stripe_subscription_id && (
+              <Button variant="outline" size="sm" className="text-xs w-full" onClick={handleBillingPortal} disabled={!!checkingOut}>
+                {checkingOut === 'portal' ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : null}
+                Gestionar facturación en Stripe
+              </Button>
+            )}
+            {subscription?.status === 'active' && !subscription.cancel_at_period_end && (
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleCancel} disabled={canceling}>
+                {canceling ? 'Cancelando...' : 'Cancelar suscripción'}
+              </Button>
+            )}
+            {subscription?.cancel_at_period_end && (
+              <p className="text-xs text-yellow-500 text-center">Cancelación programada al fin del período</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -485,7 +688,12 @@ function ThresholdsSection({ userId }: { userId: string }) {
           <Input type="number" value={s.overdue_check_window_hours ?? 24} onChange={e => update('overdue_check_window_hours', e.target.value)} className="bg-muted border-border mt-1" /></div>
         <div className="col-span-2"><label className="text-xs text-muted-foreground">Aviso flujo caja (ARS mín. proyectado)</label>
           <Input type="number" value={s.cash_flow_warning_threshold_ars ?? 0} onChange={e => update('cash_flow_warning_threshold_ars', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Alerta ventas diarias mín. (ARS, 0 = desactivado)</label>
+          <Input type="number" value={s.daily_sales_alert_threshold ?? 0} onChange={e => update('daily_sales_alert_threshold', e.target.value)} className="bg-muted border-border mt-1" /></div>
+        <div><label className="text-xs text-muted-foreground">Alerta margen diario mín. (%, 0 = desactivado)</label>
+          <Input type="number" value={s.daily_margin_alert_threshold ?? 0} onChange={e => update('daily_margin_alert_threshold', e.target.value)} className="bg-muted border-border mt-1" /></div>
       </div>
+      <p className="text-[10px] text-muted-foreground">Las alertas de resumen diario se envían cada mañana con las métricas del día anterior.</p>
       <Button onClick={save} disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">{saving ? 'Guardando...' : 'Guardar Umbrales'}</Button>
     </div>
   );
@@ -805,6 +1013,220 @@ function CloudBackupsSection({ userId }: { userId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ===== AFIP Facturación Electrónica =====
+function AfipSection() {
+  const { activeOrg } = useOrg();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const [cuit, setCuit] = useState("");
+  const [razonSocial, setRazonSocial] = useState("");
+  const [domicilio, setDomicilio] = useState("");
+  const [puntoVenta, setPuntoVenta] = useState("1");
+  const [environment, setEnvironment] = useState("homologacion");
+  const [tipoEmisor, setTipoEmisor] = useState("monotributo");
+  const [certificate, setCertificate] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
+  const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      const { data } = await supabase
+        .from("settings" as any)
+        .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_environment,afip_tipo_emisor,afip_certificate,afip_private_key,afip_ta_expires_at")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle();
+      if (data) {
+        setCuit((data as any).afip_cuit || "");
+        setRazonSocial((data as any).afip_razon_social || "");
+        setDomicilio((data as any).afip_domicilio || "");
+        setPuntoVenta(String((data as any).afip_punto_venta || 1));
+        setEnvironment((data as any).afip_environment || "homologacion");
+        setTipoEmisor((data as any).afip_tipo_emisor || "monotributo");
+        setCertificate((data as any).afip_certificate || "");
+        setPrivateKey((data as any).afip_private_key || "");
+        if ((data as any).afip_ta_expires_at) {
+          setTaStatus(new Date((data as any).afip_ta_expires_at) > new Date() ? "valid" : "expired");
+        }
+      }
+      setLoading(false);
+    })();
+  }, [activeOrg]);
+
+  const doSave = async () => {
+    if (!activeOrg) return;
+    await supabase.from("settings" as any).update({
+      afip_cuit: cuit.replace(/[-\s]/g, "") || null,
+      afip_razon_social: razonSocial || null,
+      afip_domicilio: domicilio || null,
+      afip_punto_venta: parseInt(puntoVenta) || 1,
+      afip_environment: environment,
+      afip_tipo_emisor: tipoEmisor,
+      afip_certificate: certificate || null,
+      afip_private_key: privateKey || null,
+      afip_ta_token: null,
+      afip_ta_sign: null,
+      afip_ta_expires_at: null,
+    }).eq("org_id", activeOrg.id);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await doSave();
+      toast.success("Configuración AFIP guardada");
+      setTaStatus("none");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!cuit || !certificate || !privateKey) {
+      toast.error("Completá CUIT, certificado y clave privada antes de probar");
+      return;
+    }
+    setTesting(true);
+    try {
+      await doSave();
+      const resp = await supabase.functions.invoke("afip-authorize", {
+        body: { invoice_id: "__test__" },
+      });
+      const errMsg: string = resp.error?.message || (resp.data as any)?.error || "";
+      // "Factura no encontrada" means credentials worked — AFIP auth succeeded
+      if (errMsg.includes("Factura no encontrada") || errMsg.includes("invoice_id")) {
+        toast.success("✓ Conexión con AFIP verificada correctamente");
+        setTaStatus("valid");
+      } else if (errMsg) {
+        toast.error("Error AFIP: " + errMsg);
+      } else {
+        toast.success("✓ Credenciales AFIP válidas");
+        setTaStatus("valid");
+      }
+    } catch (e: any) {
+      toast.error("Error al probar: " + e.message);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (loading) return null;
+
+  const isConfigured = !!(cuit && certificate && privateKey);
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <FileCheck className="w-4 h-4 text-primary" />AFIP — Facturación Electrónica
+        </h2>
+        {isConfigured && (
+          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${
+            taStatus === "valid" ? "bg-green-500/10 text-green-400" :
+            taStatus === "expired" ? "bg-yellow-500/10 text-yellow-400" :
+            "bg-muted text-muted-foreground"
+          }`}>
+            {taStatus === "valid" ? <><CheckCircle2 className="w-3 h-3" />TA activo</> :
+             taStatus === "expired" ? <><AlertTriangle className="w-3 h-3" />TA vencido</> :
+             "No verificado"}
+          </span>
+        )}
+      </div>
+
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground space-y-1">
+        <p className="font-medium text-foreground">Requisitos previos</p>
+        <ol className="list-decimal list-inside space-y-0.5">
+          <li>Solicitá el certificado en <strong>CLAVE FISCAL → Administrador de Relaciones de Clave Fiscal</strong></li>
+          <li>Vinculá el servicio <strong>wsfe</strong> a tu CUIT</li>
+          <li>Pegá el certificado (.crt) y clave privada (.key) en formato PEM abajo</li>
+          <li>Probá con <strong>Homologación</strong> antes de pasar a Producción</li>
+        </ol>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">CUIT del emisor</label>
+          <Input value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20-12345678-9" className="bg-muted border-border font-mono" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Razón social</label>
+          <Input value={razonSocial} onChange={e => setRazonSocial(e.target.value)} placeholder="Mi Empresa SRL" className="bg-muted border-border" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs text-muted-foreground mb-1 block">Domicilio fiscal</label>
+          <Input value={domicilio} onChange={e => setDomicilio(e.target.value)} placeholder="Av. Corrientes 1234, CABA" className="bg-muted border-border" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Punto de venta</label>
+          <Input type="number" min="1" max="9999" value={puntoVenta} onChange={e => setPuntoVenta(e.target.value)} className="bg-muted border-border" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Tipo de emisor</label>
+          <Select value={tipoEmisor} onValueChange={setTipoEmisor}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monotributo">Monotributista → Factura C</SelectItem>
+              <SelectItem value="responsable_inscripto">Responsable Inscripto → Factura A / B</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs text-muted-foreground mb-1 block">Ambiente</label>
+          <Select value={environment} onValueChange={setEnvironment}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="homologacion">🧪 Homologación (pruebas)</SelectItem>
+              <SelectItem value="produccion">🚀 Producción (facturas reales)</SelectItem>
+            </SelectContent>
+          </Select>
+          {environment === "produccion" && (
+            <p className="text-[10px] text-destructive mt-1">⚠ Las facturas emitidas en producción son definitivas ante AFIP.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Certificado AFIP (PEM)</label>
+          <Textarea
+            value={certificate}
+            onChange={e => setCertificate(e.target.value)}
+            placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+            className="bg-muted border-border font-mono text-xs h-28 resize-none"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Clave privada (PEM)</label>
+          <Textarea
+            value={privateKey}
+            onChange={e => setPrivateKey(e.target.value)}
+            placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
+            className="bg-muted border-border font-mono text-xs h-28 resize-none"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Almacenada en tu base de datos con acceso restringido a tu organización (RLS).
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
+          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Guardando…</> : "Guardar AFIP"}
+        </Button>
+        {isConfigured && (
+          <Button onClick={handleTestConnection} disabled={testing} variant="outline">
+            {testing ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Verificando…</> : "Verificar conexión"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone } from "lucide-react";
+import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
@@ -38,7 +38,7 @@ export default function MarketingPage() {
       const code = (data as any)?.industry_code || null;
       setIndustryCode(code);
       listMarketingThemes(code).then(setThemes).catch(() => {});
-    });
+    }).catch(() => {});
   }, [user]);
 
   const filtered = posts.filter(p => filter === 'all' || p.status === filter);
@@ -147,6 +147,8 @@ export default function MarketingPage() {
         <OfferRecommenderPanel />
       </div>
 
+      <UTMLinkBuilder />
+
       {!filtered.length ? (
         <div className="text-center py-20 text-muted-foreground">
           <Megaphone className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -204,6 +206,93 @@ export default function MarketingPage() {
               <p className="text-xs text-muted-foreground mt-2">{new Date(post.created_at).toLocaleDateString('es-AR')}</p>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// UTM Link Builder
+// ─────────────────────────────────────────────────────────────
+const UTM_SOURCES = ['instagram', 'facebook', 'whatsapp', 'email', 'tiktok', 'otro'];
+const UTM_MEDIUMS = ['social', 'story', 'bio', 'post', 'email', 'dm', 'otro'];
+
+function UTMLinkBuilder() {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const [source, setSource] = useState('instagram');
+  const [medium, setMedium] = useState('social');
+  const [campaign, setCampaign] = useState('');
+  const [content, setContent] = useState('');
+  const [generated, setGenerated] = useState('');
+
+  const build = () => {
+    if (!url.trim()) { toast.error("Ingresá la URL base"); return; }
+    try {
+      const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+      u.searchParams.set('utm_source', source);
+      u.searchParams.set('utm_medium', medium);
+      if (campaign.trim()) u.searchParams.set('utm_campaign', campaign.trim().replace(/\s+/g, '_').toLowerCase());
+      if (content.trim()) u.searchParams.set('utm_content', content.trim().replace(/\s+/g, '_').toLowerCase());
+      setGenerated(u.toString());
+    } catch {
+      toast.error("URL inválida");
+    }
+  };
+
+  const copy = () => { navigator.clipboard.writeText(generated); toast.success("Link UTM copiado"); };
+
+  return (
+    <div className="mb-6 border border-border rounded-xl bg-card/50">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors rounded-xl"
+      >
+        <div className="flex items-center gap-2">
+          <Link2 className="w-4 h-4 text-primary" />
+          <span className="text-sm font-semibold">Generador de Links UTM</span>
+          <span className="text-[10px] text-muted-foreground font-normal">Para rastrear tus campañas</span>
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">URL base</label>
+              <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://tutienda.mitiendanube.com" className="text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Nombre de campaña</label>
+              <Input value={campaign} onChange={e => setCampaign(e.target.value)} placeholder="promo_mayo" className="text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Fuente (utm_source)</label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>{UTM_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Medio (utm_medium)</label>
+              <Select value={medium} onValueChange={setMedium}>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>{UTM_MEDIUMS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs text-muted-foreground mb-1 block">Contenido (opcional — para A/B)</label>
+              <Input value={content} onChange={e => setContent(e.target.value)} placeholder="banner_rojo" className="text-sm" />
+            </div>
+          </div>
+          <Button onClick={build} size="sm" className="gradient-gold text-primary-foreground font-semibold"><Link2 className="w-3.5 h-3.5 mr-1.5" />Generar Link</Button>
+          {generated && (
+            <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
+              <p className="text-xs font-mono break-all flex-1 text-success">{generated}</p>
+              <Button variant="ghost" size="sm" onClick={copy} className="shrink-0"><Copy className="w-3.5 h-3.5" /></Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -19,13 +19,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Initial session load
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // TOKEN_REFRESHED fires every time the tab regains focus — don't thrash state
+      // if it's the same user, only update the session token, not the user object
+      if (event === 'TOKEN_REFRESHED') {
+        setSession(session);
+        // preserve same user reference so OrgProvider doesn't re-mount
+        setUser(prev => prev?.id === session?.user?.id ? prev : (session?.user ?? null));
+        return;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);

@@ -4,31 +4,58 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/lib/useUserRole";
+import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
+import { useEntitlements } from "@/lib/useEntitlements";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'], section: 'principal' },
+  { to: "/caja", label: "Caja / POS", icon: ScanLine, roles: ['admin', 'vendedor'], section: 'principal' },
+  { to: "/caja/turno", label: "Turno de Caja", icon: Banknote, roles: ['admin'], section: 'principal' },
   { to: "/productos", label: "Productos", icon: Package, roles: ['admin'], section: 'inventario' },
   { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
+  { to: "/restock", label: "Auto-Restock", icon: PackageOpen, roles: ['admin'], section: 'inventario' },
+  { to: "/toma-fisica", label: "Toma Física", icon: ListChecks, roles: ['admin'], section: 'inventario' },
+  { to: "/kardex", label: "Kardex", icon: History, roles: ['admin'], section: 'inventario' },
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
   { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/pipeline", label: "Pipeline", icon: Kanban, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
+  { to: "/referidos", label: "Referidos", icon: Users, roles: ['admin'], section: 'ventas' },
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
+  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
+  { to: "/cheques", label: "Cheques", icon: FileText, roles: ['admin'], section: 'finanzas' },
+  { to: "/comisiones", label: "Comisiones", icon: Users, roles: ['admin'], section: 'finanzas' },
+  { to: "/tareas", label: "Tareas", icon: CheckSquare, roles: ['admin', 'vendedor'], section: 'principal' },
+  { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
+  { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
+  { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
+  { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'analytics' },
+  { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'analytics' },
+  { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'analytics' },
+  { to: "/templates", label: "Templates", icon: Sparkles, roles: ['admin'], section: 'analytics' },
   { to: "/influencers", label: "Influencers", icon: Gift, roles: ['admin'], section: 'analytics' },
+  { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'analytics' },
   { to: "/liquidaciones", label: "Liquidaciones", icon: Receipt, roles: ['admin'], section: 'analytics' },
   { to: "/canjes", label: "Canjes", icon: Gift, roles: ['admin'], section: 'analytics' },
   { to: "/combos-banners", label: "Combos & Banners", icon: Sparkles, roles: ['admin'], section: 'analytics' },
   { to: "/catalogo", label: "Catálogo", icon: BookOpen, roles: ['admin'], section: 'analytics' },
   { to: "/tiendanube", label: "Tiendanube", icon: ShoppingBag, roles: ['admin'], section: 'analytics' },
   { to: "/ia", label: "IA Insights", icon: Brain, roles: ['admin'], section: 'analytics' },
+  { to: "/chat-ia", label: "Chat IA", icon: Sparkles, roles: ['admin'], section: 'analytics' },
   { to: "/marca-ia", label: "Marcas IA", icon: Brain, roles: ['admin'], section: 'analytics' },
+  { to: "/sucursales", label: "Sucursales", icon: MapPin, roles: ['admin'], section: 'config' },
+  { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
+  { to: "/perfil", label: "Mi Perfil", icon: UserCircle, roles: ['admin', 'vendedor'], section: 'config' },
   { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'config' },
 ];
 
@@ -45,9 +72,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const { role } = useUserRole();
+  const { isPlatformAdmin } = useOrg();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const config = useBusinessConfig();
+  const { subscription, isTrialing, trialDaysLeft } = useEntitlements();
 
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
@@ -170,6 +200,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className={`${collapsed ? 'px-2 py-3' : 'px-4 py-4'} border-t border-sidebar-border space-y-2`}>
           <OrgSwitcher collapsed={collapsed} />
           <NotificationBell collapsed={collapsed} />
+          {isPlatformAdmin && (
+            <Link
+              to="/platform/admin"
+              title={collapsed ? 'Platform Admin' : undefined}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors w-full ${
+                collapsed ? 'justify-center' : ''
+              } ${
+                pathname === '/platform/admin'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-primary'
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5 shrink-0" />
+              {!collapsed && <span>Platform Admin</span>}
+            </Link>
+          )}
           {!collapsed && (
             <div className="px-1 pt-1">
               <p className="text-[11px] text-muted-foreground/70 truncate">{user?.email}</p>
@@ -209,6 +255,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Search className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
+        {/* Trial / subscription status banners */}
+        {!bannerDismissed && (() => {
+          if (subscription?.status === 'past_due') return (
+            <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2.5 flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+              <p className="text-sm flex-1 text-destructive">
+                <span className="font-semibold">Pago fallido.</span> Actualizá tu método de pago para no perder el acceso.
+              </p>
+              <Link to="/ajustes"><Button size="sm" variant="destructive" className="h-7 text-xs shrink-0">Actualizar pago</Button></Link>
+              <button onClick={() => setBannerDismissed(true)} className="text-destructive/60 hover:text-destructive shrink-0"><XIcon className="w-4 h-4" /></button>
+            </div>
+          );
+          if (subscription?.status === 'canceled') return (
+            <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2.5 flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+              <p className="text-sm flex-1 text-yellow-500">
+                <span className="font-semibold">Suscripción cancelada.</span> Reactivá tu plan para seguir usando Gestiona.
+              </p>
+              <Link to="/pricing"><Button size="sm" className="h-7 text-xs shrink-0 bg-yellow-500 hover:bg-yellow-600 text-black">Reactivar</Button></Link>
+              <button onClick={() => setBannerDismissed(true)} className="text-yellow-500/60 hover:text-yellow-500 shrink-0"><XIcon className="w-4 h-4" /></button>
+            </div>
+          );
+          if (isTrialing && trialDaysLeft <= 7) return (
+            <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
+              <Zap className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-sm flex-1">
+                {trialDaysLeft === 0
+                  ? <><span className="font-semibold text-destructive">Tu trial venció hoy.</span> Elegí un plan para seguir usando el sistema.</>
+                  : <><span className="font-semibold">Trial: {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'} restantes.</span> Elegí un plan antes de que expire.</>
+                }
+              </p>
+              <Link to="/pricing"><Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground shrink-0">Ver planes</Button></Link>
+              <button onClick={() => setBannerDismissed(true)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"><XIcon className="w-4 h-4" /></button>
+            </div>
+          );
+          return null;
+        })()}
+
         <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
           {children}
         </div>
