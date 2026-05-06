@@ -91,8 +91,8 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 ### P3 - Integraciones confiables
 
-- [ ] Tiendanube: definir sincronizacion bidireccional, manejo de conflictos, logs y reintentos.
-- [ ] Mercado Pago: confirmar pago, actualizar estado del link y conciliar movimientos.
+- [x] Tiendanube: sincronizacion con retry/backoff en 429, per-item error logging, ordersUpdated, notificacion en errores. Webhook con HMAC-SHA256 (X-Hub-Signature), retry en TN API, productos/deleted soft-delete, cancelaciones marcan paid=false. _(2026-05-06)_
+- [x] Mercado Pago: webhook confirma pago, actualiza payment_links.status + sales.paid, notifica al owner. Verifica x-signature HMAC-SHA256 contra MP_WEBHOOK_SECRET. Multi-org lookup por access_token. _(2026-05-06)_
 - [ ] Stripe: webhooks idempotentes, dunning y estados de suscripcion completos.
 - [ ] AFIP: separar homologacion/produccion, registrar errores y permitir reintentos controlados.
 - [ ] Public API: versionado, rate limits, API keys rotables, scopes y documentacion.

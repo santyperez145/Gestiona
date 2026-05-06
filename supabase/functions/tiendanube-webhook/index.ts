@@ -1,12 +1,7 @@
 // Receives real-time events from Tiendanube (orders/created, orders/paid, products/updated).
-// Must be registered in the Tiendanube API as a webhook URL.
+// Security: verifies X-Hub-Signature (HMAC-SHA256) against the app client secret.
 // URL: https://<project>.supabase.co/functions/v1/tiendanube-webhook
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-linked-store",
-};
 
 function pickText(val: Record<string, string> | string | null | undefined): string {
   if (!val) return "";
@@ -14,19 +9,54 @@ function pickText(val: Record<string, string> | string | null | undefined): stri
   return val.es || val.pt || val.en || Object.values(val)[0] || "";
 }
 
-async function tiendanubeGet(path: string, accessToken: string, storeId: string) {
+// Verify HMAC-SHA256 signature sent by Tiendanube as X-Hub-Signature header
+async function verifySignature(rawBody: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    // Header format: "sha256=<hex>"
+    const hex = signature.startsWith("sha256=") ? signature.slice(7) : signature;
+    const sigBytes = Uint8Array.from(hex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+    return await crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(rawBody));
+  } catch {
+    return false;
+  }
+}
+
+async function tiendanubeGet(path: string, accessToken: string, storeId: string, attempt = 0): Promise<any> {
   const res = await fetch(`https://api.tiendanube.com/v1/${storeId}${path}`, {
     headers: {
       Authentication: `bearer ${accessToken}`,
       "User-Agent": "Gestiona (soporte@gestiona.app)",
     },
   });
+
+  if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+    if (attempt >= 3) throw new Error(`TN API ${path}: ${res.status} after ${attempt + 1} tries`);
+    const wait = Math.min(1000 * 2 ** attempt, 20000);
+    await new Promise(r => setTimeout(r, wait));
+    return tiendanubeGet(path, accessToken, storeId, attempt + 1);
+  }
+
   if (!res.ok) throw new Error(`Tiendanube API ${path}: ${res.status}`);
   return res.json();
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "content-type, x-hub-signature, x-linkedstore",
+      },
+    });
+  }
 
   try {
     const admin = createClient(
@@ -34,10 +64,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const body = await req.json();
-    // Tiendanube sends: { store_id, event, id }
-    // event is like "orders/created", "orders/paid", "products/updated"
-    const { store_id: storeId, event, id: resourceId } = body;
+    // Read raw body for HMAC verification before parsing
+    const rawBody = await req.text();
+
+    // X-Linkedstore identifies the originating store (more reliable than body field)
+    const storeIdHeader = req.headers.get("x-linkedstore") || req.headers.get("X-Linkedstore");
+    const signature = req.headers.get("x-hub-signature") || req.headers.get("X-Hub-Signature");
+
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return new Response(JSON.stringify({ ok: false, reason: "invalid json" }), {
+        status: 400, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const storeId = String(storeIdHeader || body.store_id || "");
+    const event: string = body.event || "";
+    const resourceId: string | number = body.id || "";
 
     if (!storeId || !event || !resourceId) {
       return new Response(JSON.stringify({ ok: false, reason: "missing fields" }), {
@@ -45,23 +90,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Find the connected org for this store
+    // Find connection — also fetches client_secret for signature verification
     const { data: conn } = await admin
       .from("tiendanube_connections")
       .select("*")
-      .eq("store_id", String(storeId))
+      .eq("store_id", storeId)
       .maybeSingle();
 
     if (!conn) {
-      // Unknown store — acknowledge to avoid retries
+      // Unknown store — acknowledge to stop Tiendanube retries
       return new Response(JSON.stringify({ ok: true, reason: "store not connected" }), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
+    // Verify HMAC signature if we have a client_secret and a signature header
+    const clientSecret = conn.client_secret || Deno.env.get("TIENDANUBE_CLIENT_SECRET") || "";
+    if (clientSecret && signature) {
+      const valid = await verifySignature(rawBody, signature, clientSecret);
+      if (!valid) {
+        console.warn(`Invalid webhook signature for store ${storeId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const orgId = conn.org_id;
 
-    // Get owner user_id
     const { data: membership } = await admin
       .from("memberships")
       .select("user_id")
@@ -71,11 +127,18 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const ownerUserId = membership?.user_id;
 
-    // ── Handle order events ──────────────────────────────────────────────────
+    // ── Order events ──────────────────────────────────────────────────────────
     if (event === "orders/created" || event === "orders/paid" || event === "orders/fulfilled") {
       const order = await tiendanubeGet(`/orders/${resourceId}`, conn.access_token, conn.store_id);
+
       if (order.status === "cancelled") {
-        return new Response(JSON.stringify({ ok: true, reason: "cancelled order skipped" }), {
+        // Mark any existing sales from this order as cancelled/refunded
+        await admin.from("sales")
+          .update({ paid: false })
+          .eq("org_id", orgId)
+          .like("tiendanube_order_id", `${order.id}-%`);
+
+        return new Response(JSON.stringify({ ok: true, reason: "cancelled" }), {
           headers: { "Content-Type": "application/json" },
         });
       }
@@ -89,11 +152,14 @@ Deno.serve(async (req) => {
       const tnPayment = (order.payment_details?.method || "").toLowerCase();
       const paymentMethod = tnPayment.includes("mercado") ? "mercado_pago"
         : tnPayment.includes("transfer") ? "transferencia"
+        : tnPayment.includes("credit") || tnPayment.includes("credito") ? "credito"
+        : tnPayment.includes("debit") || tnPayment.includes("debito") ? "debito"
         : "tiendanube";
 
       let imported = 0;
       for (const item of order.products || []) {
         const externalId = `${order.id}-${item.variant_id || item.product_id}`;
+
         const { data: existing } = await admin
           .from("sales")
           .select("id, paid")
@@ -102,9 +168,10 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existing) {
-          // Update paid status if order was just paid
           if (isPaid && !existing.paid) {
-            await admin.from("sales").update({ paid: true }).eq("id", existing.id);
+            await admin.from("sales")
+              .update({ paid: true, payment_method: paymentMethod })
+              .eq("id", existing.id);
           }
           continue;
         }
@@ -140,10 +207,10 @@ Deno.serve(async (req) => {
         imported++;
       }
 
-      // Insert in-app notification
       if (imported > 0) {
         await admin.from("notifications").insert({
           user_id: ownerUserId,
+          org_id: orgId,
           title: "Nuevo pedido Tiendanube",
           message: `Pedido #${order.number || resourceId} de ${customerName} — ${order.products?.length || 0} producto(s)`,
           type: "tiendanube",
@@ -151,7 +218,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Handle product update events ────────────────────────────────────────
+    // ── Product events ────────────────────────────────────────────────────────
     if (event === "products/updated" || event === "products/created") {
       const p = await tiendanubeGet(`/products/${resourceId}`, conn.access_token, conn.store_id);
       const variants: any[] = p.variants || [];
@@ -172,18 +239,21 @@ Deno.serve(async (req) => {
       }, { onConflict: "org_id,tiendanube_id", ignoreDuplicates: false });
     }
 
-    // Update last activity timestamp
-    await admin
-      .from("tiendanube_connections")
-      .update({ last_sync_orders_at: new Date().toISOString() })
-      .eq("id", conn.id);
+    // ── Product deleted ───────────────────────────────────────────────────────
+    if (event === "products/deleted") {
+      // Soft-delete: mark stock as 0 rather than deleting (preserves sales history)
+      await admin.from("products")
+        .update({ stock: 0, active: false })
+        .eq("org_id", orgId)
+        .eq("tiendanube_id", String(resourceId));
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("tiendanube-webhook error:", e);
-    // Always return 200 to Tiendanube to avoid retries on our processing errors
+    // Return 200 to prevent Tiendanube from flooding us with retries on logic errors
     return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "error" }), {
       headers: { "Content-Type": "application/json" },
     });
