@@ -569,9 +569,10 @@ export async function getCustomerNotesDB(userId: string) {
 }
 
 export async function upsertCustomerNoteDB(userId: string, customerName: string, notes: string) {
+  const orgId = await orgIdFor(userId);
   const { error } = await supabase
     .from('customer_notes' as any)
-    .upsert({ user_id: userId, customer_name: customerName, notes }, { onConflict: 'user_id,customer_name' });
+    .upsert({ org_id: orgId, user_id: userId, customer_name: customerName, notes }, { onConflict: 'org_id,customer_name' });
   if (error) throw error;
 }
 
