@@ -2734,9 +2734,6 @@ ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS return_id uuid REFERENCES publ
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS mp_access_token text;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS mp_enabled boolean NOT NULL DEFAULT false;
 
--- Tiendanube webhook secret per connection (for HMAC verification)
-ALTER TABLE public.tiendanube_connections ADD COLUMN IF NOT EXISTS webhook_id text;
-
 -- == MIGRATION: 20260430000006_tiendanube.sql ==
 
 -- ============================================================
@@ -2757,6 +2754,9 @@ CREATE TABLE IF NOT EXISTS public.tiendanube_connections (
   sync_orders     boolean NOT NULL DEFAULT true,
   UNIQUE(org_id, store_id)
 );
+
+-- Tiendanube webhook secret per connection (for HMAC verification)
+ALTER TABLE public.tiendanube_connections ADD COLUMN IF NOT EXISTS webhook_id text;
 
 ALTER TABLE public.tiendanube_connections ENABLE ROW LEVEL SECURITY;
 
