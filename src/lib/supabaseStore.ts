@@ -501,24 +501,24 @@ export function calculateTaxes(profitARS: number, settings: any) {
 // ========= EXPENSES =========
 export async function getExpensesDB(userId: string) {
   const orgId = await orgIdFor(userId);
-  const { data, error } = await supabase.from('expenses' as any).select('*').eq('org_id', orgId).order('date', { ascending: false });
+  const { data, error } = await supabase.from('expenses').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
   return (data as any[]) || [];
 }
 
 export async function addExpenseDB(expense: any) {
   const orgId = expense.org_id || requireActiveOrgId();
-  const { error } = await supabase.from('expenses' as any).insert({ ...expense, org_id: orgId });
+  const { error } = await supabase.from('expenses').insert({ ...expense, org_id: orgId });
   if (error) throw error;
 }
 
 export async function updateExpenseDB(id: string, updates: any) {
-  const { error } = await supabase.from('expenses' as any).update(updates).eq('id', id);
+  const { error } = await supabase.from('expenses').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteExpenseDB(id: string) {
-  const { error } = await supabase.from('expenses' as any).delete().eq('id', id);
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -568,7 +568,7 @@ export function getExpenseCategoryLabel(cat: string, settings?: any) {
 // ========= CUSTOMER NOTES =========
 export async function getCustomerNotesDB(userId: string) {
   const orgId = await orgIdFor(userId);
-  const { data, error } = await supabase.from('customer_notes' as any).select('*').eq('org_id', orgId);
+  const { data, error } = await supabase.from('customer_notes').select('*').eq('org_id', orgId);
   if (error) throw error;
   return (data as any[]) || [];
 }
@@ -576,7 +576,7 @@ export async function getCustomerNotesDB(userId: string) {
 export async function upsertCustomerNoteDB(userId: string, customerName: string, notes: string) {
   const orgId = await orgIdFor(userId);
   const { error } = await supabase
-    .from('customer_notes' as any)
+    .from('customer_notes')
     .upsert({ org_id: orgId, user_id: userId, customer_name: customerName, notes }, { onConflict: 'org_id,customer_name' });
   if (error) throw error;
 }
@@ -585,7 +585,7 @@ export async function upsertCustomerNoteDB(userId: string, customerName: string,
 export async function getCustomersDB(userId: string) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
-    .from('customers' as any)
+    .from('customers')
     .select('*')
     .eq('org_id', orgId)
     .order('name');
@@ -599,7 +599,7 @@ export async function createCustomerDB(userId: string, customer: {
 }) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
-    .from('customers' as any)
+    .from('customers')
     .insert({ ...customer, user_id: userId, org_id: orgId })
     .select()
     .single();
@@ -612,14 +612,14 @@ export async function updateCustomerDB(id: string, updates: Partial<{
   birthday: string; tags: string[]; notes: string;
 }>) {
   const { error } = await supabase
-    .from('customers' as any)
+    .from('customers')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteCustomerDB(id: string) {
-  const { error } = await supabase.from('customers' as any).delete().eq('id', id);
+  const { error } = await supabase.from('customers').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -633,7 +633,7 @@ export async function getOrgMembersWithProfilesDB(userId: string) {
   if (!members || members.length === 0) return [];
   const userIds = members.map((m: any) => m.user_id);
   const { data: profiles } = await supabase
-    .from('profiles' as any)
+    .from('profiles')
     .select('user_id, display_name')
     .in('user_id', userIds);
   const profileMap: Record<string, string> = {};
@@ -664,7 +664,7 @@ export async function addSupplierPaymentDB(
   opts: { paymentMethod?: string; note?: string } = {},
 ) {
   const { data: debt } = await supabase
-    .from('supplier_debts' as any)
+    .from('supplier_debts')
     .select('org_id, paid_ars, amount_ars, remaining_ars')
     .eq('id', debtId)
     .single();
@@ -673,7 +673,7 @@ export async function addSupplierPaymentDB(
   const newPaid = Number(debt.paid_ars) + amount;
   const isFullyPaid = newPaid >= Number(debt.amount_ars) - 0.01;
 
-  await supabase.from('supplier_payments' as any).insert({
+  await supabase.from('supplier_payments').insert({
     org_id: debt.org_id,
     supplier_debt_id: debtId,
     amount_ars: amount,
@@ -681,7 +681,7 @@ export async function addSupplierPaymentDB(
     note: opts.note || null,
   });
 
-  const { error } = await supabase.from('supplier_debts' as any).update({
+  const { error } = await supabase.from('supplier_debts').update({
     paid_ars: newPaid,
     status: isFullyPaid ? 'paid' : 'partial',
   }).eq('id', debtId);
@@ -705,7 +705,7 @@ export async function awardLoyaltyPointsForSale(
   const pointsPer1000 = Number(sett.loyalty_points_per_1000) || 1;
   const points = Math.floor((totalARS / 1000) * pointsPer1000);
   if (points <= 0) return;
-  await supabase.from('loyalty_points' as any).insert({
+  await supabase.from('loyalty_points').insert({
     org_id: orgId,
     customer_name: customerName,
     delta: points,
