@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- GESTIONA -- MIGRATION BUNDLE COMPLETO
 -- Generado: 2026-05-06
 -- Proyecto destino: hummeopatkniwkyrrhwc
@@ -2852,7 +2852,7 @@ SELECT cron.schedule(
       body := '{}'::jsonb
     )
   $$
-) ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule;
+);
 
 -- == MIGRATION: 20260503000003_email_campaigns.sql ==
 
@@ -3096,7 +3096,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+);
 
 -- == MIGRATION: 20260504000006_cron_customer_reactivation.sql ==
 
@@ -3114,7 +3114,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+);
 
 -- == MIGRATION: 20260504000007_cron_overdue_debts.sql ==
 
@@ -3132,7 +3132,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+);
 
 -- == MIGRATION: 20260504000008_cron_stock_alerts.sql ==
 
@@ -3150,7 +3150,7 @@ select cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) on conflict (jobname) do update set schedule = excluded.schedule;
+);
 
 -- == MIGRATION: 20260504000009_cuotas.sql ==
 
@@ -3232,7 +3232,7 @@ select cron.schedule(
     body := '{}'::jsonb
   ) as request_id;
   $$
-) on conflict (jobname) do update set schedule = '0 9 * * *';
+);
 
 -- == MIGRATION: 20260504000012_deals.sql ==
 
@@ -3286,7 +3286,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule;
+);
 
 -- == MIGRATION: 20260504000014_locations.sql ==
 
@@ -3680,7 +3680,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule;
+);
 
 -- == MIGRATION: 20260505000001_cash_entries.sql ==
 
