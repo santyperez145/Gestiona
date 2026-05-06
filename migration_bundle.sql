@@ -399,6 +399,7 @@ AS $$
 $$;
 
 -- 3. Create products_public view (no sensitive data)
+DROP VIEW IF EXISTS public.products_public CASCADE;
 CREATE OR REPLACE VIEW public.products_public AS
 SELECT id, user_id, name, brand, category, gender,
        sale_price_ars, discount_price_ars, stock,
@@ -406,6 +407,7 @@ SELECT id, user_id, name, brand, category, gender,
 FROM public.products;
 
 -- 4. Create settings_public view (no sensitive data)
+DROP VIEW IF EXISTS public.settings_public CASCADE;
 CREATE OR REPLACE VIEW public.settings_public AS
 SELECT id, user_id, business_name, logo_url, primary_color, secondary_color
 FROM public.settings;
@@ -685,6 +687,7 @@ USING (bucket_id = 'product-images');
 
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS whatsapp_number text DEFAULT NULL;
 
+DROP VIEW IF EXISTS public.settings_public CASCADE;
 CREATE OR REPLACE VIEW public.settings_public AS
 SELECT id, user_id, business_name, logo_url, primary_color, secondary_color, whatsapp_number
 FROM public.settings;
@@ -3827,6 +3830,7 @@ CREATE TRIGGER trg_sale_cash_entry
 -- ============================================================================
 -- Vista: resumen de una sesión de caja (efectivo neto, transferencias, etc.)
 -- ============================================================================
+DROP VIEW IF EXISTS public.cash_session_summary CASCADE;
 CREATE OR REPLACE VIEW public.cash_session_summary AS
 SELECT
   cs.id            AS session_id,
@@ -4220,6 +4224,7 @@ CREATE TRIGGER trg_purchase_stock_movement
 -- ============================================================================
 -- 5. Vista agregada por producto (kardex resumido)
 -- ============================================================================
+DROP VIEW IF EXISTS public.kardex_summary CASCADE;
 CREATE OR REPLACE VIEW public.kardex_summary AS
 SELECT
   sm.org_id,
@@ -5520,6 +5525,7 @@ CREATE TRIGGER trg_sale_cash_entry
   AFTER INSERT ON public.sales
   FOR EACH ROW EXECUTE FUNCTION public.trg_sale_cash_entry();
 
+DROP VIEW IF EXISTS public.cash_session_summary CASCADE;
 CREATE OR REPLACE VIEW public.cash_session_summary AS
 SELECT
   cs.id AS session_id,
@@ -5688,6 +5694,7 @@ CREATE TRIGGER trg_purchase_stock_movement
   AFTER INSERT ON public.purchases
   FOR EACH ROW EXECUTE FUNCTION public.trg_purchase_stock_movement();
 
+DROP VIEW IF EXISTS public.kardex_summary CASCADE;
 CREATE OR REPLACE VIEW public.kardex_summary AS
 SELECT
   sm.org_id, sm.product_id, sm.product_name,
