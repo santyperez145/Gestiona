@@ -5934,19 +5934,7 @@ CREATE POLICY "marketing_templates_public_update" ON public.marketing_templates
   WITH CHECK (is_public = true);
 
 
--- ═══════════════════════════════════════════════════════════════════════════
--- 3. stripe_events
---    No RLS was enabled. Service-role (edge functions) bypasses RLS anyway,
---    but we should still lock the table so no authenticated user can read or
---    write event IDs directly from the client.
--- ═══════════════════════════════════════════════════════════════════════════
-ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "stripe_events_no_client_access" ON public.stripe_events;
-DROP POLICY IF EXISTS "stripe_events_no_client_access" ON public.stripe_events;
-CREATE POLICY "stripe_events_no_client_access" ON public.stripe_events
-  AS RESTRICTIVE FOR ALL TO authenticated
-  USING (false);   -- clients never access this table; service_role bypasses RLS
+-- stripe_events RLS applied after table creation below (migration 20260506000005)
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -6057,6 +6045,16 @@ CREATE TABLE IF NOT EXISTS public.stripe_events (
   event_id     text PRIMARY KEY,
   processed_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- stripe_events RLS: lock table so authenticated clients can never access it
+-- (service_role used by edge functions bypasses RLS)
+-- ═══════════════════════════════════════════════════════════════════════════
+ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "stripe_events_no_client_access" ON public.stripe_events;
+CREATE POLICY "stripe_events_no_client_access" ON public.stripe_events
+  AS RESTRICTIVE FOR ALL TO authenticated
+  USING (false);
 
 -- Auto-expire old events after 30 days (pg_cron cleans up)
 CREATE INDEX IF NOT EXISTS stripe_events_processed_at ON public.stripe_events(processed_at);
