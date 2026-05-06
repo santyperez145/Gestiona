@@ -714,9 +714,10 @@ export default function InvoicesPage() {
                               <ShieldCheck className="w-3 h-3" />CAE
                             </span>
                           )}
-                          {inv.afip_status === "rejected" && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                              <ShieldAlert className="w-3 h-3" />Rechazada AFIP
+                          {(inv.afip_status === "rejected" || inv.afip_status === "error" || inv.afip_status === "config_error" || inv.afip_status === "network_error" || inv.afip_status === "validation_error") && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20" title={inv.afip_error || undefined}>
+                              <ShieldAlert className="w-3 h-3" />
+                              {inv.afip_status === "config_error" ? "Config AFIP" : inv.afip_status === "network_error" ? "Sin conexión AFIP" : "Error AFIP"}
                             </span>
                           )}
                         </div>
@@ -803,12 +804,19 @@ export default function InvoicesPage() {
                           )}
                         </div>
                       )}
-                      {inv.afip_status === "rejected" && inv.afip_error && (
-                        <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                          <p className="text-xs font-semibold text-red-400 flex items-center gap-1 mb-1">
+                      {["rejected","error","config_error","network_error","validation_error"].includes(inv.afip_status || "") && inv.afip_error && (
+                        <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20 space-y-2">
+                          <p className="text-xs font-semibold text-red-400 flex items-center gap-1">
                             <ShieldAlert className="w-3.5 h-3.5" />Error AFIP
                           </p>
                           <p className="text-xs text-muted-foreground">{inv.afip_error}</p>
+                          {canManage && afipConfigured && inv.tipo_comprobante && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                              onClick={() => handleAuthorize(inv)}
+                            >
+                              Reintentar autorización
+                            </Button>
+                          )}
                         </div>
                       )}
 

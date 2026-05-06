@@ -146,13 +146,48 @@ Deno.serve(async (req) => {
         afip_status: "authorized",
         numero_afip: nextNumber,
         afip_error: null,
+        afip_environment: isProd ? "produccion" : "homologacion",
       })
       .eq("id", invoice_id);
 
-    return ok({ cae, cae_vencimiento: caeVencimiento, numero_afip: nextNumber });
+    return ok({
+      cae,
+      cae_vencimiento: caeVencimiento,
+      numero_afip: nextNumber,
+      environment: isProd ? "produccion" : "homologacion",
+    });
   } catch (e: any) {
     console.error("afip-authorize error:", e);
-    return err(e.message || "Error interno", 500);
+
+    // Classify error for better UX messages
+    const msg: string = e.message || "Error interno";
+    let userMsg = msg;
+    let afipStatus = "error";
+
+    if (msg.includes("AFIP rechazó") || msg.includes("Resultado") || msg.includes("ErrMsg")) {
+      afipStatus = "rejected";
+      userMsg = `AFIP rechazó la factura: ${msg}`;
+    } else if (msg.includes("certificate") || msg.includes("private key") || msg.includes("WSAA")) {
+      afipStatus = "config_error";
+      userMsg = `Error de credenciales AFIP: ${msg}. Verificá el certificado y la clave privada en Ajustes.`;
+    } else if (msg.includes("HTTP 5") || msg.includes("timeout") || msg.includes("fetch")) {
+      afipStatus = "network_error";
+      userMsg = `Error de conexión con AFIP: ${msg}. Intentá de nuevo en unos minutos.`;
+    } else if (msg.includes("Factura A requiere CUIT")) {
+      afipStatus = "validation_error";
+      userMsg = msg;
+    }
+
+    // Persist error to invoice for traceability and UI display
+    if (invoice_id) {
+      await supabase
+        .from("invoices")
+        .update({ afip_status: afipStatus, afip_error: userMsg })
+        .eq("id", invoice_id)
+        .catch(() => {});
+    }
+
+    return err(userMsg, afipStatus === "network_error" ? 503 : 422);
   }
 });
 
