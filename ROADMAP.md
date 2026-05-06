@@ -93,7 +93,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 - [x] Tiendanube: sincronizacion con retry/backoff en 429, per-item error logging, ordersUpdated, notificacion en errores. Webhook con HMAC-SHA256 (X-Hub-Signature), retry en TN API, productos/deleted soft-delete, cancelaciones marcan paid=false. _(2026-05-06)_
 - [x] Mercado Pago: webhook confirma pago, actualiza payment_links.status + sales.paid, notifica al owner. Verifica x-signature HMAC-SHA256 contra MP_WEBHOOK_SECRET. Multi-org lookup por access_token. _(2026-05-06)_
-- [ ] Stripe: webhooks idempotentes, dunning y estados de suscripcion completos.
+- [x] Stripe: webhooks idempotentes via stripe_events table, dunning completo (payment_failed con attempt count, trial_will_end 3 días, subscription.paused/resumed, invoice.payment_action_required), notificaciones in-app por evento de billing. _(2026-05-06)_
 - [ ] AFIP: separar homologacion/produccion, registrar errores y permitir reintentos controlados.
 - [ ] Public API: versionado, rate limits, API keys rotables, scopes y documentacion.
 - [ ] Webhooks salientes: firma HMAC, retries, historial de entregas y alertas.
