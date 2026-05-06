@@ -53,6 +53,22 @@ interface Expense {
   amount: number;
 }
 
+interface DebtPayment {
+  id: string;
+  paid_at: string;
+  customer_name: string;
+  amount_ars: number;
+  description: string;
+}
+
+interface SupplierPayment {
+  id: string;
+  paid_at: string;
+  amount_ars: number;
+  method: string;
+  supplier_name: string;
+}
+
 const TX_EMPTY = {
   date: new Date().toISOString().slice(0, 10),
   description: "",
@@ -94,6 +110,8 @@ export default function BankReconciliationPage() {
   const [txs, setTxs] = useState<BankTx[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [debtPayments, setDebtPayments] = useState<DebtPayment[]>([]);
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(TX_EMPTY);
@@ -113,14 +131,30 @@ export default function BankReconciliationPage() {
     if (!activeOrg) return;
     setLoading(true);
     try {
-      const [{ data: bankTxs }, { data: salesData }, { data: expData }] = await Promise.all([
+      const [{ data: bankTxs }, { data: salesData }, { data: expData }, { data: debtData }, { data: suppPayData }] = await Promise.all([
         supabase.from("bank_transactions" as any).select("*").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("sales").select("id,date,customer_name,total_ars,method").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo + "T23:59:59"),
         supabase.from("expenses").select("id,date,description,amount").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo),
+        supabase.from("debts" as any).select("id,paid_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
+        supabase.from("supplier_payments" as any).select("id,paid_at,amount_ars,method,supplier_debt_id,supplier_debts(supplier_name)").eq("org_id", activeOrg.id).gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
       ]);
       setTxs((bankTxs || []) as BankTx[]);
       setSales((salesData || []) as Sale[]);
       setExpenses((expData || []) as Expense[]);
+      setDebtPayments(((debtData || []) as any[]).map(d => ({
+        id: d.id,
+        paid_at: d.paid_at,
+        customer_name: d.customer_name,
+        amount_ars: d.amount_ars,
+        description: d.description,
+      })));
+      setSupplierPayments(((suppPayData || []) as any[]).map(p => ({
+        id: p.id,
+        paid_at: p.paid_at,
+        amount_ars: p.amount_ars,
+        method: p.method,
+        supplier_name: (p as any).supplier_debts?.supplier_name || "Proveedor",
+      })));
     } finally {
       setLoading(false);
     }
@@ -198,17 +232,19 @@ export default function BankReconciliationPage() {
     let matched = 0;
     for (const tx of filtered.filter(t => !t.matched)) {
       if (tx.type === "credit") {
-        const match = sales.find(s =>
-          Math.abs(s.total_ars - tx.amount_ars) < 1 &&
-          s.date.slice(0, 10) === tx.date
-        );
-        if (match) { await handleMatch(tx.id, `Venta ${match.id.slice(0, 8)}`); matched++; }
+        // Try sales first
+        const sale = sales.find(s => Math.abs(s.total_ars - tx.amount_ars) < 1 && s.date.slice(0, 10) === tx.date);
+        if (sale) { await handleMatch(tx.id, `Venta ${sale.customer_name} ${sale.id.slice(0, 8)}`); matched++; continue; }
+        // Try debt payments (cobros de deuda)
+        const debt = debtPayments.find(d => Math.abs(d.amount_ars - tx.amount_ars) < 1 && d.paid_at?.slice(0, 10) === tx.date);
+        if (debt) { await handleMatch(tx.id, `Cobro deuda: ${debt.customer_name}`); matched++; continue; }
       } else {
-        const match = expenses.find(e =>
-          Math.abs(e.amount - tx.amount_ars) < 1 &&
-          e.date === tx.date
-        );
-        if (match) { await handleMatch(tx.id, `Gasto: ${match.description}`); matched++; }
+        // Try expenses
+        const exp = expenses.find(e => Math.abs(e.amount - tx.amount_ars) < 1 && e.date === tx.date);
+        if (exp) { await handleMatch(tx.id, `Gasto: ${exp.description}`); matched++; continue; }
+        // Try supplier payments
+        const sp = supplierPayments.find(p => Math.abs(p.amount_ars - tx.amount_ars) < 1 && p.paid_at?.slice(0, 10) === tx.date);
+        if (sp) { await handleMatch(tx.id, `Pago proveedor: ${sp.supplier_name}`); matched++; continue; }
       }
     }
     if (matched > 0) toast.success(`${matched} movimiento(s) conciliados automáticamente`);
@@ -237,10 +273,21 @@ export default function BankReconciliationPage() {
   // ─── Render ───────────────────────────────────────────────────────────────────
 
   const matchTx = txs.find(t => t.id === matchOpen);
-  const matchCandidates = matchTx
-    ? (matchTx.type === "credit" ? sales : expenses).filter((item: any) =>
-        Math.abs((item.total_ars || item.amount) - matchTx.amount_ars) <= matchTx.amount_ars * 0.1
-      )
+  const matchCandidates: { id: string; label: string; sublabel: string; amount: number; ref: string }[] = matchTx
+    ? [
+        ...(matchTx.type === "credit" ? sales : [])
+          .filter(s => Math.abs(s.total_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
+          .map(s => ({ id: s.id, label: `Venta — ${s.customer_name}`, sublabel: s.date?.slice(0, 10), amount: s.total_ars, ref: `Venta ${s.customer_name} ${s.id.slice(0, 8)}` })),
+        ...(matchTx.type === "credit" ? debtPayments : [])
+          .filter(d => Math.abs(d.amount_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
+          .map(d => ({ id: d.id, label: `Cobro deuda — ${d.customer_name}`, sublabel: d.paid_at?.slice(0, 10), amount: d.amount_ars, ref: `Cobro deuda: ${d.customer_name}` })),
+        ...(matchTx.type === "debit" ? expenses : [])
+          .filter(e => Math.abs(e.amount - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
+          .map(e => ({ id: e.id, label: `Gasto — ${e.description}`, sublabel: e.date, amount: e.amount, ref: `Gasto: ${e.description}` })),
+        ...(matchTx.type === "debit" ? supplierPayments : [])
+          .filter(p => Math.abs(p.amount_ars - matchTx.amount_ars) <= matchTx.amount_ars * 0.15)
+          .map(p => ({ id: p.id, label: `Pago proveedor — ${p.supplier_name}`, sublabel: p.paid_at?.slice(0, 10), amount: p.amount_ars, ref: `Pago proveedor: ${p.supplier_name}` })),
+      ]
     : [];
 
   return (
@@ -443,19 +490,19 @@ export default function BankReconciliationPage() {
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Posibles coincidencias (±10%)</Label>
                 {matchCandidates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No se encontraron coincidencias automáticas.</p>
+                  <p className="text-sm text-muted-foreground">No se encontraron coincidencias (±15%).</p>
                 ) : (
-                  matchCandidates.slice(0, 5).map((c: any) => (
+                  matchCandidates.slice(0, 6).map(c => (
                     <button
                       key={c.id}
                       className="w-full text-left rounded-lg border border-border p-3 hover:bg-muted/30 text-sm flex justify-between items-center gap-2"
-                      onClick={() => handleMatch(matchTx.id, `${matchTx.type === "credit" ? "Venta" : "Gasto"} ${c.id?.slice(0, 8)}`)}
+                      onClick={() => handleMatch(matchTx.id, c.ref)}
                     >
                       <div>
-                        <div className="font-medium">{c.customer_name || c.description}</div>
-                        <div className="text-xs text-muted-foreground">{c.date?.slice(0, 10)}</div>
+                        <div className="font-medium">{c.label}</div>
+                        <div className="text-xs text-muted-foreground">{c.sublabel}</div>
                       </div>
-                      <div className="font-mono font-semibold">{formatARS(c.total_ars || c.amount)}</div>
+                      <div className="font-mono font-semibold">{formatARS(c.amount)}</div>
                     </button>
                   ))
                 )}

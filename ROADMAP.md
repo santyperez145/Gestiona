@@ -76,7 +76,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. _(CashSessionPage + cash_entries + trigger trg_sale_cash_entry + cash_session_summary)_
 - [x] Completar cuenta corriente de cliente: cuotas pendientes del installment_schedule visibles y cobrables directamente desde el perfil expandido en CustomersPage. _(2026-05-05 — seccion "Cuotas pendientes" con boton Cobrar, marca paid=true y muestra vencidas en rojo)_
 - [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial. _(supplier_debts table existe; falta flujo de pago parcial en UI)_
-- [ ] Vincular conciliacion bancaria con ventas, gastos, pagos de deuda y Mercado Pago.
+- [x] Vincular conciliacion bancaria con ventas, gastos, pagos de deuda y Mercado Pago. _(2026-05-06 — BankReconciliationPage carga debts pagadas y supplier_payments como candidatos de match; auto-conciliar los incluye; match dialog muestra los 4 tipos con tolerancia ±15%)_
 - [x] Agregar exportaciones utiles: productos, ventas, clientes, caja, reportes y contabilidad. _(ReportsPage tiene CSV y PDF para ventas, compras, gastos, productos, deudas, equipo)_
 
 ### P2 - Preparar lanzamiento SaaS
