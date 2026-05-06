@@ -83,11 +83,11 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 
 - [x] Aplicar limites reales por plan: productos (ProductsPage), ventas mensuales (POSPage, SalesPage), usuarios (TeamPage). _(2026-05-05 — usePlanLimits.ts hook con checkProductLimit/checkSalesLimit/checkUserLimit; integrado en POSPage.confirmSale y SalesPage.handleSubmit con toast + link a /precios. ProductsPage y TeamPage ya tenian guards visuales)_
 - [x] Persistir onboarding en base de datos por organizacion. _(2026-05-05 — migration agrega organizations.onboarding_completed, OnboardingPage lo setea en DB al finish(), App.tsx lo verifica antes que localStorage)_
-- [ ] Mejorar pantalla de pricing y estado de suscripcion.
+- [x] Mejorar pantalla de pricing y estado de suscripcion. _(2026-05-06 — PricingPage con: banner de suscripcion activa, badge "plan actual", CTA dinámico segun estado, savings anuales, social proof, FAQ acordeon, footer CTA; rutas /precios y /pricing)_
 - [x] Completar ciclo de trial y dunning: invoice.payment_succeeded reactiva past_due; cron expire_overdue_trials expira trials sin tarjeta; portal Stripe para actualizar metodo de pago (create-billing-portal Edge Function + boton en SettingsPage). _(2026-05-05)_
 - [ ] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras.
 - [x] Crear datos demo por rubro para onboarding: seed_demo_data() DB function + seed-demo Edge Function + boton "Cargar datos de ejemplo" en paso 3 del OnboardingPage. _(2026-05-05 — 3 productos perfumeria, 3 ventas, 1 deuda, 1 cliente demo)_
-- [ ] Preparar politica de privacidad, terminos, cookies y tratamiento de datos.
+- [x] Preparar politica de privacidad, terminos, cookies y tratamiento de datos. _(2026-05-06 — PrivacyPage en /privacidad + TermsPage en /terminos: ley 25.326, datos, retención, integraciones, responsabilidad limitada, ley argentina)_
 
 ### P3 - Integraciones confiables
 

@@ -37,6 +37,8 @@ import PublicCatalogPage from "@/pages/PublicCatalogPage";
 import PublicPaymentPage from "@/pages/PublicPaymentPage";
 import LandingPage from "@/pages/LandingPage";
 import PricingPage from "@/pages/PricingPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import TermsPage from "@/pages/TermsPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import TeamPage from "@/pages/TeamPage";
 import InvitationAcceptPage from "@/pages/InvitationAcceptPage";
@@ -227,6 +229,9 @@ const App = () => (
               <Route path="/landing" element={<Navigate to="/" replace />} />
               <Route path="/login" element={<AuthPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/precios" element={<PricingPage />} />
+              <Route path="/privacidad" element={<PrivacyPage />} />
+              <Route path="/terminos" element={<TermsPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
               <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
