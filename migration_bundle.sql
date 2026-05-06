@@ -226,7 +226,7 @@ DROP TRIGGER IF EXISTS update_settings_updated_at ON public.settings;
 CREATE TRIGGER update_settings_updated_at BEFORE UPDATE ON public.settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Storage bucket for marketing images
-INSERT INTO storage.buckets (id, name, public) VALUES ('marketing-images', 'marketing-images', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('marketing-images', 'marketing-images', true) ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "Authenticated users can upload marketing images" ON storage.objects;
 CREATE POLICY "Authenticated users can upload marketing images" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'marketing-images');
 DROP POLICY IF EXISTS "Anyone can view marketing images" ON storage.objects;
@@ -624,7 +624,7 @@ $$;
 -- == MIGRATION: 20260408000812_12688b66-f72f-4e41-8844-1ee581917555.sql ==
 
 -- Create storage bucket for product images
-INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT (id) DO NOTHING;
 
 -- Public read access
 DROP POLICY IF EXISTS "Product images are publicly accessible" ON storage.objects;
