@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.org_invitations (
   org_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   email text NOT NULL,
   role public.org_role NOT NULL DEFAULT 'viewer',
-  token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
   invited_by uuid NOT NULL,
   accepted_at timestamptz,
   expires_at timestamptz NOT NULL DEFAULT now() + interval '7 days',

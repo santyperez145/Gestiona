@@ -988,7 +988,7 @@ BEGIN
   IF NEW.payment_method NOT IN ('efectivo','transferencia','debito','credito','mayorista') THEN
     RETURN NEW;
   END IF;
-  SELECT m.org_id INTO v_org_id FROM public.memberships m WHERE m.user_id = NEW.user_id ORDER BY m.created_at LIMIT 1;
+  SELECT m.org_id INTO v_org_id FROM public.memberships m WHERE m.user_id = NEW.user_id ORDER BY m.joined_at LIMIT 1;
   IF v_org_id IS NULL THEN RETURN NEW; END IF;
   SELECT id INTO v_session FROM public.cash_sessions WHERE org_id = v_org_id AND status = 'open' ORDER BY opened_at DESC LIMIT 1;
   IF v_session IS NULL THEN RETURN NEW; END IF;
@@ -1123,7 +1123,7 @@ DECLARE
   v_org_id       UUID;
   v_variant_name TEXT;
 BEGIN
-  SELECT m.org_id INTO v_org_id FROM public.memberships m WHERE m.user_id = NEW.user_id ORDER BY m.created_at LIMIT 1;
+  SELECT m.org_id INTO v_org_id FROM public.memberships m WHERE m.user_id = NEW.user_id ORDER BY m.joined_at LIMIT 1;
   IF v_org_id IS NULL THEN RETURN NEW; END IF;
   IF NEW.variant_id IS NOT NULL THEN
     SELECT variant_name INTO v_variant_name FROM public.product_variants WHERE id = NEW.variant_id;
@@ -1149,7 +1149,7 @@ CREATE OR REPLACE FUNCTION public.trg_purchase_stock_movement()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE v_org_id UUID;
 BEGIN
-  SELECT m.org_id INTO v_org_id FROM public.memberships m WHERE m.user_id = NEW.user_id ORDER BY m.created_at LIMIT 1;
+  SELECT m.org_id INTO v_org_id FROM public.memberships m WHERE m.user_id = NEW.user_id ORDER BY m.joined_at LIMIT 1;
   IF v_org_id IS NULL THEN RETURN NEW; END IF;
   PERFORM public.record_stock_movement(
     p_org_id=>v_org_id, p_product_id=>NEW.product_id, p_variant_id=>NULL,

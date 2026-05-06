@@ -74,7 +74,7 @@ BEGIN
   SELECT m.org_id INTO v_org_id
   FROM public.memberships m
   WHERE m.user_id = NEW.user_id
-  ORDER BY m.created_at LIMIT 1;
+  ORDER BY m.joined_at LIMIT 1;
 
   IF v_org_id IS NULL THEN RETURN NEW; END IF;
 

@@ -64,7 +64,6 @@ export default function SalesPage() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
-  const { checkSalesLimit } = usePlanLimits();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -341,6 +340,7 @@ function calcLineItem(
 
 // ============ MULTI-PRODUCT SALE FORM ============
 function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
+  const { checkSalesLimit } = usePlanLimits();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [customers, setCustomers] = useState<string[]>([]);
