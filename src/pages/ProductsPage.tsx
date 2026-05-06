@@ -587,6 +587,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
     if (cost <= 0) { toast.error("El costo debe ser mayor a 0"); return; }
     
+    try {
     const urls = await uploadAllImages();
     const imageUrl = urls[0] || null;
     // If vaper with variants, stock = sum of variant stocks
