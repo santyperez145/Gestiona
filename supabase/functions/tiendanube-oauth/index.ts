@@ -1,5 +1,6 @@
 // Exchange Tiendanube OAuth authorization code for access token and persist the connection.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireEnv } from "../_shared/env.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,8 +12,10 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const supabaseAnonKey = requireEnv("SUPABASE_ANON_KEY");
+    const supabaseServiceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader || "" } },
     });
 
@@ -31,13 +34,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const clientId = Deno.env.get("TIENDANUBE_CLIENT_ID");
-    const clientSecret = Deno.env.get("TIENDANUBE_CLIENT_SECRET");
-    if (!clientId || !clientSecret) {
-      return new Response(JSON.stringify({ error: "Integración Tiendanube no configurada en el servidor." }), {
-        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const clientId = requireEnv("TIENDANUBE_CLIENT_ID");
+    const clientSecret = requireEnv("TIENDANUBE_CLIENT_SECRET");
 
     // Exchange authorization code for access token
     const tokenRes = await fetch("https://www.tiendanube.com/apps/authorize/token", {
@@ -83,7 +81,7 @@ Deno.serve(async (req) => {
     }
 
     // Upsert connection (one connection per org+store)
-    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
     const { error: upsertErr } = await admin.from("tiendanube_connections").upsert({
       org_id: orgId,
       store_id: String(storeId),

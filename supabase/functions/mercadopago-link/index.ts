@@ -1,6 +1,7 @@
 // Creates a Mercado Pago payment preference and returns the checkout URL.
 // The org admin must save their MP access token in Settings → Integraciones.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireEnv } from "../_shared/env.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,8 +13,10 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const supabaseAnonKey = requireEnv("SUPABASE_ANON_KEY");
+    const supabaseServiceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader || "" } },
     });
 
@@ -32,7 +35,7 @@ Deno.serve(async (req) => {
     }
 
     // Get MP access token from org settings
-    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
     const { data: settings } = await admin
       .from("settings")
       .select("mp_access_token, mp_enabled")

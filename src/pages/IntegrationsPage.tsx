@@ -12,6 +12,7 @@ import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
   Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
+  History, XCircle, Clock,
 } from "lucide-react";
 
 const TIENDANUBE_APP_ID = import.meta.env.VITE_TIENDANUBE_APP_ID || "";
@@ -59,8 +60,15 @@ export default function IntegrationsPage() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [webhookEvents, setWebhookEvents] = useState<string[]>(["sale.created", "stock.low", "debt.overdue"]);
+  const [webhookSecret, setWebhookSecret] = useState("");
+  const [webhookSecretVisible, setWebhookSecretVisible] = useState(false);
   const [savingWebhook, setSavingWebhook] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
+
+  // Webhook delivery history
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [loadingDeliveries, setLoadingDeliveries] = useState(false);
+  const [showDeliveries, setShowDeliveries] = useState(false);
 
   const loadConnection = async () => {
     if (!activeOrg) return;
@@ -87,6 +95,7 @@ export default function IntegrationsPage() {
       setApiKey((data as any).api_key || null);
       setWebhookUrl((data as any).webhook_url || "");
       setWebhookEnabled(!!(data as any).webhook_enabled);
+      setWebhookSecret((data as any).webhook_secret || "");
       if ((data as any).webhook_events) setWebhookEvents((data as any).webhook_events);
     }
     setMpLoaded(true);
@@ -125,10 +134,31 @@ export default function IntegrationsPage() {
       webhook_url: webhookUrl.trim() || null,
       webhook_enabled: webhookEnabled,
       webhook_events: webhookEvents,
+      webhook_secret: webhookSecret.trim() || null,
     } as any, { onConflict: "org_id" });
     setSavingWebhook(false);
     if (error) toast.error("Error al guardar webhook");
     else toast.success("Webhook guardado");
+  };
+
+  const handleGenerateWebhookSecret = () => {
+    const secret = "whsec_" + Array.from(crypto.getRandomValues(new Uint8Array(20)))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+    setWebhookSecret(secret);
+    setWebhookSecretVisible(true);
+  };
+
+  const loadDeliveries = async () => {
+    if (!activeOrg) return;
+    setLoadingDeliveries(true);
+    const { data } = await supabase
+      .from("webhook_deliveries" as any)
+      .select("*")
+      .eq("org_id", activeOrg.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    setDeliveries((data as any[]) || []);
+    setLoadingDeliveries(false);
   };
 
   const handleTestWebhook = async () => {
@@ -618,7 +648,39 @@ export default function IntegrationsPage() {
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">El cuerpo del payload incluye: event, org_id, timestamp, data</p>
+          <p className="text-xs text-muted-foreground">
+            Payload: <code className="text-[10px]">event, org_id, timestamp, delivery_id, data</code>
+            {" · "}Firma: <code className="text-[10px]">X-Gestiona-Signature: sha256=...</code>
+          </p>
+        </div>
+
+        {/* Webhook secret for HMAC verification */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Secret para verificar firma (HMAC-SHA256)</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={webhookSecretVisible ? "text" : "password"}
+                value={webhookSecret}
+                onChange={e => setWebhookSecret(e.target.value)}
+                placeholder="whsec_... (opcional, se usa org_id si está vacío)"
+                className="bg-muted border-border pr-10 font-mono text-xs"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setWebhookSecretVisible(v => !v)}
+              >
+                {webhookSecretVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleGenerateWebhookSecret}>
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Verificá la firma en tu endpoint: <code>hmac_sha256(secret, request_body) === header['x-gestiona-signature'].replace('sha256=','')</code>
+          </p>
         </div>
 
         <div className="flex gap-2">
@@ -630,6 +692,56 @@ export default function IntegrationsPage() {
             {savingWebhook ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
             Guardar
           </Button>
+        </div>
+
+        {/* Webhook delivery history */}
+        <div className="border-t border-border pt-3">
+          <button
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => {
+              const next = !showDeliveries;
+              setShowDeliveries(next);
+              if (next && deliveries.length === 0) loadDeliveries();
+            }}
+          >
+            <History className="w-3.5 h-3.5" />
+            {showDeliveries ? "Ocultar historial" : "Ver historial de entregas"}
+            {deliveries.length > 0 && ` (${deliveries.length})`}
+            {loadingDeliveries && <Loader2 className="w-3 h-3 animate-spin" />}
+          </button>
+
+          {showDeliveries && (
+            <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
+              {deliveries.length === 0 && !loadingDeliveries && (
+                <p className="text-xs text-muted-foreground text-center py-4">Sin entregas registradas aún</p>
+              )}
+              {deliveries.map(d => (
+                <div key={d.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
+                  d.delivered
+                    ? "bg-green-500/5 border-green-500/20"
+                    : "bg-red-500/5 border-red-500/20"
+                }`}>
+                  {d.delivered
+                    ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                    : <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
+                  <span className="font-mono text-muted-foreground shrink-0">{d.event}</span>
+                  <span className="flex-1 text-muted-foreground/60 text-[10px] truncate">
+                    {d.last_response_status ? `HTTP ${d.last_response_status}` : "Sin respuesta"}
+                    {d.attempt_count > 1 && ` (${d.attempt_count} intentos)`}
+                  </span>
+                  <span className="text-muted-foreground/50 shrink-0">
+                    {new Date(d.created_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                </div>
+              ))}
+              {deliveries.length > 0 && (
+                <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={loadDeliveries} disabled={loadingDeliveries}>
+                  <RefreshCw className={`w-3 h-3 mr-1 ${loadingDeliveries ? "animate-spin" : ""}`} />
+                  Recargar
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

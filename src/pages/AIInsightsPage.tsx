@@ -82,6 +82,7 @@ function parseMarkdownSections(text: string): { title: string; body: string }[] 
   let current: { title: string; body: string } | null = null;
 
   for (const line of lines) {
+    // eslint-disable-next-line no-misleading-character-class
     const heading = line.match(/^([1-9]\d*\.\s+[🎯📈📦💰📊🚨📋❌💵📝#️⃣📱💡⏰👑😴🔄🛒📬💲🏷️⚠️📉🏦].+)/u);
     if (heading) {
       if (current) sections.push(current);

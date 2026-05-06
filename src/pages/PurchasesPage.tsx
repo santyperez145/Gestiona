@@ -189,8 +189,8 @@ export default function PurchasesPage() {
 }
 
 function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
-  const { org } = useOrg();
-  const orgId = org?.id;
+  const { activeOrg } = useOrg();
+  const orgId = activeOrg?.id;
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -202,6 +202,9 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [isScheduled, setIsScheduled] = useState(!!editItem?.is_scheduled);
   const [scheduledDate, setScheduledDate] = useState(editItem?.scheduled_date ? new Date(editItem.scheduled_date).toISOString().slice(0, 10) : new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
+  const [createSupplierDebt, setCreateSupplierDebt] = useState(false);
+  const [supplierDebtDueDate, setSupplierDebtDueDate] = useState(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+  const [supplierDebtNotes, setSupplierDebtNotes] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -211,9 +214,22 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
       if (orgId) {
         const { data } = await supabase.from("suppliers").select("id,name").eq("org_id", orgId).order("name");
         if (data) setSuppliers(data);
+
+        if (editItem?.id) {
+          const { data: existingDebt } = await supabase
+            .from("supplier_debts" as any)
+            .select("due_date, notes")
+            .eq("purchase_id", editItem.id)
+            .maybeSingle();
+          if (existingDebt) {
+            setCreateSupplierDebt(true);
+            if (existingDebt.due_date) setSupplierDebtDueDate(existingDebt.due_date);
+            if (existingDebt.notes) setSupplierDebtNotes(existingDebt.notes);
+          }
+        }
       }
     })();
-  }, [userId, orgId]);
+  }, [userId, orgId, editItem?.id]);
 
   const product = products.find(p => p.id === productId);
   const qty = parseInt(quantity) || 0;
@@ -226,6 +242,8 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (createSupplierDebt && isScheduled) { toast.error("La cuenta a pagar se crea cuando la compra ya estÃ¡ realizada"); return; }
+    if (createSupplierDebt && !supplierId && !supplier.trim()) { toast.error("SeleccionÃ¡ un proveedor para registrar la cuenta a pagar"); return; }
     if (!productId || qty <= 0) { toast.error("Seleccioná producto y cantidad"); return; }
     const purchaseData: any = {
       product_id: productId, product_name: product!.name,
@@ -233,6 +251,9 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
       total_usd: totalUSD, exchange_rate: rate, total_ars: totalARS, date: dateToNoon(date), supplier, supplier_id: supplierId || null,
       is_scheduled: isScheduled,
       scheduled_date: isScheduled ? dateToNoon(scheduledDate) : null,
+      create_supplier_debt: !isScheduled && createSupplierDebt,
+      supplier_debt_due_date: !isScheduled && createSupplierDebt ? supplierDebtDueDate || null : null,
+      supplier_debt_notes: !isScheduled && createSupplierDebt ? supplierDebtNotes || null : null,
     };
     if (editItem) {
       await updatePurchaseDB(editItem.id, purchaseData, editItem);
@@ -294,6 +315,29 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
           <Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Opcional" className="bg-muted border-border" />
         )}
       </div>
+      <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+        <div>
+          <p className="text-sm font-medium">Registrar cuenta a pagar</p>
+          <p className="text-[11px] text-muted-foreground">Vincula la compra con proveedores para seguir pagos pendientes.</p>
+        </div>
+        <Switch
+          checked={createSupplierDebt}
+          onCheckedChange={setCreateSupplierDebt}
+          disabled={isScheduled || (!supplierId && !supplier.trim())}
+        />
+      </div>
+      {createSupplierDebt && !isScheduled && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm text-muted-foreground">Vencimiento</label>
+            <Input type="date" value={supplierDebtDueDate} onChange={e => setSupplierDebtDueDate(e.target.value)} className="bg-muted border-border" />
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground">Nota</label>
+            <Input value={supplierDebtNotes} onChange={e => setSupplierDebtNotes(e.target.value)} placeholder="Opcional" className="bg-muted border-border" />
+          </div>
+        </div>
+      )}
       {product && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
           <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span>{formatUSD(unitCost)}</span></div>

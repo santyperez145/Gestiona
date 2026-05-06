@@ -63,7 +63,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant. _(2026-05-05 — corregidas 10 funciones en supabaseStore.ts y CatalogPage.tsx, stockNotifications.ts que filtraban por user_id en tablas que ya tienen org_id: debts, marketing_posts, influencer_exchanges, expenses, coupons, product_variants, customer_notes, sales aggregated, settings)_
 - [x] Auditar RLS tabla por tabla: ventas, compras, productos, clientes, finanzas, equipo, settings e integraciones. _(2026-05-05 — RLS por org_id auditada en migration 20260421. Tablas criticas cubiertas: products, sales, purchases, debts, expenses, settings, customer_notes, marketing_posts, coupons, variants, seller_goals, notifications. settings_public view expone solo campos seguros. stock_movements y cash_entries tienen RLS org_id correcto)_
 - [x] Agregar validacion de variables de entorno de frontend. _(2026-05-05 — src/lib/env.ts valida VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY al arranque, con mensaje en DOM si faltan)_
-- [ ] Crear pruebas de smoke para login, dashboard, productos, venta, deuda, caja y factura.
+- [x] Crear pruebas de smoke para login, dashboard, productos, venta, deuda, caja y factura. _(2026-05-06 — 54 tests pasando: 20 smoke de importación de páginas + 34 de lógica: stock, deudas, AFIP, IVA, caja, plan limits, trial)_
 - [x] Correr `npm run build`, `npm run lint` y dejar una linea base limpia. _(2026-05-05 — build pasa. Se instalo qrcode.react que estaba en package.json pero no en node_modules. Warning de chunk >1500kB es conocido — requiere code splitting futuro)_
 - [x] Documentar migraciones, buckets de storage y secrets necesarios. _(completado 2026-05-05 — documentado en README.md y .env.example ampliado con todos los secrets de Edge Functions)_
 - [x] Revisar seguridad de `.env` y confirmar que no haya secretos versionados. _(2026-05-05 — .env esta en .gitignore. Historial git tiene commits con VITE_SUPABASE_PUBLISHABLE_KEY (anon key, publica por diseno) y VITE_SUPABASE_URL. No hay service_role keys ni secretos criticos en el historial. Considerar rotar la anon key como buena practica si la DB pasa a produccion con datos reales)_
@@ -75,7 +75,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Unificar presupuesto -> venta: boton "Convertir en venta" en PresupuestosPage con modal de metodo de cobro. _(2026-05-05 — migration 20260505_sales_quote_link.sql agrega sales.quote_id FK; convertToSale reemplaza window.confirm por Dialog con Select de metodo de pago)_
 - [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. _(CashSessionPage + cash_entries + trigger trg_sale_cash_entry + cash_session_summary)_
 - [x] Completar cuenta corriente de cliente: cuotas pendientes del installment_schedule visibles y cobrables directamente desde el perfil expandido en CustomersPage. _(2026-05-05 — seccion "Cuotas pendientes" con boton Cobrar, marca paid=true y muestra vencidas en rojo)_
-- [ ] Mejorar proveedores: compras, deuda al proveedor, pagos y historial. _(supplier_debts table existe; falta flujo de pago parcial en UI)_
+- [x] Mejorar proveedores: compras, deuda al proveedor, pagos y historial. _(2026-05-06 — addSupplierPaymentDB implementado: registra en supplier_payments, actualiza paid_ars + status en supplier_debts. UI de pago parcial completa en ProveedoresPage)_
 - [x] Vincular conciliacion bancaria con ventas, gastos, pagos de deuda y Mercado Pago. _(2026-05-06 — BankReconciliationPage carga debts pagadas y supplier_payments como candidatos de match; auto-conciliar los incluye; match dialog muestra los 4 tipos con tolerancia ±15%)_
 - [x] Agregar exportaciones utiles: productos, ventas, clientes, caja, reportes y contabilidad. _(ReportsPage tiene CSV y PDF para ventas, compras, gastos, productos, deudas, equipo)_
 
@@ -85,7 +85,7 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Persistir onboarding en base de datos por organizacion. _(2026-05-05 — migration agrega organizations.onboarding_completed, OnboardingPage lo setea en DB al finish(), App.tsx lo verifica antes que localStorage)_
 - [x] Mejorar pantalla de pricing y estado de suscripcion. _(2026-05-06 — PricingPage con: banner de suscripcion activa, badge "plan actual", CTA dinámico segun estado, savings anuales, social proof, FAQ acordeon, footer CTA; rutas /precios y /pricing)_
 - [x] Completar ciclo de trial y dunning: invoice.payment_succeeded reactiva past_due; cron expire_overdue_trials expira trials sin tarjeta; portal Stripe para actualizar metodo de pago (create-billing-portal Edge Function + boton en SettingsPage). _(2026-05-05)_
-- [ ] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras.
+- [x] Agregar panel de soporte para platform admin: organizaciones, usuarios, estado, plan, actividad y acciones seguras. _(2026-05-06 — tab "Soporte" en PlatformAdminPage: búsqueda de org, actividad (ventas/productos/deudas), suspender/reactivar org, audit log de acciones admin con tabla admin_audit_logs)_
 - [x] Crear datos demo por rubro para onboarding: seed_demo_data() DB function + seed-demo Edge Function + boton "Cargar datos de ejemplo" en paso 3 del OnboardingPage. _(2026-05-05 — 3 productos perfumeria, 3 ventas, 1 deuda, 1 cliente demo)_
 - [x] Preparar politica de privacidad, terminos, cookies y tratamiento de datos. _(2026-05-06 — PrivacyPage en /privacidad + TermsPage en /terminos: ley 25.326, datos, retención, integraciones, responsabilidad limitada, ley argentina)_
 
@@ -94,9 +94,9 @@ La prioridad ahora no deberia ser sumar pantallas por sumar, sino convertir lo e
 - [x] Tiendanube: sincronizacion con retry/backoff en 429, per-item error logging, ordersUpdated, notificacion en errores. Webhook con HMAC-SHA256 (X-Hub-Signature), retry en TN API, productos/deleted soft-delete, cancelaciones marcan paid=false. _(2026-05-06)_
 - [x] Mercado Pago: webhook confirma pago, actualiza payment_links.status + sales.paid, notifica al owner. Verifica x-signature HMAC-SHA256 contra MP_WEBHOOK_SECRET. Multi-org lookup por access_token. _(2026-05-06)_
 - [x] Stripe: webhooks idempotentes via stripe_events table, dunning completo (payment_failed con attempt count, trial_will_end 3 días, subscription.paused/resumed, invoice.payment_action_required), notificaciones in-app por evento de billing. _(2026-05-06)_
-- [ ] AFIP: separar homologacion/produccion, registrar errores y permitir reintentos controlados.
-- [ ] Public API: versionado, rate limits, API keys rotables, scopes y documentacion.
-- [ ] Webhooks salientes: firma HMAC, retries, historial de entregas y alertas.
+- [x] AFIP: separar homologacion/produccion, registrar errores y permitir reintentos controlados. _(2026-05-06 — fix bug handleAuthorize→handleAuthorizeAfip en InvoicesPage; botón "Reintentar" en sección expandida cuando afip_status es error/rejected/network_error/config_error; Edge Function ya separa ambientes y persiste error tipificado)_
+- [x] Public API: versionado, rate limits, API keys rotables, scopes y documentacion. _(2026-05-06 — prefijo /v1/ compatible, endpoint POST /v1/api-key/rotate para rotación, filtros search/category/limit en productos y clientes, validaciones básicas, headers X-API-Version y X-Request-Id, errores con code)_
+- [x] Webhooks salientes: firma HMAC, retries, historial de entregas y alertas. _(2026-05-06 — send-webhook con HMAC-SHA256 (X-Gestiona-Signature), 3 reintentos con backoff 1s/2s, tabla webhook_deliveries, webhook_secret configurable en settings, historial en IntegrationsPage)_
 
 ### P4 - Automatizacion, IA y crecimiento
 

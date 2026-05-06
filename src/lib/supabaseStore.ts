@@ -652,6 +652,37 @@ export async function seedProductsForUser(userId: string) {
 }
 
 // ========= LOYALTY POINTS =========
+export async function addSupplierPaymentDB(
+  debtId: string,
+  amount: number,
+  opts: { paymentMethod?: string; note?: string } = {},
+) {
+  const { data: debt } = await supabase
+    .from('supplier_debts' as any)
+    .select('org_id, paid_ars, amount_ars, remaining_ars')
+    .eq('id', debtId)
+    .single();
+  if (!debt) throw new Error('Deuda no encontrada');
+
+  const newPaid = Number(debt.paid_ars) + amount;
+  const isFullyPaid = newPaid >= Number(debt.amount_ars) - 0.01;
+
+  await supabase.from('supplier_payments' as any).insert({
+    org_id: debt.org_id,
+    supplier_debt_id: debtId,
+    amount_ars: amount,
+    method: opts.paymentMethod || 'transferencia',
+    note: opts.note || null,
+  });
+
+  const { error } = await supabase.from('supplier_debts' as any).update({
+    paid_ars: newPaid,
+    status: isFullyPaid ? 'paid' : 'partial',
+  }).eq('id', debtId);
+
+  if (error) throw error;
+}
+
 export async function awardLoyaltyPointsForSale(
   orgId: string,
   customerName: string | null,

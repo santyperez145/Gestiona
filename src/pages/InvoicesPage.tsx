@@ -812,7 +812,7 @@ export default function InvoicesPage() {
                           <p className="text-xs text-muted-foreground">{inv.afip_error}</p>
                           {canManage && afipConfigured && inv.tipo_comprobante && (
                             <Button size="sm" variant="outline" className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
-                              onClick={() => handleAuthorize(inv)}
+                              onClick={() => handleAuthorizeAfip(inv)}
                             >
                               Reintentar autorización
                             </Button>

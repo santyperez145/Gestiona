@@ -1,13 +1,14 @@
 import * as Sentry from "@sentry/react";
+import { getOptionalEnv } from "./env";
 
 export function initSentry() {
-  const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+  const dsn = getOptionalEnv("VITE_SENTRY_DSN");
   if (!dsn) return; // skip in local dev without DSN configured
 
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    release: import.meta.env.VITE_APP_VERSION as string | undefined,
+    release: getOptionalEnv("VITE_APP_VERSION"),
     // Only sample a fraction in production to keep quota low
     tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
     // Replay 10% of sessions, 100% of sessions with errors

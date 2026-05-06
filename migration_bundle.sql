@@ -12,7 +12,7 @@
 -- ────────────────────────────────────────────────────────────
 
 -- Create role enum
-DO $ BEGIN CREATE TYPE public.app_role AS ENUM ('admin', 'vendedor'); EXCEPTION WHEN duplicate_object THEN NULL; END $;
+DO $$ BEGIN CREATE TYPE public.app_role AS ENUM ('admin', 'vendedor'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Timestamp update function
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -2112,7 +2112,7 @@ ON CONFLICT DO NOTHING;
 -- INVOICES / FACTURAS
 -- ============================================================
 
-DO $ BEGIN CREATE TYPE public.invoice_status AS ENUM ('draft', 'sent', 'paid', 'overdue', 'canceled'); EXCEPTION WHEN duplicate_object THEN NULL; END $;
+DO $$ BEGIN CREATE TYPE public.invoice_status AS ENUM ('draft', 'sent', 'paid', 'overdue', 'canceled'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS public.invoices (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),

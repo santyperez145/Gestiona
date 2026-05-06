@@ -15,7 +15,7 @@ import {
   AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard,
 } from "lucide-react";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import { formatARS } from "@/lib/supabaseStore";
+import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 
 type Supplier = {
   id: string;
@@ -33,7 +33,7 @@ type PurchaseSummary = {
   id: string;
   product_name: string;
   quantity: number;
-  total_price_ars: number;
+  total_ars: number;
   date: string;
 };
 
@@ -122,14 +122,7 @@ export default function ProveedoresPage() {
     const amount = Math.min(Number(payAmount), debt.remaining_ars);
     setSavingDebt(true);
     try {
-      const newPaid = debt.paid_ars + amount;
-      const newStatus = newPaid >= debt.amount_ars ? "paid" : "partial";
-      const [r1, r2] = await Promise.all([
-        supabase.from("supplier_debts" as any).update({ paid_ars: newPaid, status: newStatus, updated_at: new Date().toISOString() }).eq("id", payDebtId),
-        supabase.from("supplier_payments" as any).insert({ org_id: activeOrg.id, supplier_debt_id: payDebtId, amount_ars: amount, method: payMethod }),
-      ]);
-      if (r1.error) throw r1.error;
-      if (r2.error) throw r2.error;
+      await addSupplierPaymentDB(payDebtId, amount, { paymentMethod: payMethod });
       toast.success(`Pago de ${formatARS(amount)} registrado`);
       setPayDebtId(null);
       setPayAmount("");
@@ -146,7 +139,7 @@ export default function ProveedoresPage() {
     setLoadingPurchases(true);
     const { data } = await supabase
       .from("purchases")
-      .select("id, product_name, quantity, total_price_ars, date")
+      .select("id, product_name, quantity, total_ars, date")
       .eq("supplier_id", supplierId)
       .order("date", { ascending: false })
       .limit(10);
@@ -322,7 +315,7 @@ export default function ProveedoresPage() {
                           <span className="text-muted-foreground">{new Date(p.date).toLocaleDateString("es-AR")}</span>
                           <span className="flex-1 px-3 truncate">{p.product_name}</span>
                           <span className="text-muted-foreground">×{p.quantity}</span>
-                          <span className="ml-3 font-medium">${p.total_price_ars?.toLocaleString("es-AR")}</span>
+                          <span className="ml-3 font-medium">${p.total_ars?.toLocaleString("es-AR")}</span>
                         </div>
                       ))}
                     </div>

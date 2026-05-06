@@ -29,6 +29,32 @@ interface Invite {
   accepted_at: string | null;
 }
 
+async function getOrgUserLimit(orgId: string): Promise<number | null> {
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('plan_id')
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  let planId = sub?.plan_id || null;
+  if (!planId) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('plan_id')
+      .eq('id', orgId)
+      .maybeSingle();
+    planId = org?.plan_id || null;
+  }
+  if (!planId) return null;
+
+  const { data: plan } = await supabase
+    .from('plans')
+    .select('max_users')
+    .eq('id', planId)
+    .maybeSingle();
+  return plan?.max_users ?? null;
+}
+
 export default function TeamPage() {
   const { activeOrg, activeRole } = useOrg();
   const { userLimit, plan } = useEntitlements();
@@ -64,16 +90,40 @@ export default function TeamPage() {
   const invite = async () => {
     if (!activeOrg || !email.trim()) return;
     setSending(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('org_invitations').insert({
-      org_id: activeOrg.id,
-      email: email.trim().toLowerCase(),
-      role,
-      invited_by: user!.id,
-    });
-    if (error) { toast.error(error.message); }
-    else { toast.success('Invitación creada'); setEmail(''); load(); }
-    setSending(false);
+    try {
+      const [authRes, membersRes, invitesRes, limit] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id),
+        supabase.from('org_invitations').select('id', { count: 'exact', head: true }).eq('org_id', activeOrg.id).is('accepted_at', null),
+        getOrgUserLimit(activeOrg.id),
+      ]);
+
+      if (membersRes.error) throw membersRes.error;
+      if (invitesRes.error) throw invitesRes.error;
+
+      const totalSeatsInUse = (membersRes.count || 0) + (invitesRes.count || 0);
+      if (limit !== null && totalSeatsInUse >= limit) {
+        toast.error(`Límite de ${limit} usuarios alcanzado para este plan.`);
+        return;
+      }
+
+      const user = authRes.data.user;
+      const { error } = await supabase.from('org_invitations').insert({
+        org_id: activeOrg.id,
+        email: email.trim().toLowerCase(),
+        role,
+        invited_by: user!.id,
+      });
+      if (error) throw error;
+
+      toast.success('Invitación creada');
+      setEmail('');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'No se pudo crear la invitación');
+    } finally {
+      setSending(false);
+    }
   };
 
   const updateRole = async (id: string, newRole: OrgRole) => {

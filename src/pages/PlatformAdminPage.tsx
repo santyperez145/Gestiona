@@ -6,7 +6,8 @@ import {
   Building2, Users, DollarSign, TrendingUp, Search, RefreshCw,
   Clock, CheckCircle2, XCircle, Zap, Shield, Ban, Trash2,
   Edit2, AlertTriangle, Crown, UserX, UserCheck, ChevronRight,
-  MoreHorizontal, CalendarDays, Activity,
+  MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
+  History, ShoppingCart, Package,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -124,6 +125,14 @@ export default function PlatformAdminPage() {
   const [editPlanForm, setEditPlanForm] = useState<Partial<PlanRow>>({});
   const [saving, setSaving] = useState(false);
 
+  // Support tab state
+  const [adminLogs, setAdminLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [supportOrgSearch, setSupportOrgSearch] = useState('');
+  const [selectedOrg, setSelectedOrg] = useState<OrgRow | null>(null);
+  const [orgActivity, setOrgActivity] = useState<any>(null);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
   // ── Load functions ─────────────────────────────────────────────────────────
 
   const loadOrgs = useCallback(async () => {
@@ -208,6 +217,65 @@ export default function PlatformAdminPage() {
     if (tab === 'users' && users.length === 0 && isPlatformAdmin) loadUsers();
   }, [tab, isPlatformAdmin, users.length, loadUsers]);
 
+  useEffect(() => {
+    if (tab === 'support' && adminLogs.length === 0 && isPlatformAdmin) loadAdminLogs();
+  }, [tab, isPlatformAdmin, adminLogs.length]);
+
+  const loadAdminLogs = useCallback(async () => {
+    setLoadingLogs(true);
+    try {
+      const res = await adminCall('getAdminLogs', { limit: 50 });
+      setAdminLogs(res.logs || []);
+    } catch { /* silently fail */ }
+    setLoadingLogs(false);
+  }, []);
+
+  const loadOrgActivity = useCallback(async (orgId: string) => {
+    setLoadingActivity(true);
+    setOrgActivity(null);
+    try {
+      const res = await adminCall('getOrgActivity', { orgId });
+      setOrgActivity(res);
+    } catch { /* silently fail */ }
+    setLoadingActivity(false);
+  }, []);
+
+  const handleSuspendOrg = async (org: OrgRow) => {
+    try {
+      await adminCall('suspendOrg', { orgId: org.id });
+      toast.success(`${org.name} suspendida`);
+      loadOrgs();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleReactivateOrg = async (org: OrgRow) => {
+    try {
+      await adminCall('reactivateOrg', { orgId: org.id });
+      toast.success(`${org.name} reactivada`);
+      loadOrgs();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const supportFilteredOrgs = useMemo(() => {
+    if (!supportOrgSearch) return orgs.slice(0, 20);
+    const q = supportOrgSearch.toLowerCase();
+    return orgs.filter(r =>
+      r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q)
+    ).slice(0, 20);
+  }, [orgs, supportOrgSearch]);
+
+  const ACTION_LABELS: Record<string, string> = {
+    extendTrial: 'Extendió trial',
+    changePlan: 'Cambió plan',
+    deleteOrg: 'Eliminó org',
+    toggleBanUser: 'Baneó/desbaneó usuario',
+    addPlatformAdmin: 'Agregó admin',
+    removePlatformAdmin: 'Removió admin',
+    updatePlan: 'Actualizó plan',
+    suspendOrg: 'Suspendió org',
+    reactivateOrg: 'Reactivó org',
+  };
+
   // ── Org actions ────────────────────────────────────────────────────────────
 
   const handleExtendTrial = async () => {
@@ -263,7 +331,8 @@ export default function PlatformAdminPage() {
     try {
       await adminCall(isPA ? 'removePlatformAdmin' : 'addPlatformAdmin', { userId: u.id });
       const updated = new Set(platformAdminIds);
-      isPA ? updated.delete(u.id) : updated.add(u.id);
+      if (isPA) updated.delete(u.id);
+      else updated.add(u.id);
       setPlatformAdminIds(updated);
       setUsers(prev => prev.map(x => x.id === u.id ? { ...x, isPlatformAdmin: !isPA } : x));
       toast.success(isPA ? 'Admin de plataforma removido' : 'Admin de plataforma agregado');
@@ -370,11 +439,12 @@ export default function PlatformAdminPage() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-muted/50 flex-wrap">
           <TabsTrigger value="overview" className="gap-2"><Activity className="w-3.5 h-3.5" /> Resumen</TabsTrigger>
           <TabsTrigger value="orgs" className="gap-2"><Building2 className="w-3.5 h-3.5" /> Orgs ({orgs.length})</TabsTrigger>
           <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> Usuarios</TabsTrigger>
           <TabsTrigger value="plans" className="gap-2"><DollarSign className="w-3.5 h-3.5" /> Planes</TabsTrigger>
+          <TabsTrigger value="support" className="gap-2"><Headphones className="w-3.5 h-3.5" /> Soporte</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW TAB ── */}
@@ -623,6 +693,137 @@ export default function PlatformAdminPage() {
                   </div>
                 </div>
               ))}
+          </div>
+        </TabsContent>
+
+        {/* ── SUPPORT TAB ── */}
+        <TabsContent value="support" className="mt-4 space-y-5">
+          <div className="grid gap-5 lg:grid-cols-2">
+
+            {/* Org lookup */}
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm flex-1">Buscar organización</h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    value={supportOrgSearch}
+                    onChange={e => setSupportOrgSearch(e.target.value)}
+                    placeholder="Nombre o slug..."
+                    className="pl-8 h-8 text-sm bg-muted"
+                  />
+                </div>
+                <div className="space-y-1 max-h-52 overflow-y-auto">
+                  {supportFilteredOrgs.map(org => {
+                    const sc = STATUS_CONFIG[org.status] || STATUS_CONFIG.paused;
+                    const Icon = sc.icon;
+                    return (
+                      <button
+                        key={org.id}
+                        onClick={() => { setSelectedOrg(org); loadOrgActivity(org.id); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors hover:bg-muted/40 ${selectedOrg?.id === org.id ? 'bg-muted/60' : ''}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{org.name}</p>
+                          <p className="text-xs text-muted-foreground">/{org.slug} · {org.member_count} users</p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${sc.color}`}>
+                          <Icon className="w-2.5 h-2.5" />{sc.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Org detail */}
+              {selectedOrg && (
+                <div className="border-t border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm">{selectedOrg.name}</h4>
+                    <div className="flex gap-2">
+                      {selectedOrg.status === 'paused' ? (
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-success/40 text-success hover:bg-success/10"
+                          onClick={() => handleReactivateOrg(selectedOrg)}>
+                          <Play className="w-3 h-3 mr-1" />Reactivar
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
+                          onClick={() => handleSuspendOrg(selectedOrg)}>
+                          <Pause className="w-3 h-3 mr-1" />Suspender
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {loadingActivity ? (
+                    <div className="text-xs text-muted-foreground">Cargando actividad...</div>
+                  ) : orgActivity ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { l: 'Ventas total', v: orgActivity.totalSales ?? '—', icon: ShoppingCart },
+                        { l: 'Productos', v: orgActivity.totalProducts ?? '—', icon: Package },
+                        { l: 'Deudas pend.', v: orgActivity.totalDebts ?? '—', icon: AlertTriangle },
+                      ].map(s => (
+                        <div key={s.l} className="bg-muted/30 rounded-lg p-2 text-center">
+                          <s.icon className="w-3.5 h-3.5 mx-auto mb-1 text-muted-foreground" />
+                          <p className="text-sm font-bold">{s.v}</p>
+                          <p className="text-[10px] text-muted-foreground">{s.l}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {orgActivity?.recentSales?.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Últimas ventas</p>
+                      {orgActivity.recentSales.map((s: any) => (
+                        <div key={s.id} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground truncate flex-1">{s.product_name || 'Venta'}</span>
+                          <span className="font-mono ml-2 shrink-0">${Number(s.total_ars || 0).toLocaleString('es-AR')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Admin audit log */}
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Acciones de admins</h3>
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={loadAdminLogs} disabled={loadingLogs}>
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingLogs ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <div className="overflow-y-auto max-h-[400px] divide-y divide-border">
+                {loadingLogs ? (
+                  <div className="p-6 text-center text-muted-foreground text-sm">Cargando...</div>
+                ) : adminLogs.length === 0 ? (
+                  <div className="p-6 text-center text-muted-foreground text-sm">Sin acciones registradas aún</div>
+                ) : adminLogs.map(log => (
+                  <div key={log.id} className="px-4 py-2.5 flex items-start gap-2 hover:bg-muted/10">
+                    <Shield className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">
+                        {ACTION_LABELS[log.action] || log.action}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {log.admin_email || 'Admin desconocido'}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {fmtFull(log.created_at)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

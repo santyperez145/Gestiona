@@ -1,3 +1,7 @@
+export function getOptionalEnv(key: string): string | undefined {
+  return (import.meta.env as Record<string, string | undefined>)[key];
+}
+
 const REQUIRED_VARS = [
   "VITE_SUPABASE_URL",
   "VITE_SUPABASE_PUBLISHABLE_KEY",

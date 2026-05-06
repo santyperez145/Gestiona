@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { getDebtsDB, updateDebtDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
+import { getDebtsDB, addDebtPaymentDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, DollarSign, AlertCircle } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -190,16 +191,22 @@ export default function DebtsPage() {
 
 function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSave: () => void }) {
   const [amount, setAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payment = parseFloat(amount) || 0;
     if (payment <= 0) { toast.error("Ingresá un monto válido"); return; }
     const remaining = Number(debt.remaining_ars);
     if (payment > remaining) { toast.error("El pago excede la deuda"); return; }
-    const newPaid = Number(debt.paid_ars) + payment;
-    const newRemaining = Number(debt.amount_ars) - newPaid;
-    await updateDebtDB(debt.id, { paid_ars: newPaid, remaining_ars: Math.max(0, newRemaining), status: newRemaining <= 0 ? 'paid' : 'partial' });
-    await logAudit(userId, 'update', 'debt', debt.id, { customer: debt.customer_name, payment, newStatus: newRemaining <= 0 ? 'paid' : 'partial' });
+    const result = await addDebtPaymentDB(debt.id, payment, { paymentMethod, userId });
+    await logAudit(userId, 'update', 'debt', debt.id, {
+      customer: debt.customer_name,
+      payment,
+      paymentMethod,
+      newStatus: result.newStatus,
+    });
+    const newRemaining = result.newRemaining;
+    toast.success(result.newRemaining <= 0 ? "Â¡Deuda saldada!" : "Pago parcial registrado");
     toast.success(newRemaining <= 0 ? "¡Deuda saldada!" : "Pago parcial registrado");
     onSave();
   };
@@ -213,6 +220,18 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
       </div>
       <div><label className="text-sm text-muted-foreground">Monto del pago (ARS)</label>
         <Input type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder={`Máx: ${debt.remaining_ars}`} className="bg-muted border-border" /></div>
+      <div>
+        <label className="text-sm text-muted-foreground">Medio de cobro</label>
+        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="efectivo">Efectivo</SelectItem>
+            <SelectItem value="transferencia">Transferencia</SelectItem>
+            <SelectItem value="debito">Debito</SelectItem>
+            <SelectItem value="credito">Credito</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex gap-2">
         <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold">Registrar Pago</Button>
         <Button type="button" variant="outline" onClick={() => { setAmount(String(debt.remaining_ars)); }}>Todo</Button>
