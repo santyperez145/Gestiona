@@ -3463,7 +3463,7 @@ create index if not exists marketing_templates_org_idx on public.marketing_templ
 create table if not exists public.payment_links (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.organizations(id) on delete cascade,
-  quote_id uuid references public.presupuestos(id) on delete set null,
+  quote_id uuid references public.quotes(id) on delete set null,
   quote_number text,
   customer_name text not null,
   customer_phone text,
