@@ -1,7 +1,7 @@
 # Roadmap del Proyecto
 
 Fecha de relevamiento: 2026-05-05  
-Última actualización: 2026-05-06  
+Última actualización: 2026-05-06 (sesión 3)  
 Proyecto: Gestiona / Exentry Imports  
 DB producción: `wcfohngxrtopgggumjmw`  
 Tipo de producto: sistema de gestión para ventas, stock, finanzas, CRM, marketing, equipo e integraciones.
@@ -30,6 +30,13 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - Operaciones: Sentry, PWA, backups, notificaciones, crons para alertas, digest semanal y automatizaciones.
 - Multi-tenant: `organizations`, `memberships`, `org_id` en todas las tablas críticas, RLS por org auditada.
 - SaaS billing: Stripe checkout, dunning, trials, entitlements, plan limits, platform admin con audit log.
+- Integraciones hardened: Tiendanube HMAC-SHA256 + retry, MP webhook multi-org, Stripe idempotency via `stripe_events`, AFIP errores tipificados. _(2026-05-06 sesión 3)_
+- Observabilidad: `integration_logs` + `webhook_deliveries` + health panel en IntegrationsPage. _(2026-05-06 sesión 3)_
+- Public API v1: versionado, rate limits, API keys rotables con SHA-256, `org_api_keys`. _(2026-05-06 sesión 3)_
+- Webhooks salientes: HMAC signing, retries con backoff, historial en `webhook_deliveries`. _(2026-05-06 sesión 3)_
+- CashSessionPage: exportar reporte de cierre como PDF/impresión y CSV por turno. _(2026-05-06 sesión 3)_
+- ReportsPage: comparativa período anterior en Estado de Resultados (4 KPIs con delta ▲/▼). _(2026-05-06 sesión 3)_
+- CustomersPage: Ficha 360 con tabs (Resumen, Compras, Cuotas/Deudas, Contacto). _(2026-05-06 sesión 3)_
 
 ---
 
@@ -53,13 +60,13 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 | Base técnica | React/Vite, Tailwind, Radix, React Query, PWA, Sentry, rutas protegidas | Tipos Supabase actualizados, limpieza de `any`, code splitting (chunk >1500kB) |
 | Autenticación y organizaciones | Auth, OrgProvider, memberships, roles, invitaciones, platform admin, RLS org_id | Matriz de permisos formal, eliminar restos de `user_roles` legacy |
 | Inventario | Kardex, triggers stock, ajustes auditados, toma física, restock, sucursales | Stock por sucursal en POS, lotes con vencimiento en UI, importación masiva |
-| Ventas y POS | Ventas, POS, recibo, deudas, cuotas, devoluciones, presupuestos, caja | Flujo end-to-end probado, modo offline, reporte de cierre imprimible |
-| Clientes/CRM | Clientes, notas, segmentación, pipeline, referidos, fidelidad | Ficha 360, merge de duplicados, consentimiento comunicaciones |
+| Ventas y POS | Ventas, POS, recibo, deudas, cuotas, devoluciones, presupuestos, caja, **export PDF+CSV cierre** | Flujo end-to-end probado, modo offline |
+| Clientes/CRM | Clientes, notas, segmentación, pipeline, referidos, fidelidad, **Ficha 360 con tabs** | Merge de duplicados, consentimiento comunicaciones |
 | Finanzas | Gastos, deudas, cheques, proveedores, conciliación bancaria, flujo de caja | Estado de resultados mensual, reporte fiscal exportable, gastos recurrentes en UI |
 | Facturación | Facturas, PDF, email, campos AFIP, retry en errores | Notas de crédito integradas a devoluciones, numeración robusta, vincular factura↔venta |
 | Marketing | Posts, templates, campañas, catálogo, combos, banners, influencers | Tracking de conversión, verificación de dominio email, ROI por campaña |
 | IA y analytics | Insights, chat, predicción, recomendaciones, health score | Límites de costo por plan, trazabilidad de recomendaciones aplicadas |
-| Integraciones | Tiendanube, MP, Stripe, AFIP, Public API, webhooks salientes | Health check visual, logs por integración, dead-letter queue |
+| Integraciones | Tiendanube, MP, Stripe, AFIP, Public API, webhooks salientes, **health check panel** | Dead-letter queue, monitor tiempo real |
 | SaaS y planes | Pricing, checkout Stripe, subscriptions, entitlements, platform admin | Enforcement de límites verificado en prod, métricas por tenant |
 | UX y accesibilidad | Layout completo, mobile, command palette, empty states | Accesibilidad, performance en tablas grandes, onboarding persistente |
 | Operaciones | Sentry, backups, crons, rate limiter | Runbook de producción, monitoreo de crons, restauración documentada |
@@ -93,7 +100,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [x] Conciliación bancaria vinculada con ventas, gastos, pagos y Mercado Pago. _(2026-05-06)_
 - [x] Exportaciones: CSV y PDF para ventas, compras, gastos, productos, deudas, equipo. _(2026-05-06)_
 - [ ] **Flujo venta/POS probado end-to-end** (presupuesto → venta → caja → factura). _(pendiente)_
-- [ ] **Reporte de cierre de caja imprimible/exportable**. _(pendiente)_
+- [x] **Reporte de cierre de caja imprimible/exportable** (print PDF + CSV desde CashSessionPage). _(2026-05-06 sesión 3)_
 - [ ] Backups manuales y restauración documentada. _(pendiente)_
 
 ### P2 — Preparar lanzamiento SaaS
@@ -114,7 +121,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [x] AFIP: ambientes separados, errores tipificados, retry button. _(2026-05-06)_
 - [x] Public API: versionado `/v1/`, rate limits, API keys rotables, scopes. _(2026-05-06)_
 - [x] Webhooks salientes: HMAC, retries, historial de entregas. _(2026-05-06)_
-- [ ] Health check visual por integración. _(pendiente)_
+- [x] Health check visual por integración (panel con `integration_logs`). _(2026-05-06 sesión 3)_
 - [ ] Dead-letter queue simple para webhooks fallidos. _(pendiente)_
 
 ### P4 — Automatización, IA y crecimiento
@@ -125,7 +132,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [ ] Reportes avanzados por sucursal, vendedor, categoría y período.
 - [ ] Forecast con comparación real vs proyectado.
 - [ ] Alertas inteligentes: stock, margen bajo, deuda vencida, clientes inactivos.
-- [ ] Ficha 360 de cliente: compras, deudas, comunicaciones, puntos en un solo lugar.
+- [x] Ficha 360 de cliente: compras, deudas, comunicaciones, puntos en un solo lugar. _(2026-05-06 sesión 3)_
 - [ ] Notas de crédito integradas a devoluciones en AFIP.
 
 ---
@@ -212,7 +219,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [x] Mercado Pago conciliado.
 - [x] AFIP con reintentos y errores tipificados.
 - [x] Webhooks/API documentados.
-- [ ] Health check visual por integración. _(pendiente)_
+- [x] Health check visual por integración (panel en IntegrationsPage). _(2026-05-06 sesión 3)_
 - [ ] Dead-letter queue simple. _(pendiente)_
 - [ ] Monitor de integraciones en tiempo real. _(pendiente)_
 
@@ -275,9 +282,9 @@ Faltante:
 
 Hecho:
 - CRUD de clientes, notas, segmentación automática, pipeline, referidos, fidelidad, cumpleaños.
+- Ficha 360 con tabs: Resumen (KPIs + productos favoritos), Compras (timeline), Cuotas/Deudas, Contacto (notas + comunicaciones + WhatsApp). _(2026-05-06 sesión 3)_
 
 Faltante:
-- Ficha 360 de cliente: compras, deudas, pagos, comunicaciones, notas y puntos en una sola vista.
 - Merge de clientes duplicados.
 - Historial de comunicaciones centralizado.
 - Consentimiento para email/WhatsApp.
@@ -415,8 +422,8 @@ Una funcionalidad se considera lista cuando cumple:
 | 3 | Generar `src/integrations/supabase/types.ts` actualizado | 🟠 Alta |
 | 4 | Eliminar `as any` en supabaseStore.ts, POSPage y SalesPage | 🟠 Alta |
 | 5 | Probar flujo end-to-end: venta POS → cash_entry → factura | 🟠 Alta |
-| 6 | Exportar reporte de cierre de caja (PDF/CSV desde CashSessionPage) | 🟡 Media |
-| 7 | Health check visual de integraciones en IntegrationsPage | 🟡 Media |
-| 8 | Ficha 360 de cliente con tab unificado | 🟡 Media |
-| 9 | Estado de resultados mensual en ReportsPage | 🟡 Media |
+| 6 | ~~Exportar reporte de cierre de caja~~ | ✅ Hecho (sesión 3) |
+| 7 | ~~Health check visual de integraciones~~ | ✅ Hecho (sesión 3) |
+| 8 | ~~Ficha 360 de cliente con tab unificado~~ | ✅ Hecho (sesión 3) |
+| 9 | Dead-letter queue: mostrar webhooks fallidos con botón Retry en IntegrationsPage | 🟡 Media |
 | 10 | Suite E2E con Playwright para flujos críticos | 🟡 Media |
