@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy } from "lucide-react";
+import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -187,6 +187,12 @@ export default function LoyaltyPage() {
             Ejemplo: cliente que gasta {formatARS(100_000)} acumula {Math.floor(100_000 / 1_000) * Number(pointsPer1000)} puntos → descuento de {formatARS(Math.floor(100_000 / 1_000) * Number(pointsPer1000) * Number(pointValueArs))}
           </div>
         )}
+        {enabled && (
+          <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
+            <Star className="w-3.5 h-3.5 shrink-0" />
+            Los puntos se otorgan <strong>automáticamente</strong> al registrar cada venta — no hace falta ingresarlos a mano.
+          </div>
+        )}
         <Button className="gradient-gold text-primary-foreground" onClick={handleSaveSettings} disabled={savingSettings}>
           {savingSettings && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
           Guardar configuración
@@ -291,7 +297,14 @@ export default function LoyaltyPage() {
                       {e.delta > 0 ? <Plus className="w-3.5 h-3.5 text-green-400" /> : <Minus className="w-3.5 h-3.5 text-red-400" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium">{e.reason || "—"}</p>
+                      <div className="flex items-center gap-1.5">
+                        {e.reason === "sale" && <ShoppingBag className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        {(e.reason === "manual" || !e.reason) && <Sliders className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        {e.reason === "redeem" && <Gift className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        <p className="text-xs font-medium">
+                          {e.reason === "sale" ? "Venta automática" : e.reason === "redeem" ? "Canje" : e.reason === "manual" ? "Ajuste manual" : e.reason || "—"}
+                        </p>
+                      </div>
                       <p className="text-[10px] text-muted-foreground">{new Date(e.created_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}</p>
                     </div>
                     <span className={`text-sm font-bold font-mono ${e.delta > 0 ? "text-green-400" : "text-red-400"}`}>
