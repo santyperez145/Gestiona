@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import {
   Mail, Plus, Send, Users, CheckCircle2, XCircle,
-  Clock, Loader2, Eye, Trash2, AlertCircle,
+  Clock, Loader2, Eye, Trash2, AlertCircle, MousePointerClick, MailOpen,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,6 +31,9 @@ interface Campaign {
   status: "draft" | "sending" | "sent" | "failed";
   sent_count: number;
   failed_count: number;
+  open_count: number;
+  click_count: number;
+  unsubscribe_count: number;
   created_at: string;
   sent_at: string | null;
   scheduled_at: string | null;
@@ -69,6 +72,7 @@ export default function EmailCampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [unsubscribed, setUnsubscribed] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Campaign | null>(null);
@@ -88,14 +92,16 @@ export default function EmailCampaignsPage() {
     if (!activeOrg) return;
     setLoading(true);
     try {
-      const [{ data: camps }, { data: custs }, { data: sales }] = await Promise.all([
+      const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }] = await Promise.all([
         supabase.from("email_campaigns" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("customers" as any).select("id,name,email").eq("org_id", activeOrg.id).not("email", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
+        (supabase as any).from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
       ]);
       setCampaigns((camps || []) as Campaign[]);
       setCustomers((custs || []) as Customer[]);
       setSalesData(sales || []);
+      setUnsubscribed(new Set((unsubs || []).map((u: any) => u.email.toLowerCase())));
     } finally {
       setLoading(false);
     }
@@ -116,7 +122,8 @@ export default function EmailCampaignsPage() {
       }
     });
 
-    const withEmail = customers.filter(c => c.email);
+    // Exclude unsubscribed customers
+    const withEmail = customers.filter(c => c.email && !unsubscribed.has(c.email.toLowerCase()));
     return (seg: string): Customer[] => {
       if (seg === "all") return withEmail;
       return withEmail.filter(c => {
@@ -128,7 +135,7 @@ export default function EmailCampaignsPage() {
         return true;
       });
     };
-  }, [customers, salesData]);
+  }, [customers, salesData, unsubscribed]);
 
   const currentAudience = useMemo(() => audienceFor(segment), [audienceFor, segment]);
 
@@ -178,6 +185,9 @@ export default function EmailCampaignsPage() {
           bodyHtml: camp.body_html,
           recipients: audience.map(c => ({ email: c.email!, name: c.name })),
           orgName: activeOrg?.name || "Gestiona",
+          orgId: activeOrg?.id,
+          // metadata passed to Resend so webhook can update metrics
+          metadata: { campaign_id: camp.id, org_id: activeOrg?.id },
         },
       });
 
@@ -231,8 +241,16 @@ export default function EmailCampaignsPage() {
         {[
           { label: "Con email", value: customers.filter(c => c.email).length, icon: Users, color: "text-primary" },
           { label: "Campañas enviadas", value: campaigns.filter(c => c.status === "sent").length, icon: CheckCircle2, color: "text-emerald-400" },
-          { label: "Borradores", value: campaigns.filter(c => c.status === "draft").length, icon: Clock, color: "text-muted-foreground" },
           { label: "Total enviados", value: campaigns.reduce((s, c) => s + (c.sent_count || 0), 0), icon: Send, color: "text-blue-400" },
+          {
+            label: "Tasa apertura",
+            value: (() => {
+              const totalSent = campaigns.reduce((s, c) => s + (c.sent_count || 0), 0);
+              const totalOpens = campaigns.reduce((s, c) => s + (c.open_count || 0), 0);
+              return totalSent > 0 ? `${(totalOpens / totalSent * 100).toFixed(1)}%` : "—";
+            })(),
+            icon: MailOpen, color: "text-emerald-400",
+          },
         ].map(s => (
           <Card key={s.label} className="border-border bg-card/60">
             <CardContent className="p-4 flex items-center gap-3">
@@ -292,6 +310,37 @@ export default function EmailCampaignsPage() {
                       <span>·</span>
                       <span>{new Date(camp.created_at).toLocaleDateString("es-AR")}</span>
                     </div>
+                    {/* Metrics row (only for sent campaigns with data) */}
+                    {camp.status === "sent" && camp.sent_count > 0 && (
+                      <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/50">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <MailOpen className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="font-medium">{camp.open_count ?? 0}</span>
+                          <span className="text-muted-foreground">aperturas</span>
+                          {camp.sent_count > 0 && (
+                            <span className="text-emerald-400 font-semibold">
+                              ({((camp.open_count ?? 0) / camp.sent_count * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <MousePointerClick className="w-3.5 h-3.5 text-blue-400" />
+                          <span className="font-medium">{camp.click_count ?? 0}</span>
+                          <span className="text-muted-foreground">clics</span>
+                          {camp.sent_count > 0 && (
+                            <span className="text-blue-400 font-semibold">
+                              ({((camp.click_count ?? 0) / camp.sent_count * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                        {(camp.unsubscribe_count ?? 0) > 0 && (
+                          <div className="flex items-center gap-1.5 text-xs text-red-400">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>{camp.unsubscribe_count} baja{camp.unsubscribe_count !== 1 ? "s" : ""}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Button

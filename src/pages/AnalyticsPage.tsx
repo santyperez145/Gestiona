@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, BarChart3, Users, DollarSign,
-  Package, Calendar, Percent, Clock, Filter,
+  Package, Calendar, Percent, Clock, Filter, Brain, Sparkles,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -291,6 +291,7 @@ export default function AnalyticsPage() {
       <Tabs defaultValue="trend" className="w-full">
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/60 p-1 rounded-xl">
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
+          <TabsTrigger value="forecast" className="text-xs">📈 Forecast</TabsTrigger>
           <TabsTrigger value="yoy" className="text-xs">Año vs Año</TabsTrigger>
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
@@ -637,6 +638,11 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </TabsContent>
+        {/* FORECAST TAB */}
+        <TabsContent value="forecast" className="mt-4 space-y-4">
+          <ForecastTab monthly={derived.monthly} currentYear={currentYear} />
+        </TabsContent>
+
         {/* FUNNEL TAB */}
         <TabsContent value="funnel" className="mt-4 space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -722,6 +728,139 @@ export default function AnalyticsPage() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ForecastTab — Actual vs Projected sales with linear trend
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+function linearRegression(points: { x: number; y: number }[]): (x: number) => number {
+  const n = points.length;
+  if (n < 2) return () => 0;
+  const sumX = points.reduce((s, p) => s + p.x, 0);
+  const sumY = points.reduce((s, p) => s + p.y, 0);
+  const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+  const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+  const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const b = (sumY - m * sumX) / n;
+  return (x: number) => Math.max(0, m * x + b);
+}
+
+function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: number }) {
+  const currentMonth = new Date().getMonth(); // 0-indexed
+
+  // Build historical data points from actual months (up to current)
+  const historicalPoints = monthly
+    .map((m, i) => ({ x: i, y: m.revenue }))
+    .filter(p => p.x <= currentMonth);
+
+  const predict = linearRegression(historicalPoints);
+
+  // Build chart data: all 12 months, with actual and projected
+  const chartData = MONTHS_SHORT.map((name, i) => {
+    const actual = i <= currentMonth ? Math.round(monthly[i].revenue) : null;
+    const trend = Math.round(predict(i));
+    // Projected = trend for future months, null for past (already actual)
+    const projected = i > currentMonth ? trend : null;
+    return { name, actual, projected, trend };
+  });
+
+  // Future months for projection table
+  const futureMonths = MONTHS_SHORT.slice(currentMonth + 1).map((name, j) => {
+    const idx = currentMonth + 1 + j;
+    return { name, month: idx, projected: Math.round(predict(idx)) };
+  });
+
+  // Stats
+  const pastRevenue = historicalPoints.reduce((s, p) => s + p.y, 0);
+  const avgMonthly = historicalPoints.length > 0 ? pastRevenue / historicalPoints.length : 0;
+  const nextMonthProjected = predict(currentMonth + 1);
+  const trendPct = avgMonthly > 0 ? ((nextMonthProjected - avgMonthly) / avgMonthly) * 100 : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Info banner */}
+      <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-medium">Forecast basado en regresión lineal</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Proyecta los meses restantes del año usando la tendencia de tus ventas reales.
+            Los meses futuros muestran la proyección estadística — no incluyen factores externos.
+          </p>
+        </div>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Ventas acumuladas {currentYear}</p>
+          <p className="text-lg font-bold text-primary">{formatARS(pastRevenue)}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Promedio mensual</p>
+          <p className="text-lg font-bold">{formatARS(avgMonthly)}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Próximo mes proyectado</p>
+          <p className="text-lg font-bold text-success">{formatARS(nextMonthProjected)}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tendencia vs promedio</p>
+          <p className={`text-lg font-bold flex items-center justify-center gap-1 ${trendPct >= 0 ? "text-success" : "text-destructive"}`}>
+            {trendPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+            {trendPct >= 0 ? "+" : ""}{trendPct.toFixed(1)}%
+          </p>
+        </div>
+      </div>
+
+      {/* Chart: Actual vs Projected */}
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          Ventas reales vs proyección {currentYear}
+        </h3>
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={chartData} barGap={4} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} />
+            <YAxis tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+            <Tooltip
+              contentStyle={{ background: "hsl(222,15%,12%)", border: "1px solid hsl(220,15%,22%)", borderRadius: 8 }}
+              formatter={(value: any, name: string) => [
+                `$${Number(value).toLocaleString("es-AR")}`,
+                name === "actual" ? "Real" : "Proyectado",
+              ]}
+            />
+            <Legend formatter={(v) => v === "actual" ? "Real" : "Proyectado"} />
+            <Bar dataKey="actual" fill="hsl(40,70%,50%)" radius={[4,4,0,0]} name="actual" />
+            <Bar dataKey="projected" fill="hsl(200,60%,50%)" radius={[4,4,0,0]} name="projected" opacity={0.7} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Projection table */}
+      {futureMonths.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold mb-3">Proyección mensual restante</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {futureMonths.map(m => (
+              <div key={m.month} className="bg-muted/30 border border-border rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">{m.name} {currentYear}</p>
+                <p className="text-sm font-bold text-blue-400">{formatARS(m.projected)}</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">proyectado</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground/60 mt-3">
+            * Proyección estadística — la tendencia real puede variar por estacionalidad, cambios de precios u otros factores.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

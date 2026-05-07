@@ -386,6 +386,29 @@ export default function IntegrationsPage() {
     if (!loadingConn) loadHealth();
   }, [loadingConn]);
 
+  // Realtime: re-load health whenever a new integration_log is inserted
+  useEffect(() => {
+    if (!activeOrg) return;
+    const ch = supabase
+      .channel("integration-logs-rt")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "integration_logs",
+        filter: `org_id=eq.${activeOrg.id}`,
+      }, () => { loadHealth(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrg]);
+
+  // Auto-refresh health every 60 seconds (background poll)
+  useEffect(() => {
+    const timer = setInterval(() => { if (activeOrg) loadHealth(); }, 60_000);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrg]);
+
   const handleConnect = () => {
     if (!TIENDANUBE_APP_ID) {
       toast.error("App ID de Tiendanube no configurado. Contactá al equipo de soporte.");

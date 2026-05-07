@@ -557,6 +557,33 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Smart Alerts Banner */}
+      {stats.smartAlerts && stats.smartAlerts.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {stats.smartAlerts.map((a: any, i: number) => {
+            const Icon = a.icon;
+            return (
+              <div key={i} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm ${
+                a.type === 'destructive'
+                  ? 'bg-destructive/10 border-destructive/20 text-destructive'
+                  : 'bg-orange-500/10 border-orange-500/20 text-orange-400'
+              }`}>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1">{a.msg}</span>
+                {a.link && (
+                  <Link to={a.link} className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100 shrink-0">Ver →</Link>
+                )}
+              </div>
+            );
+          })}
+          <div className="flex justify-end">
+            <Link to="/alertas" className="text-xs text-primary hover:underline flex items-center gap-1">
+              <Bell className="w-3 h-3" /> Configurar alertas →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
         {kpiCards.map((c, i) => (

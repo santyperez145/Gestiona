@@ -11,6 +11,7 @@ import {
   Zap, Plus, Trash2, Play, Pause, Edit2,
   MessageCircle, Bell, Mail, Check, Package,
   ClipboardList, Globe, Users, ShoppingBag, TrendingUp, AlertTriangle,
+  History, RefreshCw, CheckCircle2, XCircle, SkipForward,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -415,26 +416,65 @@ function actionBadgeClass(a: ActionType): string {
 // ─────────────────────────────────────────────────────────────
 // Main page
 // ─────────────────────────────────────────────────────────────
+interface AutomationRun {
+  id: string;
+  flow_id: string;
+  trigger_type: string;
+  action_type: string;
+  status: "success" | "error" | "skipped";
+  entities_matched: number;
+  actions_taken: number;
+  error_message: string | null;
+  ran_at: string;
+}
+
 export default function AutomationFlowsPage() {
   const { activeOrg } = useOrg();
   const [flows, setFlows] = useState<FlowRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingFlow, setEditingFlow] = useState<FlowRule | null>(null);
+  const [runs, setRuns] = useState<AutomationRun[]>([]);
+  const [runningFlowId, setRunningFlowId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("automation_flows" as any)
-      .select("*")
-      .eq("org_id", activeOrg.id)
-      .order("created_at", { ascending: false });
-    setFlows((data || []) as FlowRule[]);
+    const [{ data: flowData }, { data: runData }] = await Promise.all([
+      supabase
+        .from("automation_flows" as any)
+        .select("*")
+        .eq("org_id", activeOrg.id)
+        .order("created_at", { ascending: false }),
+      (supabase as any)
+        .from("automation_runs")
+        .select("*")
+        .eq("org_id", activeOrg.id)
+        .order("ran_at", { ascending: false })
+        .limit(50),
+    ]);
+    setFlows((flowData || []) as FlowRule[]);
+    setRuns((runData || []) as AutomationRun[]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [activeOrg]);
+
+  const runFlowNow = async (flow: FlowRule) => {
+    setRunningFlowId(flow.id);
+    try {
+      const { error } = await supabase.functions.invoke("execute-automations", {
+        body: { org_id: activeOrg?.id, flow_id: flow.id },
+      });
+      if (error) throw error;
+      toast.success(`Flujo "${flow.name}" ejecutado`);
+      setTimeout(() => load(), 1500);
+    } catch {
+      toast.error("Error al ejecutar el flujo");
+    }
+    setRunningFlowId(null);
+  };
 
   const handleSave = async (data: any) => {
     if (!activeOrg) return;
@@ -483,12 +523,37 @@ export default function AutomationFlowsPage() {
             )}
           </p>
         </div>
-        <Button
-          className="gradient-gold text-primary-foreground font-semibold shadow-gold"
-          onClick={() => { setEditingFlow(null); setShowForm(true); }}
-        >
-          <Plus className="w-4 h-4 mr-2" />Nuevo flujo
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              setRunningFlowId("__all__");
+              try {
+                const { error } = await supabase.functions.invoke("execute-automations", {
+                  body: { org_id: activeOrg?.id },
+                });
+                if (error) throw error;
+                toast.success("Todos los flujos ejecutados");
+                setTimeout(() => load(), 1500);
+              } catch { toast.error("Error al ejecutar flujos"); }
+              setRunningFlowId(null);
+            }}
+            disabled={runningFlowId === "__all__"}
+            className="gap-1.5"
+          >
+            {runningFlowId === "__all__"
+              ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              : <Play className="w-3.5 h-3.5" />}
+            Ejecutar todos
+          </Button>
+          <Button
+            className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+            onClick={() => { setEditingFlow(null); setShowForm(true); }}
+          >
+            <Plus className="w-4 h-4 mr-2" />Nuevo flujo
+          </Button>
+        </div>
       </div>
 
       {/* Info banner */}
@@ -546,13 +611,25 @@ export default function AutomationFlowsPage() {
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => runFlowNow(flow)}
+                    disabled={runningFlowId === flow.id}
+                    title="Ejecutar ahora"
+                    className="text-primary"
+                  >
+                    {runningFlowId === flow.id
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <Play className="w-3.5 h-3.5" />}
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => { setEditingFlow(flow); setShowForm(true); }}>
                     <Edit2 className="w-3.5 h-3.5" />
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => toggleActive(flow)} title={flow.active ? "Pausar" : "Activar"}>
                     {flow.active
                       ? <Pause className="w-3.5 h-3.5 text-warning" />
-                      : <Play className="w-3.5 h-3.5 text-success" />}
+                      : <Zap className="w-3.5 h-3.5 text-success" />}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => deleteFlow(flow.id)}>
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -609,6 +686,57 @@ export default function AutomationFlowsPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Execution History */}
+      {runs.length > 0 && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-3"
+          >
+            <History className="w-4 h-4" />
+            Historial de ejecuciones ({runs.length})
+            <span className="text-xs ml-1">{showHistory ? "▲" : "▼"}</span>
+          </button>
+          {showHistory && (
+            <div className="space-y-2">
+              {runs.map(run => {
+                const flow = flows.find(f => f.id === run.flow_id);
+                const StatusIcon =
+                  run.status === "success" ? CheckCircle2 :
+                  run.status === "error" ? XCircle : SkipForward;
+                const statusColor =
+                  run.status === "success" ? "text-success" :
+                  run.status === "error" ? "text-destructive" : "text-muted-foreground";
+                return (
+                  <div key={run.id} className="flex items-start gap-3 bg-card border border-border rounded-xl px-4 py-3">
+                    <StatusIcon className={`w-4 h-4 mt-0.5 shrink-0 ${statusColor}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium truncate">{flow?.name ?? "Flujo eliminado"}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          run.status === "success" ? "bg-success/10 text-success" :
+                          run.status === "error" ? "bg-destructive/10 text-destructive" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {run.status === "success" ? "Exitoso" : run.status === "error" ? "Error" : "Sin coincidencias"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {run.entities_matched} entidades detectadas · {run.actions_taken} acciones ejecutadas
+                        {run.error_message && <span className="text-destructive ml-2">· {run.error_message}</span>}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {new Date(run.ran_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
