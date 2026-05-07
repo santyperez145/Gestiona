@@ -12,8 +12,31 @@ import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
   Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
-  History, XCircle, Clock,
+  History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
 } from "lucide-react";
+
+// ── Integration health types ──────────────────────────────────────────────────
+type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
+
+interface IntegrationHealth {
+  integration: string;
+  label: string;
+  icon: React.ReactNode;
+  status: IntegrationStatus;
+  lastSeen: string | null;
+  message: string | null;
+  configured: boolean;
+}
+
+function StatusDot({ status }: { status: IntegrationStatus }) {
+  const cls = {
+    ok: "bg-green-400",
+    error: "bg-red-400 animate-pulse",
+    warning: "bg-yellow-400",
+    unknown: "bg-muted-foreground/30",
+  }[status];
+  return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`} />;
+}
 
 const TIENDANUBE_APP_ID = import.meta.env.VITE_TIENDANUBE_APP_ID || "";
 
@@ -69,6 +92,107 @@ export default function IntegrationsPage() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [loadingDeliveries, setLoadingDeliveries] = useState(false);
   const [showDeliveries, setShowDeliveries] = useState(false);
+
+  // Integration health
+  const [healthMap, setHealthMap] = useState<Record<string, IntegrationHealth>>({});
+  const [loadingHealth, setLoadingHealth] = useState(false);
+
+  const loadHealth = async () => {
+    if (!activeOrg) return;
+    setLoadingHealth(true);
+    try {
+      // Get latest log per integration in the last 24h
+      const { data: logs } = await (supabase as any)
+        .from("integration_logs")
+        .select("integration, status, message, created_at")
+        .eq("org_id", activeOrg.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      // Get org settings to know what's configured
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("mp_access_token, mp_enabled, api_key")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle();
+
+      const logsArr: any[] = logs || [];
+      // Deduplicate: keep only the most recent per integration
+      const latest: Record<string, any> = {};
+      for (const l of logsArr) {
+        if (!latest[l.integration]) latest[l.integration] = l;
+      }
+
+      const now = Date.now();
+      const staleMs = 25 * 60 * 60 * 1000; // 25h — stale if no activity
+
+      const buildStatus = (key: string): IntegrationStatus => {
+        const l = latest[key];
+        if (!l) return "unknown";
+        const age = now - new Date(l.created_at).getTime();
+        if (l.status === "error") return "error";
+        if (l.status === "warning") return "warning";
+        if (age > staleMs) return "warning";
+        return "ok";
+      };
+
+      const fmtAge = (iso: string | null) => {
+        if (!iso) return null;
+        const mins = Math.floor((now - new Date(iso).getTime()) / 60_000);
+        if (mins < 1) return "Hace un momento";
+        if (mins < 60) return `Hace ${mins} min`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `Hace ${hrs}h`;
+        return `Hace ${Math.floor(hrs / 24)} días`;
+      };
+
+      setHealthMap({
+        tiendanube: {
+          integration: "tiendanube", label: "Tiendanube",
+          icon: <ShoppingBag className="w-4 h-4 text-[#2f6ee4]" />,
+          status: conn ? buildStatus("tiendanube") : "unknown",
+          lastSeen: fmtAge(latest.tiendanube?.created_at || conn?.last_sync_orders_at || null),
+          message: latest.tiendanube?.message || null,
+          configured: !!conn,
+        },
+        mercadopago: {
+          integration: "mercadopago", label: "Mercado Pago",
+          icon: <span className="text-blue-400 font-bold text-sm">$</span>,
+          status: (settings as any)?.mp_enabled && (settings as any)?.mp_access_token
+            ? buildStatus("mercadopago")
+            : "unknown",
+          lastSeen: fmtAge(latest.mercadopago?.created_at || null),
+          message: latest.mercadopago?.message || null,
+          configured: !!(settings as any)?.mp_enabled && !!(settings as any)?.mp_access_token,
+        },
+        stripe: {
+          integration: "stripe", label: "Stripe",
+          icon: <ShieldCheck className="w-4 h-4 text-violet-400" />,
+          status: buildStatus("stripe"),
+          lastSeen: fmtAge(latest.stripe?.created_at || null),
+          message: latest.stripe?.message || null,
+          configured: true, // always configured via env
+        },
+        afip: {
+          integration: "afip", label: "AFIP",
+          icon: <span className="text-amber-400 font-bold text-xs">AR</span>,
+          status: buildStatus("afip"),
+          lastSeen: fmtAge(latest.afip?.created_at || null),
+          message: latest.afip?.message || null,
+          configured: true,
+        },
+        public_api: {
+          integration: "public_api", label: "API Pública",
+          icon: <KeyRound className="w-4 h-4 text-emerald-400" />,
+          status: (settings as any)?.api_key ? buildStatus("public_api") : "unknown",
+          lastSeen: fmtAge(latest.public_api?.created_at || null),
+          message: latest.public_api?.message || null,
+          configured: !!(settings as any)?.api_key,
+        },
+      });
+    } catch { /* silent — table may not exist yet */ }
+    setLoadingHealth(false);
+  };
 
   const loadConnection = async () => {
     if (!activeOrg) return;
@@ -236,7 +360,13 @@ export default function IntegrationsPage() {
   useEffect(() => {
     loadConnection();
     loadMpSettings();
+    loadHealth();
   }, [activeOrg]);
+
+  // Refresh health after conn loads
+  useEffect(() => {
+    if (!loadingConn) loadHealth();
+  }, [loadingConn]);
 
   const handleConnect = () => {
     if (!TIENDANUBE_APP_ID) {
@@ -284,11 +414,65 @@ export default function IntegrationsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Integraciones</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Conectá tu tienda online y sincronizá productos y pedidos automáticamente.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Integraciones</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Conectá tu tienda online y sincronizá productos y pedidos automáticamente.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" className="text-xs shrink-0" onClick={loadHealth} disabled={loadingHealth}>
+          <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
+          Estado
+        </Button>
+      </div>
+
+      {/* ── Health check panel ─────────────────────────────────────── */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-card">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Estado de integraciones</span>
+          </div>
+          {loadingHealth && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-border">
+          {Object.values(healthMap).map((h) => (
+            <div key={h.integration} className="px-4 py-3 space-y-1.5">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5">
+                  {h.icon}
+                  <span className="text-xs font-medium">{h.label}</span>
+                </div>
+                <StatusDot status={h.status} />
+              </div>
+              <div>
+                {!h.configured ? (
+                  <span className="text-[10px] text-muted-foreground/50">Sin configurar</span>
+                ) : h.status === "unknown" ? (
+                  <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
+                    <WifiOff className="w-3 h-3" />Sin actividad
+                  </span>
+                ) : (
+                  <span className={`text-[10px] ${h.status === "error" ? "text-red-400" : h.status === "warning" ? "text-yellow-500" : "text-muted-foreground"}`}>
+                    {h.status === "error" ? (h.message?.slice(0, 40) || "Error") : (h.lastSeen || "—")}
+                  </span>
+                )}
+              </div>
+              {h.status === "error" && h.message && (
+                <p className="text-[9px] text-red-400/70 leading-tight line-clamp-2" title={h.message}>
+                  {h.message}
+                </p>
+              )}
+            </div>
+          ))}
+          {Object.keys(healthMap).length === 0 && !loadingHealth && (
+            <div className="col-span-5 px-5 py-6 text-center text-xs text-muted-foreground">
+              <Activity className="w-6 h-6 mx-auto mb-2 opacity-30" />
+              Sin datos de actividad aún — los registros aparecerán después de las primeras operaciones.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tiendanube Card */}
