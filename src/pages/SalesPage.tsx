@@ -230,13 +230,18 @@ export default function SalesPage() {
                     <p className="font-medium text-sm">{s.product_name}</p>
                     <p className="text-xs text-muted-foreground">{formatDateAR(s.date)} · {s.customer_name || 'Sin cliente'}</p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
                       {s.payment_method || 'efectivo'}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
                       {s.paid ? 'Pagado' : 'Debe'}
                     </span>
+                    {(s as any).invoice_id && (
+                      <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        Facturado
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
