@@ -19,6 +19,8 @@ import {
   Mail, Plus, Send, Users, CheckCircle2, XCircle,
   Clock, Loader2, Eye, Trash2, AlertCircle, MousePointerClick, MailOpen,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,50 +220,36 @@ export default function EmailCampaignsPage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
+  const totalSentEmails = campaigns.reduce((s, c) => s + (c.sent_count || 0), 0);
+  const totalOpensEmails = campaigns.reduce((s, c) => s + (c.open_count || 0), 0);
+  const openRate = totalSentEmails > 0 ? `${(totalOpensEmails / totalSentEmails * 100).toFixed(1)}%` : "—";
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Mail className="w-6 h-6 text-primary" />
-            Email Marketing
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Campañas dirigidas a tus clientes con email registrado
-          </p>
-        </div>
-        <Button onClick={() => setOpen(true)} className="gap-1.5">
-          <Plus className="w-4 h-4" /> Nueva campaña
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Mail}
+        title="Email Marketing"
+        description="Campañas dirigidas a tus clientes con email registrado"
+        badge={
+          campaigns.filter(c => c.status === "sent").length > 0
+            ? { label: `${campaigns.filter(c => c.status === "sent").length} enviadas`, variant: "success" }
+            : undefined
+        }
+        actions={
+          <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground gap-1.5">
+            <Plus className="w-4 h-4" /> Nueva campaña
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Con email", value: customers.filter(c => c.email).length, icon: Users, color: "text-primary" },
-          { label: "Campañas enviadas", value: campaigns.filter(c => c.status === "sent").length, icon: CheckCircle2, color: "text-emerald-400" },
-          { label: "Total enviados", value: campaigns.reduce((s, c) => s + (c.sent_count || 0), 0), icon: Send, color: "text-blue-400" },
-          {
-            label: "Tasa apertura",
-            value: (() => {
-              const totalSent = campaigns.reduce((s, c) => s + (c.sent_count || 0), 0);
-              const totalOpens = campaigns.reduce((s, c) => s + (c.open_count || 0), 0);
-              return totalSent > 0 ? `${(totalOpens / totalSent * 100).toFixed(1)}%` : "—";
-            })(),
-            icon: MailOpen, color: "text-emerald-400",
-          },
-        ].map(s => (
-          <Card key={s.label} className="border-border bg-card/60">
-            <CardContent className="p-4 flex items-center gap-3">
-              <s.icon className={`w-8 h-8 ${s.color} shrink-0`} />
-              <div>
-                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <KPICard label="Con email" value={customers.filter(c => c.email).length} icon={Users} color="primary"
+          sub="clientes alcanzables" />
+        <KPICard label="Campañas enviadas" value={campaigns.filter(c => c.status === "sent").length} icon={CheckCircle2} color="success"
+          sub={`${campaigns.length} totales`} />
+        <KPICard label="Total enviados" value={totalSentEmails} icon={Send} color="blue" sub="emails despachados" />
+        <KPICard label="Tasa apertura" value={openRate} icon={MailOpen} color="success" sub={`${totalOpensEmails} abiertos`} />
       </div>
 
       {/* Warning: no email configured */}

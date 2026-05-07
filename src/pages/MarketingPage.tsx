@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
@@ -102,44 +103,56 @@ export default function MarketingPage() {
   const typeIcons: Record<string, string> = postTypes.reduce((acc: any, t: any) => ({ ...acc, [t.code]: t.emoji || '📸' }), { post: '📸', story: '📱', reel: '🎬', carousel: '🖼️' });
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Instagram className="w-7 h-7 text-primary" /> Marketing
-          </h1>
-          <p className="text-muted-foreground text-sm">{posts.length} publicaciones · Contenido para Instagram</p>
-        </div>
-        <div className="flex gap-2">
-          <InstagramStoryGenerator />
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
-                <Sparkles className="w-4 h-4 mr-2" />Generar con IA
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle className="font-display">Generar Contenido con IA</DialogTitle></DialogHeader>
-              <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} postTypes={postTypes} themes={themes} />
-            </DialogContent>
-          </Dialog>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline"><Plus className="w-4 h-4 mr-2" />Manual</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle className="font-display">Crear Publicación</DialogTitle></DialogHeader>
-              <ManualPostForm userId={user?.id || ''} onSave={reload} postTypes={postTypes} />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Instagram}
+        title="Marketing"
+        description={`${posts.length} publicaciones · Contenido para Instagram`}
+        badge={
+          posts.filter(p => p.status === "scheduled").length > 0
+            ? { label: `${posts.filter(p => p.status === "scheduled").length} programados`, variant: "success" }
+            : undefined
+        }
+        actions={
+          <div className="flex gap-2">
+            <InstagramStoryGenerator />
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                  <Sparkles className="w-4 h-4 mr-2" />Generar con IA
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle className="font-display">Generar Contenido con IA</DialogTitle></DialogHeader>
+                <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} postTypes={postTypes} themes={themes} />
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline"><Plus className="w-4 h-4 mr-2" />Manual</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle className="font-display">Crear Publicación</DialogTitle></DialogHeader>
+                <ManualPostForm userId={user?.id || ''} onSave={reload} postTypes={postTypes} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      />
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-1.5 bg-muted/40 rounded-lg p-1 w-fit">
         {['all', 'draft', 'scheduled', 'published'].map(s => (
-          <Button key={s} variant={filter === s ? 'default' : 'outline'} size="sm" onClick={() => setFilter(s)}>
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+              filter === s
+                ? "bg-card border border-border shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
             {s === 'all' ? 'Todos' : statusLabels[s]}
-          </Button>
+          </button>
         ))}
       </div>
 
