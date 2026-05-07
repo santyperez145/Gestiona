@@ -15,6 +15,7 @@ import {
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, RotateCcw,
   ArrowDownCircle, ArrowUpCircle, List, Printer, FileSpreadsheet,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 function printCashReport(
@@ -299,12 +300,16 @@ export default function CashSessionPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-          <Banknote className="w-6 h-6 text-primary" />Apertura & Cierre de Caja
-        </h1>
-        <p className="text-sm text-muted-foreground">Controlá cada turno de tu punto de venta</p>
-      </div>
+      <PageHeader
+        icon={Banknote}
+        title="Apertura & Cierre de Caja"
+        description="Controlá cada turno de tu punto de venta"
+        badge={
+          openSession
+            ? { label: `Abierta · ${sessionDuration < 60 ? `${sessionDuration}min` : `${Math.round(sessionDuration / 60)}h`}`, variant: "success" }
+            : { label: "Cerrada", variant: "default" }
+        }
+      />
 
       {/* Status banner */}
       <div className={`rounded-2xl border p-4 flex items-center gap-4 ${

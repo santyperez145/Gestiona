@@ -12,6 +12,8 @@ import {
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -766,7 +768,7 @@ export default function CustomersPage() {
   const avgTicketGlobal = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Form modal */}
       {formModal.open && (
         <CustomerFormModal
@@ -780,60 +782,61 @@ export default function CustomersPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Clientes / CRM</h1>
-          <p className="text-muted-foreground text-sm">{customers.length} clientes · {formatARS(totalRevenue)} facturado</p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={handleCsvImport}
-              disabled={importing}
-            />
-            <span
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
-              title="Importar desde CSV (columnas: nombre,email,telefono,direccion,cumpleaños)"
+      <PageHeader
+        icon={Users}
+        title="Clientes / CRM"
+        description={`${customers.length} clientes · ${formatARS(totalRevenue)} facturado`}
+        badge={
+          totalDebt > 0
+            ? { label: `${formatARS(totalDebt)} adeudado`, variant: "destructive" }
+            : { label: "Sin deudas ✓", variant: "success" }
+        }
+        actions={
+          <div className="flex gap-2">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleCsvImport}
+                disabled={importing}
+              />
+              <span
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
+                title="Importar desde CSV (columnas: nombre,email,telefono,direccion,cumpleaños)"
+              >
+                {importing
+                  ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  : <Upload className="w-4 h-4" />}
+                Importar CSV
+              </span>
+            </label>
+            <Button
+              onClick={() => setFormModal({ open: true })}
+              className="gradient-gold text-primary-foreground gap-2"
             >
-              {importing
-                ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                : <Upload className="w-4 h-4" />}
-              Importar CSV
-            </span>
-          </label>
-          <Button
-            onClick={() => setFormModal({ open: true })}
-            className="gradient-gold text-primary-foreground gap-2"
-          >
-            <Plus className="w-4 h-4" />Nuevo cliente
-          </Button>
-        </div>
-      </div>
+              <Plus className="w-4 h-4" />Nuevo cliente
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Clientes", value: customers.length, icon: Users, color: "text-primary" },
-          { label: "Ticket Promedio", value: formatARS(avgTicketGlobal), icon: ShoppingBag, color: "text-accent" },
-          { label: "VIP / Premium", value: customers.filter(c => c.segment === "VIP" || c.segment === "Premium").length, icon: Crown, color: "text-yellow-400" },
-          { label: "Deuda Total", value: formatARS(totalDebt), icon: AlertCircle, color: "text-destructive" },
-        ].map(k => (
-          <div key={k.label} className="bg-card border border-border rounded-lg p-3 md:p-4 shadow-card">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">{k.label}</span>
-              <k.icon className={`w-3.5 h-3.5 ${k.color}`} />
-            </div>
-            <p className="text-lg md:text-xl font-bold font-display">{k.value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KPICard label="Clientes" value={customers.length} icon={Users} color="primary"
+          sub={`${customers.filter(c => c.daysSinceLastPurchase <= 30).length} activos este mes`} />
+        <KPICard label="Ticket Promedio" value={formatARS(avgTicketGlobal)} icon={ShoppingBag} color="blue"
+          sub={`${totalPurchases} ventas totales`} />
+        <KPICard label="VIP / Premium" value={customers.filter(c => c.segment === "VIP" || c.segment === "Premium").length} icon={Crown} color="warning"
+          sub="clientes top" />
+        <KPICard label="Deuda Total" value={formatARS(totalDebt)} icon={AlertCircle}
+          color={totalDebt > 0 ? "destructive" : "success"}
+          sub={`${customers.filter(c => c.pendingDebt > 0).length} con saldo pendiente`} />
       </div>
 
       {/* Segmentation Chart */}
       {segmentCounts.length > 0 && (
-        <div className="bg-card border border-border rounded-lg p-4 mb-6 shadow-card">
+        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Segmentación Automática</h2>
           <div className="flex flex-wrap gap-2 mb-4">
             {segmentCounts.map(s => (
