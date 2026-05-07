@@ -11,6 +11,7 @@ import { QRCodeSVG } from "qrcode.react";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
 
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 
@@ -360,38 +361,39 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const businessName = settings?.business_name || 'Exentry Imports';
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">{isPublic ? businessName : 'Catálogo'}</h1>
-          <p className="text-muted-foreground text-sm">{filtered.length} productos disponibles</p>
-        </div>
-        <div className="flex gap-2">
-          {!isPublic && (
-            <>
-              {/* Hidden QR for printing */}
-              <div className="hidden">
-                <QRCodeSVG
-                  id="catalog-qr-svg"
-                  value={`${window.location.origin}/catalogo/${userId}`}
-                  size={300}
-                  level="H"
-                />
-              </div>
-              <Button variant="outline" size="sm" onClick={printQR} title="Imprimir QR del catálogo">
-                <QrCode className="w-4 h-4 mr-1" /> QR
-              </Button>
-              <Button variant="outline" size="sm" onClick={shareCatalog}>
-                <Share2 className="w-4 h-4 mr-1" /> Compartir
-              </Button>
-            </>
-          )}
-          <Button size="sm" onClick={generatePDF} disabled={generating || !filtered.length}>
-            <Download className="w-4 h-4 mr-1" />
-            {generating ? 'Generando...' : 'Descargar PDF'}
-          </Button>
-        </div>
+    <div className="space-y-5">
+      {/* Hidden QR for printing */}
+      <div className="hidden">
+        <QRCodeSVG
+          id="catalog-qr-svg"
+          value={`${window.location.origin}/catalogo/${userId}`}
+          size={300}
+          level="H"
+        />
       </div>
+      <PageHeader
+        icon={Package}
+        title={isPublic ? businessName : 'Catálogo'}
+        description={`${filtered.length} productos disponibles`}
+        actions={
+          <div className="flex gap-2">
+            {!isPublic && (
+              <>
+                <Button variant="outline" size="sm" onClick={printQR} title="Imprimir QR del catálogo">
+                  <QrCode className="w-4 h-4 mr-1" /> QR
+                </Button>
+                <Button variant="outline" size="sm" onClick={shareCatalog}>
+                  <Share2 className="w-4 h-4 mr-1" /> Compartir
+                </Button>
+              </>
+            )}
+            <Button size="sm" onClick={generatePDF} disabled={generating || !filtered.length}>
+              <Download className="w-4 h-4 mr-1" />
+              {generating ? 'Generando...' : 'Descargar PDF'}
+            </Button>
+          </div>
+        }
+      />
 
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
         <div className="relative flex-1">
