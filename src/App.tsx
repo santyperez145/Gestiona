@@ -70,6 +70,7 @@ const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage
 const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
 const LoyaltyPage            = lazy(() => import("@/pages/LoyaltyPage"));
 const ProfilePage            = lazy(() => import("@/pages/ProfilePage"));
+const AlertsPage             = lazy(() => import("@/pages/AlertsPage"));
 const NotFound               = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -201,6 +202,7 @@ function ProtectedRoutes() {
               <Route path="/banco" element={<BankReconciliationPage />} />
               <Route path="/pipeline" element={<SalesPipelinePage />} />
               <Route path="/fidelidad" element={<LoyaltyPage />} />
+              <Route path="/alertas" element={<AlertsPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
