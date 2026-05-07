@@ -13,6 +13,7 @@ import {
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
   Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
   History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
+  AlertTriangle, Send,
 } from "lucide-react";
 
 // ── Integration health types ──────────────────────────────────────────────────
@@ -88,10 +89,11 @@ export default function IntegrationsPage() {
   const [savingWebhook, setSavingWebhook] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
 
-  // Webhook delivery history
+  // Webhook delivery history + dead-letter queue
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [loadingDeliveries, setLoadingDeliveries] = useState(false);
   const [showDeliveries, setShowDeliveries] = useState(false);
+  const [retryingDelivery, setRetryingDelivery] = useState<string | null>(null);
 
   // Integration health
   const [healthMap, setHealthMap] = useState<Record<string, IntegrationHealth>>({});
@@ -289,6 +291,21 @@ export default function IntegrationsPage() {
     setLoadingDeliveries(false);
   };
 
+  const handleRetryDelivery = async (d: any) => {
+    setRetryingDelivery(d.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-webhook", {
+        body: { event: d.event, data: d.payload?.data ?? d.payload ?? {} },
+      });
+      if (error) throw error;
+      toast.success("Reenvío solicitado — revisá el historial en un momento");
+      setTimeout(loadDeliveries, 2000); // refresh after edge fn processes
+    } catch {
+      toast.error("Error al reintentar el envío");
+    }
+    setRetryingDelivery(null);
+  };
+
   const handleTestWebhook = async () => {
     if (!webhookUrl.startsWith("http")) { toast.error("Configurá la URL primero"); return; }
     setTestingWebhook(true);
@@ -361,6 +378,7 @@ export default function IntegrationsPage() {
     loadConnection();
     loadMpSettings();
     loadHealth();
+    loadDeliveries(); // load on mount so failed count badge shows immediately
   }, [activeOrg]);
 
   // Refresh health after conn loads
@@ -792,11 +810,44 @@ export default function IntegrationsPage() {
           <div className="p-2 rounded-lg bg-purple-500/10">
             <Webhook className="w-5 h-5 text-purple-400" />
           </div>
-          <div>
-            <h3 className="font-semibold">Webhooks salientes</h3>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">Webhooks salientes</h3>
+              {deliveries.filter(d => !d.delivered).length > 0 && (
+                <Badge className="text-[10px] h-4 px-1.5 bg-red-500/15 text-red-400 border-red-500/20">
+                  {deliveries.filter(d => !d.delivered).length} fallidos
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">Notificá Zapier, N8N o Make.com en tiempo real</p>
           </div>
         </div>
+
+        {/* Dead-letter queue alert */}
+        {deliveries.filter(d => !d.delivered).length > 0 && (
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-red-400">
+                {deliveries.filter(d => !d.delivered).length} entrega{deliveries.filter(d => !d.delivered).length !== 1 ? "s" : ""} fallida{deliveries.filter(d => !d.delivered).length !== 1 ? "s" : ""}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Verificá que tu endpoint responda con HTTP 2xx. Podés reintentar individualmente desde el historial.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+              onClick={() => {
+                setShowDeliveries(true);
+                if (!deliveries.length) loadDeliveries();
+              }}
+            >
+              Ver historial
+            </Button>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div>
@@ -917,9 +968,23 @@ export default function IntegrationsPage() {
                     {d.last_response_status ? `HTTP ${d.last_response_status}` : "Sin respuesta"}
                     {d.attempt_count > 1 && ` (${d.attempt_count} intentos)`}
                   </span>
-                  <span className="text-muted-foreground/50 shrink-0">
+                  <span className="text-muted-foreground/50 shrink-0 hidden sm:inline">
                     {new Date(d.created_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
                   </span>
+                  {!d.delivered && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-1.5 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
+                      onClick={() => handleRetryDelivery(d)}
+                      disabled={retryingDelivery === d.id}
+                      title="Reintentar envío"
+                    >
+                      {retryingDelivery === d.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Send className="w-3 h-3" />}
+                    </Button>
+                  )}
                 </div>
               ))}
               {deliveries.length > 0 && (
