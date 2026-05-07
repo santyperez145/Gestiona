@@ -1,7 +1,7 @@
 # Roadmap del Proyecto
 
 Fecha de relevamiento: 2026-05-05  
-Última actualización: 2026-05-07 (sesión 4)  
+Última actualización: 2026-05-07 (sesión 5)  
 Proyecto: Gestiona / Exentry Imports  
 DB producción: `hummeopatkniwkyrrhwc`  
 Tipo de producto: sistema de gestión para ventas, stock, finanzas, CRM, marketing, equipo e integraciones.
@@ -81,9 +81,10 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 ### P0 — Estabilizar antes de usar en producción
 
 - [x] Crear documentación mínima en `README.md`. _(2026-05-05)_
-- [ ] **Aplicar `docs/fix_production_sql.sql` en el dashboard de Supabase** — fix `m.created_at` en triggers y RLS `influencer_exchanges`. _(pendiente — SQL listo en `docs/fix_production_sql.sql`)_
-- [ ] **Loguear CLI con cuenta correcta y desplegar edge functions** — `supabase login` + `supabase link --project-ref hummeopatkniwkyrrhwc` + deploy de las 32 funciones. _(pendiente)_
-- [ ] Generar tipos actualizados de Supabase y eliminar `as any` en flujos críticos. _(bloqueado por CLI con cuenta incorrecta)_
+- [x] **Aplicar schema completo en producción** — `migration_bundle.sql` aplicado en `hummeopatkniwkyrrhwc`. _(2026-05-07 sesión 5)_
+- [x] **Edge functions desplegadas** — 34 funciones en `hummeopatkniwkyrrhwc`, seed-demo con fix de rol owner. _(2026-05-07 sesión 5)_
+- [x] **Trigger handle_new_user corregido** — elimina doble llamada a handle_new_user_create_org. _(2026-05-07 sesión 5)_
+- [ ] Generar tipos actualizados de Supabase y eliminar `as any` en flujos críticos.
 - [x] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant. _(2026-05-05)_
 - [x] Auditar RLS tabla por tabla. _(2026-05-05)_
 - [x] Agregar validación de variables de entorno de frontend. _(2026-05-05)_
@@ -155,8 +156,8 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 
 | # | Acción | Cómo | Estado |
 |---|--------|------|--------|
-| 1 | Aplicar fix SQL en producción | Pegar `docs/fix_production_sql.sql` en Supabase Dashboard SQL Editor (`hummeopatkniwkyrrhwc`) | ⏳ Pendiente |
-| 2 | Desplegar edge functions con cuenta correcta | `supabase login` → `supabase link --project-ref hummeopatkniwkyrrhwc` → `supabase functions deploy --no-verify-jwt` para las 32 funciones | ⏳ Pendiente |
+| 1 | Aplicar schema completo en producción | `migration_bundle.sql` aplicado en `hummeopatkniwkyrrhwc` | ✅ Hecho (sesión 5) |
+| 2 | Desplegar edge functions | 34 funciones en `hummeopatkniwkyrrhwc`, CLI linkeado con cuenta correcta | ✅ Hecho (sesión 5) |
 
 ### 🟠 Esta semana (Fase 0 + Fase 1 restantes)
 
@@ -429,8 +430,8 @@ Una funcionalidad se considera lista cuando cumple:
 
 | # | Paso | Prioridad |
 |---|------|-----------|
-| 1 | ⚡ Aplicar `docs/fix_production_sql.sql` en Supabase Dashboard | 🔴 Urgente |
-| 2 | ⚡ Loguear CLI con cuenta correcta y desplegar las 32 edge functions | 🔴 Urgente |
+| 1 | ~~Aplicar schema en producción~~ | ✅ Hecho |
+| 2 | ~~Desplegar edge functions~~ | ✅ Hecho |
 | 3 | Generar `src/integrations/supabase/types.ts` actualizado | 🟠 Alta |
 | 4 | Eliminar `as any` en supabaseStore.ts, POSPage y SalesPage | 🟠 Alta |
 | 5 | Probar flujo end-to-end: venta POS → cash_entry → factura | 🟠 Alta |
