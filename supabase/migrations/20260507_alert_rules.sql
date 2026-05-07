@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.alert_rules (
 
 ALTER TABLE public.alert_rules ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "org members can manage alert rules" ON public.alert_rules;
 CREATE POLICY "org members can manage alert rules"
   ON public.alert_rules
   FOR ALL

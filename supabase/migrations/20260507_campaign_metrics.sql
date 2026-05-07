@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.email_events (
 
 ALTER TABLE public.email_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "org members can view email events" ON public.email_events;
 CREATE POLICY "org members can view email events"
   ON public.email_events FOR SELECT
   USING (
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.email_unsubscribes (
 
 ALTER TABLE public.email_unsubscribes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "org members can view unsubscribes" ON public.email_unsubscribes;
 CREATE POLICY "org members can view unsubscribes"
   ON public.email_unsubscribes FOR SELECT
   USING (

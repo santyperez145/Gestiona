@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.automation_runs (
 
 ALTER TABLE public.automation_runs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "org members can view automation runs" ON public.automation_runs;
 CREATE POLICY "org members can view automation runs"
   ON public.automation_runs FOR SELECT
   USING (
