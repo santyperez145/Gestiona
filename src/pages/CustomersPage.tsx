@@ -363,7 +363,7 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
 
   useEffect(() => {
     supabase
-      .from("customer_communications" as any)
+      .from("customer_communications")
       .select("id,type,summary,created_at")
       .eq("org_id", orgId)
       .eq("customer_name", customerName)
@@ -377,7 +377,7 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
     setAdding(true);
     try {
       const { data, error } = await supabase
-        .from("customer_communications" as any)
+        .from("customer_communications")
         .insert({ org_id: orgId, user_id: userId, customer_name: customerName, type, summary: summary.trim() })
         .select("id,type,summary,created_at")
         .single();
@@ -505,12 +505,12 @@ export default function CustomersPage() {
   useEffect(() => {
     if (!activeOrg) return;
     supabase
-      .from('installment_schedule' as any)
+      .from('installment_schedule')
       .select('id, sale_id, installment_number, amount_ars, due_date, paid, sale:sale_id(customer_name, product_name)')
       .eq('org_id', activeOrg.id)
       .eq('paid', false)
       .order('due_date', { ascending: true })
-      .then(({ data }) => setInstallments((data || []) as any[]));
+      .then(({ data }) => setInstallments(data || []));
   }, [activeOrg]);
 
   const handleMergeCustomers = async () => {
@@ -525,15 +525,15 @@ export default function CustomersPage() {
     try {
       const orgId = activeOrg.id;
       // Update sales
-      await (supabase as any).from("sales").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      await supabase.from("sales").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
       // Update debts
-      await (supabase as any).from("debts").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      await supabase.from("debts").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
       // Update loyalty_points
-      await (supabase as any).from("loyalty_points").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      await supabase.from("loyalty_points").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
       // Delete source profile (if exists)
       const srcProfile = profiles.find(p => p.name.toLowerCase() === mergingCustomer.toLowerCase());
       if (srcProfile) {
-        await (supabase as any).from("customers").delete().eq("id", srcProfile.id);
+        await supabase.from("customers").delete().eq("id", srcProfile.id);
       }
       toast.success(`"${mergingCustomer}" fusionado con "${target}"`);
       setMergingCustomer(null);
@@ -552,7 +552,7 @@ export default function CustomersPage() {
     if (!activeOrg) return;
     Promise.all([
       supabase
-        .from("loyalty_points" as any)
+        .from("loyalty_points")
         .select("customer_name, delta")
         .eq("org_id", activeOrg.id),
       supabase
@@ -561,10 +561,10 @@ export default function CustomersPage() {
         .eq("org_id", activeOrg.id)
         .maybeSingle(),
     ]).then(([{ data: pts }, { data: sett }]) => {
-      if (sett) setLoyaltyEnabled(!!(sett as any).loyalty_enabled);
+      if (sett) setLoyaltyEnabled(!!sett.loyalty_enabled);
       if (pts) {
         const map: Record<string, number> = {};
-        for (const row of pts as any[]) {
+        for (const row of pts) {
           map[row.customer_name] = (map[row.customer_name] || 0) + Number(row.delta);
         }
         setLoyaltyBalances(map);
@@ -577,7 +577,7 @@ export default function CustomersPage() {
     setPayingInstallment(installmentId);
     try {
       const { error } = await supabase
-        .from('installment_schedule' as any)
+        .from('installment_schedule')
         .update({ paid: true, paid_at: new Date().toISOString() })
         .eq('id', installmentId);
       if (error) throw error;
@@ -673,7 +673,7 @@ export default function CustomersPage() {
     if (segmentFilter !== "all") list = list.filter(c => c.segment === segmentFilter);
     list.sort((a, b) => {
       if (sortBy === "lastPurchase") return new Date(b.lastPurchase).getTime() - new Date(a.lastPurchase).getTime();
-      return (b as any)[sortBy] - (a as any)[sortBy];
+      return b[sortBy as keyof typeof b] as number - (a[sortBy as keyof typeof a] as number);
     });
     return list;
   }, [customers, search, segmentFilter, sortBy]);
@@ -686,13 +686,13 @@ export default function CustomersPage() {
 
   const handleCreate = async (data: Partial<CustomerProfile>) => {
     if (!user) return;
-    await createCustomerDB(user.id, data as any);
+    await createCustomerDB(user.id, data as Parameters<typeof createCustomerDB>[1]);
     toast.success("Cliente creado");
     await loadData();
   };
 
   const handleUpdate = async (id: string, data: Partial<CustomerProfile>) => {
-    await updateCustomerDB(id, data as any);
+    await updateCustomerDB(id, data);
     toast.success("Cliente actualizado");
     await loadData();
   };
@@ -1143,7 +1143,7 @@ export default function CustomersPage() {
                             <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Productos favoritos</h3>
                             <div className="space-y-1.5">
                               {Object.entries(c.products)
-                                .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
+                                .sort(([, a], [, b]) => b.revenue - a.revenue)
                                 .slice(0, 5)
                                 .map(([name, data]: [string, any]) => (
                                   <div key={name} className="flex items-center justify-between text-xs">

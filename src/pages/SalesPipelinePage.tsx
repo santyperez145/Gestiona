@@ -258,7 +258,7 @@ export default function SalesPipelinePage() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("deals" as any)
+        .from("deals")
         .select("*")
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false });
@@ -277,14 +277,14 @@ export default function SalesPipelinePage() {
     if (!activeOrg || !user) return;
     if (dialog.deal?.id) {
       const { error } = await supabase
-        .from("deals" as any)
+        .from("deals")
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq("id", dialog.deal.id);
       if (error) throw error;
       toast.success("Oportunidad actualizada");
     } else {
       const { error } = await supabase
-        .from("deals" as any)
+        .from("deals")
         .insert({ ...data, org_id: activeOrg.id, user_id: user.id, stage: dialog.prefillStage ?? data.stage });
       if (error) throw error;
       toast.success("Oportunidad creada");
@@ -294,7 +294,7 @@ export default function SalesPipelinePage() {
 
   const handleMove = async (deal: Deal, stage: Stage) => {
     try {
-      await supabase.from("deals" as any).update({ stage, updated_at: new Date().toISOString() }).eq("id", deal.id);
+      await supabase.from("deals").update({ stage, updated_at: new Date().toISOString() }).eq("id", deal.id);
       setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage } : d));
     } catch {
       toast.error("Error al mover");
@@ -305,7 +305,7 @@ export default function SalesPipelinePage() {
     if (!confirm(`¿Eliminar "${deal.title}"?`)) return;
     setDeletingId(deal.id);
     try {
-      await supabase.from("deals" as any).delete().eq("id", deal.id);
+      await supabase.from("deals").delete().eq("id", deal.id);
       setDeals(prev => prev.filter(d => d.id !== deal.id));
     } finally {
       setDeletingId(null);
@@ -327,7 +327,7 @@ export default function SalesPipelinePage() {
   }, [deals]);
 
   const dealsByStage = useMemo(() => {
-    const map: Record<Stage, Deal[]> = {} as any;
+    const map = {} as Record<Stage, Deal[]>;
     STAGES.forEach(s => { map[s.value] = []; });
     deals.forEach(d => { map[d.stage]?.push(d); });
     return map;

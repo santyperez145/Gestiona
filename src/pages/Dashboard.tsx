@@ -125,11 +125,11 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase.from('customers' as any).select('name, phone, birthday').not('birthday', 'is', null);
+      const { data } = await supabase.from('customers').select('name, phone, birthday').not('birthday', 'is', null);
       if (!data?.length) return;
       const today = new Date();
       const upcoming: { name: string; phone?: string; birthday: string; daysUntil: number }[] = [];
-      for (const c of data as any[]) {
+      for (const c of data) {
         if (!c.birthday) continue;
         const [, mm, dd] = c.birthday.split('-').map(Number);
         const next = new Date(today.getFullYear(), mm - 1, dd);
@@ -151,7 +151,7 @@ export default function Dashboard() {
     (async () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data } = await supabase
-        .from("tasks" as any)
+        .from("tasks")
         .select("id, title, priority, due_date")
         .eq("org_id", orgForTasks.id)
         .in("status", ["pending", "in_progress"])
@@ -159,7 +159,7 @@ export default function Dashboard() {
         .order("priority")
         .order("due_date", { nullsFirst: false })
         .limit(5);
-      setUrgentTasks((data || []) as any[]);
+      setUrgentTasks(data || []);
     })();
   }, [orgForTasks]);
 
@@ -172,7 +172,7 @@ export default function Dashboard() {
     const channel = supabase
       .channel('dashboard-sales-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, (payload) => {
-        const row = payload.new as any;
+        const row = payload.new as { date?: string; total_ars?: number };
         const rowDate = row.date ? String(row.date).slice(0, 10) : '';
         if (rowDate !== today) return;
         setLiveTodaySales(prev => {
@@ -881,7 +881,7 @@ export default function Dashboard() {
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2.5">Canal de ventas este mes</p>
               <div className="space-y-1.5">
-                {(stats.salesByChannel as any[]).map(({ source, total }: { source: string; total: number }) => {
+                {(stats.salesByChannel as { source: string; total: number }[]).map(({ source, total }) => {
                   const label: Record<string, string> = { manual: "Registro manual", pos: "POS", tiendanube: "Tiendanube", api: "API" };
                   const pct = stats.monthSalesARS > 0 ? (total / stats.monthSalesARS) * 100 : 0;
                   return (

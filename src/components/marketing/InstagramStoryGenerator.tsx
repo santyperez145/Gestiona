@@ -241,7 +241,7 @@ export function InstagramStoryGenerator() {
       }
     });
     supabase.from('settings').select('default_cta_text').limit(1).maybeSingle().then(({ data }) => {
-      if ((data as any)?.default_cta_text) setDefaultCta((data as any).default_cta_text);
+      if (data?.default_cta_text) setDefaultCta(data.default_cta_text);
     });
   }, [user, open]);
 

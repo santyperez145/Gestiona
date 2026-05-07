@@ -112,7 +112,7 @@ async function generatePDF(quote: Quote, orgName: string) {
     styles: { fontSize: 9 },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 6;
+  const finalY = doc.lastAutoTable.finalY + 6;
   const RIGHT = PW - 15;
   const COL = PW - 70;
 
@@ -191,7 +191,7 @@ async function generateRemito(quote: Quote, orgName: string) {
     styles: { fontSize: 9, cellPadding: 5 },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  const finalY = doc.lastAutoTable.finalY + 20;
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.text("Firma recepción: __________________________________", 15, finalY);
@@ -231,7 +231,7 @@ export default function PresupuestosPage() {
     setPayLinkLoading(q.id);
     try {
       const { data, error } = await supabase
-        .from("payment_links" as any)
+        .from("payment_links")
         .insert({
           org_id: activeOrg!.id,
           quote_id: q.id,
@@ -247,7 +247,7 @@ export default function PresupuestosPage() {
         .select("id")
         .single();
       if (error || !data) throw error || new Error("Error creating payment link");
-      const url = `${window.location.origin}/pagar/${(data as any).id}`;
+      const url = `${window.location.origin}/pagar/${data.id}`;
       setPayLinks(prev => ({ ...prev, [q.id]: url }));
       navigator.clipboard.writeText(url);
       toast.success("Link de pago copiado — compartilo por WhatsApp");
@@ -294,7 +294,7 @@ export default function PresupuestosPage() {
   const updateItem = (i: number, field: keyof QuoteItem, val: string | number) => {
     setItems(prev => {
       const next = [...prev];
-      (next[i] as any)[field] = val;
+      (next[i] as Record<string, unknown>)[field] = val;
       next[i].total = Number(next[i].qty) * Number(next[i].unitPrice);
       return next;
     });

@@ -64,7 +64,7 @@ export default function ReportsPage() {
         getOrgMembersWithProfilesDB(user.id).catch(() => []),
       ]);
       setData({ products, sales, purchases, debts, settings, expenses });
-      setMembers(orgMembers as any[]);
+      setMembers(orgMembers);
     })();
   }, [user]);
 
@@ -210,14 +210,14 @@ export default function ReportsPage() {
     autoTable(doc, {
       startY: 130,
       head: [[{ content: 'Concepto', styles: { halign: 'left' } }, { content: 'Importe (ARS)', styles: { halign: 'right' } }]],
-      body: rows as any,
+      body: rows as [string, string][],
       theme: 'grid',
       headStyles: { fillColor: [26, 26, 46], textColor: [212, 168, 67], fontStyle: 'bold' },
       styles: { fontSize: 10, cellPadding: 6 },
       columnStyles: { 0: { cellWidth: 360 }, 1: { cellWidth: 'auto' } },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 30;
+    const finalY = doc.lastAutoTable.finalY + 30;
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
     doc.text('Documento generado automáticamente — uso interno / informativo.', 40, finalY);
@@ -1191,12 +1191,12 @@ function AuditTab() {
     setLoading(true);
     (async () => {
       const { data } = await supabase
-        .from('audit_logs' as any)
+        .from('audit_logs')
         .select('id, action, entity_type, entity_id, details, created_at, user_id')
         .eq('org_id', activeOrg.id)
         .order('created_at', { ascending: false })
         .limit(500);
-      setLogs((data || []) as any[]);
+      setLogs(data || []);
       setLoading(false);
     })();
   }, [activeOrg]);

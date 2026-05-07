@@ -165,7 +165,7 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
     columnStyles: { 0: { cellWidth: "auto" }, 1: { cellWidth: 45, halign: "right" }, 2: { cellWidth: 90, halign: "right" }, 3: { cellWidth: 90, halign: "right" } },
   });
 
-  let y = (doc as any).lastAutoTable.finalY + 16;
+  let y = doc.lastAutoTable.finalY + 16;
   const right = W - 40;
 
   // ── Totals ────────────────────────────────────────────────
@@ -310,7 +310,7 @@ export default function InvoicesPage() {
     if (!activeOrg) return;
     (async () => {
       const { data } = await supabase
-        .from("settings" as any)
+        .from("settings")
         .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_tipo_emisor,afip_environment")
         .eq("org_id", activeOrg.id)
         .maybeSingle();
@@ -438,7 +438,7 @@ export default function InvoicesPage() {
         tipo_comprobante: tipoCbte,
         afip_status: tipoCbte ? "pending" : "not_applicable",
         sale_id: fromSaleId.current || null,
-      } as any).select().single();
+      }).select().single();
 
       if (error) throw error;
 
@@ -455,7 +455,7 @@ export default function InvoicesPage() {
 
       // If created from a sale, update the sale's invoice_id bidirectional link
       if (fromSaleId.current && inv) {
-        await (supabase as any)
+        await supabase
           .from("sales")
           .update({ invoice_id: inv.id })
           .eq("id", fromSaleId.current);
@@ -754,7 +754,7 @@ export default function InvoicesPage() {
                               {inv.afip_status === "config_error" ? "Config AFIP" : inv.afip_status === "network_error" ? "Sin conexión AFIP" : "Error AFIP"}
                             </span>
                           )}
-                          {(inv as any).sale_id && (
+                          {inv.sale_id && (
                             <a
                               href={`/ventas`}
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"

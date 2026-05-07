@@ -52,7 +52,7 @@ export default function ReferralsPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
     const [{ data: refs }, sett] = await Promise.all([
-      supabase.from("customer_referrals" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+      supabase.from("customer_referrals").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
       getSettingsDB(user.id),
     ]);
     setReferrals((refs || []) as Referral[]);
@@ -70,7 +70,7 @@ export default function ReferralsPage() {
     if (!activeOrg) return;
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
-    await supabase.from("settings" as any).update(updates).eq("org_id", activeOrg.id);
+    await supabase.from("settings").update(updates).eq("org_id", activeOrg.id);
     toast.success("Configuración guardada");
   };
 
@@ -81,7 +81,7 @@ export default function ReferralsPage() {
     setSaving(true);
     try {
       const finalCode = code.trim() || generateCode(referrer);
-      const { error } = await supabase.from("customer_referrals" as any).insert({
+      const { error } = await supabase.from("customer_referrals").insert({
         org_id: activeOrg.id,
         referrer_name: referrer.trim(),
         referred_name: referred.trim(),
@@ -103,7 +103,7 @@ export default function ReferralsPage() {
   };
 
   const updateStatus = async (id: string, status: Referral["status"]) => {
-    await supabase.from("customer_referrals" as any).update({ status }).eq("id", id);
+    await supabase.from("customer_referrals").update({ status }).eq("id", id);
     await load();
     toast.success(status === "credited" ? "Bono acreditado" : "Cancelado");
   };

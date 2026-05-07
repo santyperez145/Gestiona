@@ -216,7 +216,7 @@ export default function SalesPage() {
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.paid ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
                           {s.paid ? '✓ Cobrado' : 'Debe'}
                         </span>
-                        {(s as any).invoice_id && (
+                        {s.invoice_id && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                             Facturado
                           </span>
@@ -227,9 +227,9 @@ export default function SalesPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
-                          title={(s as any).invoice_id ? "Ver factura" : "Crear factura"}
+                          title={s.invoice_id ? "Ver factura" : "Crear factura"}
                           onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}>
-                          <FileText className={`w-3.5 h-3.5 ${(s as any).invoice_id ? "text-blue-400" : "text-primary"}`} />
+                          <FileText className={`w-3.5 h-3.5 ${s.invoice_id ? "text-blue-400" : "text-primary"}`} />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                         <ConfirmDialog
@@ -263,7 +263,7 @@ export default function SalesPage() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
                       {s.paid ? 'Pagado' : 'Debe'}
                     </span>
-                    {(s as any).invoice_id && (
+                    {s.invoice_id && (
                       <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         Facturado
                       </span>
@@ -395,7 +395,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [customerName, setCustomerName] = useState(editItem?.customer_name || '');
   const [customerFilter, setCustomerFilter] = useState('');
   const [showCustomerList, setShowCustomerList] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState((editItem as any)?.payment_method || 'efectivo');
+  const [paymentMethod, setPaymentMethod] = useState(editItem?.payment_method || 'efectivo');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [couponCode, setCouponCode] = useState('');
   const [couponResult, setCouponResult] = useState<any>(null);

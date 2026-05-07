@@ -137,8 +137,8 @@ export default function MarketingTemplatesPage() {
     if (!activeOrg) return;
     setLoading(true);
     const [{ data: pub }, { data: mine }] = await Promise.all([
-      supabase.from("marketing_templates" as any).select("*").eq("is_public", true).order("likes", { ascending: false }).limit(100),
-      supabase.from("marketing_templates" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+      supabase.from("marketing_templates").select("*").eq("is_public", true).order("likes", { ascending: false }).limit(100),
+      supabase.from("marketing_templates").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
     ]);
     setTemplates((pub || []) as Template[]);
     setMyTemplates((mine || []) as Template[]);
@@ -149,7 +149,7 @@ export default function MarketingTemplatesPage() {
 
   const handleSave = async (data: any) => {
     if (!activeOrg || !user) return;
-    await supabase.from("marketing_templates" as any).insert({ ...data, org_id: activeOrg.id, created_by: user.id });
+    await supabase.from("marketing_templates").insert({ ...data, org_id: activeOrg.id, created_by: user.id });
     toast.success("Template guardado");
     await load();
   };
@@ -157,13 +157,13 @@ export default function MarketingTemplatesPage() {
   const handleUse = async (tpl: Template) => {
     if (!user) return;
     await addMarketingPostDB({ user_id: user.id, title: tpl.title, content: tpl.content, post_type: tpl.post_type, status: "draft", ai_generated: false });
-    await supabase.from("marketing_templates" as any).update({ uses_count: tpl.uses_count + 1 }).eq("id", tpl.id);
+    await supabase.from("marketing_templates").update({ uses_count: tpl.uses_count + 1 }).eq("id", tpl.id);
     toast.success("Template copiado a tus publicaciones como borrador");
     await load();
   };
 
   const handleLike = async (tpl: Template) => {
-    await supabase.from("marketing_templates" as any).update({ likes: tpl.likes + 1 }).eq("id", tpl.id);
+    await supabase.from("marketing_templates").update({ likes: tpl.likes + 1 }).eq("id", tpl.id);
     await load();
   };
 

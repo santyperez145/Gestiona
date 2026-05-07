@@ -48,7 +48,7 @@ export default function CuotasPage() {
     if (!activeOrg) return;
     setLoading(true);
     const { data } = await supabase
-      .from("installment_schedule" as any)
+      .from("installment_schedule")
       .select("*, sale:sale_id(product_name, customer_name, total_ars, installments)")
       .eq("org_id", activeOrg.id)
       .order("due_date");
@@ -69,7 +69,7 @@ export default function CuotasPage() {
     setSaving(true);
     try {
       // Create a pseudo-sale record just to link installments
-      const { data: saleData, error: saleErr } = await supabase.from("sales" as any).insert({
+      const { data: saleData, error: saleErr } = await supabase.from("sales").insert({
         org_id: activeOrg.id,
         product_name: form.product_name.trim(),
         customer_name: form.customer_name.trim() || null,
@@ -89,7 +89,7 @@ export default function CuotasPage() {
 
       if (saleErr || !saleData) throw saleErr || new Error("Error al crear venta");
 
-      const saleId = (saleData as any).id;
+      const saleId = saleData.id;
       const amountPerCuota = Math.round((total / n) * 100) / 100;
 
       const schedule = Array.from({ length: n }, (_, i) => {
@@ -105,7 +105,7 @@ export default function CuotasPage() {
         };
       });
 
-      const { error } = await supabase.from("installment_schedule" as any).insert(schedule);
+      const { error } = await supabase.from("installment_schedule").insert(schedule);
       if (error) throw error;
 
       toast.success(`Venta en ${n} cuotas de ${formatARS(amountPerCuota)} registrada`);
@@ -120,7 +120,7 @@ export default function CuotasPage() {
   };
 
   const markPaid = async (inst: Installment) => {
-    await supabase.from("installment_schedule" as any).update({ paid: true, paid_at: new Date().toISOString() }).eq("id", inst.id);
+    await supabase.from("installment_schedule").update({ paid: true, paid_at: new Date().toISOString() }).eq("id", inst.id);
     await load();
     toast.success(`Cuota ${inst.installment_number} marcada como cobrada`);
   };

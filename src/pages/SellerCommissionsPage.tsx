@@ -59,15 +59,15 @@ export default function SellerCommissionsPage() {
     if (!activeOrg) return;
     setLoading(true);
     const [{ data: mems }, { data: pays }, { data: profiles }] = await Promise.all([
-      supabase.from("memberships" as any).select("user_id, role, commission_percent, commission_enabled").eq("org_id", activeOrg.id),
-      supabase.from("seller_payouts" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("profiles" as any).select("user_id, full_name, email"),
+      supabase.from("memberships").select("user_id, role, commission_percent, commission_enabled").eq("org_id", activeOrg.id),
+      supabase.from("seller_payouts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("profiles").select("user_id, full_name, email"),
     ]);
 
     const profileMap: Record<string, any> = {};
     (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
 
-    setMembers(((mems || []) as any[]).map(m => ({ ...m, profile: profileMap[m.user_id] })));
+    setMembers((mems || []).map(m => ({ ...m, profile: profileMap[m.user_id] })));
     setPayouts((pays || []) as SellerPayout[]);
     setLoading(false);
   };
@@ -85,7 +85,7 @@ export default function SellerCommissionsPage() {
     if (!configMember || !activeOrg) return;
     setSaving(true);
     const { error } = await supabase
-      .from("memberships" as any)
+      .from("memberships")
       .update({ commission_percent: Number(configPercent), commission_enabled: configEnabled })
       .eq("user_id", configMember.user_id)
       .eq("org_id", activeOrg.id);
@@ -106,21 +106,21 @@ export default function SellerCommissionsPage() {
 
       // Get sales for this seller in the period
       const { data: sales } = await supabase
-        .from("sales" as any)
+        .from("sales")
         .select("total_ars")
         .eq("org_id", activeOrg.id)
         .eq("user_id", member.user_id)
         .gte("date", `${periodStart}T00:00:00`)
         .lte("date", `${periodEnd}T23:59:59`);
 
-      const salesTotal = ((sales || []) as any[]).reduce((s, r) => s + Number(r.total_ars || 0), 0);
+      const salesTotal = (sales || []).reduce((s, r) => s + Number(r.total_ars || 0), 0);
       const commissionARS = Math.round(salesTotal * (member.commission_percent / 100));
 
       if (salesTotal === 0) { toast.error("Sin ventas registradas para este vendedor en el período"); return; }
 
       const sellerName = member.profile?.full_name || member.profile?.email || member.user_id.slice(0, 8);
 
-      const { error } = await supabase.from("seller_payouts" as any).insert({
+      const { error } = await supabase.from("seller_payouts").insert({
         org_id: activeOrg.id,
         user_id: member.user_id,
         seller_name: sellerName,
@@ -143,7 +143,7 @@ export default function SellerCommissionsPage() {
   };
 
   const markPaid = async (payout: SellerPayout) => {
-    await supabase.from("seller_payouts" as any).update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", payout.id);
+    await supabase.from("seller_payouts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", payout.id);
     await load();
     toast.success("Liquidación marcada como pagada");
   };

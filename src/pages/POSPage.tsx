@@ -452,7 +452,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
     setSubmitting(true);
     try {
       const amountARS = (Number(selected.total_ars) / selected.quantity) * qty;
-      await supabase.from("returns" as any).insert({
+      await supabase.from("returns").insert({
         org_id: orgId,
         user_id: userId,
         sale_id: selected.id,

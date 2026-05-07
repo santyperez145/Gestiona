@@ -61,7 +61,7 @@ export default function ChequesPage() {
     if (!activeOrg) return;
     setLoading(true);
     const { data } = await supabase
-      .from("cheques" as any)
+      .from("cheques")
       .select("*")
       .eq("org_id", activeOrg.id)
       .order("due_date");
@@ -80,7 +80,7 @@ export default function ChequesPage() {
     if (amount <= 0) { toast.error("El monto debe ser mayor a 0"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("cheques" as any).insert({
+      const { error } = await supabase.from("cheques").insert({
         org_id: activeOrg.id,
         type: form.type,
         customer_name: form.customer_name.trim() || null,
@@ -109,7 +109,7 @@ export default function ChequesPage() {
     if (status === "deposited" || status === "cleared") {
       update.deposited_at = new Date().toISOString().slice(0, 10);
     }
-    await supabase.from("cheques" as any).update(update).eq("id", cheque.id);
+    await supabase.from("cheques").update(update).eq("id", cheque.id);
     await load();
     toast.success(`Cheque marcado como ${STATUS_CONFIG[status].label}`);
   };

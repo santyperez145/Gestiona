@@ -548,7 +548,7 @@ export default function CashSessionPage() {
                       // Load entries for this session if not cached
                       if (next && !sessionEntriesMap[s.id]) {
                         const { data } = await supabase
-                          .from("cash_entries" as any)
+                          .from("cash_entries")
                           .select("*")
                           .eq("session_id", s.id)
                           .order("created_at");
@@ -598,7 +598,7 @@ export default function CashSessionPage() {
                         ].map((item) => (
                           <div key={item.l}>
                             <p className="text-muted-foreground">{item.l}</p>
-                            <p className={`font-mono font-semibold mt-0.5 ${(item as any).color || ""}`}>{item.v}</p>
+                            <p className={`font-mono font-semibold mt-0.5 ${item.color || ""}`}>{item.v}</p>
                           </div>
                         ))}
                         {s.notes && (

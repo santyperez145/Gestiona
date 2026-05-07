@@ -88,7 +88,7 @@ export default function PricingPage() {
   };
 
   const getFeatures = (p: Plan): string[] => {
-    if (Array.isArray((p as any).features) && (p as any).features.length > 0) return (p as any).features;
+    if (Array.isArray(p.features) && p.features.length > 0) return p.features;
     return FALLBACK_FEATURES[p.code] || [];
   };
 

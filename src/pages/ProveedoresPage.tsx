@@ -83,10 +83,10 @@ export default function ProveedoresPage() {
     setLoading(true);
     const [{ data: suppData }, { data: debtData }] = await Promise.all([
       supabase.from("suppliers").select("*").eq("org_id", activeOrg.id).order("name"),
-      supabase.from("supplier_debts" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+      supabase.from("supplier_debts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
     ]);
     setSuppliers((suppData as Supplier[]) || []);
-    setDebts((debtData as any[]) || []);
+    setDebts(debtData || []);
     setLoading(false);
   };
 
@@ -96,7 +96,7 @@ export default function ProveedoresPage() {
     if (!activeOrg || !debtForm.description.trim() || !debtForm.amount_ars) return;
     setSavingDebt(true);
     try {
-      const { error } = await supabase.from("supplier_debts" as any).insert({
+      const { error } = await supabase.from("supplier_debts").insert({
         org_id: activeOrg.id,
         supplier_name: debtForm.supplier_name || "Sin proveedor",
         supplier_id: debtForm.supplier_id || null,

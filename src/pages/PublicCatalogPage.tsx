@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
@@ -123,7 +123,7 @@ export default function PublicCatalogPage() {
         .order("category")
         .order("name"),
       supabase
-        .from("settings_public" as any)
+        .from("settings_public")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle(),
@@ -333,7 +333,7 @@ export default function PublicCatalogPage() {
               onChange={(e) => setSearch(e.target.value)}
               autoFocus={searchOpen}
               className="w-full bg-white/[0.06] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-              style={{ ["--tw-ring-color" as any]: `${primaryColor}66` }}
+              style={{ ["--tw-ring-color" as string]: `${primaryColor}66` } as React.CSSProperties}
             />
           </div>
         </div>
@@ -697,7 +697,7 @@ function ProductCard({
             alt={p.name}
             loading="lazy"
             decoding="async"
-            fetchPriority={featured ? "high" : "auto" as any}
+            fetchPriority={featured ? "high" : "auto"}
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
             style={{ imageRendering: "auto" }}
           />

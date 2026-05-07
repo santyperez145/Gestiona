@@ -36,7 +36,7 @@ export default function MarketingPage() {
     if (!user) return;
     listPostTypes().then(setPostTypes).catch(() => {});
     supabase.from('settings').select('industry_code').limit(1).maybeSingle().then(({ data }) => {
-      const code = (data as any)?.industry_code || null;
+      const code = data?.industry_code || null;
       setIndustryCode(code);
       listMarketingThemes(code).then(setThemes).catch(() => {});
     }).catch(() => {});

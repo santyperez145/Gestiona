@@ -950,7 +950,7 @@ function CloudBackupsSection({ userId }: { userId: string }) {
       });
       if (error) throw error;
       setFiles((data || []).filter(f => f.name?.endsWith('.json')).map(f => ({
-        name: f.name, created_at: (f as any).created_at, size: (f.metadata as any)?.size,
+        name: f.name, created_at: f.created_at, size: (f.metadata as Record<string, unknown>)?.size as number | undefined,
       })));
     } catch (e: any) {
       // bucket may be empty or RLS denial — silent
@@ -1038,21 +1038,21 @@ function AfipSection() {
     if (!activeOrg) return;
     (async () => {
       const { data } = await supabase
-        .from("settings" as any)
+        .from("settings")
         .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_environment,afip_tipo_emisor,afip_certificate,afip_private_key,afip_ta_expires_at")
         .eq("org_id", activeOrg.id)
         .maybeSingle();
       if (data) {
-        setCuit((data as any).afip_cuit || "");
-        setRazonSocial((data as any).afip_razon_social || "");
-        setDomicilio((data as any).afip_domicilio || "");
-        setPuntoVenta(String((data as any).afip_punto_venta || 1));
-        setEnvironment((data as any).afip_environment || "homologacion");
-        setTipoEmisor((data as any).afip_tipo_emisor || "monotributo");
-        setCertificate((data as any).afip_certificate || "");
-        setPrivateKey((data as any).afip_private_key || "");
-        if ((data as any).afip_ta_expires_at) {
-          setTaStatus(new Date((data as any).afip_ta_expires_at) > new Date() ? "valid" : "expired");
+        setCuit(data.afip_cuit || "");
+        setRazonSocial(data.afip_razon_social || "");
+        setDomicilio(data.afip_domicilio || "");
+        setPuntoVenta(String(data.afip_punto_venta || 1));
+        setEnvironment(data.afip_environment || "homologacion");
+        setTipoEmisor(data.afip_tipo_emisor || "monotributo");
+        setCertificate(data.afip_certificate || "");
+        setPrivateKey(data.afip_private_key || "");
+        if (data.afip_ta_expires_at) {
+          setTaStatus(new Date(data.afip_ta_expires_at) > new Date() ? "valid" : "expired");
         }
       }
       setLoading(false);
@@ -1061,7 +1061,7 @@ function AfipSection() {
 
   const doSave = async () => {
     if (!activeOrg) return;
-    await supabase.from("settings" as any).update({
+    await supabase.from("settings").update({
       afip_cuit: cuit.replace(/[-\s]/g, "") || null,
       afip_razon_social: razonSocial || null,
       afip_domicilio: domicilio || null,
@@ -1100,7 +1100,7 @@ function AfipSection() {
       const resp = await supabase.functions.invoke("afip-authorize", {
         body: { invoice_id: "__test__" },
       });
-      const errMsg: string = resp.error?.message || (resp.data as any)?.error || "";
+      const errMsg: string = resp.error?.message || (resp.data as { error?: string })?.error || "";
       // "Factura no encontrada" means credentials worked — AFIP auth succeeded
       if (errMsg.includes("Factura no encontrada") || errMsg.includes("invoice_id")) {
         toast.success("✓ Conexión con AFIP verificada correctamente");

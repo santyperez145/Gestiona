@@ -1053,13 +1053,13 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
     if (!open || !productId) return;
     setLoading(true);
     supabase
-      .from("price_history" as any)
+      .from("price_history")
       .select("*")
       .eq("product_id", productId)
       .order("created_at", { ascending: false })
       .limit(20)
       .then(({ data }) => {
-        setHistory((data || []) as any[]);
+        setHistory(data || []);
         setLoading(false);
       });
   }, [open, productId]);

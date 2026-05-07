@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
       // Load quotes for funnel
       let quotes: any[] = [];
       if (activeOrg) {
-        const { data } = await supabase.from("presupuestos" as any).select("id,status,total_ars,created_at").eq("org_id", activeOrg.id);
+        const { data } = await supabase.from("quotes").select("id,status,total_ars,created_at").eq("org_id", activeOrg.id);
         quotes = data || [];
       }
       setRawData({ products, sales, purchases, expenses, quotes });

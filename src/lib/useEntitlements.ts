@@ -16,6 +16,7 @@ export interface Plan {
   custom_branding: boolean;
   sort_order: number;
   description: string | null;
+  features?: string[];
 }
 
 export interface Subscription {

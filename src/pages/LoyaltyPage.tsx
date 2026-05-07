@@ -59,7 +59,7 @@ export default function LoyaltyPage() {
     setLoading(true);
     try {
       const [{ data: pts }, { data: sett }] = await Promise.all([
-        supabase.from("loyalty_points" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+        supabase.from("loyalty_points").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("settings").select("loyalty_enabled,loyalty_points_per_1000,loyalty_points_value_ars").eq("org_id", activeOrg.id).single(),
       ]);
       setEntries((pts || []) as LoyaltyEntry[]);
@@ -121,7 +121,7 @@ export default function LoyaltyPage() {
     if (isNaN(delta) || delta === 0) { toast.error("Ingresá un número distinto de 0"); return; }
     setAdjusting(true);
     try {
-      await supabase.from("loyalty_points" as any).insert({
+      await supabase.from("loyalty_points").insert({
         org_id: activeOrg.id,
         customer_name: adjCustomer.trim(),
         delta,

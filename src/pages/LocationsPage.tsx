@@ -106,7 +106,7 @@ function TransferDialog({
     if (!product) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("stock_transfers" as any).insert({
+      const { error } = await supabase.from("stock_transfers").insert({
         org_id: orgId,
         from_location_id: fromLoc,
         to_location_id: toLoc,
@@ -184,18 +184,18 @@ function TransferDialog({
 
 async function upsertLocationStock(orgId: string, locationId: string, productId: string, delta: number) {
   const { data: existing } = await supabase
-    .from("location_stock" as any)
+    .from("location_stock")
     .select("id, stock")
     .eq("location_id", locationId)
     .eq("product_id", productId)
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("location_stock" as any)
-      .update({ stock: Math.max(0, (existing as any).stock + delta), updated_at: new Date().toISOString() })
-      .eq("id", (existing as any).id);
+    await supabase.from("location_stock")
+      .update({ stock: Math.max(0, existing.stock + delta), updated_at: new Date().toISOString() })
+      .eq("id", existing.id);
   } else if (delta > 0) {
-    await supabase.from("location_stock" as any).insert({ org_id: orgId, location_id: locationId, product_id: productId, stock: delta });
+    await supabase.from("location_stock").insert({ org_id: orgId, location_id: locationId, product_id: productId, stock: delta });
   }
 }
 
@@ -216,19 +216,19 @@ export default function LocationsPage() {
     setLoading(true);
 
     const [{ data: locs }, prods, { data: txs }, { data: ls }] = await Promise.all([
-      supabase.from("locations" as any).select("*").eq("org_id", activeOrg.id).eq("active", true).order("is_main", { ascending: false }).order("name"),
+      supabase.from("locations").select("*").eq("org_id", activeOrg.id).eq("active", true).order("is_main", { ascending: false }).order("name"),
       getProductsDB(user.id),
-      supabase.from("stock_transfers" as any).select("*, from_location:from_location_id(name), to_location:to_location_id(name)").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(20),
-      supabase.from("location_stock" as any).select("location_id, product_id, stock").eq("org_id", activeOrg.id),
+      supabase.from("stock_transfers").select("*, from_location:from_location_id(name), to_location:to_location_id(name)").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("location_stock").select("location_id, product_id, stock").eq("org_id", activeOrg.id),
     ]);
 
     setLocations((locs || []) as Location[]);
     setProducts(prods);
-    setTransfers((txs || []) as any[]);
+    setTransfers(txs || []);
 
     // Index location stock by location_id
     const stockIndex: Record<string, LocationStock[]> = {};
-    for (const row of (ls || []) as any[]) {
+    for (const row of ls || []) {
       const prod = prods.find((p: any) => p.id === row.product_id);
       if (!stockIndex[row.location_id]) stockIndex[row.location_id] = [];
       stockIndex[row.location_id].push({ product_id: row.product_id, stock: row.stock, product_name: prod?.name });
@@ -242,11 +242,11 @@ export default function LocationsPage() {
   const handleSave = async (data: typeof EMPTY_FORM) => {
     if (!activeOrg) return;
     if (editingLoc) {
-      const { error } = await supabase.from("locations" as any).update(data).eq("id", editingLoc.id);
+      const { error } = await supabase.from("locations").update(data).eq("id", editingLoc.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Local actualizado");
     } else {
-      const { error } = await supabase.from("locations" as any).insert({ ...data, org_id: activeOrg.id });
+      const { error } = await supabase.from("locations").insert({ ...data, org_id: activeOrg.id });
       if (error) { toast.error(error.message); return; }
       toast.success("Local creado");
     }
@@ -256,7 +256,7 @@ export default function LocationsPage() {
 
   const deleteLoc = async (loc: Location) => {
     if (!confirm(`¿Eliminar "${loc.name}"?`)) return;
-    await supabase.from("locations" as any).update({ active: false }).eq("id", loc.id);
+    await supabase.from("locations").update({ active: false }).eq("id", loc.id);
     await load();
     toast.success("Local eliminado");
   };

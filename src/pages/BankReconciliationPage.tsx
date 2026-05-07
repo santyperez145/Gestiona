@@ -133,28 +133,28 @@ export default function BankReconciliationPage() {
     setLoading(true);
     try {
       const [{ data: bankTxs }, { data: salesData }, { data: expData }, { data: debtData }, { data: suppPayData }] = await Promise.all([
-        supabase.from("bank_transactions" as any).select("*").eq("org_id", activeOrg.id).order("date", { ascending: false }),
+        supabase.from("bank_transactions").select("*").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("sales").select("id,date,customer_name,total_ars,method").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo + "T23:59:59"),
         supabase.from("expenses").select("id,date,description,amount").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo),
-        supabase.from("debts" as any).select("id,updated_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("updated_at", dateFrom).lte("updated_at", dateTo + "T23:59:59"),
-        supabase.from("supplier_payments" as any).select("id,paid_at,amount_ars,method,supplier_debt_id,supplier_debts(supplier_name)").eq("org_id", activeOrg.id).gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
+        supabase.from("debts").select("id,updated_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("updated_at", dateFrom).lte("updated_at", dateTo + "T23:59:59"),
+        supabase.from("supplier_payments").select("id,paid_at,amount_ars,method,supplier_debt_id,supplier_debts(supplier_name)").eq("org_id", activeOrg.id).gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
       ]);
       setTxs((bankTxs || []) as BankTx[]);
       setSales((salesData || []) as Sale[]);
       setExpenses((expData || []) as Expense[]);
-      setDebtPayments(((debtData || []) as any[]).map(d => ({
+      setDebtPayments((debtData || []).map(d => ({
         id: d.id,
         updated_at: d.updated_at,
         customer_name: d.customer_name,
         amount_ars: d.amount_ars,
         description: d.description,
       })));
-      setSupplierPayments(((suppPayData || []) as any[]).map(p => ({
+      setSupplierPayments((suppPayData || []).map(p => ({
         id: p.id,
         paid_at: p.paid_at,
         amount_ars: p.amount_ars,
         method: p.method,
-        supplier_name: (p as any).supplier_debts?.supplier_name || "Proveedor",
+        supplier_name: (p.supplier_debts as { supplier_name?: string } | null)?.supplier_name || "Proveedor",
       })));
     } finally {
       setLoading(false);
@@ -190,7 +190,7 @@ export default function BankReconciliationPage() {
     if (!form.description || !form.amount_ars || !form.date) { toast.error("Completá todos los campos"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("bank_transactions" as any).insert({
+      const { error } = await supabase.from("bank_transactions").insert({
         org_id: activeOrg.id,
         date: form.date,
         description: form.description,
@@ -213,7 +213,7 @@ export default function BankReconciliationPage() {
     if (!confirm("¿Eliminar este movimiento?")) return;
     setDeleting(id);
     try {
-      await supabase.from("bank_transactions" as any).delete().eq("id", id);
+      await supabase.from("bank_transactions").delete().eq("id", id);
       setTxs(prev => prev.filter(t => t.id !== id));
     } finally { setDeleting(null); }
   };
@@ -221,7 +221,7 @@ export default function BankReconciliationPage() {
   // ── Match ─────────────────────────────────────────────────────────────────────
 
   const handleMatch = async (txId: string, ref: string) => {
-    await supabase.from("bank_transactions" as any).update({ matched: true, match_ref: ref }).eq("id", txId);
+    await supabase.from("bank_transactions").update({ matched: true, match_ref: ref }).eq("id", txId);
     setTxs(prev => prev.map(t => t.id === txId ? { ...t, matched: true, match_ref: ref } : t));
     setMatchOpen(null);
     toast.success("Movimiento conciliado");
@@ -261,7 +261,7 @@ export default function BankReconciliationPage() {
     const rows = parseBankCSV(text);
     if (rows.length === 0) { toast.error("No se pudieron leer movimientos del CSV"); return; }
     try {
-      const { error } = await supabase.from("bank_transactions" as any).insert(
+      const { error } = await supabase.from("bank_transactions").insert(
         rows.map(r => ({ ...r, org_id: activeOrg.id, matched: false }))
       );
       if (error) throw error;

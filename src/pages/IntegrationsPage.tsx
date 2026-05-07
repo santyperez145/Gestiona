@@ -52,6 +52,7 @@ type TiendanubeConnection = {
   last_sync_orders_at: string | null;
   sync_products: boolean;
   sync_orders: boolean;
+  webhook_id: string | null;
 };
 
 function fmtDate(d: string | null) {
@@ -105,7 +106,7 @@ export default function IntegrationsPage() {
     setLoadingHealth(true);
     try {
       // Get latest log per integration in the last 24h
-      const { data: logs } = await (supabase as any)
+      const { data: logs } = await supabase
         .from("integration_logs")
         .select("integration, status, message, created_at")
         .eq("org_id", activeOrg.id)
@@ -161,12 +162,12 @@ export default function IntegrationsPage() {
         mercadopago: {
           integration: "mercadopago", label: "Mercado Pago",
           icon: <span className="text-blue-400 font-bold text-sm">$</span>,
-          status: (settings as any)?.mp_enabled && (settings as any)?.mp_access_token
+          status: settings?.mp_enabled && settings?.mp_access_token
             ? buildStatus("mercadopago")
             : "unknown",
           lastSeen: fmtAge(latest.mercadopago?.created_at || null),
           message: latest.mercadopago?.message || null,
-          configured: !!(settings as any)?.mp_enabled && !!(settings as any)?.mp_access_token,
+          configured: !!settings?.mp_enabled && !!settings?.mp_access_token,
         },
         stripe: {
           integration: "stripe", label: "Stripe",
@@ -187,10 +188,10 @@ export default function IntegrationsPage() {
         public_api: {
           integration: "public_api", label: "API Pública",
           icon: <KeyRound className="w-4 h-4 text-emerald-400" />,
-          status: (settings as any)?.api_key ? buildStatus("public_api") : "unknown",
+          status: settings?.api_key ? buildStatus("public_api") : "unknown",
           lastSeen: fmtAge(latest.public_api?.created_at || null),
           message: latest.public_api?.message || null,
-          configured: !!(settings as any)?.api_key,
+          configured: !!settings?.api_key,
         },
       });
     } catch { /* silent — table may not exist yet */ }
@@ -213,17 +214,17 @@ export default function IntegrationsPage() {
     if (!activeOrg) return;
     const { data } = await supabase
       .from("settings")
-      .select("mp_access_token, mp_enabled, api_key")
+      .select("mp_access_token, mp_enabled, api_key, webhook_url, webhook_enabled, webhook_events, webhook_secret")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (data) {
       setMpToken(data.mp_access_token || "");
       setMpEnabled(!!data.mp_enabled);
-      setApiKey((data as any).api_key || null);
-      setWebhookUrl((data as any).webhook_url || "");
-      setWebhookEnabled(!!(data as any).webhook_enabled);
-      setWebhookSecret((data as any).webhook_secret || "");
-      if ((data as any).webhook_events) setWebhookEvents((data as any).webhook_events);
+      setApiKey(data.api_key || null);
+      setWebhookUrl(data.webhook_url || "");
+      setWebhookEnabled(!!data.webhook_enabled);
+      setWebhookSecret(data.webhook_secret || "");
+      if (data.webhook_events) setWebhookEvents(data.webhook_events as string[]);
     }
     setMpLoaded(true);
   };
@@ -247,7 +248,7 @@ export default function IntegrationsPage() {
 
   const handleRevokeApiKey = async () => {
     if (!activeOrg || !confirm("¿Revocar la API key? Las integraciones dejarán de funcionar.")) return;
-    await supabase.from("settings").update({ api_key: null } as any).eq("org_id", activeOrg.id);
+    await supabase.from("settings").update({ api_key: null }).eq("org_id", activeOrg.id);
     setApiKey(null);
     toast.success("API key revocada");
   };
@@ -262,7 +263,7 @@ export default function IntegrationsPage() {
       webhook_enabled: webhookEnabled,
       webhook_events: webhookEvents,
       webhook_secret: webhookSecret.trim() || null,
-    } as any, { onConflict: "org_id" });
+    }, { onConflict: "org_id" });
     setSavingWebhook(false);
     if (error) toast.error("Error al guardar webhook");
     else toast.success("Webhook guardado");
@@ -280,12 +281,12 @@ export default function IntegrationsPage() {
     setLoadingDeliveries(true);
     try {
       const { data, error } = await supabase
-        .from("webhook_deliveries" as any)
+        .from("webhook_deliveries")
         .select("*")
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false })
         .limit(30);
-      if (!error) setDeliveries((data as any[]) || []);
+      if (!error) setDeliveries(data || []);
     } catch {
       // table may not exist yet — silent fail, empty list
     }
@@ -676,10 +677,10 @@ export default function IntegrationsPage() {
                   ) : (
                     <Zap className="w-3 h-3 mr-1" />
                   )}
-                  {(conn as any)?.webhook_id ? "Re-registrar" : "Activar"}
+                  {conn?.webhook_id ? "Re-registrar" : "Activar"}
                 </Button>
               </div>
-              {(conn as any)?.webhook_id && (
+              {conn?.webhook_id && (
                 <div className="flex items-center gap-1.5 text-[10px] text-success">
                   <CheckCircle2 className="w-3 h-3" />
                   Webhooks activos

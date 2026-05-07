@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId, requireActiveOrgId } from './orgContext';
+import type { Database } from '@/integrations/supabase/types';
+type SettingsInsert = Database['public']['Tables']['settings']['Insert'];
 
 /** Get the active org id, falling back to looking it up by user (for legacy callers). */
 async function orgIdFor(_userId?: string): Promise<string> {
@@ -124,7 +126,7 @@ export async function updateDebtDB(id: string, updates: any) {
       await supabase.from('sales').update({ paid: true }).eq('id', prev.sale_id);
       await supabase.from('notifications').insert({
         user_id: prev.user_id,
-        org_id: (prev as any).org_id || requireActiveOrgId(),
+        org_id: prev.org_id || requireActiveOrgId(),
         title: 'Venta cobrada',
         message: `Se marcó como pagada la venta de ${prev.customer_name}`,
         type: 'venta_cobrada', entity_type: 'sale', entity_id: prev.sale_id,
@@ -168,7 +170,7 @@ export async function saveSettingsDB(userId: string, settings: Record<string, an
   const orgId = await orgIdFor(userId);
   const { error } = await supabase
     .from('settings')
-    .upsert({ org_id: orgId, user_id: userId, ...settings } as any, { onConflict: 'org_id' });
+    .upsert({ org_id: orgId, user_id: userId, ...settings } as SettingsInsert, { onConflict: 'org_id' });
   if (error) throw error;
 }
 
@@ -503,7 +505,7 @@ export async function getExpensesDB(userId: string) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase.from('expenses').select('*').eq('org_id', orgId).order('date', { ascending: false });
   if (error) throw error;
-  return (data as any[]) || [];
+  return data || [];
 }
 
 export async function addExpenseDB(expense: any) {
@@ -570,7 +572,7 @@ export async function getCustomerNotesDB(userId: string) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase.from('customer_notes').select('*').eq('org_id', orgId);
   if (error) throw error;
-  return (data as any[]) || [];
+  return data || [];
 }
 
 export async function upsertCustomerNoteDB(userId: string, customerName: string, notes: string) {
@@ -590,7 +592,7 @@ export async function getCustomersDB(userId: string) {
     .eq('org_id', orgId)
     .order('name');
   if (error) throw error;
-  return (data || []) as any[];
+  return data || [];
 }
 
 export async function createCustomerDB(userId: string, customer: {
@@ -604,7 +606,7 @@ export async function createCustomerDB(userId: string, customer: {
     .select()
     .single();
   if (error) throw error;
-  return data as any;
+  return data;
 }
 
 export async function updateCustomerDB(id: string, updates: Partial<{

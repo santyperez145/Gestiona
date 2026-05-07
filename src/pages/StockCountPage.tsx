@@ -143,7 +143,7 @@ export default function StockCountPage() {
       // Record adjustment in stock_history if the table exists (best-effort)
       const note = `Toma física ${new Date().toLocaleDateString("es-AR")}`;
       await Promise.allSettled(changed.map(r =>
-        supabase.from("stock_history" as any).insert({
+        supabase.from("stock_history").insert({
           org_id: activeOrg!.id,
           product_id: r.product.id,
           product_name: r.product.name,

@@ -82,7 +82,7 @@ const adminCall = async (action: string, params: Record<string, unknown> = {}) =
   });
   if (error) {
     // Try to extract the real error message from the response body
-    const ctx = (error as any).context;
+    const ctx = (error as { context?: unknown }).context;
     if (ctx) {
       try {
         const body = typeof ctx.json === 'function' ? await ctx.json() : null;
@@ -1014,7 +1014,7 @@ export default function PlatformAdminPage() {
                 <div key={f.key} className="flex items-center justify-between">
                   <Label className="font-normal">{f.label}</Label>
                   <Switch
-                    checked={!!(editPlanForm as any)[f.key]}
+                    checked={!!(editPlanForm as Record<string, unknown>)[f.key]}
                     onCheckedChange={v => setEditPlanForm(p => ({ ...p, [f.key]: v }))}
                   />
                 </div>

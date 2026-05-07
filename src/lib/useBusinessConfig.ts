@@ -42,7 +42,7 @@ export function useBusinessConfig() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const s = await getSettingsDB(user.id) as any;
+      const s = await getSettingsDB(user.id);
       setConfig({
         businessName: s.business_name || 'Gestiona',
         logoUrl: s.logo_url || null,

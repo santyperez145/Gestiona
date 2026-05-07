@@ -52,7 +52,7 @@ export default function OnboardingPage() {
     // Persist onboarding completion in DB (works across devices)
     await supabase
       .from('organizations')
-      .update({ onboarding_completed: true } as any)
+      .update({ onboarding_completed: true })
       .eq('id', activeOrg.id);
     localStorage.setItem(`gestiona.onboarded.${activeOrg.id}`, '1');
     if (withDemo) {

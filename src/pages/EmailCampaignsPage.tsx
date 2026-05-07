@@ -95,10 +95,10 @@ export default function EmailCampaignsPage() {
     setLoading(true);
     try {
       const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }] = await Promise.all([
-        supabase.from("email_campaigns" as any).select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("customers" as any).select("id,name,email").eq("org_id", activeOrg.id).not("email", "is", null),
+        supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+        supabase.from("customers").select("id,name,email").eq("org_id", activeOrg.id).not("email", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
-        (supabase as any).from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
+        supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
       ]);
       setCampaigns((camps || []) as Campaign[]);
       setCustomers((custs || []) as Customer[]);
@@ -148,7 +148,7 @@ export default function EmailCampaignsPage() {
     if (!subject.trim() || !bodyHtml.trim()) { toast.error("Completá asunto y cuerpo"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("email_campaigns" as any).insert({
+      const { error } = await supabase.from("email_campaigns").insert({
         org_id: activeOrg.id,
         subject: subject.trim(),
         body_html: bodyHtml.trim(),
@@ -177,7 +177,7 @@ export default function EmailCampaignsPage() {
     if (!confirm(`Enviar a ${audience.length} contacto(s) con email?`)) return;
     setSending(camp.id);
     try {
-      await supabase.from("email_campaigns" as any).update({ status: "sending" }).eq("id", camp.id);
+      await supabase.from("email_campaigns").update({ status: "sending" }).eq("id", camp.id);
       setCampaigns(prev => prev.map(c => c.id === camp.id ? { ...c, status: "sending" } : c));
 
       const { data, error } = await supabase.functions.invoke("send-email-campaign", {
@@ -198,7 +198,7 @@ export default function EmailCampaignsPage() {
       load();
     } catch {
       toast.error("Error al enviar campaña");
-      await supabase.from("email_campaigns" as any).update({ status: "failed" }).eq("id", camp.id);
+      await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", camp.id);
       load();
     } finally {
       setSending(null);
@@ -211,7 +211,7 @@ export default function EmailCampaignsPage() {
     if (!confirm("¿Eliminar esta campaña?")) return;
     setDeleting(id);
     try {
-      await supabase.from("email_campaigns" as any).delete().eq("id", id);
+      await supabase.from("email_campaigns").delete().eq("id", id);
       setCampaigns(prev => prev.filter(c => c.id !== id));
     } finally {
       setDeleting(null);

@@ -11,7 +11,7 @@ export async function checkStockAfterSale(productId: string, productName: string
   const { data: product } = await supabase.from('products').select('stock, org_id').eq('id', productId).single();
   if (!product) return;
 
-  const orgId = (product as any).org_id || getActiveOrgId();
+  const orgId = product.org_id || getActiveOrgId();
   const threshold = orgId ? await getThreshold(orgId) : 3;
 
   if (product.stock === 0) {

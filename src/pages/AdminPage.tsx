@@ -388,7 +388,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
           </div>
           <div>
             <label className="text-sm text-muted-foreground">Rol</label>
-            <Select value={selectedRole} onValueChange={v => setSelectedRole(v as any)}>
+            <Select value={selectedRole} onValueChange={v => setSelectedRole(v as 'admin' | 'vendedor' | 'viewer')}>
               <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Administrador</SelectItem>

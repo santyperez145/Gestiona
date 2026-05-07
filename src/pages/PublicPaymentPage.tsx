@@ -43,7 +43,7 @@ export default function PublicPaymentPage() {
     if (!linkId) { setNotFound(true); setLoading(false); return; }
     (async () => {
       const { data: linkData } = await supabase
-        .from("payment_links" as any)
+        .from("payment_links")
         .select("*")
         .eq("id", linkId)
         .maybeSingle();
@@ -53,24 +53,24 @@ export default function PublicPaymentPage() {
       setLink(pl);
 
       const { data: settingsData } = await supabase
-        .from("settings" as any)
+        .from("settings")
         .select("bank_cbu, bank_alias, bank_name, bank_holder, whatsapp_number")
         .eq("org_id", pl.org_id)
         .maybeSingle();
 
       const { data: orgData } = await supabase
-        .from("organizations" as any)
+        .from("organizations")
         .select("name")
         .eq("id", pl.org_id)
         .maybeSingle();
 
       setOrg({
-        name: (orgData as any)?.name || "Tienda",
-        whatsapp_number: (settingsData as any)?.whatsapp_number || null,
-        bank_cbu: (settingsData as any)?.bank_cbu || null,
-        bank_alias: (settingsData as any)?.bank_alias || null,
-        bank_name: (settingsData as any)?.bank_name || null,
-        bank_holder: (settingsData as any)?.bank_holder || null,
+        name: orgData?.name || "Tienda",
+        whatsapp_number: settingsData?.whatsapp_number || null,
+        bank_cbu: settingsData?.bank_cbu || null,
+        bank_alias: settingsData?.bank_alias || null,
+        bank_name: settingsData?.bank_name || null,
+        bank_holder: settingsData?.bank_holder || null,
       });
 
       setLoading(false);
@@ -82,7 +82,7 @@ export default function PublicPaymentPage() {
     setConfirming(true);
     try {
       const { error } = await supabase
-        .from("payment_links" as any)
+        .from("payment_links")
         .update({ status: "pending_confirmation" })
         .eq("id", link.id);
       if (error) throw error;
@@ -197,7 +197,7 @@ export default function PublicPaymentPage() {
           {/* Items */}
           {(link.items || []).length > 0 && (
             <div className="border-t border-slate-700 pt-3 space-y-1.5">
-              {(link.items as any[]).map((item: any, i: number) => (
+              {(link.items as { qty: number; description: string; unit_price: number }[]).map((item, i) => (
                 <div key={i} className="flex items-start justify-between text-sm">
                   <span className="text-slate-300 flex-1 pr-2">
                     {item.qty > 1 && <span className="text-slate-500 mr-1">{item.qty}×</span>}

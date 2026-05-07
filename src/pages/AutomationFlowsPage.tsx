@@ -444,11 +444,11 @@ export default function AutomationFlowsPage() {
     setLoading(true);
     const [{ data: flowData }, { data: runData }] = await Promise.all([
       supabase
-        .from("automation_flows" as any)
+        .from("automation_flows")
         .select("*")
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false }),
-      (supabase as any)
+      supabase
         .from("automation_runs")
         .select("*")
         .eq("org_id", activeOrg.id)
@@ -480,11 +480,11 @@ export default function AutomationFlowsPage() {
   const handleSave = async (data: any) => {
     if (!activeOrg) return;
     if (editingFlow) {
-      const { error } = await supabase.from("automation_flows" as any).update(data).eq("id", editingFlow.id);
+      const { error } = await supabase.from("automation_flows").update(data).eq("id", editingFlow.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Flujo actualizado");
     } else {
-      const { error } = await supabase.from("automation_flows" as any).insert({ ...data, org_id: activeOrg.id, active: true });
+      const { error } = await supabase.from("automation_flows").insert({ ...data, org_id: activeOrg.id, active: true });
       if (error) { toast.error(error.message); return; }
       toast.success("Flujo creado");
     }
@@ -493,14 +493,14 @@ export default function AutomationFlowsPage() {
   };
 
   const toggleActive = async (flow: FlowRule) => {
-    await supabase.from("automation_flows" as any).update({ active: !flow.active }).eq("id", flow.id);
+    await supabase.from("automation_flows").update({ active: !flow.active }).eq("id", flow.id);
     await load();
     toast.success(flow.active ? "Flujo pausado" : "Flujo activado");
   };
 
   const deleteFlow = async (id: string) => {
     if (!confirm("¿Eliminar este flujo?")) return;
-    await supabase.from("automation_flows" as any).delete().eq("id", id);
+    await supabase.from("automation_flows").delete().eq("id", id);
     await load();
     toast.success("Flujo eliminado");
   };

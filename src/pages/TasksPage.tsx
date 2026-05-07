@@ -67,7 +67,7 @@ export default function TasksPage() {
     if (!activeOrg) return;
     setLoading(true);
     const { data } = await supabase
-      .from("tasks" as any)
+      .from("tasks")
       .select("*")
       .eq("org_id", activeOrg.id)
       .order("priority")
@@ -85,7 +85,7 @@ export default function TasksPage() {
     if (!form.title.trim() || !activeOrg) { toast.error("Ingresá el título de la tarea"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("tasks" as any).insert({
+      const { error } = await supabase.from("tasks").insert({
         org_id: activeOrg.id,
         created_by: user?.id,
         title: form.title.trim(),
@@ -110,13 +110,13 @@ export default function TasksPage() {
   const updateStatus = async (task: Task, status: Task["status"]) => {
     const update: any = { status };
     if (status === "done") update.completed_at = new Date().toISOString();
-    await supabase.from("tasks" as any).update(update).eq("id", task.id);
+    await supabase.from("tasks").update(update).eq("id", task.id);
     await load();
     if (status === "done") toast.success(`"${task.title}" completada`);
   };
 
   const deleteTask = async (task: Task) => {
-    await supabase.from("tasks" as any).delete().eq("id", task.id);
+    await supabase.from("tasks").delete().eq("id", task.id);
     await load();
   };
 

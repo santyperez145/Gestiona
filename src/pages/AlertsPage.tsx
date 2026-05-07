@@ -138,7 +138,7 @@ export default function AlertsPage() {
   const loadRules = useCallback(async () => {
     if (!orgId) return;
     const { data } = await supabase
-      .from("alert_rules" as any)
+      .from("alert_rules")
       .select("*")
       .eq("org_id", orgId)
       .order("type");
@@ -195,7 +195,7 @@ export default function AlertsPage() {
     const patch = edits[rule.id];
     if (!patch) return;
     setSaving(rule.id);
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("alert_rules")
       .update({ ...patch, updated_at: new Date().toISOString() })
       .eq("id", rule.id);
@@ -212,7 +212,7 @@ export default function AlertsPage() {
   const toggleRule = async (rule: AlertRule) => {
     const newVal = !rule.enabled;
     setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: newVal } : r));
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("alert_rules")
       .update({ enabled: newVal, updated_at: new Date().toISOString() })
       .eq("id", rule.id);
