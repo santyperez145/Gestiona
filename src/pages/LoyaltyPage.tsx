@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,17 +150,16 @@ export default function LoyaltyPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Star className="w-6 h-6 text-yellow-400" />
-            Programa de Fidelidad
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Puntos por compra · {totalPointsOutstanding.toLocaleString("es-AR")} puntos activos · valor estimado {formatARS(totalValueOutstanding)}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Star}
+        title="Programa de Fidelidad"
+        description={`Puntos por compra · ${totalPointsOutstanding.toLocaleString("es-AR")} puntos activos`}
+        badge={
+          enabled
+            ? { label: "Activo ✓", variant: "success" }
+            : { label: "Inactivo", variant: "default" }
+        }
+      />
 
       {/* Settings */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">

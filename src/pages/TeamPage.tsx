@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Mail, Trash2, Users, Copy, Crown } from 'lucide-react';
+import PageHeader from '@/components/shared/PageHeader';
 import type { OrgRole } from '@/lib/orgContext';
 
 interface Member {
@@ -150,13 +151,16 @@ export default function TeamPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Users className="w-7 h-7 text-primary" />
-        <div>
-          <h1 className="text-2xl font-display font-bold">Equipo</h1>
-          <p className="text-sm text-muted-foreground">Invitá colaboradores y gestioná roles.</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Users}
+        title="Equipo"
+        description="Invitá colaboradores y gestioná roles."
+        badge={
+          userLimit !== null
+            ? { label: `${members.length}/${userLimit} usuarios`, variant: members.length >= userLimit ? "destructive" : "default" }
+            : { label: `${members.length} miembros`, variant: "default" }
+        }
+      />
 
       {canManage && (
         <div className="bg-card border border-border rounded-2xl p-5">

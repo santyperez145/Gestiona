@@ -15,6 +15,7 @@ import {
   TrendingUp, TrendingDown, BarChart3, Users, DollarSign,
   Package, Calendar, Percent, Clock, Filter, Brain, Sparkles,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -262,22 +263,23 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Analytics Avanzado</h1>
-          <p className="text-sm text-muted-foreground">Métricas profundas, tendencias y comparativas interanuales</p>
-        </div>
-        <Select value={year} onValueChange={(v) => setYear(v as "0" | "1")}>
-          <SelectTrigger className="w-36 bg-muted border-border text-sm">
-            <Calendar className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">{new Date().getFullYear()}</SelectItem>
-            <SelectItem value="1">{new Date().getFullYear() - 1}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Analytics Avanzado"
+        description="Métricas profundas, tendencias y comparativas interanuales"
+        actions={
+          <Select value={year} onValueChange={(v) => setYear(v as "0" | "1")}>
+            <SelectTrigger className="w-36 bg-muted border-border text-sm">
+              <Calendar className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">{new Date().getFullYear()}</SelectItem>
+              <SelectItem value="1">{new Date().getFullYear() - 1}</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

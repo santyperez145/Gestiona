@@ -15,6 +15,7 @@ import {
   History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
   AlertTriangle, Send,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 // ── Integration health types ──────────────────────────────────────────────────
 type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
@@ -455,18 +456,17 @@ export default function IntegrationsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Integraciones</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Conectá tu tienda online y sincronizá productos y pedidos automáticamente.
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" className="text-xs shrink-0" onClick={loadHealth} disabled={loadingHealth}>
-          <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
-          Estado
-        </Button>
-      </div>
+      <PageHeader
+        icon={Link2}
+        title="Integraciones"
+        description="Conectá tu tienda online y sincronizá productos y pedidos automáticamente."
+        actions={
+          <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
+            <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
+            Actualizar estado
+          </Button>
+        }
+      />
 
       {/* ── Health check panel ─────────────────────────────────────── */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-card">

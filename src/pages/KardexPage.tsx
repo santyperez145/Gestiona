@@ -21,6 +21,8 @@ import {
   Loader2, Download, SlidersHorizontal, Package, PlusCircle,
   MinusCircle, ClipboardList, TrendingDown, TrendingUp, History,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -246,57 +248,34 @@ export default function KardexPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <History className="w-6 h-6 text-primary" /> Kardex de Stock
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Historial completo de movimientos de inventario
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Actualizar
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0}>
-            <Download className="w-4 h-4 mr-1" /> Exportar CSV
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => { setAdjustProduct(null); setAdjustQty(""); setAdjustNotes(""); setShowAdjust(true); }}
-          >
-            <SlidersHorizontal className="w-4 h-4 mr-1" /> Ajuste Manual
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={History}
+        title="Kardex de Stock"
+        description="Historial completo de movimientos de inventario"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Actualizar
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0}>
+              <Download className="w-4 h-4 mr-1" /> CSV
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => { setAdjustProduct(null); setAdjustQty(""); setAdjustNotes(""); setShowAdjust(true); }}
+            >
+              <SlidersHorizontal className="w-4 h-4 mr-1" /> Ajuste
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total movimientos</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5 text-green-400" /> Entradas</p>
-            <p className="text-2xl font-bold text-green-400">+{stats.totalIn}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingDown className="w-3.5 h-3.5 text-red-400" /> Salidas</p>
-            <p className="text-2xl font-bold text-red-400">−{stats.totalOut}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Ajustes manuales</p>
-            <p className="text-2xl font-bold text-yellow-400">{stats.adjustments}</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KPICard label="Total movimientos" value={stats.total} icon={ClipboardList} color="primary" />
+        <KPICard label="Entradas" value={`+${stats.totalIn}`} icon={TrendingUp} color="success" />
+        <KPICard label="Salidas" value={`−${stats.totalOut}`} icon={TrendingDown} color="destructive" />
+        <KPICard label="Ajustes manuales" value={stats.adjustments} icon={SlidersHorizontal} color="warning" />
       </div>
 
       {/* Tabs */}

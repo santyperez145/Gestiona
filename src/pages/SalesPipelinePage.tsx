@@ -19,6 +19,8 @@ import {
   TrendingUp, Loader2, GripVertical,
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -342,32 +344,29 @@ export default function SalesPipelinePage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-primary" />
-            Pipeline de Ventas
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Seguimiento de oportunidades comerciales</p>
-        </div>
-        <Button onClick={() => setDialog({ open: true })} className="gradient-gold text-primary-foreground gap-1.5">
-          <Plus className="w-4 h-4" />Nueva oportunidad
-        </Button>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Pipeline de Ventas"
+        description="Seguimiento de oportunidades comerciales"
+        badge={
+          stats.openCount > 0
+            ? { label: `${stats.openCount} abiertas`, variant: "default" }
+            : undefined
+        }
+        actions={
+          <Button onClick={() => setDialog({ open: true })} className="gradient-gold text-primary-foreground gap-1.5">
+            <Plus className="w-4 h-4" />Nueva oportunidad
+          </Button>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Pipeline total", value: formatARS(stats.pipelineValue), color: "text-primary" },
-          { label: "Oportunidades abiertas", value: stats.openCount, color: "text-blue-400" },
-          { label: "Cerradas ganadas", value: formatARS(stats.wonValue), color: "text-emerald-400" },
-          { label: "Tasa de cierre", value: `${stats.winRate.toFixed(0)}%`, color: stats.winRate >= 50 ? "text-emerald-400" : stats.winRate >= 25 ? "text-yellow-400" : "text-red-400" },
-        ].map(k => (
-          <div key={k.label} className="bg-card border border-border rounded-lg p-3 md:p-4">
-            <div className="text-xs text-muted-foreground mb-1">{k.label}</div>
-            <div className={`text-xl font-bold font-display ${k.color}`}>{k.value}</div>
-          </div>
-        ))}
+        <KPICard label="Pipeline total" value={formatARS(stats.pipelineValue)} icon={DollarSign} color="primary" />
+        <KPICard label="Oportunidades abiertas" value={stats.openCount} icon={TrendingUp} color="blue" />
+        <KPICard label="Cerradas ganadas" value={formatARS(stats.wonValue)} icon={Calendar} color="success" />
+        <KPICard label="Tasa de cierre" value={`${stats.winRate.toFixed(0)}%`} icon={User}
+          color={stats.winRate >= 50 ? "success" : stats.winRate >= 25 ? "warning" : "destructive"} />
       </div>
 
       {/* Kanban board */}
