@@ -65,13 +65,13 @@ WHERE recurring = true
   AND recurring_next_date IS NULL;
 
 -- pg_cron: run auto-recurring-expenses edge function daily at 06:00 UTC
-DO $$
+DO $outer$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
       'auto-recurring-expenses',
       '0 6 * * *',
-      $$
+      $cron$
         SELECT net.http_post(
           url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL') || '/functions/v1/auto-recurring-expenses',
           headers := jsonb_build_object(
@@ -80,11 +80,11 @@ BEGIN
           ),
           body := '{}'::jsonb
         );
-      $$
+      $cron$
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+END $outer$;
 
 -- == 20260506_webhook_deliveries.sql ==
 -- Outbound webhook delivery log for retry tracking and observability
@@ -139,27 +139,27 @@ CREATE INDEX IF NOT EXISTS integration_logs_org_integration ON public.integratio
 CREATE INDEX IF NOT EXISTS integration_logs_recent ON public.integration_logs(org_id, created_at DESC);
 
 -- Auto-clean logs older than 30 days (pg_cron job)
-DO $$
+DO $outer$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
       'clean-integration-logs',
       '0 3 * * *',
-      $$DELETE FROM public.integration_logs WHERE created_at < now() - interval '30 days'$$
+      $cron$DELETE FROM public.integration_logs WHERE created_at < now() - interval '30 days'$cron$
     );
     PERFORM cron.schedule(
       'clean-webhook-deliveries',
       '0 3 * * *',
-      $$DELETE FROM public.webhook_deliveries WHERE created_at < now() - interval '60 days'$$
+      $cron$DELETE FROM public.webhook_deliveries WHERE created_at < now() - interval '60 days'$cron$
     );
     PERFORM cron.schedule(
       'clean-stripe-events',
       '0 4 * * *',
-      $$DELETE FROM public.stripe_events WHERE processed_at < now() - interval '30 days'$$
+      $cron$DELETE FROM public.stripe_events WHERE processed_at < now() - interval '30 days'$cron$
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+END $outer$;
 
 -- == 20260506_auto_loyalty_trigger.sql ==
 -- Auto-award loyalty points when a sale is created
