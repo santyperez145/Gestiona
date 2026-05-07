@@ -184,19 +184,26 @@ export default function SalesPage() {
                       <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
-                        {s.paid ? 'Pagado' : 'Debe'}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+                          {s.paid ? 'Pagado' : 'Debe'}
+                        </span>
+                        {(s as any).invoice_id && (
+                          <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            Facturado
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {isAdmin && (
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Button
                           variant="ghost" size="sm"
-                          title="Crear factura"
-                          onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}`)}
+                          title={(s as any).invoice_id ? "Ver factura" : "Crear factura"}
+                          onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}
                         >
-                          <FileText className="w-3.5 h-3.5 text-primary" />
+                          <FileText className={`w-3.5 h-3.5 ${(s as any).invoice_id ? "text-blue-400" : "text-primary"}`} />
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                         <ConfirmDialog

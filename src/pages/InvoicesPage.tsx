@@ -28,6 +28,7 @@ interface Invoice {
   issue_date: string; due_date: string | null; status: string; notes: string | null;
   currency: string; subtotal: number; tax_pct: number; tax_amount: number; total: number;
   paid_at: string | null; created_at: string;
+  sale_id: string | null;
   invoice_items?: InvoiceItem[];
   // AFIP fields
   tipo_comprobante: number | null;
@@ -274,6 +275,7 @@ export default function InvoicesPage() {
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
   const fromSaleHandled = useRef(false);
+  const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
 
   const canManage = activeRole === "owner" || activeRole === "admin";
 
@@ -282,15 +284,17 @@ export default function InvoicesPage() {
     const fromSale = searchParams.get("from_sale");
     const customer = searchParams.get("customer") ?? "";
     const total = searchParams.get("total") ?? "";
+    const productName = searchParams.get("product") ?? "Venta";
     if (fromSale && !fromSaleHandled.current) {
       fromSaleHandled.current = true;
+      fromSaleId.current = fromSale; // save for submission
       setForm(f => ({
         ...f,
         customer_name: decodeURIComponent(customer),
-        notes: `Factura generada desde venta ID: ${fromSale}`,
+        notes: "",
       }));
       if (total) {
-        setItems([{ ...emptyItem(), description: "Venta", quantity: 1, unit_price: Number(total) }]);
+        setItems([{ ...emptyItem(), description: decodeURIComponent(productName), quantity: 1, unit_price: Number(total) }]);
       }
       setShowForm(true);
       // Clean the URL params
@@ -430,7 +434,8 @@ export default function InvoicesPage() {
         created_by: user.id,
         tipo_comprobante: tipoCbte,
         afip_status: tipoCbte ? "pending" : "not_applicable",
-      }).select().single();
+        sale_id: fromSaleId.current || null,
+      } as any).select().single();
 
       if (error) throw error;
 
@@ -444,6 +449,15 @@ export default function InvoicesPage() {
           total: it.quantity * it.unit_price,
         }))
       );
+
+      // If created from a sale, update the sale's invoice_id bidirectional link
+      if (fromSaleId.current && inv) {
+        await (supabase as any)
+          .from("sales")
+          .update({ invoice_id: inv.id })
+          .eq("id", fromSaleId.current);
+        fromSaleId.current = null;
+      }
 
       toast.success(`Factura ${number} creada`);
       setShowForm(false);
@@ -725,6 +739,16 @@ export default function InvoicesPage() {
                               <ShieldAlert className="w-3 h-3" />
                               {inv.afip_status === "config_error" ? "Config AFIP" : inv.afip_status === "network_error" ? "Sin conexión AFIP" : "Error AFIP"}
                             </span>
+                          )}
+                          {(inv as any).sale_id && (
+                            <a
+                              href={`/ventas`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                              title="Esta factura tiene una venta vinculada"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <Receipt className="w-3 h-3" />Venta
+                            </a>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground truncate">{inv.customer_name}</p>
