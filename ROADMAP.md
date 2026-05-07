@@ -1,7 +1,7 @@
 # Roadmap del Proyecto
 
 Fecha de relevamiento: 2026-05-05  
-Última actualización: 2026-05-06 (sesión 3)  
+Última actualización: 2026-05-07 (sesión 4)  
 Proyecto: Gestiona / Exentry Imports  
 DB producción: `wcfohngxrtopgggumjmw`  
 Tipo de producto: sistema de gestión para ventas, stock, finanzas, CRM, marketing, equipo e integraciones.
@@ -37,6 +37,9 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - CashSessionPage: exportar reporte de cierre como PDF/impresión y CSV por turno. _(2026-05-06 sesión 3)_
 - ReportsPage: comparativa período anterior en Estado de Resultados (4 KPIs con delta ▲/▼). _(2026-05-06 sesión 3)_
 - CustomersPage: Ficha 360 con tabs (Resumen, Compras, Cuotas/Deudas, Contacto). _(2026-05-06 sesión 3)_
+- Alertas inteligentes configurables: 5 tipos (stock, margen, deudas, inactivos, gastos), edge function `check-alerts`, cron diario 07:00 UTC. _(2026-05-07 sesión 4)_
+- Automatizaciones con motor de ejecución real: edge function `execute-automations`, historial en `automation_runs`, botón "Ejecutar ahora" y "Ejecutar todos". _(2026-05-07 sesión 4)_
+- Forecast validado vs real: regresión lineal OLS, tab "📈 Forecast" en AnalyticsPage, gráfico actual vs proyectado por mes. _(2026-05-07 sesión 4)_
 
 ---
 
@@ -128,12 +131,12 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 
 ### P4 — Automatización, IA y crecimiento
 
-- [ ] Automatizaciones con historial de ejecución y simulador.
+- [x] Automatizaciones con historial de ejecución y botón "Ejecutar ahora". _(2026-05-07 sesión 4)_
+- [x] Alertas inteligentes configurables: stock, margen, deuda vencida, clientes inactivos, gastos. _(2026-05-07 sesión 4)_
+- [x] Forecast con comparación real vs proyectado (regresión lineal, tab en Analytics). _(2026-05-07 sesión 4)_
 - [ ] Campañas de email con segmentos guardados, consentimiento y métricas.
 - [ ] IA con controles de costo, límites por plan y trazabilidad.
 - [ ] Reportes avanzados por sucursal, vendedor, categoría y período.
-- [ ] Forecast con comparación real vs proyectado.
-- [ ] Alertas inteligentes: stock, margen bajo, deuda vencida, clientes inactivos.
 - [x] Ficha 360 de cliente: compras, deudas, comunicaciones, puntos en un solo lugar. _(2026-05-06 sesión 3)_
 - [x] Fusión de clientes duplicados (merge inline en CRM). _(2026-05-06 sesión 3)_
 - [x] Auto-award loyalty points via DB trigger en cada venta. _(2026-05-06 sesión 3)_
@@ -233,16 +236,16 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [ ] Monitor de integraciones en tiempo real. _(pendiente)_
 
 ### Fase 4 — Inteligencia y escala
-**Duración sugerida: continuo. En planificación.**
+**Duración sugerida: continuo. 60% completa. _(2026-05-07 sesión 4)_**
 
-- [ ] Automatizaciones con historial de ejecución.
-- [ ] Campañas email con segmentos y métricas.
-- [ ] Forecast validado vs real.
-- [ ] Alertas inteligentes configurables.
-- [ ] Ficha 360 de cliente.
+- [x] Automatizaciones con historial de ejecución y botón "Ejecutar ahora". _(2026-05-07)_
+- [x] Alertas inteligentes configurables (5 tipos, umbrales editables, cron diario). _(2026-05-07)_
+- [x] Forecast validado vs real (regresión lineal, tab Analytics). _(2026-05-07)_
+- [x] Ficha 360 de cliente con tabs. _(2026-05-06)_
+- [x] Code splitting: bundle 1982kB → 427kB (-78%). _(2026-05-06)_
+- [ ] Campañas email con segmentos y métricas (open rate, click rate).
 - [ ] PWA/offline para POS.
-- [ ] Code splitting y optimización de tablas grandes.
-- [ ] Observabilidad completa.
+- [ ] Observabilidad completa (integration monitor en tiempo real).
 
 ---
 
