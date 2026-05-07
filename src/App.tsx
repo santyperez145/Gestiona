@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
@@ -8,65 +9,81 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import AppLayout from "@/components/AppLayout";
-import Dashboard from "@/pages/Dashboard";
-import ProductsPage from "@/pages/ProductsPage";
-import PurchasesPage from "@/pages/PurchasesPage";
-import SalesPage from "@/pages/SalesPage";
-import DebtsPage from "@/pages/DebtsPage";
-import ReportsPage from "@/pages/ReportsPage";
-import SettingsPage from "@/pages/SettingsPage";
-import MarketingPage from "@/pages/MarketingPage";
-import AIInsightsPage from "@/pages/AIInsightsPage";
-import AIChatPage from "@/pages/AIChatPage";
-import AutomationFlowsPage from "@/pages/AutomationFlowsPage";
-import LocationsPage from "@/pages/LocationsPage";
-import ReferralsPage from "@/pages/ReferralsPage";
-import MarketingTemplatesPage from "@/pages/MarketingTemplatesPage";
-import ExpensesPage from "@/pages/ExpensesPage";
-import CustomersPage from "@/pages/CustomersPage";
-import InfluencerExchangesPage from "@/pages/InfluencerExchangesPage";
-import InfluencersPage from "@/pages/InfluencersPage";
-import SettlementsPage from "@/pages/SettlementsPage";
-import BrandKnowledgePage from "@/pages/BrandKnowledgePage";
-import CombosBannersPage from "@/pages/CombosBannersPage";
-import CatalogPage from "@/pages/CatalogPage";
-import TiendanubeExportPage from "@/pages/TiendanubeExportPage";
-import AuthPage from "@/pages/AuthPage";
-import AdminPage from "@/pages/AdminPage";
-import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import PublicCatalogPage from "@/pages/PublicCatalogPage";
-import PublicPaymentPage from "@/pages/PublicPaymentPage";
-import LandingPage from "@/pages/LandingPage";
-import PricingPage from "@/pages/PricingPage";
-import PrivacyPage from "@/pages/PrivacyPage";
-import TermsPage from "@/pages/TermsPage";
-import OnboardingPage from "@/pages/OnboardingPage";
-import TeamPage from "@/pages/TeamPage";
-import InvitationAcceptPage from "@/pages/InvitationAcceptPage";
-import PlatformAdminPage from "@/pages/PlatformAdminPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
-import InvoicesPage from "@/pages/InvoicesPage";
-import POSPage from "@/pages/POSPage";
-import CashSessionPage from "@/pages/CashSessionPage";
-import IntegrationsPage from "@/pages/IntegrationsPage";
-import ProveedoresPage from "@/pages/ProveedoresPage";
-import PresupuestosPage from "@/pages/PresupuestosPage";
-import DevolucionesPage from "@/pages/DevolucionesPage";
-import CuotasPage from "@/pages/CuotasPage";
-import ChequesPage from "@/pages/ChequesPage";
-import SellerCommissionsPage from "@/pages/SellerCommissionsPage";
-import TasksPage from "@/pages/TasksPage";
-import AutoRestockPage from "@/pages/AutoRestockPage";
-import StockCountPage from "@/pages/StockCountPage";
-import KardexPage from "@/pages/KardexPage";
-import EmailCampaignsPage from "@/pages/EmailCampaignsPage";
-import BankReconciliationPage from "@/pages/BankReconciliationPage";
-import SalesPipelinePage from "@/pages/SalesPipelinePage";
-import LoyaltyPage from "@/pages/LoyaltyPage";
-import ProfilePage from "@/pages/ProfilePage";
-import NotFound from "./pages/NotFound";
-import CommandPalette from "@/components/shared/CommandPalette";
 import { ShieldAlert, BookOpen } from "lucide-react";
+
+// ── Eager (needed for first paint / public routes) ──────────────────────────
+import AuthPage from "@/pages/AuthPage";
+import LandingPage from "@/pages/LandingPage";
+
+// ── Lazy-loaded pages (split per route) ────────────────────────────────────
+const Dashboard              = lazy(() => import("@/pages/Dashboard"));
+const ProductsPage           = lazy(() => import("@/pages/ProductsPage"));
+const PurchasesPage          = lazy(() => import("@/pages/PurchasesPage"));
+const SalesPage              = lazy(() => import("@/pages/SalesPage"));
+const DebtsPage              = lazy(() => import("@/pages/DebtsPage"));
+const ReportsPage            = lazy(() => import("@/pages/ReportsPage"));
+const SettingsPage           = lazy(() => import("@/pages/SettingsPage"));
+const MarketingPage          = lazy(() => import("@/pages/MarketingPage"));
+const AIInsightsPage         = lazy(() => import("@/pages/AIInsightsPage"));
+const AIChatPage             = lazy(() => import("@/pages/AIChatPage"));
+const AutomationFlowsPage    = lazy(() => import("@/pages/AutomationFlowsPage"));
+const LocationsPage          = lazy(() => import("@/pages/LocationsPage"));
+const ReferralsPage          = lazy(() => import("@/pages/ReferralsPage"));
+const MarketingTemplatesPage = lazy(() => import("@/pages/MarketingTemplatesPage"));
+const ExpensesPage           = lazy(() => import("@/pages/ExpensesPage"));
+const CustomersPage          = lazy(() => import("@/pages/CustomersPage"));
+const InfluencerExchangesPage= lazy(() => import("@/pages/InfluencerExchangesPage"));
+const InfluencersPage        = lazy(() => import("@/pages/InfluencersPage"));
+const SettlementsPage        = lazy(() => import("@/pages/SettlementsPage"));
+const BrandKnowledgePage     = lazy(() => import("@/pages/BrandKnowledgePage"));
+const CombosBannersPage      = lazy(() => import("@/pages/CombosBannersPage"));
+const CatalogPage            = lazy(() => import("@/pages/CatalogPage"));
+const TiendanubeExportPage   = lazy(() => import("@/pages/TiendanubeExportPage"));
+const AdminPage              = lazy(() => import("@/pages/AdminPage"));
+const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
+const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
+const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
+const PricingPage            = lazy(() => import("@/pages/PricingPage"));
+const PrivacyPage            = lazy(() => import("@/pages/PrivacyPage"));
+const TermsPage              = lazy(() => import("@/pages/TermsPage"));
+const OnboardingPage         = lazy(() => import("@/pages/OnboardingPage"));
+const TeamPage               = lazy(() => import("@/pages/TeamPage"));
+const InvitationAcceptPage   = lazy(() => import("@/pages/InvitationAcceptPage"));
+const PlatformAdminPage      = lazy(() => import("@/pages/PlatformAdminPage"));
+const AnalyticsPage          = lazy(() => import("@/pages/AnalyticsPage"));
+const InvoicesPage           = lazy(() => import("@/pages/InvoicesPage"));
+const POSPage                = lazy(() => import("@/pages/POSPage"));
+const CashSessionPage        = lazy(() => import("@/pages/CashSessionPage"));
+const IntegrationsPage       = lazy(() => import("@/pages/IntegrationsPage"));
+const ProveedoresPage        = lazy(() => import("@/pages/ProveedoresPage"));
+const PresupuestosPage       = lazy(() => import("@/pages/PresupuestosPage"));
+const DevolucionesPage       = lazy(() => import("@/pages/DevolucionesPage"));
+const CuotasPage             = lazy(() => import("@/pages/CuotasPage"));
+const ChequesPage            = lazy(() => import("@/pages/ChequesPage"));
+const SellerCommissionsPage  = lazy(() => import("@/pages/SellerCommissionsPage"));
+const TasksPage              = lazy(() => import("@/pages/TasksPage"));
+const AutoRestockPage        = lazy(() => import("@/pages/AutoRestockPage"));
+const StockCountPage         = lazy(() => import("@/pages/StockCountPage"));
+const KardexPage             = lazy(() => import("@/pages/KardexPage"));
+const EmailCampaignsPage     = lazy(() => import("@/pages/EmailCampaignsPage"));
+const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
+const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
+const LoyaltyPage            = lazy(() => import("@/pages/LoyaltyPage"));
+const ProfilePage            = lazy(() => import("@/pages/ProfilePage"));
+const NotFound               = lazy(() => import("@/pages/NotFound"));
+const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
+
+// ── Page-level loading fallback ─────────────────────────────────────────────
+function PageLoader() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+      <div className="text-center">
+        <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-muted-foreground text-xs">Cargando...</p>
+      </div>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -131,79 +148,80 @@ function ProtectedRoutes() {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Vendedor: restricted routes
-  const vendedorRoutes = ['/', '/ventas', '/clientes'];
-
   return (
     <AppLayout>
-      <CommandPalette />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/ventas" element={<SalesPage />} />
-        <Route path="/clientes" element={<CustomersPage />} />
-        {/* Vendedor + admin */}
-        <Route path="/caja" element={<POSPage />} />
+      <Suspense fallback={null}>
+        <CommandPalette />
+      </Suspense>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/ventas" element={<SalesPage />} />
+          <Route path="/clientes" element={<CustomersPage />} />
+          {/* Vendedor + admin */}
+          <Route path="/caja" element={<POSPage />} />
 
-        {/* Admin-only routes */}
-        {isAdmin && (
-          <>
-            <Route path="/productos" element={<ProductsPage />} />
-            <Route path="/compras" element={<PurchasesPage />} />
-            <Route path="/deudas" element={<DebtsPage />} />
-            <Route path="/reportes" element={<ReportsPage />} />
-            <Route path="/marketing" element={<MarketingPage />} />
-            <Route path="/canjes" element={<InfluencerExchangesPage />} />
-            <Route path="/influencers" element={<InfluencersPage />} />
-            <Route path="/liquidaciones" element={<SettlementsPage />} />
-            <Route path="/marca-ia" element={<BrandKnowledgePage />} />
-            <Route path="/combos-banners" element={<CombosBannersPage />} />
-            <Route path="/catalogo" element={<CatalogPage />} />
-            <Route path="/tiendanube" element={<TiendanubeExportPage />} />
-            <Route path="/ia" element={<AIInsightsPage />} />
-            <Route path="/chat-ia" element={<AIChatPage />} />
-            <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
-            <Route path="/sucursales" element={<LocationsPage />} />
-            <Route path="/referidos" element={<ReferralsPage />} />
-            <Route path="/templates" element={<MarketingTemplatesPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/facturas" element={<InvoicesPage />} />
-            <Route path="/caja/turno" element={<CashSessionPage />} />
-            <Route path="/gastos" element={<ExpensesPage />} />
-            <Route path="/proveedores" element={<ProveedoresPage />} />
-            <Route path="/presupuestos" element={<PresupuestosPage />} />
-            <Route path="/devoluciones" element={<DevolucionesPage />} />
-            <Route path="/cuotas" element={<CuotasPage />} />
-            <Route path="/cheques" element={<ChequesPage />} />
-            <Route path="/comisiones" element={<SellerCommissionsPage />} />
-            <Route path="/tareas" element={<TasksPage />} />
-            <Route path="/restock" element={<AutoRestockPage />} />
-            <Route path="/toma-fisica" element={<StockCountPage />} />
-            <Route path="/kardex" element={<KardexPage />} />
-            <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
-            <Route path="/banco" element={<BankReconciliationPage />} />
-            <Route path="/pipeline" element={<SalesPipelinePage />} />
-            <Route path="/fidelidad" element={<LoyaltyPage />} />
-            <Route path="/integraciones" element={<IntegrationsPage />} />
-            <Route path="/ajustes" element={<SettingsPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/equipo" element={<TeamPage />} />
-            <Route path="/perfil" element={<ProfilePage />} />
-          </>
-        )}
+          {/* Admin-only routes */}
+          {isAdmin && (
+            <>
+              <Route path="/productos" element={<ProductsPage />} />
+              <Route path="/compras" element={<PurchasesPage />} />
+              <Route path="/deudas" element={<DebtsPage />} />
+              <Route path="/reportes" element={<ReportsPage />} />
+              <Route path="/marketing" element={<MarketingPage />} />
+              <Route path="/canjes" element={<InfluencerExchangesPage />} />
+              <Route path="/influencers" element={<InfluencersPage />} />
+              <Route path="/liquidaciones" element={<SettlementsPage />} />
+              <Route path="/marca-ia" element={<BrandKnowledgePage />} />
+              <Route path="/combos-banners" element={<CombosBannersPage />} />
+              <Route path="/catalogo" element={<CatalogPage />} />
+              <Route path="/tiendanube" element={<TiendanubeExportPage />} />
+              <Route path="/ia" element={<AIInsightsPage />} />
+              <Route path="/chat-ia" element={<AIChatPage />} />
+              <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
+              <Route path="/sucursales" element={<LocationsPage />} />
+              <Route path="/referidos" element={<ReferralsPage />} />
+              <Route path="/templates" element={<MarketingTemplatesPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/facturas" element={<InvoicesPage />} />
+              <Route path="/caja/turno" element={<CashSessionPage />} />
+              <Route path="/gastos" element={<ExpensesPage />} />
+              <Route path="/proveedores" element={<ProveedoresPage />} />
+              <Route path="/presupuestos" element={<PresupuestosPage />} />
+              <Route path="/devoluciones" element={<DevolucionesPage />} />
+              <Route path="/cuotas" element={<CuotasPage />} />
+              <Route path="/cheques" element={<ChequesPage />} />
+              <Route path="/comisiones" element={<SellerCommissionsPage />} />
+              <Route path="/tareas" element={<TasksPage />} />
+              <Route path="/restock" element={<AutoRestockPage />} />
+              <Route path="/toma-fisica" element={<StockCountPage />} />
+              <Route path="/kardex" element={<KardexPage />} />
+              <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
+              <Route path="/banco" element={<BankReconciliationPage />} />
+              <Route path="/pipeline" element={<SalesPipelinePage />} />
+              <Route path="/fidelidad" element={<LoyaltyPage />} />
+              <Route path="/integraciones" element={<IntegrationsPage />} />
+              <Route path="/ajustes" element={<SettingsPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/equipo" element={<TeamPage />} />
+              <Route path="/perfil" element={<ProfilePage />} />
+            </>
+          )}
 
-        {/* Platform-admin only */}
-        {isPlatformAdmin && (
-          <Route path="/platform/admin" element={<PlatformAdminPage />} />
-        )}
-        
-        {/* Redirect vendedor from admin routes */}
-        {isVendedor && (
-          <Route path="*" element={<Navigate to="/" replace />} />
-        )}
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* Platform-admin only */}
+          {isPlatformAdmin && (
+            <Route path="/platform/admin" element={<PlatformAdminPage />} />
+          )}
+
+          {/* Redirect vendedor from admin routes */}
+          {isVendedor && (
+            <Route path="*" element={<Navigate to="/" replace />} />
+          )}
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </AppLayout>
   );
 }
@@ -227,20 +245,22 @@ const App = () => (
       <AuthProvider>
         <OrgProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/landing" element={<Navigate to="/" replace />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/precios" element={<PricingPage />} />
-              <Route path="/privacidad" element={<PrivacyPage />} />
-              <Route path="/terminos" element={<TermsPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
-              <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
-              <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
-              <Route path="/app/*" element={<ProtectedRoutes />} />
-              <Route path="/*" element={<ProtectedRoutes />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/landing" element={<Navigate to="/" replace />} />
+                <Route path="/login" element={<AuthPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/precios" element={<PricingPage />} />
+                <Route path="/privacidad" element={<PrivacyPage />} />
+                <Route path="/terminos" element={<TermsPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+                <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
+                <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
+                <Route path="/app/*" element={<ProtectedRoutes />} />
+                <Route path="/*" element={<ProtectedRoutes />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </OrgProvider>
       </AuthProvider>
