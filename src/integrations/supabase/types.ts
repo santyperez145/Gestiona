@@ -1,3 +1,4 @@
+npm warn exec The following package was not found and will be installed: supabase@2.98.2
 export type Json =
   | string
   | number
@@ -1208,8 +1209,11 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          last_auto_created_at: string | null
           org_id: string
           recurring: boolean
+          recurring_frequency: string | null
+          recurring_next_date: string | null
           updated_at: string
           user_id: string
         }
@@ -1220,8 +1224,11 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          last_auto_created_at?: string | null
           org_id: string
           recurring?: boolean
+          recurring_frequency?: string | null
+          recurring_next_date?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1232,8 +1239,11 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          last_auto_created_at?: string | null
           org_id?: string
           recurring?: boolean
+          recurring_frequency?: string | null
+          recurring_next_date?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1658,6 +1668,50 @@ export type Database = {
           },
         ]
       }
+      integration_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          event: string
+          id: string
+          integration: string
+          message: string | null
+          metadata: Json | null
+          org_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          event: string
+          id?: string
+          integration: string
+          message?: string | null
+          metadata?: Json | null
+          org_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          event?: string
+          id?: string
+          integration?: string
+          message?: string | null
+          metadata?: Json | null
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           description: string
@@ -1738,6 +1792,7 @@ export type Database = {
           numero_afip: number | null
           org_id: string
           paid_at: string | null
+          sale_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
           tax_amount: number
@@ -1767,6 +1822,7 @@ export type Database = {
           numero_afip?: number | null
           org_id: string
           paid_at?: string | null
+          sale_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           tax_amount?: number
@@ -1796,6 +1852,7 @@ export type Database = {
           numero_afip?: number | null
           org_id?: string
           paid_at?: string | null
+          sale_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           tax_amount?: number
@@ -1810,6 +1867,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
             referencedColumns: ["id"]
           },
         ]
@@ -2211,6 +2275,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          label: string | null
+          last_used_at: string | null
+          org_id: string
+          revoked: boolean
+          revoked_at: string | null
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          label?: string | null
+          last_used_at?: string | null
+          org_id: string
+          revoked?: boolean
+          revoked_at?: string | null
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          label?: string | null
+          last_used_at?: string | null
+          org_id?: string
+          revoked?: boolean
+          revoked_at?: string | null
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3055,6 +3163,7 @@ export type Database = {
           id: string
           installment_amount_ars: number | null
           installments: number | null
+          invoice_id: string | null
           org_id: string
           paid: boolean
           payment_method: string
@@ -3088,6 +3197,7 @@ export type Database = {
           id?: string
           installment_amount_ars?: number | null
           installments?: number | null
+          invoice_id?: string | null
           org_id: string
           paid?: boolean
           payment_method?: string
@@ -3121,6 +3231,7 @@ export type Database = {
           id?: string
           installment_amount_ars?: number | null
           installments?: number | null
+          invoice_id?: string | null
           org_id?: string
           paid?: boolean
           payment_method?: string
@@ -3143,6 +3254,13 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_org_id_fkey"
             columns: ["org_id"]
@@ -4750,5 +4868,4 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.98.2 (currently installed v2.95.4)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />
