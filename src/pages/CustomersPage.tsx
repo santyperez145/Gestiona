@@ -10,7 +10,7 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package,
+  Star, TrendingUp, Package, Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -477,6 +477,8 @@ export default function CustomersPage() {
   const [importing, setImporting] = useState(false);
   const [installments, setInstallments] = useState<any[]>([]);
   const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
+  const [loyaltyBalances, setLoyaltyBalances] = useState<Record<string, number>>({});
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
 
   const loadData = async () => {
     if (!user) return;
@@ -504,6 +506,31 @@ export default function CustomersPage() {
       .eq('paid', false)
       .order('due_date', { ascending: true })
       .then(({ data }) => setInstallments((data || []) as any[]));
+  }, [activeOrg]);
+
+  // Load loyalty points balances and settings
+  useEffect(() => {
+    if (!activeOrg) return;
+    Promise.all([
+      supabase
+        .from("loyalty_points" as any)
+        .select("customer_name, delta")
+        .eq("org_id", activeOrg.id),
+      supabase
+        .from("settings")
+        .select("loyalty_enabled")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle(),
+    ]).then(([{ data: pts }, { data: sett }]) => {
+      if (sett) setLoyaltyEnabled(!!(sett as any).loyalty_enabled);
+      if (pts) {
+        const map: Record<string, number> = {};
+        for (const row of pts as any[]) {
+          map[row.customer_name] = (map[row.customer_name] || 0) + Number(row.delta);
+        }
+        setLoyaltyBalances(map);
+      }
+    }).catch(() => {});
   }, [activeOrg]);
 
   const payInstallment = async (installmentId: string) => {
@@ -996,6 +1023,28 @@ export default function CustomersPage() {
                             </div>
                           ))}
                         </div>
+
+                        {/* Loyalty points badge */}
+                        {loyaltyEnabled && (
+                          <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs ${
+                            (loyaltyBalances[c.name] || 0) > 0
+                              ? "bg-yellow-500/10 border border-yellow-500/20"
+                              : "bg-muted/30 border border-border"
+                          }`}>
+                            <Gift className={`w-4 h-4 shrink-0 ${(loyaltyBalances[c.name] || 0) > 0 ? "text-yellow-400" : "text-muted-foreground"}`} />
+                            <div className="flex-1">
+                              <span className="text-muted-foreground">Puntos de fidelidad</span>
+                              <span className={`ml-2 font-mono font-bold ${(loyaltyBalances[c.name] || 0) > 0 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                                {(loyaltyBalances[c.name] || 0).toLocaleString("es-AR")} pts
+                              </span>
+                            </div>
+                            {(loyaltyBalances[c.name] || 0) > 0 && (
+                              <a href="/fidelidad" className="text-yellow-400 hover:text-yellow-300 text-[10px] underline shrink-0">
+                                Ver fidelidad →
+                              </a>
+                            )}
+                          </div>
+                        )}
 
                         {/* Pending debt alert */}
                         {c.pendingDebt > 0 && (
