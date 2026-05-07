@@ -1,6 +1,6 @@
 -- ============================================================
 -- PASTE IN: Supabase Dashboard > SQL Editor
--- Project: wcfohngxrtopgggumjmw
+-- Project: hummeopatkniwkyrrhwc
 -- ============================================================
 
 -- FIX 1: column m.created_at does not exist (POST /sales 400)
