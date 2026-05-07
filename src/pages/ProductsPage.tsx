@@ -630,6 +630,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       }
       toast.success(product ? "Producto actualizado" : "Producto agregado");
       onSave();
+    }
     } catch (err: any) {
       console.error('Error guardando producto:', err);
       toast.error(err?.message || "Error al guardar el producto");
