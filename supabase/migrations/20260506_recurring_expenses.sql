@@ -21,3 +21,25 @@ SET
   recurring_next_date  = date_trunc('month', created_at::date + interval '1 month')::date
 WHERE recurring = true
   AND recurring_next_date IS NULL;
+
+-- pg_cron: run auto-recurring-expenses edge function daily at 06:00 UTC
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.schedule(
+      'auto-recurring-expenses',
+      '0 6 * * *',
+      $$
+        SELECT net.http_post(
+          url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL') || '/functions/v1/auto-recurring-expenses',
+          headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_ANON_KEY')
+          ),
+          body := '{}'::jsonb
+        );
+      $$
+    );
+  END IF;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;

@@ -467,7 +467,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             await logAudit(userId, 'update', 'sale', editItem.id, { product: calc.productLabel, total: calc.total, profit: calc.profitARS });
           } else {
             const saleId = crypto.randomUUID();
-            const newSale = { ...baseData, id: saleId, user_id: userId };
+            const newSale = { ...baseData, id: saleId, user_id: userId, source: "manual" };
             if (line.variantId) await addSaleWithVariantDB(newSale, line.variantId);
             else await addSaleDB(newSale);
             await logAudit(userId, 'create', 'sale', saleId, { product: calc.productLabel, total: calc.total, addedToEdit: editItem.id });
@@ -490,6 +490,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
             variant_id: line.variantId || null,
+            source: "manual",
           };
 
           if (line.variantId) {
