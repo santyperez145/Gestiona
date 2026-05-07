@@ -11,13 +11,15 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 export default function ExpensesPage() {
   const { user } = useAuth();
@@ -27,6 +29,7 @@ export default function ExpensesPage() {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [filterCat, setFilterCat] = useState("all");
+  const [search, setSearch] = useState("");
   const [filterMonth, setFilterMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -47,6 +50,7 @@ export default function ExpensesPage() {
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       if (filterCat !== 'all' && e.category !== filterCat) return false;
+      if (search && !e.description?.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterMonth !== 'all') {
         const d = new Date(e.date);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -54,7 +58,7 @@ export default function ExpensesPage() {
       }
       return true;
     });
-  }, [expenses, filterCat, filterMonth]);
+  }, [expenses, filterCat, filterMonth, search]);
 
   const totals = useMemo(() => {
     const total = filtered.reduce((s, e) => s + Number(e.amount_ars), 0);
@@ -90,31 +94,12 @@ export default function ExpensesPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Wallet className="w-7 h-7 text-primary" /> Gastos Operativos
-          </h1>
-          <p className="text-muted-foreground text-sm">{filtered.length} gastos · Total: {formatARS(totals.total)}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="bg-card border-border w-[140px] h-9 text-sm">
-              <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los meses</SelectItem>
-              {monthOptions.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="bg-card border-border w-[140px] h-9 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas categorías</SelectItem>
-              {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      <PageHeader
+        icon={Wallet}
+        title="Gastos Operativos"
+        description="Control de egresos por categoría"
+        badge={{ label: formatARS(totals.total), variant: "destructive" }}
+        actions={
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
             <DialogTrigger asChild>
               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
@@ -126,24 +111,43 @@ export default function ExpensesPage() {
                 <DialogTitle className="font-display">{editItem ? 'Editar Gasto' : 'Registrar Gasto'}</DialogTitle>
               </DialogHeader>
               <ScrollArea className="max-h-[70vh] px-6 pb-6">
-                <ExpenseForm
-                  userId={user!.id}
-                  editItem={editItem}
-                  categories={categories}
-                  onSave={() => { setOpen(false); setEditItem(null); reload(); }}
-                />
+                <ExpenseForm userId={user!.id} editItem={editItem} categories={categories}
+                  onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
               </ScrollArea>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <KpiCard icon={TrendingDown} label="Total mes" value={formatARS(totals.total)} color="text-destructive" />
-        <KpiCard icon={Wallet} label="Gastos" value={String(filtered.length)} color="text-primary" />
-        <KpiCard icon={Repeat} label="Recurrentes" value={String(totals.recurring)} color="text-warning" />
-        <KpiCard icon={Filter} label="Categorías" value={String(totals.chartData.length)} color="text-accent" />
+        <KPICard icon={TrendingDown} label="Total del período" value={formatARS(totals.total)} color="destructive" sub={`${filtered.length} gastos`} />
+        <KPICard icon={Wallet} label="Promedio por gasto" value={filtered.length > 0 ? formatARS(totals.total / filtered.length) : "$0"} color="primary" />
+        <KPICard icon={Repeat} label="Recurrentes" value={totals.recurring} color="warning" sub="se auto-generan" />
+        <KPICard icon={Filter} label="Categorías activas" value={totals.chartData.length} color="blue" />
+      </div>
+
+      {/* Filters row */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <div className="relative flex-1 min-w-[160px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar descripción..."
+            className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
+        </div>
+        <Select value={filterMonth} onValueChange={setFilterMonth}>
+          <SelectTrigger className="bg-card border-border w-[140px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los meses</SelectItem>
+            {monthOptions.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterCat} onValueChange={setFilterCat}>
+          <SelectTrigger className="bg-card border-border w-[150px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -174,8 +178,11 @@ export default function ExpensesPage() {
         </div>
 
         {/* Table */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg shadow-card overflow-hidden">
-          <h2 className="text-sm font-display font-semibold p-4 pb-3 text-muted-foreground uppercase tracking-wider">Listado</h2>
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl shadow-card overflow-hidden">
+          <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Listado</h2>
+            <span className="text-xs text-muted-foreground">{filtered.length} resultado{filtered.length !== 1 ? "s" : ""}</span>
+          </div>
           {filtered.length === 0 ? (
             <EmptyState icon={Wallet} title="Sin gastos en este mes" description="Registrá tus gastos operativos para llevar el control de tu rentabilidad neta." actionLabel="Nuevo Gasto" onAction={() => setOpen(true)} />
           ) : (
@@ -183,40 +190,40 @@ export default function ExpensesPage() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="text-left p-3 font-medium">Fecha</th>
-                      <th className="text-left p-3 font-medium">Categoría</th>
-                      <th className="text-left p-3 font-medium">Descripción</th>
-                      <th className="text-right p-3 font-medium">Monto</th>
-                      <th className="text-center p-3 font-medium">Acc.</th>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoría</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Descripción</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Monto</th>
+                      <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border">
                     {filtered.map(e => {
                       const catCfg = categories.find(c => c.value === e.category);
                       return (
-                        <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                          <td className="p-3">{formatDateAR(e.date)}</td>
-                          <td className="p-3">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
+                        <tr key={e.id} className="hover:bg-muted/20 transition-colors group">
+                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(e.date)}</td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
                               {getExpenseCategoryLabel(e.category, settings)}
                               {e.recurring && <Repeat className="w-2.5 h-2.5" />}
                             </span>
                           </td>
-                          <td className="p-3 text-muted-foreground truncate max-w-[200px]">
-                            <span>{e.description || '—'}</span>
+                          <td className="px-4 py-3 text-muted-foreground max-w-[200px]">
+                            <p className="truncate">{e.description || '—'}</p>
                             {e.recurring && e.recurring_next_date && (
-                              <span className="ml-2 text-[10px] text-warning/70">
+                              <p className="text-[10px] text-warning/70 mt-0.5">
                                 próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
-                              </span>
+                              </p>
                             )}
                           </td>
-                          <td className="p-3 text-right font-medium text-destructive">-{formatARS(Number(e.amount_ars))}</td>
-                          <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                          <td className="px-4 py-3 text-right font-bold text-destructive">-{formatARS(Number(e.amount_ars))}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                               <ConfirmDialog
-                                trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                                trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                                 title="¿Eliminar gasto?"
                                 description={`Se eliminará el gasto de ${formatARS(Number(e.amount_ars))}.`}
                                 confirmText="Eliminar"
@@ -273,18 +280,6 @@ export default function ExpensesPage() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
-  return (
-    <div className="bg-card border border-border rounded-lg p-3 md:p-4 shadow-card">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
-        <Icon className={`w-3.5 h-3.5 ${color}`} />
-      </div>
-      <p className="text-lg md:text-xl font-bold font-display">{value}</p>
     </div>
   );
 }

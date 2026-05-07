@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 const PAGE_SIZE = 20;
 
@@ -58,38 +60,47 @@ export default function PurchasesPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Compras</h1>
-          <p className="text-muted-foreground text-sm">{filtered.length} compras · {formatUSD(totalUSD)} · {formatARS(totalARS)}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-          <Button variant="outline" onClick={() => setOrderOpen(true)}>
-            <ClipboardList className="w-4 h-4 mr-2" />Orden de Compra
-          </Button>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
-            <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
-          </DialogContent>
-          </Dialog>
-        </div>
+      <PageHeader
+        icon={ShoppingCart}
+        title="Compras"
+        description="Registro de inventario y proveedores"
+        actions={
+          <div className="flex items-center gap-2">
+            <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+            <Button variant="outline" size="sm" onClick={() => setOrderOpen(true)}>
+              <ClipboardList className="w-4 h-4 mr-1.5" />Orden de Compra
+            </Button>
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+              <DialogTrigger asChild>
+                <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+                <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
+                <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <KPICard label="Total invertido USD" value={formatUSD(totalUSD)} icon={DollarSign} color="primary" sub={`${filtered.length} compras`} />
+        <KPICard label="Total invertido ARS" value={formatARS(totalARS)} icon={TrendingDown} color="destructive" />
+        <KPICard label="Prom. por compra" value={filtered.length > 0 ? formatUSD(totalUSD / filtered.length) : "$0"} icon={Package} color="blue" />
+        <KPICard label="Programadas" value={scheduledCount} icon={CalendarClock} color="warning" sub="pendientes de concretar" />
       </div>
 
-      {/* Tabs: All vs Scheduled */}
-      <div className="flex gap-2 mb-4 border-b border-border">
-        <button
-          onClick={() => { setTab('all'); setPage(0); }}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${tab === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-        >Realizadas</button>
-        <button
-          onClick={() => { setTab('scheduled'); setPage(0); }}
-          className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'scheduled' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-        ><CalendarClock className="w-3.5 h-3.5" /> Programadas {scheduledCount > 0 && <span className="text-[10px] bg-primary/20 text-primary px-1.5 rounded-full">{scheduledCount}</span>}</button>
+      {/* Tabs */}
+      <div className="flex bg-card border border-border rounded-lg p-1 gap-1 w-fit mb-5">
+        {([["all", "Realizadas"], ["scheduled", `Programadas`]] as const).map(([t, label]) => (
+          <button key={t} onClick={() => { setTab(t); setPage(0); }}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${tab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t === "scheduled" && <CalendarClock className="w-3.5 h-3.5" />}
+            {label}
+            {t === "scheduled" && scheduledCount > 0 && <span className="text-[10px] bg-white/20 px-1.5 rounded-full">{scheduledCount}</span>}
+          </button>
+        ))}
       </div>
 
       {/* Purchase Order Generator Dialog */}
@@ -104,37 +115,37 @@ export default function PurchasesPage() {
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>
-          <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
+          <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left p-3 font-medium">Fecha</th>
-                  <th className="text-left p-3 font-medium">Producto</th>
-                  <th className="text-left p-3 font-medium">Proveedor</th>
-                  <th className="text-right p-3 font-medium">Cant.</th>
-                  <th className="text-right p-3 font-medium">Unit. USD</th>
-                  <th className="text-right p-3 font-medium">Pasero</th>
-                  <th className="text-right p-3 font-medium">Total USD</th>
-                  <th className="text-right p-3 font-medium">Total ARS</th>
-                  <th className="text-center p-3 font-medium">Acc.</th>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Proveedor</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Unit.</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total USD</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total ARS</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {paged.map(p => (
-                  <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">{formatDateAR(p.date)}</td>
-                    <td className="p-3">{p.product_name}</td>
-                    <td className="p-3 text-muted-foreground">{p.supplier || '—'}</td>
-                    <td className="p-3 text-right">{p.quantity}</td>
-                    <td className="p-3 text-right">{formatUSD(Number(p.unit_cost_usd))}</td>
-                    <td className="p-3 text-right text-warning">{formatUSD(Number(p.customs_fee))}</td>
-                    <td className="p-3 text-right font-medium">{formatUSD(Number(p.total_usd))}</td>
-                    <td className="p-3 text-right font-medium">{formatARS(Number(p.total_ars))}</td>
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                  <tr key={p.id} className="hover:bg-muted/20 transition-colors group">
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(p.date)}</td>
+                    <td className="px-4 py-3 font-medium">{p.product_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{p.supplier || '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="bg-muted px-2 py-0.5 rounded text-xs font-medium">{p.quantity}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground hidden xl:table-cell">{formatUSD(Number(p.unit_cost_usd))}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatUSD(Number(p.total_usd))}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-primary">{formatARS(Number(p.total_ars))}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                         <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                           title="¿Eliminar compra?"
                           description={`Se eliminará la compra de ${p.product_name}.`}
                           confirmText="Eliminar"
