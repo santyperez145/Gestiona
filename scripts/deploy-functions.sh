@@ -11,6 +11,14 @@ PROJECT_REF="hummeopatkniwkyrrhwc"
 ERRORS=()
 OK=0
 
+# Usar supabase CLI instalado o npx como fallback
+if command -v supabase &> /dev/null; then
+  SB="supabase"
+else
+  echo "supabase CLI no encontrado — usando npx supabase (puede tardar en la primera ejecucion)"
+  SB="npx supabase@latest"
+fi
+
 echo ""
 echo "======================================="
 echo " Exentry — Deploy Edge Functions"
@@ -20,8 +28,8 @@ echo ""
 
 # Vincular proyecto
 echo "[1/3] Vinculando proyecto..."
-supabase link --project-ref "$PROJECT_REF" || {
-  echo "ERROR: Fallo al vincular. Ejecuta 'supabase login' primero."
+$SB link --project-ref "$PROJECT_REF" || {
+  echo "ERROR: Fallo al vincular. Ejecuta '$SB login' primero."
   exit 1
 }
 
@@ -33,7 +41,7 @@ deploy() {
   local fn=$1
   local flags=${2:-""}
   echo "  -> $fn $flags"
-  if supabase functions deploy "$fn" $flags --project-ref "$PROJECT_REF" 2>&1; then
+  if $SB functions deploy "$fn" $flags --project-ref "$PROJECT_REF" 2>&1; then
     echo "     OK"
     ((OK++)) || true
   else
