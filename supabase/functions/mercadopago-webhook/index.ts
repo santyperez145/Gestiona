@@ -199,13 +199,15 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
           if (membership?.user_id) {
-            await admin.from("notifications").insert({
-              user_id: membership.user_id,
-              org_id: orgId,
-              title: "Pago Mercado Pago confirmado",
-              message: `Pago de $${paidAmount.toLocaleString("es-AR")} confirmado${payerEmail ? ` de ${payerEmail}` : ""} (${statusDetail || status})`,
-              type: "mercado_pago",
-            }).catch(() => {});
+            try {
+              await admin.from("notifications").insert({
+                user_id: membership.user_id,
+                org_id: orgId,
+                title: "Pago Mercado Pago confirmado",
+                message: `Pago de $${paidAmount.toLocaleString("es-AR")} confirmado${payerEmail ? ` de ${payerEmail}` : ""} (${statusDetail || status})`,
+                type: "mercado_pago",
+              });
+            } catch { /* silent */ }
           }
         }
       }

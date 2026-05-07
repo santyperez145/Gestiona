@@ -180,11 +180,12 @@ Deno.serve(async (req) => {
 
     // Persist error to invoice for traceability and UI display
     if (invoice_id) {
-      await supabase
-        .from("invoices")
-        .update({ afip_status: afipStatus, afip_error: userMsg })
-        .eq("id", invoice_id)
-        .catch(() => {});
+      try {
+        await supabase
+          .from("invoices")
+          .update({ afip_status: afipStatus, afip_error: userMsg })
+          .eq("id", invoice_id);
+      } catch { /* silent */ }
     }
 
     return err(userMsg, afipStatus === "network_error" ? 503 : 422);

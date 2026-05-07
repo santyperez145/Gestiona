@@ -47,13 +47,15 @@ async function notify(orgId: string, title: string, message: string, type = "bil
     .limit(1)
     .maybeSingle();
   if (!mb?.user_id) return;
-  await supabase.from("notifications").insert({
-    user_id: mb.user_id,
-    org_id: orgId,
-    title,
-    message,
-    type,
-  }).catch(() => {});
+  try {
+    await supabase.from("notifications").insert({
+      user_id: mb.user_id,
+      org_id: orgId,
+      title,
+      message,
+      type,
+    });
+  } catch { /* silent */ }
 }
 
 async function upsertSubscription(orgId: string, planCode: string | undefined, sub: Stripe.Subscription) {

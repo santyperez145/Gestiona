@@ -208,13 +208,15 @@ Deno.serve(async (req) => {
       }
 
       if (imported > 0) {
-        await admin.from("notifications").insert({
-          user_id: ownerUserId,
-          org_id: orgId,
-          title: "Nuevo pedido Tiendanube",
-          message: `Pedido #${order.number || resourceId} de ${customerName} — ${order.products?.length || 0} producto(s)`,
-          type: "tiendanube",
-        }).catch(() => {});
+        try {
+          await admin.from("notifications").insert({
+            user_id: ownerUserId,
+            org_id: orgId,
+            title: "Nuevo pedido Tiendanube",
+            message: `Pedido #${order.number || resourceId} de ${customerName} — ${order.products?.length || 0} producto(s)`,
+            type: "tiendanube",
+          });
+        } catch { /* silent */ }
       }
     }
 

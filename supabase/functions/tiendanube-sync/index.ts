@@ -338,27 +338,31 @@ Deno.serve(async (req) => {
     const hasErrors = result.errors > 0;
 
     // Write to integration_logs for health check panel
-    await admin.from("integration_logs" as any).insert({
-      org_id: orgId,
-      integration: "tiendanube",
-      event: "sync",
-      status: hasErrors ? "warning" : "ok",
-      message: hasErrors
-        ? `${result.errors} error(es): ${errors.slice(0, 2).join("; ")}`
-        : `OK — ${result.productsUpserted} productos, ${result.ordersImported} pedidos`,
-      metadata: result,
-      duration_ms: result.durationMs,
-    }).catch(() => {});
+    try {
+      await admin.from("integration_logs" as any).insert({
+        org_id: orgId,
+        integration: "tiendanube",
+        event: "sync",
+        status: hasErrors ? "warning" : "ok",
+        message: hasErrors
+          ? `${result.errors} error(es): ${errors.slice(0, 2).join("; ")}`
+          : `OK — ${result.productsUpserted} productos, ${result.ordersImported} pedidos`,
+        metadata: result,
+        duration_ms: result.durationMs,
+      });
+    } catch { /* silent */ }
 
     // In-app notification on errors
     if (hasErrors) {
-      await admin.from("notifications").insert({
-        user_id: ownerUserId,
-        org_id: orgId,
-        title: "Sync Tiendanube con errores",
-        message: `${result.errors} error(es) durante la sincronización. Productos: ${result.productsUpserted}, Pedidos: ${result.ordersImported}`,
-        type: "warning",
-      }).catch(() => {});
+      try {
+        await admin.from("notifications").insert({
+          user_id: ownerUserId,
+          org_id: orgId,
+          title: "Sync Tiendanube con errores",
+          message: `${result.errors} error(es) durante la sincronización. Productos: ${result.productsUpserted}, Pedidos: ${result.ordersImported}`,
+          type: "warning",
+        });
+      } catch { /* silent */ }
     }
 
     return new Response(JSON.stringify({ ok: true, ...result, errors }), {
@@ -370,12 +374,14 @@ Deno.serve(async (req) => {
     if (errors.length === 0) {
       // try to get orgId from body for logging
       try {
-        await admin.from("integration_logs" as any).insert({
-          integration: "tiendanube",
-          event: "sync",
-          status: "error",
-          message: e instanceof Error ? e.message : "Unknown error",
-        }).catch(() => {});
+        try {
+          await admin.from("integration_logs" as any).insert({
+            integration: "tiendanube",
+            event: "sync",
+            status: "error",
+            message: e instanceof Error ? e.message : "Unknown error",
+          });
+        } catch { /* silent */ }
       } catch { /* ignore */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", errors }), {

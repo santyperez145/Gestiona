@@ -163,17 +163,19 @@ Deno.serve(async (req) => {
   const result = await deliverWithRetry(settings.webhook_url, payloadStr, deliveryHeaders);
 
   // ── Log delivery ──────────────────────────────────────────────
-  await supabase.from("webhook_deliveries" as any).insert({
-    org_id: orgId,
-    event,
-    webhook_url: settings.webhook_url,
-    payload,
-    attempt_count: result.attempts,
-    last_response_status: result.status || null,
-    last_response_body: result.body.slice(0, 2000),
-    delivered: result.ok,
-    delivered_at: result.ok ? new Date().toISOString() : null,
-  }).catch(() => {});
+  try {
+    await supabase.from("webhook_deliveries" as any).insert({
+      org_id: orgId,
+      event,
+      webhook_url: settings.webhook_url,
+      payload,
+      attempt_count: result.attempts,
+      last_response_status: result.status || null,
+      last_response_body: result.body.slice(0, 2000),
+      delivered: result.ok,
+      delivered_at: result.ok ? new Date().toISOString() : null,
+    });
+  } catch { /* silent */ }
 
   return new Response(JSON.stringify({
     delivered: result.ok,

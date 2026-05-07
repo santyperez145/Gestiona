@@ -49,14 +49,16 @@ Deno.serve(async (req) => {
       act: string,
       opts: { orgId?: string; userId?: string; details?: unknown } = {},
     ) => {
-      await admin.from("admin_audit_logs" as any).insert({
-        admin_user_id: user.id,
-        admin_email: user.email,
-        action: act,
-        target_org_id: opts.orgId || null,
-        target_user_id: opts.userId || null,
-        details: opts.details ?? null,
-      }).catch(() => {});
+      try {
+        await admin.from("admin_audit_logs" as any).insert({
+          admin_user_id: user.id,
+          admin_email: user.email,
+          action: act,
+          target_org_id: opts.orgId || null,
+          target_user_id: opts.userId || null,
+          details: opts.details ?? null,
+        });
+      } catch { /* silent */ }
     };
 
     // ── GET USERS ──────────────────────────────────────────────
