@@ -12,7 +12,10 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Search, FileText, Download, Send,
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
+  DollarSign,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { formatARS, addSaleDB } from "@/lib/supabaseStore";
 
@@ -423,37 +426,37 @@ export default function PresupuestosPage() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary" /> Presupuestos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">{quotes.length} presupuestos · {stats.accepted} aceptados</p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => setOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Nuevo presupuesto
-        </Button>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        icon={FileText}
+        title="Presupuestos"
+        description={`${quotes.length} presupuestos · ${stats.accepted} aceptados`}
+        badge={
+          stats.pending > 0
+            ? { label: `${stats.pending} en espera`, variant: "warning" }
+            : stats.accepted > 0
+            ? { label: `${stats.accepted} aceptados`, variant: "success" }
+            : undefined
+        }
+        actions={
+          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => setOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Nuevo presupuesto
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="bg-card border border-border rounded-xl p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total generado</p>
-          <p className="text-xl font-bold font-display text-primary mt-1">{stats.total}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Aceptados</p>
-          <p className="text-xl font-bold font-display text-success mt-1">{stats.accepted}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Valor ganado</p>
-          <p className="text-xl font-bold font-display mt-1">{formatARS(stats.totalValue)}</p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPICard label="Total generados" value={stats.total} icon={FileText} color="primary" />
+        <KPICard label="Aceptados" value={stats.accepted} icon={CheckCircle2} color="success"
+          sub={stats.total > 0 ? `${Math.round(stats.accepted / stats.total * 100)}% conversión` : undefined} />
+        <KPICard label="En espera" value={stats.pending} icon={Clock}
+          color={stats.pending > 0 ? "warning" : "primary"} sub="enviados al cliente" />
+        <KPICard label="Valor ganado" value={formatARS(stats.totalValue)} icon={DollarSign} color="success" sub="de presupuestos aceptados" />
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar cliente o número…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9" />

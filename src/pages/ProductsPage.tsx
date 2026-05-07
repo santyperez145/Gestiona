@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -151,43 +153,64 @@ export default function ProductsPage() {
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
+  const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 3).length;
+  const outOfStockCount = products.filter(p => p.stock <= 0).length;
+
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
-         <div>
-           <h1 className="text-2xl md:text-3xl font-display font-bold">Productos</h1>
-           <p className="text-muted-foreground text-sm">
-             {filtered.length} productos
-             {productLimit !== null && <span className={`ml-1 font-medium ${products.length >= productLimit ? 'text-destructive' : products.length >= productLimit * 0.8 ? 'text-yellow-500' : ''}`}>({products.length}/{productLimit})</span>}
-             {' '}· {totalStock} uds · Inversión: {formatUSD(totalValue)}
-           </p>
-         </div>
-         <div className="flex gap-2">
-           <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
-             <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
-           </Button>
-           <Button variant="outline" onClick={() => setBulkOpen(true)}>
-             <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
-           </Button>
-           {productLimit !== null && products.length >= productLimit ? (
-             <Button
-               className="gradient-gold text-primary-foreground font-semibold shadow-gold"
-               onClick={() => toast.error(`Límite de ${productLimit} productos alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
-             >
-               <Plus className="w-4 h-4 mr-2" />Nuevo
-             </Button>
-           ) : (
-             <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
-               <DialogTrigger asChild>
-                 <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
-               </DialogTrigger>
-               <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-                 <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
-                 <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
-               </DialogContent>
-             </Dialog>
-           )}
-         </div>
+    <div className="space-y-5">
+      <PageHeader
+        icon={Package}
+        title="Productos"
+        description={`${filtered.length} de ${products.length} productos · ${totalStock} uds`}
+        badge={
+          outOfStockCount > 0
+            ? { label: `${outOfStockCount} sin stock`, variant: "destructive" }
+            : lowStockCount > 0
+            ? { label: `${lowStockCount} stock bajo`, variant: "warning" }
+            : expiringSoon.length > 0
+            ? { label: `${expiringSoon.length} por vencer`, variant: "warning" }
+            : undefined
+        }
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
+            </Button>
+            <Button variant="outline" onClick={() => setBulkOpen(true)}>
+              <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
+            </Button>
+            {productLimit !== null && products.length >= productLimit ? (
+              <Button
+                className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+                onClick={() => toast.error(`Límite de ${productLimit} productos alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
+              >
+                <Plus className="w-4 h-4 mr-2" />Nuevo
+              </Button>
+            ) : (
+              <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+                <DialogTrigger asChild>
+                  <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
+                </DialogTrigger>
+                <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                  <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
+                  <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        }
+      />
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
+          sub={productLimit ? `${products.length}/${productLimit} del plan` : `${filtered.length} visibles`} />
+        <KPICard label="Inversión total" value={formatUSD(totalValue)} icon={DollarSign} color="blue"
+          sub={`${totalStock} unidades en stock`} />
+        <KPICard label="Stock bajo" value={lowStockCount} icon={AlertTriangle}
+          color={lowStockCount > 0 ? "warning" : "success"} sub="1–3 unidades" />
+        <KPICard label="Sin stock" value={outOfStockCount} icon={X}
+          color={outOfStockCount > 0 ? "destructive" : "success"} sub="agotados" />
       </div>
 
       {/* Bulk price adjustment modal */}
@@ -207,7 +230,7 @@ export default function ProductsPage() {
       />
 
       {expiringSoon.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
           <div className="flex-1 text-sm">
             <span className="font-semibold text-orange-400">{expiringSoon.length} producto{expiringSoon.length !== 1 ? 's' : ''} vence{expiringSoon.length !== 1 ? 'n' : ''} en menos de 30 días: </span>
@@ -217,7 +240,7 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4 md:mb-6">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
