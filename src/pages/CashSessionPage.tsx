@@ -13,8 +13,130 @@ import { es } from "date-fns/locale";
 import {
   Banknote, Lock, Unlock, Clock, TrendingUp, TrendingDown,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, RotateCcw,
-  ArrowDownCircle, ArrowUpCircle, List,
+  ArrowDownCircle, ArrowUpCircle, List, Printer, FileSpreadsheet,
 } from "lucide-react";
+
+// ── Export helpers ────────────────────────────────────────────────────────────
+function printCashReport(
+  session: CashSession,
+  entries: CashEntry[],
+  orgName: string,
+) {
+  const LABELS: Record<string, string> = {
+    sale_in: "Venta", debt_payment: "Cobro deuda", manual_in: "Ingreso",
+    expense_out: "Gasto", supplier_out: "Proveedor", manual_out: "Egreso",
+    opening: "Apertura", closing: "Cierre",
+  };
+  const isOut = (t: string) => ["expense_out", "supplier_out", "manual_out"].includes(t);
+
+  const totalIn = entries.filter(e => !isOut(e.entry_type) && e.entry_type !== "opening").reduce((s, e) => s + Number(e.amount_ars), 0);
+  const totalOut = entries.filter(e => isOut(e.entry_type)).reduce((s, e) => s + Number(e.amount_ars), 0);
+
+  // Group by payment method for in-entries
+  const byMethod: Record<string, number> = {};
+  entries.filter(e => !isOut(e.entry_type) && e.entry_type !== "opening").forEach(e => {
+    const m = e.payment_method || "efectivo";
+    byMethod[m] = (byMethod[m] || 0) + Number(e.amount_ars);
+  });
+
+  const diff = session.difference || 0;
+  const diffColor = Math.abs(diff) < 100 ? "#16a34a" : diff > 0 ? "#d97706" : "#dc2626";
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Cierre de Caja — ${orgName}</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #1a1a1a; }
+  h1 { font-size: 18px; margin: 0 0 2px; } .sub { color: #666; font-size: 11px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
+  .card-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }
+  .card-value { font-size: 16px; font-weight: 700; font-family: monospace; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #f3f4f6; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; }
+  td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; }
+  .in { color: #16a34a; } .out { color: #dc2626; }
+  .summary { border-top: 2px solid #e5e7eb; margin-top: 16px; padding-top: 12px; }
+  .diff { font-weight: 700; color: ${diffColor}; }
+  @media print { body { margin: 0; } }
+</style>
+</head>
+<body>
+<h1>Cierre de Caja</h1>
+<p class="sub">${orgName} · ${format(new Date(session.opened_at), "EEEE d 'de' MMMM yyyy", { locale: es })}</p>
+
+<div class="grid">
+  <div class="card"><div class="card-label">Apertura</div><div class="card-value">${formatARS(session.opening_amount)}</div></div>
+  <div class="card"><div class="card-label">Efectivo esperado</div><div class="card-value">${formatARS(session.expected_cash || 0)}</div></div>
+  <div class="card"><div class="card-label">Cierre declarado</div><div class="card-value">${formatARS(session.closing_amount || 0)}</div></div>
+  <div class="card"><div class="card-label">Diferencia</div><div class="card-value diff">${diff >= 0 ? "+" : ""}${formatARS(diff)}</div></div>
+</div>
+
+<table>
+  <thead><tr><th>Hora</th><th>Tipo</th><th>Descripción</th><th>Método</th><th style="text-align:right">Monto</th></tr></thead>
+  <tbody>
+    ${entries.map(e => {
+      const out = isOut(e.entry_type);
+      return `<tr>
+        <td>${format(new Date(e.created_at), "HH:mm")}</td>
+        <td>${LABELS[e.entry_type] || e.entry_type}</td>
+        <td>${e.description || "—"}</td>
+        <td>${e.payment_method || "efectivo"}</td>
+        <td style="text-align:right" class="${out ? "out" : "in"}">${out ? "−" : "+"}${formatARS(Number(e.amount_ars))}</td>
+      </tr>`;
+    }).join("")}
+  </tbody>
+</table>
+
+<div class="summary">
+  <table>
+    <thead><tr><th colspan="2">Resumen por método de pago (ingresos)</th></tr></thead>
+    <tbody>
+      ${Object.entries(byMethod).map(([m, v]) => `<tr><td>${m}</td><td class="in" style="text-align:right">${formatARS(v)}</td></tr>`).join("")}
+      <tr><td><strong>Total ingresos</strong></td><td class="in" style="text-align:right"><strong>${formatARS(totalIn)}</strong></td></tr>
+      <tr><td><strong>Total egresos</strong></td><td class="out" style="text-align:right"><strong>−${formatARS(totalOut)}</strong></td></tr>
+    </tbody>
+  </table>
+  ${session.notes ? `<p style="margin-top:12px;color:#6b7280;font-style:italic">Notas: ${session.notes}</p>` : ""}
+</div>
+
+<p style="margin-top:20px;font-size:10px;color:#9ca3af">Generado por Gestiona · ${new Date().toLocaleString("es-AR")}</p>
+</body></html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) { toast.error("Permitir popups para imprimir"); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 300);
+}
+
+function exportCashCSV(session: CashSession, entries: CashEntry[], orgName: string) {
+  const LABELS: Record<string, string> = {
+    sale_in: "Venta", debt_payment: "Cobro deuda", manual_in: "Ingreso",
+    expense_out: "Gasto", supplier_out: "Proveedor", manual_out: "Egreso",
+    opening: "Apertura", closing: "Cierre",
+  };
+  const rows = [
+    ["Hora", "Tipo", "Descripción", "Método", "Monto ARS"],
+    ...entries.map(e => [
+      format(new Date(e.created_at), "HH:mm"),
+      LABELS[e.entry_type] || e.entry_type,
+      e.description || "",
+      e.payment_method || "efectivo",
+      String(Number(e.amount_ars)),
+    ]),
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `caja-${format(new Date(session.opened_at), "yyyy-MM-dd")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("CSV exportado");
+}
 
 interface CashEntry {
   id: string;
@@ -71,6 +193,8 @@ export default function CashSessionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [cashEntries, setCashEntries] = useState<CashEntry[]>([]);
   const [showEntries, setShowEntries] = useState(false);
+  // Historical session entries for printing closed sessions
+  const [sessionEntriesMap, setSessionEntriesMap] = useState<Record<string, CashEntry[]>>({});
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
@@ -346,7 +470,18 @@ export default function CashSessionPage() {
               Movimientos del turno
               <Badge variant="secondary" className="ml-1 text-xs">{cashEntries.length}</Badge>
             </h2>
-            {showEntries ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            <div className="flex items-center gap-2">
+              {showEntries && openSession && (
+                <Button
+                  size="sm" variant="ghost" className="h-7 w-7 p-0"
+                  title="Imprimir movimientos"
+                  onClick={e => { e.stopPropagation(); printCashReport(openSession, cashEntries, activeOrg?.name || "Gestiona"); }}
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                </Button>
+              )}
+              {showEntries ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </div>
           </button>
           {showEntries && (
             cashEntries.length === 0 ? (
@@ -402,7 +537,19 @@ export default function CashSessionPage() {
                 <div key={s.id}>
                   <button
                     className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors text-left"
-                    onClick={() => setExpanded(isOpen ? null : s.id)}
+                    onClick={async () => {
+                      const next = isOpen ? null : s.id;
+                      setExpanded(next);
+                      // Load entries for this session if not cached
+                      if (next && !sessionEntriesMap[s.id]) {
+                        const { data } = await supabase
+                          .from("cash_entries" as any)
+                          .select("*")
+                          .eq("session_id", s.id)
+                          .order("created_at");
+                        setSessionEntriesMap(prev => ({ ...prev, [s.id]: (data || []) as CashEntry[] }));
+                      }
+                    }}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       Math.abs(diff) < 100 ? "bg-green-500/15" :
@@ -436,21 +583,38 @@ export default function CashSessionPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="border-t border-border bg-muted/10 px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      {[
-                        { l: "Apertura", v: formatARS(s.opening_amount) },
-                        { l: "Cierre declarado", v: formatARS(s.closing_amount || 0) },
-                        { l: "Efectivo esperado", v: formatARS(s.expected_cash || 0) },
-                        { l: "Diferencia", v: formatARS(diff), color: Math.abs(diff) < 100 ? "text-green-400" : diff > 0 ? "text-yellow-400" : "text-red-400" },
-                      ].map((item) => (
-                        <div key={item.l}>
-                          <p className="text-muted-foreground">{item.l}</p>
-                          <p className={`font-mono font-semibold mt-0.5 ${(item as any).color || ""}`}>{item.v}</p>
-                        </div>
-                      ))}
-                      {s.notes && (
-                        <div className="col-span-2 md:col-span-4 text-muted-foreground italic">{s.notes}</div>
-                      )}
+                    <div className="border-t border-border bg-muted/10 px-5 py-4 space-y-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        {[
+                          { l: "Apertura", v: formatARS(s.opening_amount) },
+                          { l: "Cierre declarado", v: formatARS(s.closing_amount || 0) },
+                          { l: "Efectivo esperado", v: formatARS(s.expected_cash || 0) },
+                          { l: "Diferencia", v: formatARS(diff), color: Math.abs(diff) < 100 ? "text-green-400" : diff > 0 ? "text-yellow-400" : "text-red-400" },
+                        ].map((item) => (
+                          <div key={item.l}>
+                            <p className="text-muted-foreground">{item.l}</p>
+                            <p className={`font-mono font-semibold mt-0.5 ${(item as any).color || ""}`}>{item.v}</p>
+                          </div>
+                        ))}
+                        {s.notes && (
+                          <div className="col-span-2 md:col-span-4 text-muted-foreground italic">{s.notes}</div>
+                        )}
+                      </div>
+                      {/* Export buttons */}
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm" variant="outline" className="h-7 text-xs gap-1.5"
+                          onClick={() => printCashReport(s, sessionEntriesMap[s.id] || [], activeOrg?.name || "Gestiona")}
+                        >
+                          <Printer className="w-3 h-3" />Imprimir / PDF
+                        </Button>
+                        <Button
+                          size="sm" variant="outline" className="h-7 text-xs gap-1.5"
+                          onClick={() => exportCashCSV(s, sessionEntriesMap[s.id] || [], activeOrg?.name || "Gestiona")}
+                        >
+                          <FileSpreadsheet className="w-3 h-3" />CSV
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

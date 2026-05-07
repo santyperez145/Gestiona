@@ -79,6 +79,20 @@ export default function ReportsPage() {
     };
   }, [data, period]);
 
+  // Previous period for comparison in ER
+  const prevFiltered = useMemo(() => {
+    if (!data || period === 'all') return null;
+    const { from, to } = getPeriodRange(period);
+    const diffMs = to.getTime() - from.getTime();
+    const prevFrom = new Date(from.getTime() - diffMs - 86_400_000);
+    const prevTo = new Date(from.getTime() - 1);
+    const inPrev = (d: string) => { const x = new Date(d); return x >= prevFrom && x <= prevTo; };
+    return {
+      sales: data.sales.filter((s: any) => inPrev(s.date)),
+      expenses: data.expenses.filter((e: any) => inPrev(e.date)),
+    };
+  }, [data, period]);
+
   if (!data || !filtered) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   const { products, sales, purchases, debts, settings, expenses } = data;
@@ -315,6 +329,45 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="income" className="space-y-4">
+          {/* ── Comparativa rápida con período anterior ── */}
+          {prevFiltered && period !== 'all' && (() => {
+            const prevRev = prevFiltered.sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+            const prevProfit = prevFiltered.sales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+            const prevOpex = prevFiltered.expenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
+            const prevNet = prevProfit - prevOpex;
+            const delta = (curr: number, prev: number) => {
+              if (prev === 0) return null;
+              const pct = ((curr - prev) / Math.abs(prev)) * 100;
+              return { pct, up: pct >= 0 };
+            };
+            const kpis = [
+              { label: "Ingresos", curr: periodRevenue, prev: prevRev },
+              { label: "Ganancia bruta", curr: periodGrossProfit, prev: prevProfit },
+              { label: "Gastos", curr: totalOpex, prev: prevOpex, invert: true },
+              { label: "Resultado neto", curr: netIncome, prev: prevNet },
+            ];
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {kpis.map(k => {
+                  const d = delta(k.curr, k.prev);
+                  const good = d ? (k.invert ? !d.up : d.up) : null;
+                  return (
+                    <div key={k.label} className="bg-card border border-border rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">{k.label}</p>
+                      <p className="font-mono font-bold text-sm mt-0.5">{formatARS(k.curr)}</p>
+                      {d && (
+                        <p className={`text-[10px] mt-0.5 font-medium ${good ? "text-green-400" : "text-red-400"}`}>
+                          {d.up ? "▲" : "▼"} {Math.abs(d.pct).toFixed(1)}% vs período anterior
+                        </p>
+                      )}
+                      {!d && <p className="text-[10px] text-muted-foreground/50 mt-0.5">Sin datos anteriores</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           <div className="bg-card border border-border rounded-lg p-4 md:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div>
