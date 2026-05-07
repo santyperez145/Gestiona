@@ -99,6 +99,8 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [x] Proveedores: pagos parciales, deuda al proveedor e historial. _(2026-05-06)_
 - [x] Conciliación bancaria vinculada con ventas, gastos, pagos y Mercado Pago. _(2026-05-06)_
 - [x] Exportaciones: CSV y PDF para ventas, compras, gastos, productos, deudas, equipo. _(2026-05-06)_
+- [x] Gastos recurrentes: frecuencia configurable + auto-generación diaria + cron. _(2026-05-06 sesión 3)_
+- [x] Factura vinculada a venta (sale_id / invoice_id bidireccional). _(2026-05-06 sesión 3)_
 - [ ] **Flujo venta/POS probado end-to-end** (presupuesto → venta → caja → factura). _(pendiente)_
 - [x] **Reporte de cierre de caja imprimible/exportable** (print PDF + CSV desde CashSessionPage). _(2026-05-06 sesión 3)_
 - [ ] Backups manuales y restauración documentada. _(pendiente)_
@@ -133,6 +135,12 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [ ] Forecast con comparación real vs proyectado.
 - [ ] Alertas inteligentes: stock, margen bajo, deuda vencida, clientes inactivos.
 - [x] Ficha 360 de cliente: compras, deudas, comunicaciones, puntos en un solo lugar. _(2026-05-06 sesión 3)_
+- [x] Auto-award loyalty points via DB trigger en cada venta. _(2026-05-06 sesión 3)_
+- [x] Code splitting React.lazy: bundle de 1982kB → 427kB (-78%). _(2026-05-06 sesión 3)_
+- [x] Canal de ventas (source breakdown) en Dashboard. _(2026-05-06 sesión 3)_
+- [x] Gastos recurrentes: frecuencia + auto-generación + cron diario. _(2026-05-06 sesión 3)_
+- [x] Factura ↔ venta: sale_id en invoices, invoice_id en sales, badge "Facturado". _(2026-05-06 sesión 3)_
+- [x] Dead-letter queue UI: retry webhooks fallidos desde IntegrationsPage. _(2026-05-06 sesión 3)_
 - [ ] Notas de crédito integradas a devoluciones en AFIP.
 
 ---
@@ -300,7 +308,7 @@ Hecho:
 Faltante:
 - Estado de resultados mensual.
 - Reporte fiscal/contable exportable.
-- Gastos recurrentes visibles y editables desde UI.
+- ~~Gastos recurrentes~~ ✅ hecho — frecuencia, próxima generación, auto-creación diaria. _(2026-05-06 sesión 3)_
 - Auditoría de cambios financieros.
 
 ### 5. Facturación Argentina
