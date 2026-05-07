@@ -15,8 +15,10 @@ import autoTable from "jspdf-autotable";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
-  ShieldCheck, ShieldAlert, Loader2, QrCode,
+  ShieldCheck, ShieldAlert, Loader2, QrCode, Search,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -274,6 +276,7 @@ export default function InvoicesPage() {
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
+  const [search, setSearch] = useState("");
   const fromSaleHandled = useRef(false);
   const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
 
@@ -491,6 +494,16 @@ export default function InvoicesPage() {
     overdue: invoices.filter((i) => i.status === "overdue").length,
   };
 
+  const filteredInvoices = invoices.filter((inv) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      inv.number.toLowerCase().includes(q) ||
+      inv.customer_name.toLowerCase().includes(q) ||
+      (inv.customer_email?.toLowerCase().includes(q) ?? false)
+    );
+  });
+
   const afipConfigured = !!afipSettings?.afip_cuit;
 
   // Default tipo_comprobante based on emisor type
@@ -499,29 +512,25 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Receipt className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold">Facturas</h1>
-            <p className="text-sm text-muted-foreground">
-              Creá y gestioná comprobantes
-              {afipConfigured && (
-                <span className="ml-2 inline-flex items-center gap-1 text-green-400 text-xs">
-                  <ShieldCheck className="w-3 h-3" />AFIP configurado
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-        {canManage && (
-          <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground">
-            <Plus className="w-4 h-4 mr-2" />Nueva factura
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        icon={Receipt}
+        title="Facturas"
+        description={afipConfigured ? "Comprobantes con autorización AFIP" : "Creá y gestioná comprobantes"}
+        badge={
+          stats.overdue > 0
+            ? { label: `${stats.overdue} vencida${stats.overdue > 1 ? "s" : ""}`, variant: "destructive" }
+            : afipConfigured
+            ? { label: "AFIP ✓", variant: "success" }
+            : undefined
+        }
+        actions={
+          canManage ? (
+            <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground">
+              <Plus className="w-4 h-4 mr-2" />Nueva factura
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* AFIP not configured warning */}
       {!afipConfigured && canManage && (
@@ -536,20 +545,13 @@ export default function InvoicesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { l: "Facturas totales", v: stats.total, icon: FileText, color: "" },
-          { l: "Cobrado", v: formatARS(stats.paid), icon: CheckCircle2, color: "text-green-400" },
-          { l: "Pendiente cobro", v: formatARS(stats.pending), icon: Clock, color: "text-blue-400" },
-          { l: "Vencidas", v: stats.overdue, icon: XCircle, color: "text-red-400" },
-        ].map((s) => (
-          <div key={s.l} className="bg-card border border-border rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">{s.l}</span>
-              <s.icon className="w-4 h-4 text-primary" />
-            </div>
-            <div className={`text-xl font-display font-bold ${s.color}`}>{s.v}</div>
-          </div>
-        ))}
+        <KPICard label="Facturas totales" value={stats.total} icon={FileText} color="primary" />
+        <KPICard label="Cobrado" value={formatARS(stats.paid)} icon={CheckCircle2} color="success"
+          sub={`${invoices.filter(i => i.status === "paid").length} facturas`} />
+        <KPICard label="Pendiente cobro" value={formatARS(stats.pending)} icon={Clock} color="blue"
+          sub={`${invoices.filter(i => i.status === "sent").length} enviadas`} />
+        <KPICard label="Vencidas" value={stats.overdue} icon={XCircle}
+          color={stats.overdue > 0 ? "destructive" : "success"} />
       </div>
 
       {/* Create form */}
@@ -694,19 +696,31 @@ export default function InvoicesPage() {
 
       {/* Invoice list */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-border">
-          <h2 className="font-semibold text-sm">Facturas ({invoices.length})</h2>
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3">
+          <h2 className="font-semibold text-sm shrink-0">Facturas ({filteredInvoices.length})</h2>
+          <div className="relative flex-1 max-w-xs ml-auto">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por número o cliente…"
+              className="w-full pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
         </div>
         {loading ? (
           <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
-        ) : invoices.length === 0 ? (
+        ) : filteredInvoices.length === 0 ? (
           <div className="p-10 text-center">
             <Receipt className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">Aún no hay facturas. Creá tu primera.</p>
+            <p className="text-sm text-muted-foreground">
+              {search ? "Sin resultados para tu búsqueda." : "Aún no hay facturas. Creá tu primera."}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {invoices.map((inv) => {
+            {filteredInvoices.map((inv) => {
               const sc = STATUS_CONFIG[inv.status] || STATUS_CONFIG.draft;
               const Icon = sc.icon;
               const isOpen = expanded === inv.id;

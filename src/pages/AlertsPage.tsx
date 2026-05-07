@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
-  Clock, Zap, Info,
+  Clock, Zap, Info, ShieldCheck,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -260,23 +261,46 @@ export default function AlertsPage() {
     );
   }
 
+  const activeRules = rules.filter(r => r.enabled).length;
+  const firedToday = rules.filter(r => r.last_triggered_at && new Date(r.last_triggered_at) > new Date(Date.now() - 86400000)).length;
+
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Zap className="w-6 h-6 text-yellow-400" />
-            Alertas inteligentes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configurá qué situaciones te notificamos automáticamente cada día.
-          </p>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <PageHeader
+        icon={Zap}
+        title="Alertas inteligentes"
+        description="Configurá qué situaciones te notificamos automáticamente cada día a las 07:00 UTC."
+        badge={{ label: `${activeRules} activa${activeRules !== 1 ? 's' : ''}`, variant: activeRules > 0 ? "success" : "default" }}
+        actions={
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" onClick={markAllRead} className="gap-1.5">
+                <CheckCheck className="w-4 h-4" />
+                Marcar leídas ({unreadCount})
+              </Button>
+            )}
+            <Button onClick={runCheck} disabled={running} size="sm" className="gradient-gold text-primary-foreground gap-1.5">
+              {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {running ? "Revisando..." : "Revisar ahora"}
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold font-display text-primary">{activeRules}</p>
+          <p className="text-xs text-muted-foreground mt-1">Reglas activas</p>
         </div>
-        <Button onClick={runCheck} disabled={running} size="sm" className="gap-2">
-          {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          {running ? "Revisando..." : "Revisar ahora"}
-        </Button>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold font-display text-warning">{firedToday}</p>
+          <p className="text-xs text-muted-foreground mt-1">Disparadas hoy</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold font-display text-destructive">{unreadCount}</p>
+          <p className="text-xs text-muted-foreground mt-1">Sin leer</p>
+        </div>
       </div>
 
       {/* Rules grid */}

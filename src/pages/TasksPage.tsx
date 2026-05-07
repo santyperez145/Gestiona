@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import {
   CheckSquare, Plus, Check, Clock, AlertTriangle, X,
-  Circle, SquareStack, Flame, ChevronUp, ChevronDown,
+  Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type Task = {
   id: string;
@@ -59,6 +61,7 @@ export default function TasksPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("active");
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     if (!activeOrg) return;
@@ -126,7 +129,15 @@ export default function TasksPage() {
       ? tasks.filter(t => t.status === "done")
       : tasks;
 
-    return [...activeTasks].sort((a, b) => {
+    const searched = search.trim()
+      ? activeTasks.filter(t =>
+          t.title.toLowerCase().includes(search.toLowerCase()) ||
+          (t.description?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+          (t.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
+        )
+      : activeTasks;
+
+    return [...searched].sort((a, b) => {
       const pa = PRIORITY_CONFIG[a.priority]?.order ?? 99;
       const pb = PRIORITY_CONFIG[b.priority]?.order ?? 99;
       if (pa !== pb) return pa - pb;
@@ -135,7 +146,7 @@ export default function TasksPage() {
       if (b.due_date) return 1;
       return 0;
     });
-  }, [tasks, filterStatus]);
+  }, [tasks, filterStatus, search]);
 
   const pending = tasks.filter(t => t.status !== "done" && t.status !== "cancelled");
   const overdue = pending.filter(t => t.due_date && t.due_date < today);
@@ -143,60 +154,67 @@ export default function TasksPage() {
   const doneToday = tasks.filter(t => t.completed_at?.slice(0, 10) === today);
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <CheckSquare className="w-7 h-7 text-primary" />Agenda de Tareas
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Organizá y seguí las tareas de tu negocio</p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />Nueva tarea
-        </Button>
-      </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <PageHeader
+        icon={CheckSquare}
+        title="Agenda de Tareas"
+        description="Organizá y seguí las tareas de tu negocio"
+        badge={
+          overdue.length > 0
+            ? { label: `${overdue.length} vencida${overdue.length > 1 ? "s" : ""}`, variant: "destructive" }
+            : pending.length === 0
+            ? { label: "¡Todo al día ✓", variant: "success" }
+            : undefined
+        }
+        actions={
+          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />Nueva tarea
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><SquareStack className="w-4 h-4 text-primary" /><span className="text-[10px] text-muted-foreground uppercase">Pendientes</span></div>
-          <p className="text-xl font-bold">{pending.length}</p>
-          <p className="text-xs text-muted-foreground">tareas activas</p>
-        </div>
-        <div className={`bg-card border ${overdue.length > 0 ? "border-destructive/30" : "border-border"} rounded-xl p-4`}>
-          <div className="flex items-center gap-2 mb-1.5"><AlertTriangle className={`w-4 h-4 ${overdue.length > 0 ? "text-destructive" : "text-muted-foreground"}`} /><span className="text-[10px] text-muted-foreground uppercase">Vencidas</span></div>
-          <p className={`text-xl font-bold ${overdue.length > 0 ? "text-destructive" : ""}`}>{overdue.length}</p>
-          <p className="text-xs text-muted-foreground">sin completar</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><Flame className="w-4 h-4 text-orange-400" /><span className="text-[10px] text-muted-foreground uppercase">Urgentes / Altas</span></div>
-          <p className="text-xl font-bold">{urgent.length}</p>
-          <p className="text-xs text-muted-foreground">prioridad alta</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><Check className="w-4 h-4 text-success" /><span className="text-[10px] text-muted-foreground uppercase">Completadas hoy</span></div>
-          <p className="text-xl font-bold">{doneToday.length}</p>
-          <p className="text-xs text-muted-foreground">¡buen trabajo!</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Pendientes" value={pending.length} icon={SquareStack} color="primary" sub="tareas activas" />
+        <KPICard label="Vencidas" value={overdue.length} icon={AlertTriangle}
+          color={overdue.length > 0 ? "destructive" : "success"} sub="sin completar" />
+        <KPICard label="Urgentes / Altas" value={urgent.length} icon={Flame}
+          color={urgent.length > 0 ? "warning" : "primary"} sub="prioridad alta" />
+        <KPICard label="Completadas hoy" value={doneToday.length} icon={Check} color="success" sub="¡buen trabajo!" />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-5">
-        {[
-          { value: "active", label: `Activas (${pending.length})` },
-          { value: "done", label: `Completadas (${tasks.filter(t => t.status === "done").length})` },
-          { value: "all", label: `Todas (${tasks.length})` },
-        ].map(tab => (
-          <Button
-            key={tab.value}
-            size="sm"
-            variant={filterStatus === tab.value ? "default" : "outline"}
-            className="h-8 text-xs"
-            onClick={() => setFilterStatus(tab.value)}
-          >
-            {tab.label}
-          </Button>
-        ))}
+      {/* Filter tabs + search */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1.5 bg-muted/40 rounded-lg p-1">
+          {[
+            { value: "active", label: `Activas (${pending.length})` },
+            { value: "done", label: `Listas (${tasks.filter(t => t.status === "done").length})` },
+            { value: "all", label: `Todas (${tasks.length})` },
+          ].map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setFilterStatus(tab.value)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                filterStatus === tab.value
+                  ? "bg-card border border-border shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative ml-auto">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar tarea…"
+            className="pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40 w-48"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -205,7 +223,7 @@ export default function TasksPage() {
         <div className="text-center py-20">
           <CheckSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
           <p className="text-muted-foreground">
-            {filterStatus === "active" ? "No hay tareas pendientes — ¡todo al día!" : "Sin tareas para mostrar"}
+            {search ? "Sin resultados para tu búsqueda." : filterStatus === "active" ? "No hay tareas pendientes — ¡todo al día!" : "Sin tareas para mostrar."}
           </p>
         </div>
       ) : (

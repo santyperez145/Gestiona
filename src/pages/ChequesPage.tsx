@@ -11,6 +11,8 @@ import {
   FileText, Plus, Check, Clock, AlertTriangle, DollarSign,
   Banknote, XCircle, CalendarDays, TrendingUp,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type Cheque = {
   id: string;
@@ -130,41 +132,33 @@ export default function ChequesPage() {
   const upcoming30Total = upcoming30.reduce((s, c) => s + Number(c.amount_ars), 0);
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <FileText className="w-7 h-7 text-primary" />Cheques Diferidos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Seguimiento de cheques recibidos y emitidos</p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />Registrar cheque
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={FileText}
+        title="Cheques Diferidos"
+        description="Seguimiento de cheques recibidos y emitidos"
+        badge={
+          overdue.length > 0
+            ? { label: `${overdue.length} vencido${overdue.length > 1 ? "s" : ""}`, variant: "destructive" }
+            : undefined
+        }
+        actions={
+          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />Registrar cheque
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><DollarSign className="w-4 h-4 text-primary" /><span className="text-[10px] text-muted-foreground uppercase">Pendiente total</span></div>
-          <p className="text-xl font-bold">{formatARS(pendingTotal)}</p>
-          <p className="text-xs text-muted-foreground">{pending.length} cheque{pending.length !== 1 ? "s" : ""}</p>
-        </div>
-        <div className="bg-card border border-destructive/30 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><AlertTriangle className="w-4 h-4 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase">Vencidos</span></div>
-          <p className="text-xl font-bold text-destructive">{formatARS(overdueTotal)}</p>
-          <p className="text-xs text-muted-foreground">{overdue.length} cheque{overdue.length !== 1 ? "s" : ""}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><CalendarDays className="w-4 h-4 text-success" /><span className="text-[10px] text-muted-foreground uppercase">Por vencer</span></div>
-          <p className="text-xl font-bold">{formatARS(upcoming30Total)}</p>
-          <p className="text-xs text-muted-foreground">{upcoming30.length} en los próximos días</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><TrendingUp className="w-4 h-4 text-warning" /><span className="text-[10px] text-muted-foreground uppercase">Total registrados</span></div>
-          <p className="text-xl font-bold">{cheques.length}</p>
-          <p className="text-xs text-muted-foreground">cheques históricos</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Pendiente total" value={formatARS(pendingTotal)} icon={DollarSign} color="primary"
+          sub={`${pending.length} cheque${pending.length !== 1 ? "s" : ""}`} />
+        <KPICard label="Vencidos" value={formatARS(overdueTotal)} icon={AlertTriangle}
+          color={overdue.length > 0 ? "destructive" : "success"}
+          sub={`${overdue.length} cheque${overdue.length !== 1 ? "s" : ""}`} />
+        <KPICard label="Por vencer" value={formatARS(upcoming30Total)} icon={CalendarDays} color="success"
+          sub={`${upcoming30.length} en los próximos días`} />
+        <KPICard label="Total registrados" value={cheques.length} icon={TrendingUp} color="warning" sub="cheques históricos" />
       </div>
 
       {/* Filters */}

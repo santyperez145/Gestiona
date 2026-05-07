@@ -14,6 +14,7 @@ import {
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
   AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 
@@ -200,28 +201,30 @@ export default function ProveedoresPage() {
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" /> Proveedores
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {suppliers.filter(s => s.active).length} activos · {formatARS(totalPending)} pendiente de pago
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
-            <Plus className="w-4 h-4" />Nueva deuda
-          </Button>
-          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Truck}
+        title="Proveedores"
+        description={`${suppliers.filter(s => s.active).length} activos · ${formatARS(totalPending)} pendiente de pago`}
+        badge={
+          pendingDebts.length > 0
+            ? { label: `${pendingDebts.length} deuda${pendingDebts.length > 1 ? "s" : ""} pendiente${pendingDebts.length > 1 ? "s" : ""}`, variant: "destructive" }
+            : undefined
+        }
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
+              <Plus className="w-4 h-4" />Nueva deuda
+            </Button>
+            <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={openCreate}>
+              <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
+            </Button>
+          </div>
+        }
+      />
 
       <Tabs defaultValue="suppliers">
-        <TabsList className="mb-5">
+        <TabsList className="mb-4">
           <TabsTrigger value="suppliers">Proveedores ({suppliers.length})</TabsTrigger>
           <TabsTrigger value="debts" className={pendingDebts.length > 0 ? "text-destructive" : ""}>
             Cuentas a Pagar {pendingDebts.length > 0 && `(${pendingDebts.length})`}

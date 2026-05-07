@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/lib/useUserRole";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 const PAGE_SIZE = 20;
 
@@ -89,8 +91,11 @@ export default function SalesPage() {
     return map;
   }, [products]);
 
+  const [search, setSearch] = useState('');
+
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
+    if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
     if (d < dateFrom) return false;
@@ -112,102 +117,123 @@ export default function SalesPage() {
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
+  const marginPct = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+  const paidCount = filtered.filter(s => s.paid).length;
+  const debtCount = filtered.length - paidCount;
+
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Ventas</h1>
-          <p className="text-muted-foreground text-sm">
-            {filtered.length} ventas · Total: {formatARS(totalSales)} · Ganancia: {formatARS(totalProfit)} ({formatUSD(totalProfitUSD)})
-          </p>
+      <PageHeader
+        icon={ShoppingCart}
+        title="Ventas"
+        description="Historial y gestión de ventas"
+        badge={{ label: `${filtered.length} registradas`, variant: "default" }}
+        actions={
+          <div className="flex items-center gap-2">
+            <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+              <DialogTrigger asChild>
+                <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                  <Plus className="w-4 h-4 mr-2" />Nueva Venta
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border max-w-2xl p-0">
+                <DialogHeader className="p-6 pb-0"><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
+                <ScrollArea className="max-h-[75vh] px-6 pb-6">
+                  <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} />
+        <KPICard label="Ganancia neta" value={formatARS(totalProfit)} icon={TrendingUp} color="success" sub={formatUSD(totalProfitUSD)} />
+        <KPICard label="Margen promedio" value={`${marginPct.toFixed(1)}%`} icon={Percent} color={marginPct >= 30 ? "success" : marginPct >= 15 ? "warning" : "destructive"} />
+        <KPICard label="Cobradas / Deben" value={`${paidCount} / ${debtCount}`} icon={Ticket} color={debtCount > 0 ? "warning" : "success"} sub={debtCount > 0 ? `${formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente` : "todo cobrado"} />
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <div className="relative flex-1 min-w-[160px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto o cliente..."
+            className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
-            <SelectTrigger className="bg-card border-border w-[160px] h-9 text-sm">
-              <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map(c => (
-                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Venta</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-2xl p-0">
-            <DialogHeader className="p-6 pb-0"><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
-            <ScrollArea className="max-h-[75vh] px-6 pb-6">
-              <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
-            </ScrollArea>
-          </DialogContent>
-          </Dialog>
-        </div>
+        <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
+          <SelectTrigger className="bg-card border-border w-[160px] h-9 text-sm">
+            <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {!filtered.length ? (
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
       ) : (
         <>
-          <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
+          <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left p-3 font-medium">Fecha</th>
-                  <th className="text-left p-3 font-medium">Producto</th>
-                  <th className="text-left p-3 font-medium">Cliente</th>
-                  <th className="text-center p-3 font-medium">Medio</th>
-                  <th className="text-right p-3 font-medium">Cant.</th>
-                  <th className="text-right p-3 font-medium">Total</th>
-                  <th className="text-right p-3 font-medium">Ganancia</th>
-                  <th className="text-center p-3 font-medium">Estado</th>
-                  {isAdmin && <th className="text-center p-3 font-medium">Acc.</th>}
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Cliente</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Medio</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Ganancia</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
+                  {isAdmin && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {paged.map(s => (
-                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">{formatDateAR(s.date)}</td>
-                    <td className="p-3">{s.product_name}</td>
-                    <td className="p-3">{s.customer_name || '—'}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
+                  <tr key={s.id} className="hover:bg-muted/20 transition-colors group">
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(s.date)}</td>
+                    <td className="px-4 py-3 font-medium">{s.product_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
                         {s.payment_method || 'efectivo'}
                       </span>
                     </td>
-                    <td className="p-3 text-right">{s.quantity}</td>
-                    <td className="p-3 text-right font-medium">{formatARS(Number(s.total_ars))}</td>
-                    <td className="p-3 text-right">
-                      <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
+                    <td className="px-4 py-3 text-right">
+                      <span className="bg-muted px-2 py-0.5 rounded text-xs font-medium">{s.quantity}</span>
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="px-4 py-3 text-right font-bold">{formatARS(Number(s.total_ars))}</td>
+                    <td className="px-4 py-3 text-right hidden xl:table-cell">
+                      <span className={`font-medium ${Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(s.profit_ars))}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
-                          {s.paid ? 'Pagado' : 'Debe'}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.paid ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
+                          {s.paid ? '✓ Cobrado' : 'Debe'}
                         </span>
                         {(s as any).invoice_id && (
-                          <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                             Facturado
                           </span>
                         )}
                       </div>
                     </td>
                     {isAdmin && (
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost" size="sm"
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                           title={(s as any).invoice_id ? "Ver factura" : "Crear factura"}
-                          onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}
-                        >
+                          onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}>
                           <FileText className={`w-3.5 h-3.5 ${(s as any).invoice_id ? "text-blue-400" : "text-primary"}`} />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
                         <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                           title="¿Eliminar esta venta?"
                           description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
                           confirmText="Eliminar"

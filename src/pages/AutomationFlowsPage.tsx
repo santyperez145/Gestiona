@@ -13,6 +13,7 @@ import {
   ClipboardList, Globe, Users, ShoppingBag, TrendingUp, AlertTriangle,
   History, RefreshCw, CheckCircle2, XCircle, SkipForward,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -506,53 +507,54 @@ export default function AutomationFlowsPage() {
 
   const activeCount = flows.filter((f) => f.active).length;
 
+  const totalRuns = runs.length;
+  const successRuns = runs.filter(r => r.status === "success").length;
+
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Zap className="w-7 h-7 text-primary" />Automatizaciones
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Reglas que se ejecutan automáticamente cada día según eventos del negocio
-            {activeCount > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1 text-success text-xs font-medium">
-                <Check className="w-3 h-3" />{activeCount} activa{activeCount !== 1 ? "s" : ""}
-              </span>
-            )}
-          </p>
+      <PageHeader
+        icon={Zap}
+        title="Automatizaciones"
+        description="Reglas que se ejecutan automáticamente cada día a las 08:00 según eventos del negocio"
+        badge={{ label: `${activeCount} activa${activeCount !== 1 ? "s" : ""}`, variant: activeCount > 0 ? "success" : "default" }}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5"
+              disabled={runningFlowId === "__all__"}
+              onClick={async () => {
+                setRunningFlowId("__all__");
+                try {
+                  const { error } = await supabase.functions.invoke("execute-automations", { body: { org_id: activeOrg?.id } });
+                  if (error) throw error;
+                  toast.success("Todos los flujos ejecutados");
+                  setTimeout(() => load(), 1500);
+                } catch { toast.error("Error al ejecutar flujos"); }
+                setRunningFlowId(null);
+              }}>
+              {runningFlowId === "__all__" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              Ejecutar todos
+            </Button>
+            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+              onClick={() => { setEditingFlow(null); setShowForm(true); }}>
+              <Plus className="w-4 h-4 mr-2" />Nuevo flujo
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold font-display text-primary">{flows.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">Flujos totales</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              setRunningFlowId("__all__");
-              try {
-                const { error } = await supabase.functions.invoke("execute-automations", {
-                  body: { org_id: activeOrg?.id },
-                });
-                if (error) throw error;
-                toast.success("Todos los flujos ejecutados");
-                setTimeout(() => load(), 1500);
-              } catch { toast.error("Error al ejecutar flujos"); }
-              setRunningFlowId(null);
-            }}
-            disabled={runningFlowId === "__all__"}
-            className="gap-1.5"
-          >
-            {runningFlowId === "__all__"
-              ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              : <Play className="w-3.5 h-3.5" />}
-            Ejecutar todos
-          </Button>
-          <Button
-            className="gradient-gold text-primary-foreground font-semibold shadow-gold"
-            onClick={() => { setEditingFlow(null); setShowForm(true); }}
-          >
-            <Plus className="w-4 h-4 mr-2" />Nuevo flujo
-          </Button>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold font-display text-success">{activeCount}</p>
+          <p className="text-xs text-muted-foreground mt-1">Activos</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold font-display text-blue-400">{totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0}%</p>
+          <p className="text-xs text-muted-foreground mt-1">Éxito ({successRuns}/{totalRuns})</p>
         </div>
       </div>
 
