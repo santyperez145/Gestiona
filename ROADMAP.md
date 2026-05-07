@@ -61,7 +61,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 | Autenticación y organizaciones | Auth, OrgProvider, memberships, roles, invitaciones, platform admin, RLS org_id | Matriz de permisos formal, eliminar restos de `user_roles` legacy |
 | Inventario | Kardex, triggers stock, ajustes auditados, toma física, restock, sucursales | Stock por sucursal en POS, lotes con vencimiento en UI, importación masiva |
 | Ventas y POS | Ventas, POS, recibo, deudas, cuotas, devoluciones, presupuestos, caja, **export PDF+CSV cierre** | Flujo end-to-end probado, modo offline |
-| Clientes/CRM | Clientes, notas, segmentación, pipeline, referidos, fidelidad, **Ficha 360 con tabs** | Merge de duplicados, consentimiento comunicaciones |
+| Clientes/CRM | Clientes, notas, segmentación, pipeline, referidos, fidelidad, **Ficha 360 con tabs**, **merge duplicados**, **puntos auto** | Consentimiento comunicaciones |
 | Finanzas | Gastos, deudas, cheques, proveedores, conciliación bancaria, flujo de caja | Estado de resultados mensual, reporte fiscal exportable, gastos recurrentes en UI |
 | Facturación | Facturas, PDF, email, campos AFIP, retry en errores | Notas de crédito integradas a devoluciones, numeración robusta, vincular factura↔venta |
 | Marketing | Posts, templates, campañas, catálogo, combos, banners, influencers | Tracking de conversión, verificación de dominio email, ROI por campaña |
@@ -135,6 +135,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 - [ ] Forecast con comparación real vs proyectado.
 - [ ] Alertas inteligentes: stock, margen bajo, deuda vencida, clientes inactivos.
 - [x] Ficha 360 de cliente: compras, deudas, comunicaciones, puntos en un solo lugar. _(2026-05-06 sesión 3)_
+- [x] Fusión de clientes duplicados (merge inline en CRM). _(2026-05-06 sesión 3)_
 - [x] Auto-award loyalty points via DB trigger en cada venta. _(2026-05-06 sesión 3)_
 - [x] Code splitting React.lazy: bundle de 1982kB → 427kB (-78%). _(2026-05-06 sesión 3)_
 - [x] Canal de ventas (source breakdown) en Dashboard. _(2026-05-06 sesión 3)_
