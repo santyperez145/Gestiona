@@ -203,7 +203,14 @@ export default function ExpensesPage() {
                               {e.recurring && <Repeat className="w-2.5 h-2.5" />}
                             </span>
                           </td>
-                          <td className="p-3 text-muted-foreground truncate max-w-[200px]">{e.description || '—'}</td>
+                          <td className="p-3 text-muted-foreground truncate max-w-[200px]">
+                            <span>{e.description || '—'}</span>
+                            {e.recurring && e.recurring_next_date && (
+                              <span className="ml-2 text-[10px] text-warning/70">
+                                próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                              </span>
+                            )}
+                          </td>
                           <td className="p-3 text-right font-medium text-destructive">-{formatARS(Number(e.amount_ars))}</td>
                           <td className="p-3 text-center">
                             <div className="flex items-center justify-center gap-1">
@@ -238,7 +245,14 @@ export default function ExpensesPage() {
                             {e.recurring && <Repeat className="w-3 h-3 text-warning" />}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">{e.description || 'Sin descripción'}</p>
-                          <p className="text-[10px] text-muted-foreground/60">{formatDateAR(e.date)}</p>
+                          <p className="text-[10px] text-muted-foreground/60">
+                            {formatDateAR(e.date)}
+                            {e.recurring && e.recurring_next_date && (
+                              <span className="ml-2 text-warning/70">
+                                próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <span className="text-sm font-bold text-destructive shrink-0">-{formatARS(Number(e.amount_ars))}</span>
                       </div>
@@ -281,6 +295,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [description, setDescription] = useState(editItem?.description || '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
+  const [recurringFrequency, setRecurringFrequency] = useState<string>(editItem?.recurring_frequency || 'monthly');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -291,6 +306,18 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
     }
     setSubmitting(true);
     try {
+      // Calculate next_date based on frequency
+      const startDate = new Date(date);
+      let nextDate: Date | null = null;
+      if (recurring) {
+        nextDate = new Date(startDate);
+        switch (recurringFrequency) {
+          case "daily":  nextDate.setDate(nextDate.getDate() + 1); break;
+          case "weekly": nextDate.setDate(nextDate.getDate() + 7); break;
+          case "yearly": nextDate.setFullYear(nextDate.getFullYear() + 1); break;
+          default: nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+      }
       const data: any = {
         user_id: userId,
         amount_ars: parseFloat(amount),
@@ -298,6 +325,8 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         description: description || null,
         date: dateToNoon(date),
         recurring,
+        recurring_frequency: recurring ? recurringFrequency : null,
+        recurring_next_date: nextDate ? nextDate.toISOString().slice(0, 10) : null,
       };
       if (editItem) {
         await updateExpenseDB(editItem.id, data);
@@ -347,12 +376,40 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
       </div>
 
-      <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
-        <div>
-          <p className="text-sm font-medium flex items-center gap-1.5"><Repeat className="w-4 h-4 text-warning" />Gasto recurrente</p>
-          <p className="text-xs text-muted-foreground">Marcalo si se repite cada mes</p>
+      <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium flex items-center gap-1.5"><Repeat className="w-4 h-4 text-warning" />Gasto recurrente</p>
+            <p className="text-xs text-muted-foreground">Se genera automáticamente en la próxima fecha</p>
+          </div>
+          <Switch checked={recurring} onCheckedChange={setRecurring} />
         </div>
-        <Switch checked={recurring} onCheckedChange={setRecurring} />
+        {recurring && (
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Frecuencia</label>
+            <Select value={recurringFrequency} onValueChange={setRecurringFrequency}>
+              <SelectTrigger className="bg-muted border-border h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Diario</SelectItem>
+                <SelectItem value="weekly">Semanal</SelectItem>
+                <SelectItem value="monthly">Mensual</SelectItem>
+                <SelectItem value="yearly">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              Próxima generación automática: {(() => {
+                try {
+                  const d = new Date(date);
+                  if (recurringFrequency === "daily") d.setDate(d.getDate() + 1);
+                  else if (recurringFrequency === "weekly") d.setDate(d.getDate() + 7);
+                  else if (recurringFrequency === "yearly") d.setFullYear(d.getFullYear() + 1);
+                  else d.setMonth(d.getMonth() + 1);
+                  return d.toLocaleDateString("es-AR", { dateStyle: "medium" });
+                } catch { return "—"; }
+              })()}
+            </p>
+          </div>
+        )}
       </div>
 
       <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">
