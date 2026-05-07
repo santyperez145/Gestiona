@@ -1,9 +1,7 @@
 -- ============================================================
 -- MIGRACIONES FALTANTES — aplicar en hummeopatkniwkyrrhwc
 -- Generado: 2026-05-07
--- Nota: bloques cron.schedule() omitidos — no son soportados
---       por el SQL Editor. Los crons se registran via CLI o
---       desde el dashboard de pg_cron si está habilitado.
+-- Ejecutar en el SQL Editor de Supabase (una sola vez).
 -- ============================================================
 
 -- == 20260506_invoice_sale_link.sql ==
@@ -34,8 +32,6 @@ CREATE POLICY "org_api_keys_org_access" ON public.org_api_keys FOR ALL USING (
 );
 CREATE INDEX IF NOT EXISTS org_api_keys_org_idx  ON public.org_api_keys(org_id);
 CREATE INDEX IF NOT EXISTS org_api_keys_hash_idx ON public.org_api_keys(key_hash) WHERE NOT revoked;
-
-ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS source text DEFAULT 'manual';
 
 -- == 20260506_recurring_expenses.sql ==
 ALTER TABLE public.expenses
@@ -99,59 +95,9 @@ CREATE POLICY "integration_logs_org" ON public.integration_logs FOR ALL USING (
 CREATE INDEX IF NOT EXISTS integration_logs_org_integration ON public.integration_logs(org_id, integration, created_at DESC);
 CREATE INDEX IF NOT EXISTS integration_logs_recent          ON public.integration_logs(org_id, created_at DESC);
 
--- == 20260506_auto_loyalty_trigger.sql ==
-CREATE OR REPLACE FUNCTION public.trg_auto_loyalty_on_sale()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $fn$
-DECLARE
-  v_enabled         boolean;
-  v_points_per_1000 integer;
-  v_points          integer;
-BEGIN
-  IF NEW.customer_name IS NULL OR trim(NEW.customer_name) = '' THEN RETURN NEW; END IF;
-  SELECT COALESCE(loyalty_enabled, false), COALESCE(loyalty_points_per_1000, 1)
-  INTO v_enabled, v_points_per_1000
-  FROM public.settings WHERE org_id = NEW.org_id;
-  IF NOT FOUND OR NOT v_enabled THEN RETURN NEW; END IF;
-  v_points := floor(COALESCE(NEW.total_ars, 0) / 1000.0)::integer * v_points_per_1000;
-  IF v_points >= 1 THEN
-    INSERT INTO public.loyalty_points (org_id, customer_name, delta, reason, reference_id)
-    VALUES (NEW.org_id, trim(NEW.customer_name), v_points, 'sale', NEW.id);
-  END IF;
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN RETURN NEW;
-END;
-$fn$;
-
-DROP TRIGGER IF EXISTS trg_auto_loyalty_on_sale ON public.sales;
-CREATE TRIGGER trg_auto_loyalty_on_sale
-  AFTER INSERT ON public.sales
-  FOR EACH ROW EXECUTE FUNCTION public.trg_auto_loyalty_on_sale();
-
-CREATE OR REPLACE FUNCTION public.trg_auto_loyalty_on_sale_delete()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $fn2$
-DECLARE v_enabled boolean;
-BEGIN
-  IF OLD.customer_name IS NULL OR trim(OLD.customer_name) = '' THEN RETURN OLD; END IF;
-  SELECT COALESCE(loyalty_enabled, false) INTO v_enabled
-  FROM public.settings WHERE org_id = OLD.org_id;
-  IF FOUND AND v_enabled THEN
-    DELETE FROM public.loyalty_points
-    WHERE org_id = OLD.org_id AND reference_id = OLD.id AND reason = 'sale';
-  END IF;
-  RETURN OLD;
-EXCEPTION WHEN OTHERS THEN RETURN OLD;
-END;
-$fn2$;
-
-DROP TRIGGER IF EXISTS trg_auto_loyalty_on_sale_delete ON public.sales;
-CREATE TRIGGER trg_auto_loyalty_on_sale_delete
-  AFTER DELETE ON public.sales
-  FOR EACH ROW EXECUTE FUNCTION public.trg_auto_loyalty_on_sale_delete();
-
 -- == 20260507_sales_source_column.sql ==
 ALTER TABLE public.sales
-  ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'manual'
-    CHECK (source IN ('manual', 'pos', 'tiendanube', 'api', 'presupuesto'));
+  ADD COLUMN IF NOT EXISTS source text DEFAULT 'manual';
 UPDATE public.sales SET source = 'manual' WHERE source IS NULL OR source = '';
 CREATE INDEX IF NOT EXISTS sales_source_idx ON public.sales(org_id, source);
 
@@ -176,29 +122,7 @@ DROP POLICY IF EXISTS "org members can manage alert rules" ON public.alert_rules
 CREATE POLICY "org members can manage alert rules" ON public.alert_rules FOR ALL
   USING (org_id IN (SELECT org_id FROM public.memberships WHERE user_id = auth.uid()));
 
-CREATE OR REPLACE FUNCTION public.seed_default_alert_rules(p_org_id uuid)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $fn3$
-BEGIN
-  INSERT INTO public.alert_rules (org_id, type, threshold_value, threshold_days) VALUES
-    (p_org_id, 'stock_low',         5,     0),
-    (p_org_id, 'low_margin',        15,    0),
-    (p_org_id, 'debt_overdue',      0,     7),
-    (p_org_id, 'customer_inactive', 0,     60),
-    (p_org_id, 'high_expense',      50000, 0)
-  ON CONFLICT (org_id, type) DO NOTHING;
-END;
-$fn3$;
-
 CREATE INDEX IF NOT EXISTS alert_rules_org_idx ON public.alert_rules(org_id);
-
--- Seed default rules for all existing orgs
-DO $seed$
-DECLARE r record;
-BEGIN
-  FOR r IN SELECT id FROM public.organizations LOOP
-    PERFORM public.seed_default_alert_rules(r.id);
-  END LOOP;
-END $seed$;
 
 -- == 20260507_automation_runs.sql ==
 CREATE TABLE IF NOT EXISTS public.automation_runs (
