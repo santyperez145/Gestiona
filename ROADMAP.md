@@ -3,7 +3,7 @@
 Fecha de relevamiento: 2026-05-05  
 Última actualización: 2026-05-07 (sesión 4)  
 Proyecto: Gestiona / Exentry Imports  
-DB producción: `wcfohngxrtopgggumjmw`  
+DB producción: `hummeopatkniwkyrrhwc`  
 Tipo de producto: sistema de gestión para ventas, stock, finanzas, CRM, marketing, equipo e integraciones.
 
 ---
@@ -46,7 +46,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 ## Brechas principales (estado actual)
 
 - Tipos generados de Supabase desactualizados — muchas tablas nuevas se usan con `as any`.
-- CLI de Supabase autenticado con cuenta distinta a la del proyecto real (`wcfohngxrtopgggumjmw`). Las funciones edge deben desplegarse desde el dashboard o con login correcto.
+- CLI de Supabase autenticado con cuenta distinta a la del proyecto real (`hummeopatkniwkyrrhwc`). Las funciones edge deben desplegarse desde el dashboard o con login correcto.
 - Triggers de DB (`trg_sale_cash_entry`, `trg_sale_stock_movement`, `trg_purchase_stock_movement`) tienen `m.created_at` incorrecto — fix SQL listo en `docs/fix_production_sql.sql` pero pendiente de aplicar en producción.
 - RLS de `influencer_exchanges` bloquea inserts — fix incluido en `docs/fix_production_sql.sql`.
 - Falta flujo venta→caja→factura probado end-to-end.
@@ -82,7 +82,7 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 
 - [x] Crear documentación mínima en `README.md`. _(2026-05-05)_
 - [ ] **Aplicar `docs/fix_production_sql.sql` en el dashboard de Supabase** — fix `m.created_at` en triggers y RLS `influencer_exchanges`. _(pendiente — SQL listo en `docs/fix_production_sql.sql`)_
-- [ ] **Loguear CLI con cuenta correcta y desplegar edge functions** — `supabase login` + `supabase link --project-ref wcfohngxrtopgggumjmw` + deploy de las 32 funciones. _(pendiente)_
+- [ ] **Loguear CLI con cuenta correcta y desplegar edge functions** — `supabase login` + `supabase link --project-ref hummeopatkniwkyrrhwc` + deploy de las 32 funciones. _(pendiente)_
 - [ ] Generar tipos actualizados de Supabase y eliminar `as any` en flujos críticos. _(bloqueado por CLI con cuenta incorrecta)_
 - [x] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant. _(2026-05-05)_
 - [x] Auditar RLS tabla por tabla. _(2026-05-05)_
@@ -155,14 +155,14 @@ La prioridad ahora es **estabilizar lo existente para uso diario real**: datos c
 
 | # | Acción | Cómo | Estado |
 |---|--------|------|--------|
-| 1 | Aplicar fix SQL en producción | Pegar `docs/fix_production_sql.sql` en Supabase Dashboard SQL Editor (`wcfohngxrtopgggumjmw`) | ⏳ Pendiente |
-| 2 | Desplegar edge functions con cuenta correcta | `supabase login` → `supabase link --project-ref wcfohngxrtopgggumjmw` → `supabase functions deploy --no-verify-jwt` para las 32 funciones | ⏳ Pendiente |
+| 1 | Aplicar fix SQL en producción | Pegar `docs/fix_production_sql.sql` en Supabase Dashboard SQL Editor (`hummeopatkniwkyrrhwc`) | ⏳ Pendiente |
+| 2 | Desplegar edge functions con cuenta correcta | `supabase login` → `supabase link --project-ref hummeopatkniwkyrrhwc` → `supabase functions deploy --no-verify-jwt` para las 32 funciones | ⏳ Pendiente |
 
 ### 🟠 Esta semana (Fase 0 + Fase 1 restantes)
 
 | # | Acción | Detalle |
 |---|--------|---------|
-| 3 | Generar tipos Supabase actualizados | `supabase gen types typescript --project-id wcfohngxrtopgggumjmw > src/integrations/supabase/types.ts` (requiere paso 2) |
+| 3 | Generar tipos Supabase actualizados | `supabase gen types typescript --project-id hummeopatkniwkyrrhwc > src/integrations/supabase/types.ts` (requiere paso 2) |
 | 4 | Eliminar `as any` en flujos críticos | supabaseStore.ts, POSPage, SalesPage, CashSessionPage, InvoicesPage |
 | 5 | Flujo end-to-end venta→caja→factura | Probar manualmente: crear venta en POS → verificar cash_entry → emitir factura → ver en reportes |
 | 6 | Reporte de cierre de caja exportable | Agregar botón "Exportar PDF/CSV" en CashSessionPage con resumen del turno |
