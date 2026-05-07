@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, Eye } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -81,27 +82,26 @@ export default function InfluencerExchangesPage() {
   if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Gift className="w-6 h-6 text-primary" /> Canjes & Influencers
-          </h1>
-          <p className="text-muted-foreground text-sm">Gestión de canjes, regalos y colaboraciones con influencers</p>
-        </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo Canje</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Canje' : 'Registrar Canje'}</DialogTitle></DialogHeader>
-            <ExchangeForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Gift}
+        title="Canjes & Influencers"
+        description="Gestión de canjes, regalos y colaboraciones con influencers"
+        actions={
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+            <DialogTrigger asChild>
+              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo Canje</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Canje' : 'Registrar Canje'}</DialogTitle></DialogHeader>
+              <ExchangeForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total Canjes" value={exchanges.length} icon={Gift} sub="Registrados" />
         <KPICard label="Valor Entregado" value={formatARS(totalValue)} icon={BarChart3} sub="En productos" />
         <KPICard label="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} sub={`${totalActual}/${totalExpected} posts`} />

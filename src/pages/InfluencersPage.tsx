@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Edit, Copy, DollarSign, TrendingUp, Users, Award, Instagram } from 'lucide-react';
+import PageHeader from '@/components/shared/PageHeader';
 import { toast } from 'sonner';
 import KPICard from '@/components/shared/KPICard';
 import EmptyState from '@/components/shared/EmptyState';
@@ -322,13 +323,12 @@ function PayoutsTab() {
 
 export default function InfluencersPage() {
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-          <Users className="w-7 h-7 text-primary" /> Influencers Pro
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">Gestión completa de afiliados, comisiones, canjes y liquidaciones.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="Influencers Pro"
+        description="Gestión completa de afiliados, comisiones, canjes y liquidaciones."
+      />
       <Tabs defaultValue="influencers">
         <TabsList className="mb-4 flex-wrap">
           <TabsTrigger value="influencers">Influencers</TabsTrigger>

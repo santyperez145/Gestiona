@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Sparkles, Plus, Copy, Heart, Download, Globe, Lock, Search, Tag, ArrowUpRight } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { addMarketingPostDB } from "@/lib/supabaseStore";
 
 type Template = {
@@ -177,18 +178,17 @@ export default function MarketingTemplatesPage() {
   });
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-primary" />Marketplace de Templates
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Descubrí y compartí templates de marketing con la comunidad</p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />Crear template
-        </Button>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        icon={Sparkles}
+        title="Marketplace de Templates"
+        description="Descubrí y compartí templates de marketing con la comunidad"
+        actions={
+          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />Crear template
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-2 mb-5">

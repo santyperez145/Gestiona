@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Brain, Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import PageHeader from "@/components/shared/PageHeader";
 
 const CATEGORIES = [
   { code: 'perfume_arabe', label: 'Perfume árabe' },
@@ -44,29 +45,28 @@ export default function BrandKnowledgePage() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" /> Base de conocimiento de marcas
-          </h1>
-          <p className="text-muted-foreground text-sm">Marcas, clones y notas que la IA usa para generar descripciones y respuestas</p>
-        </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
-              <Plus className="w-4 h-4 mr-2" />Nueva marca
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editItem ? 'Editar marca' : 'Agregar marca'}</DialogTitle></DialogHeader>
-            <BrandForm
-              editItem={editItem}
-              onSave={() => { setOpen(false); setEditItem(null); reload(); }}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Brain}
+        title="Base de conocimiento de marcas"
+        description="Marcas, clones y notas que la IA usa para generar descripciones y respuestas"
+        actions={
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+            <DialogTrigger asChild>
+              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                <Plus className="w-4 h-4 mr-2" />Nueva marca
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>{editItem ? 'Editar marca' : 'Agregar marca'}</DialogTitle></DialogHeader>
+              <BrandForm
+                editItem={editItem}
+                onSave={() => { setOpen(false); setEditItem(null); reload(); }}
+              />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <div className="mb-4">
         <Select value={filter} onValueChange={setFilter}>

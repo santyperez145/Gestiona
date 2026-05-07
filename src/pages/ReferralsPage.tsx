@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Users, Plus, Copy, Check, TrendingUp, Gift, Settings2, ToggleLeft, ToggleRight } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 type Referral = {
   id: string;
@@ -137,18 +138,18 @@ export default function ReferralsPage() {
   const STATUS_LABELS: Record<string, string> = { pending: "Pendiente", credited: "Acreditado", cancelled: "Cancelado" };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Users className="w-7 h-7 text-primary" />Programa de Referidos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Incentivá a tus clientes a traer nuevos compradores</p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />Registrar referido
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="Programa de Referidos"
+        description="Incentivá a tus clientes a traer nuevos compradores"
+        badge={settings.referral_enabled ? { label: "Activo", variant: "success" } : { label: "Inactivo", variant: "default" }}
+        actions={
+          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />Registrar referido
+          </Button>
+        }
+      />
 
       {/* Settings panel */}
       <div className="mb-6 bg-card border border-border rounded-xl p-5">

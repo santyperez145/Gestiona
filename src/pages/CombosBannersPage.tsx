@@ -11,16 +11,16 @@ import { Switch } from "@/components/ui/switch";
 import { Package, Image as ImageIcon, Plus, Edit, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import PageHeader from "@/components/shared/PageHeader";
 
 export default function CombosBannersPage() {
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-primary" /> Combos & Banners
-        </h1>
-        <p className="text-muted-foreground text-sm">Crea combos promocionales y banners para tu catálogo público</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Sparkles}
+        title="Combos & Banners"
+        description="Crea combos promocionales y banners para tu catálogo público"
+      />
       <Tabs defaultValue="combos">
         <TabsList className="mb-4">
           <TabsTrigger value="combos"><Package className="w-4 h-4 mr-2" />Combos</TabsTrigger>

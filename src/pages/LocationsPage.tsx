@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Check } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 type Location = {
   id: string;
@@ -261,25 +262,24 @@ export default function LocationsPage() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <MapPin className="w-7 h-7 text-primary" />Sucursales
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Gestioná múltiples locales y transferencias de stock entre ellos</p>
-        </div>
-        <div className="flex gap-2">
-          {locations.length >= 2 && (
-            <Button variant="outline" onClick={() => setShowTransfer(true)}>
-              <ArrowLeftRight className="w-4 h-4 mr-2" />Transferir stock
+    <div className="space-y-6">
+      <PageHeader
+        icon={MapPin}
+        title="Sucursales"
+        description="Gestioná múltiples locales y transferencias de stock entre ellos"
+        actions={
+          <div className="flex gap-2">
+            {locations.length >= 2 && (
+              <Button variant="outline" onClick={() => setShowTransfer(true)}>
+                <ArrowLeftRight className="w-4 h-4 mr-2" />Transferir stock
+              </Button>
+            )}
+            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => { setEditingLoc(null); setShowForm(true); }}>
+              <Plus className="w-4 h-4 mr-2" />Nuevo local
             </Button>
-          )}
-          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => { setEditingLoc(null); setShowForm(true); }}>
-            <Plus className="w-4 h-4 mr-2" />Nuevo local
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Cargando sucursales…</div>

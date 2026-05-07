@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 
 // Tiendanube usa ; como separador y comillas dobles para escapar
@@ -304,20 +305,12 @@ export default function TiendanubeExportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-primary/15">
-          <ShoppingBag className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Exportar a Tiendanube</h1>
-          <p className="text-sm text-muted-foreground">Sincronizá tus productos con tu ecommerce automáticamente.</p>
-        </div>
-        {integration && (
-          <Badge variant="outline" className="ml-auto bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-            <CheckCircle2 className="w-3 h-3 mr-1" /> Conectado
-          </Badge>
-        )}
-      </div>
+      <PageHeader
+        icon={ShoppingBag}
+        title="Exportar a Tiendanube"
+        description="Sincronizá tus productos con tu ecommerce automáticamente."
+        badge={integration ? { label: "Conectado", variant: "success" } : undefined}
+      />
 
       <Tabs defaultValue={integration ? "sync" : "config"} className="w-full">
         <TabsList>
