@@ -51,13 +51,13 @@ $$;
 CREATE INDEX IF NOT EXISTS alert_rules_org_idx ON public.alert_rules(org_id);
 
 -- pg_cron: run check-alerts daily at 07:00 UTC
-DO $$
+DO $outer$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
       'check-alerts-daily',
       '0 7 * * *',
-      $$
+      $cron$
         SELECT net.http_post(
           url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL') || '/functions/v1/check-alerts',
           headers := jsonb_build_object(
@@ -66,11 +66,11 @@ BEGIN
           ),
           body := '{}'::jsonb
         );
-      $$
+      $cron$
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+END $outer$;
 
 -- Back-fill default rules for all existing orgs
 DO $$

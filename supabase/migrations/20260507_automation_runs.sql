@@ -28,13 +28,13 @@ CREATE INDEX IF NOT EXISTS automation_runs_flow_idx ON public.automation_runs(fl
 CREATE INDEX IF NOT EXISTS automation_runs_org_idx  ON public.automation_runs(org_id, ran_at DESC);
 
 -- pg_cron: run execute-automations daily at 08:00 UTC
-DO $$
+DO $outer$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
       'execute-automations-daily',
       '0 8 * * *',
-      $$
+      $cron$
         SELECT net.http_post(
           url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL') || '/functions/v1/execute-automations',
           headers := jsonb_build_object(
@@ -43,8 +43,8 @@ BEGIN
           ),
           body := '{}'::jsonb
         );
-      $$
+      $cron$
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+END $outer$;
