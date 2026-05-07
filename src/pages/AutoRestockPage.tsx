@@ -24,6 +24,7 @@ import {
   CheckCircle2, Clock, PackageOpen, Loader2, Download,
   ChevronDown, ChevronUp,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -302,15 +303,11 @@ export default function AutoRestockPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <PackageOpen className="w-6 h-6 text-amber-400" />
-          Auto-Restock Inteligente
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Sugerencias de reposición basadas en velocidad de venta. Aprobá con un clic.
-        </p>
-      </div>
+      <PageHeader
+        icon={PackageOpen}
+        title="Auto-Restock Inteligente"
+        description="Sugerencias de reposición basadas en velocidad de venta. Aprobá con un clic."
+      />
 
       {/* Controls */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
