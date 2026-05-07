@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -226,20 +227,21 @@ export default function ReportsPage() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Reportes & Análisis</h1>
-          <p className="text-muted-foreground text-sm">Métricas avanzadas, estado de resultados y exportación</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportProducts}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Productos CSV</Button>
-          <Button variant="outline" size="sm" onClick={handleExportSales}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Ventas CSV</Button>
-          <Button variant="outline" size="sm" onClick={handleExportPurchases}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Compras CSV</Button>
-          <Button variant="outline" size="sm" onClick={handlePDFSales}><FileText className="w-3.5 h-3.5 mr-1.5" />Ventas PDF</Button>
-          <Button variant="outline" size="sm" onClick={handlePDFPurchases}><FileText className="w-3.5 h-3.5 mr-1.5" />Compras PDF</Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={BarChart2}
+        title="Reportes & Análisis"
+        description="Métricas avanzadas, estado de resultados y exportación"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportProducts}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Productos CSV</Button>
+            <Button variant="outline" size="sm" onClick={handleExportSales}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Ventas CSV</Button>
+            <Button variant="outline" size="sm" onClick={handleExportPurchases}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Compras CSV</Button>
+            <Button variant="outline" size="sm" onClick={handlePDFSales}><FileText className="w-3.5 h-3.5 mr-1.5" />Ventas PDF</Button>
+            <Button variant="outline" size="sm" onClick={handlePDFPurchases}><FileText className="w-3.5 h-3.5 mr-1.5" />Compras PDF</Button>
+          </div>
+        }
+      />
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="mb-4 flex-wrap">

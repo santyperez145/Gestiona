@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type Return = {
   id: string;
@@ -266,42 +268,32 @@ export default function DevolucionesPage() {
   const totalUnits = filtered.reduce((s, r) => s + r.quantity, 0);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <RotateCcw className="w-6 h-6 text-primary" /> Devoluciones
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {returns.length} devoluciones · {totalUnits} unidades · {formatARS(totalReturned)} reintegrado
-          </p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => setOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Nueva devolución
-        </Button>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        icon={RotateCcw}
+        title="Devoluciones"
+        description={`${returns.length} devoluciones · ${totalUnits} unidades · ${formatARS(totalReturned)} reintegrado`}
+        badge={
+          returns.length > 0
+            ? { label: `${formatARS(totalReturned)} total`, variant: "destructive" }
+            : undefined
+        }
+        actions={
+          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => setOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Nueva devolución
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="bg-card border border-border rounded-xl p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total devoluciones</p>
-          <p className="text-xl font-bold font-display mt-1">{returns.length}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Unidades devueltas</p>
-          <p className="text-xl font-bold font-display mt-1">{returns.reduce((s, r) => s + r.quantity, 0)}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-3.5">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Monto reintegrado</p>
-          <p className="text-xl font-bold font-display text-destructive mt-1">
-            {formatARS(returns.reduce((s, r) => s + r.amount_ars, 0))}
-          </p>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        <KPICard label="Total devoluciones" value={returns.length} icon={RotateCcw} color="primary" />
+        <KPICard label="Unidades devueltas" value={totalUnits} icon={Package} color="warning" />
+        <KPICard label="Monto reintegrado" value={formatARS(totalReturned)} icon={DollarSign} color="destructive" />
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por producto o motivo…"
