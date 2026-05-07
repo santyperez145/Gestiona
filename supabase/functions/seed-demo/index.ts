@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!mem || mem.role !== "admin") {
+  if (!mem || !["admin", "owner"].includes(mem.role)) {
     return new Response(JSON.stringify({ error: "Solo el admin puede cargar datos demo" }), { status: 403, headers: corsHeaders });
   }
 
