@@ -10,11 +10,13 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
+  Star, TrendingUp, Package, Gift, Merge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
 
@@ -475,6 +477,11 @@ export default function CustomersPage() {
   const [importing, setImporting] = useState(false);
   const [installments, setInstallments] = useState<any[]>([]);
   const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
+  const [loyaltyBalances, setLoyaltyBalances] = useState<Record<string, number>>({});
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
+  const [mergingCustomer, setMergingCustomer] = useState<string | null>(null); // source name
+  const [mergeTarget, setMergeTarget] = useState("");
+  const [merging, setMerging] = useState(false);
 
   const loadData = async () => {
     if (!user) return;
@@ -502,6 +509,65 @@ export default function CustomersPage() {
       .eq('paid', false)
       .order('due_date', { ascending: true })
       .then(({ data }) => setInstallments((data || []) as any[]));
+  }, [activeOrg]);
+
+  const handleMergeCustomers = async () => {
+    if (!activeOrg || !mergingCustomer || !mergeTarget.trim()) return;
+    const target = mergeTarget.trim();
+    if (target.toLowerCase() === mergingCustomer.toLowerCase()) {
+      toast.error("El cliente destino debe ser diferente al origen");
+      return;
+    }
+    if (!confirm(`¿Combinar "${mergingCustomer}" en "${target}"? Todas las ventas, deudas y puntos del cliente origen se reasignarán al destino. Esta acción no se puede deshacer.`)) return;
+    setMerging(true);
+    try {
+      const orgId = activeOrg.id;
+      // Update sales
+      await (supabase as any).from("sales").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      // Update debts
+      await (supabase as any).from("debts").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      // Update loyalty_points
+      await (supabase as any).from("loyalty_points").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      // Delete source profile (if exists)
+      const srcProfile = profiles.find(p => p.name.toLowerCase() === mergingCustomer.toLowerCase());
+      if (srcProfile) {
+        await (supabase as any).from("customers").delete().eq("id", srcProfile.id);
+      }
+      toast.success(`"${mergingCustomer}" fusionado con "${target}"`);
+      setMergingCustomer(null);
+      setMergeTarget("");
+      setSelectedCustomer(null);
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message || "Error al fusionar");
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  // Load loyalty points balances and settings
+  useEffect(() => {
+    if (!activeOrg) return;
+    Promise.all([
+      supabase
+        .from("loyalty_points" as any)
+        .select("customer_name, delta")
+        .eq("org_id", activeOrg.id),
+      supabase
+        .from("settings")
+        .select("loyalty_enabled")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle(),
+    ]).then(([{ data: pts }, { data: sett }]) => {
+      if (sett) setLoyaltyEnabled(!!(sett as any).loyalty_enabled);
+      if (pts) {
+        const map: Record<string, number> = {};
+        for (const row of pts as any[]) {
+          map[row.customer_name] = (map[row.customer_name] || 0) + Number(row.delta);
+        }
+        setLoyaltyBalances(map);
+      }
+    }).catch(() => {});
   }, [activeOrg]);
 
   const payInstallment = async (installmentId: string) => {
@@ -937,11 +1003,11 @@ export default function CustomersPage() {
                   )}
                 </div>
 
-                {/* Expanded details */}
+                {/* Expanded details — Ficha 360 */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-2 border-t border-border space-y-4">
+                  <div className="px-4 pb-4 pt-2 border-t border-border">
                     {/* Action buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mb-3">
                       <Button
                         size="sm"
                         variant="outline"
@@ -968,7 +1034,328 @@ export default function CustomersPage() {
                           <Trash2 className="w-3.5 h-3.5" />Eliminar perfil
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs text-muted-foreground ml-auto"
+                        onClick={() => setMergingCustomer(mergingCustomer === c.name ? null : c.name)}
+                        title="Fusionar este cliente con otro (útil para duplicados)"
+                      >
+                        <Merge className="w-3.5 h-3.5" />Fusionar
+                      </Button>
                     </div>
+
+                    {/* Inline merge form */}
+                    {mergingCustomer === c.name && (
+                      <div className="mb-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 space-y-2">
+                        <p className="text-xs font-medium text-orange-400">
+                          Fusionar <strong>"{c.name}"</strong> en otro cliente
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">Todas las ventas, deudas y puntos se moverán al cliente destino.</p>
+                        <div className="flex gap-2">
+                          <Input
+                            list={`merge-targets-${c.name}`}
+                            value={mergeTarget}
+                            onChange={e => setMergeTarget(e.target.value)}
+                            placeholder="Nombre del cliente destino…"
+                            className="bg-muted border-border text-xs h-8 flex-1"
+                          />
+                          <datalist id={`merge-targets-${c.name}`}>
+                            {customers.filter(x => x.name !== c.name).map(x => (
+                              <option key={x.name} value={x.name} />
+                            ))}
+                          </datalist>
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white shrink-0"
+                            onClick={handleMergeCustomers}
+                            disabled={merging || !mergeTarget.trim()}
+                          >
+                            {merging ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Fusionar"}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setMergingCustomer(null); setMergeTarget(""); }}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <Tabs defaultValue="resumen" className="w-full">
+                      <TabsList className="h-8 text-xs mb-3">
+                        <TabsTrigger value="resumen" className="text-xs h-7 gap-1"><TrendingUp className="w-3 h-3" />Resumen</TabsTrigger>
+                        <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase()).length})</TabsTrigger>
+                        <TabsTrigger value="deudas" className="text-xs h-7 gap-1"><CreditCard className="w-3 h-3" />Cuotas/Deudas</TabsTrigger>
+                        <TabsTrigger value="contacto" className="text-xs h-7 gap-1"><MessageCircle className="w-3 h-3" />Contacto</TabsTrigger>
+                      </TabsList>
+
+                      {/* ── Tab: Resumen ── */}
+                      <TabsContent value="resumen" className="space-y-3 mt-0">
+                        {/* KPIs */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { l: "Total gastado", v: formatARS(c.totalSpent), icon: <TrendingUp className="w-3 h-3 text-primary" /> },
+                            { l: "Ganancia generada", v: formatARS(c.totalProfit), icon: <Star className="w-3 h-3 text-yellow-400" /> },
+                            { l: "Ticket promedio", v: formatARS(c.avgTicket), icon: <ShoppingBag className="w-3 h-3 text-blue-400" /> },
+                            { l: "Deuda pendiente", v: formatARS(c.pendingDebt), icon: <AlertCircle className={`w-3 h-3 ${c.pendingDebt > 0 ? "text-destructive" : "text-muted-foreground"}`} /> },
+                          ].map(k => (
+                            <div key={k.l} className="bg-muted/30 rounded-lg p-2.5 text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground mb-1">{k.icon}{k.l}</div>
+                              <p className={`font-mono font-semibold text-sm ${k.l === "Deuda pendiente" && c.pendingDebt > 0 ? "text-destructive" : ""}`}>{k.v}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Loyalty points badge */}
+                        {loyaltyEnabled && (
+                          <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs ${
+                            (loyaltyBalances[c.name] || 0) > 0
+                              ? "bg-yellow-500/10 border border-yellow-500/20"
+                              : "bg-muted/30 border border-border"
+                          }`}>
+                            <Gift className={`w-4 h-4 shrink-0 ${(loyaltyBalances[c.name] || 0) > 0 ? "text-yellow-400" : "text-muted-foreground"}`} />
+                            <div className="flex-1">
+                              <span className="text-muted-foreground">Puntos de fidelidad</span>
+                              <span className={`ml-2 font-mono font-bold ${(loyaltyBalances[c.name] || 0) > 0 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                                {(loyaltyBalances[c.name] || 0).toLocaleString("es-AR")} pts
+                              </span>
+                            </div>
+                            {(loyaltyBalances[c.name] || 0) > 0 && (
+                              <a href="/fidelidad" className="text-yellow-400 hover:text-yellow-300 text-[10px] underline shrink-0">
+                                Ver fidelidad →
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Pending debt alert */}
+                        {c.pendingDebt > 0 && (
+                          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 text-xs text-destructive font-medium">
+                            ⚠️ Deuda pendiente: {formatARS(c.pendingDebt)}
+                          </div>
+                        )}
+
+                        {/* Favorite products */}
+                        {Object.keys(c.products).length > 0 && (
+                          <div>
+                            <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Productos favoritos</h3>
+                            <div className="space-y-1.5">
+                              {Object.entries(c.products)
+                                .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
+                                .slice(0, 5)
+                                .map(([name, data]: [string, any]) => (
+                                  <div key={name} className="flex items-center justify-between text-xs">
+                                    <span className="truncate mr-2">{name}</span>
+                                    <span className="text-muted-foreground shrink-0">{data.qty}u · {formatARS(data.revenue)}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Stats grid */}
+                        {c.purchaseCount > 0 && (
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-muted rounded-lg p-2.5">
+                              <span className="text-muted-foreground">Primera compra</span>
+                              <p className="font-medium">{new Date(c.firstPurchase).toLocaleDateString("es-AR")}</p>
+                            </div>
+                            <div className="bg-muted rounded-lg p-2.5">
+                              <span className="text-muted-foreground">Unidades totales</span>
+                              <p className="font-medium">{c.totalUnits}</p>
+                            </div>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      {/* ── Tab: Compras ── */}
+                      <TabsContent value="compras" className="mt-0">
+                        <CustomerSalesTimeline
+                          customerName={c.name}
+                          sales={sales}
+                          debts={debts}
+                          onCreateInvoice={(sale) => {
+                            window.location.href = `/facturas?from_sale=${sale.id}&customer=${encodeURIComponent(sale.customer_name || '')}&total=${sale.total_ars}`;
+                          }}
+                        />
+                      </TabsContent>
+
+                      {/* ── Tab: Cuotas / Deudas ── */}
+                      <TabsContent value="deudas" className="mt-0 space-y-3">
+                        {/* Cuotas pendientes */}
+                        {(() => {
+                          const customerInstallments = installments.filter(
+                            i => i.sale?.customer_name?.toLowerCase() === c.name.toLowerCase()
+                          );
+                          if (customerInstallments.length === 0) return (
+                            <p className="text-xs text-muted-foreground text-center py-4">Sin cuotas pendientes</p>
+                          );
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return (
+                            <div>
+                              <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <CreditCard className="w-3 h-3 text-primary" />
+                                Cuotas pendientes ({customerInstallments.length})
+                              </h3>
+                              <div className="space-y-1.5">
+                                {customerInstallments.map(inst => {
+                                  const due = new Date(inst.due_date + 'T12:00:00');
+                                  const overdue = due < today;
+                                  return (
+                                    <div key={inst.id} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${overdue ? 'bg-destructive/8 border-destructive/20' : 'bg-muted/30 border-border/50'}`}>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-medium truncate">{inst.sale?.product_name || 'Venta'} — cuota {inst.installment_number}</p>
+                                        <p className={`text-[10px] mt-0.5 ${overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                          {overdue ? '⚠️ Vencida · ' : ''}{due.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-xs font-mono font-semibold">{formatARS(Number(inst.amount_ars))}</span>
+                                        <button
+                                          onClick={() => payInstallment(inst.id)}
+                                          disabled={payingInstallment === inst.id}
+                                          className="text-[10px] px-2 py-1 rounded-md bg-success/20 text-success hover:bg-success/30 transition-colors font-medium disabled:opacity-50"
+                                        >
+                                          {payingInstallment === inst.id ? '…' : 'Cobrar'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Active debts */}
+                        {debts.filter((d: any) => d.customer_name?.toLowerCase() === c.name.toLowerCase() && d.status !== 'paid').length > 0 && (
+                          <div>
+                            <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                              <AlertCircle className="w-3 h-3 text-destructive" />Deudas activas
+                            </h3>
+                            <div className="space-y-1.5">
+                              {debts
+                                .filter((d: any) => d.customer_name?.toLowerCase() === c.name.toLowerCase() && d.status !== 'paid')
+                                .map((d: any) => (
+                                  <div key={d.id} className="flex items-center justify-between rounded-lg bg-destructive/8 border border-destructive/20 px-3 py-2">
+                                    <div>
+                                      <p className="text-xs font-medium">{d.description || "Deuda"}</p>
+                                      <p className="text-[10px] text-muted-foreground">{new Date(d.date).toLocaleDateString("es-AR")}</p>
+                                    </div>
+                                    <span className="text-xs font-mono font-semibold text-destructive">{formatARS(Number(d.remaining_ars || d.amount_ars))}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      {/* ── Tab: Contacto / CRM ── */}
+                      <TabsContent value="contacto" className="mt-0 space-y-3">
+                        {/* Contact info */}
+                        {(c.email || c.phone || c.address || c.birthday) ? (
+                          <div className="grid grid-cols-1 gap-2 text-xs">
+                            {c.email && (
+                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-2.5">
+                                <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <a href={`mailto:${c.email}`} className="hover:underline text-primary truncate">{c.email}</a>
+                              </div>
+                            )}
+                            {c.phone && (
+                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-2.5">
+                                <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <a
+                                  href={`https://wa.me/${c.phone.replace(/[^0-9]/g, "")}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="hover:underline text-green-400"
+                                >
+                                  {c.phone} (WhatsApp)
+                                </a>
+                              </div>
+                            )}
+                            {c.address && (
+                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-2.5">
+                                <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span>{c.address}</span>
+                              </div>
+                            )}
+                            {c.birthday && (
+                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-2.5">
+                                <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span>{new Date(c.birthday + "T12:00:00").toLocaleDateString("es-AR")} (cumpleaños)</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-2">Sin datos de contacto. <button className="text-primary hover:underline" onClick={() => setFormModal({ open: true, profile: { name: c.name } })}>Agregar ahora</button></p>
+                        )}
+
+                        {/* Notes */}
+                        {c.profileNotes && (
+                          <div className="bg-muted/40 rounded-lg p-3 text-xs text-muted-foreground">
+                            <p className="font-medium text-foreground mb-1 flex items-center gap-1"><FileText className="w-3 h-3" />Notas</p>
+                            {c.profileNotes}
+                          </div>
+                        )}
+
+                        {/* Tags */}
+                        {c.tags && c.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {c.tags.map(t => (
+                              <span key={t} className="px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-medium">{t}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Communications log */}
+                        {activeOrg && user && (
+                          <CommunicationsLog
+                            orgId={activeOrg.id}
+                            userId={user.id}
+                            customerName={c.name}
+                          />
+                        )}
+
+                        {/* WhatsApp Remarketing */}
+                        {settings?.whatsapp_number && (
+                          <div>
+                            <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                              <MessageCircle className="w-3 h-3" />Remarketing WhatsApp
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                              {(() => {
+                                const templates: { label: string; msg: string; color: string }[] = [];
+                                const firstName = c.name.split(" ")[0];
+                                if (c.segment === "VIP" || c.segment === "Premium") {
+                                  templates.push({ label: "👑 Oferta VIP", msg: `Hola ${firstName}! Como cliente VIP tenés acceso a ofertas exclusivas antes que nadie. ¿Querés que te cuente las novedades? 🔥`, color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" });
+                                }
+                                if (c.segment === "Dormido" || c.segment === "Perdido") {
+                                  templates.push({ label: "💤 Re-activar", msg: `¡Hola ${firstName}! Te extrañamos 😊 Tenemos novedades que te van a encantar. ¿Querés que te reserve algo? 🔥`, color: "bg-red-500/20 text-red-300 border-red-500/30" });
+                                }
+                                if (c.segment === "En riesgo") {
+                                  templates.push({ label: "⚠️ Retener", msg: `Hola ${firstName}, hace tiempo no nos visitás. Tenemos productos nuevos que seguro te gustan. ¿Querés que te cuente? 😊`, color: "bg-orange-500/20 text-orange-400 border-orange-500/30" });
+                                }
+                                templates.push({ label: "📦 Nuevo producto", msg: `Hola ${firstName}! Llegaron productos nuevos que te van a interesar. ¿Querés que te mande el catálogo? 🛍️`, color: "bg-blue-500/20 text-blue-400 border-blue-500/30" });
+                                templates.push({ label: "🎉 Promo", msg: `Hola ${firstName}! Tenemos una promo especial solo por hoy. ¿Te interesa? 🔥`, color: "bg-green-500/20 text-green-400 border-green-500/30" });
+
+                                const waNum = (c.phone || settings.whatsapp_number).replace(/[^0-9]/g, "");
+                                return templates.map(t => (
+                                  <a
+                                    key={t.label}
+                                    href={`https://wa.me/${waNum}?text=${encodeURIComponent(t.msg)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border transition-all hover:scale-105 ${t.color}`}
+                                  >
+                                    {t.label}
+                                  </a>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
 
                     {/* Profile fields */}
                     {(c.email || c.phone || c.address || c.birthday) && (

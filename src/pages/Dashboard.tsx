@@ -374,6 +374,16 @@ export default function Dashboard() {
     const topCustomers = Object.entries(custMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5)
       .map(([name, d]) => ({ name, ...d }));
 
+    // ===== Sales by channel (source) this month =====
+    const channelMap: Record<string, number> = {};
+    monthSales.forEach((s: any) => {
+      const src = s.source || "manual";
+      channelMap[src] = (channelMap[src] || 0) + Number(s.total_ars);
+    });
+    const salesByChannel = Object.entries(channelMap)
+      .sort(([, a], [, b]) => b - a)
+      .map(([source, total]) => ({ source, total }));
+
     const dueDebtsWeek = debts.filter((d: any) => d.status !== 'paid' && d.due_date && new Date(d.due_date) > new Date() && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000)).length;
     const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
     const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < marginAlertPct).length;
@@ -409,7 +419,7 @@ export default function Dashboard() {
       currentRate, totalCostUSDInInventory, products: allProducts,
       // New
       monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
-      salesGrowth, profitGrowth, topCustomers, smartAlerts,
+      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel,
       lowStockThreshold, marginAlertPct,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
@@ -838,6 +848,30 @@ export default function Dashboard() {
               ))}
             </div>
           ) : <p className="text-muted-foreground text-sm py-4 text-center">Sin ventas este mes</p>}
+
+          {/* Canal de ventas — only show if there are 2+ distinct sources */}
+          {(stats.salesByChannel || []).length > 1 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2.5">Canal de ventas este mes</p>
+              <div className="space-y-1.5">
+                {(stats.salesByChannel as any[]).map(({ source, total }: { source: string; total: number }) => {
+                  const label: Record<string, string> = { manual: "Registro manual", pos: "POS", tiendanube: "Tiendanube", api: "API" };
+                  const pct = stats.monthSalesARS > 0 ? (total / stats.monthSalesARS) * 100 : 0;
+                  return (
+                    <div key={source}>
+                      <div className="flex justify-between text-xs mb-0.5">
+                        <span className="text-muted-foreground capitalize">{label[source] || source}</span>
+                        <span className="font-medium">{pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -335,8 +335,23 @@ Deno.serve(async (req) => {
 
     result.durationMs = Date.now() - syncStart;
 
-    // Log sync result as in-app notification if there were errors
-    if (result.errors > 0) {
+    const hasErrors = result.errors > 0;
+
+    // Write to integration_logs for health check panel
+    await admin.from("integration_logs" as any).insert({
+      org_id: orgId,
+      integration: "tiendanube",
+      event: "sync",
+      status: hasErrors ? "warning" : "ok",
+      message: hasErrors
+        ? `${result.errors} error(es): ${errors.slice(0, 2).join("; ")}`
+        : `OK — ${result.productsUpserted} productos, ${result.ordersImported} pedidos`,
+      metadata: result,
+      duration_ms: result.durationMs,
+    }).catch(() => {});
+
+    // In-app notification on errors
+    if (hasErrors) {
       await admin.from("notifications").insert({
         user_id: ownerUserId,
         org_id: orgId,
@@ -349,8 +364,20 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, ...result, errors }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("tiendanube-sync error:", e);
+    // Log critical error
+    if (errors.length === 0) {
+      // try to get orgId from body for logging
+      try {
+        await admin.from("integration_logs" as any).insert({
+          integration: "tiendanube",
+          event: "sync",
+          status: "error",
+          message: e instanceof Error ? e.message : "Unknown error",
+        }).catch(() => {});
+      } catch { /* ignore */ }
+    }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", errors }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
