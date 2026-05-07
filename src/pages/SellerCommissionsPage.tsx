@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import {
   Users, DollarSign, Check, TrendingUp, Percent, Plus, Settings,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type SellerMember = {
   user_id: string;
@@ -157,33 +159,21 @@ export default function SellerCommissionsPage() {
   const sellerName = (m: SellerMember) => m.profile?.full_name || m.profile?.email || m.user_id.slice(0, 8);
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Users className="w-7 h-7 text-primary" />Comisiones de Vendedores
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Configurá y liquidá comisiones por ventas de tu equipo</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="Comisiones de Vendedores"
+        description="Configurá y liquidá comisiones por ventas de tu equipo"
+        badge={pendingTotal > 0 ? { label: `${formatARS(pendingTotal)} pendiente`, variant: "warning" } : undefined}
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><Users className="w-4 h-4 text-primary" /><span className="text-[10px] text-muted-foreground uppercase">Vendedores activos</span></div>
-          <p className="text-xl font-bold">{activeMembers.filter(m => m.commission_enabled).length}</p>
-          <p className="text-xs text-muted-foreground">con comisión configurada</p>
-        </div>
-        <div className="bg-card border border-warning/30 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><DollarSign className="w-4 h-4 text-warning" /><span className="text-[10px] text-muted-foreground uppercase">Comisiones pendientes</span></div>
-          <p className="text-xl font-bold text-warning">{formatARS(pendingTotal)}</p>
-          <p className="text-xs text-muted-foreground">{pendingPayouts.length} liquidaciones</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><TrendingUp className="w-4 h-4 text-success" /><span className="text-[10px] text-muted-foreground uppercase">Total liquidado</span></div>
-          <p className="text-xl font-bold">{formatARS(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.commission_ars), 0))}</p>
-          <p className="text-xs text-muted-foreground">histórico</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <KPICard label="Vendedores activos" value={activeMembers.filter(m => m.commission_enabled).length} icon={Users} color="primary"
+          sub="con comisión configurada" />
+        <KPICard label="Comisiones pendientes" value={formatARS(pendingTotal)} icon={DollarSign}
+          color={pendingTotal > 0 ? "warning" : "success"} sub={`${pendingPayouts.length} liquidaciones`} />
+        <KPICard label="Total liquidado" value={formatARS(payouts.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.commission_ars), 0))} icon={TrendingUp} color="success" sub="histórico" />
       </div>
 
       {/* Team commission config */}

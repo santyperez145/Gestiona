@@ -13,6 +13,7 @@ import {
   Loader2, Download, Search, ChevronUp, ChevronDown,
   PackageCheck, TrendingDown, TrendingUp, Minus,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -201,15 +202,11 @@ export default function StockCountPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ClipboardList className="w-6 h-6 text-primary" />
-          Toma Física de Inventario
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Ingresá el stock real de cada producto. Confirmá para actualizar las diferencias.
-        </p>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title="Toma Física de Inventario"
+        description="Ingresá el stock real de cada producto. Confirmá para actualizar las diferencias."
+      />
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">

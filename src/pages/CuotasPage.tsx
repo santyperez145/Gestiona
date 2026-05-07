@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CreditCard, Plus, Check, CalendarDays, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type Installment = {
   id: string;
@@ -146,45 +148,40 @@ export default function CuotasPage() {
   }
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <CreditCard className="w-7 h-7 text-primary" />Cuotas
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Seguimiento de ventas en cuotas y cobros esperados</p>
-        </div>
-        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />Registrar venta en cuotas
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={CreditCard}
+        title="Cuotas"
+        description="Seguimiento de ventas en cuotas y cobros esperados"
+        badge={
+          overdue.length > 0
+            ? { label: `${overdue.length} vencida${overdue.length > 1 ? "s" : ""}`, variant: "destructive" }
+            : undefined
+        }
+        actions={
+          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />Registrar venta en cuotas
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><DollarSign className="w-4 h-4 text-primary" /><span className="text-[10px] text-muted-foreground uppercase">Pendiente total</span></div>
-          <p className="text-xl font-bold">{formatARS(pendingTotal)}</p>
-          <p className="text-xs text-muted-foreground">{pending.length} cuotas</p>
-        </div>
-        <div className="bg-card border border-destructive/30 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><AlertTriangle className="w-4 h-4 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase">Vencidas</span></div>
-          <p className="text-xl font-bold text-destructive">{formatARS(overdueTotal)}</p>
-          <p className="text-xs text-muted-foreground">{overdue.length} cuotas</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Pendiente total" value={formatARS(pendingTotal)} icon={DollarSign} color="primary"
+          sub={`${pending.length} cuotas`} />
+        <KPICard label="Vencidas" value={formatARS(overdueTotal)} icon={AlertTriangle}
+          color={overdue.length > 0 ? "destructive" : "success"}
+          sub={`${overdue.length} cuotas`} />
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><TrendingUp className="w-4 h-4 text-success" /><span className="text-[10px] text-muted-foreground uppercase">Mes seleccionado</span></div>
-          <p className="text-xl font-bold">{formatARS(monthTotal)}</p>
-          <p className="text-xs text-muted-foreground">{formatARS(monthCollected)} cobrado</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1.5"><CalendarDays className="w-4 h-4 text-warning" /><span className="text-[10px] text-muted-foreground uppercase">Próximas</span></div>
-          <p className="text-xl font-bold">{upcoming.length}</p>
-          <p className="text-xs text-muted-foreground">cuotas por cobrar</p>
-        </div>
+        <KPICard label="Mes seleccionado" value={formatARS(monthTotal)} icon={TrendingUp} color="success"
+          sub={`${formatARS(monthCollected)} cobrado`} />
+        <KPICard label="Próximas" value={upcoming.length} icon={CalendarDays} color="warning"
+          sub="cuotas por cobrar" />
       </div>
 
       {/* Month filter */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-2">
         <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
         <Select value={filterMonth} onValueChange={setFilterMonth}>
           <SelectTrigger className="w-44 h-8 text-sm"><SelectValue /></SelectTrigger>

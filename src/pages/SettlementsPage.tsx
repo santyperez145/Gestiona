@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Wallet, Download, Calendar, CheckCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import KPICard from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
 
 function startOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); }
 function endOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString(); }
@@ -113,17 +114,15 @@ export default function SettlementsPage() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Wallet className="w-6 h-6 text-primary" /> Liquidaciones de Influencers
-          </h1>
-          <p className="text-muted-foreground text-sm">Calculá comisiones por período y registrá los pagos</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Wallet}
+        title="Liquidaciones de Influencers"
+        description="Calculá comisiones por período y registrá los pagos"
+        badge={totals.commissions > 0 ? { label: `${formatARS(totals.commissions)} a liquidar`, variant: "warning" } : undefined}
+      />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Ventas referidas" value={formatARS(totals.sales)} icon={Calendar} sub={`${totals.count} ventas`} />
         <KPICard label="Comisiones" value={formatARS(totals.commissions)} icon={Wallet} sub="A liquidar" />
         <KPICard label="Influencers" value={totals.influencers} icon={CheckCircle} sub="Con ventas" />

@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   Landmark, Plus, CheckCircle2, AlertTriangle, Upload,
   Loader2, Trash2, RefreshCw, TrendingUp, TrendingDown,
@@ -293,29 +294,25 @@ export default function BankReconciliationPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Landmark className="w-6 h-6 text-blue-400" />
-            Conciliación Bancaria
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Reconciliá movimientos bancarios con ventas y gastos del sistema
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={handleAutoMatch}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Auto-conciliar
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-            <Upload className="w-4 h-4 mr-1" /> Importar CSV
-          </Button>
-          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Cargar movimiento
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Landmark}
+        title="Conciliación Bancaria"
+        description="Reconciliá movimientos bancarios con ventas y gastos del sistema"
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={handleAutoMatch}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Auto-conciliar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-1" /> Importar CSV
+            </Button>
+            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
+            <Button size="sm" onClick={() => setOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Cargar movimiento
+            </Button>
+          </div>
+        }
+      />
 
       {/* Date range + filters */}
       <div className="flex flex-wrap gap-3 items-end">
