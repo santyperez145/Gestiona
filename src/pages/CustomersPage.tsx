@@ -10,7 +10,7 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift,
+  Star, TrendingUp, Package, Gift, Merge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -479,6 +479,9 @@ export default function CustomersPage() {
   const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
   const [loyaltyBalances, setLoyaltyBalances] = useState<Record<string, number>>({});
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
+  const [mergingCustomer, setMergingCustomer] = useState<string | null>(null); // source name
+  const [mergeTarget, setMergeTarget] = useState("");
+  const [merging, setMerging] = useState(false);
 
   const loadData = async () => {
     if (!user) return;
@@ -507,6 +510,40 @@ export default function CustomersPage() {
       .order('due_date', { ascending: true })
       .then(({ data }) => setInstallments((data || []) as any[]));
   }, [activeOrg]);
+
+  const handleMergeCustomers = async () => {
+    if (!activeOrg || !mergingCustomer || !mergeTarget.trim()) return;
+    const target = mergeTarget.trim();
+    if (target.toLowerCase() === mergingCustomer.toLowerCase()) {
+      toast.error("El cliente destino debe ser diferente al origen");
+      return;
+    }
+    if (!confirm(`¿Combinar "${mergingCustomer}" en "${target}"? Todas las ventas, deudas y puntos del cliente origen se reasignarán al destino. Esta acción no se puede deshacer.`)) return;
+    setMerging(true);
+    try {
+      const orgId = activeOrg.id;
+      // Update sales
+      await (supabase as any).from("sales").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      // Update debts
+      await (supabase as any).from("debts").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      // Update loyalty_points
+      await (supabase as any).from("loyalty_points").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
+      // Delete source profile (if exists)
+      const srcProfile = profiles.find(p => p.name.toLowerCase() === mergingCustomer.toLowerCase());
+      if (srcProfile) {
+        await (supabase as any).from("customers").delete().eq("id", srcProfile.id);
+      }
+      toast.success(`"${mergingCustomer}" fusionado con "${target}"`);
+      setMergingCustomer(null);
+      setMergeTarget("");
+      setSelectedCustomer(null);
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message || "Error al fusionar");
+    } finally {
+      setMerging(false);
+    }
+  };
 
   // Load loyalty points balances and settings
   useEffect(() => {
@@ -997,7 +1034,51 @@ export default function CustomersPage() {
                           <Trash2 className="w-3.5 h-3.5" />Eliminar perfil
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs text-muted-foreground ml-auto"
+                        onClick={() => setMergingCustomer(mergingCustomer === c.name ? null : c.name)}
+                        title="Fusionar este cliente con otro (útil para duplicados)"
+                      >
+                        <Merge className="w-3.5 h-3.5" />Fusionar
+                      </Button>
                     </div>
+
+                    {/* Inline merge form */}
+                    {mergingCustomer === c.name && (
+                      <div className="mb-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 space-y-2">
+                        <p className="text-xs font-medium text-orange-400">
+                          Fusionar <strong>"{c.name}"</strong> en otro cliente
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">Todas las ventas, deudas y puntos se moverán al cliente destino.</p>
+                        <div className="flex gap-2">
+                          <Input
+                            list={`merge-targets-${c.name}`}
+                            value={mergeTarget}
+                            onChange={e => setMergeTarget(e.target.value)}
+                            placeholder="Nombre del cliente destino…"
+                            className="bg-muted border-border text-xs h-8 flex-1"
+                          />
+                          <datalist id={`merge-targets-${c.name}`}>
+                            {customers.filter(x => x.name !== c.name).map(x => (
+                              <option key={x.name} value={x.name} />
+                            ))}
+                          </datalist>
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white shrink-0"
+                            onClick={handleMergeCustomers}
+                            disabled={merging || !mergeTarget.trim()}
+                          >
+                            {merging ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Fusionar"}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setMergingCustomer(null); setMergeTarget(""); }}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     <Tabs defaultValue="resumen" className="w-full">
                       <TabsList className="h-8 text-xs mb-3">
