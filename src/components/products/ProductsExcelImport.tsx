@@ -433,7 +433,7 @@ export default function ProductsExcelImport({
         >
           <Sparkles className="w-3.5 h-3.5 text-primary" />
           <span className="text-sm font-medium flex-1">Parámetros de cálculo</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
             USD ${exchangeRate} · {customsPercent}% pasero · {defaultMarginPct}% margen
           </span>
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -572,10 +572,13 @@ export default function ProductsExcelImport({
             </div>
           </div>
 
-          {/* Preview table */}
+          {/* Preview table — scrollable horizontally on mobile */}
           <div className="border border-border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto max-h-[400px]">
-              <table className="w-full text-xs">
+            <p className="md:hidden text-[10px] text-muted-foreground italic px-3 py-1.5 bg-muted/20 border-b border-border">
+              ← Deslizá horizontalmente para ver todas las columnas
+            </p>
+            <div className="overflow-x-auto max-h-[400px] table-wrap">
+              <table className="w-full text-xs min-w-[700px]">
                 <thead className="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground sticky top-0">
                   <tr>
                     <th className="text-left px-2 py-2">Producto</th>
