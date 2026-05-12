@@ -46,8 +46,12 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
+    const channelName = `notifications-rt-${user.id}`;
+    // Remove any stale channel with the same name before subscribing
+    const stale = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+    if (stale) supabase.removeChannel(stale);
     const channel = supabase
-      .channel('notifications-rt')
+      .channel(channelName)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
