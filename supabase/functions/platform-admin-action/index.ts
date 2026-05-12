@@ -244,6 +244,25 @@ Deno.serve(async (req) => {
       return json({ ok: true, logs: logs || [] });
     }
 
+    // ── CHECK SECRETS ──────────────────────────────────────────
+    // Returns boolean map of which platform secrets are configured.
+    // Never returns the actual values — safe to expose to platform admins.
+    if (action === "checkSecrets") {
+      const names = [
+        "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
+        "ANTHROPIC_API_KEY", "RESEND_API_KEY", "FROM_EMAIL",
+        "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "MP_WEBHOOK_SECRET",
+        "TIENDANUBE_CLIENT_SECRET",
+        "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM",
+      ];
+      const secrets: Record<string, boolean> = {};
+      for (const n of names) {
+        const v = Deno.env.get(n);
+        secrets[n] = !!v && v.trim() !== "";
+      }
+      return json({ ok: true, secrets });
+    }
+
     return json({ error: `Acción desconocida: ${action}` }, 400);
   } catch (e) {
     console.error("platform-admin-action error:", e);

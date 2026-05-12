@@ -7,8 +7,9 @@ import {
   Clock, CheckCircle2, XCircle, Zap, Shield, Ban, Trash2,
   Edit2, AlertTriangle, Crown, UserX, UserCheck, ChevronRight,
   MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
-  History, ShoppingCart, Package,
+  History, ShoppingCart, Package, Server, TrendingDown,
 } from 'lucide-react';
+import SystemHealthTab from '@/components/platform/SystemHealthTab';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -121,6 +122,7 @@ export default function PlatformAdminPage() {
   const [stats, setStats] = useState({
     orgs: 0, users: 0, mrr: 0, arr: 0,
     active: 0, trialing: 0, canceled: 0, past_due: 0, trialConversion: 0,
+    growth30d: 0, churnRate: 0, arpu: 0,
   });
 
   // Org tab state
@@ -186,6 +188,22 @@ export default function PlatformAdminPage() {
     const everTrialed = enriched.filter(r => r.trial_ends_at).length;
     const converted = enriched.filter(r => r.status === 'active').length;
 
+    // Growth: orgs created in last 30 days vs prior 30 days
+    const now = Date.now();
+    const last30 = enriched.filter(r => new Date(r.created_at).getTime() > now - 30 * 86400000).length;
+    const prior30 = enriched.filter(r => {
+      const t = new Date(r.created_at).getTime();
+      return t > now - 60 * 86400000 && t <= now - 30 * 86400000;
+    }).length;
+    const growth30d = prior30 > 0 ? Math.round(((last30 - prior30) / prior30) * 100) : (last30 > 0 ? 100 : 0);
+
+    // Churn rate: canceled in last 30 days / active 30 days ago
+    const canceled30d = (subsData || []).filter(s => s.status === 'canceled').length;
+    const churnRate = activeSubs.length > 0 ? Math.round((canceled30d / (activeSubs.length + canceled30d)) * 100) : 0;
+
+    // ARPU: MRR / active subs
+    const arpu = activeSubs.length > 0 ? Math.round(mrr / activeSubs.length) : 0;
+
     setStats({
       orgs: enriched.length,
       users: 0,
@@ -196,6 +214,9 @@ export default function PlatformAdminPage() {
       canceled: (subsData || []).filter(s => s.status === 'canceled').length,
       past_due: (subsData || []).filter(s => s.status === 'past_due').length,
       trialConversion: everTrialed > 0 ? Math.round((converted / everTrialed) * 100) : 0,
+      growth30d,
+      churnRate,
+      arpu,
     });
     setLoadingOrgs(false);
   }, []);
@@ -462,6 +483,38 @@ export default function PlatformAdminPage() {
         ))}
       </div>
 
+      {/* Growth / Churn / ARPU row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Crecimiento 30d</span>
+            {stats.growth30d >= 0 ? <TrendingUp className="w-4 h-4 text-green-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
+          </div>
+          <div className={`text-2xl font-display font-bold ${stats.growth30d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {stats.growth30d >= 0 ? '+' : ''}{stats.growth30d}%
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">Nuevas orgs últimos 30 días</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Churn Rate</span>
+            <TrendingDown className={`w-4 h-4 ${stats.churnRate > 5 ? 'text-red-400' : 'text-muted-foreground'}`} />
+          </div>
+          <div className={`text-2xl font-display font-bold ${stats.churnRate > 5 ? 'text-red-400' : 'text-foreground'}`}>
+            {stats.churnRate}%
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{stats.canceled} cancelaciones</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 col-span-2 md:col-span-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">ARPU</span>
+            <DollarSign className="w-4 h-4 text-primary" />
+          </div>
+          <div className="text-2xl font-display font-bold">${stats.arpu}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Revenue promedio / org</p>
+        </div>
+      </div>
+
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-muted/50 flex-wrap">
@@ -470,6 +523,7 @@ export default function PlatformAdminPage() {
           <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> Usuarios</TabsTrigger>
           <TabsTrigger value="plans" className="gap-2"><DollarSign className="w-3.5 h-3.5" /> Planes</TabsTrigger>
           <TabsTrigger value="support" className="gap-2"><Headphones className="w-3.5 h-3.5" /> Soporte</TabsTrigger>
+          <TabsTrigger value="system" className="gap-2"><Server className="w-3.5 h-3.5" /> Sistema</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW TAB ── */}
@@ -854,6 +908,11 @@ export default function PlatformAdminPage() {
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        {/* ── SYSTEM TAB ── */}
+        <TabsContent value="system" className="mt-4">
+          <SystemHealthTab />
         </TabsContent>
       </Tabs>
 
