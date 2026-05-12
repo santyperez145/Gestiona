@@ -14,6 +14,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import ProductsExcelImport from "@/components/products/ProductsExcelImport";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -75,6 +76,7 @@ export default function ProductsPage() {
   const [settings, setSettings] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
@@ -173,10 +175,13 @@ export default function ProductsPage() {
         }
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />Importar Excel
             </Button>
-            <Button variant="outline" onClick={() => setBulkOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
               <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
             </Button>
             {productLimit !== null && products.length >= productLimit ? (
@@ -218,6 +223,13 @@ export default function ProductsPage() {
         <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
           <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Excel import modal */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="bg-card border-border max-w-5xl">
+          <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
         </DialogContent>
       </Dialog>
 
