@@ -8,6 +8,7 @@ import {
   Edit2, AlertTriangle, Crown, UserX, UserCheck, ChevronRight,
   MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
   History, ShoppingCart, Package, Server, TrendingDown,
+  KeyRound, Link2, Copy, UserPlus, Mail,
 } from 'lucide-react';
 import SystemHealthTab from '@/components/platform/SystemHealthTab';
 import { Badge } from '@/components/ui/badge';
@@ -142,6 +143,13 @@ export default function PlatformAdminPage() {
   const [editPlanDialog, setEditPlanDialog] = useState<{ open: boolean; plan: PlanRow | null }>({ open: false, plan: null });
   const [editPlanForm, setEditPlanForm] = useState<Partial<PlanRow>>({});
   const [saving, setSaving] = useState(false);
+
+  // Create org dialog
+  const [createOrgDialog, setCreateOrgDialog] = useState(false);
+  const [newOrgForm, setNewOrgForm] = useState({
+    name: '', ownerEmail: '', ownerName: '', planId: '', trialDays: '14', sendInvite: true,
+  });
+  const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null);
 
   // Support tab state
   const [adminLogs, setAdminLogs] = useState<any[]>([]);
@@ -320,6 +328,9 @@ export default function PlatformAdminPage() {
     updatePlan: 'Actualizó plan',
     suspendOrg: 'Suspendió org',
     reactivateOrg: 'Reactivó org',
+    createOrg: 'Creó organización',
+    generateMagicLink: 'Generó magic link',
+    resetUserPassword: 'Reseteó contraseña',
   };
 
   // ── Org actions ────────────────────────────────────────────────────────────
@@ -361,6 +372,33 @@ export default function PlatformAdminPage() {
     setSaving(false);
   };
 
+  const handleCreateOrg = async () => {
+    if (!newOrgForm.name.trim() || !newOrgForm.ownerEmail.trim()) {
+      toast.error('Nombre y email del owner son requeridos');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await adminCall('createOrg', {
+        name: newOrgForm.name.trim(),
+        ownerEmail: newOrgForm.ownerEmail.trim().toLowerCase(),
+        ownerName: newOrgForm.ownerName.trim() || undefined,
+        planId: newOrgForm.planId || undefined,
+        trialDays: parseInt(newOrgForm.trialDays) || 14,
+        sendInvite: newOrgForm.sendInvite,
+      });
+      toast.success(res.existing ? 'Org creada para usuario existente' : 'Org y usuario creados');
+      if (res.inviteLink) setCreatedInviteLink(res.inviteLink);
+      else {
+        setCreateOrgDialog(false);
+        setNewOrgForm({ name: '', ownerEmail: '', ownerName: '', planId: '', trialDays: '14', sendInvite: true });
+      }
+      loadOrgs();
+      if (users.length > 0) loadUsers();
+    } catch (e: any) { toast.error(e.message); }
+    setSaving(false);
+  };
+
   // ── User actions ───────────────────────────────────────────────────────────
 
   const handleToggleBan = async (u: UserRow) => {
@@ -369,6 +407,24 @@ export default function PlatformAdminPage() {
       await adminCall('toggleBanUser', { userId: u.id, ban: newBan });
       setUsers(prev => prev.map(x => x.id === u.id ? { ...x, banned: newBan } : x));
       toast.success(newBan ? 'Usuario baneado' : 'Usuario desbaneado');
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleResetPassword = async (u: UserRow) => {
+    if (!confirm(`¿Enviar email de recuperación de contraseña a ${u.email}?`)) return;
+    try {
+      await adminCall('resetUserPassword', { userId: u.id });
+      toast.success(`Email enviado a ${u.email}`);
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleGenerateMagicLink = async (u: UserRow) => {
+    try {
+      const res = await adminCall('generateMagicLink', { userId: u.id, type: 'magiclink' });
+      await navigator.clipboard.writeText(res.action_link || '');
+      toast.success('Magic link copiado al portapapeles', {
+        description: 'Compartilo por un canal seguro. Es de un solo uso.',
+      });
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -571,6 +627,9 @@ export default function PlatformAdminPage() {
                   <option value="status">Estado</option>
                   <option value="plan">Plan</option>
                 </select>
+                <Button size="sm" className="h-8" onClick={() => setCreateOrgDialog(true)}>
+                  <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Nueva org
+                </Button>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -666,13 +725,14 @@ export default function PlatformAdminPage() {
                     <th className="text-left px-4 py-3 hidden lg:table-cell">Último acceso</th>
                     <th className="text-center px-4 py-3">Baneado</th>
                     <th className="text-center px-4 py-3">Platform Admin</th>
+                    <th className="text-right px-4 py-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {loadingUsers
-                    ? <tr><td colSpan={5} className="text-center p-8 text-muted-foreground">Cargando usuarios...</td></tr>
+                    ? <tr><td colSpan={6} className="text-center p-8 text-muted-foreground">Cargando usuarios...</td></tr>
                     : filteredUsers.length === 0
-                    ? <tr><td colSpan={5} className="text-center p-8 text-muted-foreground">Sin usuarios</td></tr>
+                    ? <tr><td colSpan={6} className="text-center p-8 text-muted-foreground">Sin usuarios</td></tr>
                     : filteredUsers.map(u => (
                       <tr key={u.id} className={`hover:bg-muted/20 transition-colors ${u.banned ? 'opacity-60' : ''}`}>
                         <td className="px-4 py-3">
@@ -716,6 +776,24 @@ export default function PlatformAdminPage() {
                             onCheckedChange={() => handleTogglePlatformAdmin(u)}
                             className="data-[state=checked]:bg-primary"
                           />
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost" size="sm" className="h-7 w-7 p-0"
+                              title="Enviar email de reset de contraseña"
+                              onClick={() => handleResetPassword(u)}
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost" size="sm" className="h-7 w-7 p-0"
+                              title="Generar magic link (copia al portapapeles)"
+                              onClick={() => handleGenerateMagicLink(u)}
+                            >
+                              <Link2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -915,6 +993,139 @@ export default function PlatformAdminPage() {
           <SystemHealthTab />
         </TabsContent>
       </Tabs>
+
+      {/* ── CREATE ORG DIALOG ── */}
+      <Dialog
+        open={createOrgDialog}
+        onOpenChange={(open) => {
+          setCreateOrgDialog(open);
+          if (!open) {
+            setCreatedInviteLink(null);
+            setNewOrgForm({ name: '', ownerEmail: '', ownerName: '', planId: '', trialDays: '14', sendInvite: true });
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-primary" /> Crear organización
+            </DialogTitle>
+          </DialogHeader>
+
+          {createdInviteLink ? (
+            <div className="space-y-4 py-2">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-green-400">Organización creada</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enviale este link al cliente para que entre y configure su cuenta. Es de un solo uso.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Link de invitación / acceso</Label>
+                <div className="flex gap-2">
+                  <Input value={createdInviteLink} readOnly className="font-mono text-[10px] h-9" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdInviteLink);
+                      toast.success('Copiado');
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setCreateOrgDialog(false)}>Cerrar</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label>Nombre del negocio</Label>
+                <Input
+                  value={newOrgForm.name}
+                  onChange={(e) => setNewOrgForm({ ...newOrgForm, name: e.target.value })}
+                  placeholder="Perfumería Andrea"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email del owner</Label>
+                <Input
+                  type="email"
+                  value={newOrgForm.ownerEmail}
+                  onChange={(e) => setNewOrgForm({ ...newOrgForm, ownerEmail: e.target.value })}
+                  placeholder="cliente@ejemplo.com"
+                  className="h-9"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Si ya existe, se le crea solo la org. Si no, se crea el usuario también.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Nombre del owner (opcional)</Label>
+                <Input
+                  value={newOrgForm.ownerName}
+                  onChange={(e) => setNewOrgForm({ ...newOrgForm, ownerName: e.target.value })}
+                  placeholder="Andrea Pérez"
+                  className="h-9"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Plan inicial</Label>
+                  <Select
+                    value={newOrgForm.planId || '__default__'}
+                    onValueChange={(v) => setNewOrgForm({ ...newOrgForm, planId: v === '__default__' ? '' : v })}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Por defecto (trial)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__default__">Por defecto (trial)</SelectItem>
+                      {plans.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} {p.price_usd_monthly > 0 ? `($${p.price_usd_monthly}/mo)` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Días de trial</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={newOrgForm.trialDays}
+                    onChange={(e) => setNewOrgForm({ ...newOrgForm, trialDays: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <Label className="font-normal">Generar magic link al crear</Label>
+                  <p className="text-[10px] text-muted-foreground">Recibís un link para enviarle al cliente</p>
+                </div>
+                <Switch
+                  checked={newOrgForm.sendInvite}
+                  onCheckedChange={(v) => setNewOrgForm({ ...newOrgForm, sendInvite: v })}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateOrgDialog(false)}>Cancelar</Button>
+                <Button onClick={handleCreateOrg} disabled={saving}>
+                  {saving ? 'Creando...' : 'Crear organización'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── EXTEND TRIAL DIALOG ── */}
       <Dialog open={extendDialog.open} onOpenChange={open => setExtendDialog(prev => ({ ...prev, open }))}>

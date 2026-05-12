@@ -244,6 +244,161 @@ Deno.serve(async (req) => {
       return json({ ok: true, logs: logs || [] });
     }
 
+    // ── GENERATE MAGIC LINK (impersonate or assist) ────────────
+    // Issues a one-time magic link for a user. Useful for:
+    //   - Support: log in as the user to reproduce issues ("Ver como")
+    //   - Onboarding: send a passwordless invite to a new user
+    if (action === "generateMagicLink") {
+      const { userId, email: emailParam, type = "magiclink" } = body;
+      let targetEmail = emailParam;
+      if (!targetEmail && userId) {
+        const { data: u } = await admin.auth.admin.getUserById(userId);
+        targetEmail = u?.user?.email;
+      }
+      if (!targetEmail) return json({ error: "Email o userId requerido" }, 400);
+
+      const { data, error } = await admin.auth.admin.generateLink({
+        type,
+        email: targetEmail,
+      });
+      if (error) return json({ error: error.message }, 500);
+
+      await logAction("generateMagicLink", { userId, details: { email: targetEmail, type } });
+      return json({
+        ok: true,
+        email: targetEmail,
+        action_link: data?.properties?.action_link,
+        hashed_token: data?.properties?.hashed_token,
+      });
+    }
+
+    // ── RESET USER PASSWORD ────────────────────────────────────
+    // Sends a password recovery email to the user.
+    if (action === "resetUserPassword") {
+      const { userId } = body;
+      const { data: u } = await admin.auth.admin.getUserById(userId);
+      if (!u?.user?.email) return json({ error: "Usuario sin email" }, 400);
+
+      const { error } = await admin.auth.resetPasswordForEmail(u.user.email);
+      if (error) return json({ error: error.message }, 500);
+
+      await logAction("resetUserPassword", { userId, details: { email: u.user.email } });
+      return json({ ok: true, email: u.user.email });
+    }
+
+    // ── CREATE ORG MANUALLY ────────────────────────────────────
+    // Used by platform admins to create an org on behalf of a customer.
+    // Creates the org, optionally creates/invites the owner user, and
+    // assigns the requested plan with optional custom trial extension.
+    if (action === "createOrg") {
+      const {
+        name,
+        ownerEmail,
+        ownerName,
+        planId,
+        trialDays = 14,
+        sendInvite = true,
+      } = body;
+
+      if (!name?.trim() || !ownerEmail?.trim()) {
+        return json({ error: "Nombre de org y email del owner son requeridos" }, 400);
+      }
+
+      // Find or create the owner user
+      let ownerUserId: string | null = null;
+      const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const existing = existingUsers?.users.find((u) => u.email?.toLowerCase() === ownerEmail.toLowerCase());
+
+      if (existing) {
+        ownerUserId = existing.id;
+      } else {
+        // Create user with auto-generated password — they'll set it via magic link
+        const tempPassword = crypto.randomUUID();
+        const { data: created, error: createErr } = await admin.auth.admin.createUser({
+          email: ownerEmail,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: ownerName || ownerEmail.split("@")[0] },
+        });
+        if (createErr) return json({ error: `Error creando usuario: ${createErr.message}` }, 500);
+        ownerUserId = created.user?.id || null;
+      }
+
+      if (!ownerUserId) return json({ error: "No se pudo determinar el owner" }, 500);
+
+      // The trigger handle_new_user_create_org() only fires on signup, so if the
+      // user already existed we need to create the org manually. If they didn't,
+      // the trigger already created one — we update it instead.
+      let orgId: string | null = null;
+      const { data: ownedOrg } = await admin
+        .from("organizations")
+        .select("id")
+        .eq("owner_user_id", ownerUserId)
+        .maybeSingle();
+
+      if (ownedOrg) {
+        orgId = ownedOrg.id;
+        await admin
+          .from("organizations")
+          .update({ name, trial_ends_at: new Date(Date.now() + trialDays * 86400000).toISOString() })
+          .eq("id", orgId);
+      } else {
+        // Generate a slug (strip diacritics, normalize to a-z 0-9 - )
+        const slug = name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40)
+          + "-" + Math.random().toString(36).slice(2, 8);
+
+        const { data: newOrg, error: orgErr } = await admin
+          .from("organizations")
+          .insert({
+            name,
+            slug,
+            owner_user_id: ownerUserId,
+            plan_id: planId || null,
+            trial_ends_at: new Date(Date.now() + trialDays * 86400000).toISOString(),
+          })
+          .select("id")
+          .single();
+        if (orgErr) return json({ error: `Error creando org: ${orgErr.message}` }, 500);
+        orgId = newOrg.id;
+
+        await admin.from("memberships").insert({
+          org_id: orgId, user_id: ownerUserId, role: "owner",
+        });
+
+        await admin.from("subscriptions").insert({
+          org_id: orgId,
+          plan_id: planId || null,
+          status: "trialing",
+          current_period_end: new Date(Date.now() + trialDays * 86400000).toISOString(),
+        });
+
+        await admin.from("settings").upsert({
+          org_id: orgId, user_id: ownerUserId, business_name: name,
+        }, { onConflict: "org_id" });
+      }
+
+      // Optionally change the plan if requested (for existing orgs)
+      if (planId && ownedOrg) {
+        await admin.from("subscriptions")
+          .update({ plan_id: planId, status: "trialing" })
+          .eq("org_id", orgId);
+      }
+
+      // Send magic link to onboard the owner
+      let inviteLink: string | undefined;
+      if (sendInvite) {
+        const { data: linkData } = await admin.auth.admin.generateLink({
+          type: existing ? "magiclink" : "invite",
+          email: ownerEmail,
+        });
+        inviteLink = linkData?.properties?.action_link;
+      }
+
+      await logAction("createOrg", { orgId, userId: ownerUserId, details: { name, ownerEmail, planId, trialDays } });
+      return json({ ok: true, orgId, ownerUserId, inviteLink, existing: !!existing });
+    }
+
     // ── CHECK SECRETS ──────────────────────────────────────────
     // Returns boolean map of which platform secrets are configured.
     // Never returns the actual values — safe to expose to platform admins.
