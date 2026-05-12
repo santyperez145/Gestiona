@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
+import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -460,7 +461,7 @@ export default function IntegrationsPage() {
       <PageHeader
         icon={Link2}
         title="Integraciones"
-        description="Conectá tu tienda online y sincronizá productos y pedidos automáticamente."
+        description="Servicios que vienen con tu plan y conexiones con tus propias cuentas externas."
         actions={
           <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
             <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
@@ -468,6 +469,21 @@ export default function IntegrationsPage() {
           </Button>
         }
       />
+
+      {/* ── Platform services (bundled, no config needed) ──────────── */}
+      <PlatformServicesPanel />
+
+      {/* ── Your integrations section header ───────────────────────── */}
+      <div className="pt-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Link2 className="w-4 h-4 text-primary" />
+          <h2 className="text-base font-semibold">Tus integraciones</h2>
+        </div>
+        <p className="text-xs text-muted-foreground ml-6">
+          Conexiones con servicios externos que requieren <strong className="text-foreground">tu cuenta y credenciales</strong>.
+          Cada una es opcional según tu modelo de negocio.
+        </p>
+      </div>
 
       {/* ── Health check panel ─────────────────────────────────────── */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-card">
