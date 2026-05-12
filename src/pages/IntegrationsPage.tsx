@@ -4,6 +4,7 @@ import { useOrg } from "@/lib/orgContext";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -392,8 +393,7 @@ export default function IntegrationsPage() {
   // Realtime: re-load health whenever a new integration_log is inserted
   useEffect(() => {
     if (!activeOrg) return;
-    const ch = supabase
-      .channel("integration-logs-rt")
+    const ch = safeChannel("integration-logs-rt", activeOrg.id)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

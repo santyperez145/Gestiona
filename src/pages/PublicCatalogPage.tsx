@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { safeChannel } from "@/lib/realtimeChannel";
 import { calculateDecantPrice, calculateWholesalePrice } from "@/lib/supabaseStore";
 import {
   Package,
@@ -149,8 +150,7 @@ export default function PublicCatalogPage() {
 
   useEffect(() => {
     if (!userId || !valid) return;
-    const channel = supabase
-      .channel("public-catalog-rt")
+    const channel = safeChannel("public-catalog-rt", userId)
       .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => fetchData())
       .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => fetchData())
       .subscribe();

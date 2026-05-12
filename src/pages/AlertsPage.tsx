@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { safeChannel } from "@/lib/realtimeChannel";
 import {
   Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
@@ -166,8 +167,7 @@ export default function AlertsPage() {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel("alerts-notif-rt")
+    const ch = safeChannel("alerts-notif-rt", user.id)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

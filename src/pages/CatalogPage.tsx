@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { safeChannel } from "@/lib/realtimeChannel";
 import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
 import { Input } from "@/components/ui/input";
@@ -69,8 +70,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   // Realtime: auto-update when products or settings change
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel('catalog-realtime')
+    const channel = safeChannel('catalog-realtime', userId)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchData())
       .subscribe();

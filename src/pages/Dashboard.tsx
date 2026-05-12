@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,8 +170,7 @@ export default function Dashboard() {
     const today = new Date().toISOString().slice(0, 10);
 
     // subscribe
-    const channel = supabase
-      .channel('dashboard-sales-realtime')
+    const channel = safeChannel('dashboard-sales-realtime', user.id)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sales' }, (payload) => {
         const row = payload.new as { date?: string; total_ars?: number };
         const rowDate = row.date ? String(row.date).slice(0, 10) : '';
