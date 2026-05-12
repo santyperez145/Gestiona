@@ -411,7 +411,7 @@ export default function AnalyticsPage() {
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Detalle de rendimiento</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-compact-mobile">
                 <thead className="bg-muted/20">
                   <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="text-left px-4 py-2">#</th>
@@ -450,7 +450,7 @@ export default function AnalyticsPage() {
               <span className="text-xs text-muted-foreground">{derived.uniqueCustomers} únicos</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-compact-mobile">
                 <thead className="bg-muted/20">
                   <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="text-left px-4 py-2">#</th>

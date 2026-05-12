@@ -159,4 +159,63 @@
   .glow-gold {
     box-shadow: 0 0 20px hsl(40, 72%, 52% / 0.15), 0 0 40px hsl(40, 72%, 52% / 0.05);
   }
+
+  /* ===== Mobile-responsive utilities ===== */
+
+  /* Auto-scrollable table wrapper with visual hint on mobile */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  .table-wrap > table {
+    min-width: 100%;
+  }
+  /* Subtle right shadow to indicate horizontal scroll on mobile */
+  @media (max-width: 768px) {
+    .table-wrap {
+      background:
+        linear-gradient(to right, hsl(var(--card)) 0%, transparent 8px),
+        linear-gradient(to left, hsl(var(--card)) 0%, transparent 8px),
+        linear-gradient(to right, hsl(var(--border) / 0.4) 0%, transparent 12px) 100% 0 / 12px 100%,
+        linear-gradient(to left, hsl(var(--border) / 0.4) 0%, transparent 12px) 0 0 / 12px 100%;
+      background-repeat: no-repeat;
+      background-attachment: local, local, scroll, scroll;
+    }
+  }
+
+  /* Compact table on mobile — smaller fonts and padding */
+  @media (max-width: 640px) {
+    .table-compact-mobile th,
+    .table-compact-mobile td {
+      padding: 0.5rem 0.5rem;
+      font-size: 0.75rem;
+    }
+  }
+
+  /* Stack action buttons vertically on mobile when there are many */
+  .actions-stack-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  @media (max-width: 480px) {
+    .actions-stack-mobile > * {
+      flex: 1 1 calc(50% - 0.25rem);
+      min-width: 0;
+    }
+  }
+
+  /* Hide on extra-small mobile (< 360px) */
+  @media (max-width: 360px) {
+    .xs-hide { display: none !important; }
+  }
+
+  /* Touch-friendly minimum tap target */
+  @media (max-width: 768px) {
+    .touch-target {
+      min-height: 40px;
+      min-width: 40px;
+    }
+  }
 }

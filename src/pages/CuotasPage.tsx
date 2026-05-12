@@ -172,8 +172,6 @@ export default function CuotasPage() {
         <KPICard label="Vencidas" value={formatARS(overdueTotal)} icon={AlertTriangle}
           color={overdue.length > 0 ? "destructive" : "success"}
           sub={`${overdue.length} cuotas`} />
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
         <KPICard label="Mes seleccionado" value={formatARS(monthTotal)} icon={TrendingUp} color="success"
           sub={`${formatARS(monthCollected)} cobrado`} />
         <KPICard label="Próximas" value={upcoming.length} icon={CalendarDays} color="warning"
@@ -205,7 +203,7 @@ export default function CuotasPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-compact-mobile">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-3 py-2.5 text-left font-medium text-muted-foreground text-xs">Vencimiento</th>

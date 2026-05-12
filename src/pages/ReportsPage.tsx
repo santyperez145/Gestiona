@@ -579,7 +579,7 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-compact-mobile">
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium">Producto</th>
@@ -904,7 +904,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-compact-mobile">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
                   <th className="px-3 py-2.5 text-left text-xs text-muted-foreground uppercase tracking-wide">Mes</th>
@@ -1109,7 +1109,7 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
             </Button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-compact-mobile">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
                   <th className="px-3 py-2.5 text-left text-xs text-muted-foreground uppercase">Mes</th>

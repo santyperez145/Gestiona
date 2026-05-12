@@ -364,7 +364,7 @@ export default function KardexPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-compact-mobile">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wide">
                       <th className="py-3 px-4 text-left">Fecha</th>
@@ -430,7 +430,7 @@ export default function KardexPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-compact-mobile">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wide">
                       <th className="py-3 px-4 text-left">Producto</th>

@@ -373,7 +373,8 @@ export default function BankReconciliationPage() {
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="table-wrap">
+          <table className="w-full text-sm table-compact-mobile">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Fecha</th>
@@ -418,6 +419,7 @@ export default function BankReconciliationPage() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       )}
 
