@@ -8,7 +8,7 @@ import {
   Edit2, AlertTriangle, Crown, UserX, UserCheck, ChevronRight,
   MoreHorizontal, CalendarDays, Activity, Headphones, Pause, Play,
   History, ShoppingCart, Package, Server, TrendingDown,
-  KeyRound, Link2, Copy, UserPlus, Mail,
+  KeyRound, Link2, Copy, UserPlus, Mail, FileDown, Loader2,
 } from 'lucide-react';
 import SystemHealthTab from '@/components/platform/SystemHealthTab';
 import { Badge } from '@/components/ui/badge';
@@ -159,6 +159,8 @@ export default function PlatformAdminPage() {
   const [orgActivity, setOrgActivity] = useState<any>(null);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [suspendingOrgId, setSuspendingOrgId] = useState<string | null>(null);
+  const [orgMembers, setOrgMembers] = useState<{ user_id: string; email: string; name: string; role: string }[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   // ── Load functions ─────────────────────────────────────────────────────────
 
@@ -288,6 +290,33 @@ export default function PlatformAdminPage() {
     setLoadingActivity(false);
   }, []);
 
+  const loadOrgMembers = useCallback(async (orgId: string) => {
+    setLoadingMembers(true);
+    setOrgMembers([]);
+    try {
+      const res = await adminCall('getOrgMembers', { orgId });
+      setOrgMembers(res.members || []);
+    } catch { /* silently fail */ }
+    setLoadingMembers(false);
+  }, []);
+
+  const handleUpdateMemberRole = async (orgId: string, userId: string, newRole: string) => {
+    try {
+      await adminCall('updateMemberRole', { orgId, userId, role: newRole });
+      setOrgMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: newRole } : m));
+      toast.success('Rol actualizado');
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleRemoveMember = async (orgId: string, userId: string, email: string) => {
+    if (!confirm(`¿Remover a ${email} de la organización?`)) return;
+    try {
+      await adminCall('removeMember', { orgId, userId });
+      setOrgMembers(prev => prev.filter(m => m.user_id !== userId));
+      toast.success('Miembro removido');
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const handleSuspendOrg = async (org: OrgRow) => {
     setSuspendingOrgId(org.id);
     try {
@@ -331,6 +360,8 @@ export default function PlatformAdminPage() {
     createOrg: 'Creó organización',
     generateMagicLink: 'Generó magic link',
     resetUserPassword: 'Reseteó contraseña',
+    updateMemberRole: 'Cambió rol de miembro',
+    removeMember: 'Removió miembro',
   };
 
   // ── Org actions ────────────────────────────────────────────────────────────
@@ -370,6 +401,32 @@ export default function PlatformAdminPage() {
       loadOrgs();
     } catch (e: any) { toast.error(e.message); }
     setSaving(false);
+  };
+
+  const exportOrgsCSV = () => {
+    const headers = ['Nombre', 'Slug', 'Plan', 'Estado', 'MRR USD', 'Usuarios', 'Trial Termina', 'Creada'];
+    const rows = filteredOrgs.map(r => [
+      r.name, r.slug, r.plan_name || '', r.status,
+      r.status === 'active' ? r.plan_price : 0,
+      r.member_count,
+      r.trial_ends_at ? new Date(r.trial_ends_at).toISOString().slice(0, 10) : '',
+      new Date(r.created_at).toISOString().slice(0, 10),
+    ]);
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => r.map(c => {
+        const s = String(c);
+        return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')),
+    ].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orgs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${rows.length} organizaciones exportadas`);
   };
 
   const handleCreateOrg = async () => {
@@ -627,8 +684,13 @@ export default function PlatformAdminPage() {
                   <option value="status">Estado</option>
                   <option value="plan">Plan</option>
                 </select>
+                <Button size="sm" variant="outline" className="h-8" onClick={exportOrgsCSV} title="Exportar CSV">
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline ml-1.5">CSV</span>
+                </Button>
                 <Button size="sm" className="h-8" onClick={() => setCreateOrgDialog(true)}>
-                  <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Nueva org
+                  <UserPlus className="w-3.5 h-3.5 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Nueva org</span>
                 </Button>
               </div>
             </div>
@@ -977,7 +1039,7 @@ export default function PlatformAdminPage() {
                     return (
                       <button
                         key={org.id}
-                        onClick={() => { setSelectedOrg(org); loadOrgActivity(org.id); }}
+                        onClick={() => { setSelectedOrg(org); loadOrgActivity(org.id); loadOrgMembers(org.id); }}
                         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors hover:bg-muted/40 ${selectedOrg?.id === org.id ? 'bg-muted/60' : ''}`}
                       >
                         <div className="flex-1 min-w-0">
@@ -1044,6 +1106,54 @@ export default function PlatformAdminPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Members & roles */}
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                        Miembros ({orgMembers.length})
+                      </p>
+                      {loadingMembers && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                    </div>
+                    <div className="space-y-1">
+                      {orgMembers.map(m => (
+                        <div key={m.user_id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/20">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{m.name || m.email.split('@')[0]}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>
+                          </div>
+                          <Select
+                            value={m.role}
+                            onValueChange={(v) => handleUpdateMemberRole(selectedOrg.id, m.user_id, v)}
+                          >
+                            <SelectTrigger className="h-7 w-24 text-[10px] shrink-0">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="owner">Owner</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="vendedor">Vendedor</SelectItem>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {m.role !== 'owner' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                              onClick={() => handleRemoveMember(selectedOrg.id, m.user_id, m.email)}
+                              title="Remover de la org"
+                            >
+                              <UserX className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {!loadingMembers && orgMembers.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic">Sin miembros registrados</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

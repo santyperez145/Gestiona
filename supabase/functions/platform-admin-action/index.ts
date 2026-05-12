@@ -215,6 +215,63 @@ Deno.serve(async (req) => {
       return json({ ok: true, org, members: mems, salesCount, subscription: sub });
     }
 
+    // ── GET ORG MEMBERS ────────────────────────────────────────
+    if (action === "getOrgMembers") {
+      const { orgId } = body;
+      const { data: mems } = await admin
+        .from("memberships")
+        .select("user_id, role")
+        .eq("org_id", orgId);
+
+      const userIds = (mems || []).map((m) => m.user_id);
+      const memberInfo: any[] = [];
+      for (const uid of userIds) {
+        const { data: u } = await admin.auth.admin.getUserById(uid);
+        const m = mems!.find((x) => x.user_id === uid)!;
+        memberInfo.push({
+          user_id: uid,
+          email: u?.user?.email || "",
+          name: u?.user?.user_metadata?.full_name || "",
+          role: m.role,
+        });
+      }
+      return json({ ok: true, members: memberInfo });
+    }
+
+    // ── UPDATE MEMBER ROLE ─────────────────────────────────────
+    if (action === "updateMemberRole") {
+      const { orgId, userId, role } = body;
+      if (!["owner", "admin", "vendedor", "viewer"].includes(role)) {
+        return json({ error: "Rol inválido" }, 400);
+      }
+      const { error } = await admin
+        .from("memberships")
+        .update({ role })
+        .eq("org_id", orgId)
+        .eq("user_id", userId);
+      if (error) return json({ error: error.message }, 500);
+      await logAction("updateMemberRole", { orgId, userId, details: { role } });
+      return json({ ok: true });
+    }
+
+    // ── REMOVE MEMBER ──────────────────────────────────────────
+    if (action === "removeMember") {
+      const { orgId, userId } = body;
+      // Prevent removing the org owner
+      const { data: org } = await admin.from("organizations").select("owner_user_id").eq("id", orgId).single();
+      if (org?.owner_user_id === userId) {
+        return json({ error: "No podés remover al owner de la organización" }, 400);
+      }
+      const { error } = await admin
+        .from("memberships")
+        .delete()
+        .eq("org_id", orgId)
+        .eq("user_id", userId);
+      if (error) return json({ error: error.message }, 500);
+      await logAction("removeMember", { orgId, userId });
+      return json({ ok: true });
+    }
+
     // ── GET ORG ACTIVITY ──────────────────────────────────────
     if (action === "getOrgActivity") {
       const { orgId } = body;
