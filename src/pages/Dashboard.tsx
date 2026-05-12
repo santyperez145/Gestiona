@@ -474,7 +474,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="bg-card border-border/50 w-[200px] h-9 text-sm rounded-lg">
+            <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
               <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>

@@ -251,10 +251,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="font-display font-bold text-primary truncate flex-1 text-sm">{config.businessName}</span>
           <button
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors touch-target"
+            aria-label="Buscar"
           >
             <Search className="w-4 h-4 text-muted-foreground" />
           </button>
+          <div className="lg:hidden">
+            <NotificationBell />
+          </div>
         </div>
         {/* Trial / subscription status banners */}
         {!bannerDismissed && (() => {

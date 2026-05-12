@@ -401,7 +401,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           <Input placeholder="Buscar producto o marca..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted border-border" />
         </div>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="w-[160px] bg-muted border-border"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[160px] bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
             <SelectItem value="perfume_arabe">Perfume Árabe</SelectItem>

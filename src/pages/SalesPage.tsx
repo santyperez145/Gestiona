@@ -164,7 +164,7 @@ export default function SalesPage() {
             className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
         </div>
         <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
-          <SelectTrigger className="bg-card border-border w-[160px] h-9 text-sm">
+          <SelectTrigger className="bg-card border-border w-full sm:w-[160px] h-9 text-sm">
             <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>

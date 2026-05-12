@@ -135,14 +135,14 @@ export default function ExpensesPage() {
             className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
         </div>
         <Select value={filterMonth} onValueChange={setFilterMonth}>
-          <SelectTrigger className="bg-card border-border w-[140px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="bg-card border-border w-full sm:w-[140px] h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los meses</SelectItem>
             {monthOptions.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="bg-card border-border w-[150px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="bg-card border-border w-full sm:w-[150px] h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
             {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
