@@ -46,11 +46,28 @@ export default function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
       });
-      if (error) toast.error(error.message || 'Error con Google');
+      if (error) {
+        // Provider-disabled error from Supabase: "provider is not enabled"
+        if (/provider.*not enabled|unsupported provider/i.test(error.message)) {
+          toast.error('Google aún no está habilitado. Contactá al administrador.', {
+            description: 'El administrador debe activar el provider Google en Supabase → Authentication → Providers.',
+          });
+        } else if (/redirect/i.test(error.message)) {
+          toast.error('URL de redirección no autorizada', {
+            description: 'Agregá este dominio en Supabase → Authentication → URL Configuration.',
+          });
+        } else {
+          toast.error(error.message || 'Error al conectar con Google');
+        }
+      }
+      // success: Supabase redirects automatically, no manual handling needed
     } catch (err: any) {
-      toast.error(err.message || 'Error con Google');
+      toast.error(err.message || 'Error inesperado con Google');
     } finally {
       setLoading(false);
     }
