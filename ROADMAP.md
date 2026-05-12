@@ -1,412 +1,295 @@
-# Roadmap del Proyecto
+# Roadmap del Proyecto — Gestiona / Exentry Imports
 
-Fecha de relevamiento: 2026-05-05  
-Última actualización: 2026-05-07 (sesión 5)  
-Proyecto: Gestiona / Exentry Imports  
-DB producción: `hummeopatkniwkyrrhwc`  
-Tipo de producto: sistema de gestión para ventas, stock, finanzas, CRM, marketing, equipo e integraciones.
+Fecha de relevamiento: 2026-05-05
+Última actualización: **2026-05-12 (sesión 6)**
+DB producción: `hummeopatkniwkyrrhwc`
+Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
 ---
 
 ## Estado general
 
-La app está en **MVP avanzado con SaaS billing funcional**. Tiene base técnica sólida en React, Vite, Tailwind, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic.
+**MVP avanzado con SaaS billing funcional. ~72% completo.**
 
-La prioridad ahora es **estabilizar lo existente para uso diario real**: datos consistentes por `org_id`, RLS cerrada, flujos comerciales probados de punta a punta, integraciones monitoreadas y tipos TypeScript actualizados.
+La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
----
-
-## Resumen de lo hecho
-
-- Aplicación React/Vite con ruteo protegido, layout principal, navegación lateral, mobile header, command palette y estado de sesión.
-- Autenticación con Supabase, organizaciones, membresías, roles, invitaciones de equipo y platform admin.
-- Dashboard con KPIs, gráficos, alertas, predicciones, salud del negocio y últimas ventas.
-- Productos, compras, ventas, deudas, gastos, clientes, proveedores, presupuestos, devoluciones, facturas, caja/POS y turno de caja.
-- Inventario avanzado: variantes, toma física, restock automático, sucursales, stock por ubicación y transferencias.
-- CRM y ventas: clientes, notas, segmentación, pipeline, referidos, fidelidad, cuotas, cheques, comisiones de vendedores.
-- Marketing: calendario/posts, templates, combos, banners, catálogo público, generador de historias, campañas de email, influencers, canjes y liquidaciones.
-- Inteligencia artificial: insights, chat IA, predicción de ventas, recomendaciones de ofertas y generación de descripciones.
-- Integraciones: Tiendanube OAuth/sync/webhooks, Mercado Pago link, Stripe checkout/webhook, AFIP, public API y webhooks salientes.
-- Operaciones: Sentry, PWA, backups, notificaciones, crons para alertas, digest semanal y automatizaciones.
-- Multi-tenant: `organizations`, `memberships`, `org_id` en todas las tablas críticas, RLS por org auditada.
-- SaaS billing: Stripe checkout, dunning, trials, entitlements, plan limits, platform admin con audit log.
-- Integraciones hardened: Tiendanube HMAC-SHA256 + retry, MP webhook multi-org, Stripe idempotency via `stripe_events`, AFIP errores tipificados. _(2026-05-06 sesión 3)_
-- Observabilidad: `integration_logs` + `webhook_deliveries` + health panel en IntegrationsPage. _(2026-05-06 sesión 3)_
-- Public API v1: versionado, rate limits, API keys rotables con SHA-256, `org_api_keys`. _(2026-05-06 sesión 3)_
-- Webhooks salientes: HMAC signing, retries con backoff, historial en `webhook_deliveries`. _(2026-05-06 sesión 3)_
-- CashSessionPage: exportar reporte de cierre como PDF/impresión y CSV por turno. _(2026-05-06 sesión 3)_
-- ReportsPage: comparativa período anterior en Estado de Resultados (4 KPIs con delta ▲/▼). _(2026-05-06 sesión 3)_
-- CustomersPage: Ficha 360 con tabs (Resumen, Compras, Cuotas/Deudas, Contacto). _(2026-05-06 sesión 3)_
-- Alertas inteligentes configurables: 5 tipos (stock, margen, deudas, inactivos, gastos), edge function `check-alerts`, cron diario 07:00 UTC. _(2026-05-07 sesión 4)_
-- Automatizaciones con motor de ejecución real: edge function `execute-automations`, historial en `automation_runs`, botón "Ejecutar ahora" y "Ejecutar todos". _(2026-05-07 sesión 4)_
-- Forecast validado vs real: regresión lineal OLS, tab "📈 Forecast" en AnalyticsPage, gráfico actual vs proyectado por mes. _(2026-05-07 sesión 4)_
+**Prioridad actual:** features de diferenciación competitiva — IA proactiva, stock inteligente, CRM accionable, email con métricas.
 
 ---
 
-## Brechas principales (estado actual)
+## Resumen de lo hecho (acumulado hasta sesión 6)
 
-- Tipos generados de Supabase desactualizados — muchas tablas nuevas se usan con `as any`.
-- CLI de Supabase autenticado con cuenta distinta a la del proyecto real (`hummeopatkniwkyrrhwc`). Las funciones edge deben desplegarse desde el dashboard o con login correcto.
-- Triggers de DB (`trg_sale_cash_entry`, `trg_sale_stock_movement`, `trg_purchase_stock_movement`) tienen `m.created_at` incorrecto — fix SQL listo en `docs/fix_production_sql.sql` pero pendiente de aplicar en producción.
-- RLS de `influencer_exchanges` bloquea inserts — fix incluido en `docs/fix_production_sql.sql`.
-- Falta flujo venta→caja→factura probado end-to-end.
-- Falta suite E2E automatizada (Playwright) para flujos críticos.
-- Backups manuales y restauración no documentados.
-- Reportes de cierre de caja no exportables.
+### Infraestructura y base técnica
+- React/Vite con ruteo protegido, layout principal, navegación lateral, mobile header, command palette y estado de sesión.
+- PWA con auto-update (`registerType: autoUpdate`, `skipWaiting: true`, `clientsClaim: true`). _(sesión 6)_
+- Canales Supabase Realtime con nombres únicos por user/org — elimina crash "cannot add callbacks after subscribe". _(sesión 6)_
+- JWT anon key (`VITE_SUPABASE_ANON_KEY`) reemplaza publishable key para auth correcta. _(sesión 6)_
+- Handler global de `ChunkLoadError` para recargar automáticamente tras deploy. _(sesión 6)_
+- Helper `safeChannel()` en `lib/realtimeChannel.ts` aplicado en 6 componentes. _(sesión 6)_
+- Eliminación de 191 `as any` — tipado fuerte en todo `src/`. _(sesión 5)_
+- Tipos Supabase regenerados: `alert_rules`, `automation_runs`, `email_events`, `org_api_keys`, `webhook_deliveries`. _(sesión 5)_
+- Code splitting React.lazy: bundle 1982kB → 427kB (-78%). _(sesión 3)_
+- Sentry configurado y funcional.
+- CI con lint, build y tests (Vitest, 54+ tests).
 
----
+### Autenticación y organizaciones
+- Auth Supabase, OrgProvider, memberships, roles (admin/vendedor/viewer), invitaciones de equipo.
+- Platform admin con audit log, suspensión, magic link/impersonate, reset password, export CSV de orgs, cambio de rol y remoción de miembros. _(sesión 5)_
+- Tab Sistema con check de secretos, métricas growth/churn/ARPU. _(sesión 5)_
+- Google OAuth mejorado con mensajes de error claros. _(sesión 5)_
+- RLS auditada: migration 20260421 cubre todas las tablas con org_id.
 
-## Hecho y faltante por área
+### Inventario
+- CRUD de productos con imágenes múltiples, variantes, stock general.
+- Compras que aumentan stock / ventas que descuentan stock via triggers DB.
+- Alertas de stock bajo configurables por org. _(sesión 4)_
+- Toma física (`StockCountPage`), restock automático (`AutoRestockPage`), sucursales y stock por ubicación.
+- Kardex: `stock_movements`, triggers en ventas/compras, `record_stock_movement`, `kardex_summary`, `KardexPage`. _(sesión 1)_
+- Ajustes de stock auditados con `adjust_stock`. _(sesión 1)_
+- Importación masiva desde Excel con cálculo automático de costos, márgenes y precios sugeridos. _(sesión 5)_
 
-| Área | Hecho | Faltante recomendado |
-| --- | --- | --- |
-| Base técnica | React/Vite, Tailwind, Radix, React Query, PWA, Sentry, rutas protegidas | Tipos Supabase actualizados, limpieza de `any`, code splitting (chunk >1500kB) |
-| Autenticación y organizaciones | Auth, OrgProvider, memberships, roles, invitaciones, platform admin, RLS org_id | Matriz de permisos formal, eliminar restos de `user_roles` legacy |
-| Inventario | Kardex, triggers stock, ajustes auditados, toma física, restock, sucursales | Stock por sucursal en POS, lotes con vencimiento en UI, importación masiva |
-| Ventas y POS | Ventas, POS, recibo, deudas, cuotas, devoluciones, presupuestos, caja, **export PDF+CSV cierre** | Flujo end-to-end probado, modo offline |
-| Clientes/CRM | Clientes, notas, segmentación, pipeline, referidos, fidelidad, **Ficha 360 con tabs**, **merge duplicados**, **puntos auto** | Consentimiento comunicaciones |
-| Finanzas | Gastos, deudas, cheques, proveedores, conciliación bancaria, flujo de caja | Estado de resultados mensual, reporte fiscal exportable, gastos recurrentes en UI |
-| Facturación | Facturas, PDF, email, campos AFIP, retry en errores | Notas de crédito integradas a devoluciones, numeración robusta, vincular factura↔venta |
-| Marketing | Posts, templates, campañas, catálogo, combos, banners, influencers | Tracking de conversión, verificación de dominio email, ROI por campaña |
-| IA y analytics | Insights, chat, predicción, recomendaciones, health score | Límites de costo por plan, trazabilidad de recomendaciones aplicadas |
-| Integraciones | Tiendanube, MP, Stripe, AFIP, Public API, webhooks salientes, **health check panel** | Dead-letter queue, monitor tiempo real |
-| SaaS y planes | Pricing, checkout Stripe, subscriptions, entitlements, platform admin | Enforcement de límites verificado en prod, métricas por tenant |
-| UX y accesibilidad | Layout completo, mobile, command palette, empty states | Accesibilidad, performance en tablas grandes, onboarding persistente |
-| Operaciones | Sentry, backups, crons, rate limiter | Runbook de producción, monitoreo de crons, restauración documentada |
+### Ventas, POS y caja
+- Registro de ventas, POS, recibos, descuentos/cupones.
+- Ventas pagadas o con deuda, cuotas, devoluciones, presupuestos.
+- Presupuesto → venta: modal con selector de método de cobro, vincula `sale.quote_id`. _(sesión 1)_
+- Turnos de caja con apertura/cierre/diferencias y exportación PDF+CSV del cierre. _(sesión 1, 3)_
+- Movimientos de caja por venta via trigger `trg_sale_cash_entry`. _(sesión 1)_
+- `usePlanLimits` con `checkSalesLimit` integrado en SaleForm y POSPage.
+- Comisiones de vendedores (`SellerCommissionsPage`).
+- Cheques (`ChequesPage`), cuotas (`CuotasPage`).
 
----
+### Clientes y CRM
+- CRUD de clientes, notas, segmentación automática, pipeline (`SalesPipelinePage`), referidos (`ReferralsPage`), fidelidad (`LoyaltyPage`), cumpleaños.
+- Ficha 360 con tabs: Resumen (KPIs + productos favoritos), Compras (timeline), Cuotas/Deudas, Contacto (notas + comunicaciones + WhatsApp). _(sesión 3)_
+- Merge de clientes duplicados inline en CRM. _(sesión 3)_
+- Auto-award loyalty points via DB trigger en cada venta. _(sesión 3)_
 
-## Prioridades inmediatas
+### Finanzas y administración
+- Gastos, deudas de clientes, cheques, proveedores, conciliación bancaria, flujo de caja.
+- Gastos recurrentes con frecuencia configurable + auto-generación diaria + cron. _(sesión 3)_
+- Pagos parciales a proveedores con historial. _(sesión 2)_
+- Conciliación bancaria con ventas, gastos, pagos y MP. _(sesión 2)_
+- Exportaciones CSV y PDF para ventas, compras, gastos, productos, deudas, equipo. _(sesión 2)_
 
-### P0 — Estabilizar antes de usar en producción
+### Reportes
+- ReportsPage con tabs: Resumen, Estado de Resultados (P&L con comparativa período anterior), Inventario Valorado, Vendedores, Impuestos, Presupuesto, Auditoría.
+- Comparativa período anterior en 4 KPIs con delta ▲/▼. _(sesión 3)_
+- Exportación PDF profesional del Estado de Resultados.
 
-- [x] Crear documentación mínima en `README.md`. _(2026-05-05)_
-- [x] **Aplicar schema completo en producción** — `migration_bundle.sql` aplicado en `hummeopatkniwkyrrhwc`. _(2026-05-07 sesión 5)_
-- [x] **Edge functions desplegadas** — 34 funciones en `hummeopatkniwkyrrhwc`, seed-demo con fix de rol owner. _(2026-05-07 sesión 5)_
-- [x] **Trigger handle_new_user corregido** — elimina doble llamada a handle_new_user_create_org. _(2026-05-07 sesión 5)_
-- [ ] Generar tipos actualizados de Supabase y eliminar `as any` en flujos críticos.
-- [x] Revisar todas las consultas para usar `org_id` como criterio principal multi-tenant. _(2026-05-05)_
-- [x] Auditar RLS tabla por tabla. _(2026-05-05)_
-- [x] Agregar validación de variables de entorno de frontend. _(2026-05-05)_
-- [x] Crear pruebas de smoke para login, dashboard, productos, venta, deuda, caja y factura. _(2026-05-06)_
-- [x] Correr `npm run build`, `npm run lint` y dejar una línea base limpia. _(2026-05-05)_
-- [x] Documentar migraciones, buckets de storage y secrets necesarios. _(2026-05-05)_
-- [x] Revisar seguridad de `.env`. _(2026-05-05)_
-
-### P1 — Cerrar el core operativo
-
-- [x] Definir un flujo único de stock: compra, venta, devolución, ajuste, transferencia y toma física. _(2026-05-05)_
-- [x] Crear tabla o vista de movimientos de stock para trazabilidad. _(2026-05-05)_
-- [x] Unificar presupuesto → venta con botón "Convertir en venta". _(2026-05-05)_
-- [x] Completar estado de caja: apertura, movimientos, cierre, diferencias y reporte por turno. _(2026-05-05)_
-- [x] Cuenta corriente de cliente con cuotas pendientes cobrables. _(2026-05-05)_
-- [x] Proveedores: pagos parciales, deuda al proveedor e historial. _(2026-05-06)_
-- [x] Conciliación bancaria vinculada con ventas, gastos, pagos y Mercado Pago. _(2026-05-06)_
-- [x] Exportaciones: CSV y PDF para ventas, compras, gastos, productos, deudas, equipo. _(2026-05-06)_
-- [x] Gastos recurrentes: frecuencia configurable + auto-generación diaria + cron. _(2026-05-06 sesión 3)_
-- [x] Factura vinculada a venta (sale_id / invoice_id bidireccional). _(2026-05-06 sesión 3)_
-- [ ] **Flujo venta/POS probado end-to-end** (presupuesto → venta → caja → factura). _(pendiente)_
-- [x] **Reporte de cierre de caja imprimible/exportable** (print PDF + CSV desde CashSessionPage). _(2026-05-06 sesión 3)_
-- [ ] Backups manuales y restauración documentada. _(pendiente)_
-
-### P2 — Preparar lanzamiento SaaS
-
-- [x] Límites reales por plan en productos, ventas y usuarios. _(2026-05-05)_
-- [x] Onboarding persistente en base de datos. _(2026-05-05)_
-- [x] Pantalla de pricing y estado de suscripción mejorados. _(2026-05-06)_
-- [x] Ciclo de trial y dunning completo. _(2026-05-05)_
-- [x] Platform admin con soporte, suspensión y audit log. _(2026-05-06)_
-- [x] Datos demo por rubro para onboarding. _(2026-05-05)_
-- [x] Política de privacidad y términos (ley argentina 25.326). _(2026-05-06)_
-
-### P3 — Integraciones confiables
-
-- [x] Tiendanube: retry/backoff, HMAC-SHA256, ordersUpdated, soft-delete. _(2026-05-06)_
-- [x] Mercado Pago: webhook con HMAC-SHA256, pago confirmado, multi-org. _(2026-05-06)_
-- [x] Stripe: webhooks idempotentes, dunning completo, notificaciones in-app. _(2026-05-06)_
-- [x] AFIP: ambientes separados, errores tipificados, retry button. _(2026-05-06)_
-- [x] Public API: versionado `/v1/`, rate limits, API keys rotables, scopes. _(2026-05-06)_
-- [x] Webhooks salientes: HMAC, retries, historial de entregas. _(2026-05-06)_
-- [x] Health check visual por integración (panel con `integration_logs`). _(2026-05-06 sesión 3)_
-- [ ] Dead-letter queue simple para webhooks fallidos. _(pendiente)_
-
-### P4 — Automatización, IA y crecimiento
-
-- [x] Automatizaciones con historial de ejecución y botón "Ejecutar ahora". _(2026-05-07 sesión 4)_
-- [x] Alertas inteligentes configurables: stock, margen, deuda vencida, clientes inactivos, gastos. _(2026-05-07 sesión 4)_
-- [x] Forecast con comparación real vs proyectado (regresión lineal, tab en Analytics). _(2026-05-07 sesión 4)_
-- [ ] Campañas de email con segmentos guardados, consentimiento y métricas.
-- [ ] IA con controles de costo, límites por plan y trazabilidad.
-- [ ] Reportes avanzados por sucursal, vendedor, categoría y período.
-- [x] Ficha 360 de cliente: compras, deudas, comunicaciones, puntos en un solo lugar. _(2026-05-06 sesión 3)_
-- [x] Fusión de clientes duplicados (merge inline en CRM). _(2026-05-06 sesión 3)_
-- [x] Auto-award loyalty points via DB trigger en cada venta. _(2026-05-06 sesión 3)_
-- [x] Code splitting React.lazy: bundle de 1982kB → 427kB (-78%). _(2026-05-06 sesión 3)_
-- [x] Canal de ventas (source breakdown) en Dashboard. _(2026-05-06 sesión 3)_
-- [x] Gastos recurrentes: frecuencia + auto-generación + cron diario. _(2026-05-06 sesión 3)_
-- [x] Factura ↔ venta: sale_id en invoices, invoice_id en sales, badge "Facturado". _(2026-05-06 sesión 3)_
-- [x] Dead-letter queue UI: retry webhooks fallidos desde IntegrationsPage. _(2026-05-06 sesión 3)_
-- [ ] Notas de crédito integradas a devoluciones en AFIP.
-
----
-
-## Plan de acción — próximos pasos concretos
-
-### 🔴 Urgente (bloquea el uso en producción)
-
-| # | Acción | Cómo | Estado |
-|---|--------|------|--------|
-| 1 | Aplicar schema completo en producción | `migration_bundle.sql` aplicado en `hummeopatkniwkyrrhwc` | ✅ Hecho (sesión 5) |
-| 2 | Desplegar edge functions | 34 funciones en `hummeopatkniwkyrrhwc`, CLI linkeado con cuenta correcta | ✅ Hecho (sesión 5) |
-
-### 🟠 Esta semana (Fase 0 + Fase 1 restantes)
-
-| # | Acción | Detalle |
-|---|--------|---------|
-| 3 | Generar tipos Supabase actualizados | `supabase gen types typescript --project-id hummeopatkniwkyrrhwc > src/integrations/supabase/types.ts` (requiere paso 2) |
-| 4 | Eliminar `as any` en flujos críticos | supabaseStore.ts, POSPage, SalesPage, CashSessionPage, InvoicesPage |
-| 5 | Flujo end-to-end venta→caja→factura | Probar manualmente: crear venta en POS → verificar cash_entry → emitir factura → ver en reportes |
-| 6 | Reporte de cierre de caja exportable | Agregar botón "Exportar PDF/CSV" en CashSessionPage con resumen del turno |
-| 7 | Documentar restauración de backups | Agregar sección en README con pasos para restaurar desde dump de Supabase |
-
-### 🟡 Próximas 2 semanas (Fase 2 completar + Fase 3 cerrar)
-
-| # | Acción | Detalle |
-|---|--------|---------|
-| 8 | Health check visual de integraciones | Sección en IntegrationsPage: última ejecución, estado OK/error, latencia por integración |
-| 9 | Ficha 360 de cliente | Tab unificado en CustomersPage: compras, deudas, pagos, puntos, notas y comunicaciones |
-| 10 | Estado de resultados mensual | Vista en ReportsPage: ingresos, egresos, margen neto, comparativa mes anterior |
-| 11 | Code splitting para reducir chunk size | `React.lazy()` + `Suspense` en rutas pesadas (IA, Analytics, Marketing) |
-| 12 | Suite E2E con Playwright | Login → crear producto → venta en POS → cobrar deuda → cerrar caja |
-
-### 🟢 Mes siguiente (Fase 4 — diferenciación)
-
-| # | Acción | Detalle |
-|---|--------|---------|
-| 13 | Automatizaciones con historial | Tabla `automation_runs`, UI de historial, simulador de prueba antes de activar |
-| 14 | Campañas email con métricas | Tracking de apertura/click via Resend webhooks, bajas one-click, segmentos guardados |
-| 15 | Forecast validado | Predicción de ventas con comparación vs real en gráfico semanal/mensual |
-| 16 | Alertas inteligentes configurables | Umbral por org para stock bajo, margen mínimo, deuda vencida, cliente inactivo |
-| 17 | Migración de datos desde Lovable | Ejecutar `scripts/migrate-data.mjs` cuando estén disponibles las keys del proyecto Lovable |
-
----
-
-## Fases sugeridas
-
-### Fase 0 — Orden y seguridad técnica
-**Duración sugerida: 1 semana. 90% completa.**
-
-- [x] README completo. _(2026-05-05)_
-- [x] `.env.example` revisado. _(2026-05-05)_
-- [x] CI básico con lint, build y tests. _(existente)_
-- [x] Documento de tablas, buckets, crons y Edge Functions. _(2026-05-05)_
-- [ ] Tipos de Supabase actualizados. _(bloqueado por CLI — requiere login correcto)_
-- [ ] Lista de permisos/RLS por tabla. _(pendiente)_
-
-### Fase 1 — Beta operativa para uso interno
-**Duración sugerida: 1 a 2 semanas. 85% completa.**
-
-- [x] Stock consistente ante compras, ventas, devoluciones y ajustes.
-- [x] Caja con cierre y diferencias.
-- [x] Deudas y pagos sincronizados con ventas.
-- [x] Devolución con impacto automático en stock y caja.
-- [ ] Flujo venta/POS probado de punta a punta. _(pendiente)_
-- [ ] Reporte de cierre imprimible/exportable. _(pendiente)_
-- [ ] Backups manuales y restauración documentada. _(pendiente)_
-
-### Fase 2 — Producto comercial
-**Duración sugerida: 2 a 4 semanas. Completa.**
-
-- [x] Planes y límites aplicados.
-- [x] Trial completo.
-- [x] Onboarding persistente.
-- [x] Equipo y roles.
-- [x] Platform admin con herramientas de soporte.
-- [x] Landing/pricing listos para conversión.
-- [x] Política de privacidad y términos.
-
-### Fase 3 — Integraciones y automatizaciones
-**Duración sugerida: 3 a 5 semanas. 85% completa.**
-
-- [x] Tiendanube estable con webhooks y sync controlado.
-- [x] Mercado Pago conciliado.
-- [x] AFIP con reintentos y errores tipificados.
-- [x] Webhooks/API documentados.
-- [x] Health check visual por integración (panel en IntegrationsPage). _(2026-05-06 sesión 3)_
-- [ ] Dead-letter queue simple. _(pendiente)_
-- [ ] Monitor de integraciones en tiempo real. _(pendiente)_
-
-### Fase 4 — Inteligencia y escala
-**Duración sugerida: continuo. 60% completa. _(2026-05-07 sesión 4)_**
-
-- [x] Automatizaciones con historial de ejecución y botón "Ejecutar ahora". _(2026-05-07)_
-- [x] Alertas inteligentes configurables (5 tipos, umbrales editables, cron diario). _(2026-05-07)_
-- [x] Forecast validado vs real (regresión lineal, tab Analytics). _(2026-05-07)_
-- [x] Ficha 360 de cliente con tabs. _(2026-05-06)_
-- [x] Code splitting: bundle 1982kB → 427kB (-78%). _(2026-05-06)_
-- [ ] Campañas email con segmentos y métricas (open rate, click rate).
-- [ ] PWA/offline para POS.
-- [ ] Observabilidad completa (integration monitor en tiempo real).
-
----
-
-## Roadmap por módulos
-
-### 1. Productos e inventario
-
-Hecho:
-- CRUD de productos con imágenes múltiples.
-- Variantes, stock general.
-- Compras que aumentan stock / Ventas que descuentan stock.
-- Alertas de stock bajo.
-- Toma física.
-- Restock automático.
-- Sucursales y stock por ubicación en base de datos.
-- Kardex: `stock_movements`, triggers en ventas/compras, `record_stock_movement`, `kardex_summary`, KardexPage. _(2026-05-05)_
-- Ajustes de stock auditados con `adjust_stock`. _(2026-05-05)_
-- Lotes de producto: tabla `product_lots`. _(estructura creada)_
-
-Faltante:
-- Integrar stock por sucursal en POS y ventas.
-- Validar importación masiva y exportación de productos.
-- Alertar margen bajo o precio desactualizado.
-- Manejar fechas de vencimiento de lotes en UI.
-
-### 2. Ventas, POS y caja
-
-Hecho:
-- Registro de ventas, POS, recibos.
-- Ventas pagadas o con deuda.
-- Descuento/cupones, cuotas, devoluciones, presupuestos.
-- Turnos de caja con apertura/cierre/diferencias. _(2026-05-05)_
-- Movimientos de caja por venta via trigger `trg_sale_cash_entry`. _(2026-05-05)_
-- Vista `cash_session_summary` con totales por método de pago. _(2026-05-05)_
-- Comisiones de vendedores.
-- Cobro de deuda con registro en caja via `record_debt_payment_cash_entry`. _(2026-05-05)_
-- `usePlanLimits` con `checkSalesLimit` integrado en SaleForm y POSPage. _(2026-05-06)_
-
-Faltante:
-- Flujo único: presupuesto → venta → pago → factura → caja (aún hay pasos manuales).
-- Reporte de cierre imprimible/exportable.
-- Modo offline o tolerancia a cortes de conexión para POS.
-- Pruebas automatizadas de venta y devolución.
-
-### 3. Clientes y CRM
-
-Hecho:
-- CRUD de clientes, notas, segmentación automática, pipeline, referidos, fidelidad, cumpleaños.
-- Ficha 360 con tabs: Resumen (KPIs + productos favoritos), Compras (timeline), Cuotas/Deudas, Contacto (notas + comunicaciones + WhatsApp). _(2026-05-06 sesión 3)_
-
-Faltante:
-- Merge de clientes duplicados.
-- Historial de comunicaciones centralizado.
-- Consentimiento para email/WhatsApp.
-- Segmentos guardados reutilizables.
-
-### 4. Finanzas y administración
-
-Hecho:
-- Gastos, deudas de clientes, cheques, proveedores, conciliación bancaria, flujo de caja, reportes.
-- Pagos parciales a proveedores con historial. _(2026-05-06)_
-- Conciliación bancaria con ventas, gastos, pagos y MP. _(2026-05-06)_
-
-Faltante:
-- Estado de resultados mensual.
-- Reporte fiscal/contable exportable.
-- ~~Gastos recurrentes~~ ✅ hecho — frecuencia, próxima generación, auto-creación diaria. _(2026-05-06 sesión 3)_
-- Auditoría de cambios financieros.
-
-### 5. Facturación Argentina
-
-Hecho:
+### Facturación Argentina
 - Pantalla de facturas, PDF, email, configuración AFIP.
-- Edge Function de autorización AFIP con ambientes separados y errores tipificados. _(2026-05-06)_
-- Botón "Reintentar" en errores AFIP. _(2026-05-06)_
+- Edge Function de autorización AFIP con ambientes separados y errores tipificados. _(sesión 2)_
+- Botón "Reintentar" en errores AFIP. _(sesión 2)_
+- Factura ↔ venta: `sale_id` en invoices, `invoice_id` en sales, badge "Facturado". _(sesión 3)_
 
-Faltante:
-- Notas de crédito/débito integradas a devoluciones.
-- Numeración y punto de venta robustos.
-- Vincular factura con venta y cliente.
+### Marketing y catálogo
+- Posts, templates, catálogo público con QR/PDF, combos, banners, historias de Instagram.
+- Campañas de email (`EmailCampaignsPage`), influencers, canjes, liquidaciones.
+- `OfferRecommenderPanel` con IA para sugerencias de ofertas. _(sesión 4)_
 
-### 6. Marketing, catálogo e influencers
+### Inteligencia artificial y analytics
+- `AIInsightsPage`: insights automatizados con Claude.
+- `AIChatPage`: chat con contexto del negocio.
+- `AIPrediction` component en Dashboard: predicción de ventas.
+- Forecast con regresión lineal OLS, comparación real vs proyectado por mes (tab en `AnalyticsPage`). _(sesión 4)_
+- `CashFlowProjector`, `HealthScore`, `ConsistencyAlerts` en Dashboard.
 
-Hecho:
-- Posts, templates, catálogo público, QR/PDF, combos, banners, historias, campañas de email, influencers, canjes y liquidaciones.
+### Integraciones
+- Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
+- Mercado Pago link + webhook con HMAC-SHA256, multi-org. _(sesión 2)_
+- Stripe checkout, cancelación, webhook idempotente, dunning completo. _(sesión 2)_
+- AFIP con retry y errores tipificados. _(sesión 2)_
+- Public API `/v1/` con rate limits, API keys rotables con SHA-256, scopes. _(sesión 2)_
+- Webhooks salientes con HMAC, retries con backoff, historial en `webhook_deliveries`. _(sesión 2)_
+- Health check visual por integración (`integration_logs`). _(sesión 3)_
+- Dead-letter queue UI: retry de webhooks fallidos desde IntegrationsPage. _(sesión 3)_
+- Separación "incluido en tu plan" vs "tus integraciones" en IntegrationsPage. _(sesión 5)_
 
-Faltante:
-- Tracking de conversión por campaña.
-- Verificación de dominios para email.
-- Gestión de bajas y preferencias.
-- Vista de ROI de marketing.
+### SaaS y planes
+- Stripe checkout, subscriptions, entitlements, trials, dunning.
+- `usePlanLimits` con enforcement real de límites (productos, ventas/mes, usuarios).
+- Platform admin con herramientas de soporte, audit log.
+- Pricing page y estado de suscripción.
+- Onboarding persistente en DB. _(sesión 1)_
+- Datos demo por rubro. _(sesión 1)_
+- Política de privacidad y términos (ley 25.326). _(sesión 2)_
 
-### 7. Integraciones
+### Operaciones
+- Sentry, backups, crons, rate limiter, notificaciones in-app.
+- Alertas inteligentes configurables: 5 tipos, edge function `check-alerts`, cron diario 07:00 UTC. _(sesión 4)_
+- Automatizaciones con motor de ejecución real: edge function `execute-automations`, historial en `automation_runs`, botón "Ejecutar ahora". _(sesión 4)_
 
-Hecho:
-- Tiendanube OAuth, sync y webhooks. _(2026-05-06)_
-- Mercado Pago link y webhook con HMAC. _(2026-05-06)_
-- Stripe checkout, cancelación y webhook idempotente. _(2026-05-06)_
-- AFIP con retry y errores tipificados. _(2026-05-06)_
-- Public API versionada con rate limits y rotación de keys. _(2026-05-06)_
-- Webhooks salientes con HMAC, retries e historial. _(2026-05-06)_
+### UX y mobile
+- PageHeader + KPICard estandarizados en todas las páginas. _(sesión 5-6)_
+- Tablas responsive con CSS utilities para mobile. _(sesión 5)_
+- Dialogs responsive. _(sesión 5)_
+- Selects responsivos (full width en mobile, fixed en desktop). _(sesión 5)_
+- NotificationBell en mobile header. _(sesión 5)_
+- Excel import preview scrollable en mobile. _(sesión 5)_
 
-Faltante:
-- Health check visual por integración.
-- Dead-letter queue simple.
-- Documentación de API y webhooks para usuarios.
+---
 
-### 8. Equipo, roles y permisos
+## Brechas actuales y deuda técnica
 
-Hecho:
-- Roles admin, vendedor y viewer, invitaciones, miembros por organización, platform admin.
+| Área | Brecha | Impacto |
+|------|--------|---------|
+| Dashboard | Categorías de productos hardcodeadas (perfume/vaper) en lugar de dinámicas por org | Alto |
+| Inventario | Sin métrica "días de stock" basada en velocidad de ventas real | Alto |
+| Email | Campañas sin tracking de open rate / click rate via Resend webhooks | Alto |
+| CRM | Sin segmentos RFM guardados y reutilizables | Medio |
+| POS | Sin modo offline / tolerancia a cortes de conexión | Medio |
+| Facturación | Notas de crédito no integradas a devoluciones AFIP | Medio |
+| Equipo | Permisos granulares (caja, ventas, inventario) aún no implementados | Medio |
+| AFIP | Numeración de puntos de venta poco robusta | Medio |
+| Testing | Sin suite E2E (Playwright) para flujos críticos | Medio |
+| Docs | Manual de usuario y runbook de producción pendientes | Bajo |
 
-Faltante:
-- Matriz de permisos formal documentada.
-- Eliminar ambigüedad entre `user_roles` (legacy) y `memberships`.
-- Auditoría de cambios de rol.
-- Permisos más finos: caja, ventas, inventario, finanzas, ajustes.
+---
 
-### 9. Testing, calidad y mantenimiento
+## Plan de sprints 2026
 
-Hecho:
-- Vitest configurado, CI con build/lint/test.
-- Tests unitarios de cálculos de precios, impuestos y formato. _(2026-05-05 — 15 tests)_
-- Tests de smoke para importación de páginas y lógica de negocio. _(2026-05-06 — 54 tests)_
-- Script de migración de datos entre proyectos Supabase. _(2026-05-06 — `scripts/migrate-data.mjs`)_
+### Sprint 6 — Mayo 2026: Estabilidad + Quick wins _(en curso)_
 
-Faltante:
-- Tests E2E con Playwright: login, producto, venta, pago, caja, factura, permisos.
-- Mocks para Edge Functions.
-- Convención de tipos y validaciones Zod en formularios críticos.
-- Documentación técnica y manual de usuario.
+**Objetivo:** infraestructura sólida + primeras mejoras de diferenciación.
+
+| # | Item | Estado |
+|---|------|--------|
+| 1 | PWA auto-update (skipWaiting, clientsClaim, ChunkLoadError handler) | ✅ Hecho |
+| 2 | Canales Realtime sin crash (safeChannel helper, 6 componentes) | ✅ Hecho |
+| 3 | JWT anon key para auth correcta | ✅ Hecho |
+| 4 | Categorías dinámicas en Dashboard (eliminar hardcoded perfumes/vapers) | ✅ Hecho |
+| 5 | Columna "Días de stock" con velocidad de ventas en ProductsPage | ✅ Hecho |
+| 6 | Widget de deudas vencidas con acción rápida en Dashboard | 🔵 En curso |
+| 7 | Tipos Supabase regenerados + 191 `as any` eliminados | ✅ Hecho |
+| 8 | Admin: export CSV, magic link, reset password, métricas growth | ✅ Hecho |
+| 9 | Mobile: tablas, dialogs, selects, NotificationBell | ✅ Hecho |
+| 10 | Products Excel import con cálculo de márgenes | ✅ Hecho |
+
+### Sprint 7 — Junio 2026: CRM real + Email con métricas
+
+**Objetivo:** convertir el CRM y marketing en ventaja competitiva real.
+
+| # | Item | Impacto |
+|---|------|---------|
+| 1 | Segmentos RFM guardados y reutilizables en CRM | Alto |
+| 2 | Email campaigns con open rate / click rate (Resend webhooks) | Alto |
+| 3 | Score de salud del cliente (compras, deudas, engagement) | Alto |
+| 4 | Recordatorios automáticos de deuda vencida por WhatsApp/email | Alto |
+| 5 | Sugerencias IA proactivas en Dashboard ("Llamar a estos 3 clientes hoy") | Alto |
+| 6 | Notas de crédito integradas a devoluciones (AFIP) | Medio |
+| 7 | Segmentos de clientes con exportación a CSV/email | Medio |
+
+### Sprint 8 — Julio 2026: POS avanzado + Stock inteligente
+
+**Objetivo:** POS de nivel enterprise y stock predictivo.
+
+| # | Item | Impacto |
+|---|------|---------|
+| 1 | Split de pago en POS (efectivo + tarjeta + MP en una venta) | Crítico |
+| 2 | Modo offline para POS (cache local con IndexedDB, sync al reconectar) | Alto |
+| 3 | Alerta proactiva en POS si stock queda en <5 unidades tras la venta | Alto |
+| 4 | Punto de reorden automático con sugerencia de cantidad de compra | Alto |
+| 5 | Stock por sucursal visible en POS y en transferencias | Alto |
+| 6 | Lotes con fecha de vencimiento en UI | Medio |
+| 7 | Reporte de rentabilidad por producto (margen real vs histórico) | Medio |
+
+### Sprint 9 — Agosto 2026: IA avanzada + Analytics enterprise
+
+**Objetivo:** diferenciación por inteligencia artificial aplicada.
+
+| # | Item | Impacto |
+|---|------|---------|
+| 1 | Predicción de demanda por producto (próximos 30 días) | Alto |
+| 2 | Detección automática de anomalías (venta inusual, margen caído) | Alto |
+| 3 | Chat IA con acciones reales (crear producto, registrar venta) | Alto |
+| 4 | Reportes avanzados por sucursal, vendedor, categoría, período | Alto |
+| 5 | Dashboard multi-org para platform admin (vista agregada) | Medio |
+| 6 | Límites de costo IA por plan con contador de tokens | Medio |
+| 7 | A/B testing de precios con sugerencia IA | Medio |
+
+### Sprint 10 — Septiembre 2026: Mobile nativo + Expansión
+
+**Objetivo:** presencia mobile real y expansión de integraciones.
+
+| # | Item | Impacto |
+|---|------|---------|
+| 1 | App mobile con Capacitor (Android + iOS) desde codebase React | Alto |
+| 2 | Push notifications nativas (ventas, stock, alertas) | Alto |
+| 3 | Integración Shopify (sync de productos y órdenes) | Alto |
+| 4 | Integración MercadoLibre (publicaciones y órdenes) | Alto |
+| 5 | API pública documentada con Swagger/OpenAPI | Medio |
+| 6 | Marketplace de automatizaciones (plantillas predefinidas) | Medio |
+| 7 | Exportación contable a formatos Tango/Xero/QuickBooks | Medio |
+
+### Sprint 11 — Octubre-Noviembre 2026: Escala y enterprise
+
+| # | Item | Impacto |
+|---|------|---------|
+| 1 | Multi-sucursal con caja independiente por local | Alto |
+| 2 | Facturación electrónica de corridos (lotes) | Alto |
+| 3 | Conciliación automática bancaria (CBU + extracto CSV) | Alto |
+| 4 | Suite E2E con Playwright (login, venta, caja, factura, permisos) | Medio |
+| 5 | SLA de uptime y panel de status público | Medio |
+| 6 | Plan Enterprise con white-label | Medio |
+
+---
+
+## Estado por módulo (actualizado sesión 6)
+
+| Módulo | % | Próximo milestone |
+|--------|---|-------------------|
+| Infraestructura | 85% | E2E tests, staging env |
+| Auth + orgs | 80% | Permisos granulares |
+| Inventario | 78% | Días de stock, lotes en UI |
+| Ventas + POS | 72% | Split pago, offline |
+| Clientes + CRM | 70% | Segmentos RFM, score salud |
+| Finanzas | 75% | Auditoría de cambios |
+| Facturación AFIP | 65% | Notas de crédito |
+| Marketing + Email | 55% | Open/click rate |
+| IA + Analytics | 68% | IA proactiva, predicción demanda |
+| Integraciones | 75% | Shopify, MeLi |
+| SaaS + billing | 82% | Permisos por plan granulares |
+| Mobile + UX | 70% | Capacitor, offline POS |
+| Testing + calidad | 40% | E2E, mocks edge fns |
+| **TOTAL** | **72%** | |
+
+---
+
+## Prioridades inmediatas (sesión 7)
+
+| # | Acción | Por qué |
+|---|--------|---------|
+| 1 | Split de pago en POS (efectivo + tarjeta + MP) | Pedido frecuente, bloquea ventas reales |
+| 2 | Email campaigns: open/click rate vía Resend webhooks | Diferenciación en marketing |
+| 3 | Segmentos RFM guardados (últimos 30/60/90 días, monto, frecuencia) | CRM accionable |
+| 4 | Sugerencias IA proactivas en Dashboard | Diferenciación vs competidores |
+| 5 | Reporte de rentabilidad por producto | Datos para decisiones reales |
+| 6 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
 
 ---
 
 ## Criterio de terminado por funcionalidad
 
-Una funcionalidad se considera lista cuando cumple:
-
-- Tiene permisos correctos por rol y organización.
+Una funcionalidad se considera lista cuando:
+- Tiene permisos correctos por rol y `org_id`.
 - Guarda y lee datos por `org_id` (no por `user_id`).
 - Tiene validaciones de formulario y mensajes de error claros.
-- Maneja loading, empty state y error state.
+- Maneja loading, empty state y error state correctamente.
+- Funciona en desktop y mobile.
 - Tiene auditoría si modifica datos sensibles.
 - No rompe stock, caja, deuda ni reportes.
-- Tiene al menos una prueba automatizada del camino feliz y un caso de error.
-- Está documentada si requiere configuración o afecta integraciones.
-- Funciona en desktop y mobile.
-- No depende de datos hardcodeados o `localStorage` para estado importante.
 
 ---
 
 ## Métricas de producto a medir
 
-- Tiempo hasta primera venta registrada.
+- Tiempo hasta primera venta registrada (time-to-value).
 - Ventas registradas por organización por día.
-- Productos con stock desactualizado o negativo.
+- Productos con stock negativo o desactualizado.
 - Diferencia promedio de caja por turno.
 - Deudas vencidas y tasa de cobro.
-- Clientes recurrentes vs clientes inactivos.
 - Conversión de trial a pago.
+- Churn mensual por plan.
 - Uso de funciones IA por plan.
 - Fallos de integraciones por día.
 - Tiempo promedio de carga de dashboard y listas grandes.
@@ -415,28 +298,17 @@ Una funcionalidad se considera lista cuando cumple:
 
 ## Riesgos a vigilar
 
-- Triggers de DB con `m.created_at` incorrecto bloquean inserts de ventas en producción — **fix pendiente de aplicar**.
-- CLI Supabase autenticado con cuenta incorrecta — edge functions desplegadas al proyecto equivocado.
-- Tipos Supabase desactualizados ocultan errores en runtime.
-- Webhooks duplicados o fallidos que creen ventas/stock inconsistentes.
-- Costos IA sin límites por plan.
-- Facturación fiscal con errores por configuración AFIP.
-- PWA cacheando datos viejos en pantallas sensibles.
+- Costos IA sin límites por plan → puede escalar sin control.
+- Facturación fiscal con errores por configuración AFIP incorrecta.
+- PWA cacheando datos viejos en pantallas sensibles (mitigado con skipWaiting).
 - Datos mezclados entre organizaciones si alguna consulta filtra por `user_id` en lugar de `org_id`.
+- Webhooks duplicados o fallidos que creen ventas/stock inconsistentes.
 
 ---
 
-## Próximos 10 pasos recomendados
+## Potencial financiero
 
-| # | Paso | Prioridad |
-|---|------|-----------|
-| 1 | ~~Aplicar schema en producción~~ | ✅ Hecho |
-| 2 | ~~Desplegar edge functions~~ | ✅ Hecho |
-| 3 | Generar `src/integrations/supabase/types.ts` actualizado | 🟠 Alta |
-| 4 | Eliminar `as any` en supabaseStore.ts, POSPage y SalesPage | 🟠 Alta |
-| 5 | Probar flujo end-to-end: venta POS → cash_entry → factura | 🟠 Alta |
-| 6 | ~~Exportar reporte de cierre de caja~~ | ✅ Hecho (sesión 3) |
-| 7 | ~~Health check visual de integraciones~~ | ✅ Hecho (sesión 3) |
-| 8 | ~~Ficha 360 de cliente con tab unificado~~ | ✅ Hecho (sesión 3) |
-| 9 | Dead-letter queue: mostrar webhooks fallidos con botón Retry en IntegrationsPage | 🟡 Media |
-| 10 | Suite E2E con Playwright para flujos críticos | 🟡 Media |
+- Target: ~200 orgs activas en 12 meses.
+- MRR proyectado: USD 12.000–20.000.
+- ARPU objetivo: USD 60–100/mes por org.
+- Plans: Starter $29 · Pro $59 · Business $99 · Enterprise custom.

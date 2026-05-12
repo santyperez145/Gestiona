@@ -74,6 +74,7 @@ export default function ProductsPage() {
   const { productLimit, plan } = useEntitlements();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -90,11 +91,28 @@ export default function ProductsPage() {
 
   const reload = async () => {
     if (!user) return;
-    const [p, s, allVariants] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id), getVariantsByUserDB(user.id)]);
+    const orgId = await import('@/lib/orgContext').then(m => m.getActiveOrgId());
+    const since60 = new Date(); since60.setDate(since60.getDate() - 60);
+    const [p, s, allVariants, salesRes] = await Promise.all([
+      getProductsDB(user.id),
+      getSettingsDB(user.id),
+      getVariantsByUserDB(user.id),
+      supabase.from('sales')
+        .select('product_id, quantity, date')
+        .eq('org_id', orgId)
+        .gte('date', since60.toISOString().slice(0, 10)),
+    ]);
     setProducts(p); setSettings(s); setLoading(false);
     const counts: Record<string, number> = {};
     allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
     setVariantCounts(counts);
+    // Calculate daily sales velocity per product (units/day over last 60 days)
+    const velocity: Record<string, number> = {};
+    (salesRes.data || []).forEach((sale: any) => {
+      if (sale.product_id) velocity[sale.product_id] = (velocity[sale.product_id] || 0) + Number(sale.quantity || 1);
+    });
+    Object.keys(velocity).forEach(id => { velocity[id] = velocity[id] / 60; });
+    setSalesVelocity(velocity);
   };
   useEffect(() => { reload(); }, [user]);
 
@@ -320,6 +338,7 @@ export default function ProductsPage() {
                        <th className="text-right p-3 font-medium">Oferta</th>
                        <th className="text-right p-3 font-medium">Ganancia</th>
                        <th className="text-right p-3 font-medium">Stock</th>
+                       <th className="text-right p-3 font-medium" title="Días de stock restante según velocidad de ventas (últimos 60 días)">Días ⚡</th>
                        <th className="text-center p-3 font-medium">Mod.</th>
                        <th className="text-center p-3 font-medium">Acc.</th>
                      </tr>
@@ -375,6 +394,20 @@ export default function ProductsPage() {
                            {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
                              <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
                            ) : <span className="text-success font-medium">{p.stock}</span>}
+                         </td>
+                         <td className="p-3 text-right">
+                           {(() => {
+                             const vel = salesVelocity[p.id] || 0;
+                             if (p.stock <= 0) return <span className="text-xs text-muted-foreground">—</span>;
+                             if (vel === 0) return <span className="text-xs text-muted-foreground" title="Sin ventas en 60 días">∞</span>;
+                             const days = Math.round(p.stock / vel);
+                             const color = days <= 7 ? 'text-destructive font-bold' : days <= 21 ? 'text-warning font-medium' : 'text-success';
+                             return (
+                               <span className={`text-xs ${color}`} title={`${(vel * 30).toFixed(1)} uds/mes · stock para ~${days} días`}>
+                                 {days}d
+                               </span>
+                             );
+                           })()}
                          </td>
                          <td className="p-3 text-center">
                            <span className="text-[10px] text-muted-foreground flex items-center justify-center gap-1" title={new Date(p.updated_at).toLocaleString('es-AR')}>

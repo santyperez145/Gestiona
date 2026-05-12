@@ -20,14 +20,6 @@ import AIPrediction from "@/components/dashboard/AIPrediction";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
-const CATEGORIES = [
-  { value: 'all', label: 'Todas las categorías' },
-  { value: 'perfume_arabe', label: 'Perfume Árabe' },
-  { value: 'perfume_diseñador', label: 'Perfume Diseñador' },
-  { value: 'vaper', label: 'Vaper' },
-  { value: 'electronico', label: 'Electrónico' },
-];
-
 function GaugeChart({ value, max, label, color }: { value: number; max: number; label: string; color: string }) {
   const pct = Math.min(Math.max(value / (max || 1), 0), 1);
   const angle = pct * 180;
@@ -195,6 +187,20 @@ export default function Dashboard() {
       total: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0),
       count: todaySales.length,
     });
+  }, [rawData]);
+
+  // Dynamic categories derived from actual products — no hardcoding per business type
+  const categories = useMemo(() => {
+    if (!rawData?.products.length) return [{ value: 'all', label: 'Todas las categorías' }];
+    const seen = new Set<string>();
+    const cats: { value: string; label: string }[] = [{ value: 'all', label: 'Todas las categorías' }];
+    rawData.products.forEach((p: any) => {
+      if (p.category && !seen.has(p.category)) {
+        seen.add(p.category);
+        cats.push({ value: p.category, label: getCategoryLabel(p.category) });
+      }
+    });
+    return cats;
   }, [rawData]);
 
   const stats = useMemo(() => {
@@ -469,7 +475,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">{greeting} 👋</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${CATEGORIES.find(c => c.value === filterCat)?.label}`}
+            {filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -479,7 +485,7 @@ export default function Dashboard() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map(c => (
+              {categories.map(c => (
                 <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
               ))}
             </SelectContent>
@@ -556,6 +562,55 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Overdue Debts Widget */}
+      {(() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const overdueDebts = (stats.rawDebts || [])
+          .filter((d: any) => d.status !== 'paid' && d.due_date && d.due_date < today)
+          .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+        if (!overdueDebts.length) return null;
+        const totalOverdue = overdueDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars || 0), 0);
+        return (
+          <div className="mb-5 bg-card border border-destructive/25 rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-destructive font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                {overdueDebts.length} deuda{overdueDebts.length !== 1 ? 's' : ''} vencida{overdueDebts.length !== 1 ? 's' : ''} · {formatARS(totalOverdue)}
+              </h3>
+              <Link to="/deudas" className="text-[10px] text-primary hover:underline">Gestionar →</Link>
+            </div>
+            <div className="space-y-1.5">
+              {overdueDebts.slice(0, 4).map((d: any) => {
+                const daysOverdue = Math.floor((new Date().getTime() - new Date(d.due_date).getTime()) / 86400000);
+                return (
+                  <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-destructive/5 border border-destructive/10">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
+                      <span className="text-xs font-medium truncate">{d.customer_name || 'Sin nombre'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-destructive font-bold">{formatARS(Number(d.remaining_ars))}</span>
+                      <span className="text-[10px] text-muted-foreground">{daysOverdue}d atrás</span>
+                      {d.customer_phone && (
+                        <a
+                          href={`https://wa.me/${d.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${d.customer_name}, te recordamos que tenés una deuda pendiente de ${formatARS(Number(d.remaining_ars))}. ¿Podemos coordinar el pago?`)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="p-1 rounded bg-success/10 hover:bg-success/20 text-success transition-colors"
+                          title="Recordatorio por WhatsApp"
+                        ><MessageCircle className="w-3 h-3" /></a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {overdueDebts.length > 4 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">+{overdueDebts.length - 4} más en <Link to="/deudas" className="text-primary hover:underline">Deudas</Link></p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Smart Alerts Banner */}
       {stats.smartAlerts && stats.smartAlerts.length > 0 && (
