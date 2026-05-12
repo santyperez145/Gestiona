@@ -4,7 +4,7 @@ export function getOptionalEnv(key: string): string | undefined {
 
 const REQUIRED_VARS = [
   "VITE_SUPABASE_URL",
-  "VITE_SUPABASE_PUBLISHABLE_KEY",
+  "VITE_SUPABASE_ANON_KEY",
 ] as const;
 
 export function validateEnv(): void {
