@@ -490,17 +490,17 @@ export default function PlatformAdminPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Crown className="w-5 h-5 text-primary" />
-            <h1 className="text-2xl font-display font-bold">Platform Admin</h1>
+            <h1 className="text-xl sm:text-2xl font-display font-bold">Platform Admin</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Control total de todos los tenants de Gestiona.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Control total de todos los tenants de Gestiona.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { loadOrgs(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs}>
+        <Button variant="outline" size="sm" onClick={() => { loadOrgs(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs} className="self-start sm:self-auto">
           <RefreshCw className={`w-4 h-4 mr-2 ${loadingOrgs ? 'animate-spin' : ''}`} /> Actualizar
         </Button>
       </div>
@@ -632,7 +632,56 @@ export default function PlatformAdminPage() {
                 </Button>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            {/* Mobile: card list */}
+            <div className="md:hidden divide-y divide-border">
+              {loadingOrgs
+                ? <div className="text-center p-6 text-muted-foreground text-sm">Cargando...</div>
+                : filteredOrgs.length === 0
+                ? <div className="text-center p-6 text-muted-foreground text-sm">Sin resultados</div>
+                : filteredOrgs.map(r => {
+                    const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.paused;
+                    const Icon = sc.icon;
+                    const trialExpired = r.trial_ends_at && new Date(r.trial_ends_at) < new Date();
+                    return (
+                      <div key={r.id} className="p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{r.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">/{r.slug} · {r.member_count} usuarios</p>
+                          </div>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${sc.color}`}>
+                            <Icon className="w-2.5 h-2.5" />{sc.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{r.plan_name} {r.status === 'active' && r.plan_price > 0 ? `· $${r.plan_price}/mo` : ''}</span>
+                          {r.trial_ends_at && (
+                            <span className={trialExpired ? 'text-destructive' : ''}>
+                              Trial: {fmt(r.trial_ends_at)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-1 pt-1">
+                          <Button variant="outline" size="sm" className="h-7 px-2 flex-1 text-xs"
+                            onClick={() => { setExtendDialog({ open: true, org: r }); setExtendDays('7'); }}>
+                            <CalendarDays className="w-3 h-3 mr-1" />Trial
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-7 px-2 flex-1 text-xs"
+                            onClick={() => { setPlanDialog({ open: true, org: r }); setPlanDialogPlanId(r.plan_id || ''); }}>
+                            <ChevronRight className="w-3 h-3 mr-1" />Plan
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            onClick={() => { setDeleteDialog({ open: true, org: r }); setDeleteConfirm(''); }}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
@@ -716,7 +765,55 @@ export default function PlatformAdminPage() {
             </Button>
           </div>
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Mobile: card list */}
+            <div className="sm:hidden divide-y divide-border">
+              {loadingUsers
+                ? <div className="text-center p-6 text-muted-foreground text-sm">Cargando usuarios...</div>
+                : filteredUsers.length === 0
+                ? <div className="text-center p-6 text-muted-foreground text-sm">Sin usuarios</div>
+                : filteredUsers.map(u => (
+                  <div key={u.id} className={`p-3 space-y-2 ${u.banned ? 'opacity-60' : ''}`}>
+                    <div className="flex items-start gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                        {(u.name || u.email).charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm leading-tight truncate">{u.name || '(sin nombre)'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                        {u.memberships.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {u.memberships.slice(0, 2).map(m => `${m.orgName} (${m.role})`).join(', ')}
+                            {u.memberships.length > 2 && ` +${u.memberships.length - 2}`}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {u.banned && <Ban className="w-3.5 h-3.5 text-destructive" />}
+                        {u.isPlatformAdmin && <Crown className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 items-center text-[10px]">
+                      <label className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30">
+                        <Switch checked={u.banned} onCheckedChange={() => handleToggleBan(u)} className="data-[state=checked]:bg-destructive scale-75" />
+                        Banear
+                      </label>
+                      <label className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30">
+                        <Switch checked={u.isPlatformAdmin || false} onCheckedChange={() => handleTogglePlatformAdmin(u)} className="data-[state=checked]:bg-primary scale-75" />
+                        Admin
+                      </label>
+                      <Button variant="outline" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => handleResetPassword(u)}>
+                        <KeyRound className="w-2.5 h-2.5 mr-1" /> Reset
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => handleGenerateMagicLink(u)}>
+                        <Link2 className="w-2.5 h-2.5 mr-1" /> Link
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="overflow-x-auto hidden sm:block">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
