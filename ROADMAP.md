@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 12)**
+Última actualización: **2026-05-13 (sesión 13)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~93% completo.**
+**MVP avanzado con SaaS billing funcional. ~95% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -123,6 +123,14 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **AIChatPage: registrar venta** — detección de intento "registrar venta/vendí", CreateSaleCard con selector de producto + cantidad + cliente, escribe en DB y descuenta stock. _(sesión 12)_
 - **DebtsPage bulk mark-as-paid** — checkboxes en tabla pendiente, seleccionar todos, barra de acción flotante "Marcar como pagadas", batch update en DB. _(sesión 12)_
 - **Dashboard: widget "Clientes en riesgo"** — top 5 clientes con 60–180 días sin comprar, ordenados por facturación histórica. _(sesión 12)_
+- **ReportsPage tab "Flujo de Caja"** — ingresos vs egresos (gastos + compras) por mes, gráfico de barras agrupado (verde/rojo/dorado), tabla con detalle, CSV export. _(sesión 13)_
+- **SalesPage bulk mark-as-paid** — checkboxes en ventas no cobradas, barra flotante "Marcar cobradas", batch update en DB. _(sesión 13)_
+- **SalesPage filtro cobrado/pendiente** — toggle "Todas / ✓ Cobradas / Deben" en la barra de filtros. _(sesión 13)_
+- **SalesPage print receipt** — botón "Imprimir recibo" en cada venta, genera HTML estilizado y abre ventana de impresión. _(sesión 13)_
+- **DebtsPage "Próximos cobros"** — widget con deudas con due_date en los próximos 7 días, conteo de días, botón WhatsApp por deuda. _(sesión 13)_
+- **ProductsPage "Lista de precios PDF"** — botón junto a Excel export, genera lista agrupada por categoría con precios/oferta, abre ventana de impresión. _(sesión 13)_
+- **Dashboard "Dólar hoy"** — banner con cotización live (oficial/blue/MEP) de dolarapi.com, cache 30 min localStorage, alerta si TC configurado difiere >5% del blue. _(sesión 13)_
+- **AIChatPage: registrar compra** — detección de "registré una compra/compré", CreatePurchaseCard con selector producto + cantidad + proveedor + costo USD, escribe en DB y suma stock. _(sesión 13)_
 - **AIChatPage acciones reales** — detección de intención client-side (crear producto/gasto/cliente), action cards con mini-formularios inline que escriben directamente en DB; chips "Acciones directas" en estado vacío. _(sesión 11)_
 - **CustomersPage segmentos RFM en DB** — migración de localStorage a Supabase (campo `crm_segments` JSONB en settings); auto-migración en primer load; sync multi-dispositivo. _(sesión 11)_
 - **supabaseStore getCRMSegmentsDB/saveCRMSegmentsDB** — helpers para persistir segmentos CRM. _(sesión 11)_
@@ -312,37 +320,37 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 12)
+## Estado por módulo (actualizado sesión 13)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
 | Infraestructura | 85% | E2E tests, staging env |
 | Auth + orgs | 85% | Permisos granulares completados |
 | Inventario | 83% | Lotes en UI, offline POS |
-| Ventas + POS | 87% | Modo offline, filtros avanzados |
+| Ventas + POS | 91% | Modo offline, recibo multi-línea |
 | Clientes + CRM | 91% | Segmentos con acciones masivas |
-| Finanzas | 86% | Conciliación automática, auditoría |
+| Finanzas | 90% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
 | Marketing + Email | 80% | Open rate / click tracking |
-| IA + Analytics | 93% | Más acciones IA, visualizaciones |
+| IA + Analytics | 95% | Más acciones IA, visualizaciones |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
-| Mobile + UX | 72% | Capacitor, offline POS |
+| Mobile + UX | 74% | Capacitor, offline POS |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **93%** | |
+| **TOTAL** | **95%** | |
 
 ---
 
-## Prioridades inmediatas (sesión 13)
+## Prioridades inmediatas (sesión 14)
 
 | # | Acción | Por qué |
 |---|--------|---------|
 | 1 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
 | 2 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
 | 3 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
-| 4 | Email: tracking de open/click rate visual en EmailCampaignsPage | Métricas de efectividad |
-| 5 | ProveedoresPage: bulk actions (marcar pagos masivos) | Gestión de cuentas por pagar |
-| 6 | AnalyticsPage: tab "Por categoría" con evolución temporal | Tendencias de negocio |
+| 4 | SalesPage: recibo con múltiples productos (consolidar líneas de la misma venta) | UX de cobro |
+| 5 | Dashboard: widget "Top 5 productos del mes" con tendencia vs mes anterior | Visibilidad de ventas |
+| 6 | AnalyticsPage: comparativa semana actual vs semana anterior | Monitoreo operativo |
 
 ---
 
