@@ -74,7 +74,35 @@ export default function SalesPage() {
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [datePreset, setDatePreset] = useState<string>("all");
   const [filterCat, setFilterCat] = useState('all');
+
+  const applyPreset = (preset: string) => {
+    setDatePreset(preset);
+    setPage(0);
+    const now = new Date();
+    if (preset === "all") { setDateFrom(undefined); setDateTo(undefined); return; }
+    if (preset === "today") {
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      setDateFrom(s); setDateTo(now); return;
+    }
+    if (preset === "yesterday") {
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+      setDateFrom(s); setDateTo(e); return;
+    }
+    if (preset === "week") {
+      const s = new Date(now); s.setDate(now.getDate() - now.getDay()); s.setHours(0, 0, 0, 0);
+      setDateFrom(s); setDateTo(now); return;
+    }
+    if (preset === "month") {
+      setDateFrom(new Date(now.getFullYear(), now.getMonth(), 1)); setDateTo(now); return;
+    }
+    if (preset === "lastmonth") {
+      setDateFrom(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+      setDateTo(new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)); return;
+    }
+  };
   const reload = async () => {
     if (user) {
       const [s, p] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id)]);
@@ -156,7 +184,7 @@ export default function SalesPage() {
         badge={{ label: `${filtered.length} registradas`, variant: "default" }}
         actions={
           <div className="flex items-center gap-2">
-            <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+            <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
               <DialogTrigger asChild>
                 <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
@@ -229,6 +257,23 @@ export default function SalesPage() {
           </div>
         );
       })()}
+
+      {/* Date presets */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {[
+          { key: "all", label: "Todas" },
+          { key: "today", label: "Hoy" },
+          { key: "yesterday", label: "Ayer" },
+          { key: "week", label: "Esta semana" },
+          { key: "month", label: "Este mes" },
+          { key: "lastmonth", label: "Mes anterior" },
+        ].map(p => (
+          <button key={p.key} onClick={() => applyPreset(p.key)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${datePreset === p.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-5">
