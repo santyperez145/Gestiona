@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,7 @@ export default function ReportsPage() {
           <TabsTrigger value="categories">Por Categoría</TabsTrigger>
           <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
+          <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -446,6 +448,10 @@ export default function ReportsPage() {
 
         <TabsContent value="audit">
           <AuditTab />
+        </TabsContent>
+
+        <TabsContent value="suppliers">
+          <SuppliersTab purchases={data.purchases} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1837,6 +1843,86 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
             </tfoot>
           </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Suppliers Tab
+// ─────────────────────────────────────────────────────────────
+function SuppliersTab({ purchases }: { purchases: any[] }) {
+  const navigate = useNavigate();
+
+  const supplierData = useMemo(() => {
+    const map: Record<string, { name: string; totalUSD: number; totalARS: number; count: number; lastDate: string }> = {};
+    for (const p of purchases) {
+      const name = p.supplier || "Sin proveedor";
+      if (!map[name]) map[name] = { name, totalUSD: 0, totalARS: 0, count: 0, lastDate: "" };
+      map[name].totalUSD += Number(p.total_cost_usd) || 0;
+      map[name].totalARS += Number(p.total_cost_ars) || 0;
+      map[name].count += 1;
+      if (!map[name].lastDate || p.date > map[name].lastDate) map[name].lastDate = p.date;
+    }
+    return Object.values(map).sort((a, b) => b.totalUSD - a.totalUSD);
+  }, [purchases]);
+
+  const totalUSD = supplierData.reduce((s, r) => s + r.totalUSD, 0);
+
+  if (!supplierData.length) return (
+    <div className="text-center py-16 text-muted-foreground">
+      <p>No hay compras registradas aún.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold">Compras por proveedor</h3>
+          <p className="text-xs text-muted-foreground">{supplierData.length} proveedores · Total: U$S {totalUSD.toFixed(0)}</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => navigate('/proveedores')} className="text-xs">
+          Ir a Proveedores →
+        </Button>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-left p-3 font-medium">Proveedor</th>
+              <th className="text-right p-3 font-medium">Compras</th>
+              <th className="text-right p-3 font-medium">Total U$S</th>
+              <th className="text-right p-3 font-medium">Total ARS</th>
+              <th className="text-right p-3 font-medium">Promedio U$S</th>
+              <th className="text-right p-3 font-medium">Última compra</th>
+              <th className="text-right p-3 font-medium">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {supplierData.map(s => {
+              const share = totalUSD > 0 ? (s.totalUSD / totalUSD) * 100 : 0;
+              return (
+                <tr key={s.name} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  <td className="p-3 font-medium">{s.name}</td>
+                  <td className="p-3 text-right text-muted-foreground">{s.count}</td>
+                  <td className="p-3 text-right font-semibold text-warning">U$S {s.totalUSD.toFixed(0)}</td>
+                  <td className="p-3 text-right text-muted-foreground">{s.totalARS > 0 ? `$${Math.round(s.totalARS).toLocaleString('es-AR')}` : "—"}</td>
+                  <td className="p-3 text-right text-muted-foreground">U$S {(s.totalUSD / s.count).toFixed(0)}</td>
+                  <td className="p-3 text-right text-muted-foreground">{s.lastDate ? new Date(s.lastDate).toLocaleDateString('es-AR') : "—"}</td>
+                  <td className="p-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-warning rounded-full" style={{ width: `${share}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-8 text-right">{share.toFixed(0)}%</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

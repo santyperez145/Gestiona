@@ -293,6 +293,8 @@ export default function Dashboard() {
       .then(({ data }) => setOpenCashSession(data || null));
   }, [orgForTasks]);
 
+  const [showTodayDetail, setShowTodayDetail] = useState(false);
+
   // Seed liveTodaySales + last-week same-day comparison from initial data load
   useEffect(() => {
     if (!rawData) return;
@@ -306,6 +308,21 @@ export default function Dashboard() {
       count: todaySales.length,
     });
     setLastWeekSameDaySales(lwSales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0));
+  }, [rawData]);
+
+  const todayDetail = useMemo(() => {
+    if (!rawData?.sales) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
+    if (!todaySales.length) return null;
+    const avgTicket = todaySales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0) / todaySales.length;
+    const methodCount: Record<string, number> = {};
+    todaySales.forEach((s: any) => { const m = s.payment_method || "otro"; methodCount[m] = (methodCount[m] || 0) + 1; });
+    const dominantMethod = Object.entries(methodCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+    const productCount: Record<string, number> = {};
+    todaySales.forEach((s: any) => { const n = s.product_name || "Sin nombre"; productCount[n] = (productCount[n] || 0) + (s.quantity || 1); });
+    const topProduct = Object.entries(productCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+    return { avgTicket, dominantMethod, topProduct, count: todaySales.length };
   }, [rawData]);
 
   // Dynamic categories derived from actual products — no hardcoding per business type
@@ -766,6 +783,36 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Today detail panel */}
+      {showTodayDetail && todayDetail && (
+        <div className="mb-5 bg-card border border-success/30 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-success" />Detalle de hoy
+            </h3>
+            <button onClick={() => setShowTodayDetail(false)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ventas</p>
+              <p className="text-xl font-bold font-display text-success mt-0.5">{todayDetail.count}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket promedio</p>
+              <p className="text-xl font-bold font-display mt-0.5">{formatARS(todayDetail.avgTicket)}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Método dominante</p>
+              <p className="text-sm font-bold font-display mt-0.5 capitalize">{todayDetail.dominantMethod || "—"}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Top producto</p>
+              <p className="text-sm font-semibold mt-0.5 truncate" title={todayDetail.topProduct}>{todayDetail.topProduct || "—"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Consistency Alerts (auto-repair) */}
       {user && <ConsistencyAlerts
         sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
@@ -1202,8 +1249,9 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
         {kpiCards.map((c, i) => (
-          <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-success/40 ring-1 ring-success/20' : 'border-border'}`}
+          <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-success/40 ring-1 ring-success/20 cursor-pointer' : 'border-border'}`}
             style={{ animationDelay: `${i * 50}ms` }}
+            onClick={() => { if ('live' in c && c.live) setShowTodayDetail(v => !v); }}
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
