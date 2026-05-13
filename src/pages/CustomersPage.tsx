@@ -10,7 +10,7 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift, Merge,
+  Star, TrendingUp, Package, Gift, Merge, Download,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -684,6 +684,35 @@ export default function CustomersPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [customers]);
 
+  const exportCSV = () => {
+    const rows = [
+      ["Nombre", "Segmento", "Total Gastado (ARS)", "Ganancia (ARS)", "Compras", "Ticket Promedio (ARS)", "Última Compra", "Días sin Comprar", "Frecuencia (días)", "Deuda Pendiente (ARS)", "Email", "Teléfono"],
+      ...filtered.map(c => [
+        c.name,
+        c.segment,
+        c.totalSpent.toFixed(2),
+        c.totalProfit.toFixed(2),
+        c.purchaseCount,
+        c.avgTicket.toFixed(2),
+        c.lastPurchase || "",
+        c.daysSinceLastPurchase === 9999 ? "" : c.daysSinceLastPurchase,
+        c.frequency === 999 ? "" : c.frequency,
+        c.pendingDebt.toFixed(2),
+        c.email || "",
+        c.phone || "",
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clientes_${segmentFilter !== "all" ? segmentFilter + "_" : ""}${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} clientes exportados`);
+  };
+
   const handleCreate = async (data: Partial<CustomerProfile>) => {
     if (!user) return;
     await createCustomerDB(user.id, data as Parameters<typeof createCustomerDB>[1]);
@@ -792,7 +821,17 @@ export default function CustomersPage() {
             : { label: "Sin deudas ✓", variant: "success" }
         }
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={exportCSV}
+              disabled={filtered.length === 0}
+              className="gap-2"
+              title={`Exportar ${filtered.length} clientes${segmentFilter !== "all" ? ` (${segmentFilter})` : ""} a CSV con datos RFM`}
+            >
+              <Download className="w-4 h-4" />
+              Exportar{segmentFilter !== "all" ? ` ${segmentFilter}` : ""} CSV
+            </Button>
             <label className="cursor-pointer">
               <input
                 type="file"
