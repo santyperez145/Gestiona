@@ -115,6 +115,72 @@ const CUSTOMER_TRIGGERS: TriggerType[] = ["customer_inactive", "debt_overdue", "
 const STOCK_TRIGGERS: TriggerType[] = ["low_stock", "stock_out"];
 
 // ─────────────────────────────────────────────────────────────
+// Pre-built templates
+// ─────────────────────────────────────────────────────────────
+const FLOW_TEMPLATES: {
+  name: string;
+  emoji: string;
+  description: string;
+  data: { trigger_type: TriggerType; trigger_config: Record<string, any>; action_type: ActionType; action_config: Record<string, any> };
+}[] = [
+  {
+    name: "Clientes sin comprar (30d) → Notificación",
+    emoji: "💤",
+    description: "Avisa cuando un cliente lleva 30 días sin comprar",
+    data: {
+      trigger_type: "customer_inactive",
+      trigger_config: { days: 30 },
+      action_type: "notification",
+      action_config: { message: "Hay clientes sin comprar hace más de 30 días" },
+    },
+  },
+  {
+    name: "Deuda vencida → Tarea de cobro",
+    emoji: "⚠️",
+    description: "Crea una tarea de cobro cuando una deuda lleva 7+ días vencida",
+    data: {
+      trigger_type: "debt_overdue",
+      trigger_config: { days_overdue: 7 },
+      action_type: "create_task",
+      action_config: { task_priority: "high", task_due_days: 2, message: "Gestionar cobro de deuda vencida" },
+    },
+  },
+  {
+    name: "Stock bajo → Notificación de reposición",
+    emoji: "📦",
+    description: "Alerta cuando un producto baja de 5 unidades",
+    data: {
+      trigger_type: "low_stock",
+      trigger_config: { threshold: 5 },
+      action_type: "notification",
+      action_config: { message: "Producto con stock bajo — reponer urgente" },
+    },
+  },
+  {
+    name: "Cumpleaños de cliente → WhatsApp",
+    emoji: "🎂",
+    description: "Envía mensaje de cumpleaños a clientes",
+    data: {
+      trigger_type: "birthday",
+      trigger_config: {},
+      action_type: "whatsapp_message",
+      action_config: { message: "¡Feliz cumpleaños! 🎉 Te deseamos un excelente día. Como regalo, tenés un descuento especial esperándote." },
+    },
+  },
+  {
+    name: "Nuevo cliente → Tarea de bienvenida",
+    emoji: "🆕",
+    description: "Crea una tarea de seguimiento para cada nuevo cliente",
+    data: {
+      trigger_type: "new_customer",
+      trigger_config: {},
+      action_type: "create_task",
+      action_config: { task_priority: "medium", task_due_days: 3, message: "Contactar nuevo cliente y dar bienvenida" },
+    },
+  },
+];
+
+// ─────────────────────────────────────────────────────────────
 // Default form state
 // ─────────────────────────────────────────────────────────────
 const EMPTY_FORM = {
@@ -577,19 +643,43 @@ export default function AutomationFlowsPage() {
         </div>
       </div>
 
+      {/* Template gallery */}
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Plantillas sugeridas</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {FLOW_TEMPLATES.map((tpl) => (
+            <div key={tpl.name} className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors group">
+              <span className="text-2xl shrink-0">{tpl.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold leading-tight">{tpl.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{tpl.description}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[10px] px-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => handleSave(tpl.data)}
+              >
+                <Plus className="w-3 h-3 mr-1" />Crear
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Flows grid */}
       {loading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Cargando flujos…</div>
       ) : flows.length === 0 ? (
-        <div className="text-center py-20">
+        <div className="text-center py-12">
           <Zap className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
           <p className="text-lg text-muted-foreground font-medium">Sin flujos configurados</p>
-          <p className="text-sm text-muted-foreground mt-1">Creá tu primera automatización para que el sistema trabaje solo</p>
+          <p className="text-sm text-muted-foreground mt-1">Usá una plantilla o creá tu primera automatización personalizada</p>
           <Button
             className="mt-4 gradient-gold text-primary-foreground font-semibold"
             onClick={() => setShowForm(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />Crear primer flujo
+            <Plus className="w-4 h-4 mr-2" />Crear flujo personalizado
           </Button>
         </div>
       ) : (

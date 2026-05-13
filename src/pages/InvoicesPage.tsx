@@ -277,6 +277,7 @@ export default function InvoicesPage() {
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const fromSaleHandled = useRef(false);
   const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
 
@@ -495,6 +496,7 @@ export default function InvoicesPage() {
   };
 
   const filteredInvoices = invoices.filter((inv) => {
+    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -696,18 +698,57 @@ export default function InvoicesPage() {
 
       {/* Invoice list */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-border flex items-center gap-3">
+        <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-2">
           <h2 className="font-semibold text-sm shrink-0">Facturas ({filteredInvoices.length})</h2>
-          <div className="relative flex-1 max-w-xs ml-auto">
+          <div className="flex gap-1 flex-wrap">
+            {["all", "draft", "sent", "paid", "overdue", "canceled"].map(s => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
+                  filterStatus === s
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "text-muted-foreground border-border hover:border-primary/20"
+                }`}
+              >
+                {s === "all" ? `Todas (${invoices.length})` : STATUS_CONFIG[s]?.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative ml-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por número o cliente…"
-              className="w-full pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40"
+              className="pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40 w-52"
             />
           </div>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => {
+            const bom = '﻿';
+            const headers = ['Número', 'Cliente', 'Email', 'Estado', 'Total ARS', 'IVA %', 'Fecha emisión', 'Vencimiento', 'CAE', 'Pagada el'];
+            const rows = filteredInvoices.map(inv => [
+              inv.number,
+              inv.customer_name,
+              inv.customer_email || '',
+              STATUS_CONFIG[inv.status]?.label || inv.status,
+              Number(inv.total).toFixed(2),
+              inv.tax_pct,
+              new Date(inv.issue_date).toLocaleDateString('es-AR'),
+              inv.due_date ? new Date(inv.due_date).toLocaleDateString('es-AR') : '',
+              inv.cae || '',
+              inv.paid_at ? new Date(inv.paid_at).toLocaleDateString('es-AR') : '',
+            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+            const csv = bom + [headers.join(','), ...rows].join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = `facturas-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            toast.success('Facturas exportadas');
+          }}>
+            <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+          </Button>
         </div>
         {loading ? (
           <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
