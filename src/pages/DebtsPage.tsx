@@ -125,6 +125,51 @@ export default function DebtsPage() {
           sub="deuda promedio" />
       </div>
 
+      {/* Próximos cobros esta semana */}
+      {pending.length > 0 && (() => {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
+        const upcoming = pending.filter(d => {
+          if (!d.due_date) return false;
+          const dd = new Date(d.due_date + "T12:00:00");
+          return dd >= today && dd <= nextWeek;
+        }).sort((a, b) => a.due_date.localeCompare(b.due_date));
+        if (!upcoming.length) return null;
+        const upTotal = upcoming.reduce((s, d) => s + Number(d.remaining_ars), 0);
+        return (
+          <div className="mb-5 bg-card border border-primary/20 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />Cobros próximos 7 días · {formatARS(upTotal)}
+              </h3>
+              <span className="text-[10px] text-muted-foreground">{upcoming.length} vencimiento{upcoming.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="space-y-1.5">
+              {upcoming.map(d => {
+                const dueDate = new Date(d.due_date + "T12:00:00");
+                const daysUntil = Math.floor((dueDate.getTime() - today.getTime()) / 86400000);
+                return (
+                  <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                      <span className="text-xs font-medium truncate">{d.customer_name || "Sin nombre"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-muted-foreground">{daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `En ${daysUntil}d`}</span>
+                      <span className="text-xs font-bold text-primary">{formatARS(Number(d.remaining_ars))}</span>
+                      <a href={waDebtLink(d)} target="_blank" rel="noopener noreferrer"
+                        className="p-1 rounded bg-success/10 hover:bg-success/20 text-success transition-colors" title="Recordatorio WhatsApp">
+                        <MessageCircle className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Aging de deudas a cobrar */}
       {pending.length > 0 && (() => {
         const now = Date.now();
