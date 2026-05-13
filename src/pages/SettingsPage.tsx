@@ -123,32 +123,34 @@ export default function SettingsPage() {
     if (!user) return;
     setSaving(true);
     try {
+      const num = (val: string, fallback: number) => { const n = parseFloat(val); return isNaN(n) ? fallback : n; };
+      const int = (val: string, fallback: number) => { const n = parseInt(val); return isNaN(n) ? fallback : n; };
       await saveSettingsDB(user.id, {
-        exchange_rate: parseFloat(exchangeRate) || 1695,
-        customs_percent: parseFloat(customsPercent) || 15,
-        default_discount_percent: parseFloat(defaultDiscountPercent) || 20,
+        exchange_rate: num(exchangeRate, 1695),
+        customs_percent: num(customsPercent, 15),
+        default_discount_percent: num(defaultDiscountPercent, 20),
         tax_enabled: taxEnabled,
-        tax_iva_percent: parseFloat(taxIva) || 21,
-        tax_iibb_percent: parseFloat(taxIibb) || 3.5,
-        tax_monotributo_monthly: parseFloat(taxMonotributo) || 0,
+        tax_iva_percent: num(taxIva, 21),
+        tax_iibb_percent: num(taxIibb, 3.5),
+        tax_monotributo_monthly: num(taxMonotributo, 0),
         business_name: businessName || 'Exentry Imports',
         logo_url: logoUrl || null,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
-        discount_cash_percent: parseFloat(discountCash) || 0,
-        discount_transfer_percent: parseFloat(discountTransfer) || 0,
-        discount_debit_percent: parseFloat(discountDebit) || 0,
-        discount_credit_percent: parseFloat(discountCredit) || 0,
+        discount_cash_percent: num(discountCash, 0),
+        discount_transfer_percent: num(discountTransfer, 0),
+        discount_debit_percent: num(discountDebit, 0),
+        discount_credit_percent: num(discountCredit, 0),
         whatsapp_number: whatsappNumber || null,
         bank_cbu: bankCbu || null,
         bank_alias: bankAlias || null,
         bank_name: bankName || null,
         bank_holder: bankHolder || null,
-        volume_discount_threshold: parseInt(volumeThreshold) || 3,
-        volume_discount_percent: parseFloat(volumeDiscount) || 10,
-        decant_margin_10ml: parseFloat(decantMargin10) || 250,
-        decant_margin_5ml: parseFloat(decantMargin5) || 350,
-        decant_margin_2_5ml: parseFloat(decantMargin2_5) || 500,
+        volume_discount_threshold: int(volumeThreshold, 3),
+        volume_discount_percent: num(volumeDiscount, 10),
+        decant_margin_10ml: num(decantMargin10, 250),
+        decant_margin_5ml: num(decantMargin5, 350),
+        decant_margin_2_5ml: num(decantMargin2_5, 500),
       });
       await logAudit(user.id, 'settings_change', 'settings', undefined, { exchangeRate, customsPercent, businessName, taxEnabled });
       toast.success("Configuración guardada correctamente");
