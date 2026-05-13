@@ -23,6 +23,60 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
+// ─── Email Templates ──────────────────────────────────────────────────────────
+
+const EMAIL_TEMPLATES = [
+  {
+    id: "oferta",
+    label: "🔥 Oferta especial",
+    subject: "🔥 Oferta exclusiva solo para vos",
+    body: `<p>¡Hola {{nombre}}!</p>
+<p>Tenemos una oferta especial que no podés perderte. Por tiempo limitado, disfrutá de descuentos exclusivos en nuestros mejores productos.</p>
+<p>Visitanos o escribinos para aprovechar esta promoción antes de que termine.</p>
+<p>¡Hasta pronto! 👋</p>`,
+  },
+  {
+    id: "cumple",
+    label: "🎂 Cumpleaños",
+    subject: "🎂 ¡Feliz cumpleaños, {{nombre}}!",
+    body: `<p>¡Hola {{nombre}}!</p>
+<p>En tu día especial queremos saludarte y agradecerte por ser parte de nuestra comunidad.</p>
+<p>Como regalo de cumpleaños, tenemos una sorpresa esperándote. ¡Vení a visitarnos o escribinos!</p>
+<p>¡Que tengas un día increíble! 🎉</p>`,
+  },
+  {
+    id: "reactivacion",
+    label: "😴 Reactivación",
+    subject: "Te extrañamos, {{nombre}} 💙",
+    body: `<p>¡Hola {{nombre}}!</p>
+<p>Hace un tiempo que no te vemos por acá y quisimos saber cómo estás.</p>
+<p>Tenemos novedades y productos nuevos que seguramente te van a interesar. ¿Qué te parece si nos ponemos al día?</p>
+<p>¡Esperamos verte pronto! 🙌</p>`,
+  },
+  {
+    id: "novedad",
+    label: "📦 Novedad de producto",
+    subject: "📦 Novedad: ¡Llegó algo nuevo!",
+    body: `<p>¡Hola {{nombre}}!</p>
+<p>Tenemos excelentes noticias: acaba de llegar un nuevo producto que pensamos que te va a encantar.</p>
+<p>Si querés conocerlo antes que todos, contactanos para más información.</p>
+<p>¡Gracias por tu preferencia! ⭐</p>`,
+  },
+  {
+    id: "boletin",
+    label: "📰 Boletín mensual",
+    subject: "📰 Novedades de {{nombre}} — este mes",
+    body: `<p>¡Hola {{nombre}}!</p>
+<p>Te compartimos las novedades de este mes:</p>
+<ul>
+  <li>✅ Nuevos productos disponibles</li>
+  <li>✅ Ofertas especiales</li>
+  <li>✅ Cambios en horarios o servicios</li>
+</ul>
+<p>¡Gracias por elegirnos siempre! 🙏</p>`,
+  },
+] as const;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Campaign {
@@ -401,6 +455,19 @@ export default function EmailCampaignsPage() {
             <DialogTitle>Nueva campaña de email</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Template picker */}
+            <div className="space-y-1.5">
+              <Label>Plantilla (opcional)</Label>
+              <div className="flex flex-wrap gap-2">
+                {EMAIL_TEMPLATES.map(t => (
+                  <button key={t.id} type="button"
+                    onClick={() => { setSubject(t.subject); setBodyHtml(t.body); }}
+                    className="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-muted hover:border-primary/40 hover:bg-primary/5 transition-colors text-muted-foreground hover:text-foreground">
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label>Segmento de audiencia</Label>
               <Select value={segment} onValueChange={setSegment}>
