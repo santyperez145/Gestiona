@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
+import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -110,6 +111,22 @@ export default function EmailCampaignsPage() {
   };
 
   useEffect(() => { load(); }, [activeOrg]);
+
+  // Live metric updates: when resend-webhook increments open/click counts, refresh campaigns
+  useEffect(() => {
+    if (!activeOrg) return;
+    const ch = safeChannel("email-campaigns-rt", activeOrg.id)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "email_campaigns",
+        filter: `org_id=eq.${activeOrg.id}`,
+      }, payload => {
+        setCampaigns(prev => prev.map(c => c.id === (payload.new as any).id ? { ...c, ...(payload.new as any) } : c));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [activeOrg]);
 
   // ── Segment audiences ────────────────────────────────────────────────────────
 

@@ -40,6 +40,14 @@ serve(async (req) => {
       });
     }
 
+    // Retrieve org_id for this campaign (needed for webhook metadata)
+    const { data: campRow } = await supabase
+      .from("email_campaigns")
+      .select("org_id")
+      .eq("id", campaignId)
+      .single();
+    const orgId: string = campRow?.org_id ?? "";
+
     let sent = 0;
     let failed = 0;
 
@@ -61,6 +69,8 @@ serve(async (req) => {
               to: r.email,
               subject,
               html: personalizedBody,
+              // Metadata passed to Resend so webhook can identify campaign + org
+              metadata: { campaign_id: campaignId, org_id: orgId },
             }),
           });
           if (res.ok) sent++;

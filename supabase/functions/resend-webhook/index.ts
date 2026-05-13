@@ -6,6 +6,7 @@
  *   Events: email.opened, email.clicked, email.bounced, email.complained, email.unsubscribed
  *
  * Resend sends: { type: "email.opened", data: { email_id, to: [email], subject, metadata } }
+ * Resend uses Svix to sign webhooks — set RESEND_WEBHOOK_SECRET in Supabase secrets.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -14,6 +15,23 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
+
+async function verifyResendSignature(req: Request, rawBody: string): Promise<boolean> {
+  const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (!secret) return true; // Skip if not configured (dev/staging)
+
+  const svixId = req.headers.get("svix-id");
+  const svixTs = req.headers.get("svix-timestamp");
+  const svixSig = req.headers.get("svix-signature");
+  if (!svixId || !svixTs || !svixSig) return false;
+
+  const toSign = `${svixId}.${svixTs}.${rawBody}`;
+  const secretBytes = Uint8Array.from(atob(secret.replace(/^whsec_/, "")), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(toSign));
+  const computed = "v1," + btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return svixSig.split(" ").some(s => s === computed);
+}
 
 const TYPE_MAP: Record<string, string> = {
   "email.opened":       "open",
@@ -30,7 +48,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+
+    const valid = await verifyResendSignature(req, rawBody);
+    if (!valid) {
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
+    }
+
+    const payload = JSON.parse(rawBody);
     const eventType = TYPE_MAP[payload.type];
     if (!eventType) {
       return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 });
