@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
-  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard,
+  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -77,6 +77,8 @@ export default function ProveedoresPage() {
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("transferencia");
   const [savingDebt, setSavingDebt] = useState(false);
+  const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
+  const [bulkPayLoading, setBulkPayLoading] = useState(false);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -130,6 +132,23 @@ export default function ProveedoresPage() {
       load();
     } catch (e: any) { toast.error(e.message); }
     finally { setSavingDebt(false); }
+  };
+
+  const toggleDebtSelect = (id: string) => {
+    setSelectedDebtIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+
+  const bulkPayDebts = async () => {
+    const toMark = pendingDebts.filter(d => selectedDebtIds.has(d.id));
+    if (!toMark.length || !activeOrg) return;
+    setBulkPayLoading(true);
+    try {
+      await Promise.all(toMark.map(d => addSupplierPaymentDB(d.id, Number(d.remaining_ars), { paymentMethod: "transferencia" })));
+      toast.success(`${toMark.length} deuda${toMark.length !== 1 ? "s" : ""} marcada${toMark.length !== 1 ? "s" : ""} como pagada${toMark.length !== 1 ? "s" : ""}`);
+      setSelectedDebtIds(new Set());
+      load();
+    } catch { toast.error("Error al registrar pagos"); }
+    finally { setBulkPayLoading(false); }
   };
 
   const pendingDebts = useMemo(() => debts.filter(d => d.status !== "paid"), [debts]);
@@ -459,6 +478,18 @@ export default function ProveedoresPage() {
               );
             })()}
 
+            {/* Bulk action bar */}
+            {selectedDebtIds.size > 0 && (
+              <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5 mb-3">
+                <span className="text-sm font-medium text-primary">{selectedDebtIds.size} seleccionada{selectedDebtIds.size !== 1 ? "s" : ""}</span>
+                <Button size="sm" className="h-7 text-xs bg-success text-success-foreground ml-auto" disabled={bulkPayLoading} onClick={bulkPayDebts}>
+                  {bulkPayLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+                  Marcar como pagadas (total)
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedDebtIds(new Set())}>Limpiar</Button>
+              </div>
+            )}
+
             {debts.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-20" />
@@ -479,6 +510,11 @@ export default function ProveedoresPage() {
                   return (
                     <div key={d.id} className={`bg-card border rounded-xl p-4 space-y-2 ${overdue ? 'border-destructive/40' : 'border-border'}`}>
                       <div className="flex items-start justify-between gap-3">
+                        {d.status !== 'paid' && (
+                          <button onClick={() => toggleDebtSelect(d.id)} className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0">
+                            {selectedDebtIds.has(d.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                          </button>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm truncate">{d.supplier_name}</span>
