@@ -109,6 +109,7 @@ export default function Dashboard() {
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetInput, setTargetInput] = useState("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -122,6 +123,27 @@ export default function Dashboard() {
       setLoading(false);
     })();
   }, [user, reloadKey]);
+
+  // Live dollar rates (dolarapi.com)
+  useEffect(() => {
+    const cacheKey = 'gestiona.dolar.cache';
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 30 * 60 * 1000) { setDolarRates(data); return; }
+      } catch { /* ignore */ }
+    }
+    fetch('https://dolarapi.com/v1/dolares')
+      .then(r => r.json())
+      .then((items: any[]) => {
+        const get = (name: string) => items.find(i => i.nombre?.toLowerCase().includes(name))?.venta ?? 0;
+        const data = { blue: get('blue'), oficial: get('oficial'), mep: get('bolsa') };
+        setDolarRates(data);
+        localStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
+      })
+      .catch(() => { /* silently fail */ });
+  }, []);
 
   // Birthday reminders: customers with birthday in next 7 days
   useEffect(() => {
@@ -609,6 +631,42 @@ export default function Dashboard() {
           <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
+
+      {/* USD Rates Banner */}
+      {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-2.5 bg-card border border-border rounded-xl">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Dólar hoy</span>
+          {dolarRates.oficial > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Oficial</span>
+              <span className="text-sm font-bold font-mono">${dolarRates.oficial.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {dolarRates.blue > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Blue</span>
+              <span className="text-sm font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {dolarRates.mep > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">MEP</span>
+              <span className="text-sm font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Tu TC configurado:</span>
+              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
+                ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
+              </span>
+              {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && (
+                <Link to="/ajustes" className="text-[10px] text-primary hover:underline">Actualizar →</Link>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 mb-4 mt-3">
