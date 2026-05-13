@@ -96,6 +96,52 @@ serve(async (_req) => {
         message,
         read: false,
       });
+
+      // Send Resend email if the user has an email
+      const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
+      if (RESEND_KEY) {
+        const { data: profile } = await supabase.auth.admin.getUserById(mb.user_id);
+        const email = profile?.user?.email;
+        if (email) {
+          const growthLine = growthPct
+            ? `<span style="color:${Number(growthPct) >= 0 ? '#22c55e' : '#ef4444'}">${Number(growthPct) >= 0 ? "▲" : "▼"} ${Math.abs(Number(growthPct))}%</span>`
+            : "";
+          const html = `
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a14;color:#fff;font-family:system-ui,sans-serif">
+<div style="max-width:480px;margin:0 auto;padding:32px 24px">
+  <div style="background:#D4A84320;border:1px solid #D4A84340;border-radius:16px;padding:24px;margin-bottom:20px">
+    <h1 style="margin:0 0 4px;font-size:18px;font-weight:900;color:#D4A843">📊 Resumen semanal</h1>
+    <p style="margin:0;font-size:12px;color:#ffffff60">${org.name} · ${wStartStr} al ${wEndStr}</p>
+  </div>
+  <table style="width:100%;border-collapse:separate;border-spacing:0 8px">
+    <tr><td style="background:#ffffff08;border-radius:10px;padding:14px 16px">
+      <p style="margin:0;font-size:11px;color:#ffffff50;text-transform:uppercase;letter-spacing:.05em">Facturación</p>
+      <p style="margin:4px 0 0;font-size:22px;font-weight:900;color:#D4A843">$${Math.round(totalRevenue).toLocaleString("es-AR")} ${growthLine}</p>
+    </td></tr>
+    <tr><td style="background:#ffffff08;border-radius:10px;padding:14px 16px">
+      <p style="margin:0;font-size:11px;color:#ffffff50;text-transform:uppercase;letter-spacing:.05em">Ganancia bruta</p>
+      <p style="margin:4px 0 0;font-size:22px;font-weight:900;color:#22c55e">$${Math.round(totalProfit).toLocaleString("es-AR")} <span style="font-size:14px;color:#ffffff50">(${marginPct}%)</span></p>
+    </td></tr>
+    <tr><td style="background:#ffffff08;border-radius:10px;padding:14px 16px">
+      <p style="margin:0;font-size:11px;color:#ffffff50;text-transform:uppercase;letter-spacing:.05em">Ventas</p>
+      <p style="margin:4px 0 0;font-size:16px;font-weight:700">${saleCount} ventas · Ticket $${Math.round(avgTicket).toLocaleString("es-AR")} · ${uniqueCustomers} clientes</p>
+    </td></tr>
+  </table>
+  <a href="https://exentryimports.vercel.app" style="display:block;margin-top:24px;text-align:center;padding:14px;border-radius:12px;background:#D4A843;color:#000;font-weight:700;font-size:14px;text-decoration:none">Ver dashboard →</a>
+  <p style="margin-top:20px;text-align:center;font-size:10px;color:#ffffff30">Gestiona — sistema de gestión para pymes argentinas</p>
+</div></body></html>`;
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "Gestiona <digest@gestiona.app>",
+              to: email,
+              subject: `📊 ${org.name} — Resumen ${wStartStr} al ${wEndStr}`,
+              html,
+            }),
+          });
+        }
+      }
     }
 
     sent++;
