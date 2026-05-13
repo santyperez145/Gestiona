@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -140,20 +140,38 @@ export default function MarketingPage() {
         }
       />
 
-      <div className="flex gap-1.5 bg-muted/40 rounded-lg p-1 w-fit">
-        {['all', 'draft', 'scheduled', 'published'].map(s => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-              filter === s
-                ? "bg-card border border-border shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {s === 'all' ? 'Todos' : statusLabels[s]}
-          </button>
-        ))}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex gap-1.5 bg-muted/40 rounded-lg p-1 w-fit">
+          {['all', 'draft', 'scheduled', 'published'].map(s => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                filter === s
+                  ? "bg-card border border-border shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {s === 'all' ? 'Todos' : statusLabels[s]}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-muted-foreground">{filtered.length} publicaciones</span>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => {
+          const header = "Título,Tipo,Estado,Generado con IA,Hashtags,Fecha\n";
+          const rows = filtered.map(p => [
+            p.title, p.post_type || '', statusLabels[p.status] || p.status,
+            p.ai_generated ? 'Sí' : 'No',
+            (p.hashtags || []).join(' '),
+            p.created_at ? p.created_at.slice(0, 10) : '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+          const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "publicaciones_marketing.csv"; a.click();
+          URL.revokeObjectURL(url);
+        }}>
+          <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
+        </Button>
       </div>
 
       <div className="mb-8 p-4 rounded-xl border border-border bg-card/50">

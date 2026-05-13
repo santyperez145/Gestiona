@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import {
   getSalesDB, getDebtsDB, getSettingsDB, formatARS,
   getCustomersDB, createCustomerDB, updateCustomerDB, deleteCustomerDB,
+  getCRMSegmentsDB, saveCRMSegmentsDB, type SavedCRMSegment,
 } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -513,9 +514,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore">("totalSpent");
-  const [savedSegments, setSavedSegments] = useState<{ id: string; name: string; segment: string }[]>(() => {
-    try { return JSON.parse(localStorage.getItem("gestiona.crm.saved_segments") || "[]"); } catch { return []; }
-  });
+  const [savedSegments, setSavedSegments] = useState<SavedCRMSegment[]>([]);
   const [saveSegmentName, setSaveSegmentName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
@@ -532,16 +531,29 @@ export default function CustomersPage() {
 
   const loadData = async () => {
     if (!user) return;
-    const [s, d, st, profs] = await Promise.all([
+    const [s, d, st, profs, segs] = await Promise.all([
       getSalesDB(user.id),
       getDebtsDB(user.id),
       getSettingsDB(user.id),
       getCustomersDB(user.id).catch(() => [] as CustomerProfile[]),
+      getCRMSegmentsDB(user.id).catch(() => [] as SavedCRMSegment[]),
     ]);
     setSales(s);
     setDebts(d);
     setSettings(st);
     setProfiles(profs);
+    // Merge DB segments with any existing localStorage segments (migration)
+    const lsRaw = localStorage.getItem("gestiona.crm.saved_segments");
+    const lsSegs: SavedCRMSegment[] = lsRaw ? JSON.parse(lsRaw) : [];
+    if (segs.length === 0 && lsSegs.length > 0) {
+      // Migrate from localStorage to DB
+      saveCRMSegmentsDB(user.id, lsSegs).then(() => {
+        localStorage.removeItem("gestiona.crm.saved_segments");
+      });
+      setSavedSegments(lsSegs);
+    } else {
+      setSavedSegments(segs);
+    }
     setLoading(false);
   };
 
@@ -734,20 +746,20 @@ export default function CustomersPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [customers]);
 
-  const saveCurrentSegment = () => {
-    if (!saveSegmentName.trim()) return;
+  const saveCurrentSegment = async () => {
+    if (!saveSegmentName.trim() || !user) return;
     const next = [...savedSegments, { id: Date.now().toString(), name: saveSegmentName.trim(), segment: segmentFilter }];
     setSavedSegments(next);
-    localStorage.setItem("gestiona.crm.saved_segments", JSON.stringify(next));
+    await saveCRMSegmentsDB(user.id, next).catch(() => {});
     setSaveSegmentName("");
     setShowSaveInput(false);
     toast.success(`Segmento "${saveSegmentName.trim()}" guardado`);
   };
 
-  const deleteSavedSegment = (id: string) => {
+  const deleteSavedSegment = async (id: string) => {
     const next = savedSegments.filter(s => s.id !== id);
     setSavedSegments(next);
-    localStorage.setItem("gestiona.crm.saved_segments", JSON.stringify(next));
+    if (user) await saveCRMSegmentsDB(user.id, next).catch(() => {});
   };
 
   const exportCSV = () => {

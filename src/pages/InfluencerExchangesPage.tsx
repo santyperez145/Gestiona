@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, Eye } from "lucide-react";
+import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, Eye, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -120,6 +120,23 @@ export default function InfluencerExchangesPage() {
             ))}
           </SelectContent>
         </Select>
+        <Button variant="outline" size="sm" className="ml-auto whitespace-nowrap" onClick={() => {
+          const header = "Influencer,Instagram,Seguidores,Producto,Tipo,Cantidad,Valor ARS,Posts esperados,Posts reales,Estado,Fecha\n";
+          const rows = filtered.map(ex => [
+            ex.influencer_name, ex.influencer_instagram || '', ex.influencer_followers || 0,
+            ex.product_name, TYPE_MAP[ex.exchange_type] || ex.exchange_type || '', ex.quantity,
+            Number(ex.product_value_ars) * ex.quantity,
+            ex.expected_posts || 0, ex.actual_posts || 0,
+            STATUS_MAP[ex.status]?.label || ex.status,
+            ex.created_at ? ex.created_at.slice(0, 10) : '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+          const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "canjes_influencers.csv"; a.click();
+          URL.revokeObjectURL(url);
+        }}>
+          <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
+        </Button>
       </div>
 
       {!filtered.length ? (

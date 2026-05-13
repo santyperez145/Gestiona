@@ -5,16 +5,255 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart, Package, Users, BarChart2, DollarSign, Zap } from "lucide-react";
+import {
+  Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
+  Package, Users, BarChart2, DollarSign, Zap, Plus, CheckCircle2, X,
+  TrendingDown,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { addProductDB, addExpenseDB, createCustomerDB } from "@/lib/supabaseStore";
+import { requireActiveOrgId } from "@/lib/orgContext";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type ActionType = "create_product" | "create_expense" | "create_customer" | "navigate";
+
+type AIAction =
+  | { type: "create_product"; name?: string; price?: string; category?: string }
+  | { type: "create_expense"; description?: string; amount?: string; category?: string }
+  | { type: "create_customer"; name?: string; phone?: string; email?: string }
+  | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   ts: number;
+  action?: AIAction;
 };
 
+// ─── Intent detection ─────────────────────────────────────────────────────────
+function detectIntent(msg: string): AIAction | null {
+  const lower = msg.toLowerCase();
+
+  // Create product
+  if (/\b(crea(r)?|agrega(r)?|añadi(r)?|nuevo)\b.{0,25}\bproducto\b/.test(lower)) {
+    const nameMatch = msg.match(/producto\s+[""']?([^""',\n]+)[""']?/i);
+    const priceMatch = msg.match(/\$?\s*(\d[\d.,]*)/);
+    return {
+      type: "create_product",
+      name: nameMatch?.[1]?.trim(),
+      price: priceMatch?.[1]?.replace(/\./g, "").replace(",", "."),
+    };
+  }
+
+  // Create expense
+  if (/\b(carga(r)?|registra(r)?|agrega(r)?|anota(r)?)\b.{0,25}\bgasto\b/.test(lower)) {
+    const descMatch = msg.match(/gasto\s+(?:de\s+)?[""']?([^""',\n$]+)/i);
+    const amountMatch = msg.match(/\$?\s*(\d[\d.,]*)/);
+    return {
+      type: "create_expense",
+      description: descMatch?.[1]?.trim(),
+      amount: amountMatch?.[1]?.replace(/\./g, "").replace(",", "."),
+    };
+  }
+
+  // Create customer
+  if (/\b(crea(r)?|agrega(r)?|añadi(r)?|nuevo)\b.{0,25}\bcliente\b/.test(lower)) {
+    const nameMatch = msg.match(/cliente\s+(?:llamad[oa]\s+)?[""']?([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*)/i);
+    const phoneMatch = msg.match(/(?:tel[eé]fono|cel|whatsapp)?\s*:?\s*(\+?54\s?\d[\d\s-]{6,})/i);
+    return {
+      type: "create_customer",
+      name: nameMatch?.[1]?.trim(),
+      phone: phoneMatch?.[1]?.replace(/\s/g, ""),
+    };
+  }
+
+  return null;
+}
+
+// ─── Action Card ──────────────────────────────────────────────────────────────
+function ActionCard({ action, userId, onDone }: { action: AIAction; userId: string; onDone: () => void }) {
+  const navigate = useNavigate();
+  const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Create Product form
+  const [pName, setPName] = useState(action.type === "create_product" ? (action.name || "") : "");
+  const [pPrice, setPPrice] = useState(action.type === "create_product" ? (action.price || "") : "");
+  const [pCategory, setPCategory] = useState(action.type === "create_product" ? (action.category || "") : "");
+  const [pCost, setPCost] = useState("");
+
+  // Create Expense form
+  const [eDesc, setEDesc] = useState(action.type === "create_expense" ? (action.description || "") : "");
+  const [eAmount, setEAmount] = useState(action.type === "create_expense" ? (action.amount || "") : "");
+  const [eCategory, setECategory] = useState("otros");
+
+  // Create Customer form
+  const [cName, setCName] = useState(action.type === "create_customer" ? (action.name || "") : "");
+  const [cPhone, setCPhone] = useState(action.type === "create_customer" ? (action.phone || "") : "");
+  const [cEmail, setCEmail] = useState(action.type === "create_customer" ? (action.email || "") : "");
+
+  if (done) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+        <CheckCircle2 className="w-4 h-4" />Acción completada
+      </div>
+    );
+  }
+
+  if (action.type === "navigate") {
+    return (
+      <div className="mt-2">
+        <Button size="sm" variant="outline" className="text-xs" onClick={() => { navigate(action.path); onDone(); }}>
+          <Zap className="w-3.5 h-3.5 mr-1.5" />Ir a {action.label}
+        </Button>
+      </div>
+    );
+  }
+
+  if (action.type === "create_product") {
+    const handleCreate = async () => {
+      if (!pName.trim() || !pPrice) return;
+      setLoading(true);
+      try {
+        const orgId = requireActiveOrgId();
+        await addProductDB({
+          user_id: userId,
+          org_id: orgId,
+          name: pName.trim(),
+          sale_price_ars: parseFloat(pPrice) || 0,
+          cost_price_ars: parseFloat(pCost) || 0,
+          category: pCategory.trim() || "General",
+          stock: 0,
+          brand: "",
+          barcode: "",
+          active: true,
+        });
+        toast.success(`Producto "${pName}" creado`);
+        setDone(true);
+        onDone();
+      } catch (e: any) {
+        toast.error(e.message || "Error creando producto");
+      } finally {
+        setLoading(false);
+      }
+    };
+    return (
+      <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+        <p className="text-xs font-medium text-primary flex items-center gap-1.5">
+          <Package className="w-3.5 h-3.5" />Crear producto
+        </p>
+        <Input value={pName} onChange={e => setPName(e.target.value)} placeholder="Nombre del producto *" className="h-7 text-xs" />
+        <div className="flex gap-2">
+          <Input value={pPrice} onChange={e => setPPrice(e.target.value)} placeholder="Precio venta *" className="h-7 text-xs" type="number" />
+          <Input value={pCost} onChange={e => setPCost(e.target.value)} placeholder="Costo (opc.)" className="h-7 text-xs" type="number" />
+        </div>
+        <Input value={pCategory} onChange={e => setPCategory(e.target.value)} placeholder="Categoría (opc.)" className="h-7 text-xs" />
+        <div className="flex gap-2">
+          <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground flex-1" disabled={!pName.trim() || !pPrice || loading} onClick={handleCreate}>
+            {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (action.type === "create_expense") {
+    const handleCreate = async () => {
+      if (!eDesc.trim() || !eAmount) return;
+      setLoading(true);
+      try {
+        const orgId = requireActiveOrgId();
+        await addExpenseDB({
+          user_id: userId,
+          org_id: orgId,
+          description: eDesc.trim(),
+          amount_ars: parseFloat(eAmount) || 0,
+          category: eCategory,
+          date: new Date().toISOString().slice(0, 10),
+          payment_method: "efectivo",
+        });
+        toast.success("Gasto registrado");
+        setDone(true);
+        onDone();
+      } catch (e: any) {
+        toast.error(e.message || "Error registrando gasto");
+      } finally {
+        setLoading(false);
+      }
+    };
+    return (
+      <div className="mt-2 p-3 rounded-lg border border-warning/20 bg-warning/5 space-y-2">
+        <p className="text-xs font-medium text-warning flex items-center gap-1.5">
+          <TrendingDown className="w-3.5 h-3.5" />Registrar gasto
+        </p>
+        <Input value={eDesc} onChange={e => setEDesc(e.target.value)} placeholder="Descripción *" className="h-7 text-xs" />
+        <div className="flex gap-2">
+          <Input value={eAmount} onChange={e => setEAmount(e.target.value)} placeholder="Monto ARS *" className="h-7 text-xs" type="number" />
+          <select
+            value={eCategory}
+            onChange={e => setECategory(e.target.value)}
+            className="h-7 text-xs rounded-md border border-border bg-background px-2 flex-1"
+          >
+            {["alquiler","servicios","marketing","sueldos","logistica","impuestos","insumos","otros"].map(c => (
+              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" className="h-7 text-xs bg-warning text-warning-foreground flex-1" disabled={!eDesc.trim() || !eAmount || loading} onClick={handleCreate}>
+            {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Guardar
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (action.type === "create_customer") {
+    const handleCreate = async () => {
+      if (!cName.trim()) return;
+      setLoading(true);
+      try {
+        await createCustomerDB(userId, {
+          name: cName.trim(),
+          phone: cPhone.trim() || undefined,
+          email: cEmail.trim() || undefined,
+        });
+        toast.success(`Cliente "${cName}" creado`);
+        setDone(true);
+        onDone();
+      } catch (e: any) {
+        toast.error(e.message || "Error creando cliente");
+      } finally {
+        setLoading(false);
+      }
+    };
+    return (
+      <div className="mt-2 p-3 rounded-lg border border-success/20 bg-success/5 space-y-2">
+        <p className="text-xs font-medium text-success flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5" />Crear cliente
+        </p>
+        <Input value={cName} onChange={e => setCName(e.target.value)} placeholder="Nombre completo *" className="h-7 text-xs" />
+        <div className="flex gap-2">
+          <Input value={cPhone} onChange={e => setCPhone(e.target.value)} placeholder="Teléfono (opc.)" className="h-7 text-xs" />
+          <Input value={cEmail} onChange={e => setCEmail(e.target.value)} placeholder="Email (opc.)" className="h-7 text-xs" />
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" className="h-7 text-xs bg-success text-success-foreground flex-1" disabled={!cName.trim() || loading} onClick={handleCreate}>
+            {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
   "¿Qué producto tiene más margen?",
@@ -22,6 +261,21 @@ const STARTER_QUESTIONS = [
   "¿Qué stock me está por quedar?",
   "¿Cómo va mi negocio comparado al mes pasado?",
   "¿Qué debería reponer urgente?",
+];
+
+const ACTION_STARTERS = [
+  { label: "Crear producto", icon: Package, msg: "Crear un producto nuevo" },
+  { label: "Registrar gasto", icon: TrendingDown, msg: "Registrar un gasto" },
+  { label: "Agregar cliente", icon: Users, msg: "Crear un cliente nuevo" },
+];
+
+const QUICK_ACTIONS = [
+  { label: "Ir al POS", icon: ShoppingCart, path: "/pos" },
+  { label: "Ver Inventario", icon: Package, path: "/products" },
+  { label: "Ver Clientes", icon: Users, path: "/customers" },
+  { label: "Ver Analytics", icon: BarChart2, path: "/analytics" },
+  { label: "Ver Finanzas", icon: DollarSign, path: "/debts" },
+  { label: "Ver Reportes", icon: Zap, path: "/reports" },
 ];
 
 function formatMessage(text: string) {
@@ -35,15 +289,7 @@ function formatMessage(text: string) {
   });
 }
 
-const QUICK_ACTIONS = [
-  { label: "Ir al POS", icon: ShoppingCart, path: "/pos" },
-  { label: "Ver Inventario", icon: Package, path: "/products" },
-  { label: "Ver Clientes", icon: Users, path: "/customers" },
-  { label: "Ver Analytics", icon: BarChart2, path: "/analytics" },
-  { label: "Ver Finanzas", icon: DollarSign, path: "/debts" },
-  { label: "Ver Reportes", icon: Zap, path: "/reports" },
-];
-
+// ─── Main component ────────────────────────────────────────────────────────────
 export default function AIChatPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
@@ -51,6 +297,7 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dismissedActions, setDismissedActions] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +308,8 @@ export default function AIChatPage() {
   const send = useCallback(async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || loading || !activeOrg) return;
+
+    const detectedAction = detectIntent(msg);
 
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: msg, ts: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
@@ -75,7 +324,13 @@ export default function AIChatPage() {
 
       if (error || !data?.reply) throw new Error(data?.error || error?.message || "Error al consultar IA");
 
-      const aiMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: data.reply, ts: Date.now() };
+      const aiMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: data.reply,
+        ts: Date.now(),
+        action: detectedAction ?? undefined,
+      };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (e: any) {
       toast.error(e.message || "No se pudo consultar el asistente");
@@ -91,6 +346,10 @@ export default function AIChatPage() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
+  const dismissAction = (msgId: string) => {
+    setDismissedActions(prev => new Set([...prev, msgId]));
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] max-w-3xl mx-auto">
       {/* Header */}
@@ -99,7 +358,7 @@ export default function AIChatPage() {
           <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
             <Brain className="w-7 h-7 text-primary" />Asistente IA
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Preguntá sobre tu negocio en lenguaje natural</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Preguntá o pedí acciones en lenguaje natural</p>
         </div>
         {messages.length > 0 && (
           <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
@@ -116,9 +375,27 @@ export default function AIChatPage() {
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
             <h2 className="font-display font-bold text-lg mb-1">¿En qué puedo ayudarte?</h2>
-            <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-              Tengo acceso a tus datos de ventas, stock, gastos y clientes en tiempo real.
+            <p className="text-muted-foreground text-sm mb-5 max-w-sm">
+              Consultá tus datos o pedime que realice acciones en tu negocio.
             </p>
+
+            {/* Action starters */}
+            <div className="w-full max-w-md mb-4">
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider text-center mb-2">Acciones directas</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {ACTION_STARTERS.map(a => (
+                  <button
+                    key={a.msg}
+                    onClick={() => send(a.msg)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:border-primary/50 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
+                  >
+                    <a.icon className="w-3.5 h-3.5" />{a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Starter questions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
               {STARTER_QUESTIONS.map((q) => (
                 <button
@@ -130,8 +407,10 @@ export default function AIChatPage() {
                 </button>
               ))}
             </div>
+
+            {/* Quick nav */}
             <div className="mt-5 w-full max-w-md">
-              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider text-center mb-2">Acciones rápidas</p>
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider text-center mb-2">Navegación rápida</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {QUICK_ACTIONS.map(a => (
                   <button key={a.path} onClick={() => navigate(a.path)}
@@ -164,6 +443,14 @@ export default function AIChatPage() {
               <span className="block mt-1.5 text-[10px] text-muted-foreground/60">
                 {new Date(msg.ts).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
               </span>
+              {/* Action card (only on assistant messages that have a detected action) */}
+              {msg.role === "assistant" && msg.action && !dismissedActions.has(msg.id) && user && (
+                <ActionCard
+                  action={msg.action}
+                  userId={user.id}
+                  onDone={() => dismissAction(msg.id)}
+                />
+              )}
             </div>
           </div>
         ))}
@@ -193,7 +480,7 @@ export default function AIChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Preguntá sobre tus ventas, stock, clientes…"
+            placeholder="Preguntá o pedí crear producto, registrar gasto, agregar cliente…"
             className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-sm"
             disabled={loading}
           />
@@ -207,7 +494,7 @@ export default function AIChatPage() {
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground/50 text-center mt-2">
-          Los datos se actualizan en tiempo real. Las respuestas pueden no ser perfectas.
+          Los datos se actualizan en tiempo real · Puede crear productos, gastos y clientes
         </p>
       </div>
     </div>

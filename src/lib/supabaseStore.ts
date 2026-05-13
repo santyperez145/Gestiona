@@ -715,3 +715,18 @@ export async function awardLoyaltyPointsForSale(
     reference_id: saleId,
   });
 }
+
+// ========= CRM SEGMENTS (DB-persisted) =========
+export type SavedCRMSegment = { id: string; name: string; segment: string };
+
+export async function getCRMSegmentsDB(userId: string): Promise<SavedCRMSegment[]> {
+  const orgId = await orgIdFor(userId);
+  const { data } = await supabase.from('settings').select('crm_segments').eq('org_id', orgId).maybeSingle();
+  if (!data?.crm_segments) return [];
+  return data.crm_segments as SavedCRMSegment[];
+}
+
+export async function saveCRMSegmentsDB(userId: string, segments: SavedCRMSegment[]): Promise<void> {
+  const orgId = await orgIdFor(userId);
+  await supabase.from('settings').upsert({ org_id: orgId, user_id: userId, crm_segments: segments as any } as any, { onConflict: 'org_id' });
+}
