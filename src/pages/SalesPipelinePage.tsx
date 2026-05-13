@@ -39,13 +39,13 @@ interface Deal {
   updated_at: string;
 }
 
-const STAGES: { value: Stage; label: string; color: string; bg: string }[] = [
-  { value: "lead",        label: "Lead",         color: "text-muted-foreground", bg: "bg-muted/40" },
-  { value: "contactado",  label: "Contactado",   color: "text-blue-400",         bg: "bg-blue-500/10" },
-  { value: "propuesta",   label: "Propuesta",    color: "text-purple-400",       bg: "bg-purple-500/10" },
-  { value: "negociacion", label: "Negociación",  color: "text-yellow-400",       bg: "bg-yellow-500/10" },
-  { value: "cerrado",     label: "Cerrado ✓",    color: "text-emerald-400",      bg: "bg-emerald-500/10" },
-  { value: "perdido",     label: "Perdido ✗",    color: "text-red-400",          bg: "bg-red-500/10" },
+const STAGES: { value: Stage; label: string; color: string; bg: string; probability: number }[] = [
+  { value: "lead",        label: "Lead",         color: "text-muted-foreground", bg: "bg-muted/40",         probability: 10 },
+  { value: "contactado",  label: "Contactado",   color: "text-blue-400",         bg: "bg-blue-500/10",      probability: 25 },
+  { value: "propuesta",   label: "Propuesta",    color: "text-purple-400",       bg: "bg-purple-500/10",    probability: 50 },
+  { value: "negociacion", label: "Negociación",  color: "text-yellow-400",       bg: "bg-yellow-500/10",    probability: 75 },
+  { value: "cerrado",     label: "Cerrado ✓",    color: "text-emerald-400",      bg: "bg-emerald-500/10",   probability: 100 },
+  { value: "perdido",     label: "Perdido ✗",    color: "text-red-400",          bg: "bg-red-500/10",       probability: 0 },
 ];
 
 const EMPTY_FORM = {
@@ -329,11 +329,16 @@ export default function SalesPipelinePage() {
     const won = deals.filter(d => d.stage === "cerrado");
     const total = deals.filter(d => d.stage !== "perdido" && d.stage !== "cerrado");
     const winRate = deals.length > 0 ? (won.length / deals.length) * 100 : 0;
+    const weightedValue = pipeline.reduce((s, d) => {
+      const prob = STAGES.find(st => st.value === d.stage)?.probability ?? 0;
+      return s + (d.value_ars || 0) * (prob / 100);
+    }, 0);
     return {
       pipelineValue: pipeline.reduce((s, d) => s + (d.value_ars || 0), 0),
       wonValue: won.reduce((s, d) => s + (d.value_ars || 0), 0),
       openCount: total.length,
       winRate,
+      weightedValue,
     };
   }, [deals]);
 
@@ -373,9 +378,9 @@ export default function SalesPipelinePage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard label="Pipeline total" value={formatARS(stats.pipelineValue)} icon={DollarSign} color="primary" />
-        <KPICard label="Oportunidades abiertas" value={stats.openCount} icon={TrendingUp} color="blue" />
-        <KPICard label="Cerradas ganadas" value={formatARS(stats.wonValue)} icon={Calendar} color="success" />
+        <KPICard label="Pipeline total" value={formatARS(stats.pipelineValue)} icon={DollarSign} color="primary" sub="valor bruto" />
+        <KPICard label="Pipeline ponderado" value={formatARS(stats.weightedValue)} icon={TrendingUp} color="warning" sub="ajustado por probabilidad" />
+        <KPICard label="Cerradas ganadas" value={formatARS(stats.wonValue)} icon={Calendar} color="success" sub={`${stats.openCount} abiertas`} />
         <KPICard label="Tasa de cierre" value={`${stats.winRate.toFixed(0)}%`} icon={User}
           color={stats.winRate >= 50 ? "success" : stats.winRate >= 25 ? "warning" : "destructive"} />
       </div>
@@ -413,9 +418,14 @@ export default function SalesPipelinePage() {
                       <span className={`text-xs font-bold uppercase tracking-wide ${stage.color}`}>
                         {stage.label}
                       </span>
-                      <span className="text-xs bg-card border border-border rounded-full px-1.5 py-0.5 text-muted-foreground font-medium">
-                        {stageDeals.length}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        {stage.probability > 0 && stage.probability < 100 && (
+                          <span className="text-[10px] text-muted-foreground">{stage.probability}%</span>
+                        )}
+                        <span className="text-xs bg-card border border-border rounded-full px-1.5 py-0.5 text-muted-foreground font-medium">
+                          {stageDeals.length}
+                        </span>
+                      </div>
                     </div>
                     {stageTotal > 0 && (
                       <div className={`text-xs font-mono font-semibold ${stage.color}`}>
