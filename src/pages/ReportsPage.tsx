@@ -252,6 +252,7 @@ export default function ReportsPage() {
           <TabsTrigger value="sellers">Vendedores</TabsTrigger>
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
           <TabsTrigger value="budget">Presupuesto</TabsTrigger>
+          <TabsTrigger value="categories">Por Categoría</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
         </TabsList>
 
@@ -432,6 +433,10 @@ export default function ReportsPage() {
 
         <TabsContent value="budget">
           <BudgetTab sales={data.sales} expenses={data.expenses} settings={settings} userId={user?.id || ""} />
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <SalesByCategoryTab sales={filtered.sales} products={data.products} period={filtered.label} />
         </TabsContent>
 
         <TabsContent value="audit">
@@ -1456,6 +1461,168 @@ function ProductProfitabilityTab({ sales }: { sales: any[] }) {
                 </td>
                 <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{totals.units}</td>
                 <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{filtered.reduce((s, r) => s + r.transactions, 0)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Ventas por Categoría Tab
+// ─────────────────────────────────────────────────────────────
+const CATEGORY_PALETTE = [
+  "hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)", "hsl(280,60%,55%)",
+  "hsl(0,65%,55%)", "hsl(60,70%,50%)", "hsl(25,70%,50%)", "hsl(320,60%,50%)",
+  "hsl(180,60%,45%)", "hsl(100,55%,40%)",
+];
+
+function SalesByCategoryTab({ sales, products, period }: { sales: any[]; products: any[]; period: string }) {
+  const [sortKey, setSortKey] = useState<"revenue" | "profit" | "margin" | "units">("revenue");
+  const [sortAsc, setSortAsc] = useState(false);
+
+  const productCatMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    products.forEach((p: any) => { if (p.id) m[p.id] = p.category || "sin_categoria"; });
+    return m;
+  }, [products]);
+
+  const rows = useMemo(() => {
+    const byCat: Record<string, { revenue: number; profit: number; units: number; transactions: number }> = {};
+    sales.forEach((s: any) => {
+      const cat = productCatMap[s.product_id] || "sin_categoria";
+      if (!byCat[cat]) byCat[cat] = { revenue: 0, profit: 0, units: 0, transactions: 0 };
+      byCat[cat].revenue += Number(s.total_ars) || 0;
+      byCat[cat].profit += Number(s.profit_ars) || 0;
+      byCat[cat].units += Number(s.quantity) || 1;
+      byCat[cat].transactions++;
+    });
+    return Object.entries(byCat).map(([cat, d]) => ({
+      cat,
+      label: getCategoryLabel(cat),
+      revenue: d.revenue,
+      profit: d.profit,
+      margin: d.revenue > 0 ? (d.profit / d.revenue) * 100 : 0,
+      units: d.units,
+      transactions: d.transactions,
+    })).sort((a, b) => (sortAsc ? 1 : -1) * (a[sortKey] - b[sortKey]));
+  }, [sales, productCatMap, sortKey, sortAsc]);
+
+  const totals = useMemo(() => ({
+    revenue: rows.reduce((s, r) => s + r.revenue, 0),
+    profit: rows.reduce((s, r) => s + r.profit, 0),
+    units: rows.reduce((s, r) => s + r.units, 0),
+  }), [rows]);
+
+  const top8 = useMemo(() => [...rows].sort((a, b) => b.revenue - a.revenue).slice(0, 8), [rows]);
+  const tooltipStyle = { background: "hsl(220, 18%, 12%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8 };
+  const handleSort = (k: typeof sortKey) => { if (sortKey === k) setSortAsc(!sortAsc); else { setSortKey(k); setSortAsc(false); } };
+
+  const exportCat = () => exportCSV(`ventas-por-categoria-${period}.csv`,
+    ["Categoría", "Ingresos ARS", "Ganancia ARS", "Margen %", "Unidades", "Transacciones"],
+    rows.map(r => [r.label, Math.round(r.revenue).toString(), Math.round(r.profit).toString(), r.margin.toFixed(1), r.units.toString(), r.transactions.toString()])
+  );
+
+  if (rows.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+      <BarChart2 className="w-10 h-10 mb-3 opacity-30" />
+      <p className="text-sm">Sin ventas en el período seleccionado</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Ingresos totales", value: formatARS(totals.revenue), color: "text-primary" },
+          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-success" },
+          { label: "Margen promedio", value: `${totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0"}%`, color: "text-warning" },
+          { label: "Categorías activas", value: rows.length, color: "text-blue-400" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border rounded-lg p-3 md:p-4">
+            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">{k.label}</p>
+            <p className={`text-lg md:text-xl font-bold font-display ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {top8.length > 0 && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Ingresos por categoría — {period}</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={top8} layout="vertical">
+              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} />
+              <YAxis type="category" dataKey="label" width={120} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} tickFormatter={(v: string) => v.length > 20 ? v.slice(0, 20) + "…" : v} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), "Ingresos"]} />
+              <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
+                {top8.map((_, i) => <Cell key={i} fill={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={exportCat}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Exportar CSV</Button>
+      </div>
+
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoría</th>
+                {(["revenue", "profit", "margin", "units"] as const).map(k => (
+                  <th key={k} className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => handleSort(k)}>
+                    {k === "revenue" ? "Ingresos" : k === "profit" ? "Ganancia" : k === "margin" ? "Margen" : "Unidades"}
+                    {sortKey === k ? (sortAsc ? " ▲" : " ▼") : ""}
+                  </th>
+                ))}
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">% del total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((r, i) => {
+                const pct = totals.revenue > 0 ? (r.revenue / totals.revenue) * 100 : 0;
+                return (
+                  <tr key={r.cat} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] }} />
+                        <span className="font-medium">{r.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">{formatARS(r.profit)}</td>
+                    <td className="px-4 py-3 text-right text-xs">
+                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>{r.margin.toFixed(1)}%</span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">{r.units}</td>
+                    <td className="px-4 py-3 text-right text-xs">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                <td className="px-4 py-2.5 text-sm">Total ({rows.length} categorías)</td>
+                <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
+                <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(totals.profit)}</td>
+                <td className="px-4 py-2.5 text-right text-xs">
+                  <span className="font-semibold">{totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0.0"}%</span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{totals.units}</td>
+                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">100%</td>
               </tr>
             </tfoot>
           </table>
