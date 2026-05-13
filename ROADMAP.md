@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 15)**
+Última actualización: **2026-05-13 (sesión 16)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -143,6 +143,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ProductsPage: alertas de reposición** — banner dismissible con productos en stock ≤ low_stock_threshold (o ≤3 si no configurado); chips con stock/mínimo y botón "Pedir" que navega a /compras con producto preseleccionado. _(sesión 15)_
 - **SalesPage: vista "Por fecha"** — agrupa ventas filtradas por día, filas expandibles con total/ganancia/cobradas por día; toggle junto a Lista y Por cliente. _(sesión 15)_
 - **fix(dashboard): activeOrg no definido** — useEffect de cash_sessions usaba `activeOrg` (no declarado) en lugar de `orgForTasks`; crasheaba la página completa. _(sesión 15)_
+- **Dashboard: comparativa semanal en KPI "Hoy"** — delta ▲/▼ vs mismo día la semana pasada, calculado desde rawData sin queries adicionales. _(sesión 16)_
+- **PurchasesPage: recepción parcial** — dialog con input de cantidad real recibida (puede ser < pedida); actualiza stock con qty efectiva; toast diferencia total/parcial; audit log. _(sesión 16)_
+- **ReportsPage vendedores: comisiones estimadas** — input % de comisión editable (default 5%); cada card muestra comisión calculada; CSV incluye columna con tasa configurada. _(sesión 16)_
+- **CustomersPage: bulk email** — checkboxes en cada cliente; barra flotante con "Crear campaña de email" al seleccionar; guarda selección en sessionStorage y navega a /email-campaigns. _(sesión 16)_
 - **AIChatPage acciones reales** — detección de intención client-side (crear producto/gasto/cliente), action cards con mini-formularios inline que escriben directamente en DB; chips "Acciones directas" en estado vacío. _(sesión 11)_
 - **CustomersPage segmentos RFM en DB** — migración de localStorage a Supabase (campo `crm_segments` JSONB en settings); auto-migración en primer load; sync multi-dispositivo. _(sesión 11)_
 - **supabaseStore getCRMSegmentsDB/saveCRMSegmentsDB** — helpers para persistir segmentos CRM. _(sesión 11)_
@@ -353,18 +357,18 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 16)
+## Prioridades inmediatas (sesión 17)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
-| 2 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
-| 3 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
-| 4 | CustomersPage: acción masiva "enviar email" a segmento seleccionado | CRM accionable |
-| 5 | PurchasesPage: recibir pedido parcial (cantidad recibida < pedida) | Operaciones reales |
-| 6 | Dashboard: comparativa semanal (esta semana vs semana anterior) en widget de ventas de hoy | Contexto rápido |
-| 7 | ReportsPage tab "Vendedores": ranking mensual con comisiones estimadas | Gestión de equipo |
-| 8 | SettingsPage: campo `low_stock_threshold` global + por producto | Configuración de reorden |
+| 1 | EmailCampaignsPage: leer sessionStorage `gestiona.bulk_campaign` y pre-abrir dialog con esos destinatarios | Completar flujo bulk email de CRM |
+| 2 | ProductsPage: campo `low_stock_threshold` editable por producto en el form | Umbral de reorden personalizado |
+| 3 | SalesPage: totales por método de pago en el pie de la tabla (efectivo/transferencia/etc.) | Cierre de caja más claro |
+| 4 | DebtsPage: envío masivo de WhatsApp a deudores vencidos | Cobranza proactiva |
+| 5 | Dashboard: widget "Metas semanales" — ventas esta semana vs target configurable | Motivación del equipo |
+| 6 | POS: modo offline básico con localStorage + sync al reconectar | Cortes de conexión |
+| 7 | AnalyticsPage: tab "Cohorts" — retención de clientes por mes de primera compra | Análisis profundo |
+| 8 | ReportsPage: tab "Impuestos" exportar PDF para contador | Cumplimiento fiscal |
 
 ---
 
