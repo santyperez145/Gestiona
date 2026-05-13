@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Brain, Send, Loader2, Trash2, Bot, User, Sparkles } from "lucide-react";
+import { Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart, Package, Users, BarChart2, DollarSign, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type ChatMessage = {
   id: string;
@@ -34,9 +35,19 @@ function formatMessage(text: string) {
   });
 }
 
+const QUICK_ACTIONS = [
+  { label: "Ir al POS", icon: ShoppingCart, path: "/pos" },
+  { label: "Ver Inventario", icon: Package, path: "/products" },
+  { label: "Ver Clientes", icon: Users, path: "/customers" },
+  { label: "Ver Analytics", icon: BarChart2, path: "/analytics" },
+  { label: "Ver Finanzas", icon: DollarSign, path: "/debts" },
+  { label: "Ver Reportes", icon: Zap, path: "/reports" },
+];
+
 export default function AIChatPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -118,6 +129,17 @@ export default function AIChatPage() {
                   {q}
                 </button>
               ))}
+            </div>
+            <div className="mt-5 w-full max-w-md">
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider text-center mb-2">Acciones rápidas</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {QUICK_ACTIONS.map(a => (
+                  <button key={a.path} onClick={() => navigate(a.path)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">
+                    <a.icon className="w-3.5 h-3.5" />{a.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

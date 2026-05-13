@@ -83,6 +83,51 @@ export default function DebtsPage() {
           sub="deuda promedio" />
       </div>
 
+      {/* Aging de deudas a cobrar */}
+      {pending.length > 0 && (() => {
+        const now = Date.now();
+        const agingBuckets = [
+          { label: "Corriente (0–30d)", max: 30, color: "bg-blue-500/70", textColor: "text-blue-400" },
+          { label: "31–60 días", min: 31, max: 60, color: "bg-yellow-500/70", textColor: "text-yellow-400" },
+          { label: "61–90 días", min: 61, max: 90, color: "bg-orange-500/70", textColor: "text-orange-400" },
+          { label: ">90 días", min: 91, color: "bg-red-500/70", textColor: "text-red-400" },
+        ] as { label: string; min?: number; max?: number; color: string; textColor: string }[];
+        const bucketed = agingBuckets.map(b => {
+          const items = pending.filter(d => {
+            const age = Math.floor((now - new Date(d.date).getTime()) / 86400000);
+            return age >= (b.min ?? 0) && age <= (b.max ?? Infinity);
+          });
+          return { ...b, count: items.length, total: items.reduce((s, d) => s + Number(d.remaining_ars), 0) };
+        }).filter(b => b.count > 0);
+        if (bucketed.length === 0) return null;
+        const grandTotal = bucketed.reduce((s, b) => s + b.total, 0);
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aging de cuentas a cobrar</h3>
+            <div className="space-y-2">
+              {bucketed.map(b => {
+                const pct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
+                return (
+                  <div key={b.label}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className={`font-medium ${b.textColor}`}>{b.label}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-muted-foreground">{b.count} deuda{b.count !== 1 ? "s" : ""}</span>
+                        <span className="font-semibold font-mono">{formatARS(b.total)}</span>
+                        <span className="text-muted-foreground w-10 text-right">{pct.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${b.color}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Search + Tabs */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1">
