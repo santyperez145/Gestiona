@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
-  Banknote, ArrowLeftRight, CreditCard, UserX, Zap, Printer,
+  Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
   Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw,
 } from "lucide-react";
@@ -650,6 +650,16 @@ export default function POSPage() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
 
+  // Seller on shift (localStorage per org)
+  const sellerKey = `gestiona.pos.seller.${activeOrg?.id || 'default'}`;
+  const [sellerName, setSellerName] = useState(() => localStorage.getItem(`gestiona.pos.seller.${activeOrg?.id || 'default'}`) || "");
+  const [showSellerPrompt, setShowSellerPrompt] = useState(false);
+  const [sellerInput, setSellerInput] = useState("");
+
+  useEffect(() => {
+    if (!sellerName) setShowSellerPrompt(true);
+  }, []);
+
   // Offline mode
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineSales, setOfflineSales] = useState<any[]>(() => {
@@ -937,6 +947,7 @@ export default function POSPage() {
           split_payments: splitPayments,
           global_discount_ars: itemGlobalDiscount > 0 ? itemGlobalDiscount : null,
           coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+          seller_name: sellerName || null,
         };
 
         if (isOnline) {
@@ -1416,6 +1427,48 @@ export default function POSPage() {
         </div>
       )}
 
+      {/* Seller prompt dialog */}
+      {showSellerPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+            <h2 className="text-lg font-bold font-display mb-1">¿Quién atiende hoy?</h2>
+            <p className="text-xs text-muted-foreground mb-4">El nombre del vendedor se registrará en cada venta del turno.</p>
+            <input
+              type="text"
+              value={sellerInput}
+              onChange={e => setSellerInput(e.target.value)}
+              placeholder="Tu nombre"
+              className="w-full h-10 px-3 rounded-lg border border-border bg-muted text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === "Enter" && sellerInput.trim()) {
+                  const name = sellerInput.trim();
+                  setSellerName(name);
+                  localStorage.setItem(sellerKey, name);
+                  setShowSellerPrompt(false);
+                }
+              }}
+            />
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 gradient-gold text-primary-foreground"
+                onClick={() => {
+                  const name = sellerInput.trim();
+                  if (!name) return;
+                  setSellerName(name);
+                  localStorage.setItem(sellerKey, name);
+                  setShowSellerPrompt(false);
+                }}
+                disabled={!sellerInput.trim()}
+              >
+                Confirmar
+              </Button>
+              <Button variant="ghost" onClick={() => setShowSellerPrompt(false)}>Omitir</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="h-[calc(100vh-4rem)] lg:h-screen flex flex-col">
         {/* Offline / sync banner */}
         {!isOnline && (
@@ -1438,6 +1491,16 @@ export default function POSPage() {
         )}
         {/* Top bar */}
         <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
+          {sellerName && (
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground">
+              <User className="w-3 h-3" />
+              <span>{sellerName}</span>
+              <button
+                onClick={() => { setSellerInput(sellerName); setShowSellerPrompt(true); }}
+                className="text-[10px] text-primary hover:underline"
+              >cambiar</button>
+            </div>
+          )}
           <div className="flex-1 relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
