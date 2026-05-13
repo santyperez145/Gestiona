@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
@@ -118,6 +119,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
 }
 
 export default function ProductsPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
@@ -141,6 +143,7 @@ export default function ProductsPage() {
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
+  const [reorderDismissed, setReorderDismissed] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -319,6 +322,57 @@ export default function ProductsPage() {
         <KPICard label="Sin stock" value={outOfStockCount} icon={X}
           color={outOfStockCount > 0 ? "destructive" : "success"} sub="agotados" />
       </div>
+
+      {/* Reorder alerts banner */}
+      {!reorderDismissed && (() => {
+        const reorderNeeded = products.filter(p => {
+          const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
+          return p.stock > 0 && p.stock <= threshold;
+        });
+        if (!reorderNeeded.length) return null;
+        return (
+          <div className="bg-warning/5 border border-warning/30 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+                <span className="text-sm font-semibold text-warning">{reorderNeeded.length} producto{reorderNeeded.length !== 1 ? 's' : ''} necesitan reposición</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/compras')}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-warning/15 text-warning font-semibold hover:bg-warning/25 transition-colors"
+                >
+                  + Nueva compra
+                </button>
+                <button onClick={() => setReorderDismissed(true)} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {reorderNeeded.slice(0, 8).map(p => {
+                const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
+                return (
+                  <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-warning/20 text-xs">
+                    <span className="font-medium truncate max-w-[120px]">{p.name}</span>
+                    <span className="text-warning font-bold">{p.stock}</span>
+                    <span className="text-muted-foreground">/ {threshold} mín</span>
+                    <button
+                      onClick={() => navigate(`/compras?product=${encodeURIComponent(p.name)}`)}
+                      className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-warning/20 text-warning font-semibold hover:bg-warning/30 transition-colors"
+                    >
+                      Pedir
+                    </button>
+                  </div>
+                );
+              })}
+              {reorderNeeded.length > 8 && (
+                <span className="text-xs text-muted-foreground self-center">+{reorderNeeded.length - 8} más</span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Bulk price adjustment modal */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>

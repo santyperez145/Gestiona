@@ -120,7 +120,8 @@ export default function SalesPage() {
   }, [products]);
 
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer">("list");
+  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_date">("list");
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
@@ -156,6 +157,26 @@ export default function SalesPage() {
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [filtered]);
+
+  const dateGroups = useMemo(() => {
+    const map: Record<string, { date: string; count: number; total: number; profit: number; paid: number; sales: any[] }> = {};
+    filtered.forEach(s => {
+      const d = String(s.date).slice(0, 10);
+      if (!map[d]) map[d] = { date: d, count: 0, total: 0, profit: 0, paid: 0, sales: [] };
+      map[d].count++;
+      map[d].total += Number(s.total_ars || 0);
+      map[d].profit += Number(s.profit_ars || 0);
+      if (s.paid) map[d].paid++;
+      map[d].sales.push(s);
+    });
+    return Object.values(map).sort((a, b) => b.date.localeCompare(a.date));
+  }, [filtered]);
+
+  const toggleDate = (date: string) => setExpandedDates(prev => {
+    const next = new Set(prev);
+    next.has(date) ? next.delete(date) : next.add(date);
+    return next;
+  });
 
   // Period comparison: prior equivalent period
   const prevPeriod = useMemo(() => {
@@ -456,11 +477,65 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           >
             <Users className="w-3.5 h-3.5" />Por cliente
           </button>
+          <button
+            onClick={() => setViewMode("by_date")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_date" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Agrupar por sesión / fecha"
+          >
+            <Filter className="w-3.5 h-3.5" />Por fecha
+          </button>
         </div>
       </div>
 
       {!filtered.length ? (
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
+      ) : viewMode === "by_date" ? (
+        /* ── By Date / POS session view ── */
+        <div className="space-y-2">
+          {dateGroups.map(group => {
+            const isOpen = expandedDates.has(group.date);
+            const label = new Date(group.date + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "long" });
+            return (
+              <div key={group.date} className="bg-card border border-border rounded-xl overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                  onClick={() => toggleDate(group.date)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[10px] transition-transform ${isOpen ? "rotate-90" : ""}`}>▶</span>
+                    <div>
+                      <p className="text-sm font-semibold capitalize">{label}</p>
+                      <p className="text-[11px] text-muted-foreground">{group.count} venta{group.count !== 1 ? 's' : ''} · {group.paid} cobrada{group.paid !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold">{formatARS(group.total)}</p>
+                    <p className="text-[11px] text-success">{formatARS(group.profit)} gan.</p>
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-border divide-y divide-border/50">
+                    {group.sales.map((s: any) => (
+                      <div key={s.id} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/10 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.paid ? 'bg-success' : 'bg-destructive'}`} />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{s.product_name}</p>
+                            <p className="text-[11px] text-muted-foreground">{s.customer_name || 'Sin cliente'} · {s.payment_method}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="font-semibold">{formatARS(Number(s.total_ars))}</p>
+                          <p className="text-[11px] text-muted-foreground">×{s.quantity}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : viewMode === "by_customer" ? (
         /* ── By Customer view ── */
         <div className="bg-card border border-border rounded-xl overflow-hidden">
