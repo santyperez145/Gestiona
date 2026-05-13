@@ -11,16 +11,17 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { addProductDB, addExpenseDB, createCustomerDB } from "@/lib/supabaseStore";
+import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "navigate";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
   | { type: "create_expense"; description?: string; amount?: string; category?: string }
   | { type: "create_customer"; name?: string; phone?: string; email?: string }
+  | { type: "adjust_stock"; productName?: string; quantity?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -65,6 +66,16 @@ function detectIntent(msg: string): AIAction | null {
       type: "create_customer",
       name: nameMatch?.[1]?.trim(),
       phone: phoneMatch?.[1]?.replace(/\s/g, ""),
+    };
+  }
+
+  // Adjust stock
+  if (/\b(ajusta(r)?|modifica(r)?|cambia(r)?|subi(r)?|baja(r)?|carga(r)?)\b.{0,30}\bstock\b/.test(lower) ||
+      /\bstock\b.{0,30}\b(ajusta(r)?|modifica(r)?|cambia(r)?)\b/.test(lower)) {
+    const qtyMatch = msg.match(/(\d+)\s*(?:unidades?|piezas?|u\.?)?/);
+    return {
+      type: "adjust_stock",
+      quantity: qtyMatch?.[1],
     };
   }
 
@@ -211,6 +222,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
     );
   }
 
+  if (action.type === "adjust_stock") {
+    return <AdjustStockCard userId={userId} onDone={onDone} />;
+  }
+
   if (action.type === "create_customer") {
     const handleCreate = async () => {
       if (!cName.trim()) return;
@@ -253,6 +268,78 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
   return null;
 }
 
+function AdjustStockCard({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [newStock, setNewStock] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    getProductsDB(userId).then(p => { setProducts(p); setLoadingProducts(false); }).catch(() => setLoadingProducts(false));
+  }, [userId]);
+
+  if (done) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+        <CheckCircle2 className="w-4 h-4" />Stock actualizado
+      </div>
+    );
+  }
+
+  const handleAdjust = async () => {
+    if (!selectedId || newStock === "") return;
+    setLoading(true);
+    try {
+      await updateProductDB(selectedId, { stock: parseInt(newStock, 10) });
+      toast.success("Stock actualizado");
+      setDone(true);
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message || "Error actualizando stock");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 p-3 rounded-lg border border-orange-500/20 bg-orange-500/5 space-y-2">
+      <p className="text-xs font-medium text-orange-400 flex items-center gap-1.5">
+        <Package className="w-3.5 h-3.5" />Ajustar stock
+      </p>
+      {loadingProducts ? (
+        <p className="text-xs text-muted-foreground">Cargando productos...</p>
+      ) : (
+        <select
+          value={selectedId}
+          onChange={e => setSelectedId(e.target.value)}
+          className="w-full h-7 text-xs rounded-md border border-border bg-background px-2"
+        >
+          <option value="">Seleccioná un producto...</option>
+          {products.map(p => (
+            <option key={p.id} value={p.id}>{p.name} (stock actual: {p.stock})</option>
+          ))}
+        </select>
+      )}
+      <Input
+        value={newStock}
+        onChange={e => setNewStock(e.target.value)}
+        placeholder="Nuevo stock *"
+        className="h-7 text-xs"
+        type="number"
+        min="0"
+      />
+      <div className="flex gap-2">
+        <Button size="sm" className="h-7 text-xs bg-orange-500 text-white flex-1" disabled={!selectedId || newStock === "" || loading} onClick={handleAdjust}>
+          {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Package className="w-3 h-3 mr-1" />}Actualizar
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
@@ -267,6 +354,7 @@ const ACTION_STARTERS = [
   { label: "Crear producto", icon: Package, msg: "Crear un producto nuevo" },
   { label: "Registrar gasto", icon: TrendingDown, msg: "Registrar un gasto" },
   { label: "Agregar cliente", icon: Users, msg: "Crear un cliente nuevo" },
+  { label: "Ajustar stock", icon: Package, msg: "Ajustar stock de un producto" },
 ];
 
 const QUICK_ACTIONS = [

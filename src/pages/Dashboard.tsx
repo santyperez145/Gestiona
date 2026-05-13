@@ -100,6 +100,7 @@ export default function Dashboard() {
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
   const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
+  const [pipelineStats, setPipelineStats] = useState<{ total: number; won: number; lost: number; active: number; wonValue: number; totalValue: number } | null>(null);
   const [monthlyTarget, setMonthlyTarget] = useState<number>(() => {
     const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
     return Number(localStorage.getItem(key) || 0);
@@ -160,6 +161,26 @@ export default function Dashboard() {
         .order("due_date", { nullsFirst: false })
         .limit(5);
       setUrgentTasks(data || []);
+    })();
+  }, [orgForTasks]);
+
+  // Pipeline conversion stats
+  useEffect(() => {
+    if (!orgForTasks) return;
+    (async () => {
+      const { data } = await supabase.from("deals").select("stage, value_ars").eq("org_id", orgForTasks.id);
+      if (!data?.length) return;
+      const won = data.filter(d => d.stage === "cerrado");
+      const lost = data.filter(d => d.stage === "perdido");
+      const active = data.filter(d => d.stage !== "cerrado" && d.stage !== "perdido");
+      setPipelineStats({
+        total: data.length,
+        won: won.length,
+        lost: lost.length,
+        active: active.length,
+        wonValue: won.reduce((s, d) => s + (d.value_ars || 0), 0),
+        totalValue: data.reduce((s, d) => s + (d.value_ars || 0), 0),
+      });
     })();
   }, [orgForTasks]);
 
@@ -976,6 +997,74 @@ export default function Dashboard() {
           ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos</div>}
         </div>
       </div>
+
+      {/* Pipeline Conversion Widget */}
+      {pipelineStats && pipelineStats.total > 0 && (
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />Pipeline de Ventas
+            </h2>
+            <Link to="/pipeline" className="text-xs text-primary hover:underline">Ver pipeline →</Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="text-center">
+              <p className="text-2xl font-black font-display text-foreground">{pipelineStats.total}</p>
+              <p className="text-xs text-muted-foreground">Total deals</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black font-display text-success">{pipelineStats.won}</p>
+              <p className="text-xs text-muted-foreground">Cerrados</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black font-display text-primary">{pipelineStats.active}</p>
+              <p className="text-xs text-muted-foreground">Activos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black font-display text-warning">
+                {pipelineStats.total > 0 ? ((pipelineStats.won / pipelineStats.total) * 100).toFixed(0) : 0}%
+              </p>
+              <p className="text-xs text-muted-foreground">Win rate</p>
+            </div>
+          </div>
+          {/* Funnel bar */}
+          <div className="space-y-1.5">
+            {pipelineStats.total > 0 && (
+              <div className="flex rounded-full overflow-hidden h-3">
+                {pipelineStats.won > 0 && (
+                  <div
+                    className="bg-success transition-all"
+                    style={{ width: `${(pipelineStats.won / pipelineStats.total) * 100}%` }}
+                    title={`Cerrados: ${pipelineStats.won}`}
+                  />
+                )}
+                {pipelineStats.active > 0 && (
+                  <div
+                    className="bg-primary/60 transition-all"
+                    style={{ width: `${(pipelineStats.active / pipelineStats.total) * 100}%` }}
+                    title={`Activos: ${pipelineStats.active}`}
+                  />
+                )}
+                {pipelineStats.lost > 0 && (
+                  <div
+                    className="bg-destructive/40 transition-all"
+                    style={{ width: `${(pipelineStats.lost / pipelineStats.total) * 100}%` }}
+                    title={`Perdidos: ${pipelineStats.lost}`}
+                  />
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success inline-block" />Cerrados</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary/60 inline-block" />Activos</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive/40 inline-block" />Perdidos</span>
+              {pipelineStats.wonValue > 0 && (
+                <span className="ml-auto font-medium text-success">{formatARS(pipelineStats.wonValue)} ganados</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* P&L by Month */}
       {stats.salesByMonth.length > 0 && stats.salesByMonth.some((m: any) => m.expenses > 0) && (
