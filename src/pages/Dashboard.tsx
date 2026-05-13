@@ -244,11 +244,18 @@ export default function Dashboard() {
     sales.forEach((s: any) => {
       const d = new Date(s.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0, count: 0, costARS: 0 };
+      if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0, count: 0, costARS: 0, expenses: 0 };
       monthMap[key].total += Number(s.total_ars);
       monthMap[key].profit += Number(s.profit_ars);
       monthMap[key].count += s.quantity;
       monthMap[key].costARS += Number(s.cost_per_unit_usd) * Number(settings.exchange_rate) * s.quantity;
+    });
+    // Add expenses to monthly map
+    expenses.forEach((e: any) => {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthMap[key]) monthMap[key] = { total: 0, profit: 0, count: 0, costARS: 0, expenses: 0 };
+      monthMap[key].expenses += Number(e.amount_ars);
     });
     const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const salesByMonth = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([m, data]: any) => {
@@ -257,6 +264,8 @@ export default function Dashboard() {
         month: `${monthNames[parseInt(mo) - 1]} ${y.slice(2)}`,
         total: data.total, profit: data.profit, count: data.count,
         margin: data.total > 0 ? (data.profit / data.total * 100) : 0,
+        expenses: data.expenses || 0,
+        netProfit: (data.profit || 0) - (data.expenses || 0),
       };
     });
 
@@ -967,6 +976,25 @@ export default function Dashboard() {
           ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos</div>}
         </div>
       </div>
+
+      {/* P&L by Month */}
+      {stats.salesByMonth.length > 0 && stats.salesByMonth.some((m: any) => m.expenses > 0) && (
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
+          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Resultado Neto por Mes (Ganancia − Gastos)</h2>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={stats.salesByMonth}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
+              <XAxis dataKey="month" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} />
+              <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name === 'profit' ? 'Ganancia bruta' : name === 'expenses' ? 'Gastos' : 'Neto']} />
+              <Legend formatter={(v: string) => v === 'profit' ? 'Ganancia bruta' : v === 'expenses' ? 'Gastos' : 'Resultado neto'} />
+              <Bar dataKey="profit" fill="hsl(150, 60%, 40%)" radius={[3, 3, 0, 0]} name="profit" />
+              <Bar dataKey="expenses" fill="hsl(0, 65%, 45%)" radius={[3, 3, 0, 0]} name="expenses" />
+              <Bar dataKey="netProfit" fill="hsl(40, 70%, 50%)" radius={[3, 3, 0, 0]} name="netProfit" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Margin Rankings */}
       {(stats.topMarginProducts?.length > 0 || stats.lowMarginProducts?.length > 0) && (
