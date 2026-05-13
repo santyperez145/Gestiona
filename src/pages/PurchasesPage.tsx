@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -34,9 +34,16 @@ export default function PurchasesPage() {
   useEffect(() => { reload(); }, [user]);
 
   const [tab, setTab] = useState<'all' | 'scheduled'>('all');
+  const [search, setSearch] = useState('');
+  const [filterSupplier, setFilterSupplier] = useState('all');
+
+  const supplierOptions = Array.from(new Set(purchases.map(p => p.supplier).filter(Boolean))).sort();
+
   const filtered = purchases.filter(p => {
     if (tab === 'scheduled' && !p.is_scheduled) return false;
     if (tab === 'all' && p.is_scheduled) return false;
+    if (search && !p.product_name?.toLowerCase().includes(search.toLowerCase()) && !p.supplier?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterSupplier !== 'all' && p.supplier !== filterSupplier) return false;
     if (!dateFrom) return true;
     const d = new Date(p.date);
     if (d < dateFrom) return false;
@@ -92,6 +99,24 @@ export default function PurchasesPage() {
       </div>
 
       {/* Tabs */}
+      {/* Search + supplier filter */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="relative flex-1 min-w-[160px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Buscar producto o proveedor..."
+            className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
+        </div>
+        {supplierOptions.length > 0 && (
+          <Select value={filterSupplier} onValueChange={v => { setFilterSupplier(v); setPage(0); }}>
+            <SelectTrigger className="bg-card border-border w-full sm:w-[180px] h-9 text-sm"><SelectValue placeholder="Todos los proveedores" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los proveedores</SelectItem>
+              {supplierOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
       <div className="flex bg-card border border-border rounded-lg p-1 gap-1 w-fit mb-5">
         {([["all", "Realizadas"], ["scheduled", `Programadas`]] as const).map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setPage(0); }}
