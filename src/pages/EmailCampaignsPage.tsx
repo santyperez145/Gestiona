@@ -46,13 +46,17 @@ interface Customer {
   id: string;
   name: string;
   email?: string;
+  birthday?: string | null;
 }
 
 const SEGMENTS = [
   { value: "all", label: "Todos los clientes con email" },
-  { value: "vip", label: "VIP y Premium" },
+  { value: "vip", label: "VIP y Premium (compraron últimos 30d)" },
   { value: "at_risk", label: "En riesgo (sin comprar 30–60d)" },
   { value: "dormant", label: "Dormidos (sin comprar 60–90d)" },
+  { value: "lost", label: "Perdidos (sin comprar +90d)" },
+  { value: "birthday", label: "Cumpleaños este mes" },
+  { value: "never_bought", label: "Nunca compraron (solo en CRM)" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -97,7 +101,7 @@ export default function EmailCampaignsPage() {
     try {
       const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }] = await Promise.all([
         supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("customers").select("id,name,email").eq("org_id", activeOrg.id).not("email", "is", null),
+        supabase.from("customers").select("id,name,email,birthday").eq("org_id", activeOrg.id).not("email", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
       ]);
@@ -151,6 +155,14 @@ export default function EmailCampaignsPage() {
         if (seg === "vip") return daysSince <= 30;
         if (seg === "at_risk") return daysSince > 30 && daysSince <= 60;
         if (seg === "dormant") return daysSince > 60 && daysSince <= 90;
+        if (seg === "lost") return daysSince > 90;
+        if (seg === "birthday") {
+          const m = today.getMonth() + 1;
+          if (!c.birthday) return false;
+          const bm = parseInt(c.birthday.split("-")[1] || "0");
+          return bm === m;
+        }
+        if (seg === "never_bought") return !lastMs;
         return true;
       });
     };
