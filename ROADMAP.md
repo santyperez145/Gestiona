@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 10)**
+Última actualización: **2026-05-13 (sesión 11)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~87% completo.**
+**MVP avanzado con SaaS billing funcional. ~89% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -116,6 +116,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ChequesPage + CuotasPage CSV export** — exportación completa de cheques y cuotas con todos los campos relevantes. _(sesión 10)_
 - **SalesPipelinePage pipeline ponderado** — KPI "Pipeline ponderado" = Σ(valor × probabilidad) por etapa, probabilidades por stage header. _(sesión 10)_
 - **AIChatPage chips de navegación** — 6 chips de acceso rápido (ventas, POS, clientes, inventario, gastos, reportes) en estado vacío. _(sesión 10)_
+- **AIChatPage acciones reales** — detección de intención client-side (crear producto/gasto/cliente), action cards con mini-formularios inline que escriben directamente en DB; chips "Acciones directas" en estado vacío. _(sesión 11)_
+- **CustomersPage segmentos RFM en DB** — migración de localStorage a Supabase (campo `crm_segments` JSONB en settings); auto-migración en primer load; sync multi-dispositivo. _(sesión 11)_
+- **supabaseStore getCRMSegmentsDB/saveCRMSegmentsDB** — helpers para persistir segmentos CRM. _(sesión 11)_
+- **InfluencerExchangesPage CSV export** — exporta influencer, producto, tipo, valor, posts, estado, ROI. _(sesión 11)_
+- **MarketingPage CSV export** — exporta publicaciones con filtro de estado aplicado + contador visible. _(sesión 11)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -294,7 +299,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 10)
+## Estado por módulo (actualizado sesión 11)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
@@ -302,29 +307,29 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | Auth + orgs | 80% | Permisos granulares |
 | Inventario | 82% | Lotes en UI, offline POS |
 | Ventas + POS | 83% | Modo offline, filtros avanzados |
-| Clientes + CRM | 86% | Segmentos persistidos en DB |
+| Clientes + CRM | 88% | Segmentos con acciones masivas |
 | Finanzas | 83% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
-| Marketing + Email | 78% | Open rate / click tracking |
-| IA + Analytics | 83% | Chat IA con acciones |
+| Marketing + Email | 80% | Open rate / click tracking |
+| IA + Analytics | 87% | Chat IA con más acciones |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
 | Mobile + UX | 72% | Capacitor, offline POS |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **87%** | |
+| **TOTAL** | **89%** | |
 
 ---
 
-## Prioridades inmediatas (sesión 11)
+## Prioridades inmediatas (sesión 12)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | Chat IA con acciones reales (crear producto, registrar venta) | Diferenciación vs competidores |
-| 2 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
-| 3 | Permisos granulares por rol (caja, ventas, inventario) | Empresas con múltiples empleados |
-| 4 | Segmentos RFM persistidos en DB (multi-dispositivo) | CRM accionable colaborativo |
-| 5 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
-| 6 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
+| 1 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
+| 2 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
+| 3 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
+| 4 | Permisos granulares a nivel de acción (no solo nav) | Validación en botones edit/delete |
+| 5 | Chat IA: más acciones (registrar venta, ajuste de stock) | Ampliar cobertura de acciones |
+| 6 | Dashboard: widget de conversión Pipeline (deals cerrados/total) | KPI accionable para dueño |
 
 ---
 
