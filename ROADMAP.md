@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~89% completo.**
+**MVP avanzado con SaaS billing funcional. ~91% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -121,6 +121,12 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **supabaseStore getCRMSegmentsDB/saveCRMSegmentsDB** — helpers para persistir segmentos CRM. _(sesión 11)_
 - **InfluencerExchangesPage CSV export** — exporta influencer, producto, tipo, valor, posts, estado, ROI. _(sesión 11)_
 - **MarketingPage CSV export** — exporta publicaciones con filtro de estado aplicado + contador visible. _(sesión 11)_
+- **Dashboard pipeline conversion widget** — win rate, funnel bar con cerrados/activos/perdidos, valor ganado, link a pipeline. _(sesión 11)_
+- **AIChatPage ajuste de stock** — detección de intento "ajustar stock", AdjustStockCard con selector de producto + stock actual + nuevo valor. _(sesión 11)_
+- **TasksPage kanban view** — toggle lista/kanban, columnas por estado (pendiente/en progreso/completada), drag-drop entre columnas. _(sesión 11)_
+- **ProductsPage inline stock edit** — click en el número de stock para editarlo inline, guarda con Enter/blur, cancela con Escape. _(sesión 11)_
+- **AnalyticsPage ABC analysis** — tab "ABC" con clasificación Pareto de productos (A=80% ingreso, B=15%, C=5%), tabla con barras de contribución, tips accionables. _(sesión 11)_
+- **SalesPage vista Por Cliente** — toggle lista/por-cliente, rankea clientes por total gastado con share %, ganancia, última compra, producto top. _(sesión 11)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -307,16 +313,17 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | Auth + orgs | 80% | Permisos granulares |
 | Inventario | 82% | Lotes en UI, offline POS |
 | Ventas + POS | 83% | Modo offline, filtros avanzados |
-| Clientes + CRM | 88% | Segmentos con acciones masivas |
+| Clientes + CRM | 89% | Segmentos con acciones masivas |
 | Finanzas | 83% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
 | Marketing + Email | 80% | Open rate / click tracking |
-| IA + Analytics | 87% | Chat IA con más acciones |
+| IA + Analytics | 90% | Chat IA con más acciones, ABC analysis |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
 | Mobile + UX | 72% | Capacitor, offline POS |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **89%** | |
+| Ventas + POS | 86% | Offline POS, más filtros |
+| **TOTAL** | **91%** | |
 
 ---
 
