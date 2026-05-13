@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import {
   FileText, Plus, Check, Clock, AlertTriangle, DollarSign,
-  Banknote, XCircle, CalendarDays, TrendingUp,
+  Banknote, XCircle, CalendarDays, TrendingUp, FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -181,6 +181,28 @@ export default function ChequesPage() {
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground self-center">{filtered.length} cheque{filtered.length !== 1 ? "s" : ""}</span>
+        <Button variant="outline" size="sm" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Tipo', 'Cliente/Destinatario', 'Banco', 'Nro. Cheque', 'Monto ARS', 'Fecha Emisión', 'Fecha Vencimiento', 'Estado', 'Notas'];
+          const rows = filtered.map(c => [
+            c.type === 'received' ? 'Recibido' : 'Emitido',
+            c.customer_name || '',
+            c.bank_name || '',
+            c.check_number || '',
+            Number(c.amount_ars).toFixed(2),
+            c.issue_date || '',
+            c.due_date,
+            STATUS_CONFIG[c.status]?.label || c.status,
+            c.notes || '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = 'cheques.csv'; a.click();
+          toast.success('cheques.csv exportado');
+        }}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {loading ? (
