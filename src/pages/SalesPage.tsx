@@ -125,11 +125,18 @@ export default function SalesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
+  const [filterSeller, setFilterSeller] = useState('all');
+
+  const sellerOptions = useMemo(() => {
+    const names = Array.from(new Set(sales.map(s => s.seller_name).filter(Boolean))) as string[];
+    return names.sort();
+  }, [sales]);
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
     if (filterPaid === 'paid' && !s.paid) return false;
     if (filterPaid === 'pending' && s.paid) return false;
+    if (filterSeller !== 'all' && s.seller_name !== filterSeller) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -450,6 +457,18 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        {sellerOptions.length > 0 && (
+          <Select value={filterSeller} onValueChange={v => { setFilterSeller(v); setPage(0); }}>
+            <SelectTrigger className="bg-card border-border w-full sm:w-[150px] h-9 text-sm">
+              <Users className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los vendedores</SelectItem>
+              {sellerOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <div className="flex rounded-lg border border-border overflow-hidden h-9 shrink-0">
           {([
             { key: 'all', label: 'Todas' },

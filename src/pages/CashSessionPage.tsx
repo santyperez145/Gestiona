@@ -396,6 +396,30 @@ export default function CashSessionPage() {
             ))}
           </div>
 
+          {/* Breakdown by seller */}
+          {(() => {
+            const bySeller: Record<string, number> = {};
+            sessionSales.forEach(s => {
+              const k = s.seller_name || "Sin asignar";
+              bySeller[k] = (bySeller[k] || 0) + Number(s.total_ars || 0);
+            });
+            const entries = Object.entries(bySeller).sort((a, b) => b[1] - a[1]);
+            if (entries.length < 2) return null;
+            return (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ventas por vendedor</p>
+                <div className="space-y-2">
+                  {entries.map(([name, total]) => (
+                    <div key={name} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{name}</span>
+                      <span className="font-mono font-semibold">{formatARS(total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Efectivo esperado */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
             <div>

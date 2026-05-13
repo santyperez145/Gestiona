@@ -744,7 +744,11 @@ export default function AIChatPage() {
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(() => {
+    const prefill = sessionStorage.getItem("gestiona.ai_prefill");
+    if (prefill) { sessionStorage.removeItem("gestiona.ai_prefill"); return prefill; }
+    return "";
+  });
   const [loading, setLoading] = useState(false);
   const [dismissedActions, setDismissedActions] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);

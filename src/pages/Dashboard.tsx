@@ -12,7 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid,
   LineChart, Line, Legend, AreaChart, Area,
 } from "recharts";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CashFlowProjector from "@/components/dashboard/CashFlowProjector";
 import HealthScore from "@/components/dashboard/HealthScore";
 import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
@@ -92,6 +92,7 @@ function FinancialSection({ stats }: { stats: any }) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -781,6 +782,16 @@ export default function Dashboard() {
             {a.label}
           </Link>
         ))}
+        <button
+          onClick={() => {
+            sessionStorage.setItem("gestiona.ai_prefill", "Dame un insight del día: qué vendí hoy, qué productos destacaron y qué debería priorizar ahora");
+            navigate("/ai-chat");
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
+        >
+          <Zap className="w-3.5 h-3.5" />
+          💡 Insight del día
+        </button>
       </div>
 
       {/* Today detail panel */}
