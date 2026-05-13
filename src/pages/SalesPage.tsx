@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -121,6 +121,8 @@ export default function SalesPage() {
 
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<"list" | "by_customer">("list");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
@@ -183,6 +185,23 @@ export default function SalesPage() {
     if (user) await logAudit(user.id, 'delete', 'sale', sale.id, { product: sale.product_name, total: sale.total_ars });
     reload();
     toast.success("Venta eliminada");
+  };
+
+  const unpaidPaged = paged.filter(s => !s.paid);
+  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelectAll = () => {
+    if (selectedIds.size === unpaidPaged.length && unpaidPaged.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(unpaidPaged.map(s => s.id)));
+  };
+  const bulkMarkPaid = async () => {
+    const toMark = paged.filter(s => selectedIds.has(s.id) && !s.paid);
+    if (!toMark.length) return;
+    setBulkLoading(true);
+    await Promise.all(toMark.map(s => updateSaleDB(s.id, { paid: true }, s)));
+    setSelectedIds(new Set());
+    reload();
+    setBulkLoading(false);
+    toast.success(`${toMark.length} venta${toMark.length !== 1 ? 's' : ''} marcada${toMark.length !== 1 ? 's' : ''} como cobrada${toMark.length !== 1 ? 's' : ''}`);
   };
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
@@ -380,10 +399,28 @@ export default function SalesPage() {
         </div>
       ) : (
         <>
+          {/* Bulk action bar */}
+          {selectedIds.size > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-2xl px-4 py-3">
+              <span className="text-sm font-medium">{selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}</span>
+              <Button size="sm" className="gradient-gold text-primary-foreground font-semibold shadow-gold h-8" onClick={bulkMarkPaid} disabled={bulkLoading}>
+                <CheckCheck className="w-4 h-4 mr-1.5" />{bulkLoading ? "Procesando..." : "Marcar cobradas"}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelectedIds(new Set())}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
           <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
+                  <th className="px-3 py-3 w-8">
+                    <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors" title="Seleccionar todas las pendientes">
+                      {selectedIds.size > 0 && selectedIds.size === unpaidPaged.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                    </button>
+                  </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Cliente</th>
@@ -397,7 +434,14 @@ export default function SalesPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {paged.map(s => (
-                  <tr key={s.id} className="hover:bg-muted/20 transition-colors group">
+                  <tr key={s.id} className={`hover:bg-muted/20 transition-colors group ${selectedIds.has(s.id) ? 'bg-primary/5' : ''}`}>
+                    <td className="px-3 py-3 w-8">
+                      {!s.paid && (
+                        <button onClick={() => toggleSelect(s.id)} className="text-muted-foreground hover:text-primary transition-colors">
+                          {selectedIds.has(s.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(s.date)}</td>
                     <td className="px-4 py-3 font-medium">{s.product_name}</td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
