@@ -17,11 +17,13 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePermissions } from "@/lib/usePermissions";
 
 const PAGE_SIZE = 20;
 
 export default function PurchasesPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [purchases, setPurchases] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
@@ -77,15 +79,17 @@ export default function PurchasesPage() {
             <Button variant="outline" size="sm" onClick={() => setOrderOpen(true)}>
               <ClipboardList className="w-4 h-4 mr-1.5" />Orden de Compra
             </Button>
-            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-              <DialogTrigger asChild>
-                <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
-                <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
-                <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
-              </DialogContent>
-            </Dialog>
+            {canCreate && (
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+                <DialogTrigger asChild>
+                  <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
+                </DialogTrigger>
+                <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+                  <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
+                  <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         }
       />
@@ -166,18 +170,22 @@ export default function PurchasesPage() {
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground hidden xl:table-cell">{formatUSD(Number(p.unit_cost_usd))}</td>
                     <td className="px-4 py-3 text-right font-semibold">{formatUSD(Number(p.total_usd))}</td>
                     <td className="px-4 py-3 text-right font-semibold text-primary">{formatARS(Number(p.total_ars))}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
-                        <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                          title="¿Eliminar compra?"
-                          description={`Se eliminará la compra de ${p.product_name}.`}
-                          confirmText="Eliminar"
-                          onConfirm={() => handleDelete(p)}
-                        />
-                      </div>
-                    </td>
+                    {(canEdit || canDelete) && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>}
+                          {canDelete && (
+                            <ConfirmDialog
+                              trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                              title="¿Eliminar compra?"
+                              description={`Se eliminará la compra de ${p.product_name}.`}
+                              confirmText="Eliminar"
+                              onConfirm={() => handleDelete(p)}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -193,13 +201,15 @@ export default function PurchasesPage() {
                     <p className="text-xs text-muted-foreground">{formatDateAR(p.date)} · {p.supplier || 'Sin proveedor'}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
-                    <ConfirmDialog
-                      trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
-                      title="¿Eliminar compra?"
-                      confirmText="Eliminar"
-                      onConfirm={() => handleDelete(p)}
-                    />
+                    {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3 h-3" /></Button>}
+                    {canDelete && (
+                      <ConfirmDialog
+                        trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
+                        title="¿Eliminar compra?"
+                        confirmText="Eliminar"
+                        onConfirm={() => handleDelete(p)}
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">

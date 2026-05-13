@@ -18,6 +18,7 @@ import ProductsExcelImport from "@/components/products/ProductsExcelImport";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
+import { usePermissions } from "@/lib/usePermissions";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -72,6 +73,7 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
@@ -203,16 +205,20 @@ export default function ProductsPage() {
         }
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-              <Upload className="w-4 h-4 mr-2" />Importar Excel
-            </Button>
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
-              <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
-            </Button>
-            {productLimit !== null && products.length >= productLimit ? (
+            {canCreate && (
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" />Importar Excel
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
+                <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
+              </Button>
+            )}
+            {canCreate && (productLimit !== null && products.length >= productLimit ? (
               <Button
                 className="gradient-gold text-primary-foreground font-semibold shadow-gold"
                 onClick={() => toast.error(`Límite de ${productLimit} productos alcanzado en el plan ${plan?.name}. Actualizá tu plan.`)}
@@ -229,7 +235,7 @@ export default function ProductsPage() {
                   <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
                 </DialogContent>
               </Dialog>
-            )}
+            ))}
           </div>
         }
       />
@@ -452,15 +458,17 @@ export default function ProductsPage() {
                            </span>
                          </td>
                          <td className="p-3 text-center space-x-1">
-                           <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                           {canEdit && <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
-                           <ConfirmDialog
-                             trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                             title="¿Eliminar producto?"
-                             description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
-                             confirmText="Eliminar"
-                             onConfirm={() => handleDelete(p)}
-                           />
+                           {canDelete && (
+                             <ConfirmDialog
+                               trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                               title="¿Eliminar producto?"
+                               description={`Se eliminará "${p.name}" y no se podrá recuperar.`}
+                               confirmText="Eliminar"
+                               onConfirm={() => handleDelete(p)}
+                             />
+                           )}
                          </td>
                        </tr>
                      ))}
@@ -482,13 +490,15 @@ export default function ProductsPage() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>
-                        <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
-                          title="¿Eliminar producto?"
-                          confirmText="Eliminar"
-                          onConfirm={() => handleDelete(p)}
-                        />
+                        {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>}
+                        {canDelete && (
+                          <ConfirmDialog
+                            trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}
+                            title="¿Eliminar producto?"
+                            confirmText="Eliminar"
+                            onConfirm={() => handleDelete(p)}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">

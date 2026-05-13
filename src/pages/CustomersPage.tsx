@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePermissions } from "@/lib/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -506,6 +507,7 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
 export default function CustomersPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [sales, setSales] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -929,12 +931,14 @@ export default function CustomersPage() {
                 Importar CSV
               </span>
             </label>
-            <Button
-              onClick={() => setFormModal({ open: true })}
-              className="gradient-gold text-primary-foreground gap-2"
-            >
-              <Plus className="w-4 h-4" />Nuevo cliente
-            </Button>
+            {canCreate && (
+              <Button
+                onClick={() => setFormModal({ open: true })}
+                className="gradient-gold text-primary-foreground gap-2"
+              >
+                <Plus className="w-4 h-4" />Nuevo cliente
+              </Button>
+            )}
           </div>
         }
       />
@@ -1206,22 +1210,24 @@ export default function CustomersPage() {
                     )}
                     {/* Action buttons */}
                     <div className="flex gap-2 mb-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-xs"
-                        onClick={() => setFormModal({
-                          open: true,
-                          profile: c.profileId ? {
-                            id: c.profileId, name: c.name, email: c.email, phone: c.phone,
-                            address: c.address, birthday: c.birthday, tags: c.tags, notes: c.profileNotes,
-                          } : { name: c.name },
-                        })}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        {c.profileId ? "Editar perfil" : "Crear perfil"}
-                      </Button>
-                      {c.profileId && (
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs"
+                          onClick={() => setFormModal({
+                            open: true,
+                            profile: c.profileId ? {
+                              id: c.profileId, name: c.name, email: c.email, phone: c.phone,
+                              address: c.address, birthday: c.birthday, tags: c.tags, notes: c.profileNotes,
+                            } : { name: c.name },
+                          })}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          {c.profileId ? "Editar perfil" : "Crear perfil"}
+                        </Button>
+                      )}
+                      {canDelete && c.profileId && (
                         <Button
                           size="sm"
                           variant="outline"

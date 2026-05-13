@@ -20,9 +20,11 @@ import { logAudit } from "@/lib/auditLog";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePermissions } from "@/lib/usePermissions";
 
 export default function ExpensesPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -145,7 +147,7 @@ export default function ExpensesPage() {
         title="Gastos Operativos"
         description="Control de egresos por categoría"
         badge={{ label: formatARS(totals.total), variant: "destructive" }}
-        actions={
+        actions={canCreate ? (
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
             <DialogTrigger asChild>
               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
@@ -162,7 +164,7 @@ export default function ExpensesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
-        }
+        ) : undefined}
       />
 
       {/* KPI cards */}
@@ -298,18 +300,22 @@ export default function ExpensesPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-right font-bold text-destructive">-{formatARS(Number(e.amount_ars))}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
-                              <ConfirmDialog
-                                trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                                title="¿Eliminar gasto?"
-                                description={`Se eliminará el gasto de ${formatARS(Number(e.amount_ars))}.`}
-                                confirmText="Eliminar"
-                                onConfirm={() => handleDelete(e.id)}
-                              />
-                            </div>
-                          </td>
+                          {(canEdit || canDelete) && (
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>}
+                                {canDelete && (
+                                  <ConfirmDialog
+                                    trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                                    title="¿Eliminar gasto?"
+                                    description={`Se eliminará el gasto de ${formatARS(Number(e.amount_ars))}.`}
+                                    confirmText="Eliminar"
+                                    onConfirm={() => handleDelete(e.id)}
+                                  />
+                                )}
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -342,15 +348,19 @@ export default function ExpensesPage() {
                         </div>
                         <span className="text-sm font-bold text-destructive shrink-0">-{formatARS(Number(e.amount_ars))}</span>
                       </div>
-                      <div className="flex justify-end gap-1 mt-2">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
-                        <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                          title="¿Eliminar gasto?"
-                          confirmText="Eliminar"
-                          onConfirm={() => handleDelete(e.id)}
-                        />
-                      </div>
+                      {(canEdit || canDelete) && (
+                        <div className="flex justify-end gap-1 mt-2">
+                          {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3 h-3" /></Button>}
+                          {canDelete && (
+                            <ConfirmDialog
+                              trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                              title="¿Eliminar gasto?"
+                              confirmText="Eliminar"
+                              onConfirm={() => handleDelete(e.id)}
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
