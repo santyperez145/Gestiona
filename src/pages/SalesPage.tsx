@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -223,11 +223,73 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   };
 
+  const printBulkReceipt = () => {
+    const selected = paged.filter(s => selectedIds.has(s.id));
+    if (!selected.length) return;
+    const businessName = (settings as any)?.business_name || "Mi Negocio";
+    const customer = selected[0]?.customer_name || "";
+    const date = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const allPaid = selected.every(s => s.paid);
+    const total = selected.reduce((sum, s) => sum + Number(s.total_ars), 0);
+    const rows = selected.map(s =>
+      `<tr><td>${s.product_name || "—"}</td><td style="text-align:center">${s.quantity}</td><td style="text-align:right">${formatARS(Number(s.unit_price_ars))}</td><td style="text-align:right">${formatARS(Number(s.total_ars))}</td></tr>`
+    ).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
+<style>
+  body{font-family:Arial,sans-serif;max-width:400px;margin:20px auto;font-size:13px;color:#333}
+  h1{font-size:18px;text-align:center;margin-bottom:4px}
+  .sub{text-align:center;color:#666;font-size:11px;margin-bottom:16px}
+  hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;border-bottom:1px solid #ccc;padding:4px 0;font-size:11px;color:#666}
+  td{padding:4px 0}
+  .total{font-size:16px;font-weight:bold;text-align:right;margin-top:12px}
+  .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
+  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${allPaid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
+</style></head><body>
+<h1>RECIBO DE VENTA</h1>
+<div class="sub">${businessName} · ${date}</div>
+${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</strong></div>` : ""}
+<hr>
+<table><thead><tr><th>Producto</th><th style="text-align:center">Cant.</th><th style="text-align:right">P.Unit</th><th style="text-align:right">Total</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<hr>
+<div class="total">TOTAL: ${formatARS(total)}</div>
+<div style="text-align:right;margin-top:4px"><span class="estado">${allPaid ? "✓ Cobrado" : "Pendiente"}</span></div>
+<div class="footer"><p>¡Gracias por su compra!</p></div>
+</body></html>`;
+    const w = window.open("", "_blank", "width=440,height=600");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 200); }
+  };
+
+  const exportSalesCSV = () => {
+    const header = ['Fecha', 'Producto', 'Cliente', 'Cantidad', 'P.Unit (ARS)', 'Total (ARS)', 'Ganancia (ARS)', 'Ganancia (USD)', 'Método', 'Cobrado', 'Descuento'];
+    const rows = filtered.map(s => [
+      s.date,
+      `"${(s.product_name || '').replace(/"/g, '""')}"`,
+      `"${(s.customer_name || '').replace(/"/g, '""')}"`,
+      s.quantity,
+      Number(s.unit_price_ars).toFixed(2),
+      Number(s.total_ars).toFixed(2),
+      Number(s.profit_ars || 0).toFixed(2),
+      Number(s.profit_usd || 0).toFixed(2),
+      s.payment_method || 'efectivo',
+      s.paid ? 'Sí' : 'No',
+      s.discount_applied ? 'Sí' : 'No',
+    ]);
+    const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `ventas_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} ventas exportadas`);
+  };
+
   const unpaidPaged = paged.filter(s => !s.paid);
   const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => {
-    if (selectedIds.size === unpaidPaged.length && unpaidPaged.length > 0) setSelectedIds(new Set());
-    else setSelectedIds(new Set(unpaidPaged.map(s => s.id)));
+    if (selectedIds.size === paged.length && paged.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(paged.map(s => s.id)));
   };
   const bulkMarkPaid = async () => {
     const toMark = paged.filter(s => selectedIds.has(s.id) && !s.paid);
@@ -256,6 +318,11 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
         actions={
           <div className="flex items-center gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
+            {filtered.length > 0 && (
+              <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
+                <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+              </Button>
+            )}
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
               <DialogTrigger asChild>
                 <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
@@ -454,6 +521,9 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
               <Button size="sm" className="gradient-gold text-primary-foreground font-semibold shadow-gold h-8" onClick={bulkMarkPaid} disabled={bulkLoading}>
                 <CheckCheck className="w-4 h-4 mr-1.5" />{bulkLoading ? "Procesando..." : "Marcar cobradas"}
               </Button>
+              <Button size="sm" variant="outline" className="h-8" onClick={printBulkReceipt} title="Imprimir recibo con todos los ítems seleccionados">
+                <Printer className="w-4 h-4 mr-1.5" />Recibo
+              </Button>
               <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelectedIds(new Set())}>
                 <X className="w-4 h-4" />
               </Button>
@@ -465,8 +535,8 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   <th className="px-3 py-3 w-8">
-                    <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors" title="Seleccionar todas las pendientes">
-                      {selectedIds.size > 0 && selectedIds.size === unpaidPaged.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                    <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors" title="Seleccionar todas">
+                      {selectedIds.size > 0 && selectedIds.size === paged.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                     </button>
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
@@ -484,11 +554,9 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
                 {paged.map(s => (
                   <tr key={s.id} className={`hover:bg-muted/20 transition-colors group ${selectedIds.has(s.id) ? 'bg-primary/5' : ''}`}>
                     <td className="px-3 py-3 w-8">
-                      {!s.paid && (
-                        <button onClick={() => toggleSelect(s.id)} className="text-muted-foreground hover:text-primary transition-colors">
-                          {selectedIds.has(s.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
-                        </button>
-                      )}
+                      <button onClick={() => toggleSelect(s.id)} className="text-muted-foreground hover:text-primary transition-colors">
+                        {selectedIds.has(s.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 opacity-40 group-hover:opacity-100" />}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(s.date)}</td>
                     <td className="px-4 py-3 font-medium">{s.product_name}</td>

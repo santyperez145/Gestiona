@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -21,6 +21,52 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePermissions } from "@/lib/usePermissions";
+
+function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
+  const header = ['Fecha', 'Descripción', 'Categoría', 'Monto (ARS)', 'Recurrente'];
+  const rows = expenses.map(e => [
+    e.date,
+    `"${(e.description || '').replace(/"/g, '""')}"`,
+    getCategoryLabel(e.category),
+    Number(e.amount_ars).toFixed(2),
+    e.recurring ? 'Sí' : 'No',
+  ]);
+  const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `gastos_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printExpensesReport(expenses: any[], getCategoryLabel: (c: string) => string, businessName: string, period: string) {
+  const total = expenses.reduce((s, e) => s + Number(e.amount_ars), 0);
+  const byCat: Record<string, number> = {};
+  expenses.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount_ars); });
+  const catRows = Object.entries(byCat).sort(([, a], [, b]) => b - a)
+    .map(([cat, amt]) => `<tr><td>${getCategoryLabel(cat)}</td><td style="text-align:right">$${amt.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td style="text-align:right">${((amt / total) * 100).toFixed(1)}%</td></tr>`).join('');
+  const detailRows = expenses.sort((a, b) => b.date.localeCompare(a.date))
+    .map(e => `<tr><td>${e.date}</td><td>${e.description || ''}</td><td>${getCategoryLabel(e.category)}</td><td style="text-align:right">$${Number(e.amount_ars).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de Gastos</title><style>
+    body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}
+    h1{font-size:18px;margin-bottom:4px}h2{font-size:14px;color:#555;margin-top:16px;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin-bottom:12px}
+    th{background:#f0f0f0;text-align:left;padding:5px 8px;border-bottom:2px solid #ccc;font-size:11px}
+    td{padding:4px 8px;border-bottom:1px solid #eee}
+    .total{font-weight:bold;font-size:14px;margin-top:8px}
+    @media print{body{margin:0}}
+  </style></head><body>
+    <h1>${businessName}</h1>
+    <p>Reporte de Gastos · ${period} · Generado ${new Date().toLocaleDateString('es-AR')}</p>
+    <p class="total">Total del período: $${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+    <h2>Por Categoría</h2>
+    <table><thead><tr><th>Categoría</th><th style="text-align:right">Monto</th><th style="text-align:right">%</th></tr></thead><tbody>${catRows}</tbody></table>
+    <h2>Detalle de Gastos (${expenses.length})</h2>
+    <table><thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th style="text-align:right">Monto</th></tr></thead><tbody>${detailRows}</tbody></table>
+  </body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+}
 
 export default function ExpensesPage() {
   const { user } = useAuth();
@@ -147,24 +193,38 @@ export default function ExpensesPage() {
         title="Gastos Operativos"
         description="Control de egresos por categoría"
         badge={{ label: formatARS(totals.total), variant: "destructive" }}
-        actions={canCreate ? (
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-            <DialogTrigger asChild>
-              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
-                <Plus className="w-4 h-4 mr-2" /> Nuevo Gasto
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border max-w-md p-0">
-              <DialogHeader className="p-6 pb-2">
-                <DialogTitle className="font-display">{editItem ? 'Editar Gasto' : 'Registrar Gasto'}</DialogTitle>
-              </DialogHeader>
-              <ScrollArea className="max-h-[70vh] px-6 pb-6">
-                <ExpenseForm userId={user!.id} editItem={editItem} categories={categories}
-                  onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
-        ) : undefined}
+        actions={
+          <div className="flex gap-2">
+            {filtered.length > 0 && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => exportExpensesCSV(filtered, getExpenseCategoryLabel)}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => printExpensesReport(filtered, getExpenseCategoryLabel, settings?.business_name || 'Mi Negocio', filterMonth === 'all' ? 'Todos los períodos' : filterMonth)}>
+                  <Printer className="w-4 h-4 mr-2" />Imprimir
+                </Button>
+              </>
+            )}
+            {canCreate && (
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+                <DialogTrigger asChild>
+                  <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+                    <Plus className="w-4 h-4 mr-2" /> Nuevo Gasto
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-card border-border max-w-md p-0">
+                  <DialogHeader className="p-6 pb-2">
+                    <DialogTitle className="font-display">{editItem ? 'Editar Gasto' : 'Registrar Gasto'}</DialogTitle>
+                  </DialogHeader>
+                  <ScrollArea className="max-h-[70vh] px-6 pb-6">
+                    <ExpenseForm userId={user!.id} editItem={editItem} categories={categories}
+                      onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        }
       />
 
       {/* KPI cards */}

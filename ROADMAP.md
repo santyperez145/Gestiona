@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 13)**
+Última actualización: **2026-05-13 (sesión 14)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -131,6 +131,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ProductsPage "Lista de precios PDF"** — botón junto a Excel export, genera lista agrupada por categoría con precios/oferta, abre ventana de impresión. _(sesión 13)_
 - **Dashboard "Dólar hoy"** — banner con cotización live (oficial/blue/MEP) de dolarapi.com, cache 30 min localStorage, alerta si TC configurado difiere >5% del blue. _(sesión 13)_
 - **AIChatPage: registrar compra** — detección de "registré una compra/compré", CreatePurchaseCard con selector producto + cantidad + proveedor + costo USD, escribe en DB y suma stock. _(sesión 13)_
+- **ProductsPage "Días sin venta"** — columna "Sin mvto" en tabla desktop mostrando días desde última venta (rojo ≥30d, naranja ≥14d); filtro "Sin venta 30+ días" en la barra de filtros; estado `lastSaleDate` computado desde salesRes. _(sesión 14)_
+- **ExpensesPage CSV + imprimir** — botón "CSV" exporta gastos filtrados; botón "Imprimir" genera reporte HTML con resumen por categoría + detalle completo, abre ventana de impresión. _(sesión 14)_
+- **SalesPage CSV export** — botón "CSV" exporta ventas filtradas con fecha/producto/cliente/cantidad/precio/ganancia/método/estado. _(sesión 14)_
+- **SalesPage recibo multi-producto** — checkboxes en todas las filas (no solo deudas); "Seleccionar todas" en encabezado; barra flotante "Recibo" genera ticket HTML multi-línea consolidado para imprimir. _(sesión 14)_
 - **AIChatPage acciones reales** — detección de intención client-side (crear producto/gasto/cliente), action cards con mini-formularios inline que escriben directamente en DB; chips "Acciones directas" en estado vacío. _(sesión 11)_
 - **CustomersPage segmentos RFM en DB** — migración de localStorage a Supabase (campo `crm_segments` JSONB en settings); auto-migración en primer load; sync multi-dispositivo. _(sesión 11)_
 - **supabaseStore getCRMSegmentsDB/saveCRMSegmentsDB** — helpers para persistir segmentos CRM. _(sesión 11)_
@@ -341,16 +345,16 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 14)
+## Prioridades inmediatas (sesión 15)
 
 | # | Acción | Por qué |
 |---|--------|---------|
 | 1 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
 | 2 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
 | 3 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
-| 4 | SalesPage: recibo con múltiples productos (consolidar líneas de la misma venta) | UX de cobro |
-| 5 | Dashboard: widget "Top 5 productos del mes" con tendencia vs mes anterior | Visibilidad de ventas |
-| 6 | AnalyticsPage: comparativa semana actual vs semana anterior | Monitoreo operativo |
+| 4 | PurchasesPage: pedidos pendientes de recibir (lotes en tránsito) | Gestión de compras avanzada |
+| 5 | SalesPage: agrupación de ventas por sesión POS (misma fecha+cliente) | Historial más legible |
+| 6 | AnalyticsPage: heatmap de ventas por hora y día de semana | Optimización operativa |
 
 ---
 

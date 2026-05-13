@@ -125,6 +125,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product
+  const [lastSaleDate, setLastSaleDate] = useState<Record<string, string>>({}); // last sale date per product id
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -133,6 +134,7 @@ export default function ProductsPage() {
   const [filterStock, setFilterStock] = useState('all');
   const [filterExpiry, setFilterExpiry] = useState('all');
   const [filterTag, setFilterTag] = useState('');
+  const [filterMovement, setFilterMovement] = useState('all');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -159,11 +161,18 @@ export default function ProductsPage() {
     setVariantCounts(counts);
     // Calculate daily sales velocity per product (units/day over last 60 days)
     const velocity: Record<string, number> = {};
+    const lastSale: Record<string, string> = {};
     (salesRes.data || []).forEach((sale: any) => {
-      if (sale.product_id) velocity[sale.product_id] = (velocity[sale.product_id] || 0) + Number(sale.quantity || 1);
+      if (sale.product_id) {
+        velocity[sale.product_id] = (velocity[sale.product_id] || 0) + Number(sale.quantity || 1);
+        if (!lastSale[sale.product_id] || sale.date > lastSale[sale.product_id]) {
+          lastSale[sale.product_id] = sale.date;
+        }
+      }
     });
     Object.keys(velocity).forEach(id => { velocity[id] = velocity[id] / 60; });
     setSalesVelocity(velocity);
+    setLastSaleDate(lastSale);
   };
   useEffect(() => { reload(); }, [user]);
 
@@ -198,6 +207,14 @@ export default function ProductsPage() {
     if (filterExpiry === 'soon90') { if (!p.expiry_date) return false; const exp = new Date(p.expiry_date); if (exp < today || exp > in90Days) return false; }
     if (filterExpiry === 'has_expiry' && !p.expiry_date) return false;
     if (filterTag && !(p.tags || []).includes(filterTag)) return false;
+    if (filterMovement === 'no30') {
+      const last = lastSaleDate[p.id];
+      if (last) {
+        const daysSince = Math.floor((today.getTime() - new Date(last + 'T12:00:00').getTime()) / 86400000);
+        if (daysSince < 30) return false;
+      }
+      // products with no sale data in 60 days always match 'no30'
+    }
     return true;
   });
 
@@ -381,6 +398,13 @@ export default function ProductsPage() {
               </SelectContent>
             </Select>
           )}
+          <Select value={filterMovement} onValueChange={v => { setFilterMovement(v); setPage(0); }}>
+            <SelectTrigger className="w-[150px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Movimiento: todos</SelectItem>
+              <SelectItem value="no30">Sin venta 30+ días</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -406,6 +430,7 @@ export default function ProductsPage() {
                        <th className="text-right p-3 font-medium">Ganancia</th>
                        <th className="text-right p-3 font-medium">Stock</th>
                        <th className="text-right p-3 font-medium" title="Días de stock restante según velocidad de ventas (últimos 60 días)">Días ⚡</th>
+                       <th className="text-right p-3 font-medium" title="Días desde la última venta registrada (últimos 60 días)">Sin mvto</th>
                        <th className="text-center p-3 font-medium">Mod.</th>
                        <th className="text-center p-3 font-medium">Acc.</th>
                      </tr>
@@ -500,6 +525,15 @@ export default function ProductsPage() {
                                  {days}d
                                </span>
                              );
+                           })()}
+                         </td>
+                         <td className="p-3 text-right">
+                           {(() => {
+                             const last = lastSaleDate[p.id];
+                             if (!last) return <span className="text-xs text-muted-foreground" title="Sin ventas registradas en 60 días">+60d</span>;
+                             const daysSince = Math.floor((today.getTime() - new Date(last + 'T12:00:00').getTime()) / 86400000);
+                             const color = daysSince >= 30 ? 'text-destructive font-bold' : daysSince >= 14 ? 'text-warning' : 'text-muted-foreground';
+                             return <span className={`text-xs ${color}`} title={`Última venta: ${last}`}>{daysSince}d</span>;
                            })()}
                          </td>
                          <td className="p-3 text-center">
