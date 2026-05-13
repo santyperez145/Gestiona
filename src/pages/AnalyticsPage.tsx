@@ -294,6 +294,7 @@ export default function AnalyticsPage() {
         <TabsList className="flex-wrap h-auto gap-1 bg-muted/60 p-1 rounded-xl">
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
           <TabsTrigger value="forecast" className="text-xs">📈 Forecast</TabsTrigger>
+          <TabsTrigger value="demand" className="text-xs">🔮 Demanda</TabsTrigger>
           <TabsTrigger value="yoy" className="text-xs">Año vs Año</TabsTrigger>
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
@@ -645,6 +646,11 @@ export default function AnalyticsPage() {
           <ForecastTab monthly={derived.monthly} currentYear={currentYear} />
         </TabsContent>
 
+        {/* DEMAND FORECAST TAB */}
+        <TabsContent value="demand" className="mt-4 space-y-4">
+          <ProductDemandTab products={rawData.products} sales={rawData.sales} />
+        </TabsContent>
+
         {/* FUNNEL TAB */}
         <TabsContent value="funnel" className="mt-4 space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -861,6 +867,116 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
           <p className="text-[10px] text-muted-foreground/60 mt-3">
             * Proyección estadística — la tendencia real puede variar por estacionalidad, cambios de precios u otros factores.
           </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductDemandTab({ products, sales }: { products: any[]; sales: any[] }) {
+  const demandData = useMemo(() => {
+    const since60 = new Date(Date.now() - 60 * 86400000);
+    const vel: Record<string, number> = {};
+    sales.filter(s => new Date(s.date) >= since60).forEach(s => {
+      if (s.product_id) vel[s.product_id] = (vel[s.product_id] || 0) + Number(s.quantity || 1);
+    });
+
+    return products
+      .filter(p => p.stock >= 0)
+      .map(p => {
+        const units60 = vel[p.id] || 0;
+        const unitsPerDay = units60 / 60;
+        const demand30 = Math.round(unitsPerDay * 30);
+        const daysOfStock = unitsPerDay > 0 ? Math.floor(p.stock / unitsPerDay) : Infinity;
+        const gap = demand30 - p.stock;
+        const urgency: "critical" | "warning" | "ok" =
+          daysOfStock <= 7 && unitsPerDay > 0 ? "critical" :
+          daysOfStock <= 21 && unitsPerDay > 0 ? "warning" : "ok";
+        return { id: p.id, name: p.name, brand: p.brand, stock: p.stock, units60, unitsPerDay, demand30, daysOfStock, gap, urgency };
+      })
+      .filter(p => p.units60 > 0)
+      .sort((a, b) => (a.daysOfStock === Infinity ? 1 : 0) - (b.daysOfStock === Infinity ? 1 : 0) || a.daysOfStock - b.daysOfStock);
+  }, [products, sales]);
+
+  const critical = demandData.filter(p => p.urgency === "critical");
+  const warning = demandData.filter(p => p.urgency === "warning");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <Package className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-medium">Proyección de demanda por producto — próximos 30 días</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Basado en la velocidad de ventas de los últimos 60 días. Solo se muestran productos con ventas registradas.
+          </p>
+        </div>
+      </div>
+
+      {/* Summary chips */}
+      <div className="flex flex-wrap gap-2">
+        {critical.length > 0 && (
+          <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-destructive/15 text-destructive border border-destructive/20">
+            🔴 {critical.length} crítico{critical.length !== 1 ? "s" : ""} (≤7 días de stock)
+          </span>
+        )}
+        {warning.length > 0 && (
+          <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/20">
+            🟡 {warning.length} en riesgo (≤21 días)
+          </span>
+        )}
+        {demandData.filter(p => p.urgency === "ok").length > 0 && (
+          <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/20">
+            🟢 {demandData.filter(p => p.urgency === "ok").length} con stock suficiente
+          </span>
+        )}
+      </div>
+
+      {demandData.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Package className="w-10 h-10 mx-auto mb-3 opacity-20" />
+          <p>No hay ventas registradas en los últimos 60 días con producto asignado.</p>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground text-[11px]">
+                <th className="text-left p-3 font-medium">Producto</th>
+                <th className="text-right p-3 font-medium">Stock actual</th>
+                <th className="text-right p-3 font-medium">Uds./día</th>
+                <th className="text-right p-3 font-medium">Demanda 30d</th>
+                <th className="text-right p-3 font-medium">Días de stock</th>
+                <th className="text-right p-3 font-medium">Diferencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {demandData.map(p => (
+                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  <td className="p-3">
+                    <p className="font-medium truncate max-w-[200px]">{p.name}</p>
+                    {p.brand && <p className="text-[10px] text-muted-foreground">{p.brand}</p>}
+                  </td>
+                  <td className="p-3 text-right font-mono">{p.stock}</td>
+                  <td className="p-3 text-right font-mono text-muted-foreground">{p.unitsPerDay.toFixed(2)}</td>
+                  <td className="p-3 text-right font-mono font-semibold">{p.demand30}</td>
+                  <td className="p-3 text-right">
+                    <span className={`font-bold text-xs ${
+                      p.urgency === "critical" ? "text-destructive" :
+                      p.urgency === "warning" ? "text-orange-400" : "text-green-400"
+                    }`}>
+                      {p.daysOfStock === Infinity ? "∞" : `${p.daysOfStock}d`}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className={`text-xs font-semibold ${p.gap > 0 ? "text-destructive" : "text-green-400"}`}>
+                      {p.gap > 0 ? `−${p.gap} faltan` : `+${Math.abs(p.gap)} extra`}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
