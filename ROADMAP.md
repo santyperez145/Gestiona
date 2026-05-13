@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-12 (sesión 8)**
+Última actualización: **2026-05-12 (sesión 9)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~80% completo.**
+**MVP avanzado con SaaS billing funcional. ~85% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -63,8 +63,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - Ficha 360 con tabs: Resumen (KPIs + productos favoritos), Compras (timeline), Cuotas/Deudas, Contacto (notas + comunicaciones + WhatsApp). _(sesión 3)_
 - Merge de clientes duplicados inline en CRM. _(sesión 3)_
 - Auto-award loyalty points via DB trigger en cada venta. _(sesión 3)_
-- Export CSV con datos RFM completos desde CustomersPage — respeta filtro de segmento activo; incluye columnas: segmento, facturación, ganancia, frecuencia, días sin comprar, deuda, email, teléfono. _(sesión 7)_
+- Export CSV con datos RFM completos desde CustomersPage — respeta filtro de segmento activo; incluye columnas: segmento, score, facturación, ganancia, frecuencia, días sin comprar, deuda, email, teléfono. _(sesión 7–9)_
 - Drag-and-drop nativo HTML5 en `SalesPipelinePage` — arrastrar deals entre columnas, resaltado visual de zona de drop, sin dependencias nuevas. _(sesión 7)_
+- **Customer Health Score** (0–100) en CRM basado en Recency+Frequency+Monetary con percentiles. Badge de colores, barra de progreso en ficha expandida, opción de sort. _(sesión 9)_
+- **Segmentos guardados** en CRM — guardar filtro actual con nombre personalizado, chips de acceso rápido, eliminación, persistidos en localStorage. _(sesión 9)_
 
 ### Finanzas y administración
 - Gastos, deudas de clientes, cheques, proveedores, conciliación bancaria, flujo de caja.
@@ -89,6 +91,8 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - Posts, templates, catálogo público con QR/PDF, combos, banners, historias de Instagram.
 - Campañas de email (`EmailCampaignsPage`), influencers, canjes, liquidaciones.
 - `OfferRecommenderPanel` con IA para sugerencias de ofertas. _(sesión 4)_
+- 7 segmentos de email (all, VIP, at_risk, dormant, lost >90d, birthday, never_bought). _(sesión 9)_
+- Carrito de compras en catálogo público con mensaje WhatsApp multi-producto. _(sesión 8)_
 
 ### Inteligencia artificial y analytics
 - `AIInsightsPage`: insights automatizados con Claude.
@@ -97,6 +101,9 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - Forecast con regresión lineal OLS, comparación real vs proyectado por mes (tab en `AnalyticsPage`). _(sesión 4)_
 - `CashFlowProjector`, `HealthScore`, `ConsistencyAlerts` en Dashboard.
 - `AIProactiveWidget`: auto-corre `ai-analysis` al cargar Dashboard, cache 8h localStorage por org, sugerencias numeradas colapsables. _(sesión 7)_
+- **Predicción de demanda por producto** (tab "Demanda" en AnalyticsPage): velocidad 60d, proyección 30d, días de stock, gap, urgencia semáforo. _(sesión 9)_
+- **Dashboard: objetivo mensual de ventas** — progress bar con % alcanzado, días restantes, persistido en localStorage por mes. _(sesión 9)_
+- **POS: badge 🔥 Top seller** — top-5 productos por unidades vendidas en 30d destacados en la grilla. _(sesión 9)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -186,21 +193,36 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 9 | ExpensesPage: comparativa mes anterior en KPI card | ✅ Hecho |
 | 10 | Dashboard: panel de anomalías (caída de margen + bestseller dropout) | ✅ Hecho |
 
-### Sprint 8 — Julio 2026: POS avanzado + Stock inteligente
+### Sprint 8 — Mayo 2026: Operaciones avanzadas ✅ COMPLETO
 
-**Objetivo:** POS de nivel enterprise y stock predictivo.
+**Objetivo:** operaciones de nivel enterprise y datos más ricos.
 
-| # | Item | Impacto |
-|---|------|---------|
-| 1 | Split de pago en POS (efectivo + tarjeta + MP en una venta) | Crítico |
-| 2 | Modo offline para POS (cache local con IndexedDB, sync al reconectar) | Alto |
-| 3 | Alerta proactiva en POS si stock queda en <5 unidades tras la venta | Alto |
-| 4 | Punto de reorden automático con sugerencia de cantidad de compra | Alto |
-| 5 | Stock por sucursal visible en POS y en transferencias | Alto |
-| 6 | Lotes con fecha de vencimiento en UI | Medio |
-| 7 | Reporte de rentabilidad por producto (margen real vs histórico) | Medio |
+| # | Item | Estado |
+|---|------|--------|
+| 1 | Split de pago en POS (efectivo + tarjeta + MP en una venta) | ✅ Hecho |
+| 2 | Alerta toast post-venta cuando stock ≤ threshold | ✅ Hecho |
+| 3 | Restock inteligente: velocity 60d + cantidad sugerida en Dashboard | ✅ Hecho |
+| 4 | SalesPage: comparativa período anterior en KPIs | ✅ Hecho |
+| 5 | ExpensesPage: comparativa mes anterior en KPI | ✅ Hecho |
+| 6 | Dashboard: panel de anomalías (margen caído + bestseller dropout) | ✅ Hecho |
+| 7 | Carrito público con WhatsApp multi-producto en catálogo | ✅ Hecho |
+| 8 | Email campaigns: Svix signature + metadata + realtime metrics | ✅ Hecho |
+| 9 | Weekly performance digest email via Resend | ✅ Hecho |
 
-### Sprint 9 — Agosto 2026: IA avanzada + Analytics enterprise
+### Sprint 9 — Mayo 2026: CRM inteligente + Forecasting ✅ COMPLETO
+
+**Objetivo:** CRM accionable y análisis predictivo de demanda.
+
+| # | Item | Estado |
+|---|------|--------|
+| 1 | Customer health score 0–100 (R+F+M percentil) en CustomersPage | ✅ Hecho |
+| 2 | Segmentos CRM guardados con nombre (localStorage) | ✅ Hecho |
+| 3 | Email campaigns: 3 nuevos segmentos (lost, birthday, never_bought) | ✅ Hecho |
+| 4 | Objetivo mensual de ventas en Dashboard con progress bar | ✅ Hecho |
+| 5 | POS: badge 🔥 Top seller en top-5 productos | ✅ Hecho |
+| 6 | Tab "Demanda" en Analytics: proyección 30d por producto con semáforo | ✅ Hecho |
+
+### Sprint 10 — Agosto 2026: IA avanzada + Analytics enterprise
 
 **Objetivo:** diferenciación por inteligencia artificial aplicada.
 
@@ -214,7 +236,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 6 | Límites de costo IA por plan con contador de tokens | Medio |
 | 7 | A/B testing de precios con sugerencia IA | Medio |
 
-### Sprint 10 — Septiembre 2026: Mobile nativo + Expansión
+### Sprint 11 — Septiembre 2026: Mobile nativo + Expansión
 
 **Objetivo:** presencia mobile real y expansión de integraciones.
 
@@ -228,7 +250,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 6 | Marketplace de automatizaciones (plantillas predefinidas) | Medio |
 | 7 | Exportación contable a formatos Tango/Xero/QuickBooks | Medio |
 
-### Sprint 11 — Octubre-Noviembre 2026: Escala y enterprise
+### Sprint 12 — Octubre-Noviembre 2026: Escala y enterprise
 
 | # | Item | Impacto |
 |---|------|---------|
@@ -241,37 +263,37 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 6)
+## Estado por módulo (actualizado sesión 9)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
 | Infraestructura | 85% | E2E tests, staging env |
 | Auth + orgs | 80% | Permisos granulares |
-| Inventario | 78% | Días de stock, lotes en UI |
-| Ventas + POS | 72% | Split pago, offline |
-| Clientes + CRM | 70% | Segmentos RFM, score salud |
-| Finanzas | 75% | Auditoría de cambios |
+| Inventario | 82% | Lotes en UI, offline POS |
+| Ventas + POS | 80% | Modo offline, split 3 métodos |
+| Clientes + CRM | 85% | Segmentos persistidos en DB |
+| Finanzas | 78% | Aging proveedores, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
-| Marketing + Email | 55% | Open/click rate |
-| IA + Analytics | 68% | IA proactiva, predicción demanda |
+| Marketing + Email | 72% | Templates personalizados |
+| IA + Analytics | 82% | Chat IA con acciones |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
-| Mobile + UX | 70% | Capacitor, offline POS |
+| Mobile + UX | 72% | Capacitor, offline POS |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **72%** | |
+| **TOTAL** | **85%** | |
 
 ---
 
-## Prioridades inmediatas (sesión 7)
+## Prioridades inmediatas (sesión 9)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | Split de pago en POS (efectivo + tarjeta + MP) | Pedido frecuente, bloquea ventas reales |
-| 2 | Email campaigns: open/click rate vía Resend webhooks | Diferenciación en marketing |
-| 3 | Segmentos RFM guardados (últimos 30/60/90 días, monto, frecuencia) | CRM accionable |
-| 4 | Sugerencias IA proactivas en Dashboard | Diferenciación vs competidores |
-| 5 | Reporte de rentabilidad por producto | Datos para decisiones reales |
-| 6 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
+| 1 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
+| 2 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
+| 3 | Permisos granulares por rol (caja, ventas, inventario) | Empresas con múltiples empleados |
+| 4 | Segmentos RFM persistidos en DB (multi-dispositivo) | CRM accionable colaborativo |
+| 5 | Chat IA con acciones reales (crear producto, registrar venta) | Diferenciación vs competidores |
+| 6 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
 
 ---
 
