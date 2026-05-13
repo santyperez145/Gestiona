@@ -17,7 +17,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
@@ -112,6 +112,22 @@ export default function ExpensesPage() {
     const total = prevFiltered.reduce((s, e) => s + Number(e.amount_ars), 0);
     return total > 0 ? total : null;
   }, [expenses, filterMonth, filterCat]);
+
+  const monthlyTrend = useMemo(() => {
+    const map: Record<string, number> = {};
+    expenses.forEach(e => {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      map[key] = (map[key] || 0) + Number(e.amount_ars);
+    });
+    const sorted = Object.keys(map).sort();
+    const last12 = sorted.slice(-12);
+    return last12.map(key => {
+      const [y, m] = key.split('-');
+      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+      return { key, label, total: map[key] };
+    });
+  }, [expenses]);
 
   const handleDelete = async (id: string) => {
     await deleteExpenseDB(id);
@@ -343,6 +359,28 @@ export default function ExpensesPage() {
           )}
         </div>
       </div>
+
+      {/* Monthly trend chart */}
+      {monthlyTrend.length > 1 && (
+        <div className="bg-card border border-border rounded-xl shadow-card p-4 mb-6">
+          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+              <Tooltip
+                formatter={(v: number) => [formatARS(v), 'Total']}
+                contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 12 }}
+                cursor={{ fill: 'hsl(220,15%,18%)' }}
+              />
+              <Bar dataKey="total" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} maxBarSize={48}
+                label={{ position: 'top', fontSize: 10, fill: 'hsl(220,10%,55%)', formatter: (v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : '' }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }
