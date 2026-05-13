@@ -281,6 +281,7 @@ export default function SalesPipelinePage() {
 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showStalePanel, setShowStalePanel] = useState(false);
   const [dialog, setDialog] = useState<{ open: boolean; deal?: Deal; prefillStage?: Stage }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -371,6 +372,12 @@ export default function SalesPipelinePage() {
     return map;
   }, [deals]);
 
+  const staleDeals = useMemo(() => deals.filter(d => {
+    if (d.stage === "cerrado" || d.stage === "perdido") return false;
+    const days = Math.floor((Date.now() - new Date(d.updated_at).getTime()) / 86400000);
+    return days >= 14;
+  }), [deals]);
+
   return (
     <div className="p-4 md:p-6 space-y-5">
       {/* Dialog */}
@@ -414,6 +421,45 @@ export default function SalesPipelinePage() {
           </div>
         }
       />
+
+      {/* Stale deals alert */}
+      {staleDeals.length > 0 && (
+        <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-2.5">
+          <span className="text-sm font-semibold text-orange-400">{staleDeals.length} deal{staleDeals.length !== 1 ? "s" : ""} sin actividad +14 días</span>
+          <button
+            onClick={() => setShowStalePanel(v => !v)}
+            className="text-xs text-orange-400 hover:text-orange-300 underline ml-auto"
+          >
+            {showStalePanel ? "Ocultar" : "Ver deals →"}
+          </button>
+        </div>
+      )}
+      {showStalePanel && staleDeals.length > 0 && (
+        <div className="bg-card border border-orange-500/20 rounded-xl p-4 space-y-2">
+          {staleDeals.map(d => {
+            const days = Math.floor((Date.now() - new Date(d.updated_at).getTime()) / 86400000);
+            const stageLabel = STAGES.find(s => s.value === d.stage)?.label || d.stage;
+            return (
+              <div key={d.id} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{d.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{d.customer_name || ""} · {stageLabel}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 ml-3">
+                  <span className="text-xs text-orange-400 font-semibold">{days}d sin cambios</span>
+                  {d.value_ars && <span className="text-xs text-muted-foreground">{formatARS(d.value_ars)}</span>}
+                  <button
+                    onClick={() => setDialog({ open: true, deal: d })}
+                    className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    Actualizar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
