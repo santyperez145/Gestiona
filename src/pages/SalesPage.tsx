@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -188,6 +188,39 @@ export default function SalesPage() {
     if (user) await logAudit(user.id, 'delete', 'sale', sale.id, { product: sale.product_name, total: sale.total_ars });
     reload();
     toast.success("Venta eliminada");
+  };
+
+  const printReceipt = (s: any) => {
+    const businessName = (sales as any).businessName || "Mi Negocio";
+    const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
+<style>
+  body{font-family:Arial,sans-serif;max-width:320px;margin:20px auto;font-size:13px;color:#333}
+  h1{font-size:18px;text-align:center;margin-bottom:4px}
+  .sub{text-align:center;color:#666;font-size:11px;margin-bottom:16px}
+  hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
+  .row{display:flex;justify-content:space-between;padding:3px 0}
+  .bold{font-weight:bold}
+  .total{font-size:16px;font-weight:bold;text-align:right;margin-top:12px}
+  .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
+  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${s.paid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
+</style></head><body>
+<h1>RECIBO DE VENTA</h1>
+<div class="sub">Fecha: ${date}</div>
+<hr>
+<div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
+${s.customer_name ? `<div class="row"><span>Cliente:</span><span>${s.customer_name}</span></div>` : ""}
+<div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
+<div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>
+${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span></div>` : ""}
+<div class="row"><span>Método de pago:</span><span>${s.payment_method || "efectivo"}</span></div>
+<hr>
+<div class="total">TOTAL: ${formatARS(Number(s.total_ars))}</div>
+<div style="text-align:right;margin-top:4px"><span class="estado">${s.paid ? "✓ Cobrado" : "Pendiente"}</span></div>
+<div class="footer"><p>¡Gracias por su compra!</p></div>
+</body></html>`;
+    const w = window.open("", "_blank", "width=380,height=500");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   };
 
   const unpaidPaged = paged.filter(s => !s.paid);
@@ -484,25 +517,28 @@ export default function SalesPage() {
                         )}
                       </div>
                     </td>
-                    {isAdmin && (
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
-                          title={s.invoice_id ? "Ver factura" : "Crear factura"}
-                          onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}>
-                          <FileText className={`w-3.5 h-3.5 ${s.invoice_id ? "text-blue-400" : "text-primary"}`} />
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Imprimir recibo" onClick={() => printReceipt(s)}>
+                          <Printer className="w-3.5 h-3.5 text-muted-foreground" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
-                        <ConfirmDialog
-                          trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                          title="¿Eliminar esta venta?"
-                          description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
-                          confirmText="Eliminar"
-                          onConfirm={() => handleDelete(s)}
-                        />
+                        {isAdmin && <>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                            title={s.invoice_id ? "Ver factura" : "Crear factura"}
+                            onClick={() => navigate(`/facturas?from_sale=${s.id}&customer=${encodeURIComponent(s.customer_name || '')}&total=${s.total_ars}&product=${encodeURIComponent(s.product_name || '')}`)}>
+                            <FileText className={`w-3.5 h-3.5 ${s.invoice_id ? "text-blue-400" : "text-primary"}`} />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                          <ConfirmDialog
+                            trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                            title="¿Eliminar esta venta?"
+                            description={`Se eliminará la venta de ${s.product_name} por ${formatARS(Number(s.total_ars))}.`}
+                            confirmText="Eliminar"
+                            onConfirm={() => handleDelete(s)}
+                          />
+                        </>}
                       </div>
                     </td>
-                    )}
                   </tr>
                 ))}
               </tbody>
