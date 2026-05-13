@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search, MessageCircle, FileSpreadsheet } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare } from "lucide-react";
+import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -31,6 +32,8 @@ export default function DebtsPage() {
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"pending" | "paid">("pending");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const reload = async () => {
     if (user) { setDebts(await getDebtsDB(user.id)); setLoading(false); }
@@ -60,6 +63,38 @@ export default function DebtsPage() {
     if (user) await logAudit(user.id, "delete", "debt", d.id, { customer: d.customer_name, amount: d.amount_ars });
     reload();
     toast.success("Deuda eliminada");
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (ids: string[]) => {
+    if (ids.every(id => selectedIds.has(id))) {
+      setSelectedIds(prev => { const next = new Set(prev); ids.forEach(id => next.delete(id)); return next; });
+    } else {
+      setSelectedIds(prev => { const next = new Set(prev); ids.forEach(id => next.add(id)); return next; });
+    }
+  };
+
+  const bulkMarkPaid = async () => {
+    const toMark = pending.filter(d => selectedIds.has(d.id));
+    if (!toMark.length) return;
+    setBulkLoading(true);
+    try {
+      await Promise.all(toMark.map(d => updateDebtDB(d.id, { status: "paid", paid_ars: Number(d.amount_ars), remaining_ars: 0 })));
+      toast.success(`${toMark.length} deuda${toMark.length !== 1 ? "s" : ""} marcada${toMark.length !== 1 ? "s" : ""} como pagada${toMark.length !== 1 ? "s" : ""}`);
+      setSelectedIds(new Set());
+      reload();
+    } catch {
+      toast.error("Error al marcar deudas");
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
   if (loading) return <TableSkeleton rows={5} cols={7} />;
@@ -180,6 +215,18 @@ export default function DebtsPage() {
         </Button>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && tab === "pending" && (
+        <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5 mb-4">
+          <span className="text-sm font-medium text-primary">{selectedIds.size} seleccionada{selectedIds.size !== 1 ? "s" : ""}</span>
+          <Button size="sm" className="h-7 text-xs bg-success text-success-foreground ml-auto" disabled={bulkLoading} onClick={bulkMarkPaid}>
+            {bulkLoading ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /></> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+            Marcar como pagadas
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>Limpiar</Button>
+        </div>
+      )}
+
       {/* Payment Dialog */}
       <Dialog open={!!payingDebt} onOpenChange={v => { if (!v) setPayingDebt(null); }}>
         <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
@@ -202,6 +249,15 @@ export default function DebtsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
+                  {tab === "pending" && (
+                    <th className="px-4 py-3 w-8">
+                      <button onClick={() => toggleSelectAll(pending.map(d => d.id))} className="text-muted-foreground hover:text-foreground">
+                        {pending.length > 0 && pending.every(d => selectedIds.has(d.id))
+                          ? <CheckSquare className="w-4 h-4 text-primary" />
+                          : <Square className="w-4 h-4" />}
+                      </button>
+                    </th>
+                  )}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cliente</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Descripción</th>
@@ -216,7 +272,16 @@ export default function DebtsPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {shown.map(d => (
-                  <tr key={d.id} className="hover:bg-muted/20 transition-colors group">
+                  <tr key={d.id} className={`hover:bg-muted/20 transition-colors group ${selectedIds.has(d.id) ? "bg-primary/5" : ""}`}>
+                    {tab === "pending" && (
+                      <td className="px-4 py-3 w-8">
+                        <button onClick={() => toggleSelect(d.id)} className="text-muted-foreground hover:text-foreground">
+                          {selectedIds.has(d.id)
+                            ? <CheckSquare className="w-4 h-4 text-primary" />
+                            : <Square className="w-4 h-4" />}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-muted-foreground text-xs">{formatDateAR(d.date)}</td>
                     <td className="px-4 py-3 font-semibold">{d.customer_name}</td>
                     <td className="px-4 py-3 text-muted-foreground text-xs max-w-[180px] truncate hidden lg:table-cell">{d.description}</td>
