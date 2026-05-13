@@ -401,6 +401,54 @@ export default function ProveedoresPage() {
               </div>
             </div>
 
+            {/* Aging de deudas */}
+            {pendingDebts.length > 0 && (() => {
+              const now = Date.now();
+              const buckets = [
+                { label: ">90 días", min: 90, color: "bg-red-500/80", textColor: "text-red-400" },
+                { label: "61–90 días", min: 61, max: 90, color: "bg-orange-500/80", textColor: "text-orange-400" },
+                { label: "31–60 días", min: 31, max: 60, color: "bg-yellow-500/80", textColor: "text-yellow-400" },
+                { label: "1–30 días", min: 1, max: 30, color: "bg-amber-400/80", textColor: "text-amber-400" },
+                { label: "Próx. 30d", min: -30, max: 0, color: "bg-blue-500/80", textColor: "text-blue-400" },
+              ];
+              const bucketed = buckets.map(b => {
+                const items = pendingDebts.filter(d => {
+                  if (!d.due_date) return false;
+                  const days = Math.floor((now - new Date(d.due_date).getTime()) / 86400000);
+                  const over = days >= (b.min ?? -Infinity);
+                  const under = b.max === undefined ? true : days <= b.max;
+                  return over && under;
+                });
+                return { ...b, count: items.length, total: items.reduce((s, d) => s + Number(d.remaining_ars), 0) };
+              }).filter(b => b.count > 0);
+              if (bucketed.length === 0) return null;
+              const grandTotal = bucketed.reduce((s, b) => s + b.total, 0);
+              return (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aging de deudas pendientes</h3>
+                  <div className="space-y-2">
+                    {bucketed.map(b => {
+                      const pct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
+                      return (
+                        <div key={b.label}>
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className={`font-medium ${b.textColor}`}>{b.label}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-muted-foreground">{b.count} deuda{b.count !== 1 ? "s" : ""}</span>
+                              <span className="font-semibold font-mono">{formatARS(b.total)}</span>
+                            </div>
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${b.color}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {debts.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-20" />
