@@ -146,6 +146,21 @@ export default function EmailCampaignsPage() {
   const [segment, setSegment] = useState("all");
   const [scheduledAt, setScheduledAt] = useState("");
   const [saving, setSaving] = useState(false);
+  const [bulkCampaign, setBulkCampaign] = useState<{ emails: string[]; names: string[]; count: number; segment: string } | null>(null);
+
+  // Read bulk selection from CRM sessionStorage on mount
+  useEffect(() => {
+    const raw = sessionStorage.getItem('gestiona.bulk_campaign');
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        setBulkCampaign(data);
+        setSegment('bulk_custom');
+        setOpen(true);
+      } catch { /* ignore malformed */ }
+      sessionStorage.removeItem('gestiona.bulk_campaign');
+    }
+  }, []);
 
   // ── Load ────────────────────────────────────────────────────────────────────
 
@@ -222,7 +237,16 @@ export default function EmailCampaignsPage() {
     };
   }, [customers, salesData, unsubscribed]);
 
-  const currentAudience = useMemo(() => audienceFor(segment), [audienceFor, segment]);
+  const bulkAudience = useMemo(() => {
+    if (!bulkCampaign) return [];
+    const emailSet = new Set(bulkCampaign.emails.map(e => e.toLowerCase()));
+    return customers.filter(c => c.email && emailSet.has(c.email.toLowerCase()));
+  }, [bulkCampaign, customers]);
+
+  const currentAudience = useMemo(() => {
+    if (segment === 'bulk_custom') return bulkAudience;
+    return audienceFor(segment);
+  }, [audienceFor, segment, bulkAudience]);
 
   // ── Create campaign ───────────────────────────────────────────────────────────
 
@@ -472,11 +496,22 @@ export default function EmailCampaignsPage() {
                 ))}
               </div>
             </div>
+            {bulkCampaign && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-primary/10 border border-primary/20 text-xs">
+                <Users className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <span><strong>{bulkCampaign.count} clientes</strong> seleccionados desde CRM · segmento: <em>{bulkCampaign.segment}</em></span>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Segmento de audiencia</Label>
-              <Select value={segment} onValueChange={setSegment}>
+              <Select value={segment} onValueChange={v => { setSegment(v); if (v !== 'bulk_custom') setBulkCampaign(null); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  {bulkCampaign && (
+                    <SelectItem value="bulk_custom">
+                      ✓ Selección CRM ({bulkAudience.length} con email)
+                    </SelectItem>
+                  )}
                   {SEGMENTS.map(s => (
                     <SelectItem key={s.value} value={s.value}>
                       {s.label} ({audienceFor(s.value).length} contactos)

@@ -698,6 +698,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [sku, setSku] = useState(product?.sku || '');
   const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
   const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
+  const [lowStockThreshold, setLowStockThreshold] = useState(product?.low_stock_threshold?.toString() || '3');
   const [tags, setTags] = useState<string[]>(product?.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [generatingDesc, setGeneratingDesc] = useState(false);
@@ -856,6 +857,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         content_ml: parseInt(contentMl) || 100,
+        low_stock_threshold: parseInt(lowStockThreshold) || 3,
       };
       let productId = product?.id;
       if (product) {
@@ -945,6 +947,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </Select>
         </div>
         <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm text-muted-foreground">Stock mínimo (reposición)</label>
+          <Input type="number" min="0" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} className="bg-muted border-border" placeholder="3" />
+          <p className="text-[10px] text-muted-foreground mt-1">Alerta cuando el stock llegue a este número</p>
+        </div>
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Costo USD *</label>

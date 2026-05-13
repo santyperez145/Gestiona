@@ -113,6 +113,11 @@ export default function Dashboard() {
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
   const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
   const [lastWeekSameDaySales, setLastWeekSameDaySales] = useState<number>(0);
+  const { activeOrg: orgForWeekly } = useOrg();
+  const weeklyTargetKey = `gestiona.dashboard.weekly_target.${orgForWeekly?.id || 'default'}`;
+  const [weeklyTarget, setWeeklyTarget] = useState<number>(() => Number(localStorage.getItem(`gestiona.dashboard.weekly_target.${typeof localStorage !== 'undefined' ? (localStorage.getItem('gestiona.activeOrgId') || 'default') : 'default'}`) || 0));
+  const [editingWeeklyTarget, setEditingWeeklyTarget] = useState(false);
+  const [weeklyTargetInput, setWeeklyTargetInput] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -475,6 +480,11 @@ export default function Dashboard() {
     }));
 
     // Net profit: gross - expenses - taxes (if enabled)
+    // ===== This week sales =====
+    const weekNow = new Date();
+    const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - weekNow.getDay()); weekStart.setHours(0, 0, 0, 0);
+    const weekSalesARS = sales.filter((s: any) => new Date(s.date) >= weekStart).reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+
     const monthSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === curY && d.getMonth() === curM; });
     const monthGrossProfit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
     const monthSalesARS = monthSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
@@ -603,7 +613,7 @@ export default function Dashboard() {
       avgMonthlyPurchasesARS, breakEvenUnits, avgMarginPerUnit,
       currentRate, totalCostUSDInInventory, products: allProducts,
       // New
-      monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
+      monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
       salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
@@ -1048,6 +1058,78 @@ export default function Dashboard() {
               </>
             ) : (
               <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo mensual de ventas para ver el progreso aquí.</p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Weekly Sales Goal */}
+      {(() => {
+        const weekCurrent = stats.weekSalesARS;
+        const weekPct = weeklyTarget > 0 ? Math.min(100, (weekCurrent / weeklyTarget) * 100) : 0;
+        const weekRemaining = weeklyTarget > 0 ? Math.max(0, weeklyTarget - weekCurrent) : 0;
+        const dayOfWeek = new Date().toLocaleString('es-AR', { weekday: 'long' });
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Target className="w-4 h-4 text-success" />Meta semanal — {dayOfWeek}
+              </h3>
+              <button
+                onClick={() => { setEditingWeeklyTarget(true); setWeeklyTargetInput(weeklyTarget > 0 ? String(weeklyTarget) : ""); }}
+                className="text-[10px] text-primary hover:underline"
+              >
+                {weeklyTarget > 0 ? "Cambiar meta" : "Fijar meta →"}
+              </button>
+            </div>
+            {editingWeeklyTarget ? (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="number"
+                  value={weeklyTargetInput}
+                  onChange={e => setWeeklyTargetInput(e.target.value)}
+                  placeholder="Ej: 150000"
+                  className="flex-1 h-8 px-3 rounded-lg border border-border bg-muted text-sm"
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      const v = Number(weeklyTargetInput);
+                      if (v > 0) { localStorage.setItem(weeklyTargetKey, String(v)); setWeeklyTarget(v); }
+                      setEditingWeeklyTarget(false);
+                    }
+                    if (e.key === "Escape") setEditingWeeklyTarget(false);
+                  }}
+                />
+                <button
+                  className="px-3 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
+                  onClick={() => {
+                    const v = Number(weeklyTargetInput);
+                    if (v > 0) { localStorage.setItem(weeklyTargetKey, String(v)); setWeeklyTarget(v); }
+                    setEditingWeeklyTarget(false);
+                  }}
+                >Guardar</button>
+                <button onClick={() => setEditingWeeklyTarget(false)} className="text-muted-foreground text-xs">✕</button>
+              </div>
+            ) : weeklyTarget > 0 ? (
+              <>
+                <div className="flex items-end justify-between mb-1.5">
+                  <span className="text-2xl font-black font-display text-success">{weekPct.toFixed(0)}%</span>
+                  <span className="text-xs text-muted-foreground">{formatARS(weekCurrent)} / {formatARS(weeklyTarget)}</span>
+                </div>
+                <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-yellow-400" : weekPct >= 75 ? "bg-green-400" : weekPct >= 50 ? "bg-blue-400" : "bg-success"}`}
+                    style={{ width: `${weekPct}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1.5">
+                  {weekPct >= 100
+                    ? "🎉 ¡Meta semanal cumplida!"
+                    : `Faltan ${formatARS(weekRemaining)} para cerrar la semana bien`}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo semanal de ventas para hacer seguimiento diario.</p>
             )}
           </div>
         );

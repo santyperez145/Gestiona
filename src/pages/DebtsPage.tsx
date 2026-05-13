@@ -268,6 +268,18 @@ export default function DebtsPage() {
             {bulkLoading ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /></> : <CheckCircle2 className="w-3 h-3 mr-1" />}
             Marcar como pagadas
           </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => {
+            const selected = pending.filter(d => selectedIds.has(d.id));
+            const msg = selected.map(d =>
+              `Hola ${d.customer_name ? d.customer_name.split(" ")[0] : "cliente"}! 👋 Te recordamos que tenés una deuda pendiente de ${formatARS(Number(d.remaining_ars))}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!`
+            ).join('\n\n---\n\n');
+            navigator.clipboard?.writeText(msg).then(() => toast.success(`${selected.length} mensajes copiados al portapapeles`)).catch(() => {
+              const firstDebt = selected[0];
+              if (firstDebt) window.open(waDebtLink(firstDebt), '_blank');
+            });
+          }}>
+            <MessageCircle className="w-3 h-3 mr-1" />WhatsApp masivo
+          </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>Limpiar</Button>
         </div>
       )}
