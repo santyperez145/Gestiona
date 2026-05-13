@@ -281,13 +281,37 @@ export default function AnalyticsPage() {
     });
     const catKeys = Array.from(catSet).sort();
 
+    // ===== Weekly comparison (current week vs prev week) =====
+    const now = new Date();
+    const dow = now.getDay(); // 0=Sun
+    const startOfThisWeek = new Date(now); startOfThisWeek.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1)); startOfThisWeek.setHours(0,0,0,0);
+    const startOfPrevWeek = new Date(startOfThisWeek); startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
+    const endOfPrevWeek = new Date(startOfThisWeek); endOfPrevWeek.setMilliseconds(-1);
+    const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const weekThis: { day: string; revenue: number; count: number }[] = DAY_NAMES.map(day => ({ day, revenue: 0, count: 0 }));
+    const weekPrev: number[] = Array(7).fill(0);
+    sales.forEach((s: any) => {
+      const d = new Date(s.date + "T12:00:00");
+      if (d >= startOfThisWeek && d <= now) {
+        const idx = (d.getDay() + 6) % 7; // Mon=0..Sun=6
+        weekThis[idx].revenue += Number(s.total_ars);
+        weekThis[idx].count++;
+      } else if (d >= startOfPrevWeek && d <= endOfPrevWeek) {
+        const idx = (d.getDay() + 6) % 7;
+        weekPrev[idx] += Number(s.total_ars);
+      }
+    });
+    const weeklyComparison = weekThis.map((d, i) => ({ day: d.day, actual: Math.round(d.revenue), prevWeek: Math.round(weekPrev[i]), count: d.count }));
+    const weekTotalThis = weekThis.reduce((s, d) => s + d.revenue, 0);
+    const weekTotalPrev = weekPrev.reduce((s, v) => s + v, 0);
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
-      abcProducts, catTrend, catKeys,
+      abcProducts, catTrend, catKeys, weeklyComparison, weekTotalThis, weekTotalPrev,
     };
   }, [rawData, year]);
 
@@ -344,6 +368,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="funnel" className="text-xs">Conversión</TabsTrigger>
           <TabsTrigger value="abc" className="text-xs">ABC</TabsTrigger>
           <TabsTrigger value="cattrend" className="text-xs">Por Categoría</TabsTrigger>
+          <TabsTrigger value="weekly" className="text-xs">Semana</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -933,6 +958,82 @@ export default function AnalyticsPage() {
               </div>
             </>
           )}
+        </TabsContent>
+
+        {/* WEEKLY COMPARISON TAB */}
+        <TabsContent value="weekly" className="mt-4 space-y-4">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: "Esta semana", value: formatARS(derived.weekTotalThis), color: "text-primary" },
+              { label: "Semana anterior", value: formatARS(derived.weekTotalPrev), color: "text-muted-foreground" },
+              {
+                label: "Diferencia",
+                value: derived.weekTotalPrev > 0 ? `${derived.weekTotalThis > derived.weekTotalPrev ? '+' : ''}${(((derived.weekTotalThis - derived.weekTotalPrev) / derived.weekTotalPrev) * 100).toFixed(1)}%` : '—',
+                color: derived.weekTotalThis >= derived.weekTotalPrev ? 'text-success' : 'text-destructive',
+              },
+            ].map(k => (
+              <div key={k.label} className="bg-card border border-border rounded-xl p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
+                <p className={`text-lg font-bold font-display ${k.color}`}>{k.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold">Ventas por día — semana actual vs anterior</h3>
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" />Esta semana</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-muted-foreground/40 inline-block" />Semana ant.</span>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={derived.weeklyComparison} barGap={2} barCategoryGap="25%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: "hsl(220,10%,55%)", fontSize: 12 }} />
+                <YAxis tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} width={55} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 }}
+                  formatter={(v: number, name: string) => [formatARS(v), name === "actual" ? "Esta semana" : "Semana anterior"]}
+                />
+                <Bar dataKey="prevWeek" name="prevWeek" fill="hsl(220,10%,40%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="actual" name="actual" fill="hsl(43,86%,55%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Day-by-day table */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-2.5 text-xs text-muted-foreground uppercase">Día</th>
+                  <th className="text-right px-4 py-2.5 text-xs text-muted-foreground uppercase">Esta semana</th>
+                  <th className="text-right px-4 py-2.5 text-xs text-muted-foreground uppercase">Semana ant.</th>
+                  <th className="text-right px-4 py-2.5 text-xs text-muted-foreground uppercase">Diferencia</th>
+                  <th className="text-right px-4 py-2.5 text-xs text-muted-foreground uppercase">Ventas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {derived.weeklyComparison.map((d: any, i: number) => {
+                  const diff = d.actual - d.prevWeek;
+                  const diffPct = d.prevWeek > 0 ? (diff / d.prevWeek) * 100 : null;
+                  return (
+                    <tr key={d.day} className={i % 2 === 0 ? '' : 'bg-muted/10'}>
+                      <td className="px-4 py-2.5 font-medium">{d.day}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs font-bold text-primary">{d.actual > 0 ? formatARS(d.actual) : '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">{d.prevWeek > 0 ? formatARS(d.prevWeek) : '—'}</td>
+                      <td className={`px-4 py-2.5 text-right text-xs font-bold ${diff > 0 ? 'text-success' : diff < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {diffPct !== null ? `${diff > 0 ? '+' : ''}${diffPct.toFixed(0)}%` : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{d.count}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
