@@ -241,12 +241,33 @@ export default function AnalyticsPage() {
       { name: "Ventas totales", value: totalSalesCount, pct: 100, color: "hsl(150,60%,40%)" },
     ];
 
+    // ABC Analysis — product contribution to total revenue
+    const productRevMap: Record<string, { name: string; brand?: string; revenue: number; units: number }> = {};
+    sales.forEach((s: any) => {
+      if (!s.product_name) return;
+      const key = s.product_id || s.product_name;
+      if (!productRevMap[key]) productRevMap[key] = { name: s.product_name, brand: s.brand || "", revenue: 0, units: 0 };
+      productRevMap[key].revenue += Number(s.total_ars || 0);
+      productRevMap[key].units += Number(s.quantity || 1);
+    });
+    const abcList = Object.values(productRevMap).sort((a, b) => b.revenue - a.revenue);
+    const totalRev = abcList.reduce((s, p) => s + p.revenue, 0);
+    let cumulative = 0;
+    const abcProducts = abcList.map(p => {
+      cumulative += p.revenue;
+      const cumPct = totalRev > 0 ? (cumulative / totalRev) * 100 : 0;
+      const revPct = totalRev > 0 ? (p.revenue / totalRev) * 100 : 0;
+      const cls = cumPct - revPct < 80 ? "A" : cumPct - revPct < 95 ? "B" : "C";
+      return { ...p, revPct, cumPct, cls };
+    });
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
+      abcProducts,
     };
   }, [rawData, year]);
 
@@ -301,6 +322,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="mix" className="text-xs">Mix</TabsTrigger>
           <TabsTrigger value="horarios" className="text-xs">Horarios</TabsTrigger>
           <TabsTrigger value="funnel" className="text-xs">Conversión</TabsTrigger>
+          <TabsTrigger value="abc" className="text-xs">ABC</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -733,6 +755,101 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </TabsContent>
+
+        {/* ABC Analysis */}
+        <TabsContent value="abc" className="mt-4 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            {(["A", "B", "C"] as const).map(cls => {
+              const items = derived.abcProducts.filter((p: any) => p.cls === cls);
+              const rev = items.reduce((s: number, p: any) => s + p.revenue, 0);
+              const colors: Record<string, string> = { A: "border-success/30 bg-success/5 text-success", B: "border-warning/30 bg-warning/5 text-warning", C: "border-muted border-border bg-muted/10 text-muted-foreground" };
+              const descriptions: Record<string, string> = { A: "Alta rotación → mantener stock", B: "Rotación media → optimizar", C: "Baja rotación → revisar o eliminar" };
+              return (
+                <div key={cls} className={`rounded-xl border p-4 ${colors[cls]}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-2xl font-black font-display">{cls}</span>
+                    <span className="text-xs opacity-60">{items.length} productos</span>
+                  </div>
+                  <p className="text-lg font-bold">{formatARS(rev)}</p>
+                  <p className="text-[10px] opacity-70 mt-1">{descriptions[cls]}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {derived.abcProducts.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-20" />
+              <p>Sin datos de ventas para analizar</p>
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
+                <h3 className="text-sm font-semibold">Clasificación ABC por ingreso</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">A=80% del ingreso · B=siguiente 15% · C=último 5%</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground text-xs">
+                      <th className="text-left p-3">Clase</th>
+                      <th className="text-left p-3">Producto</th>
+                      <th className="text-right p-3">Ingreso</th>
+                      <th className="text-right p-3">% del total</th>
+                      <th className="text-right p-3">% acumulado</th>
+                      <th className="text-right p-3">Unidades</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {derived.abcProducts.slice(0, 50).map((p: any, i: number) => (
+                      <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
+                        <td className="p-3">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            p.cls === "A" ? "bg-success/15 text-success" :
+                            p.cls === "B" ? "bg-warning/15 text-warning" :
+                            "bg-muted text-muted-foreground"
+                          }`}>{p.cls}</span>
+                        </td>
+                        <td className="p-3">
+                          <p className="font-medium truncate max-w-[200px]">{p.name}</p>
+                        </td>
+                        <td className="p-3 text-right font-mono text-xs">{formatARS(p.revenue)}</td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(p.revPct, 100)}%` }} />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-10 text-right">{p.revPct.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right text-xs text-muted-foreground">{p.cumPct.toFixed(1)}%</td>
+                        <td className="p-3 text-right text-xs">{p.units}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">¿Cómo usar el análisis ABC?</h4>
+            {[
+              { cls: "A", tip: "Productos clase A: asegurate de tener siempre stock. Negociá volumen con tus proveedores." },
+              { cls: "B", tip: "Productos clase B: monitoreá la rotación. Pueden subir a A con mejor posicionamiento o bajar a C." },
+              { cls: "C", tip: "Productos clase C: evaluá si vale la pena mantenerlos. Considerá liquidar stock o descontinuar." },
+            ].map(item => (
+              <div key={item.cls} className="flex items-start gap-2 text-xs text-muted-foreground">
+                <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                  item.cls === "A" ? "bg-success/15 text-success" :
+                  item.cls === "B" ? "bg-warning/15 text-warning" :
+                  "bg-muted text-muted-foreground"
+                }`}>{item.cls}</span>
+                <span>{item.tip}</span>
+              </div>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
