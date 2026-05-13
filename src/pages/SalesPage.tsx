@@ -182,6 +182,54 @@ export default function SalesPage() {
         <KPICard label="Cobradas / Deben" value={`${paidCount} / ${debtCount}`} icon={Ticket} color={debtCount > 0 ? "warning" : "success"} sub={debtCount > 0 ? `${formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente` : "todo cobrado"} trend={prevPeriod && delta(filtered.length, prevPeriod.count) !== undefined ? { value: delta(filtered.length, prevPeriod.count)!, label: "ventas vs ant." } : undefined} />
       </div>
 
+      {/* Payment method breakdown */}
+      {filtered.length > 0 && (() => {
+        const byMethod: Record<string, { total: number; count: number }> = {};
+        filtered.forEach(s => {
+          const m = s.payment_method || 'efectivo';
+          if (!byMethod[m]) byMethod[m] = { total: 0, count: 0 };
+          byMethod[m].total += Number(s.total_ars);
+          byMethod[m].count++;
+        });
+        const sorted = Object.entries(byMethod).sort((a, b) => b[1].total - a[1].total);
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Desglose por método de pago</h3>
+            <div className="space-y-2">
+              {sorted.map(([method, data]) => {
+                const pct = totalSales > 0 ? (data.total / totalSales) * 100 : 0;
+                return (
+                  <div key={method}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${PAYMENT_BADGE[method] || 'bg-muted text-muted-foreground'}`}>{method}</span>
+                        <span className="text-muted-foreground">{data.count} venta{data.count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold font-mono">{formatARS(data.total)}</span>
+                        <span className="text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          method === 'efectivo' ? 'bg-green-400' :
+                          method === 'transferencia' ? 'bg-blue-400' :
+                          method === 'mayorista' ? 'bg-purple-400' :
+                          method === 'debito' ? 'bg-primary' :
+                          method === 'credito' ? 'bg-yellow-400' : 'bg-red-400'
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-5">
         <div className="relative flex-1 min-w-[160px]">

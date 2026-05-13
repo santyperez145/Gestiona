@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -34,8 +34,21 @@ export default function ExpensesPage() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [budgets, setBudgets] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem("gestiona.expense_budgets") || "{}"); } catch { return {}; }
+  });
+  const [editBudget, setEditBudget] = useState<string | null>(null);
+  const [budgetInput, setBudgetInput] = useState("");
 
   const categories = useMemo(() => buildExpenseCategories(settings), [settings]);
+
+  const saveBudget = (cat: string, value: number) => {
+    const next = { ...budgets, [cat]: value };
+    setBudgets(next);
+    localStorage.setItem("gestiona.expense_budgets", JSON.stringify(next));
+    setEditBudget(null);
+    setBudgetInput("");
+  };
 
   const reload = async () => {
     if (!user) return;
@@ -67,6 +80,7 @@ export default function ExpensesPage() {
       byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount_ars);
     });
     const chartData = Object.entries(byCat).map(([cat, value]) => ({
+      cat,
       name: getExpenseCategoryLabel(cat, settings),
       value,
       color: categories.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
@@ -180,16 +194,49 @@ export default function ExpensesPage() {
               </PieChart>
             </ResponsiveContainer>
           ) : <p className="text-muted-foreground text-sm py-12 text-center">Sin datos</p>}
-          <div className="space-y-1 mt-2">
-            {totals.chartData.map(c => (
-              <div key={c.name} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: c.color }} />
-                  <span>{c.name}</span>
+          <div className="space-y-3 mt-3">
+            {totals.chartData.map(c => {
+              const budget = budgets[c.cat] || 0;
+              const pct = budget > 0 ? Math.min(100, (c.value / budget) * 100) : 0;
+              const over = budget > 0 && c.value > budget;
+              const isEditing = editBudget === c.cat;
+              return (
+                <div key={c.cat}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
+                      <span className="font-medium">{c.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-semibold font-mono ${over ? 'text-destructive' : ''}`}>{formatARS(c.value)}</span>
+                      {budget > 0 && <span className="text-muted-foreground">/ {formatARS(budget)}</span>}
+                      {!isEditing && (
+                        <button onClick={() => { setEditBudget(c.cat); setBudgetInput(budget > 0 ? String(budget) : ""); }}
+                          className="text-muted-foreground hover:text-foreground transition-colors">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isEditing && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <input type="number" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
+                        placeholder="Presupuesto..." autoFocus
+                        onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.cat, parseFloat(budgetInput) || 0); if (e.key === 'Escape') { setEditBudget(null); setBudgetInput(""); }}}
+                        className="flex-1 h-6 text-xs px-2 rounded bg-muted border border-border outline-none focus:ring-1 focus:ring-primary/40" />
+                      <button onClick={() => saveBudget(c.cat, parseFloat(budgetInput) || 0)} className="text-green-400 hover:text-green-300"><Check className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => { setEditBudget(null); setBudgetInput(""); }} className="text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  )}
+                  {budget > 0 && (
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-warning' : 'bg-primary'}`}
+                        style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
                 </div>
-                <span className="font-medium">{formatARS(c.value)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
