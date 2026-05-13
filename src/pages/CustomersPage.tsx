@@ -40,6 +40,7 @@ type CustomerData = {
   products: Record<string, { qty: number; revenue: number }>;
   segment: string;
   segmentColor: string;
+  healthScore: number;
   // Profile from customers table (if exists)
   profileId?: string;
   email?: string;
@@ -77,6 +78,45 @@ function getSegment(c: CustomerData): { label: string; color: string } {
   if (daysSince <= 60) return { label: "En riesgo", color: "bg-orange-500/20 text-orange-400" };
   if (daysSince <= 90) return { label: "Dormido", color: "bg-red-500/20 text-red-300" };
   return { label: "Perdido", color: "bg-muted text-muted-foreground" };
+}
+
+function computeHealthScore(c: CustomerData, monetarySorted: number[]): number {
+  if (c.purchaseCount === 0) return 0;
+
+  // Recency — 0 to 35 points
+  const d = c.daysSinceLastPurchase;
+  const recency = d <= 7 ? 35 : d <= 14 ? 28 : d <= 30 ? 20 : d <= 60 ? 10 : d <= 90 ? 5 : 0;
+
+  // Frequency — 0 to 35 points
+  const p = c.purchaseCount;
+  const freq = p >= 10 ? 35 : p >= 7 ? 28 : p >= 5 ? 21 : p >= 3 ? 14 : p >= 2 ? 7 : 4;
+
+  // Monetary — 0 to 30 points via percentile
+  const rank = monetarySorted.filter(s => s <= c.totalSpent).length;
+  const monetary = monetarySorted.length > 0 ? Math.round((rank / monetarySorted.length) * 30) : 0;
+
+  return Math.min(100, recency + freq + monetary);
+}
+
+function HealthScoreBadge({ score }: { score: number }) {
+  const { color, label } = score >= 80
+    ? { color: "text-yellow-400 bg-yellow-400/15 border-yellow-400/30", label: "⭐" }
+    : score >= 60
+    ? { color: "text-green-400 bg-green-400/15 border-green-400/30", label: "●" }
+    : score >= 40
+    ? { color: "text-blue-400 bg-blue-400/15 border-blue-400/30", label: "●" }
+    : score >= 20
+    ? { color: "text-orange-400 bg-orange-400/15 border-orange-400/30", label: "●" }
+    : { color: "text-red-400 bg-red-400/15 border-red-400/30", label: "●" };
+
+  return (
+    <span
+      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${color}`}
+      title={`Score de salud: ${score}/100 (Recency + Frequency + Monetary)`}
+    >
+      {label} {score}
+    </span>
+  );
 }
 
 const SEGMENT_COLORS: Record<string, string> = {
@@ -653,7 +693,7 @@ export default function CustomersPage() {
       }
     });
 
-    return Object.values(map).map(c => {
+    const list = Object.values(map).map(c => {
       c.avgTicket = c.purchaseCount > 0 ? c.totalSpent / c.purchaseCount : 0;
       c.daysSinceLastPurchase = Math.floor((now - new Date(c.lastPurchase).getTime()) / 86400000);
       const spanDays = Math.max(1, (new Date(c.lastPurchase).getTime() - new Date(c.firstPurchase).getTime()) / 86400000);
@@ -663,8 +703,13 @@ export default function CustomersPage() {
         c.segment = seg.label;
         c.segmentColor = seg.color;
       }
+      c.healthScore = 0;
       return c;
     });
+    // Compute health scores (monetary uses percentile across all customers)
+    const monetarySorted = list.filter(c => c.purchaseCount > 0).map(c => c.totalSpent).sort((a, b) => a - b);
+    list.forEach(c => { c.healthScore = computeHealthScore(c, monetarySorted); });
+    return list;
   }, [sales, debts, profiles, profileByName]);
 
   const filtered = useMemo(() => {
@@ -686,10 +731,11 @@ export default function CustomersPage() {
 
   const exportCSV = () => {
     const rows = [
-      ["Nombre", "Segmento", "Total Gastado (ARS)", "Ganancia (ARS)", "Compras", "Ticket Promedio (ARS)", "Última Compra", "Días sin Comprar", "Frecuencia (días)", "Deuda Pendiente (ARS)", "Email", "Teléfono"],
+      ["Nombre", "Segmento", "Score Salud", "Total Gastado (ARS)", "Ganancia (ARS)", "Compras", "Ticket Promedio (ARS)", "Última Compra", "Días sin Comprar", "Frecuencia (días)", "Deuda Pendiente (ARS)", "Email", "Teléfono"],
       ...filtered.map(c => [
         c.name,
         c.segment,
+        c.healthScore,
         c.totalSpent.toFixed(2),
         c.totalProfit.toFixed(2),
         c.purchaseCount,
@@ -953,6 +999,7 @@ export default function CustomersPage() {
         <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
           <SelectTrigger className="bg-muted border-border w-full sm:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="healthScore">Mayor score</SelectItem>
             <SelectItem value="totalSpent">Mayor facturación</SelectItem>
             <SelectItem value="purchaseCount">Más compras</SelectItem>
             <SelectItem value="avgTicket">Mayor ticket</SelectItem>
@@ -1015,6 +1062,7 @@ export default function CustomersPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.segmentColor}`}>{c.segment}</span>
+                      {c.purchaseCount > 0 && <HealthScoreBadge score={c.healthScore} />}
                       {c.pendingDebt > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive hidden sm:block">
                           Debe {formatARS(c.pendingDebt)}
@@ -1048,6 +1096,30 @@ export default function CustomersPage() {
                 {/* Expanded details — Ficha 360 */}
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-2 border-t border-border">
+                    {/* Health Score gauge */}
+                    {c.purchaseCount > 0 && (
+                      <div className="mb-3 bg-muted/40 rounded-xl px-4 py-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-medium text-muted-foreground">Score de salud del cliente</span>
+                          <HealthScoreBadge score={c.healthScore} />
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              c.healthScore >= 80 ? "bg-yellow-400" :
+                              c.healthScore >= 60 ? "bg-green-400" :
+                              c.healthScore >= 40 ? "bg-blue-400" :
+                              c.healthScore >= 20 ? "bg-orange-400" : "bg-red-400"
+                            }`}
+                            style={{ width: `${c.healthScore}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                          <span>Recencia · Frecuencia · Valor monetario</span>
+                          <span>{c.healthScore}/100</span>
+                        </div>
+                      </div>
+                    )}
                     {/* Action buttons */}
                     <div className="flex gap-2 mb-3">
                       <Button
