@@ -101,6 +101,7 @@ export default function Dashboard() {
   const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
   const [pipelineStats, setPipelineStats] = useState<{ total: number; won: number; lost: number; active: number; wonValue: number; totalValue: number } | null>(null);
+  const [atRiskCustomers, setAtRiskCustomers] = useState<{ name: string; daysSince: number; totalSpent: number }[]>([]);
   const [monthlyTarget, setMonthlyTarget] = useState<number>(() => {
     const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
     return Number(localStorage.getItem(key) || 0);
@@ -163,6 +164,29 @@ export default function Dashboard() {
       setUrgentTasks(data || []);
     })();
   }, [orgForTasks]);
+
+  // At-risk customers: bought before but not in 60+ days
+  useEffect(() => {
+    if (!rawData?.sales?.length) return;
+    const now = Date.now();
+    const lastPurchase: Record<string, { ts: number; total: number }> = {};
+    rawData.sales.forEach((s: any) => {
+      if (!s.customer_name) return;
+      const ts = new Date(s.date).getTime();
+      const prev = lastPurchase[s.customer_name];
+      if (!prev || ts > prev.ts) {
+        lastPurchase[s.customer_name] = { ts, total: (prev?.total || 0) + Number(s.total_ars) };
+      } else {
+        lastPurchase[s.customer_name].total += Number(s.total_ars);
+      }
+    });
+    const atRisk = Object.entries(lastPurchase)
+      .map(([name, { ts, total }]) => ({ name, daysSince: Math.floor((now - ts) / 86400000), totalSpent: total }))
+      .filter(c => c.daysSince >= 60 && c.daysSince < 180)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 5);
+    setAtRiskCustomers(atRisk);
+  }, [rawData]);
 
   // Pipeline conversion stats
   useEffect(() => {
@@ -624,6 +648,35 @@ export default function Dashboard() {
           totalDebtsARS: stats.totalDebtsARS,
         }}
       />}
+
+      {/* At-risk customers widget */}
+      {atRiskCustomers.length > 0 && (
+        <div className="mb-5 mt-4 bg-card border border-warning/20 rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-warning" />Clientes en riesgo de perderse
+            </h3>
+            <Link to="/customers" className="text-xs text-primary hover:underline">Ver CRM →</Link>
+          </div>
+          <div className="space-y-2">
+            {atRiskCustomers.map(c => (
+              <div key={c.name} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                    <Users className="w-3 h-3 text-warning" />
+                  </div>
+                  <span className="text-sm font-medium truncate">{c.name}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs text-muted-foreground">{c.daysSince}d sin comprar</span>
+                  <span className="text-xs font-semibold text-warning">{formatARS(c.totalSpent)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">Clientes que compraron hace 60–180 días. Contactalos para reactivarlos.</p>
+        </div>
+      )}
 
       {/* Birthday Reminders */}
       {birthdayCustomers.length > 0 && (
