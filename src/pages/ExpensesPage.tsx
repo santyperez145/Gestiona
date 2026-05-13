@@ -83,6 +83,22 @@ export default function ExpensesPage() {
     return Array.from(set).sort().reverse();
   }, [expenses]);
 
+  // Month-over-month comparison
+  const prevMonthTotal = useMemo(() => {
+    if (filterMonth === 'all') return null;
+    const [y, m] = filterMonth.split('-').map(Number);
+    const prevDate = new Date(y, m - 2, 1);
+    const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevFiltered = expenses.filter(e => {
+      if (filterCat !== 'all' && e.category !== filterCat) return false;
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return key === prevKey;
+    });
+    const total = prevFiltered.reduce((s, e) => s + Number(e.amount_ars), 0);
+    return total > 0 ? total : null;
+  }, [expenses, filterMonth, filterCat]);
+
   const handleDelete = async (id: string) => {
     await deleteExpenseDB(id);
     if (user) await logAudit(user.id, 'delete', 'expense', id, {});
@@ -121,7 +137,7 @@ export default function ExpensesPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <KPICard icon={TrendingDown} label="Total del período" value={formatARS(totals.total)} color="destructive" sub={`${filtered.length} gastos`} />
+        <KPICard icon={TrendingDown} label="Total del período" value={formatARS(totals.total)} color="destructive" sub={`${filtered.length} gastos`} trend={prevMonthTotal ? { value: ((totals.total - prevMonthTotal) / prevMonthTotal) * 100, label: "vs mes ant." } : undefined} />
         <KPICard icon={Wallet} label="Promedio por gasto" value={filtered.length > 0 ? formatARS(totals.total / filtered.length) : "$0"} color="primary" />
         <KPICard icon={Repeat} label="Recurrentes" value={totals.recurring} color="warning" sub="se auto-generan" />
         <KPICard icon={Filter} label="Categorías activas" value={totals.chartData.length} color="blue" />
