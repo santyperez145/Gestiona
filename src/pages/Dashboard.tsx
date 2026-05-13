@@ -17,6 +17,7 @@ import CashFlowProjector from "@/components/dashboard/CashFlowProjector";
 import HealthScore from "@/components/dashboard/HealthScore";
 import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
 import AIPrediction from "@/components/dashboard/AIPrediction";
+import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
@@ -502,6 +503,20 @@ export default function Dashboard() {
         sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
         userId={user.id}
         onRepair={() => setReloadKey(k => k + 1)}
+      />}
+
+      {/* AI Proactive Suggestions */}
+      {orgForTasks && <AIProactiveWidget
+        orgId={orgForTasks.id}
+        stats={{
+          products: stats.products,
+          rawSales: stats.rawSales,
+          rawExpenses: stats.rawExpenses,
+          totalSalesARS: stats.totalSalesARS,
+          grossProfitARS: stats.grossProfitARS,
+          pendingDebts: stats.pendingDebts,
+          totalDebtsARS: stats.totalDebtsARS,
+        }}
       />}
 
       {/* Birthday Reminders */}

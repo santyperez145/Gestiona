@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,20 +171,29 @@ function DealCard({
   onDelete,
   onMove,
   stages,
+  onDragStart,
 }: {
   deal: Deal;
   onEdit: () => void;
   onDelete: () => void;
   onMove: (stage: Stage) => void;
   stages: typeof STAGES;
+  onDragStart: (id: string) => void;
 }) {
   const isOverdue = deal.expected_close && new Date(deal.expected_close) < new Date() && deal.stage !== "cerrado" && deal.stage !== "perdido";
   const stageInfo = stages.find(s => s.value === deal.stage)!;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-3 shadow-sm hover:border-primary/30 transition-all group">
+    <div
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed = "move"; onDragStart(deal.id); }}
+      className="bg-card border border-border rounded-xl p-3 shadow-sm hover:border-primary/30 transition-all group cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95"
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold leading-tight flex-1">{deal.title}</p>
+        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+          <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 mt-0.5 transition-colors" />
+          <p className="text-sm font-semibold leading-tight">{deal.title}</p>
+        </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <button onClick={onEdit} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
             <Edit2 className="w-3 h-3" />
@@ -252,6 +261,8 @@ export default function SalesPipelinePage() {
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState<{ open: boolean; deal?: Deal; prefillStage?: Stage }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -381,7 +392,21 @@ export default function SalesPipelinePage() {
               const stageDeals = dealsByStage[stage.value] || [];
               const stageTotal = stageDeals.reduce((s, d) => s + (d.value_ars || 0), 0);
               return (
-                <div key={stage.value} className="w-64 flex flex-col gap-2">
+                <div
+                  key={stage.value}
+                  className={`w-64 flex flex-col gap-2 transition-all rounded-xl ${dragOverStage === stage.value ? "ring-2 ring-primary/40 bg-primary/5" : ""}`}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverStage(stage.value); }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStage(null); }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    setDragOverStage(null);
+                    if (draggedId) {
+                      const deal = deals.find(d => d.id === draggedId);
+                      if (deal && deal.stage !== stage.value) handleMove(deal, stage.value);
+                    }
+                    setDraggedId(null);
+                  }}
+                >
                   {/* Column header */}
                   <div className={`rounded-xl px-3 py-2.5 ${stage.bg}`}>
                     <div className="flex items-center justify-between mb-0.5">
@@ -417,6 +442,7 @@ export default function SalesPipelinePage() {
                         onEdit={() => setDialog({ open: true, deal })}
                         onDelete={() => handleDelete(deal)}
                         onMove={newStage => handleMove(deal, newStage)}
+                        onDragStart={id => setDraggedId(id)}
                       />
                     ))}
                     {stageDeals.length === 0 && (
