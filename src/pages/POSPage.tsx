@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -650,6 +650,41 @@ export default function POSPage() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
 
+  // Offline mode
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineSales, setOfflineSales] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem(`gestiona.pos.offline_sales.${activeOrg?.id || 'default'}`) || "[]"); } catch { return []; }
+  });
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+  }, []);
+
+  const offlineKey = `gestiona.pos.offline_sales.${activeOrg?.id || 'default'}`;
+
+  const syncOfflineSales = async () => {
+    if (!offlineSales.length || !isOnline) return;
+    setSyncing(true);
+    let synced = 0;
+    const remaining = [...offlineSales];
+    for (let i = remaining.length - 1; i >= 0; i--) {
+      try {
+        await addSaleDB(remaining[i]);
+        remaining.splice(i, 1);
+        synced++;
+      } catch { /* keep it in queue */ }
+    }
+    setOfflineSales(remaining);
+    localStorage.setItem(offlineKey, JSON.stringify(remaining));
+    setSyncing(false);
+    if (synced > 0) toast.success(`${synced} venta${synced !== 1 ? "s" : ""} sincronizada${synced !== 1 ? "s" : ""} correctamente`);
+  };
+
   // Saved orders (hold carts)
   type SavedOrder = { id: string; label: string; cart: CartItem[]; customer: string; savedAt: string };
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
@@ -850,7 +885,7 @@ export default function POSPage() {
       if (splitMethod1 === splitMethod2) { toast.error("Los dos métodos deben ser diferentes"); return; }
     }
 
-    if (!await checkSalesLimit()) return;
+    if (isOnline && !await checkSalesLimit()) return;
 
     const orgId = activeOrg.id;
     setSubmitting(true);
@@ -904,13 +939,19 @@ export default function POSPage() {
           coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
         };
 
-        await addSaleDB(saleData);
-        await logAudit(user.id, "create", "sale", saleData.id, {
-          product: item.name,
-          total: adjustedTotal,
-          method: splitMode ? `split:${splitMethod1}+${splitMethod2}` : payMethod,
-          source: "pos",
-        });
+        if (isOnline) {
+          await addSaleDB(saleData);
+          await logAudit(user.id, "create", "sale", saleData.id, {
+            product: item.name,
+            total: adjustedTotal,
+            method: splitMode ? `split:${splitMethod1}+${splitMethod2}` : payMethod,
+            source: "pos",
+          });
+        } else {
+          const pending = [...offlineSales, saleData];
+          setOfflineSales(pending);
+          localStorage.setItem(offlineKey, JSON.stringify(pending));
+        }
       }
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
@@ -936,6 +977,13 @@ export default function POSPage() {
       }
 
       // Large sale notification (best-effort)
+      if (!isOnline) {
+        toast.success(`Venta guardada offline — se sincronizará al reconectar`);
+        clearCart();
+        setReceipt({ items: [...cart], total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount });
+        return;
+      }
+
       const largeThreshold = Number(settings?.large_sale_threshold_ars) || 50_000;
       if (cartTotal >= largeThreshold && user) {
         supabase.from("notifications").insert({
@@ -1369,6 +1417,25 @@ export default function POSPage() {
       )}
 
       <div className="h-[calc(100vh-4rem)] lg:h-screen flex flex-col">
+        {/* Offline / sync banner */}
+        {!isOnline && (
+          <div className="shrink-0 flex items-center gap-3 bg-orange-500/10 border-b border-orange-500/30 px-4 py-2 text-xs text-orange-400">
+            <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            <span>Sin conexión — las ventas se guardan localmente y se sincronizan al reconectar</span>
+            {offlineSales.length > 0 && (
+              <span className="ml-auto font-medium">{offlineSales.length} pendiente{offlineSales.length !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+        )}
+        {isOnline && offlineSales.length > 0 && (
+          <div className="shrink-0 flex items-center gap-3 bg-blue-500/10 border-b border-blue-500/30 px-4 py-2 text-xs text-blue-400">
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${syncing ? "animate-spin" : ""}`} />
+            <span>{offlineSales.length} venta{offlineSales.length !== 1 ? "s" : ""} pendiente{offlineSales.length !== 1 ? "s" : ""} de sincronizar</span>
+            <Button size="sm" variant="outline" className="ml-auto h-6 text-[10px] border-blue-500/40 text-blue-400 hover:bg-blue-500/10" onClick={syncOfflineSales} disabled={syncing}>
+              {syncing ? "Sincronizando..." : "Sincronizar ahora"}
+            </Button>
+          </div>
+        )}
         {/* Top bar */}
         <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60 backdrop-blur">
           <div className="flex-1 relative">
