@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -28,6 +28,54 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
+
+function exportPriceListPDF(products: any[], businessName: string) {
+  const inStock = products.filter(p => p.stock > 0);
+  const grouped: Record<string, typeof inStock> = {};
+  inStock.forEach(p => {
+    const cat = getCategoryLabel(p.category || 'otros');
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(p);
+  });
+  const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  let rows = '';
+  Object.entries(grouped).forEach(([cat, items]) => {
+    rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
+    items.forEach(p => {
+      rows += `<tr>
+        <td>${p.name}${p.brand ? ` <span class="brand">${p.brand}</span>` : ''}${p.gender ? ` <span class="gender">${p.gender}</span>` : ''}</td>
+        <td class="price">${formatARS(Number(p.sale_price_ars))}</td>
+        <td class="price">${p.discount_price_ars ? formatARS(Number(p.discount_price_ars)) : '—'}</td>
+      </tr>`;
+    });
+  });
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lista de Precios</title>
+<style>
+  body{font-family:Arial,sans-serif;margin:20px;font-size:12px;color:#222}
+  h1{font-size:20px;margin-bottom:2px}
+  .sub{color:#666;font-size:11px;margin-bottom:16px}
+  table{border-collapse:collapse;width:100%}
+  th{background:#1a1a2e;color:#d4a843;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;text-align:left}
+  th.price,td.price{text-align:right}
+  tr:nth-child(even){background:#f9f9f9}
+  .cat-row td{background:#f0e8d0;font-weight:700;font-size:11px;padding:4px 8px;color:#7a5a00;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:5px 8px;border-bottom:1px solid #eee}
+  .brand{color:#888;font-size:10px}
+  .gender{color:#999;font-size:10px}
+  .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
+  @media print{.no-print{display:none}}
+</style></head><body>
+<h1>${businessName}</h1>
+<div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
+<table>
+  <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<div class="footer">Precios en pesos argentinos (ARS). Sujetos a cambios sin previo aviso.</div>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); w.print(); }
+}
 
 async function exportProductsXLSX(products: any[], settings: any) {
   const { utils, writeFile } = await import('xlsx');
@@ -206,7 +254,10 @@ export default function ProductsPage() {
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar
+              <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
+              <FileText className="w-4 h-4 mr-2" />Lista precios
             </Button>
             {canCreate && (
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
