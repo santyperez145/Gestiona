@@ -463,6 +463,24 @@ export default function Dashboard() {
     const salesGrowth = prevSalesARS > 0 ? ((monthSalesARS - prevSalesARS) / prevSalesARS) * 100 : (monthSalesARS > 0 ? 100 : 0);
     const profitGrowth = prevProfit > 0 ? ((monthGrossProfit - prevProfit) / prevProfit) * 100 : (monthGrossProfit > 0 ? 100 : 0);
 
+    // ===== Top products this month vs prev month =====
+    const monthProdMap: Record<string, { name: string; qty: number; revenue: number }> = {};
+    monthSales.forEach((s: any) => {
+      const k = s.product_name || "?";
+      if (!monthProdMap[k]) monthProdMap[k] = { name: k, qty: 0, revenue: 0 };
+      monthProdMap[k].qty += Number(s.quantity);
+      monthProdMap[k].revenue += Number(s.total_ars);
+    });
+    const prevMonthProdMap: Record<string, number> = {};
+    prevSales.forEach((s: any) => {
+      const k = s.product_name || "?";
+      prevMonthProdMap[k] = (prevMonthProdMap[k] || 0) + Number(s.total_ars);
+    });
+    const topMonthProducts = Object.values(monthProdMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+      .map(p => ({ ...p, prevRevenue: prevMonthProdMap[p.name] || 0 }));
+
     // ===== Top customers (this month) =====
     const custMap: Record<string, { total: number; count: number }> = {};
     monthSales.forEach((s: any) => {
@@ -559,7 +577,7 @@ export default function Dashboard() {
       currentRate, totalCostUSDInInventory, products: allProducts,
       // New
       monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
-      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel,
+      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
       // raw passthrough
@@ -1193,6 +1211,47 @@ export default function Dashboard() {
               <Bar dataKey="netProfit" fill="hsl(40, 70%, 50%)" radius={[3, 3, 0, 0]} name="netProfit" />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Top 5 Products This Month */}
+      {stats.topMonthProducts?.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-success" />Top productos este mes
+            </h2>
+            <Link to="/ventas" className="text-[10px] text-primary hover:underline">Ver ventas →</Link>
+          </div>
+          <div className="space-y-2">
+            {stats.topMonthProducts.map((p: any, i: number) => {
+              const maxRev = stats.topMonthProducts[0]?.revenue || 1;
+              const pct = (p.revenue / maxRev) * 100;
+              const trend = p.prevRevenue > 0 ? ((p.revenue - p.prevRevenue) / p.prevRevenue) * 100 : null;
+              return (
+                <div key={p.name}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-bold text-muted-foreground/60 w-4 shrink-0">{i + 1}</span>
+                      <span className="truncate font-medium">{p.name}</span>
+                      <span className="text-muted-foreground shrink-0">×{p.qty}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-semibold font-mono">{formatARS(p.revenue)}</span>
+                      {trend !== null && (
+                        <span className={`text-[10px] font-medium ${trend >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {trend >= 0 ? '▲' : '▼'}{Math.abs(trend).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
