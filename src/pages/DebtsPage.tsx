@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search, MessageCircle, FileSpreadsheet } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -14,6 +14,13 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+
+function waDebtLink(d: any) {
+  const name = d.customer_name ? d.customer_name.split(" ")[0] : "cliente";
+  const amount = formatARS(Number(d.remaining_ars));
+  const msg = `Hola ${name}! 👋 Te escribimos para recordarte que tenés una deuda pendiente de ${amount}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!`;
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
 
 export default function DebtsPage() {
   const { user } = useAuth();
@@ -150,6 +157,27 @@ export default function DebtsPage() {
             </button>
           ))}
         </div>
+        <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Fecha', 'Cliente', 'Descripción', 'Total ARS', 'Pagado ARS', 'Resta ARS', 'Estado'];
+          const rows = shown.map(d => [
+            formatDateAR(d.date),
+            d.customer_name || '',
+            d.description || '',
+            Number(d.amount_ars).toFixed(2),
+            Number(d.paid_ars).toFixed(2),
+            Number(d.remaining_ars).toFixed(2),
+            d.status === 'paid' ? 'Pagada' : d.status === 'partial' ? 'Parcial' : 'Pendiente',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = `deudas-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          toast.success('Deudas exportadas');
+        }}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {/* Payment Dialog */}
@@ -212,6 +240,11 @@ export default function DebtsPage() {
                           <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs border-success/30 text-success hover:bg-success/10" onClick={() => setPayingDebt(d)}>
                             <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
                           </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
+                            title="Enviar recordatorio por WhatsApp"
+                            onClick={() => window.open(waDebtLink(d), "_blank")}>
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </Button>
                           <ConfirmDialog
                             trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                             title="¿Eliminar deuda?"
@@ -256,6 +289,11 @@ export default function DebtsPage() {
                   <div className="flex gap-2">
                     <Button size="sm" className="flex-1 h-8 text-xs gradient-gold text-primary-foreground" onClick={() => setPayingDebt(d)}>
                       <DollarSign className="w-3.5 h-3.5 mr-1.5" />Registrar pago
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-500/30 text-green-400 hover:bg-green-500/10"
+                      title="Recordatorio WhatsApp"
+                      onClick={() => window.open(waDebtLink(d), "_blank")}>
+                      <MessageCircle className="w-3.5 h-3.5" />
                     </Button>
                     <ConfirmDialog
                       trigger={<Button size="sm" variant="outline" className="h-8 w-8 p-0 border-destructive/30"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
