@@ -143,6 +143,7 @@ export default function ProductsPage() {
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
+  const [editingPrice, setEditingPrice] = useState<{ id: string; value: string } | null>(null);
   const [reorderDismissed, setReorderDismissed] = useState(false);
 
   const reload = async () => {
@@ -178,6 +179,15 @@ export default function ProductsPage() {
     setLastSaleDate(lastSale);
   };
   useEffect(() => { reload(); }, [user]);
+
+  const saveInlinePrice = async (productId: string, newPrice: string) => {
+    const parsed = parseFloat(newPrice);
+    if (isNaN(parsed) || parsed < 0) { setEditingPrice(null); return; }
+    await updateProductDB(productId, { sale_price_ars: parsed });
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, sale_price_ars: parsed } : p));
+    setEditingPrice(null);
+    toast.success("Precio actualizado");
+  };
 
   const saveInlineStock = async (productId: string, newStock: string) => {
     const parsed = parseInt(newStock, 10);
@@ -521,7 +531,31 @@ export default function ProductsPage() {
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
                          <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
-                         <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
+                         <td className="p-3 text-right font-medium text-xs">
+                           {editingPrice?.id === p.id ? (
+                             <input
+                               type="number"
+                               min="0"
+                               autoFocus
+                               value={editingPrice.value}
+                               onChange={e => setEditingPrice({ id: p.id, value: e.target.value })}
+                               onBlur={() => saveInlinePrice(p.id, editingPrice.value)}
+                               onKeyDown={e => {
+                                 if (e.key === "Enter") saveInlinePrice(p.id, editingPrice.value);
+                                 if (e.key === "Escape") setEditingPrice(null);
+                               }}
+                               className="w-24 text-right text-xs border border-primary/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                             />
+                           ) : (
+                             <button
+                               onClick={() => { if (canEdit) setEditingPrice({ id: p.id, value: String(Math.round(Number(p.sale_price_ars))) }); }}
+                               className={canEdit ? "hover:text-primary transition-colors" : ""}
+                               title={canEdit ? "Click para editar precio" : undefined}
+                             >
+                               {Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}
+                             </button>
+                           )}
+                         </td>
                          <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
                          <td className="p-3 text-right">
                            {(() => {

@@ -57,8 +57,18 @@ export default function SettingsPage() {
   const [decantMargin5, setDecantMargin5] = useState('350');
   const [decantMargin2_5, setDecantMargin2_5] = useState('500');
 
-  // WhatsApp message templates (localStorage per org)
+  // Notification preferences (localStorage per org)
   const { activeOrg: orgForTemplates } = useOrg();
+  const notifKey = `gestiona.notif_prefs.${orgForTemplates?.id || 'default'}`;
+  const DEFAULT_NOTIF_PREFS = { low_stock: true, overdue_debt: true, monthly_goal_risk: true, birthday: true, new_customer: false, large_sale: false };
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(() => {
+    try { return { ...DEFAULT_NOTIF_PREFS, ...JSON.parse(localStorage.getItem(notifKey) || "{}") }; } catch { return DEFAULT_NOTIF_PREFS; }
+  });
+  const toggleNotif = (key: string) => {
+    const next = { ...notifPrefs, [key]: !notifPrefs[key] };
+    setNotifPrefs(next);
+    localStorage.setItem(notifKey, JSON.stringify(next));
+  };
   const waTemplateKey = `gestiona.wa_templates.${orgForTemplates?.id || 'default'}`;
   const DEFAULT_WA_TEMPLATES = {
     sale: "Hola {{nombre}}! 🎉 Tu compra de {{monto}} fue registrada. ¡Gracias por elegirnos!",
@@ -361,6 +371,32 @@ export default function SettingsPage() {
               </div>
             ))}
             <p className="text-[10px] text-muted-foreground">Los cambios se guardan automáticamente en este dispositivo.</p>
+          </div>
+
+          {/* Notification preferences */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+            <div>
+              <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" />Notificaciones
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">Activá o desactivá cada tipo de alerta. Los cambios aplican inmediatamente en este dispositivo.</p>
+            </div>
+            {([
+              { key: "low_stock",         label: "Stock bajo",              desc: "Cuando un producto llega al umbral de reposición" },
+              { key: "overdue_debt",      label: "Deuda vencida",           desc: "Cuando un cliente tiene deuda con due_date vencido" },
+              { key: "monthly_goal_risk", label: "Meta mensual en riesgo",  desc: "Cuando quedan ≤7 días y llevas <60% del objetivo" },
+              { key: "birthday",          label: "Cumpleaños de clientes",  desc: "Clientes con cumpleaños en los próximos 7 días" },
+              { key: "new_customer",      label: "Nuevo cliente",           desc: "Al registrar un nuevo cliente en el sistema" },
+              { key: "large_sale",        label: "Venta grande",            desc: "Cuando una venta supera el doble del ticket promedio" },
+            ] as const).map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                <div className="min-w-0 mr-3">
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-[10px] text-muted-foreground">{desc}</p>
+                </div>
+                <Switch checked={!!notifPrefs[key]} onCheckedChange={() => toggleNotif(key)} />
+              </div>
+            ))}
           </div>
 
           {/* Payment method discounts */}

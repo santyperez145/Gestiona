@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -25,6 +25,7 @@ type AIAction =
   | { type: "create_sale"; productName?: string; quantity?: string; customer?: string }
   | { type: "create_purchase"; productName?: string; quantity?: string; supplier?: string; costUSD?: string }
   | { type: "query_debt"; customerName?: string }
+  | { type: "query_stock"; productName?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -113,6 +114,12 @@ function detectIntent(msg: string): AIAction | null {
       /\b(cuánto\s+(?:me\s+)?(?:debe|adeuda))\b/.test(lower)) {
     const nameMatch = msg.match(/(?:debe|deuda\s+de|saldo\s+de|fiado\s+de|adeuda)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
     return { type: "query_debt", customerName: nameMatch?.[1]?.trim() };
+  }
+
+  // Query product stock
+  if (/\b(cuánto\s+(?:stock|tengo|hay|queda)|stock\s+de|tengo\s+de)\b/.test(lower)) {
+    const productMatch = msg.match(/(?:de|stock\s+de|tengo\s+de)\s+([a-záéíóúüñA-ZÁÉÍÓÚÜÑ][a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+?)(?:\?|$)/i);
+    return { type: "query_stock", productName: productMatch?.[1]?.trim() };
   }
 
   return null;
@@ -272,6 +279,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_debt") {
     return <QueryDebtCard userId={userId} initialName={action.customerName} onDone={onDone} />;
+  }
+
+  if (action.type === "query_stock") {
+    return <QueryStockCard userId={userId} initialName={action.productName} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -579,6 +590,58 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
   );
 }
 
+// ─── QueryStockCard ───────────────────────────────────────────────────────────
+function QueryStockCard({ userId, initialName, onDone }: { userId: string; initialName?: string; onDone: () => void }) {
+  const [name, setName] = useState(initialName || "");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const search = async () => {
+    if (!name.trim()) return;
+    setLoading(true);
+    const products = await getProductsDB(userId);
+    const found = products.filter((p: any) => p.name.toLowerCase().includes(name.toLowerCase().trim()));
+    setResults(found);
+    setSearched(true);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (initialName) search(); }, []);
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Consultar stock</p>
+      <div className="flex gap-2">
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del producto" className="h-8 text-sm bg-muted border-border flex-1" onKeyDown={e => e.key === "Enter" && search()} autoFocus={!initialName} />
+        <Button size="sm" className="h-8" onClick={search} disabled={loading || !name.trim()}>
+          {loading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Buscar"}
+        </Button>
+      </div>
+      {searched && (
+        results.length === 0
+          ? <p className="text-xs text-muted-foreground">No encontré ningún producto que coincida con "{name}".</p>
+          : <div className="space-y-1.5">
+              {results.slice(0, 5).map((p: any) => (
+                <div key={p.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{p.name}</p>
+                    {p.brand && <p className="text-[10px] text-muted-foreground">{p.brand}</p>}
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <span className={`text-sm font-bold ${p.stock <= 0 ? "text-red-400" : p.stock <= 3 ? "text-orange-400" : "text-green-400"}`}>{p.stock} u.</span>
+                    {p.low_stock_threshold > 0 && <p className="text-[10px] text-muted-foreground">mín {p.low_stock_threshold}</p>}
+                  </div>
+                </div>
+              ))}
+              {results.length > 5 && <p className="text-[10px] text-muted-foreground">+{results.length - 5} más</p>}
+            </div>
+      )}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
 // ─── QueryDebtCard ────────────────────────────────────────────────────────────
 function QueryDebtCard({ userId, initialName, onDone }: { userId: string; initialName?: string; onDone: () => void }) {
   const { activeOrg } = useOrg();
@@ -652,6 +715,7 @@ const ACTION_STARTERS = [
   { label: "Agregar cliente", icon: Users, msg: "Crear un cliente nuevo" },
   { label: "Ajustar stock", icon: Package, msg: "Ajustar stock de un producto" },
   { label: "Consultar deuda", icon: DollarSign, msg: "¿Cuánto debe un cliente?" },
+  { label: "Ver stock", icon: Package, msg: "¿Cuánto stock tengo de un producto?" },
 ];
 
 const QUICK_ACTIONS = [
