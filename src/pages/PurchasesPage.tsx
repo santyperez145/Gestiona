@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,8 +25,10 @@ const PAGE_SIZE = 20;
 export default function PurchasesPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const [searchParams] = useSearchParams();
+  const prefilledProduct = searchParams.get("product") || "";
   const [purchases, setPurchases] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => !!searchParams.get("product"));
   const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [receivingOrder, setReceivingOrder] = useState<{ purchase: any; qty: string } | null>(null);
@@ -153,7 +156,7 @@ export default function PurchasesPage() {
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
-                  <PurchaseForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+                  <PurchaseForm userId={user!.id} editItem={editItem} prefilledProductName={!editItem ? prefilledProduct : ""} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
                 </DialogContent>
               </Dialog>
             )}
@@ -399,7 +402,7 @@ export default function PurchasesPage() {
   );
 }
 
-function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
+function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { userId: string; editItem?: any; prefilledProductName?: string; onSave: () => void }) {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id;
   const [products, setProducts] = useState<any[]>([]);
@@ -422,6 +425,10 @@ function PurchaseForm({ userId, editItem, onSave }: { userId: string; editItem?:
       const [p, s] = await Promise.all([getProductsDB(userId), getSettingsDB(userId)]);
       setProducts(p); setSettings(s);
       setExchangeRate(String(s?.exchange_rate || 1695));
+      if (prefilledProductName && !editItem) {
+        const match = p.find((prod: any) => prod.name.toLowerCase().includes(prefilledProductName.toLowerCase()));
+        if (match) setProductId(match.id);
+      }
       if (orgId) {
         const { data } = await supabase.from("suppliers").select("id,name").eq("org_id", orgId).order("name");
         if (data) setSuppliers(data);

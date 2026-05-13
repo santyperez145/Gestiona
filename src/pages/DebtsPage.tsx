@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
 import { getDebtsDB, addDebtPaymentDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +17,30 @@ import { logAudit } from "@/lib/auditLog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
-function waDebtLink(d: any) {
+const DEFAULT_DEBT_TEMPLATE = "Hola {{nombre}}! 👋 Te recordamos que tenés una deuda pendiente de {{monto}}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!";
+
+function getWaDebtTemplate(orgId?: string): string {
+  try {
+    const key = `gestiona.wa_templates.${orgId || 'default'}`;
+    const saved = JSON.parse(localStorage.getItem(key) || "{}");
+    return saved.debt || DEFAULT_DEBT_TEMPLATE;
+  } catch { return DEFAULT_DEBT_TEMPLATE; }
+}
+
+function buildDebtMsg(d: any, template: string): string {
   const name = d.customer_name ? d.customer_name.split(" ")[0] : "cliente";
   const amount = formatARS(Number(d.remaining_ars));
-  const msg = `Hola ${name}! 👋 Te escribimos para recordarte que tenés una deuda pendiente de ${amount}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!`;
+  return template.replace(/\{\{nombre\}\}/g, name).replace(/\{\{monto\}\}/g, amount);
+}
+
+function waDebtLink(d: any, orgId?: string) {
+  const msg = buildDebtMsg(d, getWaDebtTemplate(orgId));
   return `https://wa.me/?text=${encodeURIComponent(msg)}`;
 }
 
 export default function DebtsPage() {
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const [debts, setDebts] = useState<any[]>([]);
   const [payingDebt, setPayingDebt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +173,7 @@ export default function DebtsPage() {
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-xs text-muted-foreground">{daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `En ${daysUntil}d`}</span>
                       <span className="text-xs font-bold text-primary">{formatARS(Number(d.remaining_ars))}</span>
-                      <a href={waDebtLink(d)} target="_blank" rel="noopener noreferrer"
+                      <a href={waDebtLink(d, activeOrg?.id)} target="_blank" rel="noopener noreferrer"
                         className="p-1 rounded bg-success/10 hover:bg-success/20 text-success transition-colors" title="Recordatorio WhatsApp">
                         <MessageCircle className="w-3 h-3" />
                       </a>
@@ -270,12 +286,11 @@ export default function DebtsPage() {
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => {
             const selected = pending.filter(d => selectedIds.has(d.id));
-            const msg = selected.map(d =>
-              `Hola ${d.customer_name ? d.customer_name.split(" ")[0] : "cliente"}! 👋 Te recordamos que tenés una deuda pendiente de ${formatARS(Number(d.remaining_ars))}. Cuando puedas, coordenemos el pago. ¡Muchas gracias!`
-            ).join('\n\n---\n\n');
+            const template = getWaDebtTemplate(activeOrg?.id);
+            const msg = selected.map(d => buildDebtMsg(d, template)).join('\n\n---\n\n');
             navigator.clipboard?.writeText(msg).then(() => toast.success(`${selected.length} mensajes copiados al portapapeles`)).catch(() => {
               const firstDebt = selected[0];
-              if (firstDebt) window.open(waDebtLink(firstDebt), '_blank');
+              if (firstDebt) window.open(waDebtLink(firstDebt, activeOrg?.id), '_blank');
             });
           }}>
             <MessageCircle className="w-3 h-3 mr-1" />WhatsApp masivo
@@ -364,7 +379,7 @@ export default function DebtsPage() {
                           </Button>
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
                             title="Enviar recordatorio por WhatsApp"
-                            onClick={() => window.open(waDebtLink(d), "_blank")}>
+                            onClick={() => window.open(waDebtLink(d, activeOrg?.id), "_blank")}>
                             <MessageCircle className="w-3.5 h-3.5" />
                           </Button>
                           <ConfirmDialog
@@ -414,7 +429,7 @@ export default function DebtsPage() {
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-500/30 text-green-400 hover:bg-green-500/10"
                       title="Recordatorio WhatsApp"
-                      onClick={() => window.open(waDebtLink(d), "_blank")}>
+                      onClick={() => window.open(waDebtLink(d, activeOrg?.id), "_blank")}>
                       <MessageCircle className="w-3.5 h-3.5" />
                     </Button>
                     <ConfirmDialog

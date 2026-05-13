@@ -1050,11 +1050,29 @@ export default function Dashboard() {
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1.5">
-                  {pct >= 100
-                    ? "🎉 ¡Meta alcanzada!"
-                    : `Faltan ${formatARS(remaining)} para la meta · ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate()} días restantes del mes`}
-                </p>
+                {(() => {
+                  const daysLeft = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate();
+                  const atRisk = pct < 60 && daysLeft <= 7 && target > 0;
+                  const dailyNeeded = daysLeft > 0 ? remaining / daysLeft : 0;
+                  return (
+                    <>
+                      <p className="text-[10px] text-muted-foreground mt-1.5">
+                        {pct >= 100
+                          ? "🎉 ¡Meta alcanzada!"
+                          : `Faltan ${formatARS(remaining)} · ${daysLeft} días restantes`}
+                      </p>
+                      {atRisk && (
+                        <div className="mt-2 flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[11px] font-semibold text-red-400">Meta en riesgo</p>
+                            <p className="text-[10px] text-muted-foreground">Para alcanzarla necesitás vender {formatARS(dailyNeeded)}/día los próximos {daysLeft} días.</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </>
             ) : (
               <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo mensual de ventas para ver el progreso aquí.</p>

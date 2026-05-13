@@ -57,6 +57,32 @@ export default function SettingsPage() {
   const [decantMargin5, setDecantMargin5] = useState('350');
   const [decantMargin2_5, setDecantMargin2_5] = useState('500');
 
+  // WhatsApp message templates (localStorage per org)
+  const { activeOrg: orgForTemplates } = useOrg();
+  const waTemplateKey = `gestiona.wa_templates.${orgForTemplates?.id || 'default'}`;
+  const DEFAULT_WA_TEMPLATES = {
+    sale: "Hola {{nombre}}! 🎉 Tu compra de {{monto}} fue registrada. ¡Gracias por elegirnos!",
+    debt: "Hola {{nombre}}! 👋 Te recordamos que tenés una deuda pendiente de {{monto}}. Cuando puedas coordenamos. ¡Gracias!",
+    birthday: "¡Feliz cumpleaños {{nombre}}! 🎂 Tenemos un regalo especial para vos. Visitanos o escribinos para reclamar tu descuento.",
+    reactivation: "Hola {{nombre}}! 😊 Hace un tiempo que no te vemos. Tenemos novedades que te van a encantar. ¿Querés que te cuente?",
+    pickup: "Hola {{nombre}}! 📦 Tu pedido está listo para retirar. Podés pasarlo cuando quieras. ¡Hasta pronto!",
+  };
+  const [waTemplates, setWaTemplates] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(waTemplateKey) || "{}"); } catch { return {}; }
+  });
+  const getTemplate = (key: string) => waTemplates[key] ?? DEFAULT_WA_TEMPLATES[key as keyof typeof DEFAULT_WA_TEMPLATES] ?? "";
+  const setTemplate = (key: string, value: string) => {
+    const next = { ...waTemplates, [key]: value };
+    setWaTemplates(next);
+    localStorage.setItem(waTemplateKey, JSON.stringify(next));
+  };
+  const resetTemplate = (key: string) => {
+    const next = { ...waTemplates };
+    delete next[key];
+    setWaTemplates(next);
+    localStorage.setItem(waTemplateKey, JSON.stringify(next));
+  };
+
   // Track original values for auto-recalculate prompt
   const [origRate, setOrigRate] = useState('');
   const [origCustoms, setOrigCustoms] = useState('');
@@ -302,6 +328,39 @@ export default function SettingsPage() {
               </Button>
               <Button variant="outline" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-2" />Recalcular Todo</Button>
             </div>
+          </div>
+
+          {/* WhatsApp message templates */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-green-400" />Plantillas de WhatsApp
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">Mensajes pre-armados usados en deudas, cumpleaños y seguimiento. Usá <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code> y <code className="bg-muted px-1 rounded">{"{{monto}}"}</code> como variables.</p>
+            </div>
+            {([
+              { key: "sale",        label: "Venta confirmada",   emoji: "🛍️" },
+              { key: "debt",        label: "Recordatorio deuda", emoji: "💳" },
+              { key: "birthday",    label: "Cumpleaños",         emoji: "🎂" },
+              { key: "reactivation",label: "Reactivación",       emoji: "😊" },
+              { key: "pickup",      label: "Pedido listo",       emoji: "📦" },
+            ] as const).map(({ key, label, emoji }) => (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm text-muted-foreground">{emoji} {label}</label>
+                  {waTemplates[key] && (
+                    <button onClick={() => resetTemplate(key)} className="text-[10px] text-muted-foreground hover:text-destructive">Restablecer</button>
+                  )}
+                </div>
+                <Textarea
+                  value={getTemplate(key)}
+                  onChange={e => setTemplate(key, e.target.value)}
+                  rows={2}
+                  className="bg-muted border-border text-xs resize-none"
+                />
+              </div>
+            ))}
+            <p className="text-[10px] text-muted-foreground">Los cambios se guardan automáticamente en este dispositivo.</p>
           </div>
 
           {/* Payment method discounts */}

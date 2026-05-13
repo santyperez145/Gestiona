@@ -12,7 +12,7 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift, Merge, Download,
+  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -1116,6 +1116,30 @@ export default function CustomersPage() {
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             Crear campaña de email
+          </button>
+          <button
+            onClick={async () => {
+              if (!activeOrg) return;
+              const selected = filtered.filter(c => selectedCustomerNames.has(c.name));
+              const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+              const dueDate = tomorrow.toISOString().slice(0, 10);
+              const tasks = selected.map(c => ({
+                org_id: activeOrg.id,
+                title: `Seguimiento a ${c.name}`,
+                priority: "medium",
+                due_date: dueDate,
+                category: "crm",
+                status: "pending",
+              }));
+              const { error } = await supabase.from("tasks" as any).insert(tasks);
+              if (error) { toast.error("Error al crear tareas"); return; }
+              toast.success(`${tasks.length} tarea${tasks.length !== 1 ? "s" : ""} de seguimiento creada${tasks.length !== 1 ? "s" : ""} para mañana`);
+              setSelectedCustomerNames(new Set());
+            }}
+            className="px-4 py-1.5 rounded-xl bg-muted border border-border text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
+          >
+            <CheckSquare className="w-4 h-4 text-primary" />
+            Tarea seguimiento
           </button>
           <button onClick={() => setSelectedCustomerNames(new Set())} className="text-muted-foreground hover:text-foreground text-xs transition-colors">✕ Limpiar</button>
         </div>
