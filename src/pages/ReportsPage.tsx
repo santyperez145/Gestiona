@@ -253,6 +253,7 @@ export default function ReportsPage() {
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
           <TabsTrigger value="budget">Presupuesto</TabsTrigger>
           <TabsTrigger value="categories">Por Categoría</TabsTrigger>
+          <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
         </TabsList>
 
@@ -437,6 +438,10 @@ export default function ReportsPage() {
 
         <TabsContent value="categories">
           <SalesByCategoryTab sales={filtered.sales} products={data.products} period={filtered.label} />
+        </TabsContent>
+
+        <TabsContent value="cashflow">
+          <CashFlowTab sales={data.sales} expenses={data.expenses} purchases={data.purchases} />
         </TabsContent>
 
         <TabsContent value="audit">
@@ -1311,6 +1316,136 @@ function AuditTab() {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Flujo de Caja Tab
+// ─────────────────────────────────────────────────────────────
+function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: any[]; purchases: any[] }) {
+  const rows = useMemo(() => {
+    const map: Record<string, { revenue: number; expensesAmt: number; purchasesAmt: number }> = {};
+    const ensure = (k: string) => { if (!map[k]) map[k] = { revenue: 0, expensesAmt: 0, purchasesAmt: 0 }; };
+    sales.forEach((s: any) => { const k = String(s.date).slice(0, 7); ensure(k); map[k].revenue += Number(s.total_ars || 0); });
+    expenses.forEach((e: any) => { const k = String(e.date).slice(0, 7); ensure(k); map[k].expensesAmt += Number(e.amount_ars || 0); });
+    purchases.filter((p: any) => !p.is_scheduled).forEach((p: any) => { const k = String(p.date).slice(0, 7); ensure(k); map[k].purchasesAmt += Number(p.total_ars || 0); });
+    const sorted = Object.keys(map).sort();
+    const last12 = sorted.slice(-12);
+    return last12.map(key => {
+      const [y, mo] = key.split('-');
+      const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+      const { revenue, expensesAmt, purchasesAmt } = map[key];
+      const totalOutflow = expensesAmt + purchasesAmt;
+      const net = revenue - totalOutflow;
+      return { key, label, revenue: Math.round(revenue), expenses: Math.round(expensesAmt), purchasesAmt: Math.round(purchasesAmt), outflow: Math.round(totalOutflow), net: Math.round(net) };
+    });
+  }, [sales, expenses, purchases]);
+
+  const totals = rows.reduce((a, r) => ({ revenue: a.revenue + r.revenue, outflow: a.outflow + r.outflow, net: a.net + r.net }), { revenue: 0, outflow: 0, net: 0 });
+  const positiveMonths = rows.filter(r => r.net >= 0).length;
+
+  const tooltipStyle = { background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Ingresos totales", value: formatARS(totals.revenue), color: "text-success" },
+          { label: "Egresos totales", value: formatARS(totals.outflow), color: "text-destructive" },
+          { label: "Resultado neto", value: formatARS(totals.net), color: totals.net >= 0 ? "text-success" : "text-destructive" },
+          { label: "Meses positivos", value: `${positiveMonths} / ${rows.length}`, color: positiveMonths === rows.length ? "text-success" : positiveMonths > rows.length / 2 ? "text-warning" : "text-destructive" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border rounded-xl p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
+            <p className={`text-lg font-bold font-display ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {rows.length > 0 ? (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ingresos vs. Egresos — últimos {rows.length} meses</h3>
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Ingresos</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-500 inline-block" />Egresos</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" />Neto</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={rows} barGap={2} barCategoryGap="25%">
+              <XAxis dataKey="label" tick={{ fill: "hsl(220,10%,55%)", fontSize: 11 }} />
+              <YAxis tickFormatter={(v: number) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} width={55} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(v: number, name: string) => [formatARS(v), name === "revenue" ? "Ingresos" : name === "outflow" ? "Egresos" : "Neto"]}
+                labelFormatter={(l: string) => `Mes: ${l}`}
+              />
+              <Bar dataKey="revenue" name="revenue" fill="hsl(152,58%,42%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="outflow" name="outflow" fill="hsl(0,72%,51%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="net" name="net" radius={[4, 4, 0, 0]}>
+                {rows.map((r, i) => <Cell key={i} fill={r.net >= 0 ? "hsl(43,86%,55%)" : "hsl(0,60%,45%)"} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="text-center py-16 text-muted-foreground">
+          <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-20" />
+          <p className="text-sm">Aún no hay datos suficientes para mostrar el flujo de caja</p>
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Detalle mensual</h3>
+            <Button variant="outline" size="sm" onClick={() => exportCSV(
+              'flujo_de_caja.csv',
+              ['Mes', 'Ingresos ARS', 'Gastos ARS', 'Compras ARS', 'Egresos totales ARS', 'Resultado neto ARS'],
+              rows.map(r => [r.label, r.revenue.toString(), r.expenses.toString(), r.purchasesAmt.toString(), r.outflow.toString(), r.net.toString()])
+            )}>
+              <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-4 py-2.5 text-left text-xs text-muted-foreground uppercase">Mes</th>
+                  <th className="px-4 py-2.5 text-right text-xs text-muted-foreground uppercase">Ingresos</th>
+                  <th className="px-4 py-2.5 text-right text-xs text-muted-foreground uppercase">Gastos</th>
+                  <th className="px-4 py-2.5 text-right text-xs text-muted-foreground uppercase">Compras</th>
+                  <th className="px-4 py-2.5 text-right text-xs text-muted-foreground uppercase">Egresos</th>
+                  <th className="px-4 py-2.5 text-right text-xs text-muted-foreground uppercase">Neto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {rows.map((r, i) => (
+                  <tr key={r.key} className={`${i % 2 === 0 ? '' : 'bg-muted/10'} ${r.net < 0 ? 'bg-rose-500/5' : ''}`}>
+                    <td className="px-4 py-2.5 font-medium text-sm">{r.label}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(r.revenue)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">{formatARS(r.expenses)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">{formatARS(r.purchasesAmt)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-xs text-rose-400">{formatARS(r.outflow)}</td>
+                    <td className={`px-4 py-2.5 text-right font-mono text-xs font-bold ${r.net >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatARS(r.net)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                  <td className="px-4 py-2.5 text-sm">Total</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(totals.revenue)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs" colSpan={2}></td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs text-rose-400">{formatARS(totals.outflow)}</td>
+                  <td className={`px-4 py-2.5 text-right font-mono text-xs font-bold ${totals.net >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatARS(totals.net)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );
