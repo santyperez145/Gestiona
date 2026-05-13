@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -120,6 +120,7 @@ export default function SalesPage() {
   }, [products]);
 
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<"list" | "by_customer">("list");
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
@@ -135,6 +136,21 @@ export default function SalesPage() {
   const totalProfitUSD = filtered.reduce((s, v) => s + Number(v.profit_usd), 0);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const customerGroups = useMemo(() => {
+    const map: Record<string, { name: string; count: number; total: number; profit: number; lastDate: string; products: Record<string, number> }> = {};
+    filtered.forEach(s => {
+      const key = s.customer_name || "(Sin nombre)";
+      if (!map[key]) map[key] = { name: key, count: 0, total: 0, profit: 0, lastDate: s.date, products: {} };
+      map[key].count++;
+      map[key].total += Number(s.total_ars || 0);
+      map[key].profit += Number(s.profit_ars || 0);
+      if (s.date > map[key].lastDate) map[key].lastDate = s.date;
+      const pn = s.product_name || "?";
+      map[key].products[pn] = (map[key].products[pn] || 0) + Number(s.quantity || 1);
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }, [filtered]);
 
   // Period comparison: prior equivalent period
   const prevPeriod = useMemo(() => {
@@ -291,10 +307,77 @@ export default function SalesPage() {
             {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex rounded-lg border border-border overflow-hidden h-9">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Vista lista"
+          >
+            <LayoutList className="w-3.5 h-3.5" />Lista
+          </button>
+          <button
+            onClick={() => setViewMode("by_customer")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_customer" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Agrupar por cliente"
+          >
+            <Users className="w-3.5 h-3.5" />Por cliente
+          </button>
+        </div>
       </div>
 
       {!filtered.length ? (
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
+      ) : viewMode === "by_customer" ? (
+        /* ── By Customer view ── */
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold">{customerGroups.length} clientes</h3>
+            <span className="text-xs text-muted-foreground">{formatARS(totalSales)} total</span>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cliente</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compras</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Ganancia</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Último</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Top producto</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {customerGroups.map((c, i) => {
+                const topProduct = Object.entries(c.products).sort((a, b) => b[1] - a[1])[0];
+                const share = totalSales > 0 ? (c.total / totalSales) * 100 : 0;
+                return (
+                  <tr key={c.name} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
+                        <div>
+                          <p className="font-medium">{c.name}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <div className="h-1 bg-primary/60 rounded-full" style={{ width: `${Math.min(share * 2, 60)}px` }} />
+                            <span className="text-[10px] text-muted-foreground">{share.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{c.count}</td>
+                    <td className="px-4 py-3 text-right font-bold">{formatARS(c.total)}</td>
+                    <td className="px-4 py-3 text-right text-success hidden md:table-cell">{formatARS(c.profit)}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground hidden lg:table-cell">
+                      {new Date(c.lastDate + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell">
+                      {topProduct ? `${topProduct[0]} (×${topProduct[1]})` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <>
           <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
