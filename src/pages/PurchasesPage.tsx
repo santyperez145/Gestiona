@@ -35,11 +35,27 @@ export default function PurchasesPage() {
   const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
-  const [tab, setTab] = useState<'all' | 'scheduled'>('all');
+  const [tab, setTab] = useState<'all' | 'scheduled' | 'suppliers'>('all');
   const [search, setSearch] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('all');
 
   const supplierOptions = Array.from(new Set(purchases.map(p => p.supplier).filter(Boolean))).sort();
+
+  const supplierStats = (() => {
+    const map: Record<string, { totalUSD: number; totalARS: number; count: number; lastDate: string; products: Set<string> }> = {};
+    purchases.filter(p => !p.is_scheduled).forEach(p => {
+      const key = p.supplier || '(Sin proveedor)';
+      if (!map[key]) map[key] = { totalUSD: 0, totalARS: 0, count: 0, lastDate: p.date, products: new Set() };
+      map[key].totalUSD += Number(p.total_usd);
+      map[key].totalARS += Number(p.total_ars);
+      map[key].count += 1;
+      if (p.date > map[key].lastDate) map[key].lastDate = p.date;
+      if (p.product_name) map[key].products.add(p.product_name);
+    });
+    return Object.entries(map)
+      .map(([name, s]) => ({ name, ...s, avgUSD: s.count > 0 ? s.totalUSD / s.count : 0, productCount: s.products.size }))
+      .sort((a, b) => b.totalUSD - a.totalUSD);
+  })();
 
   const filtered = purchases.filter(p => {
     if (tab === 'scheduled' && !p.is_scheduled) return false;
@@ -122,14 +138,19 @@ export default function PurchasesPage() {
       </div>
 
       <div className="flex bg-card border border-border rounded-lg p-1 gap-1 w-fit mb-5">
-        {([["all", "Realizadas"], ["scheduled", `Programadas`]] as const).map(([t, label]) => (
-          <button key={t} onClick={() => { setTab(t); setPage(0); }}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${tab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {t === "scheduled" && <CalendarClock className="w-3.5 h-3.5" />}
-            {label}
-            {t === "scheduled" && scheduledCount > 0 && <span className="text-[10px] bg-white/20 px-1.5 rounded-full">{scheduledCount}</span>}
-          </button>
-        ))}
+        <button onClick={() => { setTab('all'); setPage(0); }}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'all' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Realizadas
+        </button>
+        <button onClick={() => { setTab('scheduled'); setPage(0); }}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${tab === 'scheduled' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <CalendarClock className="w-3.5 h-3.5" />Programadas
+          {scheduledCount > 0 && <span className="text-[10px] bg-white/20 px-1.5 rounded-full">{scheduledCount}</span>}
+        </button>
+        <button onClick={() => { setTab('suppliers'); setPage(0); }}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'suppliers' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Por Proveedor
+        </button>
       </div>
 
       {/* Purchase Order Generator Dialog */}
@@ -140,7 +161,57 @@ export default function PurchasesPage() {
         </DialogContent>
       </Dialog>
 
-      {!filtered.length ? (
+      {tab === 'suppliers' ? (
+        supplierStats.length === 0 ? (
+          <EmptyState icon={ShoppingCart} title="Sin compras registradas" description="Registrá compras con proveedor para ver el análisis aquí." />
+        ) : (
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Proveedor</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compras</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Productos</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total USD</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Total ARS</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Prom. USD</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Última compra</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {supplierStats.map((s, i) => (
+                  <tr key={s.name} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{i + 1}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-primary">{s.name.slice(0, 2).toUpperCase()}</span>
+                        </div>
+                        <span className="font-medium text-sm">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold">{s.count}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{s.productCount}</td>
+                    <td className="px-4 py-3 text-right font-bold">{formatUSD(s.totalUSD)}</td>
+                    <td className="px-4 py-3 text-right text-primary hidden lg:table-cell">{formatARS(s.totalARS)}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{formatUSD(s.avgUSD)}</td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground hidden xl:table-cell">{formatDateAR(s.lastDate)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border bg-muted/30">
+                  <td colSpan={4} className="px-4 py-2 text-xs font-semibold text-muted-foreground">{supplierStats.length} proveedores</td>
+                  <td className="px-4 py-2 text-right text-xs font-bold">{formatUSD(supplierStats.reduce((s, x) => s + x.totalUSD, 0))}</td>
+                  <td className="px-4 py-2 text-right text-xs font-bold text-primary hidden lg:table-cell">{formatARS(supplierStats.reduce((s, x) => s + x.totalARS, 0))}</td>
+                  <td colSpan={2} className="hidden lg:table-cell" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )
+      ) : !filtered.length ? (
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>
