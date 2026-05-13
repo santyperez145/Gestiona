@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 16)**
+Última actualización: **2026-05-13 (sesión 17)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -158,6 +158,14 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ProductsPage inline stock edit** — click en el número de stock para editarlo inline, guarda con Enter/blur, cancela con Escape. _(sesión 11)_
 - **AnalyticsPage ABC analysis** — tab "ABC" con clasificación Pareto de productos (A=80% ingreso, B=15%, C=5%), tabla con barras de contribución, tips accionables. _(sesión 11)_
 - **SalesPage vista Por Cliente** — toggle lista/por-cliente, rankea clientes por total gastado con share %, ganancia, última compra, producto top. _(sesión 11)_
+- **fix(settings):** campos numéricos en 0 (ej: descuento 0%) se revertían al default por `parseFloat(x) || fallback`; reemplazado con helpers `isNaN`-based. _(sesión 17)_
+- **EmailCampaignsPage bulk desde CRM** — lee `gestiona.bulk_campaign` de sessionStorage, pre-abre dialog con audiencia filtrada y banner informativo. _(sesión 17)_
+- **ProductsPage: stock mínimo por producto** — campo `low_stock_threshold` editable en form; alertas y reposición usan umbral personalizado. _(sesión 17)_
+- **DebtsPage: WhatsApp masivo a deudores** — checkboxes en deudores vencidos, barra flotante "WhatsApp masivo", copia mensajes personalizados al clipboard. _(sesión 17)_
+- **Dashboard: widget "Meta semanal"** — ventas de la semana vs target configurable, progress bar con coding de color, persistido en localStorage por org. _(sesión 17)_
+- **POS: modo offline básico** — detecta online/offline, encola ventas en localStorage, sincroniza al reconectar; banner naranja sin conexión, banner azul con botón sync al volver. _(sesión 17)_
+- **AnalyticsPage: tab "Cohorts"** — retención por mes de primera compra, heatmap de 12 cohorts × 7 offsets con coding de color (verde/amarillo/naranja/rojo). _(sesión 17)_
+- **ReportsPage: PDF para contador** — botón "PDF Contador" en tab Impuestos genera documento HTML imprimible con tabla mensual (IVA, IIBB, total, ganancia neta), totales y disclaimer AFIP. _(sesión 17)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -202,7 +210,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | ~~Inventario~~ | ~~Sin métrica "días de stock"~~ | ~~Alto~~ → ✅ Resuelto |
 | Email | Campañas sin tracking de open rate / click rate via Resend webhooks | Alto |
 | CRM | Sin segmentos RFM guardados y reutilizables | Medio |
-| POS | Sin modo offline / tolerancia a cortes de conexión | Medio |
+| ~~POS~~ | ~~Sin modo offline / tolerancia a cortes de conexión~~ | ~~Medio~~ → ✅ Resuelto |
 | Facturación | Notas de crédito no integradas a devoluciones AFIP | Medio |
 | Equipo | Permisos granulares (caja, ventas, inventario) aún no implementados | Medio |
 | AFIP | Numeración de puntos de venta poco robusta | Medio |
@@ -336,39 +344,54 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 13)
+## Estado por módulo (actualizado sesión 17)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
 | Infraestructura | 85% | E2E tests, staging env |
 | Auth + orgs | 85% | Permisos granulares completados |
-| Inventario | 83% | Lotes en UI, offline POS |
-| Ventas + POS | 91% | Modo offline, recibo multi-línea |
-| Clientes + CRM | 91% | Segmentos con acciones masivas |
+| Inventario | 85% | Lotes en UI |
+| Ventas + POS | 94% | Recibo personalizable, impresoras térmica |
+| Clientes + CRM | 92% | Segmentos con acciones masivas |
 | Finanzas | 90% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
-| Marketing + Email | 80% | Open rate / click tracking |
-| IA + Analytics | 96% | Más acciones IA, visualizaciones |
+| Marketing + Email | 82% | Open rate / click tracking Resend |
+| IA + Analytics | 97% | Más acciones IA, series temporales |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
-| Mobile + UX | 74% | Capacitor, offline POS |
+| Mobile + UX | 78% | Capacitor, impresora BT |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **95%** | |
+| **TOTAL** | **96%** | |
 
 ---
 
-## Prioridades inmediatas (sesión 17)
+## Sesión 17 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | EmailCampaignsPage: bulk desde CRM via sessionStorage | ✅ Hecho |
+| 2 | ProductsPage: `low_stock_threshold` editable por producto | ✅ Hecho |
+| 3 | SalesPage: totales por método de pago | ✅ Ya existía |
+| 4 | DebtsPage: WhatsApp masivo a deudores | ✅ Hecho |
+| 5 | Dashboard: widget "Meta semanal" | ✅ Hecho |
+| 6 | POS: modo offline con localStorage + sync | ✅ Hecho |
+| 7 | AnalyticsPage: tab "Cohorts" con heatmap | ✅ Hecho |
+| 8 | ReportsPage: PDF para contador en tab Impuestos | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 18)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | EmailCampaignsPage: leer sessionStorage `gestiona.bulk_campaign` y pre-abrir dialog con esos destinatarios | Completar flujo bulk email de CRM |
-| 2 | ProductsPage: campo `low_stock_threshold` editable por producto en el form | Umbral de reorden personalizado |
-| 3 | SalesPage: totales por método de pago en el pie de la tabla (efectivo/transferencia/etc.) | Cierre de caja más claro |
-| 4 | DebtsPage: envío masivo de WhatsApp a deudores vencidos | Cobranza proactiva |
-| 5 | Dashboard: widget "Metas semanales" — ventas esta semana vs target configurable | Motivación del equipo |
-| 6 | POS: modo offline básico con localStorage + sync al reconectar | Cortes de conexión |
-| 7 | AnalyticsPage: tab "Cohorts" — retención de clientes por mes de primera compra | Análisis profundo |
-| 8 | ReportsPage: tab "Impuestos" exportar PDF para contador | Cumplimiento fiscal |
+| 1 | **Email campaigns: open/click rate** — procesar webhooks de Resend (`email.opened`, `email.clicked`) en edge function, actualizar `email_events`, mostrar métricas en CampaignsPage | Mayor ROI de email marketing |
+| 2 | **POS: impresora térmica BT/USB** — imprimir ticket via `window.print()` con layout de 80mm, fuente monoespaciada, corte; configurar en SettingsPage | Velocidad en punto de venta físico |
+| 3 | **AnalyticsPage: tab "Tendencias"** — series temporales de ventas vs gastos vs ganancia por semana (últimas 12), zoom por período | Decisiones basadas en tendencia |
+| 4 | **CRM: acciones masivas por segmento** — desde CustomersPage seleccionar todos los "en riesgo" y hacer "Crear tarea de seguimiento" o "Asignar etiqueta" en bulk | CRM accionable |
+| 5 | **Dashboard: alerta de meta mensual en riesgo** — cuando quedan ≤7 días y se lleva <60% del objetivo, mostrar widget de alerta con proyección | Gestión proactiva |
+| 6 | **PurchasesPage: pedido automático** — botón "Generar pedido" en dashboard de alertas de stock bajo; pre-llena PurchasesPage con productos que necesitan reposición | Automatización de compras |
+| 7 | **ReportsPage: exportar Estado de Resultados completo a PDF** — documento A4 con header del negocio, tabla P&L de 12 meses, totales; útil para bancos/inversores | Presentación financiera |
+| 8 | **SettingsPage: plantillas de WhatsApp** — 5 mensajes editables (venta confirmada, deuda recordatorio, cumpleaños, reactivación, pedido listo); `{{nombre}}` como variable | Comunicación consistente |
 
 ---
 
