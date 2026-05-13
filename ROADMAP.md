@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 19)**
+Última actualización: **2026-05-13 (sesión 20)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -174,6 +174,9 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **AIChatPage: consultar deuda de cliente** — intención "¿cuánto debe X?" busca en `customer_debts` y muestra total + detalle inline; chip "Consultar deuda" en acciones rápidas. _(sesión 19)_
 - **Dashboard: widget "Cobros de esta semana"** — deudas pendientes con due_date en próximos 7 días, coloreadas por urgencia, link a /debts. _(sesión 19)_
 - **AnalyticsPage: tab "Sin movimiento"** — productos con stock>0 sin ventas en 30/60/90d; filtro por período; costo inmovilizado en USD; sugerencia Liquidar/Promover. _(sesión 19)_
+- **AIChatPage: consultar stock de producto** — intención "¿cuánto stock tengo de X?" busca por nombre, muestra stock coloreado (rojo=0, naranja=bajo, verde=ok); chip "Ver stock" en acciones rápidas. _(sesión 20)_
+- **ProductsPage: editar precio inline** — click en precio en tabla desktop → input inline → Enter/blur guarda → Escape cancela; mismo patrón que stock inline. _(sesión 20)_
+- **SettingsPage: notificaciones configurables** — 6 toggles (stock bajo, deuda vencida, meta en riesgo, cumpleaños, nuevo cliente, venta grande); persistidos en localStorage por org. _(sesión 20)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -418,18 +421,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 20)
+## Sesión 20 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | ReportsPage: tab "Proveedores" | ⏳ Próxima sesión |
+| 2 | SalesPipelinePage: badge deals estancados | ⏳ Próxima sesión |
+| 3 | SettingsPage: notificaciones configurables | ✅ Hecho |
+| 4 | CashSessionPage: resumen por vendedor | ⏳ Próxima sesión |
+| 5 | ProductsPage: editar precio inline | ✅ Hecho |
+| 6 | CustomersPage: CSV con health score | ⏳ Próxima sesión |
+| 7 | Dashboard: métricas hoy expandidas | ⏳ Próxima sesión |
+| 8 | AIChatPage: consultar stock | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 21)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ReportsPage: tab "Proveedores"** — compras por proveedor, deuda AP pendiente con aging, botón "Registrar pago" inline | Vista financiera de pasivos |
-| 2 | **SalesPipelinePage: badge deals estancados** — badge rojo en nav/sidebar cuando hay deals sin actividad >14d; filter toggle en pipeline | Pipeline saludable |
-| 3 | **SettingsPage: notificaciones configurables** — 6 toggles (stock bajo, deuda vencida, meta en riesgo, cumpleaños, nuevo cliente, venta grande); persistidos en localStorage; respetados en los toasts relevantes | Control de ruido |
-| 4 | **CashSessionPage: resumen por vendedor** — al cerrar turno, mostrar breakdown de ventas por seller_name (tomado del campo en Sales); comisión estimada por vendedor | Gestión de equipo en caja |
-| 5 | **ProductsPage: editar precio en tabla inline** — click en precio (como ya existe en stock) → input inline que guarda al Enter; sin abrir el dialog completo | Agilidad de pricing |
-| 6 | **CustomersPage: exportar CSV con health score** — incluir columna Health Score (0–100) en el export CSV; útil para CRM externo | Datos ricos para marketing |
-| 7 | **Dashboard: métricas de hoy mejoradas** — card "Hoy" expande al click mostrando: ventas por hora (sparkline), ticket promedio, producto más vendido hoy, método de pago dominante | Micro-análisis del día |
-| 8 | **AIChatPage: responder preguntas sobre stock** — intención "¿cuánto tengo de X?", busca producto en DB y responde con stock actual, variantes si existen, días de stock | Asistente de inventario |
+| 1 | **ReportsPage: tab "Proveedores"** — ranking por monto comprado, deuda AP con aging, última compra, botón "Ir a pagar" | Vista pasivos completa |
+| 2 | **SalesPipelinePage: deals estancados badge** — badge en nav item cuando hay deals >14d sin cambio; panel de "deals en riesgo" colapsable | Salud del pipeline |
+| 3 | **CustomersPage: health score en CSV** — columna health_score en el export; hoy ya se calcula el score en memoria pero no se incluye en CSV | CRM externo |
+| 4 | **Dashboard: card "Hoy" expandible** — click en la card de ventas de hoy → panel deslizante con: sparkline por hora, ticket promedio, top producto hoy, método dominante | Micro-análisis |
+| 5 | **CashSessionPage: breakdown por vendedor** — en el resumen de cierre de turno, agrupar ventas por `seller_name` con comisión estimada | Gestión de equipo |
+| 6 | **POSPage: selector de vendedor de turno** — preguntar quién está de turno; guardar en localStorage; mostrar en header del POS; registrar en ventas | Trazabilidad de ventas |
+| 7 | **ProductsPage: foto desde cámara** — botón "Tomar foto" en el form de producto usando `getUserMedia`; capturar y subir a Supabase Storage | Agilidad de carga |
+| 8 | **ExpensesPage: adjuntar recibo** — campo file upload en form de gasto; almacena URL en `expenses.receipt_url`; miniatura en tabla | Digitalización de gastos |
 
 ---
 
