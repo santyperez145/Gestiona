@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 17)**
+Última actualización: **2026-05-13 (sesión 18)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -166,6 +166,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **POS: modo offline básico** — detecta online/offline, encola ventas en localStorage, sincroniza al reconectar; banner naranja sin conexión, banner azul con botón sync al volver. _(sesión 17)_
 - **AnalyticsPage: tab "Cohorts"** — retención por mes de primera compra, heatmap de 12 cohorts × 7 offsets con coding de color (verde/amarillo/naranja/rojo). _(sesión 17)_
 - **ReportsPage: PDF para contador** — botón "PDF Contador" en tab Impuestos genera documento HTML imprimible con tabla mensual (IVA, IIBB, total, ganancia neta), totales y disclaimer AFIP. _(sesión 17)_
+- **Dashboard: alerta meta mensual en riesgo** — banner rojo cuando quedan ≤7 días y se lleva <60% del objetivo; muestra ventas/día necesarias para alcanzar la meta. _(sesión 18)_
+- **SettingsPage: plantillas de WhatsApp editables** — 5 plantillas configurables (venta, deuda, cumpleaños, reactivación, pedido listo) con variables `{{nombre}}`/`{{monto}}`; persistidas en localStorage por org. _(sesión 18)_
+- **DebtsPage: WhatsApp masivo usa plantilla configurable** — mensaje masivo y links individuales usan la plantilla de Settings en lugar de texto hardcoded. _(sesión 18)_
+- **CustomersPage: bulk "Tarea de seguimiento"** — botón en barra flotante crea una tarea de seguimiento en TasksPage por cada cliente seleccionado con due_date=mañana. _(sesión 18)_
+- **PurchasesPage: pre-selección de producto por URL** — ?product=nombre auto-abre el dialog y pre-selecciona el producto matching; botón "Pedir" de alertas de stock aprovecha este flujo. _(sesión 18)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -380,18 +385,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 18)
+## Sesión 18 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | Email campaigns open/click rate | ✅ Ya existía (resend-webhook + send-email-campaign) |
+| 2 | POS: impresora térmica | ✅ Ya existía (print 80mm en ReceiptModal) |
+| 3 | AnalyticsPage: Tendencias semanales | ✅ Ya existía (tabs "Tendencia" + "Semana") |
+| 4 | CRM: bulk "Tarea de seguimiento" | ✅ Hecho |
+| 5 | Dashboard: alerta meta en riesgo | ✅ Hecho |
+| 6 | PurchasesPage: pedido auto por URL | ✅ Hecho |
+| 7 | ReportsPage: PDF P&L completo | ✅ Ya existía (handleIncomeStatementPDF) |
+| 8 | SettingsPage: plantillas WhatsApp | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 19)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **Email campaigns: open/click rate** — procesar webhooks de Resend (`email.opened`, `email.clicked`) en edge function, actualizar `email_events`, mostrar métricas en CampaignsPage | Mayor ROI de email marketing |
-| 2 | **POS: impresora térmica BT/USB** — imprimir ticket via `window.print()` con layout de 80mm, fuente monoespaciada, corte; configurar en SettingsPage | Velocidad en punto de venta físico |
-| 3 | **AnalyticsPage: tab "Tendencias"** — series temporales de ventas vs gastos vs ganancia por semana (últimas 12), zoom por período | Decisiones basadas en tendencia |
-| 4 | **CRM: acciones masivas por segmento** — desde CustomersPage seleccionar todos los "en riesgo" y hacer "Crear tarea de seguimiento" o "Asignar etiqueta" en bulk | CRM accionable |
-| 5 | **Dashboard: alerta de meta mensual en riesgo** — cuando quedan ≤7 días y se lleva <60% del objetivo, mostrar widget de alerta con proyección | Gestión proactiva |
-| 6 | **PurchasesPage: pedido automático** — botón "Generar pedido" en dashboard de alertas de stock bajo; pre-llena PurchasesPage con productos que necesitan reposición | Automatización de compras |
-| 7 | **ReportsPage: exportar Estado de Resultados completo a PDF** — documento A4 con header del negocio, tabla P&L de 12 meses, totales; útil para bancos/inversores | Presentación financiera |
-| 8 | **SettingsPage: plantillas de WhatsApp** — 5 mensajes editables (venta confirmada, deuda recordatorio, cumpleaños, reactivación, pedido listo); `{{nombre}}` como variable | Comunicación consistente |
+| 1 | **POSPage: split de sesión por vendedor** — al abrir caja, asignar vendedor de turno; cada venta registra el `seller_id`; comisiones automáticas al cerrar | Gestión de equipo en punto de venta |
+| 2 | **AIChatPage: consultar deuda de cliente** — intención "¿cuánto debe X?", busca en `debts` y responde con deuda total y detalle por cuotas | Asistente de cobranza |
+| 3 | **ReportsPage: tab "Proveedores"** — compras por proveedor, deuda pendiente AP, aging, botón "Pagar" a cuenta de proveedor | Vista financiera de pasivos |
+| 4 | **AnalyticsPage: tab "Productos sin movimiento"** — tabla de productos con 0 ventas en últimos 30/60/90d, costo inmovilizado total, sugerencia de liquidar | Rotación de inventario |
+| 5 | **Dashboard: widget "Próximas fechas"** — cumpleaños de clientes esta semana + vencimientos de cuotas + stock agotado esperado; cards de acciones rápidas | Agenda operativa |
+| 6 | **SalesPipelinePage: notificación de deal estancado** — badge en sidebar cuando hay deals sin actividad >14d; al hacer click filtra pipeline | Pipeline saludable |
+| 7 | **SettingsPage: notificaciones configurables** — checkbox por cada tipo de alerta (stock bajo, deuda vencida, meta en riesgo, cumpleaños); respetado por check-alerts edge fn | Control de ruido de notificaciones |
+| 8 | **ProductsPage: importar desde factura PDF/imagen** — detectar IA (Claude Vision) nombre + cantidad + precio en un PDF/foto de factura proveedor | Automatización de stock |
 
 ---
 
