@@ -486,6 +486,7 @@ export default function ProductsPage() {
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
                        <th className="text-left p-3 font-medium">Nombre</th>
+                       <th className="text-left p-3 font-medium hidden xl:table-cell">SKU</th>
                        <th className="text-center p-3 font-medium">Gen.</th>
                        <th className="text-left p-3 font-medium">Cat.</th>
                        <th className="text-right p-3 font-medium">Costo</th>
@@ -528,6 +529,12 @@ export default function ProductsPage() {
                               ))}
                             </div>
                           </td>
+                         <td className="p-3 hidden xl:table-cell">
+                           {p.sku || p.barcode
+                             ? <span className="text-[10px] font-mono text-muted-foreground" title={p.barcode ? `Barcode: ${p.barcode}` : undefined}>{p.sku || p.barcode}</span>
+                             : <span className="text-[10px] text-muted-foreground/40">—</span>
+                           }
+                         </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
                          <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>

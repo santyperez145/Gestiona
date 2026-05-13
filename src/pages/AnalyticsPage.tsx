@@ -178,6 +178,10 @@ export default function AnalyticsPage() {
   const { activeOrg } = useOrg();
   const [rawData, setRawData] = useState<any>(null);
   const [year, setYear] = useState<"0" | "1">("0");
+  const [trendFrom, setTrendFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10);
+  });
+  const [trendTo, setTrendTo] = useState(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     if (!user) return;
@@ -337,6 +341,31 @@ export default function AnalyticsPage() {
     };
   }, [rawData, year]);
 
+  const trendDailyData = useMemo(() => {
+    if (!rawData) return [];
+    const from = new Date(trendFrom + "T00:00:00");
+    const to = new Date(trendTo + "T23:59:59");
+    const byDay: Record<string, { revenue: number; profit: number; units: number }> = {};
+    rawData.sales.filter((s: any) => {
+      const d = new Date(s.date);
+      return d >= from && d <= to;
+    }).forEach((s: any) => {
+      const day = s.date.slice(0, 10);
+      if (!byDay[day]) byDay[day] = { revenue: 0, profit: 0, units: 0 };
+      byDay[day].revenue += Number(s.total_ars || 0);
+      byDay[day].profit += Number(s.profit_ars || 0);
+      byDay[day].units += Number(s.quantity || 1);
+    });
+    const result = [];
+    const cur = new Date(from);
+    while (cur <= to) {
+      const key = cur.toISOString().slice(0, 10);
+      result.push({ name: key.slice(5), ...( byDay[key] || { revenue: 0, profit: 0, units: 0 }) });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+  }, [rawData, trendFrom, trendTo]);
+
   if (!derived) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -418,6 +447,36 @@ export default function AnalyticsPage() {
                 <Area type="monotone" dataKey="revenue" name="Ingresos" stroke={PALETTE[0]} fill="url(#gradRev)" strokeWidth={2} dot={false} />
                 <Area type="monotone" dataKey="profit" name="Ganancia" stroke={PALETTE[1]} fill="url(#gradProf)" strokeWidth={2} dot={false} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Custom date range daily chart */}
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <h3 className="text-sm font-semibold flex-1">Detalle por día — rango personalizado</h3>
+              <div className="flex items-center gap-2 text-xs">
+                <input type="date" value={trendFrom} max={trendTo} onChange={e => setTrendFrom(e.target.value)}
+                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground" />
+                <span className="text-muted-foreground">→</span>
+                <input type="date" value={trendTo} min={trendFrom} max={new Date().toISOString().slice(0,10)} onChange={e => setTrendTo(e.target.value)}
+                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground" />
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={trendDailyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradRevDay" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={PALETTE[0]} stopOpacity={0.25} />
+                    <stop offset="95%" stopColor={PALETTE[0]} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false}
+                  interval={Math.floor(trendDailyData.length / 7)} />
+                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
+                <Area type="monotone" dataKey="revenue" name="Ingresos" stroke={PALETTE[0]} fill="url(#gradRevDay)" strokeWidth={2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
