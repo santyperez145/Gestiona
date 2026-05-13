@@ -391,6 +391,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="abc" className="text-xs">ABC</TabsTrigger>
           <TabsTrigger value="cattrend" className="text-xs">Por Categoría</TabsTrigger>
           <TabsTrigger value="weekly" className="text-xs">Semana</TabsTrigger>
+          <TabsTrigger value="cohorts" className="text-xs">👥 Cohorts</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1076,6 +1077,11 @@ export default function AnalyticsPage() {
             </table>
           </div>
         </TabsContent>
+
+        {/* COHORTS TAB */}
+        <TabsContent value="cohorts" className="mt-4">
+          <CohortTab sales={rawData?.sales || []} />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -1320,6 +1326,112 @@ function ProductDemandTab({ products, sales }: { products: any[]; sales: any[] }
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── CohortTab — Retención de clientes por mes de primera compra ──────────────
+
+function CohortTab({ sales }: { sales: any[] }) {
+  const cohortData = useMemo(() => {
+    if (!sales.length) return [];
+
+    const firstPurchase: Record<string, string> = {};
+    for (const s of sales) {
+      const name = s.customer_name || 'Sin nombre';
+      if (!firstPurchase[name] || s.date < firstPurchase[name]) firstPurchase[name] = s.date;
+    }
+
+    const cohortCustomers: Record<string, Set<string>> = {};
+    for (const [name, date] of Object.entries(firstPurchase)) {
+      const cohort = date.slice(0, 7);
+      if (!cohortCustomers[cohort]) cohortCustomers[cohort] = new Set();
+      cohortCustomers[cohort].add(name);
+    }
+
+    const cohortRetention: Record<string, Record<number, Set<string>>> = {};
+    for (const s of sales) {
+      const name = s.customer_name || 'Sin nombre';
+      const firstDate = firstPurchase[name];
+      if (!firstDate) continue;
+      const cohort = firstDate.slice(0, 7);
+      const [cy, cm] = cohort.split('-').map(Number);
+      const [sy, sm] = s.date.slice(0, 7).split('-').map(Number);
+      const offset = (sy - cy) * 12 + (sm - cm);
+      if (offset < 0 || offset > 11) continue;
+      if (!cohortRetention[cohort]) cohortRetention[cohort] = {};
+      if (!cohortRetention[cohort][offset]) cohortRetention[cohort][offset] = new Set();
+      cohortRetention[cohort][offset].add(name);
+    }
+
+    const MAX_OFFSET = 6;
+    return Object.keys(cohortCustomers)
+      .sort((a, b) => b.localeCompare(a)).slice(0, 12)
+      .map(cohort => {
+        const total = cohortCustomers[cohort].size;
+        const [y, m] = cohort.split('-');
+        const label = `${MONTHS_ES[parseInt(m) - 1]} ${y.slice(2)}`;
+        const retention = Array.from({ length: MAX_OFFSET + 1 }, (_, i) => {
+          const returned = cohortRetention[cohort]?.[i]?.size || 0;
+          return { offset: i, count: returned, pct: total > 0 ? Math.round((returned / total) * 100) : 0 };
+        });
+        return { cohort, label, total, retention };
+      });
+  }, [sales]);
+
+  if (!cohortData.length) return <p className="text-center text-sm text-muted-foreground py-16">Sin suficientes datos.</p>;
+
+  const getColor = (pct: number) => {
+    if (pct === 0) return 'bg-muted/20 text-muted-foreground/40';
+    if (pct >= 60) return 'bg-green-500/80 text-white';
+    if (pct >= 40) return 'bg-green-500/50 text-white';
+    if (pct >= 20) return 'bg-yellow-500/50 text-white';
+    if (pct >= 10) return 'bg-orange-500/40 text-white';
+    return 'bg-red-500/30 text-white';
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h3 className="text-sm font-semibold mb-1">Retención por cohorte mensual</h3>
+        <p className="text-xs text-muted-foreground mb-4">% de clientes de cada cohorte que volvieron a comprar en los meses siguientes. Mes 0 = mes de primera compra.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Cohorte</th>
+                <th className="text-center px-2 py-2 font-medium text-muted-foreground">Clientes</th>
+                {Array.from({ length: 7 }, (_, i) => (
+                  <th key={i} className="text-center px-2 py-2 font-medium text-muted-foreground">{i === 0 ? 'Mes 0' : `+${i}m`}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {cohortData.map(row => (
+                <tr key={row.cohort} className="hover:bg-muted/10">
+                  <td className="px-3 py-2 font-medium">{row.label}</td>
+                  <td className="px-2 py-2 text-center text-muted-foreground">{row.total}</td>
+                  {row.retention.map(cell => (
+                    <td key={cell.offset} className="px-1 py-1.5 text-center">
+                      <div className={`mx-auto w-12 h-8 flex items-center justify-center rounded-md font-bold text-[11px] ${getColor(cell.pct)}`}>
+                        {cell.count > 0 ? `${cell.pct}%` : '—'}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center gap-3 mt-4 flex-wrap">
+          <span className="text-[10px] text-muted-foreground">Retención:</span>
+          {[['≥60%','bg-green-500/80'],['40–59%','bg-green-500/50'],['20–39%','bg-yellow-500/50'],['10–19%','bg-orange-500/40'],['<10%','bg-red-500/30']].map(([l,c]) => (
+            <span key={l} className="flex items-center gap-1 text-[10px]">
+              <span className={`w-3 h-3 rounded ${c} inline-block`} />{l}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

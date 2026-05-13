@@ -923,13 +923,70 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
       {/* Tax breakdown header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Detalle mensual</h3>
-        <Button variant="outline" size="sm" onClick={() => exportCSV(
-          'impuestos.csv',
-          ['Mes', 'Ventas', 'Ganancia bruta', `IVA (${ivaRate}%)`, `IIBB (${iibbRate}%)`, 'Monotributo', 'Total impuestos', 'Ganancia neta'],
-          monthlyData.map(r => [r.label, r.revenue.toFixed(0), r.profit.toFixed(0), r.iva.toFixed(0), r.iibb.toFixed(0), r.monotributo.toFixed(0), r.total.toFixed(0), r.netProfit.toFixed(0)])
-        )}>
-          <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            const businessName = settings?.business_name || 'Mi Negocio';
+            const generated = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+            const rowsHtml = monthlyData.map((r, i) => `
+              <tr style="background:${i % 2 === 0 ? '#fff' : '#f9f9f9'}">
+                <td>${r.label}</td>
+                <td style="text-align:right">${formatARS(r.revenue)}</td>
+                <td style="text-align:right;color:#16a34a">${formatARS(r.profit)}</td>
+                <td style="text-align:right;color:#ea580c">${taxEnabled ? `-${formatARS(r.iva)}` : '—'}</td>
+                <td style="text-align:right;color:#ea580c">${taxEnabled ? `-${formatARS(r.iibb)}` : '—'}</td>
+                ${monotributoMonthly > 0 ? `<td style="text-align:right;color:#ea580c">${taxEnabled ? `-${formatARS(r.monotributo)}` : '—'}</td>` : ''}
+                <td style="text-align:right;font-weight:bold;color:#dc2626">${taxEnabled ? `-${formatARS(r.total)}` : '—'}</td>
+                <td style="text-align:right;font-weight:bold;color:${r.netProfit >= 0 ? '#16a34a' : '#dc2626'}">${formatARS(r.netProfit)}</td>
+              </tr>`).join('');
+            const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+  body{font-family:Arial,sans-serif;margin:24px;color:#222;font-size:12px}
+  h1{font-size:20px;margin-bottom:2px}
+  .sub{color:#666;font-size:11px;margin-bottom:16px}
+  table{border-collapse:collapse;width:100%}
+  th{background:#1a1a2e;color:#d4a843;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;text-align:left}
+  th.r,td.r{text-align:right}
+  td{padding:5px 8px;border-bottom:1px solid #eee}
+  .tfoot td{background:#f0f0f0;font-weight:bold;border-top:2px solid #ccc}
+  .disclaimer{margin-top:16px;font-size:9px;color:#999;border-top:1px solid #eee;padding-top:8px}
+  @media print{body{margin:0}}
+</style></head><body>
+<h1>${businessName} — Reporte de Impuestos</h1>
+<div class="sub">Generado: ${generated} · IVA ${ivaRate}% · IIBB ${iibbRate}%${monotributoMonthly > 0 ? ` · Monotributo $${monotributoMonthly.toLocaleString('es-AR')}/mes` : ''}</div>
+<table>
+<thead><tr>
+  <th>Mes</th><th class="r">Facturación</th><th class="r">G. Bruta</th>
+  <th class="r">IVA ${ivaRate}%</th><th class="r">IIBB ${iibbRate}%</th>
+  ${monotributoMonthly > 0 ? '<th class="r">Monotributo</th>' : ''}
+  <th class="r">Total Imp.</th><th class="r">G. Neta</th>
+</tr></thead>
+<tbody>${rowsHtml}</tbody>
+<tfoot><tr class="tfoot">
+  <td>TOTAL</td>
+  <td class="r">${formatARS(totals.revenue)}</td>
+  <td class="r" style="color:#16a34a">${formatARS(totals.profit)}</td>
+  <td class="r" style="color:#ea580c">${taxEnabled ? `-${formatARS(totals.iva)}` : '—'}</td>
+  <td class="r" style="color:#ea580c">${taxEnabled ? `-${formatARS(totals.iibb)}` : '—'}</td>
+  ${monotributoMonthly > 0 ? `<td class="r" style="color:#ea580c">${taxEnabled ? `-${formatARS(totals.monotributo)}` : '—'}</td>` : ''}
+  <td class="r" style="color:#dc2626">${taxEnabled ? `-${formatARS(totals.total)}` : '—'}</td>
+  <td class="r" style="color:${totals.netProfit >= 0 ? '#16a34a' : '#dc2626'}">${formatARS(totals.netProfit)}</td>
+</tr></tfoot>
+</table>
+<div class="disclaimer">Este reporte es orientativo. Consultá con tu contador para declaraciones oficiales ante AFIP. Sistema Gestiona.</div>
+</body></html>`;
+            const w = window.open('', '_blank');
+            if (w) { w.document.write(html); w.document.close(); w.print(); }
+          }}>
+            <FileDown className="w-3.5 h-3.5 mr-1.5" />PDF Contador
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportCSV(
+            'impuestos.csv',
+            ['Mes', 'Ventas', 'Ganancia bruta', `IVA (${ivaRate}%)`, `IIBB (${iibbRate}%)`, 'Monotributo', 'Total impuestos', 'Ganancia neta'],
+            monthlyData.map(r => [r.label, r.revenue.toFixed(0), r.profit.toFixed(0), r.iva.toFixed(0), r.iibb.toFixed(0), r.monotributo.toFixed(0), r.total.toFixed(0), r.netProfit.toFixed(0)])
+          )}>
+            <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
+          </Button>
+        </div>
       </div>
 
       {monthlyData.length === 0 ? (
