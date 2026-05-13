@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 20)**
+Última actualización: **2026-05-13 (sesión 21)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -177,6 +177,9 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **AIChatPage: consultar stock de producto** — intención "¿cuánto stock tengo de X?" busca por nombre, muestra stock coloreado (rojo=0, naranja=bajo, verde=ok); chip "Ver stock" en acciones rápidas. _(sesión 20)_
 - **ProductsPage: editar precio inline** — click en precio en tabla desktop → input inline → Enter/blur guarda → Escape cancela; mismo patrón que stock inline. _(sesión 20)_
 - **SettingsPage: notificaciones configurables** — 6 toggles (stock bajo, deuda vencida, meta en riesgo, cumpleaños, nuevo cliente, venta grande); persistidos en localStorage por org. _(sesión 20)_
+- **Dashboard: card "Hoy" expandible** — click en el KPI abre panel con ventas totales, ticket promedio, método dominante, top producto del día. _(sesión 21)_
+- **ReportsPage: tab "Proveedores"** — ranking por monto U$S, share %, compras, promedio, última compra, link a /proveedores. _(sesión 21)_
+- **SalesPipelinePage: deals estancados** — banner naranja con count de deals >14d sin actividad; panel expandible con listado y botón "Actualizar" por deal. _(sesión 21)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -436,18 +439,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 21)
+## Sesión 21 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | ReportsPage: tab "Proveedores" | ✅ Hecho |
+| 2 | SalesPipelinePage: deals estancados | ✅ Hecho |
+| 3 | CustomersPage: health score en CSV | ✅ Ya existía |
+| 4 | Dashboard: card "Hoy" expandible | ✅ Hecho |
+| 5 | CashSessionPage: breakdown por vendedor | ⏳ Próxima sesión |
+| 6 | POSPage: selector de vendedor de turno | ⏳ Próxima sesión |
+| 7 | ProductsPage: foto desde cámara | ⏳ Requiere más desarrollo |
+| 8 | ExpensesPage: adjuntar recibo | ⏳ Requiere migración DB |
+
+---
+
+## Prioridades inmediatas (sesión 22)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ReportsPage: tab "Proveedores"** — ranking por monto comprado, deuda AP con aging, última compra, botón "Ir a pagar" | Vista pasivos completa |
-| 2 | **SalesPipelinePage: deals estancados badge** — badge en nav item cuando hay deals >14d sin cambio; panel de "deals en riesgo" colapsable | Salud del pipeline |
-| 3 | **CustomersPage: health score en CSV** — columna health_score en el export; hoy ya se calcula el score en memoria pero no se incluye en CSV | CRM externo |
-| 4 | **Dashboard: card "Hoy" expandible** — click en la card de ventas de hoy → panel deslizante con: sparkline por hora, ticket promedio, top producto hoy, método dominante | Micro-análisis |
-| 5 | **CashSessionPage: breakdown por vendedor** — en el resumen de cierre de turno, agrupar ventas por `seller_name` con comisión estimada | Gestión de equipo |
-| 6 | **POSPage: selector de vendedor de turno** — preguntar quién está de turno; guardar en localStorage; mostrar en header del POS; registrar en ventas | Trazabilidad de ventas |
-| 7 | **ProductsPage: foto desde cámara** — botón "Tomar foto" en el form de producto usando `getUserMedia`; capturar y subir a Supabase Storage | Agilidad de carga |
-| 8 | **ExpensesPage: adjuntar recibo** — campo file upload en form de gasto; almacena URL en `expenses.receipt_url`; miniatura en tabla | Digitalización de gastos |
+| 1 | **POSPage: selector de vendedor de turno** — al entrar al POS, preguntar quién atiende; guardar en `localStorage.gestiona.pos.seller.{orgId}`; mostrar nombre en header; pasar `seller_name` al registrar venta | Trazabilidad y comisiones |
+| 2 | **CashSessionPage: breakdown por vendedor** — en resumen de cierre, agrupar ventas del turno por `seller_name`; mostrar total, cantidad y comisión estimada por vendedor | Gestión de equipo |
+| 3 | **SalesPage: filtro por vendedor** — dropdown "Todos los vendedores" en la barra de filtros; filtra por `seller_name` campo en ventas | Reporte por vendedor |
+| 4 | **Dashboard: AI insight del día en un click** — botón "💡 Insight del día" que dispara análisis Claude específico del día (ventas de hoy vs promedio, producto sorpresa, alerta si hay deal grande sin cerrar) | IA accionable diaria |
+| 5 | **AnalyticsPage: comparativa por período personalizado** — date picker en tab "Tendencia" para elegir rango libre (no solo año); comparativa lado a lado con período anterior | Análisis flexible |
+| 6 | **ProductsPage: código de barras / SKU** — campo `sku` visible en tabla y buscable; búsqueda en POS también funciona por SKU; generación de código de barras SVG en ficha de producto | Operativa de almacén |
+| 7 | **EmailCampaignsPage: preview del email** — botón "Preview" en el dialog muestra render del HTML del email antes de enviar; resuelve `{{nombre}}` con nombre de ejemplo | Calidad de comunicación |
+| 8 | **TasksPage: subtareas** — campo `parent_id` en tasks; lista de subtareas colapsable en el kanban; checkbox por subtarea; progreso visible en task padre | Gestión de proyectos |
 
 ---
 
