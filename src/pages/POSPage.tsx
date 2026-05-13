@@ -937,7 +937,17 @@ export default function POSPage() {
         }).then(() => {}).catch(() => {});
       }
 
-      setProducts(await getProductsDB(user.id));
+      const updatedProducts = await getProductsDB(user.id);
+      setProducts(updatedProducts);
+
+      // Post-sale low-stock alerts
+      const lowStockAlert = Number(settings?.low_stock_threshold ?? 5);
+      cart.forEach(item => {
+        const updated = updatedProducts.find((p: any) => p.id === item.productId);
+        if (updated && updated.stock >= 0 && updated.stock <= lowStockAlert) {
+          toast.warning(`⚠️ Stock bajo: ${item.name} — quedan ${updated.stock} unidades`, { duration: 6000 });
+        }
+      });
 
       setReceipt({
         items: [...cart],
