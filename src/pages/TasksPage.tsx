@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   CheckSquare, Plus, Check, Clock, AlertTriangle, X,
   Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search, FileSpreadsheet,
+  LayoutList, Kanban,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -64,6 +65,8 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -241,31 +244,124 @@ export default function TasksPage() {
             className="pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40 w-44"
           />
         </div>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={() => {
-          const bom = '﻿';
-          const headers = ['Título', 'Descripción', 'Prioridad', 'Categoría', 'Estado', 'Fecha límite', 'Completada'];
-          const rows = filtered.map(t => [
-            t.title,
-            t.description || '',
-            PRIORITY_CONFIG[t.priority]?.label || t.priority,
-            t.category || '',
-            STATUS_CONFIG[t.status]?.label || t.status,
-            t.due_date || '',
-            t.completed_at ? new Date(t.completed_at).toLocaleDateString('es-AR') : '',
-          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
-          const csv = bom + [headers.join(','), ...rows].join('\n');
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-          a.download = `tareas-${new Date().toISOString().slice(0, 10)}.csv`;
-          a.click();
-          toast.success('Tareas exportadas');
-        }}>
-          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
-        </Button>
+        <div className="flex items-center gap-1 ml-auto">
+          <Button variant="outline" size="sm" onClick={() => {
+            const bom = '﻿';
+            const headers = ['Título', 'Descripción', 'Prioridad', 'Categoría', 'Estado', 'Fecha límite', 'Completada'];
+            const rows = filtered.map(t => [
+              t.title,
+              t.description || '',
+              PRIORITY_CONFIG[t.priority]?.label || t.priority,
+              t.category || '',
+              STATUS_CONFIG[t.status]?.label || t.status,
+              t.due_date || '',
+              t.completed_at ? new Date(t.completed_at).toLocaleDateString('es-AR') : '',
+            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+            const csv = bom + [headers.join(','), ...rows].join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = `tareas-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            toast.success('Tareas exportadas');
+          }}>
+            <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+          </Button>
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-2.5 py-1.5 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+              title="Vista lista"
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`px-2.5 py-1.5 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+              title="Vista kanban"
+            >
+              <Kanban className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Cargando tareas…</div>
+      ) : viewMode === "kanban" ? (
+        /* ── Kanban view ── */
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {(["pending", "in_progress", "done"] as Task["status"][]).map(status => {
+            const colLabel = STATUS_CONFIG[status].label;
+            const colTasks = tasks.filter(t => {
+              if (t.status !== status) return false;
+              if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+              if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+              if (filterCategory !== "all" && t.category !== filterCategory) return false;
+              return true;
+            });
+            const colColors: Record<string, string> = {
+              pending: "border-muted-foreground/20",
+              in_progress: "border-blue-500/30",
+              done: "border-success/30",
+            };
+            return (
+              <div
+                key={status}
+                className={`flex-1 min-w-[230px] max-w-xs bg-muted/20 border rounded-xl p-3 ${colColors[status]}`}
+                onDragOver={e => { e.preventDefault(); }}
+                onDrop={async () => {
+                  if (!draggedTaskId) return;
+                  const t = tasks.find(t => t.id === draggedTaskId);
+                  if (!t || t.status === status) return;
+                  await updateStatus(t, status);
+                  setDraggedTaskId(null);
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{colLabel}</h3>
+                  <span className="text-xs bg-muted rounded-full px-2 py-0.5">{colTasks.length}</span>
+                </div>
+                <div className="space-y-2 min-h-[80px]">
+                  {colTasks.map(task => {
+                    const isOverdue = task.status !== "done" && task.due_date && task.due_date < today;
+                    const pc = PRIORITY_CONFIG[task.priority];
+                    return (
+                      <div
+                        key={task.id}
+                        draggable
+                        onDragStart={() => setDraggedTaskId(task.id)}
+                        onDragEnd={() => setDraggedTaskId(null)}
+                        className={`p-2.5 rounded-lg border bg-card cursor-grab active:cursor-grabbing transition-opacity ${
+                          draggedTaskId === task.id ? "opacity-40" : ""
+                        } ${isOverdue ? "border-destructive/30" : "border-border"}`}
+                      >
+                        <p className={`text-xs font-medium leading-snug ${task.status === "done" ? "line-through text-muted-foreground" : ""}`}>
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${pc?.color}`}>{pc?.label}</span>
+                          {task.due_date && (
+                            <span className={`text-[9px] ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                              {new Date(task.due_date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                            </span>
+                          )}
+                          {task.category && (
+                            <span className="text-[9px] text-primary bg-primary/10 rounded px-1 py-0.5">{task.category}</span>
+                          )}
+                        </div>
+                        <div className="flex justify-end mt-1.5">
+                          <button onClick={() => deleteTask(task)} className="text-muted-foreground/30 hover:text-destructive transition-colors">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <CheckSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
