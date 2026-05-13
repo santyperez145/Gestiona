@@ -313,10 +313,20 @@ export default function Dashboard() {
       return costARS / (1 - targetMargin / 100);
     };
 
+    // Sales velocity over last 60 days for restock suggestions
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000);
+    const recentSales60 = allSales.filter((s: any) => new Date(s.date) >= sixtyDaysAgo);
+    const velocity60: Record<string, number> = {};
+    recentSales60.forEach((s: any) => { velocity60[s.product_id] = (velocity60[s.product_id] || 0) + Number(s.quantity); });
+
     const restockSuggestions = Object.entries(productSales)
       .map(([id, data]: any) => {
         const prod = products.find((p: any) => p.id === id);
-        return prod ? { name: prod.name, stock: prod.stock, soldQty: data.qty, revenue: data.revenue } : null;
+        if (!prod) return null;
+        const unitsPerDay = (velocity60[id] || 0) / 60;
+        const daysOfStock = unitsPerDay > 0 ? Math.floor(prod.stock / unitsPerDay) : Infinity;
+        const suggestedOrder = Math.max(0, Math.round(unitsPerDay * 30 * 1.5) - prod.stock);
+        return { name: prod.name, stock: prod.stock, soldQty: data.qty, revenue: data.revenue, unitsPerDay, daysOfStock, suggestedOrder };
       })
       .filter((r: any) => r && r.stock <= lowStockThreshold)
       .sort((a: any, b: any) => b.soldQty - a.soldQty)
@@ -868,12 +878,23 @@ export default function Dashboard() {
           </div>
           {stats.restockSuggestions?.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border">
-              <p className="text-xs font-semibold text-primary mb-2">🔄 Sugerencias de Restock (más vendidos con bajo stock)</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-xs font-semibold text-primary mb-2">🔄 Restock urgente — más vendidos con stock crítico</p>
+              <div className="space-y-1.5">
                 {stats.restockSuggestions.map((r: any) => (
-                  <span key={r.name} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-[10px] font-medium">
-                    {r.name} ({r.stock}u · {r.soldQty} vendidos)
-                  </span>
+                  <div key={r.name} className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="font-medium truncate max-w-[160px]" title={r.name}>{r.name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`px-1.5 py-0.5 rounded font-mono ${r.stock <= 0 ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                        {r.stock}u
+                      </span>
+                      {r.daysOfStock !== Infinity && (
+                        <span className="text-muted-foreground">{r.daysOfStock}d</span>
+                      )}
+                      {r.suggestedOrder > 0 && (
+                        <span className="text-emerald-400 font-semibold">→ pedir {r.suggestedOrder}u</span>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
