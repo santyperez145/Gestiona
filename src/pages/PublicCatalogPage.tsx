@@ -20,6 +20,10 @@ import {
   Zap,
   Heart,
   Users,
+  Plus,
+  Minus,
+  ShoppingCart,
+  Trash2,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,6 +113,23 @@ export default function PublicCatalogPage() {
   const [detailProduct, setDetailProduct] = useState<any>(null);
 
   const [fullSettings, setFullSettings] = useState<any>(null);
+
+  // Shopping cart
+  const [cart, setCart] = useState<{ id: string; name: string; price: number; qty: number; size?: string }[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const addToCart = (product: any, size?: string) => {
+    const price = Number(product.discount_price_ars || product.sale_price_ars);
+    const key = size ? `${product.id}__${size}` : product.id;
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === key);
+      if (idx >= 0) return prev.map((i, ix) => ix === idx ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { id: key, name: product.name + (size ? ` (${size}ml)` : ""), price, qty: 1, size }];
+    });
+  };
+
+  const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   const fetchData = useCallback(async () => {
     if (!userId) {
@@ -274,6 +295,14 @@ export default function PublicCatalogPage() {
     return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
   };
 
+  const buildCartWhatsAppUrl = () => {
+    if (!whatsappNumber || !cart.length) return "";
+    const num = whatsappNumber.replace(/[^0-9]/g, "");
+    const lines = cart.map(i => `• ${i.qty}x *${i.name}* — ${fmtARS(i.price * i.qty)}`).join("\n");
+    const msg = `Hola! Quiero hacer el siguiente pedido desde el catálogo 🛍️\n\n${lines}\n\n*Total: ${fmtARS(cartTotal)}*\n¿Pueden confirmarlo?`;
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  };
+
   const showAllView = filterCat === "all" && !search;
 
   return (
@@ -429,6 +458,7 @@ export default function PublicCatalogPage() {
                   featured
                   settings={settings}
                   fullSettings={fullSettings}
+                  onAddToCart={whatsappNumber ? addToCart : undefined}
                 />
               ))}
             </div>
@@ -452,6 +482,7 @@ export default function PublicCatalogPage() {
                   badge="Más vendido"
                   settings={settings}
                   fullSettings={fullSettings}
+                  onAddToCart={whatsappNumber ? addToCart : undefined}
                 />
               ))}
             </div>
@@ -514,6 +545,7 @@ export default function PublicCatalogPage() {
                     onClick={() => setDetailProduct(p)}
                     settings={settings}
                     fullSettings={fullSettings}
+                    onAddToCart={whatsappNumber ? addToCart : undefined}
                   />
                 ),
               )}
@@ -649,6 +681,82 @@ export default function PublicCatalogPage() {
           <span className="hidden sm:inline">Consultar</span>
         </a>
       )}
+
+      {/* Floating cart button */}
+      {whatsappNumber && cartCount > 0 && (
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold text-black shadow-2xl transition-all active:scale-95"
+          style={{ background: primaryColor, boxShadow: `0 8px 30px ${primaryColor}60` }}
+        >
+          <ShoppingCart className="w-5 h-5" />
+          {cartCount} {cartCount === 1 ? "producto" : "productos"} · {fmtARS(cartTotal)}
+        </button>
+      )}
+
+      {/* Cart slide panel */}
+      {cartOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={() => setCartOpen(false)} />
+          <div className="w-full max-w-sm bg-[#0d0d1a] border-l border-white/[0.08] flex flex-col h-full overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" style={{ color: primaryColor }} />
+                <span className="font-bold text-sm">Tu carrito</span>
+              </div>
+              <button onClick={() => setCartOpen(false)} className="p-1.5 rounded-lg hover:bg-white/[0.06]">
+                <X className="w-4 h-4 text-white/50" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+              {cart.map(item => (
+                <div key={item.id} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{item.name}</p>
+                    <p className="text-xs text-white/40">{fmtARS(item.price)} c/u</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, qty: Math.max(1, i.qty - 1) } : i))}
+                      className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.12] flex items-center justify-center">
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-sm font-bold w-5 text-center">{item.qty}</span>
+                    <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))}
+                      className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.12] flex items-center justify-center">
+                      <Plus className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => setCart(prev => prev.filter(i => i.id !== item.id))}
+                      className="w-6 h-6 rounded-full hover:bg-red-500/20 flex items-center justify-center ml-1">
+                      <Trash2 className="w-3 h-3 text-red-400" />
+                    </button>
+                  </div>
+                  <p className="text-sm font-bold shrink-0" style={{ color: primaryColor }}>{fmtARS(item.price * item.qty)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-white/[0.06] px-4 py-4 space-y-3">
+              <div className="flex items-center justify-between text-sm font-bold">
+                <span className="text-white/60">Total</span>
+                <span style={{ color: primaryColor }}>{fmtARS(cartTotal)}</span>
+              </div>
+              <a
+                href={buildCartWhatsAppUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setCartOpen(false)}
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
+                style={{ background: "linear-gradient(135deg,#25D366,#128C7E)", boxShadow: "0 4px 16px rgba(37,211,102,0.35)" }}
+              >
+                <MessageCircle className="w-5 h-5" fill="white" />
+                Pedir por WhatsApp 🛍️
+              </a>
+              <button onClick={() => { setCart([]); setCartOpen(false); }} className="w-full text-xs text-white/30 hover:text-white/50 transition-colors py-1">
+                Vaciar carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -662,6 +770,7 @@ function ProductCard({
   compact,
   settings,
   fullSettings,
+  onAddToCart,
 }: {
   product: any;
   primaryColor: string;
@@ -671,6 +780,7 @@ function ProductCard({
   compact?: boolean;
   settings?: any;
   fullSettings?: any;
+  onAddToCart?: (product: any) => void;
 }) {
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
@@ -848,6 +958,17 @@ function ProductCard({
               {viewers} personas viendo esto
             </p>
           </div>
+        )}
+
+        {/* Add to cart button */}
+        {onAddToCart && (
+          <button
+            onClick={e => { e.stopPropagation(); onAddToCart(p); }}
+            className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95"
+            style={{ background: primaryColor, color: "#000" }}
+          >
+            <Plus className="w-3 h-3" />Agregar al carrito
+          </button>
         )}
       </div>
     </div>
