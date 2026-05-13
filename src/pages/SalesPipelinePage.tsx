@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import {
   Plus, X, Edit2, Trash2, DollarSign, User, Calendar,
-  TrendingUp, Loader2, GripVertical, FileSpreadsheet,
+  TrendingUp, Loader2, GripVertical, FileSpreadsheet, MessageCircle,
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
@@ -231,8 +231,20 @@ function DealCard({
       )}
 
       {isStale && (
-        <div className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-500/10 rounded px-2 py-0.5 mb-1.5 w-fit">
-          <Calendar className="w-3 h-3" />Sin actividad: {daysSinceUpdate}d
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-500/10 rounded px-2 py-0.5 w-fit">
+            <Calendar className="w-3 h-3" />Sin actividad: {daysSinceUpdate}d
+          </div>
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`Hola${deal.customer_name ? ` ${deal.customer_name}` : ''}, te escribo para hacer un seguimiento sobre "${deal.title}". ¿Cómo estamos con esto?`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Enviar seguimiento por WhatsApp"
+            onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1 text-[10px] text-green-400 bg-green-500/10 rounded px-2 py-0.5 hover:bg-green-500/20 transition-colors"
+          >
+            <MessageCircle className="w-3 h-3" />Seguimiento
+          </a>
         </div>
       )}
 
