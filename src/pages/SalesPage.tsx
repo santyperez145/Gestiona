@@ -123,9 +123,12 @@ export default function SalesPage() {
   const [viewMode, setViewMode] = useState<"list" | "by_customer">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
+    if (filterPaid === 'paid' && !s.paid) return false;
+    if (filterPaid === 'pending' && s.paid) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -326,6 +329,18 @@ export default function SalesPage() {
             {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex rounded-lg border border-border overflow-hidden h-9 shrink-0">
+          {([
+            { key: 'all', label: 'Todas' },
+            { key: 'paid', label: '✓ Cobradas' },
+            { key: 'pending', label: 'Deben' },
+          ] as const).map(opt => (
+            <button key={opt.key} onClick={() => { setFilterPaid(opt.key); setPage(0); }}
+              className={`px-3 text-xs transition-colors ${filterPaid === opt.key ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <div className="flex rounded-lg border border-border overflow-hidden h-9">
           <button
             onClick={() => setViewMode("list")}
