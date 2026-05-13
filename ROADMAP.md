@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-12 (sesión 7)**
+Última actualización: **2026-05-12 (sesión 8)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~76% completo.**
+**MVP avanzado con SaaS billing funcional. ~80% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -169,7 +169,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 9 | Mobile: tablas, dialogs, selects, NotificationBell | ✅ Hecho |
 | 10 | Products Excel import con cálculo de márgenes | ✅ Hecho |
 
-### Sprint 7 — Mayo 2026: IA proactiva + CRM accionable _(en curso)_
+### Sprint 7 — Mayo 2026: IA proactiva + CRM accionable ✅ COMPLETO
 
 **Objetivo:** diferenciación real por IA y datos accionables.
 
@@ -179,9 +179,12 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 2 | Drag-and-drop nativo en SalesPipeline Kanban | ✅ Hecho |
 | 3 | Export CSV con RFM desde CustomersPage | ✅ Hecho |
 | 4 | Tab "Rentabilidad por Producto" en ReportsPage | ✅ Hecho |
-| 5 | Email campaigns con open rate / click rate (Resend webhooks) | 🔵 Pendiente |
-| 6 | Segmentos RFM guardados y reutilizables en CRM | 🔵 Pendiente |
-| 7 | Split de pago en POS (efectivo + tarjeta + MP) | 🔵 Pendiente |
+| 5 | Resend webhook: metadata campaign_id+org_id + Svix signature + realtime metrics | ✅ Hecho |
+| 6 | Restock inteligente: velocity 60d + cantidad sugerida en Dashboard | ✅ Hecho |
+| 7 | POS: alerta toast post-venta cuando stock queda bajo threshold | ✅ Hecho |
+| 8 | SalesPage: comparativa de período anterior en KPI cards | ✅ Hecho |
+| 9 | ExpensesPage: comparativa mes anterior en KPI card | ✅ Hecho |
+| 10 | Dashboard: panel de anomalías (caída de margen + bestseller dropout) | ✅ Hecho |
 
 ### Sprint 8 — Julio 2026: POS avanzado + Stock inteligente
 
