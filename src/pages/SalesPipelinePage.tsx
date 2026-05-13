@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import {
   Plus, X, Edit2, Trash2, DollarSign, User, Calendar,
-  TrendingUp, Loader2, GripVertical,
+  TrendingUp, Loader2, GripVertical, FileSpreadsheet,
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
@@ -182,12 +182,16 @@ function DealCard({
 }) {
   const isOverdue = deal.expected_close && new Date(deal.expected_close) < new Date() && deal.stage !== "cerrado" && deal.stage !== "perdido";
   const stageInfo = stages.find(s => s.value === deal.stage)!;
+  const daysSinceUpdate = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
+  const isStale = daysSinceUpdate >= 7 && deal.stage !== "cerrado" && deal.stage !== "perdido";
 
   return (
     <div
       draggable
       onDragStart={e => { e.dataTransfer.effectAllowed = "move"; onDragStart(deal.id); }}
-      className="bg-card border border-border rounded-xl p-3 shadow-sm hover:border-primary/30 transition-all group cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95"
+      className={`bg-card border rounded-xl p-3 shadow-sm hover:border-primary/30 transition-all group cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95 ${
+        isOverdue ? "border-red-500/40" : isStale ? "border-orange-500/30" : "border-border"
+      }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-start gap-1.5 flex-1 min-w-0">
@@ -223,6 +227,12 @@ function DealCard({
           <Calendar className="w-3 h-3 shrink-0" />
           {new Date(deal.expected_close + "T12:00:00").toLocaleDateString("es-AR")}
           {isOverdue && <span className="text-[10px] font-medium">(vencido)</span>}
+        </div>
+      )}
+
+      {isStale && (
+        <div className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-500/10 rounded px-2 py-0.5 mb-1.5 w-fit">
+          <Calendar className="w-3 h-3" />Sin actividad: {daysSinceUpdate}d
         </div>
       )}
 
@@ -370,9 +380,26 @@ export default function SalesPipelinePage() {
             : undefined
         }
         actions={
-          <Button onClick={() => setDialog({ open: true })} className="gradient-gold text-primary-foreground gap-1.5">
-            <Plus className="w-4 h-4" />Nueva oportunidad
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              const header = "Título,Cliente,Etapa,Valor ARS,Cierre esperado,Notas,Creada\n";
+              const rows = deals.map(d => [
+                d.title, d.customer_name,
+                STAGES.find(s => s.value === d.stage)?.label || d.stage,
+                d.value_ars || 0,
+                d.expected_close || '',
+                d.notes || '',
+                d.created_at.slice(0, 10),
+              ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
+              const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pipeline.csv"; a.click();
+            }}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
+            </Button>
+            <Button onClick={() => setDialog({ open: true })} className="gradient-gold text-primary-foreground gap-1.5">
+              <Plus className="w-4 h-4" />Nueva oportunidad
+            </Button>
+          </div>
         }
       />
 
