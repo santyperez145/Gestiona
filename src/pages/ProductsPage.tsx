@@ -88,6 +88,7 @@ export default function ProductsPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
+  const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
 
   const reload = async () => {
     if (!user) return;
@@ -115,6 +116,15 @@ export default function ProductsPage() {
     setSalesVelocity(velocity);
   };
   useEffect(() => { reload(); }, [user]);
+
+  const saveInlineStock = async (productId: string, newStock: string) => {
+    const parsed = parseInt(newStock, 10);
+    if (isNaN(parsed) || parsed < 0) { setEditingStock(null); return; }
+    await updateProductDB(productId, { stock: parsed });
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: parsed } : p));
+    setEditingStock(null);
+    toast.success("Stock actualizado");
+  };
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -391,9 +401,35 @@ export default function ProductsPage() {
                            })()}
                          </td>
                          <td className="p-3 text-right">
-                           {p.stock <= 0 ? <span className="text-xs text-muted-foreground">0</span> : p.stock <= 3 ? (
-                             <span className="text-destructive font-bold flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                           ) : <span className="text-success font-medium">{p.stock}</span>}
+                           {editingStock?.id === p.id ? (
+                             <input
+                               type="number"
+                               min="0"
+                               autoFocus
+                               value={editingStock.value}
+                               onChange={e => setEditingStock({ id: p.id, value: e.target.value })}
+                               onBlur={() => saveInlineStock(p.id, editingStock.value)}
+                               onKeyDown={e => {
+                                 if (e.key === "Enter") saveInlineStock(p.id, editingStock.value);
+                                 if (e.key === "Escape") setEditingStock(null);
+                               }}
+                               className="w-16 text-right text-xs border border-primary/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                             />
+                           ) : (
+                             <button
+                               onClick={() => setEditingStock({ id: p.id, value: String(p.stock) })}
+                               className="group relative"
+                               title="Click para editar stock"
+                             >
+                               {p.stock <= 0 ? (
+                                 <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">0</span>
+                               ) : p.stock <= 3 ? (
+                                 <span className="text-destructive font-bold flex items-center justify-end gap-1 group-hover:text-primary transition-colors"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
+                               ) : (
+                                 <span className="text-success font-medium group-hover:text-primary transition-colors">{p.stock}</span>
+                               )}
+                             </button>
+                           )}
                          </td>
                          <td className="p-3 text-right">
                            {(() => {
