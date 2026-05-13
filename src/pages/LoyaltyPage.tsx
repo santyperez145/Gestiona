@@ -12,6 +12,23 @@ import { toast } from "sonner";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
+// ─── Tier system ──────────────────────────────────────────────────────────────
+
+const TIERS = [
+  { name: "Bronce", min: 0, max: 99, color: "text-orange-400", bg: "bg-orange-500/15", barColor: "bg-orange-400" },
+  { name: "Plata", min: 100, max: 499, color: "text-slate-300", bg: "bg-slate-500/15", barColor: "bg-slate-400" },
+  { name: "Oro", min: 500, max: 999, color: "text-yellow-400", bg: "bg-yellow-500/15", barColor: "bg-yellow-400" },
+  { name: "Platino", min: 1000, max: Infinity, color: "text-purple-400", bg: "bg-purple-500/15", barColor: "bg-purple-400" },
+];
+
+function getTier(pts: number) {
+  return TIERS.findLast(t => pts >= t.min) ?? TIERS[0];
+}
+
+function getNextTier(pts: number) {
+  return TIERS.find(t => pts < t.min) ?? null;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface LoyaltyEntry {
@@ -257,7 +274,10 @@ export default function LoyaltyPage() {
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{b.customer_name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium truncate">{b.customer_name}</p>
+                      {(() => { const t = getTier(b.balance); return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${t.bg} ${t.color}`}>{t.name}</span>; })()}
+                    </div>
                     <p className="text-[10px] text-muted-foreground">{b.totalEarned} ganados · {b.totalRedeemed} canjeados</p>
                   </div>
                   <div className="text-right shrink-0">
@@ -283,10 +303,31 @@ export default function LoyaltyPage() {
                     {selectedBalance.balance.toLocaleString("es-AR")} puntos · {formatARS(selectedBalance.balance * ptVal)} disponibles
                   </p>
                 </div>
-                <Badge className={`text-xs ${selectedBalance.balance > 0 ? "bg-yellow-500/20 text-yellow-400" : "bg-muted text-muted-foreground"}`}>
-                  {selectedBalance.balance > 0 ? `${selectedBalance.balance} pts` : "Sin puntos"}
-                </Badge>
+                {(() => {
+                  const t = getTier(selectedBalance.balance);
+                  return <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${t.bg} ${t.color}`}>{t.name}</span>;
+                })()}
               </div>
+              {/* Tier progress */}
+              {(() => {
+                const next = getNextTier(selectedBalance.balance);
+                const current = getTier(selectedBalance.balance);
+                if (!next) return <p className="text-xs text-purple-400 font-medium">¡Nivel máximo alcanzado! 🏆</p>;
+                const progress = selectedBalance.balance - current.min;
+                const range = next.min - current.min;
+                const pct = Math.min(100, (progress / range) * 100);
+                return (
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                      <span>Progreso hacia {next.name}</span>
+                      <span>{next.min - selectedBalance.balance} pts para subir</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${current.barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
                 {selectedHistory.map(e => (
