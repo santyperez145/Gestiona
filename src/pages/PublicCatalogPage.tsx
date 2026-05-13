@@ -572,6 +572,7 @@ export default function PublicCatalogPage() {
               onClose={() => setDetailProduct(null)}
               settings={settings}
               fullSettings={fullSettings}
+              onAddToCart={whatsappNumber ? (product, size) => { addToCart(product, size); setDetailProduct(null); } : undefined}
             />
           )}
         </DialogContent>
@@ -984,6 +985,7 @@ function ProductDetailModal({
   onClose,
   settings,
   fullSettings,
+  onAddToCart,
 }: {
   product: any;
   primaryColor: string;
@@ -993,6 +995,7 @@ function ProductDetailModal({
   onClose: () => void;
   settings: any;
   fullSettings?: any;
+  onAddToCart?: (product: any, size?: string) => void;
 }) {
   const [selectedSize, setSelectedSize] = useState<string>("full");
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
@@ -1226,6 +1229,15 @@ function ProductDetailModal({
         </div>
 
         <div className="flex gap-2">
+          {whatsappNumber && onAddToCart && (
+            <button
+              onClick={() => { onAddToCart(p, selectedSize !== "full" ? selectedSize : undefined); onClose(); }}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+              style={{ background: primaryColor, color: "#000", minWidth: "48px" }}
+            >
+              <ShoppingCart className="w-4 h-4" />
+            </button>
+          )}
           {whatsappNumber && (
             <a
               href={buildWhatsAppUrl(p, selectedSize)}
