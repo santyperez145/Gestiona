@@ -392,6 +392,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="cattrend" className="text-xs">Por Categoría</TabsTrigger>
           <TabsTrigger value="weekly" className="text-xs">Semana</TabsTrigger>
           <TabsTrigger value="cohorts" className="text-xs">👥 Cohorts</TabsTrigger>
+          <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1082,6 +1083,11 @@ export default function AnalyticsPage() {
         <TabsContent value="cohorts" className="mt-4">
           <CohortTab sales={rawData?.sales || []} />
         </TabsContent>
+
+        {/* DORMANT PRODUCTS TAB */}
+        <TabsContent value="dormant" className="mt-4">
+          <DormantProductsTab products={rawData?.products || []} sales={rawData?.sales || []} />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -1432,6 +1438,103 @@ function CohortTab({ sales }: { sales: any[] }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── DormantProductsTab — Productos sin movimiento por días ───────────────────
+
+function DormantProductsTab({ products, sales }: { products: any[]; sales: any[] }) {
+  const [daysFilter, setDaysFilter] = useState<30 | 60 | 90>(30);
+
+  const dormantData = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - daysFilter);
+    const cutoffTs = cutoff.getTime();
+
+    const lastSale: Record<string, number> = {};
+    for (const s of sales) {
+      if (!s.product_id) continue;
+      const ts = new Date(s.date).getTime();
+      if (!lastSale[s.product_id] || ts > lastSale[s.product_id]) lastSale[s.product_id] = ts;
+    }
+
+    return products
+      .filter(p => p.stock > 0)
+      .map(p => {
+        const last = lastSale[p.id];
+        const daysSince = last ? Math.floor((Date.now() - last) / 86400000) : null;
+        return { ...p, daysSince, hasAnySale: !!last };
+      })
+      .filter(p => !p.hasAnySale || (p.daysSince !== null && p.daysSince >= daysFilter))
+      .sort((a, b) => {
+        if (a.daysSince === null && b.daysSince !== null) return -1;
+        if (b.daysSince === null && a.daysSince !== null) return 1;
+        return (b.daysSince ?? 0) - (a.daysSince ?? 0);
+      });
+  }, [products, sales, daysFilter]);
+
+  const totalInmovilizado = dormantData.reduce((s, p) => s + (Number(p.cost_usd) * p.stock || 0), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h3 className="font-semibold">Productos sin movimiento</h3>
+          <p className="text-xs text-muted-foreground">{dormantData.length} producto{dormantData.length !== 1 ? "s" : ""} sin ventas en los últimos {daysFilter} días · Stock inmovilizado: U$S {totalInmovilizado.toFixed(0)}</p>
+        </div>
+        <div className="flex gap-2">
+          {([30, 60, 90] as const).map(d => (
+            <button key={d} onClick={() => setDaysFilter(d)} className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${daysFilter === d ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:border-primary/40"}`}>
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+      {dormantData.length === 0 ? (
+        <p className="text-center py-12 text-muted-foreground text-sm">No hay productos sin movimiento en este período</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 font-medium">Producto</th>
+                <th className="text-right p-3 font-medium">Stock</th>
+                <th className="text-right p-3 font-medium">Costo U$S</th>
+                <th className="text-right p-3 font-medium">Inmovilizado</th>
+                <th className="text-right p-3 font-medium">Última venta</th>
+                <th className="text-center p-3 font-medium">Acción sugerida</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dormantData.map(p => (
+                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  <td className="p-3">
+                    <p className="font-medium truncate max-w-[180px]">{p.name}</p>
+                    {p.brand && <p className="text-[10px] text-muted-foreground">{p.brand}</p>}
+                  </td>
+                  <td className="p-3 text-right font-mono">{p.stock}</td>
+                  <td className="p-3 text-right text-muted-foreground">{p.cost_usd ? `U$S ${Number(p.cost_usd).toFixed(2)}` : "—"}</td>
+                  <td className="p-3 text-right font-semibold text-orange-400">
+                    {p.cost_usd ? `U$S ${(Number(p.cost_usd) * p.stock).toFixed(0)}` : "—"}
+                  </td>
+                  <td className="p-3 text-right">
+                    {p.daysSince === null
+                      ? <span className="text-xs text-red-400 font-semibold">Sin ventas</span>
+                      : <span className={`text-xs font-semibold ${p.daysSince >= 90 ? "text-red-400" : p.daysSince >= 60 ? "text-orange-400" : "text-yellow-400"}`}>{p.daysSince}d</span>
+                    }
+                  </td>
+                  <td className="p-3 text-center">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${p.daysSince === null || p.daysSince >= 90 ? "bg-red-500/10 text-red-400" : "bg-orange-500/10 text-orange-400"}`}>
+                      {p.daysSince === null || p.daysSince >= 90 ? "Liquidar" : "Promover"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

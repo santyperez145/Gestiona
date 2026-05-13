@@ -231,6 +231,19 @@ export default function Dashboard() {
     setAtRiskCustomers(atRisk);
   }, [rawData]);
 
+  // Upcoming debts: due in next 7 days
+  const upcomingDebts = useMemo(() => {
+    if (!rawData?.debts) return [];
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const in7 = new Date(now); in7.setDate(now.getDate() + 7);
+    return rawData.debts
+      .filter((d: any) => d.status === "pending" && d.due_date)
+      .map((d: any) => ({ ...d, dueTs: new Date(d.due_date).getTime() }))
+      .filter((d: any) => d.dueTs >= now.getTime() && d.dueTs <= in7.getTime())
+      .sort((a: any, b: any) => a.dueTs - b.dueTs)
+      .slice(0, 5);
+  }, [rawData]);
+
   // Pipeline conversion stats
   useEffect(() => {
     if (!orgForTasks) return;
@@ -800,6 +813,39 @@ export default function Dashboard() {
             ))}
           </div>
           <p className="text-[10px] text-muted-foreground mt-2">Clientes que compraron hace 60–180 días. Contactalos para reactivarlos.</p>
+        </div>
+      )}
+
+      {/* Upcoming debts widget */}
+      {upcomingDebts.length > 0 && (
+        <div className="mb-5 mt-4 bg-card border border-blue-500/20 rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-blue-400" />Cobros de esta semana
+            </h3>
+            <Link to="/debts" className="text-xs text-primary hover:underline">Ver deudas →</Link>
+          </div>
+          <div className="space-y-1.5">
+            {upcomingDebts.map((d: any) => {
+              const daysLeft = Math.round((d.dueTs - Date.now()) / 86400000);
+              return (
+                <div key={d.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${daysLeft === 0 ? "bg-red-500/15" : "bg-blue-500/15"}`}>
+                      <Banknote className={`w-3 h-3 ${daysLeft === 0 ? "text-red-400" : "text-blue-400"}`} />
+                    </div>
+                    <span className="text-sm font-medium truncate">{d.customer_name || "Cliente"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`text-xs ${daysLeft === 0 ? "text-red-400 font-semibold" : "text-muted-foreground"}`}>
+                      {daysLeft === 0 ? "Hoy" : `En ${daysLeft}d`}
+                    </span>
+                    <span className="text-xs font-semibold text-blue-400">{formatARS(Number(d.remaining_ars))}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

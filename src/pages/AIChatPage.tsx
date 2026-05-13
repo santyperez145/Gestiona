@@ -11,11 +11,11 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB } from "@/lib/supabaseStore";
+import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -24,6 +24,7 @@ type AIAction =
   | { type: "adjust_stock"; productName?: string; quantity?: string }
   | { type: "create_sale"; productName?: string; quantity?: string; customer?: string }
   | { type: "create_purchase"; productName?: string; quantity?: string; supplier?: string; costUSD?: string }
+  | { type: "query_debt"; customerName?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -105,6 +106,13 @@ function detectIntent(msg: string): AIAction | null {
       supplier: supplierMatch?.[1]?.trim(),
       costUSD: costMatch?.[1]?.replace(/\./g, "").replace(",", "."),
     };
+  }
+
+  // Query customer debt
+  if (/\b(cuánto\s+debe|deuda\s+de|debe\s+cuánto|saldo\s+de|fiado\s+de|adeuda)\b/.test(lower) ||
+      /\b(cuánto\s+(?:me\s+)?(?:debe|adeuda))\b/.test(lower)) {
+    const nameMatch = msg.match(/(?:debe|deuda\s+de|saldo\s+de|fiado\s+de|adeuda)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
+    return { type: "query_debt", customerName: nameMatch?.[1]?.trim() };
   }
 
   return null;
@@ -260,6 +268,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "create_purchase") {
     return <CreatePurchaseCard userId={userId} initialSupplier={action.supplier} initialQty={action.quantity} initialCostUSD={action.costUSD} onDone={onDone} />;
+  }
+
+  if (action.type === "query_debt") {
+    return <QueryDebtCard userId={userId} initialName={action.customerName} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -567,6 +579,61 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
   );
 }
 
+// ─── QueryDebtCard ────────────────────────────────────────────────────────────
+function QueryDebtCard({ userId, initialName, onDone }: { userId: string; initialName?: string; onDone: () => void }) {
+  const { activeOrg } = useOrg();
+  const [name, setName] = useState(initialName || "");
+  const [result, setResult] = useState<{ total: number; count: number; items: any[] } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const search = async () => {
+    if (!name.trim() || !activeOrg) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("customer_debts")
+      .select("id, customer_name, remaining_ars, due_date, status")
+      .eq("org_id", activeOrg.id)
+      .eq("status", "pending")
+      .ilike("customer_name", `%${name.trim()}%`)
+      .order("created_at", { ascending: false });
+    const items = data || [];
+    const total = items.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
+    setResult({ total, count: items.length, items });
+    setSearched(true);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (initialName) search(); }, []);
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Consultar deuda de cliente</p>
+      <div className="flex gap-2">
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del cliente" className="h-8 text-sm bg-muted border-border flex-1" onKeyDown={e => e.key === "Enter" && search()} autoFocus={!initialName} />
+        <Button size="sm" className="h-8" onClick={search} disabled={loading || !name.trim()}>
+          {loading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Buscar"}
+        </Button>
+      </div>
+      {searched && result && (
+        result.count === 0
+          ? <p className="text-xs text-muted-foreground">{name} no tiene deudas pendientes registradas.</p>
+          : <div className="space-y-1.5">
+              <p className="text-sm font-bold text-primary">{name}: {formatARS(result.total)} pendientes ({result.count} deuda{result.count !== 1 ? "s" : ""})</p>
+              {result.items.slice(0, 5).map((d: any) => (
+                <div key={d.id} className="flex justify-between text-xs text-muted-foreground border-t border-border/50 pt-1">
+                  <span>{d.due_date ? `Vence ${new Date(d.due_date).toLocaleDateString("es-AR")}` : "Sin vencimiento"}</span>
+                  <span className="font-semibold text-foreground">{formatARS(Number(d.remaining_ars))}</span>
+                </div>
+              ))}
+              {result.items.length > 5 && <p className="text-[10px] text-muted-foreground">+{result.items.length - 5} más</p>}
+            </div>
+      )}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
@@ -584,6 +651,7 @@ const ACTION_STARTERS = [
   { label: "Registrar gasto", icon: TrendingDown, msg: "Registrar un gasto" },
   { label: "Agregar cliente", icon: Users, msg: "Crear un cliente nuevo" },
   { label: "Ajustar stock", icon: Package, msg: "Ajustar stock de un producto" },
+  { label: "Consultar deuda", icon: DollarSign, msg: "¿Cuánto debe un cliente?" },
 ];
 
 const QUICK_ACTIONS = [
