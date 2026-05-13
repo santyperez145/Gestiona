@@ -512,7 +512,12 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket">("totalSpent");
+  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore">("totalSpent");
+  const [savedSegments, setSavedSegments] = useState<{ id: string; name: string; segment: string }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("gestiona.crm.saved_segments") || "[]"); } catch { return []; }
+  });
+  const [saveSegmentName, setSaveSegmentName] = useState("");
+  const [showSaveInput, setShowSaveInput] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: CustomerProfile }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -728,6 +733,22 @@ export default function CustomersPage() {
     customers.forEach(c => { counts[c.segment] = (counts[c.segment] || 0) + 1; });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [customers]);
+
+  const saveCurrentSegment = () => {
+    if (!saveSegmentName.trim()) return;
+    const next = [...savedSegments, { id: Date.now().toString(), name: saveSegmentName.trim(), segment: segmentFilter }];
+    setSavedSegments(next);
+    localStorage.setItem("gestiona.crm.saved_segments", JSON.stringify(next));
+    setSaveSegmentName("");
+    setShowSaveInput(false);
+    toast.success(`Segmento "${saveSegmentName.trim()}" guardado`);
+  };
+
+  const deleteSavedSegment = (id: string) => {
+    const next = savedSegments.filter(s => s.id !== id);
+    setSavedSegments(next);
+    localStorage.setItem("gestiona.crm.saved_segments", JSON.stringify(next));
+  };
 
   const exportCSV = () => {
     const rows = [
@@ -987,6 +1008,57 @@ export default function CustomersPage() {
           </div>
         );
       })()}
+
+      {/* Saved segments */}
+      {(savedSegments.length > 0 || segmentFilter !== "all") && (
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {savedSegments.map(s => (
+            <div key={s.id} className="flex items-center gap-1">
+              <button
+                onClick={() => setSegmentFilter(s.segment)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  segmentFilter === s.segment
+                    ? "border-primary/60 bg-primary/10 text-primary"
+                    : "border-border bg-muted text-muted-foreground hover:border-primary/30"
+                }`}
+              >
+                {s.name}
+              </button>
+              <button onClick={() => deleteSavedSegment(s.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar segmento guardado">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {segmentFilter !== "all" && (
+            showSaveInput ? (
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={saveSegmentName}
+                  onChange={e => setSaveSegmentName(e.target.value)}
+                  placeholder="Nombre del segmento"
+                  className="h-7 text-xs bg-muted w-40"
+                  onKeyDown={e => { if (e.key === "Enter") saveCurrentSegment(); if (e.key === "Escape") setShowSaveInput(false); }}
+                  autoFocus
+                />
+                <Button size="sm" className="h-7 text-xs px-2" onClick={saveCurrentSegment} disabled={!saveSegmentName.trim()}>
+                  <Save className="w-3 h-3 mr-1" />Guardar
+                </Button>
+                <button onClick={() => setShowSaveInput(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSaveInput(true)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all"
+                title="Guardar filtro actual como segmento"
+              >
+                + Guardar segmento
+              </button>
+            )
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
