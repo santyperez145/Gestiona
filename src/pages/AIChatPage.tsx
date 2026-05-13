@@ -11,11 +11,11 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB } from "@/lib/supabaseStore";
+import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -23,6 +23,7 @@ type AIAction =
   | { type: "create_customer"; name?: string; phone?: string; email?: string }
   | { type: "adjust_stock"; productName?: string; quantity?: string }
   | { type: "create_sale"; productName?: string; quantity?: string; customer?: string }
+  | { type: "create_purchase"; productName?: string; quantity?: string; supplier?: string; costUSD?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -89,6 +90,20 @@ function detectIntent(msg: string): AIAction | null {
       type: "create_sale",
       quantity: qtyMatch?.[1],
       customer: customerMatch?.[1]?.trim(),
+    };
+  }
+
+  // Create purchase
+  if (/\b(registra(r)?|carga(r)?|anota(r)?)\b.{0,30}\bcompra\b/.test(lower) ||
+      /\bcompr[eé]\b/.test(lower) || /\bllegó\s+(?:un[ao]?\s+)?(?:pedido|compra|stock)\b/.test(lower)) {
+    const qtyMatch = msg.match(/(\d+)\s*(?:unidades?|piezas?|u\.?)/i);
+    const supplierMatch = msg.match(/(?:de|a|proveedor)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ\s]+?)(?:\s+por|\s+a\s*\$|,|$)/i);
+    const costMatch = msg.match(/(?:usd?|u\$s?|dólares?|\$u)\s*(\d[\d.,]*)/i);
+    return {
+      type: "create_purchase",
+      quantity: qtyMatch?.[1],
+      supplier: supplierMatch?.[1]?.trim(),
+      costUSD: costMatch?.[1]?.replace(/\./g, "").replace(",", "."),
     };
   }
 
@@ -241,6 +256,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "create_sale") {
     return <CreateSaleCard userId={userId} initialCustomer={action.customer} initialQty={action.quantity} onDone={onDone} />;
+  }
+
+  if (action.type === "create_purchase") {
+    return <CreatePurchaseCard userId={userId} initialSupplier={action.supplier} initialQty={action.quantity} initialCostUSD={action.costUSD} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -451,6 +470,103 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
   );
 }
 
+function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUSD, onDone }: {
+  userId: string; initialSupplier?: string; initialQty?: string; initialCostUSD?: string; onDone: () => void;
+}) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [selectedId, setSelectedId] = useState("");
+  const [quantity, setQuantity] = useState(initialQty || "1");
+  const [supplier, setSupplier] = useState(initialSupplier || "");
+  const [costUSD, setCostUSD] = useState(initialCostUSD || "");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    Promise.all([getProductsDB(userId), getSettingsDB(userId)]).then(([p, s]) => {
+      setProducts(p.filter(x => x.active !== false));
+      setSettings(s);
+    }).catch(() => {});
+  }, [userId]);
+
+  if (done) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-primary">
+        <CheckCircle2 className="w-4 h-4" />Compra registrada
+      </div>
+    );
+  }
+
+  const rate = Number(settings?.exchange_rate) || 1695;
+  const qty = parseInt(quantity || "1", 10);
+  const unitCostUSD = parseFloat(costUSD || "0");
+  const totalUSD = unitCostUSD * qty;
+  const totalARS = totalUSD * rate;
+
+  const handleCreate = async () => {
+    if (!selectedId) return;
+    setLoading(true);
+    try {
+      const orgId = requireActiveOrgId();
+      const prod = products.find(p => p.id === selectedId)!;
+      await addPurchaseDB({
+        user_id: userId,
+        org_id: orgId,
+        product_id: prod.id,
+        product_name: prod.name,
+        quantity: qty,
+        unit_cost_usd: unitCostUSD || Number(prod.cost_usd) || 0,
+        customs_fee: Number(prod.customs_fee) || 0,
+        total_usd: totalUSD || 0,
+        total_ars: totalARS || 0,
+        exchange_rate: rate,
+        supplier: supplier.trim() || null,
+        date: new Date().toISOString().slice(0, 10),
+        is_scheduled: false,
+      });
+      toast.success("Compra registrada");
+      setDone(true);
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message || "Error registrando compra");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+      <p className="text-xs font-medium text-primary flex items-center gap-1.5">
+        <Package className="w-3.5 h-3.5" />Registrar compra
+      </p>
+      <select
+        value={selectedId}
+        onChange={e => setSelectedId(e.target.value)}
+        className="w-full h-7 text-xs rounded-md border border-border bg-background px-2"
+      >
+        <option value="">Seleccioná un producto *</option>
+        {products.map(p => (
+          <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </select>
+      <div className="flex gap-2">
+        <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad *" className="h-7 text-xs w-20" type="number" min="1" />
+        <Input value={costUSD} onChange={e => setCostUSD(e.target.value)} placeholder="Costo unit. USD" className="h-7 text-xs w-28" type="number" step="0.01" />
+        <Input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Proveedor (opc.)" className="h-7 text-xs flex-1" />
+      </div>
+      {totalUSD > 0 && (
+        <p className="text-xs text-muted-foreground">Total: <span className="font-semibold text-primary">USD {totalUSD.toFixed(2)}</span> · <span className="font-semibold">${totalARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span></p>
+      )}
+      <div className="flex gap-2">
+        <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground flex-1" disabled={!selectedId || loading} onClick={handleCreate}>
+          {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Registrar
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
@@ -463,6 +579,7 @@ const STARTER_QUESTIONS = [
 
 const ACTION_STARTERS = [
   { label: "Registrar venta", icon: ShoppingCart, msg: "Registrar una venta" },
+  { label: "Registrar compra", icon: Package, msg: "Registrar una compra" },
   { label: "Crear producto", icon: Package, msg: "Crear un producto nuevo" },
   { label: "Registrar gasto", icon: TrendingDown, msg: "Registrar un gasto" },
   { label: "Agregar cliente", icon: Users, msg: "Crear un cliente nuevo" },
