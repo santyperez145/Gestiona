@@ -255,10 +255,10 @@ export default function Dashboard() {
 
   // Check for open cash session
   useEffect(() => {
-    if (!activeOrg) return;
-    supabase.from('cash_sessions').select('id, opened_at').eq('org_id', activeOrg.id).eq('status', 'open').maybeSingle()
+    if (!orgForTasks) return;
+    supabase.from('cash_sessions').select('id, opened_at').eq('org_id', orgForTasks.id).eq('status', 'open').maybeSingle()
       .then(({ data }) => setOpenCashSession(data || null));
-  }, [activeOrg]);
+  }, [orgForTasks]);
 
   // Seed liveTodaySales from initial data load
   useEffect(() => {
