@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-12 (sesión 6)**
+Última actualización: **2026-05-12 (sesión 7)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~72% completo.**
+**MVP avanzado con SaaS billing funcional. ~76% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -63,6 +63,8 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - Ficha 360 con tabs: Resumen (KPIs + productos favoritos), Compras (timeline), Cuotas/Deudas, Contacto (notas + comunicaciones + WhatsApp). _(sesión 3)_
 - Merge de clientes duplicados inline en CRM. _(sesión 3)_
 - Auto-award loyalty points via DB trigger en cada venta. _(sesión 3)_
+- Export CSV con datos RFM completos desde CustomersPage — respeta filtro de segmento activo; incluye columnas: segmento, facturación, ganancia, frecuencia, días sin comprar, deuda, email, teléfono. _(sesión 7)_
+- Drag-and-drop nativo HTML5 en `SalesPipelinePage` — arrastrar deals entre columnas, resaltado visual de zona de drop, sin dependencias nuevas. _(sesión 7)_
 
 ### Finanzas y administración
 - Gastos, deudas de clientes, cheques, proveedores, conciliación bancaria, flujo de caja.
@@ -72,9 +74,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - Exportaciones CSV y PDF para ventas, compras, gastos, productos, deudas, equipo. _(sesión 2)_
 
 ### Reportes
-- ReportsPage con tabs: Resumen, Estado de Resultados (P&L con comparativa período anterior), Inventario Valorado, Vendedores, Impuestos, Presupuesto, Auditoría.
+- ReportsPage con tabs: Resumen, Estado de Resultados (P&L con comparativa período anterior), Inventario Valorado, **Rentabilidad por Producto** _(sesión 7)_, Vendedores, Impuestos, Presupuesto, Auditoría.
 - Comparativa período anterior en 4 KPIs con delta ▲/▼. _(sesión 3)_
 - Exportación PDF profesional del Estado de Resultados.
+- Tab "Rentabilidad Productos": ranking por ganancia/margen/unidades, top-5 bar chart, exportación CSV, filtro por búsqueda. _(sesión 7)_
 
 ### Facturación Argentina
 - Pantalla de facturas, PDF, email, configuración AFIP.
@@ -93,6 +96,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - `AIPrediction` component en Dashboard: predicción de ventas.
 - Forecast con regresión lineal OLS, comparación real vs proyectado por mes (tab en `AnalyticsPage`). _(sesión 4)_
 - `CashFlowProjector`, `HealthScore`, `ConsistencyAlerts` en Dashboard.
+- `AIProactiveWidget`: auto-corre `ai-analysis` al cargar Dashboard, cache 8h localStorage por org, sugerencias numeradas colapsables. _(sesión 7)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -133,8 +137,8 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 | Área | Brecha | Impacto |
 |------|--------|---------|
-| Dashboard | Categorías de productos hardcodeadas (perfume/vaper) en lugar de dinámicas por org | Alto |
-| Inventario | Sin métrica "días de stock" basada en velocidad de ventas real | Alto |
+| ~~Dashboard~~ | ~~Categorías de productos hardcodeadas~~ | ~~Alto~~ → ✅ Resuelto |
+| ~~Inventario~~ | ~~Sin métrica "días de stock"~~ | ~~Alto~~ → ✅ Resuelto |
 | Email | Campañas sin tracking de open rate / click rate via Resend webhooks | Alto |
 | CRM | Sin segmentos RFM guardados y reutilizables | Medio |
 | POS | Sin modo offline / tolerancia a cortes de conexión | Medio |
@@ -148,7 +152,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ## Plan de sprints 2026
 
-### Sprint 6 — Mayo 2026: Estabilidad + Quick wins _(en curso)_
+### Sprint 6 — Mayo 2026: Estabilidad + Quick wins ✅ COMPLETO
 
 **Objetivo:** infraestructura sólida + primeras mejoras de diferenciación.
 
@@ -159,25 +163,25 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 3 | JWT anon key para auth correcta | ✅ Hecho |
 | 4 | Categorías dinámicas en Dashboard (eliminar hardcoded perfumes/vapers) | ✅ Hecho |
 | 5 | Columna "Días de stock" con velocidad de ventas en ProductsPage | ✅ Hecho |
-| 6 | Widget de deudas vencidas con acción rápida en Dashboard | 🔵 En curso |
+| 6 | Widget de deudas vencidas con acción rápida en Dashboard | ✅ Hecho |
 | 7 | Tipos Supabase regenerados + 191 `as any` eliminados | ✅ Hecho |
 | 8 | Admin: export CSV, magic link, reset password, métricas growth | ✅ Hecho |
 | 9 | Mobile: tablas, dialogs, selects, NotificationBell | ✅ Hecho |
 | 10 | Products Excel import con cálculo de márgenes | ✅ Hecho |
 
-### Sprint 7 — Junio 2026: CRM real + Email con métricas
+### Sprint 7 — Mayo 2026: IA proactiva + CRM accionable _(en curso)_
 
-**Objetivo:** convertir el CRM y marketing en ventaja competitiva real.
+**Objetivo:** diferenciación real por IA y datos accionables.
 
-| # | Item | Impacto |
-|---|------|---------|
-| 1 | Segmentos RFM guardados y reutilizables en CRM | Alto |
-| 2 | Email campaigns con open rate / click rate (Resend webhooks) | Alto |
-| 3 | Score de salud del cliente (compras, deudas, engagement) | Alto |
-| 4 | Recordatorios automáticos de deuda vencida por WhatsApp/email | Alto |
-| 5 | Sugerencias IA proactivas en Dashboard ("Llamar a estos 3 clientes hoy") | Alto |
-| 6 | Notas de crédito integradas a devoluciones (AFIP) | Medio |
-| 7 | Segmentos de clientes con exportación a CSV/email | Medio |
+| # | Item | Estado |
+|---|------|--------|
+| 1 | Widget IA proactiva en Dashboard (auto-run, 8h cache) | ✅ Hecho |
+| 2 | Drag-and-drop nativo en SalesPipeline Kanban | ✅ Hecho |
+| 3 | Export CSV con RFM desde CustomersPage | ✅ Hecho |
+| 4 | Tab "Rentabilidad por Producto" en ReportsPage | ✅ Hecho |
+| 5 | Email campaigns con open rate / click rate (Resend webhooks) | 🔵 Pendiente |
+| 6 | Segmentos RFM guardados y reutilizables en CRM | 🔵 Pendiente |
+| 7 | Split de pago en POS (efectivo + tarjeta + MP) | 🔵 Pendiente |
 
 ### Sprint 8 — Julio 2026: POS avanzado + Stock inteligente
 

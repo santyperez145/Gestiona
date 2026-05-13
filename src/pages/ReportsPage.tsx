@@ -248,6 +248,7 @@ export default function ReportsPage() {
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="income">Estado de Resultados</TabsTrigger>
           <TabsTrigger value="inventory">Inventario Valorado</TabsTrigger>
+          <TabsTrigger value="products">Rentabilidad Productos</TabsTrigger>
           <TabsTrigger value="sellers">Vendedores</TabsTrigger>
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
           <TabsTrigger value="budget">Presupuesto</TabsTrigger>
@@ -423,6 +424,10 @@ export default function ReportsPage() {
 
         <TabsContent value="taxes">
           <TaxesTab sales={data.sales} settings={settings} />
+        </TabsContent>
+
+        <TabsContent value="products">
+          <ProductProfitabilityTab sales={filtered.sales} />
         </TabsContent>
 
         <TabsContent value="budget">
@@ -1302,6 +1307,160 @@ function AuditTab() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Rentabilidad por Producto Tab
+// ─────────────────────────────────────────────────────────────
+function ProductProfitabilityTab({ sales }: { sales: any[] }) {
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<"profit" | "revenue" | "units" | "margin">("profit");
+  const [sortAsc, setSortAsc] = useState(false);
+
+  const rows = useMemo(() => {
+    const map: Record<string, { name: string; revenue: number; profit: number; units: number; transactions: number }> = {};
+    sales.forEach((s: any) => {
+      const key = s.product_name || "Sin nombre";
+      if (!map[key]) map[key] = { name: key, revenue: 0, profit: 0, units: 0, transactions: 0 };
+      map[key].revenue += Number(s.total_ars);
+      map[key].profit += Number(s.profit_ars);
+      map[key].units += Number(s.quantity);
+      map[key].transactions++;
+    });
+    return Object.values(map).map(r => ({ ...r, margin: r.revenue > 0 ? (r.profit / r.revenue) * 100 : 0 }));
+  }, [sales]);
+
+  const filtered = useMemo(() => {
+    let list = search ? rows.filter(r => r.name.toLowerCase().includes(search.toLowerCase())) : rows;
+    list = [...list].sort((a, b) => {
+      const diff = (a[sortKey] as number) - (b[sortKey] as number);
+      return sortAsc ? diff : -diff;
+    });
+    return list;
+  }, [rows, search, sortKey, sortAsc]);
+
+  const totals = useMemo(() => filtered.reduce((acc, r) => ({
+    revenue: acc.revenue + r.revenue,
+    profit: acc.profit + r.profit,
+    units: acc.units + r.units,
+  }), { revenue: 0, profit: 0, units: 0 }), [filtered]);
+
+  const handleExport = () => {
+    const csvRows = [
+      ["Producto", "Facturación ARS", "Ganancia ARS", "Margen %", "Unidades", "Transacciones"],
+      ...filtered.map(r => [r.name, r.revenue.toFixed(2), r.profit.toFixed(2), r.margin.toFixed(1), r.units, r.transactions]),
+    ];
+    const csv = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rentabilidad_productos_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} productos exportados`);
+  };
+
+  const toggle = (key: typeof sortKey) => {
+    if (sortKey === key) setSortAsc(a => !a);
+    else { setSortKey(key); setSortAsc(false); }
+  };
+
+  const top5 = [...rows].sort((a, b) => b.profit - a.profit).slice(0, 5);
+
+  if (sales.length === 0) return (
+    <div className="text-center py-16 text-muted-foreground">
+      <Package className="w-10 h-10 mx-auto mb-3 opacity-40" />
+      <p className="text-sm">Sin ventas en el período seleccionado</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      {/* Top 5 bar chart */}
+      {top5.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Top 5 por Ganancia</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={top5} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <XAxis type="number" tickFormatter={v => formatARS(v)} tick={{ fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10 }} />
+              <Tooltip formatter={(v: any) => formatARS(Number(v))} />
+              <Bar dataKey="profit" radius={[0, 4, 4, 0]}>
+                {top5.map((_, i) => <Cell key={i} fill={`hsl(${45 - i * 6}, 80%, ${55 - i * 4}%)`} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+        <Input
+          placeholder="Buscar producto..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="bg-muted h-8 text-sm w-full sm:w-64"
+        />
+        <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 shrink-0">
+          <FileSpreadsheet className="w-3.5 h-3.5" />Exportar CSV
+        </Button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="text-left px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Producto</th>
+                {(["revenue", "profit", "margin", "units"] as const).map(k => (
+                  <th key={k} className="text-right px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide cursor-pointer hover:text-foreground transition-colors" onClick={() => toggle(k)}>
+                    <span className="flex items-center justify-end gap-1">
+                      {k === "revenue" ? "Facturación" : k === "profit" ? "Ganancia" : k === "margin" ? "Margen %" : "Unidades"}
+                      <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-primary" : "opacity-40"}`} />
+                    </span>
+                  </th>
+                ))}
+                <th className="text-right px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Ventas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((r, i) => (
+                <tr key={r.name} className={`hover:bg-muted/20 transition-colors ${i === 0 && sortKey === "profit" && !sortAsc ? "bg-primary/5" : ""}`}>
+                  <td className="px-4 py-2.5 font-medium text-sm max-w-[200px] truncate" title={r.name}>
+                    {i === 0 && sortKey === "profit" && !sortAsc && <span className="mr-1">🥇</span>}
+                    {r.name}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-emerald-400">{formatARS(r.profit)}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${r.margin >= 40 ? "bg-emerald-500/15 text-emerald-400" : r.margin >= 20 ? "bg-yellow-500/15 text-yellow-400" : "bg-red-500/15 text-red-400"}`}>
+                      {r.margin.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.units}</td>
+                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.transactions}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                <td className="px-4 py-2.5 text-sm">Total ({filtered.length} productos)</td>
+                <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
+                <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(totals.profit)}</td>
+                <td className="px-4 py-2.5 text-right text-xs">
+                  <span className="text-xs font-semibold">{totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0.0"}%</span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{totals.units}</td>
+                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{filtered.reduce((s, r) => s + r.transactions, 0)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
