@@ -704,6 +704,7 @@ function Row({ label, value, bold, negative, dim, highlight }: { label: string; 
 // ─────────────────────────────────────────────────────────────
 function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; period: PeriodKey }) {
   const { from, to, label } = getPeriodRange(period);
+  const [commissionRate, setCommissionRate] = useState(5);
   const inRange = (d: string) => { const x = new Date(d); return x >= from && x <= to; };
 
   const sellerMap = useMemo(() => {
@@ -755,14 +756,25 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Período: {label}</h3>
-        <Button variant="outline" size="sm" onClick={() => {
-          exportCSV(`vendedores_${label.replace(/\s/g, '_')}.csv`,
-            ['Vendedor', 'Rol', 'Ventas ARS', 'Ganancia ARS', 'Margen %', 'Unidades', 'Clientes únicos', 'Ticket prom.'],
-            rows.map(r => [r.name, r.role, r.totalARS.toFixed(0), r.profit.toFixed(0), r.margin.toFixed(1), String(r.count), String(r.customersCount), r.avgTicket.toFixed(0)])
-          );
-        }}><FileDown className="w-3.5 h-3.5 mr-1.5" />CSV</Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-1.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Comisión %</span>
+            <input
+              type="number" min="0" max="100" step="0.5"
+              value={commissionRate}
+              onChange={e => setCommissionRate(Number(e.target.value))}
+              className="w-14 text-xs text-right bg-transparent outline-none font-bold text-primary"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={() => {
+            exportCSV(`vendedores_${label.replace(/\s/g, '_')}.csv`,
+              ['Vendedor', 'Rol', 'Ventas ARS', 'Ganancia ARS', 'Margen %', 'Unidades', 'Clientes únicos', 'Ticket prom.', `Comisión (${commissionRate}%)`],
+              rows.map(r => [r.name, r.role, r.totalARS.toFixed(0), r.profit.toFixed(0), r.margin.toFixed(1), String(r.count), String(r.customersCount), r.avgTicket.toFixed(0), (r.totalARS * commissionRate / 100).toFixed(0)])
+            );
+          }}><FileDown className="w-3.5 h-3.5 mr-1.5" />CSV</Button>
+        </div>
       </div>
 
       {/* Bar chart */}
@@ -811,6 +823,12 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
                 <div><p className="text-muted-foreground">Clientes</p><p className="font-bold">{r.customersCount}</p></div>
                 <div><p className="text-muted-foreground">Ticket prom.</p><p className="font-bold">{formatARS(r.avgTicket)}</p></div>
               </div>
+              {commissionRate > 0 && (
+                <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Comisión estimada ({commissionRate}%)</span>
+                  <span className="text-xs font-bold text-primary">{formatARS(r.totalARS * commissionRate / 100)}</span>
+                </div>
+              )}
             </div>
           );
         })}

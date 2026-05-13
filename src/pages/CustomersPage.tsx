@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
   getSalesDB, getDebtsDB, getSettingsDB, formatARS,
@@ -530,6 +531,8 @@ export default function CustomersPage() {
   const [mergingCustomer, setMergingCustomer] = useState<string | null>(null); // source name
   const [mergeTarget, setMergeTarget] = useState("");
   const [merging, setMerging] = useState(false);
+  const [selectedCustomerNames, setSelectedCustomerNames] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   const loadData = async () => {
     if (!user) return;
@@ -1097,6 +1100,27 @@ export default function CustomersPage() {
       </div>
 
       {/* Customer List */}
+      {/* Bulk email action bar */}
+      {selectedCustomerNames.size > 0 && (
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-2xl px-4 py-3 animate-in slide-in-from-bottom-4">
+          <span className="text-sm font-semibold">{selectedCustomerNames.size} cliente{selectedCustomerNames.size !== 1 ? 's' : ''} seleccionado{selectedCustomerNames.size !== 1 ? 's' : ''}</span>
+          <button
+            onClick={() => {
+              const selected = filtered.filter(c => selectedCustomerNames.has(c.name));
+              const emails = selected.map(c => c.email).filter(Boolean);
+              const names = selected.map(c => c.name);
+              sessionStorage.setItem('gestiona.bulk_campaign', JSON.stringify({ emails, names, count: selected.length, segment: segmentFilter !== 'all' ? segmentFilter : 'custom' }));
+              navigate('/email-campaigns');
+            }}
+            className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            Crear campaña de email
+          </button>
+          <button onClick={() => setSelectedCustomerNames(new Set())} className="text-muted-foreground hover:text-foreground text-xs transition-colors">✕ Limpiar</button>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
@@ -1123,6 +1147,19 @@ export default function CustomersPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedCustomerNames.has(c.name)}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => {
+                          setSelectedCustomerNames(prev => {
+                            const next = new Set(prev);
+                            e.target.checked ? next.add(c.name) : next.delete(c.name);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 rounded shrink-0 accent-primary cursor-pointer"
+                      />
                       <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
                         {c.name.charAt(0).toUpperCase()}
                       </div>

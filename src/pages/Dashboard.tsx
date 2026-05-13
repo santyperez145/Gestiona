@@ -112,6 +112,7 @@ export default function Dashboard() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
   const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
+  const [lastWeekSameDaySales, setLastWeekSameDaySales] = useState<number>(0);
 
   useEffect(() => {
     if (!user) return;
@@ -274,15 +275,19 @@ export default function Dashboard() {
       .then(({ data }) => setOpenCashSession(data || null));
   }, [orgForTasks]);
 
-  // Seed liveTodaySales from initial data load
+  // Seed liveTodaySales + last-week same-day comparison from initial data load
   useEffect(() => {
     if (!rawData) return;
     const today = new Date().toISOString().slice(0, 10);
+    const lastWeekDay = new Date(); lastWeekDay.setDate(lastWeekDay.getDate() - 7);
+    const lastWeekStr = lastWeekDay.toISOString().slice(0, 10);
     const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
+    const lwSales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === lastWeekStr);
     setLiveTodaySales({
       total: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0),
       count: todaySales.length,
     });
+    setLastWeekSameDaySales(lwSales.reduce((sum: number, s: any) => sum + Number(s.total_ars), 0));
   }, [rawData]);
 
   // Dynamic categories derived from actual products — no hardcoding per business type
@@ -621,7 +626,7 @@ export default function Dashboard() {
   };
 
   const kpiCards = [
-    { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: `${liveTodaySales?.count ?? 0} ventas hoy`, icon: Zap, color: "text-success", live: true },
+    { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
     { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-success" : "text-destructive" },
     { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-warning" },

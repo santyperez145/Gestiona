@@ -28,6 +28,8 @@ export default function PurchasesPage() {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [receivingOrder, setReceivingOrder] = useState<{ purchase: any; qty: string } | null>(null);
+  const [receivingLoading, setReceivingLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
@@ -94,20 +96,27 @@ export default function PurchasesPage() {
     toast.success(`${filtered.length} compras exportadas`);
   };
 
-  const handleReceiveOrder = async (p: any) => {
+  const handleReceiveOrder = async () => {
+    if (!receivingOrder) return;
+    const { purchase: p, qty } = receivingOrder;
+    const received = Number(qty);
+    if (!received || received <= 0) { toast.error("Ingresá una cantidad válida"); return; }
+    setReceivingLoading(true);
     try {
-      // Mark as received (not scheduled anymore)
-      await updatePurchaseDB(p.id, { is_scheduled: false, date: new Date().toISOString().slice(0, 10) });
-      // Increment stock
+      await updatePurchaseDB(p.id, { is_scheduled: false, quantity: received, date: new Date().toISOString().slice(0, 10) });
       if (p.product_id) {
         const { data: prod } = await supabase.from('products').select('stock').eq('id', p.product_id).maybeSingle();
-        if (prod) await supabase.from('products').update({ stock: (prod.stock || 0) + Number(p.quantity) }).eq('id', p.product_id);
+        if (prod) await supabase.from('products').update({ stock: (prod.stock || 0) + received }).eq('id', p.product_id);
       }
-      if (user) await logAudit(user.id, 'update', 'purchase', p.id, { action: 'received', product: p.product_name, quantity: p.quantity });
-      toast.success(`Pedido de ${p.product_name} marcado como recibido — stock actualizado`);
+      if (user) await logAudit(user.id, 'update', 'purchase', p.id, { action: 'received', product: p.product_name, qty_received: received, qty_ordered: p.quantity });
+      const partial = received < Number(p.quantity);
+      toast.success(`${partial ? `Recepción parcial (${received}/${p.quantity} uds)` : 'Pedido recibido completo'} — stock actualizado`);
+      setReceivingOrder(null);
       reload();
     } catch (err: any) {
       toast.error("Error: " + err.message);
+    } finally {
+      setReceivingLoading(false);
     }
   };
 
@@ -287,13 +296,9 @@ export default function PurchasesPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {canEdit && p.is_scheduled && (
-                            <ConfirmDialog
-                              trigger={<Button variant="ghost" size="sm" className="h-7 px-2 text-success hover:text-success hover:bg-success/10" title="Marcar pedido como recibido y actualizar stock"><CalendarClock className="w-3.5 h-3.5 mr-1" />Recibido</Button>}
-                              title="¿Marcar como recibido?"
-                              description={`Se registrará la recepción de ${p.quantity} uds. de "${p.product_name}" y se sumará al stock.`}
-                              confirmText="Sí, recibido"
-                              onConfirm={() => handleReceiveOrder(p)}
-                            />
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-success hover:text-success hover:bg-success/10" title="Registrar recepción (puede ser parcial)" onClick={() => setReceivingOrder({ purchase: p, qty: String(p.quantity) })}>
+                              <CalendarClock className="w-3.5 h-3.5 mr-1" />Recibido
+                            </Button>
                           )}
                           {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>}
                           {canDelete && (
@@ -352,6 +357,44 @@ export default function PurchasesPage() {
           )}
         </>
       )}
+
+      {/* Partial receipt dialog */}
+      <Dialog open={!!receivingOrder} onOpenChange={v => { if (!v) setReceivingOrder(null); }}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display">Registrar recepción</DialogTitle>
+          </DialogHeader>
+          {receivingOrder && (
+            <div className="space-y-4">
+              <div className="bg-muted/40 rounded-lg p-3 text-sm">
+                <p className="font-medium">{receivingOrder.purchase.product_name}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">Pedido: {receivingOrder.purchase.quantity} uds · {formatUSD(Number(receivingOrder.purchase.total_usd))}</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Cantidad recibida</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={receivingOrder.purchase.quantity}
+                  value={receivingOrder.qty}
+                  onChange={e => setReceivingOrder(r => r ? { ...r, qty: e.target.value } : null)}
+                  className="bg-background"
+                  autoFocus
+                />
+                {Number(receivingOrder.qty) < Number(receivingOrder.purchase.quantity) && Number(receivingOrder.qty) > 0 && (
+                  <p className="text-xs text-warning">Recepción parcial — se actualizará el stock con {receivingOrder.qty} uds.</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setReceivingOrder(null)}>Cancelar</Button>
+                <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={handleReceiveOrder} disabled={receivingLoading}>
+                  {receivingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar recepción"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
