@@ -108,6 +108,32 @@ export default function SalesPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  // Period comparison: prior equivalent period
+  const prevPeriod = useMemo(() => {
+    if (!dateFrom) return null;
+    const to = dateTo ? new Date(dateTo) : new Date();
+    to.setHours(23, 59, 59, 999);
+    const spanMs = to.getTime() - dateFrom.getTime();
+    const prevTo = new Date(dateFrom.getTime() - 1);
+    const prevFrom = new Date(dateFrom.getTime() - spanMs - 1);
+    const prevSales = sales.filter(s => {
+      if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
+      const d = new Date(s.date);
+      return d >= prevFrom && d <= prevTo;
+    });
+    return {
+      totalSales: prevSales.reduce((a, v) => a + Number(v.total_ars), 0),
+      totalProfit: prevSales.reduce((a, v) => a + Number(v.profit_ars), 0),
+      count: prevSales.length,
+    };
+  }, [sales, dateFrom, dateTo, filterCat, productCatMap]);
+
+  const delta = (curr: number, prev: number | undefined) => {
+    if (!prev || prev === 0) return undefined;
+    const pct = ((curr - prev) / prev) * 100;
+    return pct;
+  };
+
   const handleDelete = async (sale: any) => {
     await deleteSaleDB(sale.id);
     if (user) await logAudit(user.id, 'delete', 'sale', sale.id, { product: sale.product_name, total: sale.total_ars });
@@ -150,10 +176,10 @@ export default function SalesPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} />
-        <KPICard label="Ganancia neta" value={formatARS(totalProfit)} icon={TrendingUp} color="success" sub={formatUSD(totalProfitUSD)} />
+        <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} trend={prevPeriod && delta(totalSales, prevPeriod.totalSales) !== undefined ? { value: delta(totalSales, prevPeriod.totalSales)!, label: "vs período ant." } : undefined} />
+        <KPICard label="Ganancia neta" value={formatARS(totalProfit)} icon={TrendingUp} color="success" sub={formatUSD(totalProfitUSD)} trend={prevPeriod && delta(totalProfit, prevPeriod.totalProfit) !== undefined ? { value: delta(totalProfit, prevPeriod.totalProfit)!, label: "vs período ant." } : undefined} />
         <KPICard label="Margen promedio" value={`${marginPct.toFixed(1)}%`} icon={Percent} color={marginPct >= 30 ? "success" : marginPct >= 15 ? "warning" : "destructive"} />
-        <KPICard label="Cobradas / Deben" value={`${paidCount} / ${debtCount}`} icon={Ticket} color={debtCount > 0 ? "warning" : "success"} sub={debtCount > 0 ? `${formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente` : "todo cobrado"} />
+        <KPICard label="Cobradas / Deben" value={`${paidCount} / ${debtCount}`} icon={Ticket} color={debtCount > 0 ? "warning" : "success"} sub={debtCount > 0 ? `${formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente` : "todo cobrado"} trend={prevPeriod && delta(filtered.length, prevPeriod.count) !== undefined ? { value: delta(filtered.length, prevPeriod.count)!, label: "ventas vs ant." } : undefined} />
       </div>
 
       {/* Filters */}
