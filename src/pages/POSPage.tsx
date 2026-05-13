@@ -617,6 +617,7 @@ export default function POSPage() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -706,10 +707,20 @@ export default function POSPage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [prods, sett] = await Promise.all([getProductsDB(user.id), getSettingsDB(user.id)]);
+      const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+      const [prods, sett, { data: recentSales }] = await Promise.all([
+        getProductsDB(user.id),
+        getSettingsDB(user.id),
+        supabase.from('sales').select('product_id, quantity').gte('date', since30.toISOString().slice(0, 10)),
+      ]);
       setProducts(prods);
       setSettings(sett);
       setLoadingProds(false);
+      // Compute top-5 products by units sold in last 30 days
+      const vel: Record<string, number> = {};
+      (recentSales || []).forEach((s: any) => { if (s.product_id) vel[s.product_id] = (vel[s.product_id] || 0) + Number(s.quantity || 1); });
+      const top5 = Object.entries(vel).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => id);
+      setTopProductIds(new Set(top5));
     })();
   }, [user]);
 
@@ -1475,6 +1486,12 @@ export default function POSPage() {
                         </div>
                       </div>
 
+                      {/* Top seller badge */}
+                      {topProductIds.has(prod.id) && !inCart && (
+                        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-orange-500/90 text-white text-[9px] font-bold shadow">
+                          🔥 Top
+                        </div>
+                      )}
                       {/* In-cart badge */}
                       {inCart && (
                         <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shadow">
