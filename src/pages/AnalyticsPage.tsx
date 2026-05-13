@@ -261,13 +261,33 @@ export default function AnalyticsPage() {
       return { ...p, revPct, cumPct, cls };
     });
 
+    // Category monthly trend for current year
+    const currentYear = new Date().getFullYear() - Number(year);
+    const catSet = new Set<string>();
+    const catMonthly: Record<string, number[]> = {}; // cat -> [jan..dec]
+    sales.forEach((s: any) => {
+      const d = new Date(s.date);
+      if (d.getFullYear() !== currentYear) return;
+      const prod = products.find((p: any) => p.id === s.product_id || p.name === s.product_name);
+      const cat = prod?.category || "otros";
+      catSet.add(cat);
+      if (!catMonthly[cat]) catMonthly[cat] = new Array(12).fill(0);
+      catMonthly[cat][d.getMonth()] += Number(s.total_ars || 0);
+    });
+    const catTrend = MONTHS_ES.map((month, mi) => {
+      const row: Record<string, number | string> = { month };
+      catSet.forEach(cat => { row[cat] = Math.round(catMonthly[cat]?.[mi] || 0); });
+      return row;
+    });
+    const catKeys = Array.from(catSet).sort();
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
-      abcProducts,
+      abcProducts, catTrend, catKeys,
     };
   }, [rawData, year]);
 
@@ -323,6 +343,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="horarios" className="text-xs">Horarios</TabsTrigger>
           <TabsTrigger value="funnel" className="text-xs">Conversión</TabsTrigger>
           <TabsTrigger value="abc" className="text-xs">ABC</TabsTrigger>
+          <TabsTrigger value="cattrend" className="text-xs">Por Categoría</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -851,6 +872,67 @@ export default function AnalyticsPage() {
               </div>
             ))}
           </div>
+        </TabsContent>
+
+        {/* CATEGORY TREND TAB */}
+        <TabsContent value="cattrend" className="mt-4 space-y-4">
+          {derived.catKeys.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-12">Sin ventas en el período seleccionado.</p>
+          ) : (
+            <>
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="text-sm font-semibold mb-4">Ingresos por categoría — mes a mes</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={derived.catTrend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(220,10%,55%)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "hsl(220,10%,55%)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+                    <Tooltip formatter={(v: number, name: string) => [formatARS(v), name]} contentStyle={{ background: "hsl(220,18%,12%)", border: "1px solid hsl(220,15%,18%)", borderRadius: 8, fontSize: 12 }} />
+                    <Legend iconSize={10} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                    {derived.catKeys.map((cat: string, i: number) => (
+                      <Bar key={cat} dataKey={cat} stackId="a" fill={PALETTE[i % PALETTE.length]} radius={i === derived.catKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Summary table */}
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoría</th>
+                      {MONTHS_ES.map(m => (
+                        <th key={m} className="text-right px-2 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">{m}</th>
+                      ))}
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total año</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {derived.catKeys.map((cat: string, i: number) => {
+                      const yearTotal = derived.catTrend.reduce((s: number, row: any) => s + (row[cat] || 0), 0);
+                      return (
+                        <tr key={cat} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: PALETTE[i % PALETTE.length] }} />
+                              <span className="font-medium text-sm capitalize">{cat.replace(/_/g, ' ')}</span>
+                            </div>
+                          </td>
+                          {derived.catTrend.map((row: any) => (
+                            <td key={row.month} className="px-2 py-2.5 text-right text-xs text-muted-foreground hidden lg:table-cell">
+                              {row[cat] > 0 ? `$${(row[cat] / 1000).toFixed(0)}k` : '—'}
+                            </td>
+                          ))}
+                          <td className="px-4 py-2.5 text-right font-bold text-sm">{formatARS(yearTotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
