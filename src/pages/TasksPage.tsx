@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import {
   CheckSquare, Plus, Check, Clock, AlertTriangle, X,
-  Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search,
+  Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search, FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -61,6 +61,8 @@ export default function TasksPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("active");
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [search, setSearch] = useState("");
 
   const load = async () => {
@@ -129,13 +131,21 @@ export default function TasksPage() {
       ? tasks.filter(t => t.status === "done")
       : tasks;
 
+    const byPriority = filterPriority !== "all"
+      ? activeTasks.filter(t => t.priority === filterPriority)
+      : activeTasks;
+
+    const byCategory = filterCategory !== "all"
+      ? byPriority.filter(t => t.category === filterCategory)
+      : byPriority;
+
     const searched = search.trim()
-      ? activeTasks.filter(t =>
+      ? byCategory.filter(t =>
           t.title.toLowerCase().includes(search.toLowerCase()) ||
           (t.description?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
           (t.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
         )
-      : activeTasks;
+      : byCategory;
 
     return [...searched].sort((a, b) => {
       const pa = PRIORITY_CONFIG[a.priority]?.order ?? 99;
@@ -205,16 +215,53 @@ export default function TasksPage() {
             </button>
           ))}
         </div>
-        <div className="relative ml-auto">
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="Prioridad" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="Categoría" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar tarea…"
-            className="pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40 w-48"
+            className="pl-8 pr-3 h-8 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40 w-44"
           />
         </div>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Título', 'Descripción', 'Prioridad', 'Categoría', 'Estado', 'Fecha límite', 'Completada'];
+          const rows = filtered.map(t => [
+            t.title,
+            t.description || '',
+            PRIORITY_CONFIG[t.priority]?.label || t.priority,
+            t.category || '',
+            STATUS_CONFIG[t.status]?.label || t.status,
+            t.due_date || '',
+            t.completed_at ? new Date(t.completed_at).toLocaleDateString('es-AR') : '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = `tareas-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          toast.success('Tareas exportadas');
+        }}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {loading ? (

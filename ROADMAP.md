@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-12 (sesión 9)**
+Última actualización: **2026-05-13 (sesión 10)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~85% completo.**
+**MVP avanzado con SaaS billing funcional. ~87% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -104,6 +104,18 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **Predicción de demanda por producto** (tab "Demanda" en AnalyticsPage): velocidad 60d, proyección 30d, días de stock, gap, urgencia semáforo. _(sesión 9)_
 - **Dashboard: objetivo mensual de ventas** — progress bar con % alcanzado, días restantes, persistido en localStorage por mes. _(sesión 9)_
 - **POS: badge 🔥 Top seller** — top-5 productos por unidades vendidas en 30d destacados en la grilla. _(sesión 9)_
+- **SalesPage date presets** — chips Hoy/Ayer/Semana/Mes/Mes anterior que setean dateFrom/dateTo automáticamente. _(sesión 10)_
+- **ReportsPage tab "Por Categoría"** — revenue, profit, margen, unidades por categoría; top-8 bar chart horizontal; CSV export; sort por columna. _(sesión 10)_
+- **ExpensesPage presupuesto por categoría** — edición inline con pencil/check/X, barra de progreso (naranja ≥80%, roja >100%), persistido en localStorage. _(sesión 10)_
+- **Aging AP/AR** — 4 buckets por antigüedad (0-30/31-60/61-90/>90d) en ProveedoresPage y DebtsPage con barras de color y totales. _(sesión 10)_
+- **ProveedoresPage contactos clickeables** — teléfono → WhatsApp (wa.me/), email → mailto, colores verdes/azules. _(sesión 10)_
+- **LoyaltyPage tiers** — Bronce/Plata/Oro/Platino con badge, barra de progreso al próximo tier, `getTier`/`getNextTier` helpers. _(sesión 10)_
+- **EmailCampaignsPage plantillas** — 5 plantillas pre-construidas (bienvenida, reactivación, VIP, promo fin de semana, cumpleaños) con un click. _(sesión 10)_
+- **Dashboard quick actions + P&L chart** — fila de 6 acciones rápidas; gráfico de barras con ventas/ganancia/ganancia neta por mes. _(sesión 10)_
+- **PurchasesPage búsqueda + filtro proveedor** — search full-text en producto+proveedor, selector de proveedor con "Todos". _(sesión 10)_
+- **ChequesPage + CuotasPage CSV export** — exportación completa de cheques y cuotas con todos los campos relevantes. _(sesión 10)_
+- **SalesPipelinePage pipeline ponderado** — KPI "Pipeline ponderado" = Σ(valor × probabilidad) por etapa, probabilidades por stage header. _(sesión 10)_
+- **AIChatPage chips de navegación** — 6 chips de acceso rápido (ventas, POS, clientes, inventario, gastos, reportes) en estado vacío. _(sesión 10)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -222,7 +234,26 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 5 | POS: badge 🔥 Top seller en top-5 productos | ✅ Hecho |
 | 6 | Tab "Demanda" en Analytics: proyección 30d por producto con semáforo | ✅ Hecho |
 
-### Sprint 10 — Agosto 2026: IA avanzada + Analytics enterprise
+### Sprint 10 — Mayo 2026: UX avanzada + Analytics operacional ✅ COMPLETO
+
+**Objetivo:** datos accionables en cada módulo, exportaciones, filtros inteligentes y diferenciación visual.
+
+| # | Item | Estado |
+|---|------|--------|
+| 1 | ExpensesPage: presupuesto por categoría con barra de progreso (localStorage) | ✅ Hecho |
+| 2 | SalesPage: filtros preset Hoy/Ayer/Semana/Mes/Mes anterior con chips | ✅ Hecho |
+| 3 | ReportsPage: tab "Por Categoría" — revenue, profit, margen, unidades por categoría + bar chart + CSV | ✅ Hecho |
+| 4 | ProveedoresPage: aging AP en 4 buckets (0-30/31-60/61-90/>90d) + contactos clickeables (WhatsApp/email) | ✅ Hecho |
+| 5 | DebtsPage: aging AR en 4 buckets con barras de color y totales | ✅ Hecho |
+| 6 | AIChatPage: chips de navegación rápida (6 acciones) en estado vacío | ✅ Hecho |
+| 7 | LoyaltyPage: sistema de tiers Bronce/Plata/Oro/Platino con barra de progreso | ✅ Hecho |
+| 8 | EmailCampaignsPage: 5 plantillas de email pre-construidas | ✅ Hecho |
+| 9 | Dashboard: fila de acciones rápidas + gráfico P&L (ganancia - gastos por mes) | ✅ Hecho |
+| 10 | PurchasesPage: búsqueda full-text + filtro por proveedor | ✅ Hecho |
+| 11 | ChequesPage + CuotasPage: exportación CSV con todos los datos | ✅ Hecho |
+| 12 | SalesPipelinePage: pipeline ponderado por probabilidad de cierre por etapa | ✅ Hecho |
+
+### Sprint 11 — Agosto 2026: IA avanzada + Analytics enterprise
 
 **Objetivo:** diferenciación por inteligencia artificial aplicada.
 
@@ -263,36 +294,36 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 9)
+## Estado por módulo (actualizado sesión 10)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
 | Infraestructura | 85% | E2E tests, staging env |
 | Auth + orgs | 80% | Permisos granulares |
 | Inventario | 82% | Lotes en UI, offline POS |
-| Ventas + POS | 80% | Modo offline, split 3 métodos |
-| Clientes + CRM | 85% | Segmentos persistidos en DB |
-| Finanzas | 78% | Aging proveedores, auditoría |
+| Ventas + POS | 83% | Modo offline, filtros avanzados |
+| Clientes + CRM | 86% | Segmentos persistidos en DB |
+| Finanzas | 83% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
-| Marketing + Email | 72% | Templates personalizados |
-| IA + Analytics | 82% | Chat IA con acciones |
+| Marketing + Email | 78% | Open rate / click tracking |
+| IA + Analytics | 83% | Chat IA con acciones |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
 | Mobile + UX | 72% | Capacitor, offline POS |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **85%** | |
+| **TOTAL** | **87%** | |
 
 ---
 
-## Prioridades inmediatas (sesión 9)
+## Prioridades inmediatas (sesión 11)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
+| 1 | Chat IA con acciones reales (crear producto, registrar venta) | Diferenciación vs competidores |
 | 2 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
 | 3 | Permisos granulares por rol (caja, ventas, inventario) | Empresas con múltiples empleados |
 | 4 | Segmentos RFM persistidos en DB (multi-dispositivo) | CRM accionable colaborativo |
-| 5 | Chat IA con acciones reales (crear producto, registrar venta) | Diferenciación vs competidores |
+| 5 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
 | 6 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
 
 ---

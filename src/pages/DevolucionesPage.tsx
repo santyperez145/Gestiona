@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Search, RotateCcw, Package, Calendar, DollarSign,
-  ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Loader2, FileText,
+  ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Loader2, FileText, FileSpreadsheet,
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -63,6 +63,7 @@ export default function DevolucionesPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterMethod, setFilterMethod] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Form
@@ -259,10 +260,12 @@ export default function DevolucionesPage() {
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); w.close(); }
   };
 
-  const filtered = returns.filter(r =>
-    r.product_name.toLowerCase().includes(search.toLowerCase()) ||
-    (r.reason || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = returns.filter(r => {
+    const matchesSearch = r.product_name.toLowerCase().includes(search.toLowerCase()) ||
+      (r.reason || "").toLowerCase().includes(search.toLowerCase());
+    const matchesMethod = filterMethod === "all" || r.refund_method === filterMethod;
+    return matchesSearch && matchesMethod;
+  });
 
   const totalReturned = filtered.reduce((s, r) => s + r.amount_ars, 0);
   const totalUnits = filtered.reduce((s, r) => s + r.quantity, 0);
@@ -292,15 +295,45 @@ export default function DevolucionesPage() {
         <KPICard label="Monto reintegrado" value={formatARS(totalReturned)} icon={DollarSign} color="destructive" />
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por producto o motivo…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 h-9"
-        />
+      {/* Search + filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por producto o motivo…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Select value={filterMethod} onValueChange={setFilterMethod}>
+          <SelectTrigger className="h-9 w-44 text-sm"><SelectValue placeholder="Método de reintegro" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los métodos</SelectItem>
+            {REFUND_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Fecha', 'Producto', 'Cantidad', 'Monto ARS', 'Motivo', 'Método de reintegro', 'Notas'];
+          const rows = filtered.map(r => [
+            new Date(r.created_at).toLocaleDateString('es-AR'),
+            r.product_name,
+            r.quantity,
+            Number(r.amount_ars).toFixed(2),
+            r.reason || '',
+            REFUND_METHODS.find(m => m.value === r.refund_method)?.label || r.refund_method,
+            r.notes || '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = `devoluciones-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          toast.success('Devoluciones exportadas');
+        }}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {/* List */}

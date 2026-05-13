@@ -472,6 +472,29 @@ export default function PresupuestosPage() {
             ))}
           </SelectContent>
         </Select>
+        <Button variant="outline" size="sm" className="h-9" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Número', 'Cliente', 'Email', 'Teléfono', 'Total ARS', 'Estado', 'Válido hasta', 'Fecha creación', 'Notas'];
+          const rows = filtered.map(q => [
+            q.quote_number,
+            q.customer_name,
+            q.customer_email || '',
+            q.customer_phone || '',
+            Number(q.total).toFixed(2),
+            STATUS_CONFIG[q.status]?.label || q.status,
+            q.valid_until ? new Date(q.valid_until).toLocaleDateString('es-AR') : '',
+            new Date(q.created_at).toLocaleDateString('es-AR'),
+            q.notes || '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = `presupuestos-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          toast.success('Presupuestos exportados');
+        }}>
+          <Download className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {loading ? (
@@ -483,13 +506,32 @@ export default function PresupuestosPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(q => (
-            <div key={q.id} className="bg-card border border-border rounded-xl overflow-hidden shadow-card">
+          {filtered.map(q => {
+            const today = new Date().toISOString().slice(0, 10);
+            const daysUntilExpiry = q.valid_until
+              ? Math.ceil((new Date(q.valid_until).getTime() - new Date(today).getTime()) / 86400000)
+              : null;
+            const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry >= 0 && daysUntilExpiry <= 3
+              && q.status !== "accepted" && q.status !== "rejected";
+            const isExpired = daysUntilExpiry !== null && daysUntilExpiry < 0
+              && q.status !== "accepted" && q.status !== "rejected";
+            return (
+            <div key={q.id} className={`bg-card border rounded-xl overflow-hidden shadow-card ${isExpiringSoon ? "border-warning/40" : isExpired ? "border-destructive/30" : "border-border"}`}>
               <div className="px-4 py-3.5 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground font-mono">{q.quote_number}</span>
                     <StatusBadge status={q.status} />
+                    {isExpiringSoon && (
+                      <span className="text-[10px] font-semibold text-warning bg-warning/10 rounded-full px-2 py-0.5">
+                        Vence en {daysUntilExpiry === 0 ? "hoy" : `${daysUntilExpiry}d`}
+                      </span>
+                    )}
+                    {isExpired && (
+                      <span className="text-[10px] font-semibold text-destructive bg-destructive/10 rounded-full px-2 py-0.5">
+                        Vencido hace {Math.abs(daysUntilExpiry!)}d
+                      </span>
+                    )}
                   </div>
                   <p className="font-semibold text-sm mt-0.5">{q.customer_name}</p>
                   <div className="flex items-center gap-3 mt-1">
@@ -633,7 +675,8 @@ export default function PresupuestosPage() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

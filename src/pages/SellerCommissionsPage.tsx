@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Users, DollarSign, Check, TrendingUp, Percent, Plus, Settings,
+  Users, DollarSign, Check, TrendingUp, Percent, Plus, Settings, FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -221,7 +221,7 @@ export default function SellerCommissionsPage() {
       </div>
 
       {/* Period selector + liquidations */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
         <span className="text-sm font-medium">Liquidaciones de</span>
         <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
           <SelectTrigger className="h-8 w-44 text-sm"><SelectValue /></SelectTrigger>
@@ -233,6 +233,29 @@ export default function SellerCommissionsPage() {
             ))}
           </SelectContent>
         </Select>
+        <span className="text-xs text-muted-foreground">{periodPayouts.length} liquidaciones</span>
+        <Button variant="outline" size="sm" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Vendedor', 'Período inicio', 'Período fin', 'Ventas ARS', 'Comisión %', 'Comisión ARS', 'Estado', 'Pagada el'];
+          const rows = periodPayouts.map(p => [
+            p.seller_name,
+            p.period_start,
+            p.period_end,
+            Number(p.sales_total_ars).toFixed(2),
+            p.commission_percent,
+            Number(p.commission_ars).toFixed(2),
+            p.status === 'paid' ? 'Pagada' : 'Pendiente',
+            p.paid_at ? new Date(p.paid_at).toLocaleDateString('es-AR') : '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = `comisiones-${selectedPeriod}.csv`;
+          a.click();
+          toast.success('Liquidaciones exportadas');
+        }}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {periodPayouts.length === 0 ? (
