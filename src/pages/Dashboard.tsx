@@ -100,6 +100,12 @@ export default function Dashboard() {
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
   const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
+  const [monthlyTarget, setMonthlyTarget] = useState<number>(() => {
+    const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
+    return Number(localStorage.getItem(key) || 0);
+  });
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetInput, setTargetInput] = useState("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -724,6 +730,87 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Monthly Revenue Target */}
+      {(() => {
+        const target = monthlyTarget;
+        const current = stats.monthSalesARS;
+        const pct = target > 0 ? Math.min(100, (current / target) * 100) : 0;
+        const remaining = target > 0 ? Math.max(0, target - current) : 0;
+        const monthName = new Date().toLocaleString('es-AR', { month: 'long' });
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Target className="w-4 h-4 text-primary" />Objetivo del mes — {monthName}
+              </h3>
+              <button
+                onClick={() => { setEditingTarget(true); setTargetInput(target > 0 ? String(target) : ""); }}
+                className="text-[10px] text-primary hover:underline"
+              >
+                {target > 0 ? "Cambiar meta" : "Fijar meta →"}
+              </button>
+            </div>
+            {editingTarget ? (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="number"
+                  value={targetInput}
+                  onChange={e => setTargetInput(e.target.value)}
+                  placeholder="Ej: 500000"
+                  className="flex-1 h-8 px-3 rounded-lg border border-border bg-muted text-sm"
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      const v = Number(targetInput);
+                      if (v > 0) {
+                        const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
+                        localStorage.setItem(key, String(v));
+                        setMonthlyTarget(v);
+                      }
+                      setEditingTarget(false);
+                    }
+                    if (e.key === "Escape") setEditingTarget(false);
+                  }}
+                />
+                <button
+                  className="px-3 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
+                  onClick={() => {
+                    const v = Number(targetInput);
+                    if (v > 0) {
+                      const key = `gestiona.dashboard.monthly_target.${new Date().getFullYear()}.${new Date().getMonth()}`;
+                      localStorage.setItem(key, String(v));
+                      setMonthlyTarget(v);
+                    }
+                    setEditingTarget(false);
+                  }}
+                >Guardar</button>
+                <button onClick={() => setEditingTarget(false)} className="text-muted-foreground text-xs">✕</button>
+              </div>
+            ) : target > 0 ? (
+              <>
+                <div className="flex items-end justify-between mb-1.5">
+                  <span className="text-2xl font-black font-display text-primary">{pct.toFixed(0)}%</span>
+                  <span className="text-xs text-muted-foreground">{formatARS(current)} / {formatARS(target)}</span>
+                </div>
+                <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-yellow-400" : pct >= 75 ? "bg-green-400" : pct >= 50 ? "bg-blue-400" : "bg-primary"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1.5">
+                  {pct >= 100
+                    ? "🎉 ¡Meta alcanzada!"
+                    : `Faltan ${formatARS(remaining)} para la meta · ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate()} días restantes del mes`}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo mensual de ventas para ver el progreso aquí.</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
