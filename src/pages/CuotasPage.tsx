@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CreditCard, Plus, Check, CalendarDays, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
+import { CreditCard, Plus, Check, CalendarDays, TrendingUp, AlertTriangle, DollarSign, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
@@ -192,6 +192,23 @@ export default function CuotasPage() {
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">{filtered.length} cuotas</span>
+        <Button variant="outline" size="sm" onClick={() => {
+          const bom = '﻿';
+          const headers = ['Cliente', 'Producto', 'Cuota #', 'Monto ARS', 'Vencimiento', 'Estado', 'Pagada el'];
+          const rows = filtered.map(i => [
+            i.sale?.customer_name || '', i.sale?.product_name || '',
+            i.installment_number, Number(i.amount_ars).toFixed(2),
+            i.due_date, i.paid ? 'Pagada' : 'Pendiente',
+            i.paid_at ? new Date(i.paid_at).toLocaleDateString('es-AR') : '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+          const csv = bom + [headers.join(','), ...rows].join('\n');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+          a.download = `cuotas-${filterMonth || 'all'}.csv`; a.click();
+          toast.success('Cuotas exportadas');
+        }}>
+          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+        </Button>
       </div>
 
       {loading ? (
