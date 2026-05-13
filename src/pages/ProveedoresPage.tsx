@@ -269,8 +269,18 @@ export default function ProveedoresPage() {
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
                     {s.contact && <span className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" />{s.contact}</span>}
-                    {s.phone && <span className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{s.phone}</span>}
-                    {s.email && <span className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{s.email}</span>}
+                    {s.phone && (
+                      <a href={`https://wa.me/${s.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                        className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 transition-colors">
+                        <Phone className="w-3 h-3" />{s.phone}
+                      </a>
+                    )}
+                    {s.email && (
+                      <a href={`mailto:${s.email}`}
+                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                        <Mail className="w-3 h-3" />{s.email}
+                      </a>
+                    )}
                     {s.address && <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{s.address}</span>}
                   </div>
                   {s.notes && <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">{s.notes}</p>}
