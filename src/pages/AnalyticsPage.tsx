@@ -227,6 +227,27 @@ export default function AnalyticsPage() {
     const avgTicket = totalUnits > 0 ? totalRevenue / totalUnits : 0;
     const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
+    // Customer retention metrics
+    const now30 = new Date(); now30.setDate(now30.getDate() - 30);
+    const now60 = new Date(); now60.setDate(now60.getDate() - 60);
+    const customersLast30 = new Set(
+      sales.filter((s: any) => s.customer_name && new Date(s.date) >= now30).map((s: any) => s.customer_name)
+    );
+    const customersPrev30 = new Set(
+      sales.filter((s: any) => s.customer_name && new Date(s.date) >= now60 && new Date(s.date) < now30).map((s: any) => s.customer_name)
+    );
+    const returningCustomers = [...customersLast30].filter(c => {
+      const firstSale = sales.filter((s: any) => s.customer_name === c).sort((a: any, b: any) => a.date.localeCompare(b.date))[0];
+      return firstSale && new Date(firstSale.date) < now30;
+    }).length;
+    const retentionRate = customersPrev30.size > 0
+      ? Math.round(([...customersPrev30].filter(c => customersLast30.has(c)).length / customersPrev30.size) * 100)
+      : 0;
+    const newCustomersLast30 = [...customersLast30].filter(c => {
+      const firstSale = sales.filter((s: any) => s.customer_name === c).sort((a: any, b: any) => a.date.localeCompare(b.date))[0];
+      return firstSale && new Date(firstSale.date) >= now30;
+    }).length;
+
     // Funnel: quotes → won → sales
     const yearStart = new Date(new Date().getFullYear() - Number(year), 0, 1);
     const yearQuotes = quotes.filter((q: any) => new Date(q.created_at) >= yearStart);
@@ -310,6 +331,7 @@ export default function AnalyticsPage() {
       heatmap, hourlyBars, dailyBars,
       totalRevenue, totalProfit, totalUnits, revYoY, profYoY,
       uniqueCustomers, avgTicket, avgMargin,
+      returningCustomers, retentionRate, newCustomersLast30, customersLast30Size: customersLast30.size,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
       abcProducts, catTrend, catKeys, weeklyComparison, weekTotalThis, weekTotalPrev,
     };
@@ -511,7 +533,26 @@ export default function AnalyticsPage() {
         </TabsContent>
 
         {/* CUSTOMERS TAB */}
-        <TabsContent value="customers" className="mt-4">
+        <TabsContent value="customers" className="mt-4 space-y-4">
+          {/* Retention KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-primary">{derived.customersLast30Size}</div>
+              <div className="text-xs text-muted-foreground mt-1">Activos últimos 30d</div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className={`text-2xl font-bold ${derived.retentionRate >= 50 ? 'text-success' : derived.retentionRate >= 25 ? 'text-warning' : 'text-destructive'}`}>{derived.retentionRate}%</div>
+              <div className="text-xs text-muted-foreground mt-1">Retención 30d</div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">{derived.returningCustomers}</div>
+              <div className="text-xs text-muted-foreground mt-1">Clientes que regresaron</div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-success">{derived.newCustomersLast30}</div>
+              <div className="text-xs text-muted-foreground mt-1">Nuevos últimos 30d</div>
+            </div>
+          </div>
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className="px-5 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />

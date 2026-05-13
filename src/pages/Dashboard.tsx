@@ -110,6 +110,7 @@ export default function Dashboard() {
   const [targetInput, setTargetInput] = useState("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
+  const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -251,6 +252,13 @@ export default function Dashboard() {
     channelRef.current = channel;
     return () => { supabase.removeChannel(channel); };
   }, [user]);
+
+  // Check for open cash session
+  useEffect(() => {
+    if (!activeOrg) return;
+    supabase.from('cash_sessions').select('id, opened_at').eq('org_id', activeOrg.id).eq('status', 'open').maybeSingle()
+      .then(({ data }) => setOpenCashSession(data || null));
+  }, [activeOrg]);
 
   // Seed liveTodaySales from initial data load
   useEffect(() => {
@@ -649,6 +657,18 @@ export default function Dashboard() {
           <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
+
+      {/* Open Cash Session Banner */}
+      {openCashSession && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-success/10 border border-success/30 rounded-xl">
+          <Banknote className="w-4 h-4 text-success shrink-0" />
+          <span className="text-sm font-medium text-success">Caja abierta</span>
+          <span className="text-xs text-muted-foreground">
+            desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <Link to="/caja" className="ml-auto text-xs text-primary hover:underline font-medium">Ver caja →</Link>
+        </div>
+      )}
 
       {/* USD Rates Banner */}
       {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (

@@ -135,6 +135,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ExpensesPage CSV + imprimir** — botón "CSV" exporta gastos filtrados; botón "Imprimir" genera reporte HTML con resumen por categoría + detalle completo, abre ventana de impresión. _(sesión 14)_
 - **SalesPage CSV export** — botón "CSV" exporta ventas filtradas con fecha/producto/cliente/cantidad/precio/ganancia/método/estado. _(sesión 14)_
 - **SalesPage recibo multi-producto** — checkboxes en todas las filas (no solo deudas); "Seleccionar todas" en encabezado; barra flotante "Recibo" genera ticket HTML multi-línea consolidado para imprimir. _(sesión 14)_
+- **PurchasesPage CSV export** — botón "CSV" exporta compras filtradas con tipo (Pedido/Recibida). _(sesión 14)_
+- **PurchasesPage "Marcar como recibido"** — botón "Recibido" visible al hover en pedidos programados; confirma recepción, actualiza `is_scheduled=false` y suma quantity al stock del producto. _(sesión 14)_
+- **Dashboard: alerta caja abierta** — banner verde si hay una `cash_session` con status="open"; muestra hora de apertura y link a /caja. _(sesión 14)_
+- **AnalyticsPage: métricas de retención de clientes** — 4 KPI cards en tab Clientes: activos 30d, tasa de retención 30d, clientes que regresaron, nuevos últimos 30d. _(sesión 14)_
 - **AIChatPage acciones reales** — detección de intención client-side (crear producto/gasto/cliente), action cards con mini-formularios inline que escriben directamente en DB; chips "Acciones directas" en estado vacío. _(sesión 11)_
 - **CustomersPage segmentos RFM en DB** — migración de localStorage a Supabase (campo `crm_segments` JSONB en settings); auto-migración en primer load; sync multi-dispositivo. _(sesión 11)_
 - **supabaseStore getCRMSegmentsDB/saveCRMSegmentsDB** — helpers para persistir segmentos CRM. _(sesión 11)_
@@ -336,7 +340,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | Finanzas | 90% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
 | Marketing + Email | 80% | Open rate / click tracking |
-| IA + Analytics | 95% | Más acciones IA, visualizaciones |
+| IA + Analytics | 96% | Más acciones IA, visualizaciones |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
 | Mobile + UX | 74% | Capacitor, offline POS |
@@ -352,9 +356,9 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | 1 | Modo offline para POS (IndexedDB, sync al reconectar) | Usuarios sin conexión estable |
 | 2 | Notas de crédito AFIP integradas a devoluciones | Cumplimiento fiscal |
 | 3 | Suite E2E básica con Playwright (login → venta → caja) | Calidad antes de escalar |
-| 4 | PurchasesPage: pedidos pendientes de recibir (lotes en tránsito) | Gestión de compras avanzada |
-| 5 | SalesPage: agrupación de ventas por sesión POS (misma fecha+cliente) | Historial más legible |
-| 6 | AnalyticsPage: heatmap de ventas por hora y día de semana | Optimización operativa |
+| 4 | SalesPage: agrupación de ventas por sesión POS (misma fecha+cliente) | Historial más legible |
+| 5 | ProductsPage: alertas de reorden con link rápido a nueva compra | Reduce stockouts |
+| 6 | Dashboard: widget de tareas pendientes de hoy con prioridad | Operaciones diarias |
 
 ---
 

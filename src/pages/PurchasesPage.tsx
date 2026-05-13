@@ -74,6 +74,43 @@ export default function PurchasesPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  const exportPurchasesCSV = () => {
+    const header = ['Fecha', 'Producto', 'Proveedor', 'Cantidad', 'Costo USD', 'Total USD', 'Total ARS', 'Tipo'];
+    const rows = filtered.map(p => [
+      p.date,
+      `"${(p.product_name || '').replace(/"/g, '""')}"`,
+      `"${(p.supplier || '').replace(/"/g, '""')}"`,
+      p.quantity,
+      Number(p.cost_usd || 0).toFixed(2),
+      Number(p.total_usd || 0).toFixed(2),
+      Number(p.total_ars || 0).toFixed(2),
+      p.is_scheduled ? 'Pedido' : 'Recibida',
+    ]);
+    const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `compras_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} compras exportadas`);
+  };
+
+  const handleReceiveOrder = async (p: any) => {
+    try {
+      // Mark as received (not scheduled anymore)
+      await updatePurchaseDB(p.id, { is_scheduled: false, date: new Date().toISOString().slice(0, 10) });
+      // Increment stock
+      if (p.product_id) {
+        const { data: prod } = await supabase.from('products').select('stock').eq('id', p.product_id).maybeSingle();
+        if (prod) await supabase.from('products').update({ stock: (prod.stock || 0) + Number(p.quantity) }).eq('id', p.product_id);
+      }
+      if (user) await logAudit(user.id, 'update', 'purchase', p.id, { action: 'received', product: p.product_name, quantity: p.quantity });
+      toast.success(`Pedido de ${p.product_name} marcado como recibido — stock actualizado`);
+      reload();
+    } catch (err: any) {
+      toast.error("Error: " + err.message);
+    }
+  };
+
   const handleDelete = async (p: any) => {
     await deletePurchaseDB(p.id);
     if (user) await logAudit(user.id, 'delete', 'purchase', p.id, { product: p.product_name });
@@ -92,6 +129,11 @@ export default function PurchasesPage() {
         actions={
           <div className="flex items-center gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
+            {filtered.length > 0 && (
+              <Button variant="outline" size="sm" onClick={exportPurchasesCSV} title={`Exportar ${filtered.length} compras a CSV`}>
+                <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setOrderOpen(true)}>
               <ClipboardList className="w-4 h-4 mr-1.5" />Orden de Compra
             </Button>
@@ -244,6 +286,15 @@ export default function PurchasesPage() {
                     {(canEdit || canDelete) && (
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canEdit && p.is_scheduled && (
+                            <ConfirmDialog
+                              trigger={<Button variant="ghost" size="sm" className="h-7 px-2 text-success hover:text-success hover:bg-success/10" title="Marcar pedido como recibido y actualizar stock"><CalendarClock className="w-3.5 h-3.5 mr-1" />Recibido</Button>}
+                              title="¿Marcar como recibido?"
+                              description={`Se registrará la recepción de ${p.quantity} uds. de "${p.product_name}" y se sumará al stock.`}
+                              confirmText="Sí, recibido"
+                              onConfirm={() => handleReceiveOrder(p)}
+                            />
+                          )}
                           {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(p); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>}
                           {canDelete && (
                             <ConfirmDialog
