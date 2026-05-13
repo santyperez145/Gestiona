@@ -410,6 +410,47 @@ export default function Dashboard() {
     if (dueDebtsWeek > 0) smartAlerts.push({ type: 'warning', icon: AlertCircle, msg: `${dueDebtsWeek} deudas vencen esta semana`, link: '/deudas' });
     if (expensesRatio > expenseRatioAlertPct && monthSalesARS > 0) smartAlerts.push({ type: 'destructive', icon: Wallet, msg: `Gastos representan ${expensesRatio.toFixed(0)}% de tus ventas (límite ${expenseRatioAlertPct}%)`, link: '/gastos' });
 
+    // ===== Anomaly detection =====
+    const anomalies: { severity: 'high' | 'medium'; msg: string; link?: string }[] = [];
+
+    // 1. Product with margin significantly below its historical average (last 60d vs prior 60d)
+    const sixtyAgo = new Date(Date.now() - 60 * 86400000);
+    const onetwentyAgo = new Date(Date.now() - 120 * 86400000);
+    const recent60Sales = allSales.filter((s: any) => new Date(s.date) >= sixtyAgo);
+    const prior60Sales = allSales.filter((s: any) => { const d = new Date(s.date); return d >= onetwentyAgo && d < sixtyAgo; });
+    const productMarginRecent: Record<string, { rev: number; profit: number }> = {};
+    const productMarginPrior: Record<string, { rev: number; profit: number }> = {};
+    recent60Sales.forEach((s: any) => {
+      if (!productMarginRecent[s.product_name]) productMarginRecent[s.product_name] = { rev: 0, profit: 0 };
+      productMarginRecent[s.product_name].rev += Number(s.total_ars);
+      productMarginRecent[s.product_name].profit += Number(s.profit_ars);
+    });
+    prior60Sales.forEach((s: any) => {
+      if (!productMarginPrior[s.product_name]) productMarginPrior[s.product_name] = { rev: 0, profit: 0 };
+      productMarginPrior[s.product_name].rev += Number(s.total_ars);
+      productMarginPrior[s.product_name].profit += Number(s.profit_ars);
+    });
+    Object.entries(productMarginRecent).forEach(([name, r]) => {
+      const p = productMarginPrior[name];
+      if (!p || p.rev < 1000 || r.rev < 1000) return;
+      const recentMarginPct = r.rev > 0 ? (r.profit / r.rev) * 100 : 0;
+      const priorMarginPct = p.rev > 0 ? (p.profit / p.rev) * 100 : 0;
+      if (priorMarginPct > 5 && recentMarginPct < priorMarginPct * 0.7) {
+        anomalies.push({ severity: 'high', msg: `Caída de margen en "${name}": ${priorMarginPct.toFixed(0)}% → ${recentMarginPct.toFixed(0)}%`, link: '/reportes' });
+      }
+    });
+
+    // 2. A top-10 product that had strong sales but dropped off in the last 14 days
+    const fourteenAgo = new Date(Date.now() - 14 * 86400000);
+    const last14Sales = allSales.filter((s: any) => new Date(s.date) >= fourteenAgo);
+    const last14Set = new Set(last14Sales.map((s: any) => s.product_name));
+    const top10Names = Object.entries(productSales).sort((a: any, b: any) => b[1].qty - a[1].qty).slice(0, 10).map(([, d]: any) => d.name);
+    top10Names.forEach(name => {
+      if (!last14Set.has(name)) {
+        anomalies.push({ severity: 'medium', msg: `Sin ventas en 14 días: "${name}" (estuvo entre los más vendidos)`, link: '/ventas' });
+      }
+    });
+
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
@@ -438,6 +479,7 @@ export default function Dashboard() {
       monthSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
       salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel,
       lowStockThreshold, marginAlertPct,
+      anomalies: anomalies.slice(0, 5),
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
@@ -660,6 +702,25 @@ export default function Dashboard() {
             <Link to="/alertas" className="text-xs text-primary hover:underline flex items-center gap-1">
               <Bell className="w-3 h-3" /> Configurar alertas →
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Anomaly Detection Panel */}
+      {stats.anomalies && stats.anomalies.length > 0 && (
+        <div className="mb-5 bg-card border border-orange-500/20 rounded-xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+            <Zap className="w-3.5 h-3.5 text-orange-400" />
+            <span className="text-[11px] font-semibold text-orange-400 uppercase tracking-wider">Anomalías detectadas</span>
+          </div>
+          <div className="divide-y divide-border">
+            {stats.anomalies.map((a: any, i: number) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.severity === 'high' ? 'bg-destructive' : 'bg-orange-400'}`} />
+                <span className="flex-1 text-foreground/80">{a.msg}</span>
+                {a.link && <Link to={a.link} className="text-xs text-primary hover:underline shrink-0">Ver →</Link>}
+              </div>
+            ))}
           </div>
         </div>
       )}
