@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders } from "lucide-react";
+import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Tier system ──────────────────────────────────────────────────────────────
@@ -243,9 +243,35 @@ export default function LoyaltyPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Balances list */}
         <div className="lg:col-span-1 space-y-3">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-yellow-400" />
-            <h2 className="font-semibold text-sm">Ranking de clientes</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-yellow-400" />
+              <h2 className="font-semibold text-sm">Ranking de clientes</h2>
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+              const bom = '﻿';
+              const headers = ['Cliente', 'Tier', 'Balance puntos', 'Valor ARS', 'Puntos ganados', 'Puntos canjeados', 'Última actividad'];
+              const rows = filtered.map(b => {
+                const tier = getTier(b.balance);
+                return [
+                  b.customer_name,
+                  tier.name,
+                  b.balance,
+                  (b.balance * ptVal).toFixed(2),
+                  b.totalEarned,
+                  b.totalRedeemed,
+                  new Date(b.lastActivity).toLocaleDateString('es-AR'),
+                ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+              });
+              const csv = bom + [headers.join(','), ...rows].join('\n');
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+              a.download = `fidelidad-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              toast.success('Exportado');
+            }}>
+              <FileSpreadsheet className="w-3 h-3 mr-1" />CSV
+            </Button>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />

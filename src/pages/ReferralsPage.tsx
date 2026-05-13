@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Users, Plus, Copy, Check, TrendingUp, Gift, Settings2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Users, Plus, Copy, Check, TrendingUp, Gift, Settings2, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
 type Referral = {
@@ -239,6 +239,30 @@ export default function ReferralsPage() {
 
         {/* Referrals list */}
         <div className={`bg-card border border-border rounded-xl overflow-hidden ${topReferrers.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
+          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{referrals.length} referidos</span>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+              const bom = '﻿';
+              const headers = ['Fecha', 'Referidor', 'Nuevo cliente', 'Código', 'Estado', 'Bono ARS', 'Puntos'];
+              const rows = referrals.map(r => [
+                new Date(r.created_at).toLocaleDateString('es-AR'),
+                r.referrer_name,
+                r.referred_name,
+                r.referral_code,
+                STATUS_LABELS[r.status] || r.status,
+                Number(r.bonus_ars).toFixed(2),
+                r.bonus_points,
+              ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+              const csv = bom + [headers.join(','), ...rows].join('\n');
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+              a.download = `referidos-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              toast.success('Referidos exportados');
+            }}>
+              <FileSpreadsheet className="w-3 h-3 mr-1" />CSV
+            </Button>
+          </div>
           {loading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">Cargando…</div>
           ) : referrals.length === 0 ? (
