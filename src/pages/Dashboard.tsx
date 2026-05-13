@@ -556,6 +556,24 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2 mb-4 mt-3">
+        {[
+          { label: "Nueva Venta", icon: DollarSign, path: "/sales", color: "text-primary" },
+          { label: "POS", icon: ShoppingBag, path: "/pos", color: "text-success" },
+          { label: "Nuevo Cliente", icon: Users, path: "/customers", color: "text-blue-400" },
+          { label: "Inventario", icon: Package, path: "/products", color: "text-warning" },
+          { label: "Gastos", icon: Wallet, path: "/expenses", color: "text-destructive" },
+          { label: "Reportes", icon: BarChart3, path: "/reports", color: "text-purple-400" },
+        ].map(a => (
+          <Link key={a.path} to={a.path}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">
+            <a.icon className={`w-3.5 h-3.5 ${a.color}`} />
+            {a.label}
+          </Link>
+        ))}
+      </div>
+
       {/* Consistency Alerts (auto-repair) */}
       {user && <ConsistencyAlerts
         sales={stats.rawSales} debts={stats.rawDebts} products={stats.products} settings={stats.rawSettings}
