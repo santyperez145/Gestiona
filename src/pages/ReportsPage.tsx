@@ -830,6 +830,52 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
         </div>
       </div>
 
+      {/* Monthly trend chart — compare sellers over last 12 months */}
+      {rows.length > 0 && (() => {
+        const now = new Date();
+        const months: string[] = [];
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        }
+        const trendData = months.map(mo => {
+          const entry: Record<string, any> = {
+            label: new Date(mo + '-01').toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
+          };
+          rows.forEach(r => { entry[r.name.split(' ')[0]] = r.byMonth[mo] || 0; });
+          return entry;
+        });
+        const sellerNames = rows.map(r => r.name.split(' ')[0]);
+        return (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Evolución mensual por vendedor (últimos 12 meses)</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={trendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
+                <YAxis tick={{ fontSize: 10, fill: '#888' }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                <Tooltip
+                  formatter={(v: number, name: string) => [formatARS(v), name]}
+                  contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+                />
+                {sellerNames.map((name, i) => (
+                  <Line key={name} type="monotone" dataKey={name} stroke={SELLER_COLORS[i % SELLER_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+            {sellerNames.length > 1 && (
+              <div className="flex gap-4 mt-2 text-xs text-muted-foreground justify-center flex-wrap">
+                {sellerNames.map((name, i) => (
+                  <span key={name} className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: SELLER_COLORS[i % SELLER_COLORS.length] }} />{name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Bar chart */}
       {chartData.length > 1 && (
         <div className="bg-card border border-border rounded-xl p-4">

@@ -624,6 +624,7 @@ export default function POSPage() {
   const [cat, setCat] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState("");
+  const [posNote, setPosNote] = useState("");
 
   // Single payment
   const [payMethod, setPayMethod] = useState<PayMethod>("efectivo");
@@ -947,6 +948,7 @@ export default function POSPage() {
   const clearCart = () => {
     setCart([]);
     setCustomer("");
+    setPosNote("");
     setCashGiven("");
     setPayMethod("efectivo");
     setSplitMode(false);
@@ -1023,6 +1025,7 @@ export default function POSPage() {
           global_discount_ars: itemGlobalDiscount > 0 ? itemGlobalDiscount : null,
           coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
           seller_name: sellerName || null,
+          notes: posNote.trim() || null,
         };
 
         if (isOnline) {
@@ -1239,6 +1242,15 @@ export default function POSPage() {
             <span className="font-bold">{vipTier.pct}% desc. aplicado</span>
           </div>
         )}
+
+        {/* Internal note */}
+        <Input
+          placeholder="Nota interna (opcional)"
+          value={posNote}
+          onChange={(e) => setPosNote(e.target.value)}
+          className="h-8 text-sm bg-muted"
+          maxLength={200}
+        />
 
         {/* Payment section */}
         <div className="space-y-2">
