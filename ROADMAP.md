@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 27)**
+Última actualización: **2026-05-18 (sesión 28)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -562,18 +562,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 28)
+## Sesión 28 — COMPLETADA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POS: variantes en selector de producto** — modal picker de variantes al hacer click en producto con variantes; badge "N variantes" en tarjeta; addToCart soporta override de variante | ✅ Hecho |
+| 2 | **ProductsPage: editar stock por variante** — tabla inline de variantes con input de stock individual | ✅ Ya existía |
+| 3 | **AnalyticsPage: tab "Rentabilidad"** — Top 5 / Bottom 5 productos por margen bruto, desglose por categoría con barras, gráfico de distribución de márgenes por colores (verde/amarillo/rojo) | ✅ Hecho |
+| 4 | **SalesPage: modo "vista diaria"** — agrupación por día con subtotales expandibles | ✅ Ya existía (viewMode="by_date") |
+| 5 | **Dashboard: widget "Temperatura del negocio"** — semáforo Rojo/Amarillo/Verde con 4 señales: ventas hoy vs promedio diario, stock sin inventario, deudas vencidas, margen del mes | ✅ Hecho |
+| 6 | **CustomersPage: importación CSV mejorada** — detección automática de columnas, mapeo flexible por campo, vista previa de 5 filas, deduplicación por nombre, soporte para notas | ✅ Hecho |
+| 7 | **POSPage: impresión ZPL/ESC-POS** — WebSocket con impresora térmica en red | ⏳ Pendiente (requiere hardware/WebSocket local) |
+| 8 | **SettingsPage: gestión de sucursales** — sección CRUD completa con crear, editar, activar/desactivar, eliminar; integrado con tabla `locations` | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 29)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POS: variantes en selector de producto** — al seleccionar un producto con variantes, mostrar dropdown de variante antes de agregar al carrito | Venta por variante precisa |
-| 2 | **ProductsPage: editar stock por variante** — tabla inline de variantes en form de edición de producto | Inventario por variante |
-| 3 | **AnalyticsPage: insight de rentabilidad** — nuevo tab "Rentabilidad" con Top/Bottom 5 productos por margen neto + breakdown por categoría | Decisiones de pricing |
-| 4 | **SalesPage: modo "vista diaria"** — agrupación por día con subtotal + expandible; filtro de fecha preset "Esta semana" visible en modo lista | UX ventas |
-| 5 | **Dashboard: widget temperatura del negocio** — "semáforo" simple Rojo/Amarillo/Verde calculado de: ventas hoy vs promedio, stock crítico, deudas vencidas, margen del mes | Estado rápido |
-| 6 | **CustomersPage: importación de contactos desde CSV mejorada** — mapeo de columnas flexible; deduplicación por nombre/email; preview de registros antes de importar | Migración de datos |
-| 7 | **POSPage: impresión de ticket ZPL/ESC-POS** — botón "Imprimir ticket" que envía el payload a una impresora térmica en red via WebSocket | Operaciones físicas |
-| 8 | **SettingsPage: gestión de sedes/sucursales desde configuración** — tab "Sucursales" en settings para crear/editar/eliminar locations sin ir a /locations | UX simplificada |
+| 1 | **Dashboard: gráfico ventas vs meta mensual** — evolución diaria del mes actual superpuesta a la meta lineal (lo que debería llevar acumulado) | KPI ejecutivo |
+| 2 | **ReportsPage: tab "Tendencia de márgenes"** — gráfico de líneas margen % por mes para los últimos 12 meses + breakdown por categoría | Salud financiera |
+| 3 | **POSPage: modo dark/light individual** — botón toggle en POS sin afectar el resto de la app | UX operadores |
+| 4 | **CustomersPage: campañas de email desde CRM** — botón "Enviar campaña" en segmento → pre-rellena EmailCampaignsPage con el segmento activo | Email marketing |
+| 5 | **ProductsPage: etiquetas/tags personalizados** — campo libre de tags por producto para filtros avanzados | Organización catálogo |
+| 6 | **SalesPage: nota interna por venta** — campo opcional "nota" al registrar, visible en historial | Trazabilidad |
+| 7 | **AIChatPage: sugerencia de restock** — intent "¿qué debería reponer?" que cruza stock bajo con velocidad de ventas | Automatización |
+| 8 | **AnalyticsPage: tab "Cohortes de compra"** — clientes agrupados por mes de primera compra con retención por mes subsiguiente | Retención clientes |
 
 ---
 
