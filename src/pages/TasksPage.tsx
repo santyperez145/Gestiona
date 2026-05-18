@@ -27,6 +27,7 @@ type Task = {
   category: string | null;
   created_by: string | null;
   assigned_to: string | null;
+  parent_id: string | null;
 };
 
 const PRIORITY_CONFIG = {
@@ -67,6 +68,9 @@ export default function TasksPage() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState<string | null>(null);
+  const [subtaskInput, setSubtaskInput] = useState("");
 
   const load = async () => {
     if (!activeOrg) return;
@@ -125,14 +129,39 @@ export default function TasksPage() {
     await load();
   };
 
+  const createSubtask = async (parentId: string) => {
+    if (!subtaskInput.trim() || !activeOrg) return;
+    await supabase.from("tasks").insert({
+      org_id: activeOrg.id,
+      created_by: user?.id,
+      title: subtaskInput.trim(),
+      priority: "medium",
+      status: "pending",
+      parent_id: parentId,
+    } as any);
+    setSubtaskInput("");
+    setAddingSubtaskFor(null);
+    setExpandedSubtasks(prev => new Set([...prev, parentId]));
+    await load();
+  };
+
   const today = new Date().toISOString().slice(0, 10);
+
+  const subtasksByParent = useMemo(() => {
+    const map: Record<string, Task[]> = {};
+    tasks.filter(t => t.parent_id).forEach(t => {
+      if (!map[t.parent_id!]) map[t.parent_id!] = [];
+      map[t.parent_id!].push(t);
+    });
+    return map;
+  }, [tasks]);
 
   const filtered = useMemo(() => {
     const activeTasks = filterStatus === "active"
-      ? tasks.filter(t => t.status !== "done" && t.status !== "cancelled")
+      ? tasks.filter(t => !t.parent_id && t.status !== "done" && t.status !== "cancelled")
       : filterStatus === "done"
-      ? tasks.filter(t => t.status === "done")
-      : tasks;
+      ? tasks.filter(t => !t.parent_id && t.status === "done")
+      : tasks.filter(t => !t.parent_id);
 
     const byPriority = filterPriority !== "all"
       ? activeTasks.filter(t => t.priority === filterPriority)
@@ -434,6 +463,71 @@ export default function TasksPage() {
                       </span>
                     )}
                   </div>
+                </div>
+
+                  {/* Subtask controls */}
+                  {(() => {
+                    const subs = subtasksByParent[task.id] || [];
+                    const isExpanded = expandedSubtasks.has(task.id);
+                    const isAdding = addingSubtaskFor === task.id;
+                    const doneSubs = subs.filter(s => s.status === "done").length;
+                    return (
+                      <div className="mt-2 border-t border-border/40 pt-2">
+                        <div className="flex items-center gap-2">
+                          {subs.length > 0 && (
+                            <button
+                              onClick={() => setExpandedSubtasks(prev => {
+                                const next = new Set(prev);
+                                next.has(task.id) ? next.delete(task.id) : next.add(task.id);
+                                return next;
+                              })}
+                              className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                              {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                              {doneSubs}/{subs.length} subtareas
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setAddingSubtaskFor(isAdding ? null : task.id); setSubtaskInput(""); }}
+                            className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" />subtarea
+                          </button>
+                        </div>
+                        {isAdding && (
+                          <div className="flex gap-1.5 mt-1.5">
+                            <input
+                              autoFocus
+                              value={subtaskInput}
+                              onChange={e => setSubtaskInput(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") createSubtask(task.id); if (e.key === "Escape") setAddingSubtaskFor(null); }}
+                              placeholder="Título de la subtarea…"
+                              className="flex-1 text-xs px-2 py-1 rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
+                            />
+                            <button onClick={() => createSubtask(task.id)} className="text-xs text-primary-foreground bg-primary rounded px-2 py-1 hover:opacity-90">OK</button>
+                          </div>
+                        )}
+                        {isExpanded && subs.length > 0 && (
+                          <div className="mt-1.5 space-y-1 pl-3 border-l border-border/40">
+                            {subs.map(sub => (
+                              <div key={sub.id} className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateStatus(sub, sub.status === "done" ? "pending" : "done")}
+                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${sub.status === "done" ? "bg-success border-success" : "border-border hover:border-success"}`}
+                                >
+                                  {sub.status === "done" && <Check className="w-2 h-2 text-white" />}
+                                </button>
+                                <span className={`text-xs flex-1 ${sub.status === "done" ? "line-through text-muted-foreground" : ""}`}>{sub.title}</span>
+                                <button onClick={() => deleteTask(sub)} className="text-muted-foreground/30 hover:text-destructive">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Delete */}

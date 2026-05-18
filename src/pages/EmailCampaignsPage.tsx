@@ -146,6 +146,7 @@ export default function EmailCampaignsPage() {
   const [segment, setSegment] = useState("all");
   const [scheduledAt, setScheduledAt] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showBodyPreview, setShowBodyPreview] = useState(false);
   const [bulkCampaign, setBulkCampaign] = useState<{ emails: string[]; names: string[]; count: number; segment: string } | null>(null);
 
   // Read bulk selection from CRM sessionStorage on mount
@@ -530,14 +531,35 @@ export default function EmailCampaignsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Cuerpo del email (HTML o texto)</Label>
-              <Textarea
-                value={bodyHtml}
-                onChange={e => setBodyHtml(e.target.value)}
-                placeholder="Hola {{nombre}}, tenemos una oferta especial..."
-                rows={10}
-                className="font-mono text-sm"
-              />
+              <div className="flex items-center justify-between">
+                <Label>Cuerpo del email (HTML o texto)</Label>
+                <div className="flex rounded-lg border border-border overflow-hidden h-7">
+                  <button
+                    type="button"
+                    onClick={() => setShowBodyPreview(false)}
+                    className={`px-3 text-xs transition-colors ${!showBodyPreview ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
+                  >Editar</button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBodyPreview(true)}
+                    className={`px-3 text-xs transition-colors ${showBodyPreview ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
+                  >Vista previa</button>
+                </div>
+              </div>
+              {showBodyPreview ? (
+                <div
+                  className="min-h-[220px] rounded-lg border border-border p-4 bg-white text-gray-900 text-sm overflow-auto prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: bodyHtml || '<p class="text-gray-400">El cuerpo del email aparecerá aquí...</p>' }}
+                />
+              ) : (
+                <Textarea
+                  value={bodyHtml}
+                  onChange={e => setBodyHtml(e.target.value)}
+                  placeholder="Hola {{nombre}}, tenemos una oferta especial..."
+                  rows={10}
+                  className="font-mono text-sm"
+                />
+              )}
               <p className="text-xs text-muted-foreground">
                 Podés usar <code>{"{{nombre}}"}</code> para personalizar el saludo.
               </p>
