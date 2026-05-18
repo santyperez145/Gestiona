@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 29)**
+Última actualización: **2026-05-18 (sesión 31)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -592,18 +592,32 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 30)
+## Sesión 30 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: exportar CSV con todos los campos** — tags, SKU, barcode, lot, expiry, low_stock_threshold, días sin venta | ✅ Hecho |
+| 2 | **DebtsPage: tab "Historial de pagos"** — timeline de cobros por mes, subtotales y total general, íconos CheckCircle2 | ✅ Hecho |
+| 3 | **Dashboard: widget "Gastos del mes"** — total vs mes anterior (▲/▼), top-3 categorías con mini progress bars, link a /expenses | ✅ Hecho |
+| 4 | **SalesPage: filtro por categoría de producto** | ✅ Ya existía |
+| 5 | **ReportsPage: tab "📈 Tendencia de margen"** — LineChart margen bruto/neto %, BarChart ganancia vs gastos, tabla color-coded, filtro 3/6/12/24 meses | ✅ Hecho |
+| 6 | **ReportsPage: tab "Vendedores" — evolución mensual** — LineChart 12 meses por vendedor con leyenda de colores | ✅ Hecho |
+| 7 | **POSPage: nota interna por venta** — campo Input antes del cobro, guarda en `notes`; limpiado en clearCart | ✅ Hecho |
+| 8 | **AnalyticsPage: CSV export en tab Tendencia** — botón Download con icono, exporta 7 columnas (mes, ingresos, ganancia, COGS, gastos op., neto, unidades) | ✅ Hecho |
+| 9 | **CustomersPage: campo "empresa/negocio"** | ⏳ Requiere migración DB (sin columna `company` en tabla customers) |
+
+---
+
+## Prioridades inmediatas (sesión 31)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ProductsPage: exportar CSV con todos los campos** — incluir tags, SKU, barcode, lot, expiry, low_stock_threshold, variantes count, días sin venta | Gestión de catálogo |
-| 2 | **DebtsPage: tab "Historial de pagos"** — timeline de todos los pagos recibidos (parciales y totales) con fecha, cliente, monto y método | Trazabilidad financiera |
-| 3 | **Dashboard: widget "Gastos del mes"** — total gastos actuales vs mes anterior, por categoría top-3, link a /expenses | Control de costos |
-| 4 | **SalesPage: filtro por categoría de producto** — dropdown de categoría en barra de filtros (además del search actual) | Análisis por línea |
-| 5 | **ReportsPage: tab "Por Vendedor mejorado"** — evolución mensual de ventas por vendedor, comparativa entre vendedores, comisión acumulada del período | Performance equipo |
-| 6 | **ExpensesPage: export PDF** — botón "PDF" que genera reporte imprimible con KPIs, gráfico mensual y tabla detallada | Presentación externa |
-| 7 | **POSPage: nota interna por venta en POS** — campo opcional después de seleccionar método de pago, sincronizado con el campo `notes` de SalesPage | Operaciones |
-| 8 | **CustomersPage: campo "empresa/negocio"** — campo company en ficha de cliente para clientes B2B; filtro empresa en lista | CRM B2B |
+| 1 | **CustomersPage: campo "empresa/negocio"** — migración DB + campo en form + búsqueda + columna en tabla | CRM B2B |
+| 2 | **ProductsPage: actualización masiva de precios por categoría** — dialog para subir/bajar precios en % por categoría; preview antes de confirmar | Gestión de precios |
+| 3 | **SalesPage: nota interna visible al editar** — pre-llenar textarea de nota cuando se edita una venta existente | Coherencia UX |
+| 4 | **POSPage: nota en ticket impreso** — incluir el campo `notes` en el HTML de impresión del POS | Operaciones |
+| 5 | **Dashboard: widget "Resultado del mes"** — net = ventas − COGS − gastos; delta vs mes anterior; color verde/rojo | Control financiero |
+| 6 | **DebtsPage: recordatorio masivo aging >30d** — botón "Recordar >30 días" que genera WhatsApp links para todos los deudores con antigüedad ≥30d | Cobranza |
 
 ---
 

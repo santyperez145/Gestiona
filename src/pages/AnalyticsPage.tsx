@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, BarChart3, Users, DollarSign,
-  Package, Calendar, Percent, Clock, Filter, Brain, Sparkles,
+  Package, Calendar, Percent, Clock, Filter, Brain, Sparkles, Download,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -411,6 +411,28 @@ export default function AnalyticsPage() {
 
   const currentYear = new Date().getFullYear() - Number(year);
 
+  function exportTrendCSV() {
+    const BOM = "﻿";
+    const headers = ["Mes", "Ingresos (ARS)", "Ganancia bruta (ARS)", "COGS (ARS)", "Gastos op. (ARS)", "Resultado neto (ARS)", "Unidades vendidas"];
+    const rows = (derived.monthly as Array<{ name: string; revenue: number; profit: number; cogs: number; opex: number; net: number; units: number }>).map(m => [
+      m.name,
+      m.revenue.toFixed(2),
+      m.profit.toFixed(2),
+      m.cogs.toFixed(2),
+      m.opex.toFixed(2),
+      m.net.toFixed(2),
+      m.units,
+    ]);
+    const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tendencia_${currentYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -463,7 +485,17 @@ export default function AnalyticsPage() {
         {/* TREND TAB */}
         <TabsContent value="trend" className="mt-4 space-y-4">
           <div className="bg-card border border-border rounded-2xl p-5">
-            <h3 className="text-sm font-semibold mb-4">Ingresos & Ganancia — {currentYear}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold">Ingresos & Ganancia — {currentYear}</h3>
+              <button
+                onClick={exportTrendCSV}
+                title="Exportar tendencia mensual a CSV"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted"
+              >
+                <Download className="w-3.5 h-3.5" />
+                CSV
+              </button>
+            </div>
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={derived.monthly} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <defs>
