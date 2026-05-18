@@ -4,6 +4,7 @@ import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -807,7 +808,16 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                       </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(s.date)}</td>
-                    <td className="px-4 py-3 font-medium">{s.product_name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        {s.product_name}
+                        {s.notes && (
+                          <span title={s.notes} className="text-amber-400 cursor-help shrink-0">
+                            <FileText className="w-3 h-3 inline" />
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
@@ -883,6 +893,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     )}
                   </div>
                 </div>
+                {s.notes && (
+                  <p className="text-[10px] text-amber-400/80 italic mt-1 mb-1 flex items-center gap-1">
+                    <FileText className="w-3 h-3 shrink-0" />{s.notes}
+                  </p>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4 text-sm">
                     <span>x{s.quantity}</span>
@@ -1014,6 +1029,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [saleNote, setSaleNote] = useState(editItem?.notes || '');
 
   useEffect(() => {
     (async () => {
@@ -1099,6 +1115,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
             variant_id: line.variantId || null,
+            notes: saleNote.trim() || null,
           };
 
           if (i === 0) {
@@ -1129,6 +1146,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
             variant_id: line.variantId || null,
+            notes: saleNote.trim() || null,
             source: "manual",
           };
 
@@ -1246,6 +1264,24 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
               ? `✓ Cupón aplicado: ${couponResult.coupon.discount_percent > 0 ? `-${couponResult.coupon.discount_percent}%` : `-${formatARS(Number(couponResult.coupon.discount_fixed_ars))}`}`
               : `✗ ${couponResult.reason}`}
           </p>
+        )}
+      </div>
+
+      {/* Internal note */}
+      <div>
+        <label className="text-sm text-muted-foreground flex items-center gap-1">
+          <FileText className="w-3.5 h-3.5" />Nota interna (opcional)
+        </label>
+        <Textarea
+          value={saleNote}
+          onChange={e => setSaleNote(e.target.value)}
+          placeholder="Ej: cliente especial, acordó pago en 2 días, pedido a domicilio..."
+          className="bg-muted border-border resize-none text-sm mt-1"
+          rows={2}
+          maxLength={300}
+        />
+        {saleNote.length > 0 && (
+          <p className="text-[10px] text-muted-foreground text-right mt-0.5">{saleNote.length}/300</p>
         )}
       </div>
 

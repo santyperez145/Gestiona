@@ -1386,6 +1386,55 @@ export default function Dashboard() {
                     style={{ width: `${pct}%` }}
                   />
                 </div>
+                {/* Daily evolution vs linear goal chart */}
+                {(() => {
+                  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                  const todayDay = new Date().getDate();
+                  const dailyGoalStep = target / daysInMonth;
+                  // Build cumulative daily data for this month
+                  const curY2 = new Date().getFullYear(); const curM2 = new Date().getMonth();
+                  const daySalesMap: Record<number, number> = {};
+                  (stats.rawSales || []).forEach((s: any) => {
+                    const d = new Date(s.date);
+                    if (d.getFullYear() === curY2 && d.getMonth() === curM2) {
+                      const day = d.getDate();
+                      daySalesMap[day] = (daySalesMap[day] || 0) + Number(s.total_ars || 0);
+                    }
+                  });
+                  let cumulative = 0;
+                  const chartData = Array.from({ length: todayDay }, (_, i) => {
+                    const day = i + 1;
+                    cumulative += daySalesMap[day] || 0;
+                    return { day, actual: Math.round(cumulative), goal: Math.round(dailyGoalStep * day) };
+                  });
+                  if (chartData.length < 2) return null;
+                  const maxVal = Math.max(...chartData.map(d => Math.max(d.actual, d.goal)));
+                  return (
+                    <div className="mt-3 h-16">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="gradGoal" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(220,10%,50%)" stopOpacity={0.15} />
+                              <stop offset="95%" stopColor="hsl(220,10%,50%)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="gradActual" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(40,70%,50%)" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(40,70%,50%)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <Tooltip
+                            contentStyle={{ background: 'hsl(220,15%,12%)', border: '1px solid hsl(220,15%,20%)', borderRadius: 6, fontSize: 10 }}
+                            formatter={(v: number, name: string) => [formatARS(v), name === 'actual' ? 'Acumulado real' : 'Meta lineal']}
+                            labelFormatter={(l: number) => `Día ${l}`}
+                          />
+                          <Area type="monotone" dataKey="goal" stroke="hsl(220,10%,50%)" fill="url(#gradGoal)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                          <Area type="monotone" dataKey="actual" stroke="hsl(40,70%,50%)" fill="url(#gradActual)" strokeWidth={2} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()}
                 {(() => {
                   const daysLeft = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate();
                   const atRisk = pct < 60 && daysLeft <= 7 && target > 0;
