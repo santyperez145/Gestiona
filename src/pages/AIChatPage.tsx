@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -26,6 +26,7 @@ type AIAction =
   | { type: "create_purchase"; productName?: string; quantity?: string; supplier?: string; costUSD?: string }
   | { type: "query_debt"; customerName?: string }
   | { type: "query_stock"; productName?: string }
+  | { type: "query_product_analysis"; productName?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -120,6 +121,13 @@ function detectIntent(msg: string): AIAction | null {
   if (/\b(cuánto\s+(?:stock|tengo|hay|queda)|stock\s+de|tengo\s+de)\b/.test(lower)) {
     const productMatch = msg.match(/(?:de|stock\s+de|tengo\s+de)\s+([a-záéíóúüñA-ZÁÉÍÓÚÜÑ][a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+?)(?:\?|$)/i);
     return { type: "query_stock", productName: productMatch?.[1]?.trim() };
+  }
+
+  // Analyze product performance
+  if (/\b(anali[zs]a(r)?|cómo\s+va|qué\s+tal\s+(?:va|está)|rendimiento\s+de|performance\s+de|informe\s+de)\b.{0,40}\b(producto|perfume|vaper|artículo)\b/.test(lower) ||
+      /\b(cómo\s+va|qué\s+tal\s+va|analiza(r)?)\s+(?:el\s+producto\s+)?["']?([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9][^\?"']{2,}?)["']?(?:\?|$)/.test(lower)) {
+    const nameMatch = msg.match(/(?:analiz[ae](?:r)?|cómo va|qué tal va|informe de|rendimiento de|performance de)\s+(?:el\s+(?:producto\s+)?)?["']?([^"'?\n]{2,40}?)["']?\s*(?:\?|$)/i);
+    return { type: "query_product_analysis", productName: nameMatch?.[1]?.trim() };
   }
 
   return null;
@@ -283,6 +291,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_stock") {
     return <QueryStockCard userId={userId} initialName={action.productName} onDone={onDone} />;
+  }
+
+  if (action.type === "query_product_analysis") {
+    return <QueryProductAnalysisCard userId={userId} initialName={action.productName} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -697,6 +709,118 @@ function QueryDebtCard({ userId, initialName, onDone }: { userId: string; initia
   );
 }
 
+// ─── QueryProductAnalysisCard ─────────────────────────────────────────────────
+function QueryProductAnalysisCard({ userId, initialName, onDone }: { userId: string; initialName?: string; onDone: () => void }) {
+  const { activeOrg } = useOrg();
+  const [name, setName] = useState(initialName || "");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const analyze = async () => {
+    if (!name.trim() || !activeOrg) return;
+    setLoading(true);
+    try {
+      const products = await getProductsDB(userId);
+      const found = products.filter((p: any) => p.name.toLowerCase().includes(name.toLowerCase().trim()));
+      if (!found.length) { setResult(null); setSearched(true); setLoading(false); return; }
+      const prod = found[0];
+
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+
+      const { data: sales30 } = await supabase
+        .from("sales")
+        .select("quantity, total_ars, profit_ars, date, customer_name")
+        .eq("org_id", activeOrg.id)
+        .eq("product_id", prod.id)
+        .gte("date", thirtyDaysAgo)
+        .order("date", { ascending: false });
+
+      const { data: sales60 } = await supabase
+        .from("sales")
+        .select("quantity, total_ars, profit_ars, date")
+        .eq("org_id", activeOrg.id)
+        .eq("product_id", prod.id)
+        .gte("date", sixtyDaysAgo)
+        .lt("date", thirtyDaysAgo);
+
+      const s30 = sales30 || [];
+      const s60 = sales60 || [];
+      const units30 = s30.reduce((a: number, s: any) => a + Number(s.quantity), 0);
+      const rev30 = s30.reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+      const profit30 = s30.reduce((a: number, s: any) => a + Number(s.profit_ars), 0);
+      const units60prev = s60.reduce((a: number, s: any) => a + Number(s.quantity), 0);
+      const margin30 = rev30 > 0 ? (profit30 / rev30) * 100 : 0;
+
+      const lastSaleDate = s30.length > 0 ? s30[0].date : null;
+      const daysSinceLastSale = lastSaleDate ? Math.floor((Date.now() - new Date(lastSaleDate).getTime()) / 86400000) : null;
+
+      const unitGrowth = units60prev > 0 ? ((units30 - units60prev) / units60prev) * 100 : (units30 > 0 ? 100 : 0);
+
+      setResult({ prod, units30, rev30, profit30, margin30, units60prev, unitGrowth, daysSinceLastSale, salesCount: s30.length });
+    } catch { setResult(null); }
+    setSearched(true);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (initialName) analyze(); }, []);
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+        <BarChart2 className="w-3.5 h-3.5" />Análisis de producto
+      </p>
+      <div className="flex gap-2">
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del producto" className="h-8 text-sm bg-muted border-border flex-1" onKeyDown={e => e.key === "Enter" && analyze()} autoFocus={!initialName} />
+        <Button size="sm" className="h-8" onClick={analyze} disabled={loading || !name.trim()}>
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Analizar"}
+        </Button>
+      </div>
+      {searched && !result && <p className="text-xs text-muted-foreground">No encontré ningún producto con ese nombre.</p>}
+      {searched && result && (() => {
+        const { prod, units30, rev30, profit30, margin30, units60prev, unitGrowth, daysSinceLastSale, salesCount } = result;
+        const trendIcon = unitGrowth > 10 ? "📈" : unitGrowth < -10 ? "📉" : "➡️";
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-base">{prod.name}</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${prod.stock <= 0 ? 'bg-red-500/15 text-red-400' : prod.stock <= 3 ? 'bg-orange-500/15 text-orange-400' : 'bg-green-500/15 text-green-400'}`}>
+                Stock: {prod.stock} u.
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Unidades (30d)", value: `${units30} u.` },
+                { label: "Facturado (30d)", value: `$${rev30.toLocaleString('es-AR', { maximumFractionDigits: 0 })}` },
+                { label: "Ganancia (30d)", value: `$${profit30.toLocaleString('es-AR', { maximumFractionDigits: 0 })}` },
+                { label: "Margen (30d)", value: `${margin30.toFixed(1)}%` },
+              ].map(k => (
+                <div key={k.label} className="bg-muted/40 rounded-lg px-2.5 py-2">
+                  <p className="text-[10px] text-muted-foreground">{k.label}</p>
+                  <p className="font-bold text-sm">{k.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{trendIcon} vs 30d anteriores: <span className={`font-semibold ${unitGrowth >= 0 ? 'text-green-400' : 'text-red-400'}`}>{unitGrowth >= 0 ? '+' : ''}{unitGrowth.toFixed(0)}% unidades</span></span>
+              {salesCount > 0 && <span>· {salesCount} transacciones</span>}
+            </div>
+            {daysSinceLastSale !== null && (
+              <p className="text-xs text-muted-foreground">
+                Última venta: hace <span className={`font-semibold ${daysSinceLastSale > 14 ? 'text-orange-400' : 'text-foreground'}`}>{daysSinceLastSale} días</span>
+                {daysSinceLastSale === 0 && " (¡hoy!)"}
+              </p>
+            )}
+            {units30 === 0 && <p className="text-xs text-orange-400 font-medium">⚠️ Sin ventas en los últimos 30 días</p>}
+          </div>
+        );
+      })()}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
@@ -716,6 +840,7 @@ const ACTION_STARTERS = [
   { label: "Ajustar stock", icon: Package, msg: "Ajustar stock de un producto" },
   { label: "Consultar deuda", icon: DollarSign, msg: "¿Cuánto debe un cliente?" },
   { label: "Ver stock", icon: Package, msg: "¿Cuánto stock tengo de un producto?" },
+  { label: "Analizar producto", icon: BarChart2, msg: "Analizá el producto" },
 ];
 
 const QUICK_ACTIONS = [

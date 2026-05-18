@@ -658,6 +658,24 @@ export default function Dashboard() {
       }
     });
 
+    // ===== Best day of the week =====
+    const weekdayTotals: Record<number, { total: number; count: number }> = {};
+    allSales.forEach((s: any) => {
+      const dow = new Date(s.date).getDay(); // 0=Sun
+      if (!weekdayTotals[dow]) weekdayTotals[dow] = { total: 0, count: 0 };
+      weekdayTotals[dow].total += Number(s.total_ars);
+      weekdayTotals[dow].count++;
+    });
+    const dowNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const bestWeekdayData = [1, 2, 3, 4, 5, 6, 0].map(i => ({
+      day: dowNames[i],
+      dow: i,
+      total: weekdayTotals[i]?.total || 0,
+      count: weekdayTotals[i]?.count || 0,
+      avg: weekdayTotals[i]?.count > 0 ? weekdayTotals[i].total / weekdayTotals[i].count : 0,
+    }));
+    const bestWeekday = bestWeekdayData.reduce((best, cur) => cur.avg > best.avg ? cur : best, bestWeekdayData[0]);
+
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
@@ -687,6 +705,7 @@ export default function Dashboard() {
       salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
+      bestWeekdayData, bestWeekday,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
@@ -1388,6 +1407,40 @@ export default function Dashboard() {
             ) : (
               <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo semanal de ventas para hacer seguimiento diario.</p>
             )}
+          </div>
+        );
+      })()}
+
+      {/* Best day of the week widget */}
+      {stats.bestWeekdayData.some(d => d.count > 0) && (() => {
+        const maxAvg = Math.max(...stats.bestWeekdayData.map(d => d.avg));
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-primary" />Mejor día de la semana
+              </h3>
+              <span className="text-[10px] text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
+                🏆 {stats.bestWeekday.day} · {formatARS(stats.bestWeekday.avg)} promedio
+              </span>
+            </div>
+            <div className="flex items-end gap-1.5 h-16">
+              {stats.bestWeekdayData.map(d => {
+                const heightPct = maxAvg > 0 ? (d.avg / maxAvg) * 100 : 0;
+                const isBest = d.dow === stats.bestWeekday.dow;
+                return (
+                  <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className={`w-full rounded-t-md transition-all duration-500 ${isBest ? 'bg-primary' : 'bg-muted-foreground/20'}`}
+                      style={{ height: `${Math.max(4, heightPct)}%` }}
+                      title={`${d.day}: ${formatARS(d.avg)} prom · ${d.count} ventas`}
+                    />
+                    <span className={`text-[9px] font-medium ${isBest ? 'text-primary' : 'text-muted-foreground/60'}`}>{d.day}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Basado en {stats.rawSales.length} ventas históricas · promedio de facturación por día</p>
           </div>
         );
       })()}

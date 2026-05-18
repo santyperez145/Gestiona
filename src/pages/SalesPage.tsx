@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -103,11 +103,14 @@ export default function SalesPage() {
       setDateTo(new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)); return;
     }
   };
+  const [settings, setSettings] = useState<any>(null);
+
   const reload = async () => {
     if (user) {
-      const [s, p] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id)]);
+      const [s, p, cfg] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id), getSettingsDB(user.id)]);
       setSales(s);
       setProducts(p);
+      setSettings(cfg);
       setLoading(false);
     }
   };
@@ -353,6 +356,112 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     toast.success(`${filtered.length} ventas exportadas`);
   };
 
+  const exportMonthlyPDF = () => {
+    const businessName = settings?.business_name || "Mi Negocio";
+    const logoUrl = settings?.logo_url || "";
+    const now = new Date();
+    const periodLabel = dateFrom
+      ? `${dateFrom.toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} – ${(dateTo || now).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}`
+      : now.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+
+    // Top 5 products
+    const prodMap: Record<string, { name: string; qty: number; rev: number; profit: number }> = {};
+    filtered.forEach(s => {
+      const k = s.product_name || "?";
+      if (!prodMap[k]) prodMap[k] = { name: k, qty: 0, rev: 0, profit: 0 };
+      prodMap[k].qty += Number(s.quantity);
+      prodMap[k].rev += Number(s.total_ars);
+      prodMap[k].profit += Number(s.profit_ars);
+    });
+    const top5Prod = Object.values(prodMap).sort((a, b) => b.rev - a.rev).slice(0, 5);
+
+    // Top 5 customers
+    const custMap: Record<string, { name: string; total: number; count: number }> = {};
+    filtered.forEach(s => {
+      const k = s.customer_name || "(Sin nombre)";
+      if (!custMap[k]) custMap[k] = { name: k, total: 0, count: 0 };
+      custMap[k].total += Number(s.total_ars);
+      custMap[k].count++;
+    });
+    const top5Cust = Object.values(custMap).sort((a, b) => b.total - a.total).slice(0, 5);
+
+    // Payment methods
+    const methodMap: Record<string, { total: number; count: number }> = {};
+    filtered.forEach(s => {
+      const m = s.payment_method || "efectivo";
+      if (!methodMap[m]) methodMap[m] = { total: 0, count: 0 };
+      methodMap[m].total += Number(s.total_ars);
+      methodMap[m].count++;
+    });
+    const methods = Object.entries(methodMap).sort((a, b) => b[1].total - a[1].total);
+
+    const fmtN = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+    const prodRows = top5Prod.map(p =>
+      `<tr><td>${p.name}</td><td style="text-align:center">${p.qty}</td><td style="text-align:right">${fmtN(p.rev)}</td><td style="text-align:right;color:#16a34a">${fmtN(p.profit)}</td></tr>`
+    ).join("");
+    const custRows = top5Cust.map(c =>
+      `<tr><td>${c.name}</td><td style="text-align:center">${c.count}</td><td style="text-align:right">${fmtN(c.total)}</td></tr>`
+    ).join("");
+    const methodRows = methods.map(([m, d]) => {
+      const pct = totalSales > 0 ? ((d.total / totalSales) * 100).toFixed(0) : "0";
+      return `<tr><td style="text-transform:capitalize">${m}</td><td style="text-align:center">${d.count}</td><td style="text-align:right">${fmtN(d.total)}</td><td style="text-align:right;color:#64748b">${pct}%</td></tr>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Informe de Ventas</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:Arial,sans-serif;max-width:780px;margin:0 auto;padding:32px;font-size:13px;color:#1e293b;background:#fff}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;border-bottom:2px solid #f59e0b;padding-bottom:16px}
+  .logo{max-height:56px;max-width:160px}
+  .biz{font-size:22px;font-weight:800;color:#0f172a}
+  .period{font-size:13px;color:#64748b;margin-top:2px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center}
+  .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;font-weight:600}
+  .kpi-value{font-size:20px;font-weight:800;margin-top:4px;color:#0f172a}
+  .kpi-sub{font-size:10px;color:#94a3b8;margin-top:2px}
+  h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin:20px 0 8px;border-top:1px solid #e2e8f0;padding-top:16px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;border-bottom:2px solid #e2e8f0;padding:6px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;font-weight:700}
+  td{padding:7px 4px;border-bottom:1px solid #f1f5f9}
+  tr:last-child td{border-bottom:none}
+  .footer{margin-top:32px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
+  @media print{body{padding:16px}}
+</style></head><body>
+<div class="header">
+  <div>
+    <div class="biz">${businessName}</div>
+    <div class="period">Informe Ejecutivo de Ventas · ${periodLabel}</div>
+  </div>
+  ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="logo" />` : ""}
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">Facturación</div><div class="kpi-value">${fmtN(totalSales)}</div><div class="kpi-sub">${filtered.length} ventas</div></div>
+  <div class="kpi"><div class="kpi-label">Ganancia</div><div class="kpi-value" style="color:#16a34a">${fmtN(totalProfit)}</div><div class="kpi-sub">Neta del período</div></div>
+  <div class="kpi"><div class="kpi-label">Margen</div><div class="kpi-value">${(totalSales > 0 ? (totalProfit / totalSales * 100) : 0).toFixed(1)}%</div><div class="kpi-sub">Promedio</div></div>
+  <div class="kpi"><div class="kpi-label">Cobradas</div><div class="kpi-value">${filtered.filter(s => s.paid).length}</div><div class="kpi-sub">${filtered.filter(s => !s.paid).length} pendientes</div></div>
+</div>
+
+<h2>Top 5 Productos</h2>
+<table><thead><tr><th>Producto</th><th style="text-align:center">Uds.</th><th style="text-align:right">Facturado</th><th style="text-align:right">Ganancia</th></tr></thead>
+<tbody>${prodRows}</tbody></table>
+
+<h2>Top 5 Clientes</h2>
+<table><thead><tr><th>Cliente</th><th style="text-align:center">Compras</th><th style="text-align:right">Total</th></tr></thead>
+<tbody>${custRows}</tbody></table>
+
+<h2>Método de Pago</h2>
+<table><thead><tr><th>Método</th><th style="text-align:center">Ventas</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
+<tbody>${methodRows}</tbody></table>
+
+<div class="footer">Generado el ${new Date().toLocaleDateString("es-AR", { weekday:"long", day:"2-digit", month:"long", year:"numeric" })} · ${businessName}</div>
+</body></html>`;
+
+    const w = window.open("", "_blank", "width=900,height=700");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300); }
+  };
+
   const unpaidPaged = paged.filter(s => !s.paid);
   const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => {
@@ -387,9 +496,14 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           <div className="flex items-center gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
             {filtered.length > 0 && (
-              <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
-                <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
+                  <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportMonthlyPDF} title="Informe ejecutivo PDF">
+                  <FileDown className="w-4 h-4 mr-1.5" />PDF
+                </Button>
+              </>
             )}
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
               <DialogTrigger asChild>
