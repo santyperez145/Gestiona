@@ -569,6 +569,11 @@ export default function Dashboard() {
     const prevProfit = prevSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
     const salesGrowth = prevSalesARS > 0 ? ((monthSalesARS - prevSalesARS) / prevSalesARS) * 100 : (monthSalesARS > 0 ? 100 : 0);
     const profitGrowth = prevProfit > 0 ? ((monthGrossProfit - prevProfit) / prevProfit) * 100 : (monthGrossProfit > 0 ? 100 : 0);
+    // Prev month expenses
+    const prevMonthExpenses = (expenses || []).filter((e: any) => {
+      const d = new Date(e.date); return d.getFullYear() === prevY && d.getMonth() === prevM;
+    });
+    const prevTotalMonthExpenses = prevMonthExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
 
     // ===== Top products this month vs prev month =====
     const monthProdMap: Record<string, { name: string; qty: number; revenue: number }> = {};
@@ -701,7 +706,7 @@ export default function Dashboard() {
       avgMonthlyPurchasesARS, breakEvenUnits, avgMarginPerUnit,
       currentRate, totalCostUSDInInventory, products: allProducts,
       // New
-      monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData,
+      monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData, prevTotalMonthExpenses,
       salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
@@ -1136,6 +1141,51 @@ export default function Dashboard() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Gastos del mes widget */}
+      {stats.totalMonthExpenses > 0 && (
+        <div className="mb-5 mt-4 bg-card border border-warning/20 rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Wallet className="w-4 h-4 text-warning" />Gastos del mes
+            </h3>
+            <Link to="/expenses" className="text-xs text-primary hover:underline">Ver gastos →</Link>
+          </div>
+          <div className="flex items-center gap-3 mb-3">
+            <div>
+              <p className="text-xl font-bold text-warning">{formatARS(stats.totalMonthExpenses)}</p>
+              {stats.prevTotalMonthExpenses > 0 && (() => {
+                const delta = stats.totalMonthExpenses - stats.prevTotalMonthExpenses;
+                const pct = (delta / stats.prevTotalMonthExpenses) * 100;
+                return (
+                  <p className={`text-[10px] font-medium ${delta > 0 ? 'text-destructive' : 'text-success'}`}>
+                    {delta > 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}% vs mes anterior
+                  </p>
+                );
+              })()}
+            </div>
+          </div>
+          {stats.expensesChartData.length > 0 && (
+            <div className="space-y-1.5">
+              {[...stats.expensesChartData].sort((a: any, b: any) => b.value - a.value).slice(0, 3).map((cat: any) => {
+                const pct = stats.totalMonthExpenses > 0 ? (cat.value / stats.totalMonthExpenses) * 100 : 0;
+                return (
+                  <div key={cat.name} className="flex items-center gap-2 text-xs">
+                    <span className="w-24 shrink-0 text-muted-foreground truncate">{cat.name}</span>
+                    <div className="flex-1 bg-muted rounded-full h-1.5">
+                      <div className="h-1.5 rounded-full bg-warning/70" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-14 text-right font-medium shrink-0">{formatARS(cat.value)}</span>
+                  </div>
+                );
+              })}
+              {stats.expensesChartData.length > 3 && (
+                <p className="text-[10px] text-muted-foreground mt-1">+{stats.expensesChartData.length - 3} categorías más</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

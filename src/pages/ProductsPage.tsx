@@ -142,6 +142,58 @@ async function exportProductsXLSX(products: any[], settings: any) {
   toast.success('Excel exportado con hojas por categoría');
 }
 
+function exportProductsCSV(products: any[]) {
+  const headers = [
+    'Nombre', 'Marca', 'Categoría', 'SKU', 'Barcode', 'Género',
+    'Costo USD', 'Pasero USD', 'Costo Total USD', 'TC',
+    'Precio Venta ARS', 'Precio Desc. ARS', 'Ganancia ARS', 'Margen %',
+    'Stock', 'Stock Mínimo',
+    'Contenido ml', 'Notas', 'Tags',
+    'Lote', 'Vencimiento', 'Días sin venta',
+    'Última modificación',
+  ];
+  const now = Date.now();
+  const rows = products.map((p: any) => {
+    const lastSale = p.last_sale_date ? Math.floor((now - new Date(p.last_sale_date).getTime()) / 86400000) : '';
+    const margin = p.sale_price_ars > 0 && p.total_cost_usd > 0
+      ? ((Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100).toFixed(1)
+      : '';
+    return [
+      p.name || '',
+      p.brand || '',
+      getCategoryLabel(p.category),
+      p.sku || '',
+      p.barcode || '',
+      p.gender || '',
+      Number(p.cost_usd) || '',
+      Number(p.customs_fee) || '',
+      Number(p.total_cost_usd) || '',
+      Number(p.exchange_rate) || '',
+      Number(p.sale_price_ars) || '',
+      Number(p.discount_price_ars) || '',
+      Number(p.profit_per_unit_ars) || '',
+      margin,
+      p.stock,
+      p.low_stock_threshold || '',
+      p.content_ml || '',
+      (p.notes || '').replace(/"/g, '""'),
+      (p.tags || []).join('|'),
+      p.lot_number || '',
+      p.expiry_date || '',
+      lastSale,
+      p.updated_at ? new Date(p.updated_at).toLocaleDateString('es-AR') : '',
+    ];
+  });
+  const bom = '﻿';
+  const csv = bom + [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `productos_exentry_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  toast.success(`${products.length} productos exportados a CSV`);
+}
+
 export default function ProductsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -311,6 +363,9 @@ export default function ProductsPage() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportProductsCSV(filtered)} title="Exportar CSV completo (todos los campos)">
+              <FileText className="w-4 h-4 mr-2" />CSV
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Exportar lista de precios para imprimir">
               <FileText className="w-4 h-4 mr-2" />Lista precios

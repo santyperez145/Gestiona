@@ -47,7 +47,7 @@ export default function DebtsPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"pending" | "paid" | "cobros" | "aging">("pending");
+  const [tab, setTab] = useState<"pending" | "paid" | "cobros" | "aging" | "payments">("pending");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
@@ -147,6 +147,7 @@ export default function DebtsPage() {
           { id: 'pending' as const, label: 'Pendientes', icon: AlertCircle, count: pending.length },
           { id: 'cobros' as const, label: 'Próximos cobros', icon: Calendar, count: (() => { const today = new Date(); today.setHours(0,0,0,0); const nw = new Date(today); nw.setDate(nw.getDate()+7); return pending.filter(d => { if (!d.due_date) return false; const dd = new Date(d.due_date+"T12:00:00"); return dd >= today && dd <= nw; }).length; })() },
           { id: 'aging' as const, label: 'Aging', icon: BarChart2, count: 0 },
+          { id: 'payments' as const, label: 'Historial', icon: DollarSign, count: paid.length },
           { id: 'paid' as const, label: 'Cobradas', icon: CheckCircle2, count: paid.length },
         ]).map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -253,6 +254,61 @@ export default function DebtsPage() {
                 );
               })}
             </div>
+          </div>
+        );
+      })()}
+
+      {/* Historial de pagos */}
+      {tab === "payments" && (() => {
+        const paidSorted = [...paid].sort((a, b) => {
+          const da = a.updated_at || a.date;
+          const db = b.updated_at || b.date;
+          return new Date(db).getTime() - new Date(da).getTime();
+        });
+        // Group by month
+        const byMonth: Record<string, typeof paidSorted> = {};
+        paidSorted.forEach(d => {
+          const key = (d.updated_at || d.date || '').slice(0, 7);
+          if (!byMonth[key]) byMonth[key] = [];
+          byMonth[key].push(d);
+        });
+        const monthTotal = (items: typeof paidSorted) => items.reduce((s, d) => s + Number(d.amount_ars), 0);
+        const grandTotal = paidSorted.reduce((s, d) => s + Number(d.amount_ars), 0);
+        if (paidSorted.length === 0) {
+          return <p className="text-sm text-muted-foreground text-center py-12">No hay cobros registrados aún.</p>;
+        }
+        return (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{paidSorted.length} cobros · total: <span className="font-semibold text-success">{formatARS(grandTotal)}</span></p>
+            </div>
+            {Object.entries(byMonth).map(([month, items]) => {
+              const [y, m] = month.split('-');
+              const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+              return (
+                <div key={month} className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground capitalize">{label}</span>
+                    <span className="text-xs font-semibold text-success">{formatARS(monthTotal(items))}</span>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    {items.map(d => (
+                      <div key={d.id} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/20 transition-colors">
+                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{d.customer_name}</p>
+                          {d.description && <p className="text-xs text-muted-foreground truncate">{d.description}</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-semibold text-success">{formatARS(Number(d.amount_ars))}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatDateAR(d.updated_at || d.date)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
       })()}
