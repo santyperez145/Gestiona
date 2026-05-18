@@ -10,7 +10,7 @@ import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, 
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -288,6 +288,7 @@ export default function ReportsPage() {
           <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
           <TabsTrigger value="compare">Comparativa</TabsTrigger>
           <TabsTrigger value="sucursales">Sucursales</TabsTrigger>
+          <TabsTrigger value="margin_trend">📈 Tendencia</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -494,6 +495,10 @@ export default function ReportsPage() {
 
         <TabsContent value="sucursales">
           <SucursalesTab sales={data.sales} />
+        </TabsContent>
+
+        <TabsContent value="margin_trend">
+          <MarginTrendTab sales={data.sales} expenses={data.expenses} />
         </TabsContent>
       </Tabs>
     </div>
@@ -2369,6 +2374,199 @@ function SucursalesTab({ sales }: { sales: any[] }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tendencia de Márgenes Tab
+// ─────────────────────────────────────────────────────────────
+function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) {
+  const [months, setMonths] = useState(12);
+
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const result: { month: string; label: string; revenue: number; grossProfit: number; net: number; grossMargin: number; netMargin: number; expenses: number }[] = [];
+
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+
+      const monthSales = sales.filter((s: any) => String(s.date).slice(0, 7) === key);
+      const monthExpenses = expenses.filter((e: any) => String(e.date).slice(0, 7) === key);
+
+      const revenue = monthSales.reduce((acc: number, s: any) => acc + Number(s.total_ars), 0);
+      const grossProfit = monthSales.reduce((acc: number, s: any) => acc + Number(s.profit_ars), 0);
+      const totalExpenses = monthExpenses.reduce((acc: number, e: any) => acc + Number(e.amount_ars), 0);
+      const net = grossProfit - totalExpenses;
+
+      result.push({
+        month: key,
+        label,
+        revenue,
+        grossProfit,
+        net,
+        expenses: totalExpenses,
+        grossMargin: revenue > 0 ? Math.round((grossProfit / revenue) * 1000) / 10 : 0,
+        netMargin: revenue > 0 ? Math.round((net / revenue) * 1000) / 10 : 0,
+      });
+    }
+    return result;
+  }, [sales, expenses, months]);
+
+  const withRevenue = chartData.filter(d => d.revenue > 0);
+  const avgGrossMargin = withRevenue.length > 0
+    ? withRevenue.reduce((acc, d) => acc + d.grossMargin, 0) / withRevenue.length
+    : 0;
+  const bestMonth = [...withRevenue].sort((a, b) => b.grossMargin - a.grossMargin)[0];
+  const worstMonth = [...withRevenue].sort((a, b) => a.grossMargin - b.grossMargin)[0];
+  const lastMonth = chartData[chartData.length - 1];
+  const prevMonth = chartData[chartData.length - 2];
+  const trend = lastMonth && prevMonth && prevMonth.revenue > 0 ? lastMonth.grossMargin - prevMonth.grossMargin : 0;
+
+  const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold">Tendencia de Márgenes</h3>
+        <select
+          value={months}
+          onChange={e => setMonths(Number(e.target.value))}
+          className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
+        >
+          <option value={3}>3 meses</option>
+          <option value={6}>6 meses</option>
+          <option value={12}>12 meses</option>
+          <option value={24}>24 meses</option>
+        </select>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-card border border-border rounded-lg p-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Margen bruto promedio</p>
+          <p className="text-xl font-bold text-primary">{avgGrossMargin.toFixed(1)}%</p>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Margen mes actual</p>
+          <p className={`text-xl font-bold ${(lastMonth?.grossMargin ?? 0) >= 30 ? 'text-success' : (lastMonth?.grossMargin ?? 0) >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
+            {lastMonth?.revenue > 0 ? `${lastMonth.grossMargin.toFixed(1)}%` : '—'}
+          </p>
+          {prevMonth?.revenue > 0 && (
+            <p className={`text-[10px] mt-0.5 ${trend >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {trend >= 0 ? '▲' : '▼'} {Math.abs(trend).toFixed(1)}pp vs anterior
+            </p>
+          )}
+        </div>
+        <div className="bg-card border border-border rounded-lg p-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Mejor mes</p>
+          <p className="text-xl font-bold text-success">{bestMonth ? `${bestMonth.grossMargin.toFixed(1)}%` : '—'}</p>
+          <p className="text-[10px] text-muted-foreground">{bestMonth?.label}</p>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Peor mes</p>
+          <p className="text-xl font-bold text-destructive">{worstMonth ? `${worstMonth.grossMargin.toFixed(1)}%` : '—'}</p>
+          <p className="text-[10px] text-muted-foreground">{worstMonth?.label}</p>
+        </div>
+      </div>
+
+      {/* Gross margin % line chart */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h4 className="text-sm font-semibold mb-3">Margen bruto mensual (%)</h4>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#888' }} unit="%" domain={[0, 'auto']} />
+            <Tooltip
+              formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen bruto']}
+              contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+            />
+            <ReferenceLine y={avgGrossMargin} stroke="#888" strokeDasharray="4 2" label={{ value: `Prom ${avgGrossMargin.toFixed(0)}%`, fill: '#888', fontSize: 10 }} />
+            <Line type="monotone" dataKey="grossMargin" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Net margin line chart */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h4 className="text-sm font-semibold mb-1">Margen neto mensual (%) <span className="text-xs font-normal text-muted-foreground">descontando gastos operativos</span></h4>
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#888' }} unit="%" />
+            <Tooltip
+              formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen neto']}
+              contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+            />
+            <ReferenceLine y={0} stroke="#555" />
+            <Line type="monotone" dataKey="netMargin" stroke="#22c55e" strokeWidth={2} dot={{ r: 3, fill: '#22c55e' }} activeDot={{ r: 5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Revenue + gross profit bar */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h4 className="text-sm font-semibold mb-3">Ganancia bruta vs Gastos mensuales</h4>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#888' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#888' }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+            <Tooltip
+              formatter={(v: number, name: string) => [fmtARS(v), name === 'grossProfit' ? 'Ganancia bruta' : 'Gastos']}
+              contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 12 }}
+            />
+            <Bar dataKey="grossProfit" fill="#f59e0b" radius={[3, 3, 0, 0]} name="grossProfit" />
+            <Bar dataKey="expenses" fill="#ef4444" radius={[3, 3, 0, 0]} name="expenses" />
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex gap-4 mt-2 text-xs text-muted-foreground justify-center">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" />Ganancia bruta</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" />Gastos</span>
+        </div>
+      </div>
+
+      {/* Monthly summary table */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Mes</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Ingresos</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Gan. bruta</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Gastos</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Resultado neto</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Mg. bruto</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Mg. neto</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/50">
+            {[...chartData].reverse().map(row => (
+              <tr key={row.month} className="hover:bg-muted/20 transition-colors">
+                <td className="px-4 py-2.5 font-medium text-xs">{row.label}</td>
+                <td className="px-4 py-2.5 text-right text-xs">{fmtARS(row.revenue)}</td>
+                <td className="px-4 py-2.5 text-right text-xs text-amber-400">{fmtARS(row.grossProfit)}</td>
+                <td className="px-4 py-2.5 text-right text-xs text-destructive">{row.expenses > 0 ? `-${fmtARS(row.expenses)}` : '—'}</td>
+                <td className={`px-4 py-2.5 text-right text-xs font-medium ${row.net >= 0 ? 'text-success' : 'text-destructive'}`}>{fmtARS(row.net)}</td>
+                <td className="px-4 py-2.5 text-right text-xs">
+                  <span className={`font-semibold ${row.grossMargin >= 30 ? 'text-success' : row.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
+                    {row.revenue > 0 ? `${row.grossMargin.toFixed(1)}%` : '—'}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-xs">
+                  <span className={`font-semibold ${row.netMargin >= 10 ? 'text-success' : row.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>
+                    {row.revenue > 0 ? `${row.netMargin.toFixed(1)}%` : '—'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
