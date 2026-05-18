@@ -2068,16 +2068,34 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
         </table>
       </div>
 
-      <Button variant="outline" size="sm" onClick={() => exportCSV(
-        'comparativa-periodos.csv',
-        ['Métrica', `Período A (${aFrom} a ${aTo})`, `Período B (${bFrom} a ${bTo})`, 'Variación %'],
-        metrics.map(({ label, a, b, fmt: fmtFn }) => {
-          const d = b === 0 ? '—' : `${((a - b) / Math.abs(b) * 100).toFixed(1)}%`;
-          return [label, fmtFn(a), fmtFn(b), d];
-        })
-      )}>
-        <FileDown className="w-3.5 h-3.5 mr-1.5" />Exportar CSV
-      </Button>
+      <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" size="sm" onClick={() => exportCSV(
+          'comparativa-periodos.csv',
+          ['Métrica', `Período A (${aFrom} a ${aTo})`, `Período B (${bFrom} a ${bTo})`, 'Variación %'],
+          metrics.map(({ label, a, b, fmt: fmtFn }) => {
+            const d = b === 0 ? '—' : `${((a - b) / Math.abs(b) * 100).toFixed(1)}%`;
+            return [label, fmtFn(a), fmtFn(b), d];
+          })
+        )}>
+          <FileDown className="w-3.5 h-3.5 mr-1.5" />Exportar CSV
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => {
+          const labelA = `${aFrom} → ${aTo}`;
+          const labelB = `${bFrom} → ${bTo}`;
+          const tableRows = metrics.map(({ label, a, b, fmt: fmtFn }) => {
+            const d = b === 0 ? '—' : `${((a - b) / Math.abs(b) * 100).toFixed(1)}%`;
+            return `<tr><td>${label}</td><td style="text-align:right;font-weight:600">${fmtFn(a)}</td><td style="text-align:right;color:#888">${fmtFn(b)}</td><td style="text-align:right;color:${b > 0 && a >= b ? '#4ade80' : '#f87171'}">${d}</td></tr>`;
+          }).join('');
+          const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comparativa de períodos</title>
+<style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1{font-size:16px;margin-bottom:4px}p{font-size:12px;color:#666;margin:0 0 12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:7px 10px;font-size:12px}th{background:#f0f0f0;font-weight:600;text-align:left}th:not(:first-child){text-align:right}@media print{body{margin:0}}</style></head>
+<body><h1>Comparativa de Períodos</h1><p>Generado: ${new Date().toLocaleDateString('es-AR')}</p>
+<table><thead><tr><th>Métrica</th><th>Período A<br/><small style="font-weight:400;color:#888">${labelA}</small></th><th>Período B<br/><small style="font-weight:400;color:#888">${labelB}</small></th><th>Variación</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`;
+          const w = window.open('', '_blank');
+          if (w) { w.document.write(html); w.document.close(); w.print(); }
+        }}>
+          <FileDown className="w-3.5 h-3.5 mr-1.5" />Imprimir / PDF
+        </Button>
+      </div>
     </div>
   );
 }

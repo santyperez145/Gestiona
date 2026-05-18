@@ -16,6 +16,7 @@ import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
+import ProductsPriceImport from "@/components/products/ProductsPriceImport";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -131,6 +132,7 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [priceImportOpen, setPriceImportOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
@@ -299,6 +301,11 @@ export default function ProductsPage() {
                 <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
               </Button>
             )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setPriceImportOpen(true)} className="hidden md:flex">
+                <FileSpreadsheet className="w-4 h-4 mr-2" />Precios CSV
+              </Button>
+            )}
             {canCreate && (productLimit !== null && products.length >= productLimit ? (
               <Button
                 className="gradient-gold text-primary-foreground font-semibold shadow-gold"
@@ -396,6 +403,14 @@ export default function ProductsPage() {
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="bg-card border-border max-w-5xl">
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Price import from CSV modal */}
+      <Dialog open={priceImportOpen} onOpenChange={setPriceImportOpen}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader><DialogTitle className="font-display">Actualizar Precios desde CSV</DialogTitle></DialogHeader>
+          <ProductsPriceImport products={products} onDone={() => { setPriceImportOpen(false); reload(); }} />
         </DialogContent>
       </Dialog>
 

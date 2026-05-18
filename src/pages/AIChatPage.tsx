@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
   Package, Users, BarChart2, DollarSign, Zap, Plus, CheckCircle2, X,
-  TrendingDown,
+  TrendingDown, History, MessageSquare, ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
@@ -738,6 +738,26 @@ function formatMessage(text: string) {
   });
 }
 
+// ─── Conversation history helpers ─────────────────────────────────────────────
+type SavedConversation = {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  savedAt: number;
+};
+
+const MAX_CONVERSATIONS = 10;
+
+function getConvKey(orgId: string) { return `gestiona.ai_history.${orgId}`; }
+
+function loadConversations(orgId: string): SavedConversation[] {
+  try { return JSON.parse(localStorage.getItem(getConvKey(orgId)) || "[]"); } catch { return []; }
+}
+
+function saveConversations(orgId: string, convs: SavedConversation[]) {
+  localStorage.setItem(getConvKey(orgId), JSON.stringify(convs.slice(0, MAX_CONVERSATIONS)));
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function AIChatPage() {
   const { user } = useAuth();
@@ -753,6 +773,46 @@ export default function AIChatPage() {
   const [dismissedActions, setDismissedActions] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversations, setConversations] = useState<SavedConversation[]>(() =>
+    activeOrg ? loadConversations(activeOrg.id) : []
+  );
+
+  // Reload conversation list when org changes
+  useEffect(() => {
+    if (activeOrg) setConversations(loadConversations(activeOrg.id));
+  }, [activeOrg?.id]);
+
+  const saveCurrentConversation = () => {
+    if (!activeOrg || messages.length < 2) return;
+    const firstUser = messages.find(m => m.role === "user")?.content || "Conversación";
+    const title = firstUser.length > 60 ? firstUser.slice(0, 57) + "…" : firstUser;
+    const conv: SavedConversation = { id: crypto.randomUUID(), title, messages, savedAt: Date.now() };
+    const updated = [conv, ...conversations].slice(0, MAX_CONVERSATIONS);
+    setConversations(updated);
+    saveConversations(activeOrg.id, updated);
+    toast.success("Conversación guardada");
+  };
+
+  const loadConversation = (conv: SavedConversation) => {
+    setMessages(conv.messages);
+    setDismissedActions(new Set());
+    setShowHistory(false);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
+
+  const deleteConversation = (id: string) => {
+    if (!activeOrg) return;
+    const updated = conversations.filter(c => c.id !== id);
+    setConversations(updated);
+    saveConversations(activeOrg.id, updated);
+  };
+
+  const startNewConversation = () => {
+    setMessages([]);
+    setDismissedActions(new Set());
+    setShowHistory(false);
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -804,7 +864,44 @@ export default function AIChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-3xl mx-auto">
+    <div className="flex gap-4 h-[calc(100vh-5rem)] max-w-5xl mx-auto relative">
+      {/* History sidebar */}
+      {showHistory && (
+        <div className="w-72 shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-3 border-b border-border">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5"><History className="w-4 h-4 text-primary" />Historial</h3>
+            <button onClick={() => setShowHistory(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          </div>
+          <button onClick={startNewConversation}
+            className="flex items-center gap-2 px-3 py-2.5 text-xs text-primary hover:bg-primary/10 border-b border-border transition-colors font-medium">
+            <Plus className="w-3.5 h-3.5" />Nueva conversación
+          </button>
+          <div className="flex-1 overflow-y-auto">
+            {conversations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-xs px-3">
+                <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-30" />
+                Sin conversaciones guardadas.<br />Usá "Guardar" para conservar una.
+              </div>
+            ) : conversations.map(c => (
+              <div key={c.id} className="group flex items-start gap-2 px-3 py-2.5 hover:bg-muted/30 cursor-pointer border-b border-border/40 transition-colors"
+                onClick={() => loadConversation(c)}>
+                <MessageSquare className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{c.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(c.savedAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                <button onClick={e => { e.stopPropagation(); deleteConversation(c.id); }}
+                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main chat */}
+      <div className="flex flex-col flex-1 h-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div>
@@ -813,11 +910,21 @@ export default function AIChatPage() {
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">Preguntá o pedí acciones en lenguaje natural</p>
         </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" />Limpiar
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowHistory(v => !v)} className={`text-muted-foreground ${showHistory ? 'bg-muted' : ''}`} title="Historial de conversaciones">
+            <History className="w-3.5 h-3.5 mr-1.5" />Historial
           </Button>
-        )}
+          {messages.length >= 2 && (
+            <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
+              💾 Guardar
+            </Button>
+          )}
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />Limpiar
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Chat area */}
@@ -950,6 +1057,7 @@ export default function AIChatPage() {
           Los datos se actualizan en tiempo real · Puede crear productos, gastos y clientes
         </p>
       </div>
+      </div>{/* end main chat */}
     </div>
   );
 }

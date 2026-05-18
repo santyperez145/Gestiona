@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -656,6 +656,10 @@ export default function POSPage() {
   const [showSellerPrompt, setShowSellerPrompt] = useState(false);
   const [sellerInput, setSellerInput] = useState("");
 
+  // Turno (shift) sales tracking — accumulates each successful checkout
+  const [turnoSales, setTurnoSales] = useState<Array<{ items: CartItem[]; total: number; method: string; customer: string; ts: number }>>([]);
+  const [showTurnoSummary, setShowTurnoSummary] = useState(false);
+
   useEffect(() => {
     if (!sellerName) setShowSellerPrompt(true);
   }, []);
@@ -1027,6 +1031,7 @@ export default function POSPage() {
         couponDiscount,
       });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
+      setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now() }]);
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
     } finally {
@@ -1391,6 +1396,75 @@ export default function POSPage() {
         />
       )}
 
+      {/* Turno summary modal */}
+      {showTurnoSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="font-display font-bold flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Resumen del turno</h2>
+              <button onClick={() => setShowTurnoSummary(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* KPIs */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Ventas', value: String(turnoSales.length) },
+                  { label: 'Total', value: formatARS(turnoSales.reduce((s, v) => s + v.total, 0)) },
+                  { label: 'Ticket prom.', value: formatARS(turnoSales.length > 0 ? turnoSales.reduce((s, v) => s + v.total, 0) / turnoSales.length : 0) },
+                ].map(k => (
+                  <div key={k.label} className="bg-muted/40 rounded-xl p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{k.label}</p>
+                    <p className="text-lg font-bold font-display text-primary mt-0.5">{k.value}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Method breakdown */}
+              {(() => {
+                const byMethod: Record<string, number> = {};
+                turnoSales.forEach(s => { byMethod[s.method] = (byMethod[s.method] || 0) + s.total; });
+                return (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Por medio de pago</p>
+                    <div className="space-y-1.5">
+                      {Object.entries(byMethod).sort((a, b) => b[1] - a[1]).map(([method, total]) => (
+                        <div key={method} className="flex items-center justify-between text-sm">
+                          <span className="capitalize text-muted-foreground">{method}</span>
+                          <span className="font-semibold">{formatARS(total)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+              {/* Recent sales list */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Ventas del turno</p>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {[...turnoSales].reverse().map((s, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/40 last:border-0">
+                      <div>
+                        <p className="font-medium">{s.items.map(it => it.name).join(', ')}</p>
+                        <p className="text-muted-foreground">{s.customer || 'Sin cliente'} · {new Date(s.ts).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                      <span className="font-bold text-primary ml-2 shrink-0">{formatARS(s.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {sellerName && <p className="text-[11px] text-muted-foreground text-center">Vendedor: <span className="font-semibold">{sellerName}</span></p>}
+            </div>
+            <div className="p-4 pt-0 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setTurnoSales([]); setShowTurnoSummary(false); toast.success("Turno reiniciado"); }}>
+                Reiniciar turno
+              </Button>
+              <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={() => setShowTurnoSummary(false)}>
+                Continuar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Receipt modal */}
       {receipt && (
         <ReceiptModal
@@ -1500,6 +1574,13 @@ export default function POSPage() {
                 className="text-[10px] text-primary hover:underline"
               >cambiar</button>
             </div>
+          )}
+          {turnoSales.length > 0 && (
+            <button onClick={() => setShowTurnoSummary(true)}
+              className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1 hover:bg-primary/20 transition-colors font-medium">
+              <BarChart2 className="w-3 h-3" />
+              {turnoSales.length} venta{turnoSales.length !== 1 ? 's' : ''} · {formatARS(turnoSales.reduce((s, v) => s + v.total, 0))}
+            </button>
           )}
           <div className="flex-1 relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

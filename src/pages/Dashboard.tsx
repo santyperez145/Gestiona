@@ -1669,6 +1669,59 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Próximas compras sugeridas */}
+      {stats.restockSuggestions?.length > 0 && (
+        <div className="bg-card border border-primary/20 rounded-xl p-4 md:p-5 shadow-card mb-6 md:mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-display font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
+              <Package className="w-4 h-4" />Próximas compras sugeridas
+            </h2>
+            <Link to="/compras" className="text-xs text-primary hover:underline">Ver compras →</Link>
+          </div>
+          <div className="space-y-2">
+            {stats.restockSuggestions.map((r: any) => {
+              const urgency = r.daysOfStock !== Infinity && r.daysOfStock <= 5 ? 'destructive' : r.daysOfStock <= 14 ? 'warning' : 'success';
+              const barPct = r.daysOfStock !== Infinity ? Math.min((r.daysOfStock / 30) * 100, 100) : 100;
+              return (
+                <div key={r.name} className="bg-muted/30 rounded-lg p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <p className="text-sm font-medium truncate max-w-[55%]" title={r.name}>{r.name}</p>
+                    <div className="flex items-center gap-2 text-xs shrink-0">
+                      <span className={`px-1.5 py-0.5 rounded font-mono font-semibold ${r.stock <= 0 ? 'bg-destructive/20 text-destructive' : urgency === 'warning' ? 'bg-warning/20 text-warning' : 'bg-primary/20 text-primary'}`}>
+                        {r.stock}u stock
+                      </span>
+                      {r.suggestedOrder > 0 && (
+                        <span className="text-success font-semibold">→ pedir {r.suggestedOrder}u</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${urgency === 'destructive' ? 'bg-destructive' : urgency === 'warning' ? 'bg-warning' : 'bg-primary'}`}
+                        style={{ width: `${barPct}%` }} />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {r.daysOfStock !== Infinity ? `${r.daysOfStock}d de stock` : 'Sin velocidad'}
+                      {r.unitsPerDay > 0 && ` · ${r.unitsPerDay.toFixed(1)}u/día`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => {
+              const list = stats.restockSuggestions.map((r: any) => `${r.name} (${r.stock}u, ${r.daysOfStock !== Infinity ? r.daysOfStock + 'd restantes' : 'sin datos'}, sugerir ${r.suggestedOrder}u)`).join('\n');
+              sessionStorage.setItem("gestiona.ai_prefill", `Tengo estos productos con stock crítico:\n${list}\n\n¿Qué priorizo comprar primero y por qué?`);
+              navigate("/ai-chat");
+            }}
+            className="mt-3 text-xs text-primary hover:underline flex items-center gap-1"
+          >
+            <Zap className="w-3.5 h-3.5" />Consultar prioridad con IA
+          </button>
+        </div>
+      )}
+
       {/* Financial Tools */}
       <FinancialSection stats={stats} />
 

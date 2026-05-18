@@ -109,6 +109,27 @@ export default function ExpensesPage() {
 
   useEffect(() => { reload(); }, [user]);
 
+  // Budget alerts: warn once per session when a category hits 80%+
+  const alertedCatsKey = "gestiona.expense_budget_alerted";
+  useEffect(() => {
+    if (!totals.chartData.length || !Object.keys(budgets).length) return;
+    const alerted = new Set<string>(JSON.parse(sessionStorage.getItem(alertedCatsKey) || "[]"));
+    totals.chartData.forEach(c => {
+      const budget = budgets[c.cat] || 0;
+      if (!budget) return;
+      const pct = (c.value / budget) * 100;
+      const key = `${c.cat}.${filterMonth}`;
+      if (pct >= 80 && pct < 100 && !alerted.has(key)) {
+        toast.warning(`⚠️ Presupuesto de "${c.name}" al ${pct.toFixed(0)}% (${formatARS(c.value)} de ${formatARS(budget)})`, { duration: 6000 });
+        alerted.add(key);
+      } else if (pct >= 100 && !alerted.has(key + '_over')) {
+        toast.error(`🚨 Presupuesto de "${c.name}" superado (${formatARS(c.value)} > ${formatARS(budget)})`, { duration: 8000 });
+        alerted.add(key + '_over');
+      }
+    });
+    sessionStorage.setItem(alertedCatsKey, JSON.stringify([...alerted]));
+  }, [totals.chartData, budgets, filterMonth]);
+
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       if (filterCat !== 'all' && e.category !== filterCat) return false;
