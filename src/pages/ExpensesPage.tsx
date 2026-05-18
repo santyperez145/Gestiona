@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   getExpensesDB, addExpenseDB, updateExpenseDB, deleteExpenseDB,
@@ -11,12 +11,13 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
+import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -352,7 +353,14 @@ export default function ExpensesPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground max-w-[200px]">
-                            <p className="truncate">{e.description || '—'}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="truncate">{e.description || '—'}</p>
+                              {e.receipt_url && (
+                                <a href={e.receipt_url} target="_blank" rel="noreferrer" title="Ver recibo" className="text-primary hover:text-primary/80 shrink-0">
+                                  <Paperclip className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
                             {e.recurring && e.recurring_next_date && (
                               <p className="text-[10px] text-warning/70 mt-0.5">
                                 próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
@@ -396,7 +404,14 @@ export default function ExpensesPage() {
                             </span>
                             {e.recurring && <Repeat className="w-3 h-3 text-warning" />}
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{e.description || 'Sin descripción'}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs text-muted-foreground truncate">{e.description || 'Sin descripción'}</p>
+                            {e.receipt_url && (
+                              <a href={e.receipt_url} target="_blank" rel="noreferrer" title="Ver recibo" className="text-primary shrink-0">
+                                <Paperclip className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
                           <p className="text-[10px] text-muted-foreground/60">
                             {formatDateAR(e.date)}
                             {e.recurring && e.recurring_next_date && (
@@ -463,6 +478,30 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>(editItem?.recurring_frequency || 'monthly');
   const [submitting, setSubmitting] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string>(editItem?.receipt_url || '');
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+  const receiptCamRef = useRef<HTMLInputElement>(null);
+
+  const handleReceiptFile = async (file: File) => {
+    if (!file) return;
+    setUploadingReceipt(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `receipts/${userId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      setReceiptUrl(urlData.publicUrl);
+      toast.success('Recibo adjuntado');
+    } catch (err: any) {
+      toast.error('Error al subir recibo: ' + (err.message || err));
+    } finally {
+      setUploadingReceipt(false);
+      if (receiptInputRef.current) receiptInputRef.current.value = '';
+      if (receiptCamRef.current) receiptCamRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,6 +532,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         recurring,
         recurring_frequency: recurring ? recurringFrequency : null,
         recurring_next_date: nextDate ? nextDate.toISOString().slice(0, 10) : null,
+        receipt_url: receiptUrl || null,
       };
       if (editItem) {
         await updateExpenseDB(editItem.id, data);
@@ -576,6 +616,39 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
             </p>
           </div>
         )}
+      </div>
+
+      {/* Receipt upload */}
+      <div className="space-y-2">
+        <label className="text-sm text-muted-foreground flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />Recibo / Comprobante</label>
+        {receiptUrl ? (
+          <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg p-2">
+            <img src={receiptUrl} alt="recibo" className="w-12 h-12 object-cover rounded" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-success font-medium">Recibo adjuntado</p>
+              <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-[10px] text-primary flex items-center gap-1 hover:underline">
+                <ExternalLink className="w-3 h-3" />Ver original
+              </a>
+            </div>
+            <button type="button" onClick={() => setReceiptUrl('')} className="text-muted-foreground hover:text-destructive transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => receiptInputRef.current?.click()} disabled={uploadingReceipt}
+              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50">
+              {uploadingReceipt ? <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
+              {uploadingReceipt ? 'Subiendo...' : 'Adjuntar archivo'}
+            </button>
+            <button type="button" onClick={() => receiptCamRef.current?.click()} disabled={uploadingReceipt}
+              className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors sm:hidden disabled:opacity-50">
+              <Camera className="w-3.5 h-3.5" />Foto
+            </button>
+          </div>
+        )}
+        <input ref={receiptInputRef} type="file" accept="image/*,application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); }} className="hidden" />
+        <input ref={receiptCamRef} type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptFile(f); }} className="hidden" />
       </div>
 
       <Button type="submit" disabled={submitting} className="w-full gradient-gold text-primary-foreground font-semibold">

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, Camera, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -754,6 +754,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   // Variants state
   const [variants, setVariants] = useState<any[]>([]);
   const [variantType, setVariantType] = useState(product?.variant_type || 'sabor');
@@ -817,6 +818,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     if (files.length === 0) return;
     addFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
   const removeImageAt = (idx: number) => {
     setImageItems(prev => prev.filter((_, i) => i !== idx));
@@ -968,12 +970,19 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             </div>
           ))}
           {imageItems.length < 8 && (
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-              <Upload className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5">Agregar</span>
-            </button>
+            <>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                <Upload className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5">Agregar</span>
+              </button>
+              <button type="button" onClick={() => cameraInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors sm:hidden">
+                <Camera className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5">Cámara</span>
+              </button>
+            </>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
         </div>
         <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>

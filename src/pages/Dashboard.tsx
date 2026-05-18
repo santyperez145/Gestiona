@@ -120,6 +120,12 @@ export default function Dashboard() {
   const [editingWeeklyTarget, setEditingWeeklyTarget] = useState(false);
   const [weeklyTargetInput, setWeeklyTargetInput] = useState("");
 
+  // Monthly AI summary (cached in localStorage, refreshed once per month)
+  const monthlySummaryKey = `gestiona.monthly_summary.${orgForWeekly?.id || 'default'}.${new Date().getFullYear()}.${new Date().getMonth()}`;
+  const [monthlySummary, setMonthlySummary] = useState<string>(() => localStorage.getItem(monthlySummaryKey) || '');
+  const [monthlySummaryDismissed, setMonthlySummaryDismissed] = useState<boolean>(() => localStorage.getItem(monthlySummaryKey + '.dismissed') === '1');
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -689,6 +695,21 @@ export default function Dashboard() {
     return 'Buenas noches';
   })();
 
+  const generateMonthlySummary = () => {
+    if (!stats) return;
+    const now = new Date();
+    const monthName = now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const margin = stats.monthSalesARS > 0 ? ((stats.monthGrossProfit / stats.monthSalesARS) * 100).toFixed(1) : '0';
+    const top3 = stats.topMonthProducts.slice(0, 3).map((p: any) => p.name).join(', ') || 'Sin datos';
+    const growth = stats.salesGrowth > 0 ? `+${stats.salesGrowth.toFixed(1)}%` : `${stats.salesGrowth.toFixed(1)}%`;
+    const summary = `📊 Resumen de ${monthName}: Facturé ${formatARS(stats.monthSalesARS)} (${growth} vs mes anterior), ganancia bruta ${formatARS(stats.monthGrossProfit)} (${margin}% margen). Top productos: ${top3}. Gastos: ${formatARS(stats.totalMonthExpenses)}. Resultado neto estimado: ${formatARS(stats.netMonthProfitARS)}.`;
+    setMonthlySummary(summary);
+    localStorage.setItem(monthlySummaryKey, summary);
+    setMonthlySummaryDismissed(false);
+    localStorage.removeItem(monthlySummaryKey + '.dismissed');
+    setGeneratingSummary(false);
+  };
+
   return (
     <div>
       {/* Header */}
@@ -792,7 +813,31 @@ export default function Dashboard() {
           <Zap className="w-3.5 h-3.5" />
           💡 Insight del día
         </button>
+        <button
+          onClick={() => { setGeneratingSummary(true); setTimeout(generateMonthlySummary, 100); }}
+          disabled={generatingSummary}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground font-medium disabled:opacity-50"
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          📅 Resumen del mes
+        </button>
       </div>
+
+      {/* Monthly summary card */}
+      {monthlySummary && !monthlySummaryDismissed && (
+        <div className="mb-4 bg-card border border-primary/20 rounded-xl p-3 flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold text-primary uppercase tracking-wide mb-1">Resumen mensual</p>
+            <p className="text-xs text-foreground leading-relaxed">{monthlySummary}</p>
+          </div>
+          <div className="flex flex-col gap-1 shrink-0">
+            <button onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`); navigate("/ai-chat"); }}
+              className="text-[10px] text-primary hover:underline whitespace-nowrap">Analizar con IA</button>
+            <button onClick={() => { setMonthlySummaryDismissed(true); localStorage.setItem(monthlySummaryKey + '.dismissed', '1'); }}
+              className="text-[10px] text-muted-foreground hover:text-foreground">Cerrar</button>
+          </div>
+        </div>
+      )}
 
       {/* Today detail panel */}
       {showTodayDetail && todayDetail && (

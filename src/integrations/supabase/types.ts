@@ -1211,6 +1211,7 @@ export type Database = {
           id: string
           last_auto_created_at: string | null
           org_id: string
+          receipt_url: string | null
           recurring: boolean
           recurring_frequency: string | null
           recurring_next_date: string | null
@@ -1226,6 +1227,7 @@ export type Database = {
           id?: string
           last_auto_created_at?: string | null
           org_id: string
+          receipt_url?: string | null
           recurring?: boolean
           recurring_frequency?: string | null
           recurring_next_date?: string | null
@@ -1241,6 +1243,7 @@ export type Database = {
           id?: string
           last_auto_created_at?: string | null
           org_id?: string
+          receipt_url?: string | null
           recurring?: boolean
           recurring_frequency?: string | null
           recurring_next_date?: string | null
@@ -3471,6 +3474,7 @@ export type Database = {
           overdue_check_window_hours: number
           pasero_commission_percent: number
           primary_color: string | null
+          receipt_footer: string | null
           referral_bonus_ars: number | null
           referral_bonus_points: number | null
           referral_enabled: boolean | null
@@ -3550,6 +3554,7 @@ export type Database = {
           overdue_check_window_hours?: number
           pasero_commission_percent?: number
           primary_color?: string | null
+          receipt_footer?: string | null
           referral_bonus_ars?: number | null
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
@@ -3629,6 +3634,7 @@ export type Database = {
           overdue_check_window_hours?: number
           pasero_commission_percent?: number
           primary_color?: string | null
+          receipt_footer?: string | null
           referral_bonus_ars?: number | null
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null

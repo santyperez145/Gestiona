@@ -219,7 +219,9 @@ export default function SalesPage() {
   };
 
   const printReceipt = (s: any) => {
-    const businessName = (sales as any).businessName || "Mi Negocio";
+    const businessName = settings?.business_name || "Mi Negocio";
+    const logoUrl = settings?.logo_url || "";
+    const receiptFooter = settings?.receipt_footer || "¡Gracias por su compra!";
     const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
 <style>
@@ -231,21 +233,22 @@ export default function SalesPage() {
   .bold{font-weight:bold}
   .total{font-size:16px;font-weight:bold;text-align:right;margin-top:12px}
   .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
+  .logo{display:block;max-height:60px;max-width:180px;margin:0 auto 8px}
   .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${s.paid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
 </style></head><body>
-<h1>RECIBO DE VENTA</h1>
-<div class="sub">Fecha: ${date}</div>
+${logoUrl ? `<img src="${logoUrl}" class="logo" alt="logo" />` : ""}
+<h1>${businessName}</h1>
+<div class="sub">Recibo de venta · ${date}</div>
 <hr>
 <div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
 ${s.customer_name ? `<div class="row"><span>Cliente:</span><span>${s.customer_name}</span></div>` : ""}
 <div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
 <div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>
-${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span></div>` : ""}
 <div class="row"><span>Método de pago:</span><span>${s.payment_method || "efectivo"}</span></div>
 <hr>
 <div class="total">TOTAL: ${formatARS(Number(s.total_ars))}</div>
 <div style="text-align:right;margin-top:4px"><span class="estado">${s.paid ? "✓ Cobrado" : "Pendiente"}</span></div>
-<div class="footer"><p>¡Gracias por su compra!</p></div>
+<div class="footer"><p>${receiptFooter}</p></div>
 </body></html>`;
     const w = window.open("", "_blank", "width=380,height=500");
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }

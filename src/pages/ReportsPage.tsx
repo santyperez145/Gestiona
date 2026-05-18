@@ -257,6 +257,7 @@ export default function ReportsPage() {
           <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
           <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
+          <TabsTrigger value="compare">Comparativa</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -452,6 +453,10 @@ export default function ReportsPage() {
 
         <TabsContent value="suppliers">
           <SuppliersTab purchases={data.purchases} />
+        </TabsContent>
+
+        <TabsContent value="compare">
+          <ComparePeriodTab sales={data.sales} expenses={data.expenses} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1924,6 +1929,155 @@ function SuppliersTab({ purchases }: { purchases: any[] }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Comparativa de Períodos Tab
+// ─────────────────────────────────────────────────────────────
+function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+  const [aFrom, setAFrom] = useState(fmt(new Date(y, m, 1)));
+  const [aTo, setATo] = useState(fmt(new Date(y, m + 1, 0)));
+  const [bFrom, setBFrom] = useState(fmt(new Date(y, m - 1, 1)));
+  const [bTo, setBTo] = useState(fmt(new Date(y, m, 0)));
+
+  const calcPeriod = (from: string, to: string) => {
+    const f = new Date(from + 'T00:00:00');
+    const t = new Date(to + 'T23:59:59');
+    const inRange = (d: string) => { const x = new Date(d); return x >= f && x <= t; };
+    const ps = sales.filter((s: any) => inRange(s.date));
+    const pe = expenses.filter((e: any) => inRange(e.date));
+    const revenue = ps.reduce((a: number, s: any) => a + Number(s.total_ars || 0), 0);
+    const profit = ps.reduce((a: number, s: any) => a + Number(s.profit_ars || 0), 0);
+    const expAmt = pe.reduce((a: number, e: any) => a + Number(e.amount_ars || 0), 0);
+    const units = ps.reduce((a: number, s: any) => a + Number(s.quantity || 1), 0);
+    const count = ps.length;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    const ticket = count > 0 ? revenue / count : 0;
+    const netResult = profit - expAmt;
+    return { revenue, profit, expAmt, units, count, margin, ticket, netResult };
+  };
+
+  const A = useMemo(() => calcPeriod(aFrom, aTo), [aFrom, aTo, sales, expenses]);
+  const B = useMemo(() => calcPeriod(bFrom, bTo), [bFrom, bTo, sales, expenses]);
+
+  const diff = (a: number, b: number) => b === 0 ? null : ((a - b) / Math.abs(b)) * 100;
+  const DiffBadge = ({ a, b, invert = false }: { a: number; b: number; invert?: boolean }) => {
+    const d = diff(a, b);
+    if (d === null) return <span className="text-[10px] text-muted-foreground">—</span>;
+    const positive = invert ? d < 0 : d >= 0;
+    return (
+      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${positive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+        {d >= 0 ? '+' : ''}{d.toFixed(1)}%
+      </span>
+    );
+  };
+
+  const metrics = [
+    { label: 'Facturado (ARS)', a: A.revenue, b: B.revenue, fmt: formatARS },
+    { label: 'Ganancia bruta (ARS)', a: A.profit, b: B.profit, fmt: formatARS },
+    { label: 'Gastos (ARS)', a: A.expAmt, b: B.expAmt, fmt: formatARS, invert: true },
+    { label: 'Resultado neto (ARS)', a: A.netResult, b: B.netResult, fmt: formatARS },
+    { label: 'Margen bruto', a: A.margin, b: B.margin, fmt: (n: number) => `${n.toFixed(1)}%` },
+    { label: 'Ticket promedio (ARS)', a: A.ticket, b: B.ticket, fmt: formatARS },
+    { label: 'Unidades vendidas', a: A.units, b: B.units, fmt: (n: number) => n.toString() },
+    { label: 'Transacciones', a: A.count, b: B.count, fmt: (n: number) => n.toString() },
+  ];
+
+  const chartData = [
+    { metric: 'Facturado', A: Math.round(A.revenue), B: Math.round(B.revenue) },
+    { metric: 'Ganancia', A: Math.round(A.profit), B: Math.round(B.profit) },
+    { metric: 'Gastos', A: Math.round(A.expAmt), B: Math.round(B.expAmt) },
+    { metric: 'Neto', A: Math.round(A.netResult), B: Math.round(B.netResult) },
+  ];
+
+  const ttStyle = { background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 };
+
+  return (
+    <div className="space-y-6">
+      {/* Period pickers */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-card border border-primary/30 rounded-xl p-4 space-y-2">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wide">Período A</p>
+          <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-muted-foreground">Desde</label>
+              <input type="date" value={aFrom} onChange={e => setAFrom(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-muted-foreground">Hasta</label>
+              <input type="date" value={aTo} onChange={e => setATo(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-muted rounded-xl p-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Período B</p>
+          <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-muted-foreground">Desde</label>
+              <input type="date" value={bFrom} onChange={e => setBFrom(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-muted-foreground">Hasta</label>
+              <input type="date" value={bTo} onChange={e => setBTo(e.target.value)} className="h-8 text-xs px-2 rounded-md border border-border bg-muted/50 text-foreground" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Comparativa visual</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData} barGap={4} barCategoryGap="30%">
+            <XAxis dataKey="metric" tick={{ fill: "hsl(220,10%,55%)", fontSize: 11 }} />
+            <YAxis tickFormatter={(v: number) => `$${Math.abs(v) >= 1000000 ? `${(v/1000000).toFixed(1)}M` : Math.abs(v) >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} width={60} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number, name: string) => [formatARS(v), name]} />
+            <Bar dataKey="A" name="Período A" fill="hsl(43,86%,55%)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="B" name="Período B" fill="hsl(220,14%,40%)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Metrics table */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wide">Métrica</th>
+              <th className="px-4 py-3 text-right text-xs text-primary uppercase tracking-wide">Período A</th>
+              <th className="px-4 py-3 text-right text-xs text-muted-foreground uppercase tracking-wide">Período B</th>
+              <th className="px-4 py-3 text-right text-xs text-muted-foreground uppercase tracking-wide">Variación</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/40">
+            {metrics.map(({ label, a, b, fmt: fmtFn, invert }) => (
+              <tr key={label} className="hover:bg-muted/20 transition-colors">
+                <td className="px-4 py-3 font-medium text-sm">{label}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm font-bold text-primary">{fmtFn(a)}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground">{fmtFn(b)}</td>
+                <td className="px-4 py-3 text-right"><DiffBadge a={a} b={b} invert={invert} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Button variant="outline" size="sm" onClick={() => exportCSV(
+        'comparativa-periodos.csv',
+        ['Métrica', `Período A (${aFrom} a ${aTo})`, `Período B (${bFrom} a ${bTo})`, 'Variación %'],
+        metrics.map(({ label, a, b, fmt: fmtFn }) => {
+          const d = b === 0 ? '—' : `${((a - b) / Math.abs(b) * 100).toFixed(1)}%`;
+          return [label, fmtFn(a), fmtFn(b), d];
+        })
+      )}>
+        <FileDown className="w-3.5 h-3.5 mr-1.5" />Exportar CSV
+      </Button>
     </div>
   );
 }

@@ -33,6 +33,7 @@ export default function SettingsPage() {
 
   const [businessName, setBusinessName] = useState('Exentry Imports');
   const [logoUrl, setLogoUrl] = useState('');
+  const [receiptFooter, setReceiptFooter] = useState('¡Gracias por su compra!');
   const [primaryColor, setPrimaryColor] = useState('#D4A843');
   const [secondaryColor, setSecondaryColor] = useState('#1A1A2E');
   const [uploading, setUploading] = useState(false);
@@ -111,6 +112,7 @@ export default function SettingsPage() {
       setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
       setBusinessName(s.business_name || 'Exentry Imports');
       setLogoUrl(s.logo_url || '');
+      setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
       setPrimaryColor(s.primary_color || '#D4A843');
       setSecondaryColor(s.secondary_color || '#1A1A2E');
       setDiscountCash(String(s.discount_cash_percent ?? 10));
@@ -171,6 +173,7 @@ export default function SettingsPage() {
         tax_monotributo_monthly: num(taxMonotributo, 0),
         business_name: businessName || 'Exentry Imports',
         logo_url: logoUrl || null,
+        receipt_footer: receiptFooter || null,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         discount_cash_percent: num(discountCash, 0),
@@ -277,6 +280,11 @@ export default function SettingsPage() {
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
                 </label>
               </div>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Pie de recibo / ticket</label>
+              <Input value={receiptFooter} onChange={e => setReceiptFooter(e.target.value)} placeholder="¡Gracias por su compra!" className="bg-muted border-border mt-1" />
+              <p className="text-[10px] text-muted-foreground mt-1">Aparece al final de cada recibo impreso desde Ventas y POS.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <ColorPicker label="Color Principal" value={primaryColor} onChange={(c) => { setPrimaryColor(c); applyColors(c, secondaryColor); }} />
