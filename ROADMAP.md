@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 28)**
+Última actualización: **2026-05-18 (sesión 29)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -577,18 +577,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 29)
+## Sesión 29 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **Dashboard: gráfico ventas vs meta mensual** — AreaChart diario acumulado vs meta lineal (gold vs gris) dentro del widget de objetivo mensual | ✅ Hecho |
+| 2 | **SalesPage: nota interna por venta** — Textarea opcional (300 chars) al registrar; persiste en campo `notes`; indicador FileText icon en tabla desktop (tooltip con nota) y texto completo en mobile cards | ✅ Hecho |
+| 3 | **ReportsPage: tab "📈 Tendencia"** — LineChart margen bruto % por mes con línea de promedio (ReferenceLine), LineChart margen neto, BarChart ganancia bruta vs gastos, tabla resumen con color-coding (≥30% verde, ≥15% amber, <15% rojo); filtro 3/6/12/24 meses | ✅ Hecho |
+| 4 | **AIChatPage: sugerencia de restock** — intent "qué debería reponer", RestockSuggestionCard: cruza productos stock-bajo con velocidad de ventas 30d; urgency high/medium/low; días de stock restantes; chip "Qué reponer" en SUGGESTIONS | ✅ Hecho |
+| 5 | **POSPage: modo dark/light individual** — botón Sun/Moon en top bar; state persisted en localStorage por org; override de clases inline en contenedor raíz | ✅ Hecho |
+| 6 | **ProductsPage: etiquetas/tags** | ✅ Ya existía (sesión anterior) |
+| 7 | **CustomersPage: email desde CRM** | ✅ Ya existía (sesión 16) |
+| 8 | **AnalyticsPage: tab "Cohortes"** | ✅ Ya existía (sesión 17) |
+
+---
+
+## Prioridades inmediatas (sesión 30)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **Dashboard: gráfico ventas vs meta mensual** — evolución diaria del mes actual superpuesta a la meta lineal (lo que debería llevar acumulado) | KPI ejecutivo |
-| 2 | **ReportsPage: tab "Tendencia de márgenes"** — gráfico de líneas margen % por mes para los últimos 12 meses + breakdown por categoría | Salud financiera |
-| 3 | **POSPage: modo dark/light individual** — botón toggle en POS sin afectar el resto de la app | UX operadores |
-| 4 | **CustomersPage: campañas de email desde CRM** — botón "Enviar campaña" en segmento → pre-rellena EmailCampaignsPage con el segmento activo | Email marketing |
-| 5 | **ProductsPage: etiquetas/tags personalizados** — campo libre de tags por producto para filtros avanzados | Organización catálogo |
-| 6 | **SalesPage: nota interna por venta** — campo opcional "nota" al registrar, visible en historial | Trazabilidad |
-| 7 | **AIChatPage: sugerencia de restock** — intent "¿qué debería reponer?" que cruza stock bajo con velocidad de ventas | Automatización |
-| 8 | **AnalyticsPage: tab "Cohortes de compra"** — clientes agrupados por mes de primera compra con retención por mes subsiguiente | Retención clientes |
+| 1 | **ProductsPage: exportar CSV con todos los campos** — incluir tags, SKU, barcode, lot, expiry, low_stock_threshold, variantes count, días sin venta | Gestión de catálogo |
+| 2 | **DebtsPage: tab "Historial de pagos"** — timeline de todos los pagos recibidos (parciales y totales) con fecha, cliente, monto y método | Trazabilidad financiera |
+| 3 | **Dashboard: widget "Gastos del mes"** — total gastos actuales vs mes anterior, por categoría top-3, link a /expenses | Control de costos |
+| 4 | **SalesPage: filtro por categoría de producto** — dropdown de categoría en barra de filtros (además del search actual) | Análisis por línea |
+| 5 | **ReportsPage: tab "Por Vendedor mejorado"** — evolución mensual de ventas por vendedor, comparativa entre vendedores, comisión acumulada del período | Performance equipo |
+| 6 | **ExpensesPage: export PDF** — botón "PDF" que genera reporte imprimible con KPIs, gráfico mensual y tabla detallada | Presentación externa |
+| 7 | **POSPage: nota interna por venta en POS** — campo opcional después de seleccionar método de pago, sincronizado con el campo `notes` de SalesPage | Operaciones |
+| 8 | **CustomersPage: campo "empresa/negocio"** — campo company en ficha de cliente para clientes B2B; filtro empresa en lista | CRM B2B |
 
 ---
 
