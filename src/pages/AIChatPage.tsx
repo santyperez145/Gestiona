@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -27,6 +27,7 @@ type AIAction =
   | { type: "query_debt"; customerName?: string }
   | { type: "query_stock"; productName?: string }
   | { type: "query_product_analysis"; productName?: string }
+  | { type: "query_restock" }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -128,6 +129,13 @@ function detectIntent(msg: string): AIAction | null {
       /\b(cómo\s+va|qué\s+tal\s+va|analiza(r)?)\s+(?:el\s+producto\s+)?["']?([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9][^\?"']{2,}?)["']?(?:\?|$)/.test(lower)) {
     const nameMatch = msg.match(/(?:analiz[ae](?:r)?|cómo va|qué tal va|informe de|rendimiento de|performance de)\s+(?:el\s+(?:producto\s+)?)?["']?([^"'?\n]{2,40}?)["']?\s*(?:\?|$)/i);
     return { type: "query_product_analysis", productName: nameMatch?.[1]?.trim() };
+  }
+
+  // Restock suggestion
+  if (/\b(reponer|restock|reabastecer|repuesto|reabastecimiénto|comprar|pedir|order(?:ar)?)\b.{0,30}\b(stock|producto|mercadería|mercancía|inventario)\b/.test(lower) ||
+      /\bqué\s+(me\s+)?(falta|debería\s+(?:comprar|pedir|reponer)|hay\s+que\s+(?:comprar|pedir|reponer))\b/.test(lower) ||
+      /\b(productos?\s+(?:con\s+)?(?:bajo\s+stock|sin\s+stock|agotad[oa]s?|faltantes?)|qué\s+(?:me\s+)?queda\s+poco)\b/.test(lower)) {
+    return { type: "query_restock" };
   }
 
   return null;
@@ -291,6 +299,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_stock") {
     return <QueryStockCard userId={userId} initialName={action.productName} onDone={onDone} />;
+  }
+
+  if (action.type === "query_restock") {
+    return <RestockSuggestionCard userId={userId} onDone={onDone} />;
   }
 
   if (action.type === "query_product_analysis") {
@@ -602,6 +614,96 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
   );
 }
 
+// ─── RestockSuggestionCard ────────────────────────────────────────────────────
+function RestockSuggestionCard({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const { activeOrg } = useOrg();
+  const [items, setItems] = useState<{ name: string; stock: number; category: string; unitsSold30: number; daysOfStock: number | null; urgency: 'high' | 'medium' | 'low' }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const [products, { data: recentSales }] = await Promise.all([
+          getProductsDB(userId),
+          supabase.from("sales").select("product_id, quantity").eq("org_id", activeOrg.id).gte("date", thirtyDaysAgo),
+        ]);
+
+        const salesMap: Record<string, number> = {};
+        (recentSales || []).forEach((s: any) => {
+          salesMap[s.product_id] = (salesMap[s.product_id] || 0) + Number(s.quantity);
+        });
+
+        const candidates = (products as any[])
+          .filter(p => p.stock >= 0 && p.stock <= Math.max(5, (p.low_stock_threshold || 3)))
+          .map(p => {
+            const unitsSold30 = salesMap[p.id] || 0;
+            const dailyRate = unitsSold30 / 30;
+            const daysOfStock = dailyRate > 0 ? Math.floor(p.stock / dailyRate) : null;
+            const urgency: 'high' | 'medium' | 'low' =
+              p.stock === 0 ? 'high' :
+              (daysOfStock !== null && daysOfStock <= 7) ? 'high' :
+              (daysOfStock !== null && daysOfStock <= 14) ? 'medium' : 'low';
+            return { name: p.name, stock: p.stock, category: p.category, unitsSold30, daysOfStock, urgency };
+          })
+          .sort((a, b) => {
+            const urgOrder = { high: 0, medium: 1, low: 2 };
+            if (urgOrder[a.urgency] !== urgOrder[b.urgency]) return urgOrder[a.urgency] - urgOrder[b.urgency];
+            return b.unitsSold30 - a.unitsSold30;
+          })
+          .slice(0, 10);
+
+        setItems(candidates);
+      } catch { /* skip */ }
+      setLoading(false);
+    })();
+  }, [userId, activeOrg]);
+
+  const urgencyConfig = {
+    high: { label: 'Urgente', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/30' },
+    medium: { label: 'Pronto', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' },
+    low: { label: 'Stock bajo', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' },
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+        <Package className="w-3.5 h-3.5" />Sugerencia de restock
+      </p>
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />Analizando inventario y ventas…
+        </div>
+      ) : items.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2">✅ Tu inventario está en buen estado. No hay productos críticos por ahora.</p>
+      ) : (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-muted-foreground">{items.length} productos necesitan atención · basado en ventas últimos 30 días</p>
+          {items.map((item, i) => {
+            const cfg = urgencyConfig[item.urgency];
+            return (
+              <div key={i} className={`flex items-center justify-between rounded-lg border px-2.5 py-2 ${cfg.bg}`}>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{item.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Stock: <span className={item.stock === 0 ? 'text-red-400 font-bold' : 'font-medium'}>{item.stock} u.</span>
+                    {item.unitsSold30 > 0 && ` · vendidos 30d: ${item.unitsSold30} u.`}
+                    {item.daysOfStock !== null && ` · ~${item.daysOfStock}d de stock`}
+                  </p>
+                </div>
+                <span className={`text-[10px] font-semibold shrink-0 ml-2 ${cfg.color}`}>{cfg.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
 // ─── QueryStockCard ───────────────────────────────────────────────────────────
 function QueryStockCard({ userId, initialName, onDone }: { userId: string; initialName?: string; onDone: () => void }) {
   const [name, setName] = useState(initialName || "");
@@ -841,6 +943,7 @@ const ACTION_STARTERS = [
   { label: "Consultar deuda", icon: DollarSign, msg: "¿Cuánto debe un cliente?" },
   { label: "Ver stock", icon: Package, msg: "¿Cuánto stock tengo de un producto?" },
   { label: "Analizar producto", icon: BarChart2, msg: "Analizá el producto" },
+  { label: "Qué reponer", icon: TrendingDown, msg: "Qué productos debería reponer o comprar?" },
 ];
 
 const QUICK_ACTIONS = [
