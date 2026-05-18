@@ -24,10 +24,11 @@ import KPICard from "@/components/shared/KPICard";
 import { usePermissions } from "@/lib/usePermissions";
 
 function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
-  const header = ['Fecha', 'Descripción', 'Categoría', 'Monto (ARS)', 'Recurrente'];
+  const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Monto (ARS)', 'Recurrente'];
   const rows = expenses.map(e => [
     e.date,
     `"${(e.description || '').replace(/"/g, '""')}"`,
+    `"${(e.vendor || '').replace(/"/g, '""')}"`,
     getCategoryLabel(e.category),
     Number(e.amount_ars).toFixed(2),
     e.recurring ? 'Sí' : 'No',
@@ -78,6 +79,7 @@ export default function ExpensesPage() {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [filterCat, setFilterCat] = useState("all");
+  const [filterVendor, setFilterVendor] = useState("all");
   const [search, setSearch] = useState("");
   const [filterMonth, setFilterMonth] = useState(() => {
     const d = new Date();
@@ -156,10 +158,16 @@ export default function ExpensesPage() {
     }
   }, [expenses]);
 
+  const vendorOptions = useMemo(() => {
+    const vendors = [...new Set(expenses.map(e => e.vendor).filter(Boolean))].sort() as string[];
+    return vendors;
+  }, [expenses]);
+
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       if (filterCat !== 'all' && e.category !== filterCat) return false;
-      if (search && !e.description?.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterVendor !== 'all' && e.vendor !== filterVendor) return false;
+      if (search && !e.description?.toLowerCase().includes(search.toLowerCase()) && !e.vendor?.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterMonth !== 'all') {
         const d = new Date(e.date);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -342,6 +350,15 @@ export default function ExpensesPage() {
             {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        {vendorOptions.length > 0 && (
+          <Select value={filterVendor} onValueChange={setFilterVendor}>
+            <SelectTrigger className="bg-card border-border w-full sm:w-[160px] h-9 text-sm"><SelectValue placeholder="Proveedor" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los proveedores</SelectItem>
+              {vendorOptions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       )}
 
@@ -449,6 +466,9 @@ export default function ExpensesPage() {
                                 </a>
                               )}
                             </div>
+                            {e.vendor && (
+                              <p className="text-[10px] text-amber-400/80 mt-0.5 truncate">{e.vendor}</p>
+                            )}
                             {e.recurring && e.recurring_next_date && (
                               <p className="text-[10px] text-warning/70 mt-0.5">
                                 próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
@@ -702,6 +722,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [amount, setAmount] = useState(editItem ? String(editItem.amount_ars) : '');
   const [category, setCategory] = useState(editItem?.category || categories[0]?.value || 'otros');
   const [description, setDescription] = useState(editItem?.description || '');
+  const [vendor, setVendor] = useState(editItem?.vendor || '');
   const [date, setDate] = useState(editItem ? new Date(editItem.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [recurring, setRecurring] = useState(editItem?.recurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState<string>(editItem?.recurring_frequency || 'monthly');
@@ -756,6 +777,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         amount_ars: parseFloat(amount),
         category,
         description: description || null,
+        vendor: vendor.trim() || null,
         date: dateToNoon(date),
         recurring,
         recurring_frequency: recurring ? recurringFrequency : null,
@@ -803,6 +825,12 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         <label className="text-sm text-muted-foreground">Descripción</label>
         <Input value={description} onChange={e => setDescription(e.target.value)}
           placeholder="Ej: Alquiler local — abril" className="bg-muted border-border" />
+      </div>
+
+      <div>
+        <label className="text-sm text-muted-foreground">Proveedor / Pagado a <span className="text-[10px] opacity-60">(opcional)</span></label>
+        <Input value={vendor} onChange={e => setVendor(e.target.value)}
+          placeholder="Ej: Edesur, Telefónica, Proveedor XYZ..." className="bg-muted border-border" />
       </div>
 
       <div>

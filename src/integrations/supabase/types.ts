@@ -1220,6 +1220,7 @@ export type Database = {
           recurring_next_date: string | null
           updated_at: string
           user_id: string
+          vendor: string | null
         }
         Insert: {
           amount_ars?: number
@@ -1236,6 +1237,7 @@ export type Database = {
           recurring_next_date?: string | null
           updated_at?: string
           user_id: string
+          vendor?: string | null
         }
         Update: {
           amount_ars?: number
@@ -1252,6 +1254,7 @@ export type Database = {
           recurring_next_date?: string | null
           updated_at?: string
           user_id?: string
+          vendor?: string | null
         }
         Relationships: [
           {
