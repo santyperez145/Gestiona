@@ -81,16 +81,55 @@ serve(async (req) => {
     const totalDebt = (debts || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
     const totalExpenses = (expenses || []).filter((e: any) => e.date >= thirtyDaysAgo).reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
 
+    // Month comparison
+    const now = new Date();
+    const curY = now.getFullYear(), curM = now.getMonth();
+    const prevMonthStart = new Date(curY, curM - 1, 1).toISOString().slice(0, 10);
+    const prevMonthEnd = new Date(curY, curM, 0).toISOString().slice(0, 10);
+    const thisMonthStart = new Date(curY, curM, 1).toISOString().slice(0, 10);
+    const prevMonthSales = (sales || []).filter((s: any) => s.date >= prevMonthStart && s.date <= prevMonthEnd);
+    const thisMonthSales = (sales || []).filter((s: any) => s.date >= thisMonthStart);
+    const prevMonthRev = prevMonthSales.reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+    const thisMonthRev = thisMonthSales.reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+    const prevMonthProfit = prevMonthSales.reduce((a: number, s: any) => a + Number(s.profit_ars), 0);
+    const thisMonthProfit = thisMonthSales.reduce((a: number, s: any) => a + Number(s.profit_ars), 0);
+    const growthPct = prevMonthRev > 0 ? (((thisMonthRev - prevMonthRev) / prevMonthRev) * 100).toFixed(1) : "N/A";
+
+    // Top products by revenue this month
+    const topProdMap: Record<string, { rev: number; qty: number; profit: number }> = {};
+    thisMonthSales.forEach((s: any) => {
+      const k = s.product_name || "?";
+      if (!topProdMap[k]) topProdMap[k] = { rev: 0, qty: 0, profit: 0 };
+      topProdMap[k].rev += Number(s.total_ars);
+      topProdMap[k].qty += Number(s.quantity);
+      topProdMap[k].profit += Number(s.profit_ars);
+    });
+    const topProds = Object.entries(topProdMap).sort((a, b) => b[1].rev - a[1].rev).slice(0, 5);
+
+    // Top products by margin
+    const highMarginProds = (products || [])
+      .filter((p: any) => Number(p.sale_price_ars) > 0)
+      .map((p: any) => ({ name: p.name, margin: (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 }))
+      .sort((a, b) => b.margin - a.margin).slice(0, 3);
+
     const businessContext = `
-CONTEXTO DEL NEGOCIO — ${(settings as any)?.business_name || "Tu negocio"} (últimos 30 días):
+CONTEXTO DEL NEGOCIO — ${(settings as any)?.business_name || "Tu negocio"}
+TC actual: $${(settings as any)?.exchange_rate || "N/A"} ARS/USD
 
-VENTAS (${recentSales.length} operaciones):
-- Total facturado: $${Math.round(totalSalesARS).toLocaleString("es-AR")} ARS
+MES ACTUAL vs MES ANTERIOR:
+- Mes anterior: $${Math.round(prevMonthRev).toLocaleString("es-AR")} ARS facturado / $${Math.round(prevMonthProfit).toLocaleString("es-AR")} ganancia
+- Mes actual (hasta hoy): $${Math.round(thisMonthRev).toLocaleString("es-AR")} ARS / $${Math.round(thisMonthProfit).toLocaleString("es-AR")} ganancia
+- Variación: ${growthPct}%
+
+ÚLTIMOS 30 DÍAS — ${recentSales.length} ventas:
+- Facturado: $${Math.round(totalSalesARS).toLocaleString("es-AR")} ARS
 - Ganancia bruta: $${Math.round(totalProfitARS).toLocaleString("es-AR")} ARS (margen ${margin}%)
-- TC actual: $${(settings as any)?.exchange_rate || "N/A"}
 
-PRODUCTOS (top por ventas recientes):
-${recentSales.slice(0, 10).map((s: any) => `• ${s.product_name}: ${s.quantity} u. / $${Math.round(Number(s.total_ars)).toLocaleString("es-AR")}`).join("\n")}
+TOP PRODUCTOS este mes (por revenue):
+${topProds.map(([name, d]) => `• ${name}: ${d.qty} u. / $${Math.round(d.rev).toLocaleString("es-AR")} / margen ${d.rev > 0 ? ((d.profit / d.rev) * 100).toFixed(0) : 0}%`).join("\n") || "Sin ventas este mes"}
+
+PRODUCTOS CON MAYOR MARGEN:
+${highMarginProds.map(p => `• ${p.name}: ${p.margin.toFixed(0)}% margen`).join("\n")}
 
 STOCK (${(products || []).length} productos):
 - Con stock bajo (≤3 u.): ${lowStock.length} productos
@@ -99,15 +138,15 @@ ${lowStock.slice(0, 5).map((p: any) => `• ${p.name}: ${p.stock} u.`).join("\n"
 
 DEUDAS DE CLIENTES: $${Math.round(totalDebt).toLocaleString("es-AR")} ARS pendientes (${(debts || []).length} clientes)
 
-GASTOS DEL MES: $${Math.round(totalExpenses).toLocaleString("es-AR")} ARS
+GASTOS ÚLTIMOS 30D: $${Math.round(totalExpenses).toLocaleString("es-AR")} ARS
 
-TOP CLIENTES (mes):
+TOP CLIENTES (últimos 30d):
 ${(() => {
   const custMap: Record<string, number> = {};
   recentSales.forEach((s: any) => {
     if (s.customer_name) custMap[s.customer_name] = (custMap[s.customer_name] || 0) + Number(s.total_ars);
   });
-  return Object.entries(custMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, total]) => `• ${name}: $${Math.round(total).toLocaleString("es-AR")}`).join("\n");
+  return Object.entries(custMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, total]) => `• ${name}: $${Math.round(total).toLocaleString("es-AR")}`).join("\n") || "Sin datos de clientes";
 })()}
 `;
 

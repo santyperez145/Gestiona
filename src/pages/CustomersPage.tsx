@@ -535,6 +535,9 @@ export default function CustomersPage() {
   const [selectedCustomerNames, setSelectedCustomerNames] = useState<Set<string>>(new Set());
   const [bulkWaOpen, setBulkWaOpen] = useState(false);
   const [bulkWaMessage, setBulkWaMessage] = useState("Hola {{nombre}}! 👋 Tenemos novedades y promociones especiales esperándote. ¡Pasate a vernos! 🛍️");
+  const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
+  const [bulkNoteText, setBulkNoteText] = useState("");
+  const [bulkNoteSaving, setBulkNoteSaving] = useState(false);
   const navigate = useNavigate();
 
   const loadData = async () => {
@@ -1145,6 +1148,13 @@ export default function CustomersPage() {
             Tarea seguimiento
           </button>
           <button
+            onClick={() => { setBulkNoteText(""); setBulkNoteOpen(true); }}
+            className="px-4 py-1.5 rounded-xl bg-muted border border-border text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4 text-primary" />
+            Agregar nota
+          </button>
+          <button
             onClick={() => {
               const selected = filtered.filter(c => selectedCustomerNames.has(c.name));
               const withPhone = selected.filter(c => c.phone);
@@ -1222,6 +1232,66 @@ export default function CustomersPage() {
               >
                 <MessageCircle className="w-4 h-4 mr-1.5" />
                 Copiar teléfonos
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Note Dialog */}
+      <Dialog open={bulkNoteOpen} onOpenChange={setBulkNoteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-primary" />
+              Nota masiva · {selectedCustomerNames.size} cliente{selectedCustomerNames.size !== 1 ? 's' : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground font-medium">Nota (se añadirá con timestamp a cada cliente)</label>
+              <Textarea
+                value={bulkNoteText}
+                onChange={e => setBulkNoteText(e.target.value)}
+                rows={4}
+                className="bg-muted text-sm"
+                placeholder="Ej: Contactado para campaña de reactivación Mayo 2026..."
+                autoFocus
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">Se actualizará el campo de notas de cada cliente seleccionado, agregando esta nota con la fecha y hora actual.</p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setBulkNoteOpen(false)}>Cancelar</Button>
+              <Button
+                className="flex-1 gradient-gold text-primary-foreground"
+                disabled={!bulkNoteText.trim() || bulkNoteSaving}
+                onClick={async () => {
+                  if (!user || !activeOrg || !bulkNoteText.trim()) return;
+                  setBulkNoteSaving(true);
+                  try {
+                    const timestamp = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const newEntry = `[${timestamp}] ${bulkNoteText.trim()}`;
+                    const selectedList = filtered.filter(c => selectedCustomerNames.has(c.name));
+                    await Promise.all(selectedList.map(async c => {
+                      const existing = c.profileNotes || "";
+                      const updated = existing ? `${existing}\n${newEntry}` : newEntry;
+                      await supabase.from('customer_notes').upsert(
+                        { org_id: activeOrg.id, user_id: user.id, customer_name: c.name, notes: updated },
+                        { onConflict: 'org_id,customer_name' }
+                      );
+                    }));
+                    toast.success(`Nota agregada a ${selectedList.length} cliente${selectedList.length !== 1 ? 's' : ''}`);
+                    setBulkNoteOpen(false);
+                    setBulkNoteText("");
+                    setSelectedCustomerNames(new Set());
+                  } catch {
+                    toast.error("Error al guardar notas");
+                  } finally {
+                    setBulkNoteSaving(false);
+                  }
+                }}
+              >
+                <FileText className="w-4 h-4 mr-1.5" />Guardar nota
               </Button>
             </div>
           </div>
