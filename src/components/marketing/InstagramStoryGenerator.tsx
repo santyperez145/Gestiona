@@ -68,11 +68,12 @@ async function renderStory(opts: {
   product: any;
   primaryColor: string;
   businessName: string;
+  logoUrl?: string | null;
   customText?: string;
   customPrice?: string;
   ctaText?: string;
 }): Promise<HTMLCanvasElement> {
-  const { template, templateData, product, primaryColor, businessName, customText, customPrice, ctaText } = opts;
+  const { template, templateData, product, primaryColor, businessName, logoUrl, customText, customPrice, ctaText } = opts;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -139,11 +140,35 @@ async function renderStory(opts: {
 
   const tpl = templateData || FALLBACK_TEMPLATES.find((t) => t.id === template) || FALLBACK_TEMPLATES[0];
 
-  // Top: business name
+  // Top: logo or business name
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.font = "600 36px Inter, sans-serif";
-  ctx.fillText(businessName.toUpperCase(), W / 2, 130);
+  if (logoUrl) {
+    try {
+      const logoImg = await loadImage(logoUrl);
+      const maxLogoH = 90;
+      const maxLogoW = 400;
+      const ratio = logoImg.width / logoImg.height;
+      const logoH = Math.min(maxLogoH, logoImg.height);
+      const logoW = Math.min(maxLogoW, logoH * ratio);
+      const lx = (W - logoW) / 2;
+      const ly = 60;
+      // Subtle glow behind logo
+      ctx.save();
+      ctx.shadowColor = "rgba(212,168,67,0.4)";
+      ctx.shadowBlur = 30;
+      ctx.drawImage(logoImg, lx, ly, logoW, logoH);
+      ctx.restore();
+    } catch {
+      // fallback to text
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.font = "600 36px Inter, sans-serif";
+      ctx.fillText(businessName.toUpperCase(), W / 2, 130);
+    }
+  } else {
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.font = "600 36px Inter, sans-serif";
+    ctx.fillText(businessName.toUpperCase(), W / 2, 130);
+  }
 
   // Badge
   if (tpl.badge && template !== "limpio") {
@@ -258,6 +283,7 @@ export function InstagramStoryGenerator() {
         product,
         primaryColor: config.primaryColor,
         businessName: config.businessName,
+        logoUrl: config.logoUrl,
         customText: customText || undefined,
         customPrice: customPrice || undefined,
         ctaText: ctaText || defaultCta,
@@ -283,6 +309,7 @@ export function InstagramStoryGenerator() {
       product,
       primaryColor: config.primaryColor,
       businessName: config.businessName,
+      logoUrl: config.logoUrl,
       customText: customText || undefined,
       customPrice: customPrice || undefined,
       ctaText: ctaText || defaultCta,

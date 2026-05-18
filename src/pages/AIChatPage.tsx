@@ -778,10 +778,50 @@ export default function AIChatPage() {
     activeOrg ? loadConversations(activeOrg.id) : []
   );
 
+  const [dailySuggestion, setDailySuggestion] = useState<string | null>(null);
+  const [dailySuggestionDismissed, setDailySuggestionDismissed] = useState(false);
+
   // Reload conversation list when org changes
   useEffect(() => {
     if (activeOrg) setConversations(loadConversations(activeOrg.id));
   }, [activeOrg?.id]);
+
+  // Daily suggestion: fire once per day — pull quick business stats and show a tip
+  useEffect(() => {
+    if (!user || !activeOrg) return;
+    const dayKey = `gestiona.ai_daily_tip.${activeOrg.id}.${new Date().toISOString().slice(0, 10)}`;
+    const cached = localStorage.getItem(dayKey);
+    if (cached) { setDailySuggestion(cached); return; }
+
+    (async () => {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const week = new Date(); week.setDate(week.getDate() - 7);
+        const weekStr = week.toISOString().slice(0, 10);
+        const [{ data: recentSales }, { data: lowStock }] = await Promise.all([
+          supabase.from("sales").select("product_name,total_ars,date").eq("org_id", activeOrg.id).gte("date", weekStr).order("date", { ascending: false }).limit(30),
+          supabase.from("products").select("name,stock,low_stock_threshold").eq("org_id", activeOrg.id).lte("stock", 3).gt("stock", 0).order("stock").limit(5),
+        ]);
+
+        const totalWeek = (recentSales || []).reduce((s: number, r: any) => s + Number(r.total_ars), 0);
+        const topProds = Object.entries(
+          (recentSales || []).reduce((m: Record<string, number>, r: any) => {
+            const n = r.product_name || "—"; m[n] = (m[n] || 0) + Number(r.total_ars); return m;
+          }, {})
+        ).sort(([, a], [, b]) => b - a).slice(0, 2).map(([n]) => n);
+
+        const tips = [
+          totalWeek > 0 && `Esta semana vendiste ${formatARS(totalWeek)}${topProds.length ? ` · top: ${topProds.join(", ")}` : ""}`,
+          (lowStock || []).length > 0 && `Stock crítico: ${(lowStock || []).map((p: any) => `${p.name} (${p.stock}u)`).join(", ")}`,
+          "¿Querés que analice tus ventas de la semana y te dé sugerencias?",
+        ].filter(Boolean);
+
+        const suggestion = tips.join(" · ");
+        localStorage.setItem(dayKey, suggestion);
+        setDailySuggestion(suggestion);
+      } catch { /* silently skip */ }
+    })();
+  }, [user, activeOrg]);
 
   const saveCurrentConversation = () => {
     if (!activeOrg || messages.length < 2) return;
@@ -929,6 +969,25 @@ export default function AIChatPage() {
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
+
+        {/* Daily suggestion banner */}
+        {dailySuggestion && !dailySuggestionDismissed && messages.length === 0 && (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-3 animate-in slide-in-from-top-2">
+            <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-primary uppercase tracking-wide mb-1">Sugerencia del día</p>
+              <p className="text-xs text-foreground leading-relaxed">{dailySuggestion}</p>
+              <button
+                onClick={() => send("Analizá mi situación actual y dame 3 sugerencias concretas para hoy basadas en mis ventas y stock.")}
+                className="mt-2 text-xs text-primary hover:underline font-medium"
+              >Analizar ahora →</button>
+            </div>
+            <button onClick={() => setDailySuggestionDismissed(true)} className="text-muted-foreground hover:text-foreground shrink-0">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center pb-8">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">

@@ -12,8 +12,9 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare,
+  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePermissions } from "@/lib/usePermissions";
@@ -532,6 +533,8 @@ export default function CustomersPage() {
   const [mergeTarget, setMergeTarget] = useState("");
   const [merging, setMerging] = useState(false);
   const [selectedCustomerNames, setSelectedCustomerNames] = useState<Set<string>>(new Set());
+  const [bulkWaOpen, setBulkWaOpen] = useState(false);
+  const [bulkWaMessage, setBulkWaMessage] = useState("Hola {{nombre}}! 👋 Tenemos novedades y promociones especiales esperándote. ¡Pasate a vernos! 🛍️");
   const navigate = useNavigate();
 
   const loadData = async () => {
@@ -1141,9 +1144,89 @@ export default function CustomersPage() {
             <CheckSquare className="w-4 h-4 text-primary" />
             Tarea seguimiento
           </button>
+          <button
+            onClick={() => {
+              const selected = filtered.filter(c => selectedCustomerNames.has(c.name));
+              const withPhone = selected.filter(c => c.phone);
+              if (!withPhone.length) { toast.error("Ningún cliente seleccionado tiene teléfono registrado"); return; }
+              setBulkWaOpen(true);
+            }}
+            className="px-4 py-1.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <MessageCircle className="w-4 h-4" />
+            WhatsApp masivo
+          </button>
           <button onClick={() => setSelectedCustomerNames(new Set())} className="text-muted-foreground hover:text-foreground text-xs transition-colors">✕ Limpiar</button>
         </div>
       )}
+
+      {/* Bulk WhatsApp Dialog */}
+      <Dialog open={bulkWaOpen} onOpenChange={setBulkWaOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-green-400" />
+              WhatsApp masivo · {filtered.filter(c => selectedCustomerNames.has(c.name) && c.phone).length} destinatarios
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground font-medium">Mensaje (usá {"{{nombre}}"} para personalizar)</label>
+              <Textarea
+                value={bulkWaMessage}
+                onChange={e => setBulkWaMessage(e.target.value)}
+                rows={4}
+                className="bg-muted text-sm"
+                placeholder="Hola {{nombre}}! Tenemos novedades para vos..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">Clientes con teléfono — hacé clic en cada link para enviar:</p>
+              <div className="max-h-64 overflow-y-auto space-y-1.5 border border-border rounded-lg p-3">
+                {filtered.filter(c => selectedCustomerNames.has(c.name) && c.phone).map(c => {
+                  const msg = bulkWaMessage.replace(/\{\{nombre\}\}/g, c.name.split(' ')[0]);
+                  const waUrl = `https://wa.me/${c.phone!.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+                  return (
+                    <a
+                      key={c.name}
+                      href={waUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{c.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{c.phone} · {c.segment}</p>
+                      </div>
+                      <Send className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                    </a>
+                  );
+                })}
+                {filtered.filter(c => selectedCustomerNames.has(c.name) && !c.phone).length > 0 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    + {filtered.filter(c => selectedCustomerNames.has(c.name) && !c.phone).length} sin teléfono registrado
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setBulkWaOpen(false)}>Cerrar</Button>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  const withPhone = filtered.filter(c => selectedCustomerNames.has(c.name) && c.phone);
+                  const numbers = withPhone.map(c => c.phone!.replace(/\D/g, '')).join(', ');
+                  navigator.clipboard.writeText(numbers);
+                  toast.success(`${withPhone.length} números copiados`);
+                }}
+              >
+                <MessageCircle className="w-4 h-4 mr-1.5" />
+                Copiar teléfonos
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

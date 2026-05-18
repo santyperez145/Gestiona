@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet } from "lucide-react";
+import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Tier system ──────────────────────────────────────────────────────────────
@@ -58,6 +59,8 @@ export default function LoyaltyPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [exchangeRate, setExchangeRate] = useState(1200);
 
   // Settings form
   const [enabled, setEnabled] = useState(false);
@@ -71,20 +74,28 @@ export default function LoyaltyPage() {
   const [adjReason, setAdjReason] = useState("");
   const [adjusting, setAdjusting] = useState(false);
 
+  // Product redemption
+  const [redeemProductId, setRedeemProductId] = useState("");
+  const [redeemCustomer, setRedeemCustomer] = useState("");
+  const [redeemSaving, setRedeemSaving] = useState(false);
+
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
     try {
-      const [{ data: pts }, { data: sett }] = await Promise.all([
+      const [{ data: pts }, { data: sett }, { data: prods }] = await Promise.all([
         supabase.from("loyalty_points").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("settings").select("loyalty_enabled,loyalty_points_per_1000,loyalty_points_value_ars").eq("org_id", activeOrg.id).single(),
+        supabase.from("settings").select("loyalty_enabled,loyalty_points_per_1000,loyalty_points_value_ars,exchange_rate").eq("org_id", activeOrg.id).single(),
+        supabase.from("products").select("id,name,sale_price_ars,total_cost_usd,cost_usd,stock,image_url").eq("org_id", activeOrg.id).gt("stock", 0).order("name"),
       ]);
       setEntries((pts || []) as LoyaltyEntry[]);
+      setProducts(prods || []);
       if (sett) {
         setSettings(sett);
         setEnabled(!!sett.loyalty_enabled);
         setPointsPer1000(String(sett.loyalty_points_per_1000 ?? 1));
         setPointValueArs(String(sett.loyalty_points_value_ars ?? 100));
+        if (sett.exchange_rate) setExchangeRate(Number(sett.exchange_rate));
       }
     } finally {
       setLoading(false);
@@ -149,6 +160,38 @@ export default function LoyaltyPage() {
       await load();
     } catch { toast.error("Error al ajustar puntos"); }
     finally { setAdjusting(false); }
+  };
+
+  const handleRedeem = async () => {
+    if (!activeOrg || !user || !redeemProductId || !redeemCustomer.trim()) {
+      toast.error("Seleccioná un producto y un cliente");
+      return;
+    }
+    const prod = products.find(p => p.id === redeemProductId);
+    if (!prod) return;
+    const costARS = Number(prod.total_cost_usd || prod.cost_usd || 0) * exchangeRate;
+    if (costARS <= 0) { toast.error("Este producto no tiene precio de costo registrado"); return; }
+    const ptVal = Number(pointValueArs) || 100;
+    const ptsNeeded = Math.ceil(costARS / ptVal);
+    const customerBalance = balances.find(b => b.customer_name.toLowerCase() === redeemCustomer.trim().toLowerCase());
+    if (customerBalance && customerBalance.balance < ptsNeeded) {
+      toast.error(`El cliente tiene ${customerBalance.balance} pts pero necesita ${ptsNeeded} pts`);
+      return;
+    }
+    setRedeemSaving(true);
+    try {
+      await supabase.from("loyalty_points").insert({
+        org_id: activeOrg.id,
+        customer_name: redeemCustomer.trim(),
+        delta: -ptsNeeded,
+        reason: "redeem",
+      });
+      toast.success(`Canje registrado: −${ptsNeeded} puntos a ${redeemCustomer.trim()} por "${prod.name}"`);
+      setRedeemProductId("");
+      setRedeemCustomer("");
+      await load();
+    } catch { toast.error("Error al registrar canje"); }
+    finally { setRedeemSaving(false); }
   };
 
   const selectedHistory = useMemo(() => {
@@ -236,6 +279,92 @@ export default function LoyaltyPage() {
         <Button onClick={handleManualAdjust} disabled={adjusting} variant="outline" className="gap-1.5">
           {adjusting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Aplicar ajuste
+        </Button>
+      </div>
+
+      {/* Product Redemption — cost-price based */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Tag className="w-4 h-4 text-yellow-400" />
+          <h2 className="font-semibold text-sm">Canjear producto por puntos</h2>
+          <span className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">puntos calculados al precio de costo</span>
+        </div>
+        <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <p>Los puntos descontados se calculan sobre el <strong>precio de costo</strong> del producto (no el precio de venta), para no regalar el margen del negocio.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Producto a canjear</Label>
+            <Select value={redeemProductId} onValueChange={setRedeemProductId}>
+              <SelectTrigger className="bg-muted">
+                <SelectValue placeholder="Seleccionar producto…" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map(p => {
+                  const costARS = Number(p.total_cost_usd || p.cost_usd || 0) * exchangeRate;
+                  const ptsNeeded = costARS > 0 ? Math.ceil(costARS / (Number(pointValueArs) || 100)) : null;
+                  return (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{p.name}</span>
+                        {ptsNeeded !== null && (
+                          <span className="text-xs text-yellow-400 font-bold ml-1">{ptsNeeded.toLocaleString("es-AR")} pts</span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            {redeemProductId && (() => {
+              const prod = products.find(p => p.id === redeemProductId);
+              if (!prod) return null;
+              const costARS = Number(prod.total_cost_usd || prod.cost_usd || 0) * exchangeRate;
+              const ptVal = Number(pointValueArs) || 100;
+              const ptsNeeded = costARS > 0 ? Math.ceil(costARS / ptVal) : 0;
+              const ptsSalePrice = Math.ceil(Number(prod.sale_price_ars) / ptVal);
+              return (
+                <div className="bg-muted/30 rounded-lg px-3 py-2 text-[11px] space-y-0.5">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Costo del negocio:</span><span className="font-semibold">{formatARS(costARS)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Precio venta:</span><span className="text-muted-foreground">{formatARS(Number(prod.sale_price_ars))}</span></div>
+                  <div className="flex justify-between border-t border-border/40 pt-1 mt-1"><span className="font-medium">Pts a descontar (costo):</span><span className="font-bold text-yellow-400">{ptsNeeded.toLocaleString("es-AR")}</span></div>
+                  <div className="flex justify-between text-muted-foreground/70"><span>Si fuera al precio de venta:</span><span>{ptsSalePrice.toLocaleString("es-AR")} pts</span></div>
+                  <div className="flex justify-between text-emerald-400"><span>Ahorro para el negocio:</span><span className="font-semibold">{(ptsSalePrice - ptsNeeded).toLocaleString("es-AR")} pts</span></div>
+                </div>
+              );
+            })()}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cliente que canjea</Label>
+            <Input value={redeemCustomer} onChange={e => setRedeemCustomer(e.target.value)} placeholder="Nombre del cliente" className="bg-muted" list="redeem-customer-list" />
+            <datalist id="redeem-customer-list">
+              {balances.map(b => <option key={b.customer_name} value={b.customer_name} />)}
+            </datalist>
+            {redeemCustomer && (() => {
+              const bal = balances.find(b => b.customer_name.toLowerCase() === redeemCustomer.trim().toLowerCase());
+              if (!bal) return <p className="text-[10px] text-muted-foreground">Cliente sin historial de puntos aún</p>;
+              const prod = products.find(p => p.id === redeemProductId);
+              const costARS = prod ? Number(prod.total_cost_usd || prod.cost_usd || 0) * exchangeRate : 0;
+              const ptVal = Number(pointValueArs) || 100;
+              const ptsNeeded = costARS > 0 ? Math.ceil(costARS / ptVal) : 0;
+              const canAfford = bal.balance >= ptsNeeded && ptsNeeded > 0;
+              return (
+                <div className={`rounded-lg px-3 py-2 text-[11px] ${canAfford ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-muted/30'}`}>
+                  <p>Saldo actual: <span className={`font-bold ${canAfford ? 'text-emerald-400' : 'text-yellow-400'}`}>{bal.balance.toLocaleString("es-AR")} pts</span></p>
+                  {ptsNeeded > 0 && (
+                    <p className={canAfford ? 'text-emerald-300' : 'text-destructive'}>
+                      {canAfford ? `✓ Puede canjear · Quedan ${(bal.balance - ptsNeeded).toLocaleString("es-AR")} pts` : `✗ Faltan ${(ptsNeeded - bal.balance).toLocaleString("es-AR")} pts`}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+        <Button onClick={handleRedeem} disabled={redeemSaving || !redeemProductId || !redeemCustomer.trim()} className="gradient-gold text-primary-foreground gap-1.5">
+          {redeemSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+          Registrar canje
         </Button>
       </div>
 

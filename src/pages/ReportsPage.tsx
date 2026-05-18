@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2 } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -901,6 +901,30 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
     netProfit: acc.netProfit + row.netProfit,
   }), { revenue: 0, profit: 0, iva: 0, iibb: 0, monotributo: 0, total: 0, netProfit: 0 });
 
+  // Projected taxes: based on last 3 months average revenue & profit
+  const projectedTaxes = useMemo(() => {
+    const today = new Date();
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const recent = monthlyData.slice(-3);
+    const avgRevenue = recent.length > 0 ? recent.reduce((s, r) => s + r.revenue, 0) / recent.length : 0;
+    const avgProfit = recent.length > 0 ? recent.reduce((s, r) => s + r.profit, 0) / recent.length : 0;
+    if (avgRevenue <= 0) return [];
+    return Array.from({ length: 3 }, (_, i) => {
+      const d = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
+      const iva = taxEnabled ? avgProfit * (ivaRate / 100) : 0;
+      const iibb = taxEnabled ? avgProfit * (iibbRate / 100) : 0;
+      const mono = taxEnabled ? monotributoMonthly : 0;
+      return {
+        label: `${months[d.getMonth()]} ${d.getFullYear()}`,
+        revenue: avgRevenue,
+        profit: avgProfit,
+        iva, iibb, mono,
+        total: iva + iibb + mono,
+        netProfit: avgProfit - iva - iibb - mono,
+      };
+    });
+  }, [monthlyData, taxEnabled, ivaRate, iibbRate, monotributoMonthly]);
+
   return (
     <div className="space-y-6">
       {!taxEnabled && (
@@ -912,6 +936,41 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
               Activá los impuestos en Ajustes → Impuestos para ver el impacto real en tu rentabilidad.
               Las tasas configuradas son: IVA {ivaRate}%, IIBB {iibbRate}%, Monotributo ${monotributoMonthly.toLocaleString("es-AR")}/mes.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tax projection section */}
+      {projectedTaxes.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingDown className="w-4 h-4 text-destructive" />
+            <h3 className="text-sm font-semibold">Proyección impositiva — próximos 3 meses</h3>
+            <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">basado en promedio últimos 3 meses</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {projectedTaxes.map(p => (
+              <div key={p.label} className="bg-muted/40 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{p.label}</p>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Facturación est.</span><span>{formatARS(p.revenue)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Ganancia est.</span><span className="text-success">{formatARS(p.profit)}</span></div>
+                  {taxEnabled && <>
+                    <div className="flex justify-between"><span className="text-muted-foreground">IVA ({ivaRate}%)</span><span className="text-destructive">-{formatARS(p.iva)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">IIBB ({iibbRate}%)</span><span className="text-destructive">-{formatARS(p.iibb)}</span></div>
+                    {p.mono > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Monotributo</span><span className="text-destructive">-{formatARS(p.mono)}</span></div>}
+                  </>}
+                  <div className="flex justify-between border-t border-border/40 pt-1 font-semibold">
+                    <span>Total impuestos</span>
+                    <span className="text-destructive">{taxEnabled ? `-${formatARS(p.total)}` : "—"}</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>Ganancia neta</span>
+                    <span className={p.netProfit >= 0 ? "text-success" : "text-destructive"}>{formatARS(p.netProfit)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

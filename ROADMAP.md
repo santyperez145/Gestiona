@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 24)**
+Última actualización: **2026-05-18 (sesión 25)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -512,18 +512,37 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 25)
+## Sesión 25 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **LoyaltyPage: canjes a precio de costo** — sección "Canjear producto por puntos" usa `total_cost_usd * exchangeRate` en lugar de precio de venta; tabla comparativa costo vs venta, ahorro del negocio | ✅ Hecho |
+| 2 | **ProductsPage: logo en PDF de lista de precios** — `exportPriceListPDF` fetch logo → base64 → embed; header con imagen + nombre del negocio | ✅ Hecho |
+| 3 | **ProductsPage: foto desde URL** — botón "URL" con Link2 icon; input expandible; valida `startsWith('http')` antes de añadir | ✅ Hecho |
+| 4 | **EmailCampaignsPage: logo + branding en emails** — `buildBrandedEmail()` wrapper con header oscuro (logo + nombre) y footer con unsubscribe; aplicado en create y preview | ✅ Hecho |
+| 5 | **InstagramStoryGenerator: logo en canvas** — `loadImage(logoUrl)` → `drawImage` con golden glow shadow; fallback a texto si falla la carga | ✅ Hecho |
+| 6 | **POSPage: descuento automático por cliente VIP** — debounced query a `loyalty_points` por cliente; tiers Platino/Oro/Plata → 10%/5%/2%; badge VIP debajo del input | ✅ Hecho |
+| 7 | **SalesPage: recibo con desglose de ítems múltiples** — agrupa por cliente+fecha+método; tabla multi-línea con subtotal por ítem y total consolidado | ✅ Hecho |
+| 8 | **ExpensesPage: alerta gastos recurrentes vencidos** — toast warning al cargar cuando hay gastos con `recurring_next_date < hoy`; anti-spam con sessionStorage por id | ✅ Hecho |
+| 9 | **CustomersPage: envío masivo WhatsApp por segmento RFM** — botón verde "WhatsApp masivo" en barra flotante de selección; dialog con textarea editable + links `wa.me` individuales + copiar teléfonos | ✅ Hecho |
+| 10 | **Dashboard: widget comparativa semanal automática** — useMemo con semana actual vs semana pasada; progress bar, delta %, top producto de la semana, prefill IA | ✅ Hecho |
+| 11 | **ReportsPage: proyección de impuestos** — 3 cards en TaxesTab con IVA/IIBB/Monotributo estimados para próximos 3 meses basados en promedio de últimos 3 meses | ✅ Hecho |
+| 12 | **AIChatPage: sugerencia automática diaria al abrir** — banner con Sparkles icon; datos reales (ventas 7d, stock bajo); cache en localStorage por org+día; "Analizar ahora" prefill + dismiss | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 26)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: descuento por cliente VIP** — detectar si el cliente en caja es VIP (CustomersPage) y aplicar descuento automático configurable en Settings | CRM → POS feedback loop |
-| 2 | **SalesPage: recibo con desglose de ítems múltiples** — cuando una venta fue multi-producto (POS multi-ítem), el recibo muestra cada línea; actualmente solo muestra el total | Claridad para el cliente |
-| 3 | **ExpensesPage: recurrentes vencidos** — badge/alerta en el header cuando hay gastos recurrentes con `recurring_next_date` vencida (hoy o antes) sin nueva instancia creada | Nunca perderse un gasto fijo |
-| 4 | **ProductsPage: foto desde URL** — además del upload, opción de pegar URL de imagen; valida que sea imagen antes de guardar | Carga rápida desde catálogos online |
-| 5 | **CustomersPage: envío masivo WhatsApp** — botón "Enviar a segmento" en filtro RFM; genera links `wa.me` para cada cliente usando el template de reactivación/birthday de Settings | Marketing 1-click |
-| 6 | **Dashboard: comparativa semanal automática** — widget que muestra la semana actual vs semana pasada (ventas, ganancia, gastos), sin hacer clic | Pulso semanal inmediato |
-| 7 | **ReportsPage: tab "Impuestos proyectados"** — dado el ritmo actual del mes, proyectar IVA e IIBB del mes completo; útil para provisionar | Planificación fiscal |
-| 8 | **AIChatPage: sugerencia automática diaria** — al abrir la página, si no hay conversación activa y no se sugirió hoy, mostrar una pregunta relevante según el contexto del negocio | Engagement proactivo |
+| 1 | **POSPage: descuento por cupón** — campo de cupón en POS; valida contra tabla `coupons`; aplica % u monto fijo; registra uso | Promociones controladas |
+| 2 | **LoyaltyPage: historial de puntos por cliente** — timeline de movimientos (ganados/canjeados/ajustados) con fecha y razón; filtrable por cliente | Transparencia para el cliente |
+| 3 | **SalesPage: exportar ventas por período a PDF** — resumen ejecutivo mensual/semanal con KPIs, top 5 productos, top 5 clientes, método de pago breakdown | Reporte para el dueño |
+| 4 | **ProveedoresPage: pedido de compra automático** — seleccionar proveedor → tabla de productos vinculados con stock actual y mínimo → generar orden de compra en un click | Operaciones más ágiles |
+| 5 | **ProductsPage: variantes con stock independiente** — si el producto tiene variantes (talle, color), cada variante tiene su propio stock y precio; visible en POS | Inventario preciso |
+| 6 | **ReportsPage: tab "Comparativa de sucursales"** — si el negocio tiene ubicaciones/sucursales, comparar ventas, stock y gastos por sucursal | Multi-local |
+| 7 | **AIChatPage: analizar un producto específico** — intención "¿cómo va X?" devuelve card con ventas 30d, margen, stock, días sin venta, comparativa con período anterior | IA accionable |
+| 8 | **Dashboard: widget "Mejor día de la semana"** — basado en historial de ventas, muestra qué día vende más y ranking de días; útil para organizar personal | Planificación operativa |
 
 ---
 

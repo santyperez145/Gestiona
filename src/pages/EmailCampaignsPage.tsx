@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getSettingsDB } from "@/lib/supabaseStore";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +125,31 @@ const STATUS_LABELS: Record<string, string> = {
   draft: "Borrador", sending: "Enviando…", sent: "Enviado", failed: "Fallido",
 };
 
+// ─── Branding helper ──────────────────────────────────────────────────────────
+
+function buildBrandedEmail(bodyHtml: string, logoUrl: string | null, businessName: string): string {
+  const logoTag = logoUrl
+    ? `<img src="${logoUrl}" alt="${businessName}" style="max-height:60px;max-width:200px;display:block;margin:0 auto 10px">`
+    : '';
+  const header = `
+<div style="text-align:center;padding:20px 16px 16px;background:#1A1A2E;border-radius:8px 8px 0 0">
+  ${logoTag}
+  <h2 style="color:#D4A843;margin:0;font-size:20px;font-weight:700;letter-spacing:1px">${businessName}</h2>
+</div>`;
+  const footer = `
+<div style="text-align:center;margin-top:24px;padding:12px;font-size:11px;color:#888;border-top:1px solid #eee">
+  <p style="margin:0">© ${new Date().getFullYear()} ${businessName} · Recibiste este email porque sos parte de nuestra comunidad.</p>
+  <p style="margin:4px 0 0"><a href="{{unsubscribe_url}}" style="color:#888;text-decoration:underline">Cancelar suscripción</a></p>
+</div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;border:1px solid #eee;border-radius:8px;overflow:hidden">
+  ${header}
+  <div style="padding:24px 20px;background:#ffffff;color:#222;font-size:14px;line-height:1.7">
+    ${bodyHtml}
+  </div>
+  ${footer}
+</div>`;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EmailCampaignsPage() {
@@ -135,6 +161,7 @@ export default function EmailCampaignsPage() {
   const [salesData, setSalesData] = useState<any[]>([]);
   const [unsubscribed, setUnsubscribed] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [orgSettings, setOrgSettings] = useState<{ logo_url: string | null; business_name: string }>({ logo_url: null, business_name: "Mi Negocio" });
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Campaign | null>(null);
   const [sending, setSending] = useState<string | null>(null);
@@ -166,19 +193,21 @@ export default function EmailCampaignsPage() {
   // ── Load ────────────────────────────────────────────────────────────────────
 
   const load = async () => {
-    if (!activeOrg) return;
+    if (!activeOrg || !user) return;
     setLoading(true);
     try {
-      const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }] = await Promise.all([
+      const [{ data: camps }, { data: custs }, { data: sales }, { data: unsubs }, sett] = await Promise.all([
         supabase.from("email_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("customers").select("id,name,email,birthday").eq("org_id", activeOrg.id).not("email", "is", null),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("email_unsubscribes").select("email").eq("org_id", activeOrg.id),
+        getSettingsDB(user.id),
       ]);
       setCampaigns((camps || []) as Campaign[]);
       setCustomers((custs || []) as Customer[]);
       setSalesData(sales || []);
       setUnsubscribed(new Set((unsubs || []).map((u: any) => u.email.toLowerCase())));
+      if (sett) setOrgSettings({ logo_url: sett.logo_url || null, business_name: sett.business_name || "Mi Negocio" });
     } finally {
       setLoading(false);
     }
@@ -256,10 +285,11 @@ export default function EmailCampaignsPage() {
     if (!subject.trim() || !bodyHtml.trim()) { toast.error("Completá asunto y cuerpo"); return; }
     setSaving(true);
     try {
+      const brandedHtml = buildBrandedEmail(bodyHtml.trim(), orgSettings.logo_url, orgSettings.business_name);
       const { error } = await supabase.from("email_campaigns").insert({
         org_id: activeOrg.id,
         subject: subject.trim(),
-        body_html: bodyHtml.trim(),
+        body_html: brandedHtml,
         segment,
         status: "draft",
         sent_count: 0,
@@ -484,6 +514,13 @@ export default function EmailCampaignsPage() {
             <DialogTitle>Nueva campaña de email</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Branding info */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
+              {orgSettings.logo_url
+                ? <><img src={orgSettings.logo_url} alt="logo" className="h-5 w-auto rounded" /><span><strong className="text-foreground">{orgSettings.business_name}</strong> — logo incluido automáticamente en el email</span></>
+                : <span>⚠ Sin logo · <strong className="text-foreground">{orgSettings.business_name}</strong> · Configurá tu logo en Ajustes</span>
+              }
+            </div>
             {/* Template picker */}
             <div className="space-y-1.5">
               <Label>Plantilla (opcional)</Label>
@@ -548,8 +585,8 @@ export default function EmailCampaignsPage() {
               </div>
               {showBodyPreview ? (
                 <div
-                  className="min-h-[220px] rounded-lg border border-border p-4 bg-white text-gray-900 text-sm overflow-auto prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: bodyHtml || '<p class="text-gray-400">El cuerpo del email aparecerá aquí...</p>' }}
+                  className="min-h-[220px] rounded-lg border border-border overflow-auto bg-gray-50"
+                  dangerouslySetInnerHTML={{ __html: bodyHtml ? buildBrandedEmail(bodyHtml, orgSettings.logo_url, orgSettings.business_name) : '<p style="color:#aaa;padding:16px">El cuerpo del email aparecerá aquí...</p>' }}
                 />
               ) : (
                 <Textarea

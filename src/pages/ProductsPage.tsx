@@ -31,7 +31,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 
-function exportPriceListPDF(products: any[], businessName: string) {
+async function exportPriceListPDF(products: any[], businessName: string, logoUrl?: string | null) {
   const inStock = products.filter(p => p.stock > 0);
   const grouped: Record<string, typeof inStock> = {};
   inStock.forEach(p => {
@@ -40,6 +40,23 @@ function exportPriceListPDF(products: any[], businessName: string) {
     grouped[cat].push(p);
   });
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  // Convert logo to base64 so it works in the print window
+  let logoHtml = '';
+  if (logoUrl) {
+    try {
+      const res = await fetch(logoUrl);
+      const blob = await res.blob();
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      logoHtml = `<img src="${b64}" style="max-height:64px;max-width:220px;display:block;margin-bottom:6px">`;
+    } catch { /* logo not available, skip */ }
+  }
+
   let rows = '';
   Object.entries(grouped).forEach(([cat, items]) => {
     rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
@@ -54,8 +71,9 @@ function exportPriceListPDF(products: any[], businessName: string) {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lista de Precios</title>
 <style>
   body{font-family:Arial,sans-serif;margin:20px;font-size:12px;color:#222}
-  h1{font-size:20px;margin-bottom:2px}
-  .sub{color:#666;font-size:11px;margin-bottom:16px}
+  .header{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #d4a843}
+  h1{font-size:20px;margin:0}
+  .sub{color:#666;font-size:11px;margin-top:3px}
   table{border-collapse:collapse;width:100%}
   th{background:#1a1a2e;color:#d4a843;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;text-align:left}
   th.price,td.price{text-align:right}
@@ -67,8 +85,13 @@ function exportPriceListPDF(products: any[], businessName: string) {
   .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
   @media print{.no-print{display:none}}
 </style></head><body>
-<h1>${businessName}</h1>
-<div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
+<div class="header">
+  ${logoHtml}
+  <div>
+    <h1>${businessName}</h1>
+    <div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
+  </div>
+</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
   <tbody>${rows}</tbody>
@@ -288,7 +311,7 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
+            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Exportar lista de precios para imprimir">
               <FileText className="w-4 h-4 mr-2" />Lista precios
             </Button>
             {canCreate && (
@@ -768,6 +791,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     initialImages.map((u: string) => ({ url: u }))
   );
   const [uploading, setUploading] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   // Variants state
@@ -994,11 +1019,46 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <Camera className="w-5 h-5" />
                 <span className="text-[10px] mt-0.5">Cámara</span>
               </button>
+              <button type="button" onClick={() => setShowUrlInput(v => !v)} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                <Link2 className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5">URL</span>
+              </button>
             </>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
         </div>
+        {showUrlInput && (
+          <div className="flex gap-2 items-center mt-2">
+            <Input
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              placeholder="https://... URL de imagen"
+              className="bg-muted h-8 text-sm flex-1"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const url = urlInput.trim();
+                  if (!url) return;
+                  if (!url.startsWith('http')) { toast.error('URL inválida'); return; }
+                  if (imageItems.length >= 8) { toast.error('Máximo 8 imágenes'); return; }
+                  setImageItems(prev => [...prev, { url }]);
+                  setUrlInput('');
+                  setShowUrlInput(false);
+                }
+              }}
+            />
+            <Button type="button" size="sm" variant="outline" className="h-8 shrink-0" onClick={() => {
+              const url = urlInput.trim();
+              if (!url) return;
+              if (!url.startsWith('http')) { toast.error('URL inválida'); return; }
+              if (imageItems.length >= 8) { toast.error('Máximo 8 imágenes'); return; }
+              setImageItems(prev => [...prev, { url }]);
+              setUrlInput('');
+              setShowUrlInput(false);
+            }}>Añadir</Button>
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
       <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>

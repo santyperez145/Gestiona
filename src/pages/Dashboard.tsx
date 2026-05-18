@@ -332,6 +332,39 @@ export default function Dashboard() {
     return { avgTicket, dominantMethod, topProduct, count: todaySales.length };
   }, [rawData]);
 
+  // Weekly comparison: this week Mon–today vs same period last week
+  const weeklyComparison = useMemo(() => {
+    if (!rawData?.sales) return null;
+    const today = new Date();
+    const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() - 1; // Mon=0 … Sun=6
+    const thisMonday = new Date(today); thisMonday.setDate(today.getDate() - dayOfWeek); thisMonday.setHours(0, 0, 0, 0);
+    const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
+    const lastSameDay = new Date(lastMonday); lastSameDay.setDate(lastMonday.getDate() + dayOfWeek);
+
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const thisMon = fmt(thisMonday);
+    const lastMon = fmt(lastMonday);
+    const lastSame = fmt(lastSameDay);
+
+    const thisSales = rawData.sales.filter((s: any) => s.date >= thisMon && s.date <= fmt(today));
+    const lastSales = rawData.sales.filter((s: any) => s.date >= lastMon && s.date <= lastSame);
+
+    const thisTotal = thisSales.reduce((s: number, r: any) => s + Number(r.total_ars), 0);
+    const lastTotal = lastSales.reduce((s: number, r: any) => s + Number(r.total_ars), 0);
+    const thisUnits = thisSales.reduce((s: number, r: any) => s + Number(r.quantity || 1), 0);
+    const lastUnits = lastSales.reduce((s: number, r: any) => s + Number(r.quantity || 1), 0);
+
+    const diff = lastTotal > 0 ? ((thisTotal - lastTotal) / lastTotal) * 100 : 0;
+    const unitDiff = lastUnits > 0 ? ((thisUnits - lastUnits) / lastUnits) * 100 : 0;
+
+    // Top product this week
+    const prodMap: Record<string, number> = {};
+    thisSales.forEach((s: any) => { const n = s.product_name || "—"; prodMap[n] = (prodMap[n] || 0) + Number(s.total_ars || 0); });
+    const topProd = Object.entries(prodMap).sort(([, a], [, b]) => b - a)[0]?.[0] || null;
+
+    return { thisTotal, lastTotal, thisUnits, lastUnits, diff, unitDiff, topProd, dayOfWeek };
+  }, [rawData]);
+
   // Dynamic categories derived from actual products — no hardcoding per business type
   const categories = useMemo(() => {
     if (!rawData?.products.length) return [{ value: 'all', label: 'Todas las categorías' }];
@@ -836,6 +869,63 @@ export default function Dashboard() {
             <button onClick={() => { setMonthlySummaryDismissed(true); localStorage.setItem(monthlySummaryKey + '.dismissed', '1'); }}
               className="text-[10px] text-muted-foreground hover:text-foreground">Cerrar</button>
           </div>
+        </div>
+      )}
+
+      {/* Weekly comparison widget */}
+      {weeklyComparison && weeklyComparison.thisTotal > 0 && (
+        <div className="mb-4 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4" />Comparativa semanal automática
+            </h3>
+            <span className="text-[10px] text-muted-foreground">Esta semana vs semana anterior</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Ventas esta semana</p>
+              <p className="text-lg font-bold text-foreground">{formatARS(weeklyComparison.thisTotal)}</p>
+              <p className={`text-xs font-semibold flex items-center gap-0.5 ${weeklyComparison.diff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {weeklyComparison.diff >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                {Math.abs(weeklyComparison.diff).toFixed(1)}%
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Semana anterior</p>
+              <p className="text-lg font-bold text-muted-foreground">{formatARS(weeklyComparison.lastTotal)}</p>
+              <p className="text-xs text-muted-foreground">referencia</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Unidades vendidas</p>
+              <p className="text-lg font-bold">{weeklyComparison.thisUnits}</p>
+              <p className={`text-xs font-semibold flex items-center gap-0.5 ${weeklyComparison.unitDiff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {weeklyComparison.unitDiff >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                {Math.abs(weeklyComparison.unitDiff).toFixed(1)}% vs semana ant.
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top producto</p>
+              <p className="text-sm font-semibold truncate">{weeklyComparison.topProd || "—"}</p>
+              <button
+                onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`); navigate("/ai-chat"); }}
+                className="text-[10px] text-primary hover:underline"
+              >Analizar con IA →</button>
+            </div>
+          </div>
+          {/* Mini progress bar */}
+          {weeklyComparison.lastTotal > 0 && (
+            <div className="mt-3">
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${weeklyComparison.diff >= 0 ? 'bg-success' : 'bg-destructive'}`}
+                  style={{ width: `${Math.min(100, (weeklyComparison.thisTotal / weeklyComparison.lastTotal) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                {weeklyComparison.diff >= 0 ? `▲ +${formatARS(weeklyComparison.thisTotal - weeklyComparison.lastTotal)} respecto a la semana pasada` : `▼ ${formatARS(weeklyComparison.lastTotal - weeklyComparison.thisTotal)} menos que la semana pasada`}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -223,9 +223,33 @@ export default function SalesPage() {
     const logoUrl = settings?.logo_url || "";
     const receiptFooter = settings?.receipt_footer || "¡Gracias por su compra!";
     const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+
+    // Group related items: same customer + same date + same payment_method ≈ same transaction
+    const relatedItems = s.customer_name
+      ? sales.filter(
+          r => r.customer_name === s.customer_name &&
+               r.date === s.date &&
+               r.payment_method === s.payment_method &&
+               !r.returned
+        )
+      : [s];
+    const itemsToShow = relatedItems.length > 1 ? relatedItems : [s];
+    const grandTotal = itemsToShow.reduce((sum: number, r: any) => sum + Number(r.total_ars), 0);
+    const allPaid = itemsToShow.every((r: any) => r.paid);
+
+    const isMulti = itemsToShow.length > 1;
+    const itemRows = itemsToShow.map((r: any) =>
+      `<tr>
+        <td style="padding:4px 0">${r.product_name || "—"}</td>
+        <td style="text-align:center;padding:4px 4px">x${r.quantity}</td>
+        <td style="text-align:right;padding:4px 0;color:#666;font-size:11px">${formatARS(Number(r.unit_price_ars))}</td>
+        <td style="text-align:right;padding:4px 0;font-weight:600">${formatARS(Number(r.total_ars))}</td>
+      </tr>`
+    ).join("");
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
 <style>
-  body{font-family:Arial,sans-serif;max-width:320px;margin:20px auto;font-size:13px;color:#333}
+  body{font-family:Arial,sans-serif;max-width:360px;margin:20px auto;font-size:13px;color:#333}
   h1{font-size:18px;text-align:center;margin-bottom:4px}
   .sub{text-align:center;color:#666;font-size:11px;margin-bottom:16px}
   hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
@@ -234,23 +258,36 @@ export default function SalesPage() {
   .total{font-size:16px;font-weight:bold;text-align:right;margin-top:12px}
   .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
   .logo{display:block;max-height:60px;max-width:180px;margin:0 auto 8px}
-  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${s.paid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
+  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${allPaid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;border-bottom:1px solid #ccc;padding:4px 0;font-size:11px;color:#666}
+  th:last-child,th:nth-child(3){text-align:right}
 </style></head><body>
 ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="logo" />` : ""}
 <h1>${businessName}</h1>
 <div class="sub">Recibo de venta · ${date}</div>
 <hr>
-<div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
-${s.customer_name ? `<div class="row"><span>Cliente:</span><span>${s.customer_name}</span></div>` : ""}
-<div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
-<div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>
+${s.customer_name ? `<div class="row"><span>Cliente:</span><span class="bold">${s.customer_name}</span></div>` : ""}
 <div class="row"><span>Método de pago:</span><span>${s.payment_method || "efectivo"}</span></div>
 <hr>
-<div class="total">TOTAL: ${formatARS(Number(s.total_ars))}</div>
-<div style="text-align:right;margin-top:4px"><span class="estado">${s.paid ? "✓ Cobrado" : "Pendiente"}</span></div>
+${isMulti
+  ? `<table>
+      <thead><tr>
+        <th>Producto</th><th style="text-align:center">Cant.</th>
+        <th style="text-align:right">P.Unit</th><th style="text-align:right">Total</th>
+      </tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>`
+  : `<div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
+     <div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
+     <div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>`
+}
+<hr>
+<div class="total">TOTAL: ${formatARS(grandTotal)}</div>
+<div style="text-align:right;margin-top:4px"><span class="estado">${allPaid ? "✓ Cobrado" : "Pendiente"}</span></div>
 <div class="footer"><p>${receiptFooter}</p></div>
 </body></html>`;
-    const w = window.open("", "_blank", "width=380,height=500");
+    const w = window.open("", "_blank", "width=400,height=520");
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   };
 

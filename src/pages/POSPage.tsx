@@ -638,6 +638,10 @@ export default function POSPage() {
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
   const [discountValue, setDiscountValue] = useState("");
 
+  // VIP auto-discount based on loyalty tier
+  const [vipTier, setVipTier] = useState<{ name: string; pct: number; points: number } | null>(null);
+  const [vipLoading, setVipLoading] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<{
     items: CartItem[]; total: number; cash: number;
@@ -698,6 +702,47 @@ export default function POSPage() {
     setSyncing(false);
     if (synced > 0) toast.success(`${synced} venta${synced !== 1 ? "s" : ""} sincronizada${synced !== 1 ? "s" : ""} correctamente`);
   };
+
+  // VIP loyalty tier lookup — fires when customer name settles (debounced)
+  useEffect(() => {
+    if (!activeOrg || !customer.trim() || customer.trim().length < 3) {
+      setVipTier(null);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setVipLoading(true);
+      try {
+        const { data } = await supabase
+          .from("loyalty_points")
+          .select("delta")
+          .eq("org_id", activeOrg.id)
+          .ilike("customer_name", customer.trim());
+        const balance = (data || []).reduce((s: number, r: any) => s + Number(r.delta), 0);
+        if (balance >= 1000) {
+          const tier = { name: "Platino", pct: 10, points: balance };
+          setVipTier(tier);
+          setShowDiscount(true);
+          setDiscountType("percent");
+          setDiscountValue("10");
+        } else if (balance >= 500) {
+          const tier = { name: "Oro", pct: 5, points: balance };
+          setVipTier(tier);
+          setShowDiscount(true);
+          setDiscountType("percent");
+          setDiscountValue("5");
+        } else if (balance >= 100) {
+          setVipTier({ name: "Plata", pct: 2, points: balance });
+          setShowDiscount(true);
+          setDiscountType("percent");
+          setDiscountValue("2");
+        } else {
+          setVipTier(null);
+        }
+      } catch { setVipTier(null); }
+      finally { setVipLoading(false); }
+    }, 700);
+    return () => clearTimeout(timeout);
+  }, [customer, activeOrg]);
 
   // Saved orders (hold carts)
   type SavedOrder = { id: string; label: string; cart: CartItem[]; customer: string; savedAt: string };
@@ -1157,6 +1202,17 @@ export default function POSPage() {
           onChange={(e) => setCustomer(e.target.value)}
           className="h-8 text-sm bg-muted"
         />
+        {vipLoading && <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Verificando nivel…</p>}
+        {vipTier && !vipLoading && (
+          <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium ${
+            vipTier.name === "Platino" ? "bg-purple-500/15 border border-purple-500/30 text-purple-300" :
+            vipTier.name === "Oro" ? "bg-yellow-500/15 border border-yellow-500/30 text-yellow-300" :
+            "bg-slate-500/15 border border-slate-500/30 text-slate-300"
+          }`}>
+            <span>⭐ {customer.trim()} · {vipTier.name} · {vipTier.points.toLocaleString("es-AR")} pts</span>
+            <span className="font-bold">{vipTier.pct}% desc. aplicado</span>
+          </div>
+        )}
 
         {/* Payment section */}
         <div className="space-y-2">

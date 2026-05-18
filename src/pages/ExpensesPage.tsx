@@ -130,6 +130,30 @@ export default function ExpensesPage() {
     sessionStorage.setItem(alertedCatsKey, JSON.stringify([...alerted]));
   }, [totals.chartData, budgets, filterMonth]);
 
+  // Recurring overdue alert: fire once per session for recurring expenses past their next date
+  useEffect(() => {
+    if (!expenses.length) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const alertKey = "gestiona.expense_recurring_overdue_alerted";
+    const alerted = new Set<string>(JSON.parse(sessionStorage.getItem(alertKey) || "[]"));
+    const overdue = expenses.filter(e =>
+      e.recurring &&
+      e.recurring_next_date &&
+      e.recurring_next_date < today &&
+      !alerted.has(e.id)
+    );
+    if (overdue.length > 0) {
+      const names = overdue.slice(0, 3).map((e: any) => e.description || "Gasto").join(", ");
+      const extra = overdue.length > 3 ? ` y ${overdue.length - 3} más` : "";
+      toast.warning(
+        `🔄 ${overdue.length} gasto${overdue.length !== 1 ? "s" : ""} recurrente${overdue.length !== 1 ? "s" : ""} vencido${overdue.length !== 1 ? "s" : ""}: ${names}${extra}`,
+        { duration: 8000 }
+      );
+      overdue.forEach((e: any) => alerted.add(e.id));
+      sessionStorage.setItem(alertKey, JSON.stringify([...alerted]));
+    }
+  }, [expenses]);
+
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       if (filterCat !== 'all' && e.category !== filterCat) return false;
