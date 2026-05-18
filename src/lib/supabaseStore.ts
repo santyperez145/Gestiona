@@ -596,7 +596,7 @@ export async function getCustomersDB(userId: string) {
 }
 
 export async function createCustomerDB(userId: string, customer: {
-  name: string; email?: string; phone?: string; address?: string;
+  name: string; company?: string; email?: string; phone?: string; address?: string;
   birthday?: string; tags?: string[]; notes?: string;
 }) {
   const orgId = await orgIdFor(userId);
@@ -610,7 +610,7 @@ export async function createCustomerDB(userId: string, customer: {
 }
 
 export async function updateCustomerDB(id: string, updates: Partial<{
-  name: string; email: string; phone: string; address: string;
+  name: string; company: string; email: string; phone: string; address: string;
   birthday: string; tags: string[]; notes: string;
 }>) {
   const { error } = await supabase

@@ -864,6 +864,7 @@ export type Database = {
         Row: {
           address: string | null
           birthday: string | null
+          company: string | null
           created_at: string
           email: string | null
           id: string
@@ -878,6 +879,7 @@ export type Database = {
         Insert: {
           address?: string | null
           birthday?: string | null
+          company?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -892,6 +894,7 @@ export type Database = {
         Update: {
           address?: string | null
           birthday?: string | null
+          company?: string | null
           created_at?: string
           email?: string | null
           id?: string
