@@ -706,6 +706,7 @@ export default function Dashboard() {
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
       bestWeekdayData, bestWeekday,
+      avgDailySalesARS,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
@@ -947,6 +948,83 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {/* Temperatura del negocio — semáforo */}
+      {(() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const overdueCount = (stats.rawDebts || []).filter((d: any) => d.status !== 'paid' && d.due_date && d.due_date < today).length;
+        const todaySales = liveTodaySales?.total ?? 0;
+        const avgDaily = stats.avgDailySalesARS;
+        const salesPct = avgDaily > 0 ? (todaySales / avgDaily) * 100 : (todaySales > 0 ? 100 : 0);
+        const monthMargin = stats.monthSalesARS > 0 ? (stats.monthGrossProfit / stats.monthSalesARS) * 100 : 0;
+        const criticalStock = stats.outOfStock;
+
+        // Evaluate each signal: 2=green, 1=yellow, 0=red
+        const sigSales = salesPct >= 80 ? 2 : salesPct >= 40 ? 1 : 0;
+        const sigStock = criticalStock === 0 ? 2 : criticalStock <= 3 ? 1 : 0;
+        const sigDebt = overdueCount === 0 ? 2 : overdueCount <= 2 ? 1 : 0;
+        const sigMargin = monthMargin >= 25 ? 2 : monthMargin >= 10 ? 1 : 0;
+        const worstScore = Math.min(sigSales, sigStock, sigDebt, sigMargin);
+        const overallColor = worstScore === 2 ? 'green' : worstScore === 1 ? 'yellow' : 'red';
+
+        const colorCls = {
+          green: { bg: 'bg-success/10', border: 'border-success/30', dot: 'bg-success', label: 'text-success', text: '🟢 Todo en orden' },
+          yellow: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', dot: 'bg-yellow-400', label: 'text-yellow-400', text: '🟡 Algunas alertas' },
+          red: { bg: 'bg-destructive/10', border: 'border-destructive/30', dot: 'bg-destructive', label: 'text-destructive', text: '🔴 Requiere atención' },
+        }[overallColor];
+
+        const sigLabel = (score: number, labels: [string, string, string]) => (
+          <span className={`text-[10px] font-medium ${score === 2 ? 'text-success' : score === 1 ? 'text-yellow-400' : 'text-destructive'}`}>
+            {score === 2 ? '●' : score === 1 ? '●' : '●'} {labels[2 - score]}
+          </span>
+        );
+
+        return (
+          <div className={`mb-4 ${colorCls.bg} border ${colorCls.border} rounded-xl p-4 shadow-card`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <span className={`w-2.5 h-2.5 rounded-full ${colorCls.dot} animate-pulse`} />
+                Temperatura del negocio
+              </h3>
+              <span className={`text-xs font-bold ${colorCls.label}`}>{colorCls.text}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ventas hoy</p>
+                {sigLabel(sigSales, [
+                  `${formatARS(todaySales)} (${salesPct.toFixed(0)}% del prom.)`,
+                  `${formatARS(todaySales)} (${salesPct.toFixed(0)}% del prom.)`,
+                  `${formatARS(todaySales)} (${salesPct.toFixed(0)}% del prom.)`,
+                ])}
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Stock crítico</p>
+                {sigLabel(sigStock, [
+                  `${criticalStock} productos sin stock`,
+                  `${criticalStock} sin stock`,
+                  'Sin agotados ✓',
+                ])}
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Deudas vencidas</p>
+                {sigLabel(sigDebt, [
+                  `${overdueCount} deudas vencidas`,
+                  `${overdueCount} deuda${overdueCount !== 1 ? 's' : ''} vencida${overdueCount !== 1 ? 's' : ''}`,
+                  'Sin vencidas ✓',
+                ])}
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Margen del mes</p>
+                {sigLabel(sigMargin, [
+                  `${monthMargin.toFixed(1)}% (bajo)`,
+                  `${monthMargin.toFixed(1)}% (aceptable)`,
+                  `${monthMargin.toFixed(1)}% ✓`,
+                ])}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Today detail panel */}
       {showTodayDetail && todayDetail && (

@@ -525,6 +525,8 @@ export default function CustomersPage() {
   const [formModal, setFormModal] = useState<{ open: boolean; profile?: CustomerProfile }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, string> } | null>(null);
+  const [csvPreviewOpen, setCsvPreviewOpen] = useState(false);
   const [installments, setInstallments] = useState<any[]>([]);
   const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
   const [loyaltyBalances, setLoyaltyBalances] = useState<Record<string, number>>({});
@@ -816,41 +818,99 @@ export default function CustomersPage() {
     await loadData();
   };
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; continue; }
+      current += ch;
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const CSV_FIELD_OPTIONS = [
+    { value: '', label: '— Ignorar —' },
+    { value: 'name', label: 'Nombre' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Teléfono' },
+    { value: 'address', label: 'Dirección' },
+    { value: 'birthday', label: 'Cumpleaños (YYYY-MM-DD)' },
+    { value: 'notes', label: 'Notas' },
+  ];
+
+  const autoDetectMapping = (headers: string[]): Record<string, string> => {
+    const mapping: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      const lower = h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const idx = String(i);
+      if (/nombre|name/.test(lower)) mapping[idx] = 'name';
+      else if (/email|correo|mail/.test(lower)) mapping[idx] = 'email';
+      else if (/tel[ef]|phone|celular|movil/.test(lower)) mapping[idx] = 'phone';
+      else if (/direcc|address|domicilio/.test(lower)) mapping[idx] = 'address';
+      else if (/cumplea|birth|nacimiento/.test(lower)) mapping[idx] = 'birthday';
+      else if (/nota|note/.test(lower)) mapping[idx] = 'notes';
+      else mapping[idx] = '';
+    });
+    return mapping;
+  };
+
   const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !user) return;
-    setImporting(true);
     try {
       const text = await file.text();
       const lines = text.split(/\r?\n/).filter(l => l.trim());
       if (lines.length < 2) { toast.error("El CSV está vacío o mal formateado"); return; }
-      // Skip header row
-      const rows = lines.slice(1);
-      let ok = 0, failed = 0;
-      for (const line of rows) {
-        const [nombre, email, telefono, direccion, cumple] = line.split(",").map(s => s.trim().replace(/^"|"$/g, ""));
-        if (!nombre) continue;
-        try {
-          await createCustomerDB(user.id, {
-            name: nombre,
-            email: email || undefined,
-            phone: telefono || undefined,
-            address: direccion || undefined,
-            birthday: cumple || undefined,
-          });
-          ok++;
-        } catch {
-          failed++;
-        }
-      }
-      toast.success(`${ok} contacto(s) importados${failed > 0 ? ` · ${failed} fallidos` : ""}`);
-      await loadData();
+      const headers = parseCSVLine(lines[0]);
+      const dataRows = lines.slice(1).map(l => parseCSVLine(l)).filter(r => r.some(c => c));
+      const mapping = autoDetectMapping(headers);
+      setCsvPreview({ headers, rows: dataRows.slice(0, 200), mapping });
+      setCsvPreviewOpen(true);
     } catch {
       toast.error("Error al leer el archivo CSV");
-    } finally {
-      setImporting(false);
     }
+  };
+
+  const handleCsvConfirmImport = async () => {
+    if (!csvPreview || !user) return;
+    setImporting(true);
+    const { headers, rows, mapping } = csvPreview;
+    const existingNames = new Set(customers.map(c => c.name.toLowerCase().trim()));
+    let ok = 0, skipped = 0, failed = 0;
+    for (const row of rows) {
+      const get = (field: string) => {
+        const col = Object.entries(mapping).find(([, v]) => v === field)?.[0];
+        return col !== undefined ? (row[Number(col)] || '').trim() : '';
+      };
+      const name = get('name');
+      if (!name) continue;
+      // Deduplication: skip if already exists
+      if (existingNames.has(name.toLowerCase())) { skipped++; continue; }
+      try {
+        await createCustomerDB(user.id, {
+          name,
+          email: get('email') || undefined,
+          phone: get('phone') || undefined,
+          address: get('address') || undefined,
+          birthday: get('birthday') || undefined,
+        });
+        existingNames.add(name.toLowerCase());
+        ok++;
+      } catch { failed++; }
+    }
+    const msgs = [`${ok} importado${ok !== 1 ? 's' : ''}`];
+    if (skipped > 0) msgs.push(`${skipped} duplicado${skipped !== 1 ? 's' : ''} omitido${skipped !== 1 ? 's' : ''}`);
+    if (failed > 0) msgs.push(`${failed} fallido${failed !== 1 ? 's' : ''}`);
+    toast.success(msgs.join(' · '));
+    setCsvPreviewOpen(false);
+    setCsvPreview(null);
+    await loadData();
+    setImporting(false);
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -1295,6 +1355,93 @@ export default function CustomersPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* CSV Import Preview Dialog */}
+      <Dialog open={csvPreviewOpen} onOpenChange={o => { if (!importing) setCsvPreviewOpen(o); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-4 h-4 text-primary" />
+              Importar CSV — {csvPreview?.rows.length ?? 0} contactos detectados
+            </DialogTitle>
+          </DialogHeader>
+          {csvPreview && (
+            <div className="flex flex-col gap-4 overflow-hidden">
+              {/* Column mapping */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Mapeo de columnas</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {csvPreview.headers.map((h, i) => (
+                    <div key={i} className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground font-medium truncate block" title={h}>{h}</label>
+                      <select
+                        value={csvPreview.mapping[String(i)] || ''}
+                        onChange={e => {
+                          const newMapping = { ...csvPreview.mapping, [String(i)]: e.target.value };
+                          setCsvPreview({ ...csvPreview, mapping: newMapping });
+                        }}
+                        className="w-full text-xs bg-muted border border-border rounded px-2 py-1"
+                      >
+                        {CSV_FIELD_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview table */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Vista previa (primeras 5 filas)</p>
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        {csvPreview.headers.map((h, i) => (
+                          <th key={i} className="px-2 py-1.5 text-left text-muted-foreground font-medium whitespace-nowrap">
+                            {h}
+                            {csvPreview.mapping[String(i)] && <span className="ml-1 text-primary">→{csvPreview.mapping[String(i)]}</span>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {csvPreview.rows.slice(0, 5).map((row, ri) => (
+                        <tr key={ri} className="hover:bg-muted/20">
+                          {csvPreview.headers.map((_, ci) => (
+                            <td key={ci} className="px-2 py-1.5 text-foreground/80 max-w-[120px] truncate">{row[ci] || '—'}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {csvPreview.rows.length > 5 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">+{csvPreview.rows.length - 5} filas más · Duplicados por nombre serán omitidos automáticamente.</p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" className="flex-1" onClick={() => { setCsvPreviewOpen(false); setCsvPreview(null); }}>Cancelar</Button>
+                <Button
+                  className="flex-1 gradient-gold text-primary-foreground"
+                  disabled={importing || !Object.values(csvPreview.mapping).includes('name')}
+                  onClick={handleCsvConfirmImport}
+                >
+                  {importing
+                    ? <><span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />Importando...</>
+                    : <><Upload className="w-3.5 h-3.5 mr-1.5" />Importar {csvPreview.rows.length} contactos</>
+                  }
+                </Button>
+              </div>
+              {!Object.values(csvPreview.mapping).includes('name') && (
+                <p className="text-xs text-destructive text-center -mt-2">Asigná al menos una columna al campo "Nombre" para poder importar.</p>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

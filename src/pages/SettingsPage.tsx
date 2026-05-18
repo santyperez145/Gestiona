@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -522,6 +522,9 @@ export default function SettingsPage() {
 
           {/* Coupons CRUD */}
           <CouponsManager userId={user!.id} />
+
+          {/* Sucursales management */}
+          <SucursalesSection orgId={orgForTemplates?.id} />
         </div>
       </div>
     </div>
@@ -1332,6 +1335,143 @@ function AfipSection() {
           </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ===== Sucursales (Locations) Management =====
+function SucursalesSection({ orgId }: { orgId?: string }) {
+  const [locations, setLocations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    if (!orgId) return;
+    setLoading(true);
+    const { data } = await supabase.from('locations').select('id, name, address, is_active').eq('org_id', orgId).order('name');
+    setLocations(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [orgId]);
+
+  const handleAdd = async () => {
+    if (!orgId || !newName.trim()) return;
+    setAdding(true);
+    const { error } = await supabase.from('locations').insert({ org_id: orgId, name: newName.trim(), address: newAddress.trim() || null, is_active: true });
+    if (error) { toast.error('Error al crear sucursal: ' + error.message); }
+    else { toast.success('Sucursal creada'); setNewName(''); setNewAddress(''); await load(); }
+    setAdding(false);
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    const { error } = await supabase.from('locations').update({ name: editName.trim(), address: editAddress.trim() || null }).eq('id', id);
+    if (error) toast.error('Error al actualizar');
+    else { toast.success('Sucursal actualizada'); setEditId(null); await load(); }
+    setSaving(false);
+  };
+
+  const handleToggle = async (loc: any) => {
+    await supabase.from('locations').update({ is_active: !loc.is_active }).eq('id', loc.id);
+    await load();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('locations').delete().eq('id', id);
+    if (error) toast.error('No se puede eliminar: ' + error.message);
+    else { toast.success('Sucursal eliminada'); await load(); }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+      <div>
+        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />Gestión de Sucursales
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1">Administrá tus puntos de venta o depósitos. El stock puede asignarse por ubicación en Inventario.</p>
+      </div>
+
+      {/* Add form */}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Input
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder="Nombre de la sucursal"
+            className="bg-muted border-border text-sm"
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+          />
+          <Button onClick={handleAdd} disabled={adding || !newName.trim()} size="sm" className="shrink-0">
+            {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+          </Button>
+        </div>
+        <Input
+          value={newAddress}
+          onChange={e => setNewAddress(e.target.value)}
+          placeholder="Dirección (opcional)"
+          className="bg-muted border-border text-sm text-xs"
+        />
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <p className="text-xs text-muted-foreground">Cargando...</p>
+      ) : locations.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No hay sucursales registradas. Creá la primera arriba.</p>
+      ) : (
+        <div className="space-y-2">
+          {locations.map(loc => (
+            <div key={loc.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${loc.is_active ? 'bg-muted/30 border-border' : 'bg-muted/10 border-border/50 opacity-60'}`}>
+              <MapPin className={`w-3.5 h-3.5 shrink-0 ${loc.is_active ? 'text-primary' : 'text-muted-foreground'}`} />
+              {editId === loc.id ? (
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 text-xs bg-background border-border" />
+                  <Input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Dirección" className="h-7 text-xs bg-background border-border" />
+                  <button onClick={() => handleSaveEdit(loc.id)} disabled={saving} className="text-success hover:text-success/80 transition-colors shrink-0">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setEditId(null)} className="text-muted-foreground hover:text-foreground shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{loc.name}</p>
+                  {loc.address && <p className="text-[10px] text-muted-foreground truncate">{loc.address}</p>}
+                </div>
+              )}
+              {editId !== loc.id && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => { setEditId(loc.id); setEditName(loc.name); setEditAddress(loc.address || ''); }}
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="Editar"
+                  ><Edit2 className="w-3 h-3" /></button>
+                  <button
+                    onClick={() => handleToggle(loc)}
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors ${loc.is_active ? 'bg-success/15 text-success hover:bg-success/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    title={loc.is_active ? 'Desactivar' : 'Activar'}
+                  >{loc.is_active ? 'Activa' : 'Inactiva'}</button>
+                  <button
+                    onClick={() => { if (window.confirm(`¿Eliminar "${loc.name}"?`)) handleDelete(loc.id); }}
+                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Eliminar"
+                  ><Trash2 className="w-3 h-3" /></button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground">Las sucursales aparecen en Reportes → Sucursales y en la asignación de stock de inventario.</p>
     </div>
   );
 }

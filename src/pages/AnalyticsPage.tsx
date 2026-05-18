@@ -173,6 +173,38 @@ const tooltipStyle = {
   itemStyle: { color: "hsl(40,70%,60%)", fontSize: 11 },
 };
 
+function buildRentabilidadData(sales: any[], products: any[]) {
+  // Per-product: accumulate revenue, cost (via profit = revenue - cost), gross profit
+  const map: Record<string, { name: string; category: string; revenue: number; profit: number; units: number }> = {};
+  for (const s of sales) {
+    const key = s.product_name || "Sin nombre";
+    const prod = products.find((p: any) => p.name === key || p.id === s.product_id);
+    if (!map[key]) map[key] = { name: key, category: prod?.category || "otros", revenue: 0, profit: 0, units: 0 };
+    map[key].revenue += Number(s.total_ars || 0);
+    map[key].profit += Number(s.profit_ars || 0);
+    map[key].units += Number(s.quantity || 1);
+  }
+  const list = Object.values(map)
+    .map(p => ({ ...p, margin: p.revenue > 0 ? (p.profit / p.revenue) * 100 : 0 }))
+    .filter(p => p.revenue > 0);
+
+  const top5 = [...list].sort((a, b) => b.margin - a.margin).slice(0, 5);
+  const bottom5 = [...list].filter(p => p.margin < 100).sort((a, b) => a.margin - b.margin).slice(0, 5);
+
+  // Category breakdown
+  const catMap: Record<string, { revenue: number; profit: number }> = {};
+  for (const p of list) {
+    if (!catMap[p.category]) catMap[p.category] = { revenue: 0, profit: 0 };
+    catMap[p.category].revenue += p.revenue;
+    catMap[p.category].profit += p.profit;
+  }
+  const byCategory = Object.entries(catMap)
+    .map(([cat, d]) => ({ cat, revenue: d.revenue, profit: d.profit, margin: d.revenue > 0 ? (d.profit / d.revenue) * 100 : 0 }))
+    .sort((a, b) => b.margin - a.margin);
+
+  return { top5, bottom5, byCategory, totalProducts: list.length };
+}
+
 export default function AnalyticsPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
@@ -330,6 +362,8 @@ export default function AnalyticsPage() {
     const weekTotalThis = weekThis.reduce((s, d) => s + d.revenue, 0);
     const weekTotalPrev = weekPrev.reduce((s, v) => s + v, 0);
 
+    const rentabilidad = buildRentabilidadData(sales, products);
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
@@ -338,6 +372,7 @@ export default function AnalyticsPage() {
       returningCustomers, retentionRate, newCustomersLast30, customersLast30Size: customersLast30.size,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
       abcProducts, catTrend, catKeys, weeklyComparison, weekTotalThis, weekTotalPrev,
+      rentabilidad,
     };
   }, [rawData, year]);
 
@@ -422,6 +457,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="weekly" className="text-xs">Semana</TabsTrigger>
           <TabsTrigger value="cohorts" className="text-xs">👥 Cohorts</TabsTrigger>
           <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
+          <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1146,6 +1182,131 @@ export default function AnalyticsPage() {
         {/* DORMANT PRODUCTS TAB */}
         <TabsContent value="dormant" className="mt-4">
           <DormantProductsTab products={rawData?.products || []} sales={rawData?.sales || []} />
+        </TabsContent>
+
+        {/* RENTABILIDAD TAB */}
+        <TabsContent value="rentabilidad" className="mt-4 space-y-4">
+          {derived.rentabilidad.totalProducts === 0 ? (
+            <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground text-sm">
+              Sin datos de ventas para calcular rentabilidad.
+            </div>
+          ) : (
+            <>
+              {/* Top 5 / Bottom 5 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Top 5 por margen */}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                    <span className="text-green-400">▲</span> Top 5 — Mayor margen bruto
+                  </h3>
+                  <div className="space-y-3">
+                    {derived.rentabilidad.top5.map((p, i) => (
+                      <div key={p.name} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span className="font-medium truncate max-w-[140px]" title={p.name}>{p.name}</span>
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-muted-foreground">{formatARS(p.profit)}</span>
+                            <span className="font-bold text-green-400 w-12 text-right">{p.margin.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-green-400 rounded-full" style={{ width: `${Math.min(100, p.margin)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom 5 por margen */}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                    <span className="text-red-400">▼</span> Bottom 5 — Menor margen bruto
+                  </h3>
+                  <div className="space-y-3">
+                    {derived.rentabilidad.bottom5.map((p, i) => (
+                      <div key={p.name} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span className="font-medium truncate max-w-[140px]" title={p.name}>{p.name}</span>
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-muted-foreground">{formatARS(p.profit)}</span>
+                            <span className={`font-bold w-12 text-right ${p.margin < 10 ? 'text-red-400' : p.margin < 20 ? 'text-yellow-400' : 'text-muted-foreground'}`}>{p.margin.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${p.margin < 10 ? 'bg-red-400' : p.margin < 20 ? 'bg-yellow-400' : 'bg-muted-foreground'}`} style={{ width: `${Math.min(100, Math.max(2, p.margin))}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Category margin breakdown */}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="text-sm font-semibold mb-4">Margen por categoría</h3>
+                <div className="space-y-3">
+                  {derived.rentabilidad.byCategory.map((c, i) => (
+                    <div key={c.cat} className="grid grid-cols-[1fr_80px_80px_72px] items-center gap-3 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: PALETTE[i % PALETTE.length] }} />
+                        <span className="capitalize truncate font-medium">{c.cat}</span>
+                      </div>
+                      <span className="text-right text-muted-foreground">{formatARS(c.revenue)}</span>
+                      <span className="text-right text-success">{formatARS(c.profit)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.margin)}%`, background: PALETTE[i % PALETTE.length] }} />
+                        </div>
+                        <span className={`w-8 text-right font-bold ${c.margin >= 30 ? 'text-green-400' : c.margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>{c.margin.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-border grid grid-cols-[1fr_80px_80px_72px] gap-3 text-xs font-semibold">
+                    <span>Total</span>
+                    <span className="text-right">{formatARS(derived.rentabilidad.byCategory.reduce((s, c) => s + c.revenue, 0))}</span>
+                    <span className="text-right text-success">{formatARS(derived.rentabilidad.byCategory.reduce((s, c) => s + c.profit, 0))}</span>
+                    <span className="text-right text-primary">
+                      {(() => {
+                        const rev = derived.rentabilidad.byCategory.reduce((s, c) => s + c.revenue, 0);
+                        const prof = derived.rentabilidad.byCategory.reduce((s, c) => s + c.profit, 0);
+                        return rev > 0 ? `${((prof / rev) * 100).toFixed(1)}%` : '—';
+                      })()}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-3">Ingresos · Ganancia bruta · Margen % — basado en todas las ventas del año seleccionado</p>
+              </div>
+
+              {/* Margin distribution chart */}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="text-sm font-semibold mb-4">Distribución de margen por producto (Top 15)</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={[...derived.rentabilidad.top5, ...derived.rentabilidad.bottom5.filter(p => !derived.rentabilidad.top5.find(t => t.name === p.name))].slice(0, 15).sort((a, b) => b.margin - a.margin)} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(220,15%,55%)" }} angle={-35} textAnchor="end" interval={0} />
+                    <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: "hsl(220,15%,45%)" }} width={38} />
+                    <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, "Margen"]} />
+                    <Bar dataKey="margin" name="Margen %" radius={[4, 4, 0, 0]}>
+                      {[...derived.rentabilidad.top5, ...derived.rentabilidad.bottom5.filter(p => !derived.rentabilidad.top5.find(t => t.name === p.name))].slice(0, 15).sort((a, b) => b.margin - a.margin).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.margin >= 30 ? "hsl(150,60%,40%)" : entry.margin >= 15 ? "hsl(40,70%,50%)" : "hsl(0,65%,55%)"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="flex items-center gap-4 mt-1 justify-center text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500 inline-block" />≥30%</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-500 inline-block" />15–30%</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500 inline-block" />&lt;15%</span>
+                </div>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
