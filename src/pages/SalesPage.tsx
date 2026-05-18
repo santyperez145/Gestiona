@@ -289,6 +289,7 @@ ${isMulti
 <hr>
 <div class="total">TOTAL: ${formatARS(grandTotal)}</div>
 <div style="text-align:right;margin-top:4px"><span class="estado">${allPaid ? "✓ Cobrado" : "Pendiente"}</span></div>
+${s.notes ? `<div style="margin-top:10px;padding:6px 8px;background:#f9f9f9;border-radius:6px;font-size:11px;color:#555"><span style="font-weight:600">Nota:</span> ${s.notes}</div>` : ""}
 <div class="footer"><p>${receiptFooter}</p></div>
 </body></html>`;
     const w = window.open("", "_blank", "width=400,height=520");
