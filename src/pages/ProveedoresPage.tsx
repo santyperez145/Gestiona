@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
-  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare,
+  AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare, Store,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -79,6 +79,7 @@ export default function ProveedoresPage() {
   const [savingDebt, setSavingDebt] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'proveedores' | 'aging' | 'pagos'>('proveedores');
 
   const load = async () => {
     if (!activeOrg) return;
@@ -242,15 +243,22 @@ export default function ProveedoresPage() {
         }
       />
 
-      <Tabs defaultValue="suppliers">
-        <TabsList className="mb-4">
-          <TabsTrigger value="suppliers">Proveedores ({suppliers.length})</TabsTrigger>
-          <TabsTrigger value="debts" className={pendingDebts.length > 0 ? "text-destructive" : ""}>
-            Cuentas a Pagar {pendingDebts.length > 0 && `(${pendingDebts.length})`}
-          </TabsTrigger>
-        </TabsList>
+      {/* Tab nav */}
+      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
+        {([
+          { id: 'proveedores', label: 'Proveedores', icon: Store },
+          { id: 'aging', label: 'Aging AP', icon: Clock },
+          { id: 'pagos', label: 'Pagos', icon: CreditCard },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="suppliers">
+        {activeTab === 'proveedores' && (<>
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

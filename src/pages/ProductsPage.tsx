@@ -170,6 +170,7 @@ export default function ProductsPage() {
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [editingPrice, setEditingPrice] = useState<{ id: string; value: string } | null>(null);
   const [reorderDismissed, setReorderDismissed] = useState(false);
+  const [activeTab, setActiveTab] = useState<'productos' | 'alertas' | 'precios'>('productos');
 
   const reload = async () => {
     if (!user) return;
@@ -363,8 +364,23 @@ export default function ProductsPage() {
           color={outOfStockCount > 0 ? "destructive" : "success"} sub="agotados" />
       </div>
 
+      {/* Tab nav */}
+      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
+        {([
+          { id: 'productos', label: 'Productos', icon: Package },
+          { id: 'alertas', label: 'Alertas de Stock', icon: AlertTriangle },
+          { id: 'precios', label: 'Lista de precios', icon: FileText },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Reorder alerts banner */}
-      {!reorderDismissed && (() => {
+      {activeTab === 'productos' && !reorderDismissed && (() => {
         const reorderNeeded = products.filter(p => {
           const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
           return p.stock > 0 && p.stock <= threshold;
@@ -445,7 +461,130 @@ export default function ProductsPage() {
         onClose={() => setPriceHistoryProduct(null)}
       />
 
-      {expiringSoon.length > 0 && (
+      {/* Alertas de Stock tab */}
+      {activeTab === 'alertas' && (() => {
+        const lowStock = products.filter(p => p.stock > 0 && p.stock <= (Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3));
+        const outStock = products.filter(p => p.stock <= 0);
+        return (
+          <div className="space-y-4">
+            {lowStock.length === 0 && outStock.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <AlertTriangle className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                <p className="text-sm">No hay productos con stock bajo o sin stock</p>
+              </div>
+            ) : (
+              <>
+                {lowStock.length > 0 && (
+                  <div className="bg-card border border-warning/30 rounded-xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-warning/5">
+                      <AlertTriangle className="w-4 h-4 text-warning" />
+                      <h3 className="text-sm font-semibold text-warning">Stock bajo ({lowStock.length})</h3>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {lowStock.map(p => {
+                        const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
+                        return (
+                          <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                            {p.image_url && <img src={p.image_url} alt="" className="w-9 h-9 rounded object-cover shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{p.name}</p>
+                              <p className="text-xs text-muted-foreground">{p.brand} · {getCategoryLabel(p.category)}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-warning">{p.stock} uds</p>
+                              <p className="text-[10px] text-muted-foreground">mín {threshold}</p>
+                            </div>
+                            <button
+                              onClick={() => navigate(`/compras?product=${encodeURIComponent(p.name)}`)}
+                              className="px-3 py-1.5 rounded-lg bg-warning/15 text-warning text-xs font-semibold hover:bg-warning/25 transition-colors shrink-0"
+                            >
+                              Pedir
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {outStock.length > 0 && (
+                  <div className="bg-card border border-destructive/30 rounded-xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-destructive/5">
+                      <X className="w-4 h-4 text-destructive" />
+                      <h3 className="text-sm font-semibold text-destructive">Sin stock ({outStock.length})</h3>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {outStock.map(p => (
+                        <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                          {p.image_url && <img src={p.image_url} alt="" className="w-9 h-9 rounded object-cover shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">{p.brand} · {getCategoryLabel(p.category)}</p>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold shrink-0">Agotado</span>
+                          <button
+                            onClick={() => navigate(`/compras?product=${encodeURIComponent(p.name)}`)}
+                            className="px-3 py-1.5 rounded-lg bg-destructive/15 text-destructive text-xs font-semibold hover:bg-destructive/25 transition-colors shrink-0"
+                          >
+                            Pedir
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Lista de precios tab */}
+      {activeTab === 'precios' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => exportPriceListPDF(products.filter(p => p.stock > 0), settings?.business_name || "Mi Negocio", settings?.logo_url)}>
+              <FileText className="w-4 h-4 mr-2" />Exportar PDF de lista de precios
+            </Button>
+            <Button variant="outline" onClick={() => exportProductsXLSX(products, settings)}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar Excel completo
+            </Button>
+            {canEdit && (
+              <Button variant="outline" onClick={() => setPriceImportOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" />Actualizar precios desde CSV
+              </Button>
+            )}
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Vista previa de precios</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="text-left p-2 font-medium">Producto</th>
+                    <th className="text-left p-2 font-medium">Categoría</th>
+                    <th className="text-right p-2 font-medium">Precio Venta</th>
+                    <th className="text-right p-2 font-medium">Precio Oferta</th>
+                    <th className="text-right p-2 font-medium">Stock</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {products.filter(p => p.stock > 0).slice(0, 50).map(p => (
+                    <tr key={p.id} className="hover:bg-muted/20">
+                      <td className="p-2 font-medium">{p.name}</td>
+                      <td className="p-2 text-muted-foreground text-xs">{getCategoryLabel(p.category)}</td>
+                      <td className="p-2 text-right font-semibold">{formatARS(Number(p.sale_price_ars))}</td>
+                      <td className="p-2 text-right text-muted-foreground">{p.discount_price_ars ? formatARS(Number(p.discount_price_ars)) : '—'}</td>
+                      <td className="p-2 text-right">{p.stock}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'productos' && expiringSoon.length > 0 && (
         <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
           <div className="flex-1 text-sm">
@@ -456,6 +595,7 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {activeTab === 'productos' && (<>
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -756,6 +896,7 @@ export default function ProductsPage() {
           )}
         </>
       )}
+      </>)}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -83,6 +83,8 @@ export default function ExpensesPage() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [activeTab, setActiveTab] = useState<'gastos' | 'presupuesto' | 'recurrentes' | 'tendencia'>('gastos');
+
   const [budgets, setBudgets] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem("gestiona.expense_budgets") || "{}"); } catch { return {}; }
   });
@@ -281,7 +283,24 @@ export default function ExpensesPage() {
         <KPICard icon={Filter} label="Categorías activas" value={totals.chartData.length} color="blue" />
       </div>
 
+      {/* Tab nav */}
+      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit mb-5">
+        {([
+          { id: 'gastos', label: 'Gastos', icon: Receipt },
+          { id: 'presupuesto', label: 'Presupuesto', icon: Target },
+          { id: 'recurrentes', label: 'Recurrentes', icon: Repeat },
+          { id: 'tendencia', label: 'Tendencia', icon: TrendingUp },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Filters row */}
+      {(activeTab === 'gastos' || activeTab === 'recurrentes') && (
       <div className="flex flex-wrap gap-2 mb-5">
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -303,7 +322,10 @@ export default function ExpensesPage() {
           </SelectContent>
         </Select>
       </div>
+      )}
 
+      {/* Gastos tab: main table */}
+      {activeTab === 'gastos' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Chart */}
         <div className="bg-card border border-border rounded-lg p-4 shadow-card">
@@ -489,9 +511,103 @@ export default function ExpensesPage() {
           )}
         </div>
       </div>
+      )}
+
+      {/* Presupuesto tab */}
+      {activeTab === 'presupuesto' && (
+        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
+          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Presupuesto por Categoría</h2>
+          {totals.chartData.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-12 text-center">Sin datos para el período seleccionado</p>
+          ) : (
+            <div className="space-y-4">
+              {totals.chartData.map(c => {
+                const budget = budgets[c.cat] || 0;
+                const pct = budget > 0 ? Math.min(100, (c.value / budget) * 100) : 0;
+                const over = budget > 0 && c.value > budget;
+                const isEditing = editBudget === c.cat;
+                return (
+                  <div key={c.cat}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full shrink-0" style={{ background: c.color }} />
+                        <span className="font-medium">{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold font-mono ${over ? 'text-destructive' : ''}`}>{formatARS(c.value)}</span>
+                        {budget > 0 && <span className="text-muted-foreground">/ {formatARS(budget)}</span>}
+                        {!isEditing && (
+                          <button onClick={() => { setEditBudget(c.cat); setBudgetInput(budget > 0 ? String(budget) : ""); }}
+                            className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {isEditing && (
+                      <div className="flex items-center gap-1 mb-2">
+                        <input type="number" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
+                          placeholder="Presupuesto..." autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') saveBudget(c.cat, parseFloat(budgetInput) || 0); if (e.key === 'Escape') { setEditBudget(null); setBudgetInput(""); }}}
+                          className="flex-1 h-8 text-sm px-2 rounded bg-muted border border-border outline-none focus:ring-1 focus:ring-primary/40" />
+                        <button onClick={() => saveBudget(c.cat, parseFloat(budgetInput) || 0)} className="text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditBudget(null); setBudgetInput(""); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                      </div>
+                    )}
+                    <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-warning' : 'bg-primary'}`}
+                        style={{ width: budget > 0 ? `${pct}%` : '0%' }} />
+                    </div>
+                    {budget > 0 && (
+                      <p className={`text-xs mt-1 ${over ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {over ? `Excedido en ${formatARS(c.value - budget)}` : `Disponible: ${formatARS(budget - c.value)} (${(100 - pct).toFixed(0)}%)`}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recurrentes tab */}
+      {activeTab === 'recurrentes' && (
+        <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+          <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Gastos Recurrentes</h2>
+            <span className="text-xs text-muted-foreground">{filtered.filter(e => e.recurring).length} recurrente{filtered.filter(e => e.recurring).length !== 1 ? "s" : ""}</span>
+          </div>
+          {filtered.filter(e => e.recurring).length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No hay gastos recurrentes registrados</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {filtered.filter(e => e.recurring).map(e => {
+                const catCfg = categories.find(c => c.value === e.category);
+                return (
+                  <div key={e.id} className="flex items-center gap-3 p-4">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
+                      <Repeat className="w-3 h-3" />
+                      {getExpenseCategoryLabel(e.category, settings)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{e.description || '—'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {e.recurring_frequency === 'monthly' ? 'Mensual' : e.recurring_frequency === 'weekly' ? 'Semanal' : e.recurring_frequency === 'yearly' ? 'Anual' : 'Diario'}
+                        {e.recurring_next_date && ` · próx. ${new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}`}
+                      </p>
+                    </div>
+                    <span className="font-bold text-destructive font-mono shrink-0">-{formatARS(Number(e.amount_ars))}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Monthly trend chart */}
-      {monthlyTrend.length > 1 && (
+      {activeTab === 'tendencia' && monthlyTrend.length > 1 && (
         <div className="bg-card border border-border rounded-xl shadow-card p-4 mb-6">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
           <ResponsiveContainer width="100%" height={180}>

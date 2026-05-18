@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2 } from "lucide-react";
 import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -47,7 +47,7 @@ export default function DebtsPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"pending" | "paid">("pending");
+  const [tab, setTab] = useState<"pending" | "paid" | "cobros" | "aging">("pending");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
@@ -115,7 +115,7 @@ export default function DebtsPage() {
 
   if (loading) return <TableSkeleton rows={5} cols={7} />;
 
-  const shown = tab === "pending" ? pending : paid;
+  const shown = tab === "paid" ? paid : pending;
 
   return (
     <div>
@@ -141,8 +141,25 @@ export default function DebtsPage() {
           sub="deuda promedio" />
       </div>
 
+      {/* Tab Nav */}
+      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit mb-5">
+        {([
+          { id: 'pending' as const, label: 'Pendientes', icon: AlertCircle, count: pending.length },
+          { id: 'cobros' as const, label: 'Próximos cobros', icon: Calendar, count: (() => { const today = new Date(); today.setHours(0,0,0,0); const nw = new Date(today); nw.setDate(nw.getDate()+7); return pending.filter(d => { if (!d.due_date) return false; const dd = new Date(d.due_date+"T12:00:00"); return dd >= today && dd <= nw; }).length; })() },
+          { id: 'aging' as const, label: 'Aging', icon: BarChart2, count: 0 },
+          { id: 'paid' as const, label: 'Cobradas', icon: CheckCircle2, count: paid.length },
+        ]).map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <t.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{t.label}</span>
+            {t.count > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === t.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
       {/* Próximos cobros esta semana */}
-      {pending.length > 0 && (() => {
+      {tab === "cobros" && pending.length > 0 && (() => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
         const upcoming = pending.filter(d => {
@@ -186,8 +203,17 @@ export default function DebtsPage() {
         );
       })()}
 
+      {/* Cobros vacío */}
+      {tab === "cobros" && (() => {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const nw = new Date(today); nw.setDate(nw.getDate()+7);
+        const cnt = pending.filter(d => { if (!d.due_date) return false; const dd = new Date(d.due_date+"T12:00:00"); return dd >= today && dd <= nw; }).length;
+        if (cnt > 0) return null;
+        return <EmptyState icon={Calendar} title="Sin cobros próximos" description="No hay deudas con vencimiento en los próximos 7 días." />;
+      })()}
+
       {/* Aging de deudas a cobrar */}
-      {pending.length > 0 && (() => {
+      {tab === "aging" && pending.length > 0 && (() => {
         const now = Date.now();
         const agingBuckets = [
           { label: "Corriente (0–30d)", max: 30, color: "bg-blue-500/70", textColor: "text-blue-400" },
@@ -231,7 +257,8 @@ export default function DebtsPage() {
         );
       })()}
 
-      {/* Search + Tabs */}
+      {/* Search + CSV — only for table tabs */}
+      {(tab === "pending" || tab === "paid") && (
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -241,17 +268,6 @@ export default function DebtsPage() {
             onChange={e => setSearch(e.target.value)}
             className="pl-9 bg-card border-border"
           />
-        </div>
-        <div className="flex bg-card border border-border rounded-lg p-1 gap-1 shrink-0">
-          {(["pending", "paid"] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {t === "pending" ? `Pendientes (${pending.length})` : `Pagadas (${paid.length})`}
-            </button>
-          ))}
         </div>
         <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => {
           const bom = '﻿';
@@ -275,6 +291,7 @@ export default function DebtsPage() {
           <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
         </Button>
       </div>
+      )}
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && tab === "pending" && (
@@ -307,15 +324,15 @@ export default function DebtsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Empty state */}
-      {!shown.length && (
+      {/* Empty state — only for table tabs */}
+      {(tab === "pending" || tab === "paid") && !shown.length && (
         tab === "pending"
           ? <EmptyState icon={CheckCircle2} title="¡Sin deudas pendientes!" description="Todos tus clientes están al día." />
           : <EmptyState icon={Clock} title="Sin deudas cobradas" description="Acá aparecerán las deudas que se salden." />
       )}
 
-      {/* Desktop table */}
-      {shown.length > 0 && (
+      {/* Desktop table — only for pending/paid tabs */}
+      {(tab === "pending" || tab === "paid") && shown.length > 0 && (
         <>
           <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">

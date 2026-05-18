@@ -191,20 +191,21 @@ export default function PurchasesPage() {
         )}
       </div>
 
-      <div className="flex bg-card border border-border rounded-lg p-1 gap-1 w-fit mb-5">
-        <button onClick={() => { setTab('all'); setPage(0); }}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'all' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-          Realizadas
-        </button>
-        <button onClick={() => { setTab('scheduled'); setPage(0); }}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${tab === 'scheduled' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-          <CalendarClock className="w-3.5 h-3.5" />Programadas
-          {scheduledCount > 0 && <span className="text-[10px] bg-white/20 px-1.5 rounded-full">{scheduledCount}</span>}
-        </button>
-        <button onClick={() => { setTab('suppliers'); setPage(0); }}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'suppliers' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-          Por Proveedor
-        </button>
+      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit mb-5">
+        {([
+          { id: 'all' as const, label: 'Realizadas', icon: ShoppingCart },
+          { id: 'scheduled' as const, label: 'Programadas', icon: CalendarClock, count: scheduledCount },
+          { id: 'suppliers' as const, label: 'Por Proveedor', icon: ClipboardList },
+        ]).map(t => (
+          <button key={t.id} onClick={() => { setTab(t.id); setPage(0); }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <t.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{t.label}</span>
+            {'count' in t && t.count > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === t.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>{t.count}</span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Purchase Order Generator Dialog */}

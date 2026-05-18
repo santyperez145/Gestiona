@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle } from "lucide-react";
+import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle, Medal } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Tier system ──────────────────────────────────────────────────────────────
@@ -203,6 +203,8 @@ export default function LoyaltyPage() {
 
   const ptVal = Number(pointValueArs) || 100;
 
+  const [activeTab, setActiveTab] = useState<'puntos' | 'canjes' | 'tiers' | 'configuracion'>('puntos');
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
@@ -221,7 +223,24 @@ export default function LoyaltyPage() {
         }
       />
 
+      {/* Tab nav */}
+      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
+        {([
+          { id: 'puntos', label: 'Puntos', icon: Gift },
+          { id: 'canjes', label: 'Canjes', icon: ShoppingBag },
+          { id: 'tiers', label: 'Tiers', icon: Trophy },
+          { id: 'configuracion', label: 'Configuración', icon: Settings2 },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Settings */}
+      {activeTab === 'configuracion' && (
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold flex items-center gap-2 text-sm"><Settings2 className="w-4 h-4" />Configuración</h2>
@@ -258,8 +277,10 @@ export default function LoyaltyPage() {
           Guardar configuración
         </Button>
       </div>
+      )}
 
       {/* Manual adjustment */}
+      {activeTab === 'puntos' && (
       <div className="bg-card border border-border rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm flex items-center gap-2"><Gift className="w-4 h-4" />Ajuste manual de puntos</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -281,8 +302,10 @@ export default function LoyaltyPage() {
           Aplicar ajuste
         </Button>
       </div>
+      )}
 
       {/* Product Redemption — cost-price based */}
+      {activeTab === 'canjes' && (
       <div className="bg-card border border-border rounded-xl p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Tag className="w-4 h-4 text-yellow-400" />
@@ -367,8 +390,66 @@ export default function LoyaltyPage() {
           Registrar canje
         </Button>
       </div>
+      )}
+
+      {/* Tiers display */}
+      {activeTab === 'tiers' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {TIERS.map(tier => (
+              <div key={tier.name} className={`bg-card border border-border rounded-xl p-5 ${tier.bg}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Medal className={`w-5 h-5 ${tier.color}`} />
+                  <h3 className={`font-semibold text-base ${tier.color}`}>{tier.name}</h3>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Desde</span>
+                    <span className="font-medium">{tier.min.toLocaleString("es-AR")} pts</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hasta</span>
+                    <span className="font-medium">{tier.max === Infinity ? "∞" : tier.max.toLocaleString("es-AR")} pts</span>
+                  </div>
+                </div>
+                <div className={`mt-3 h-1.5 rounded-full ${tier.barColor} opacity-60`} />
+                <div className="mt-3 text-xs text-muted-foreground">
+                  {balances.filter(b => {
+                    const t = TIERS.findLast(t2 => b.balance >= t2.min) ?? TIERS[0];
+                    return t.name === tier.name;
+                  }).length} clientes activos
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Distribución de clientes por tier</h3>
+            <div className="space-y-2">
+              {TIERS.map(tier => {
+                const count = balances.filter(b => {
+                  const t = TIERS.findLast(t2 => b.balance >= t2.min) ?? TIERS[0];
+                  return t.name === tier.name;
+                }).length;
+                const pct = balances.length > 0 ? (count / balances.length) * 100 : 0;
+                return (
+                  <div key={tier.name}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className={`font-medium ${tier.color}`}>{tier.name}</span>
+                      <span className="text-muted-foreground">{count} cliente{count !== 1 ? 's' : ''} · {pct.toFixed(0)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${tier.barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard + detail */}
+      {activeTab === 'puntos' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Balances list */}
         <div className="lg:col-span-1 space-y-3">
@@ -520,6 +601,7 @@ export default function LoyaltyPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
