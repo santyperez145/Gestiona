@@ -2764,6 +2764,7 @@ export type Database = {
           image_url: string | null
           image_urls: string[] | null
           lot_number: string | null
+          low_stock_threshold: number | null
           name: string
           offer_expires_at: string | null
           org_id: string
@@ -2797,6 +2798,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[] | null
           lot_number?: string | null
+          low_stock_threshold?: number | null
           name: string
           offer_expires_at?: string | null
           org_id: string
@@ -2830,6 +2832,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[] | null
           lot_number?: string | null
+          low_stock_threshold?: number | null
           name?: string
           offer_expires_at?: string | null
           org_id?: string
@@ -3177,6 +3180,7 @@ export type Database = {
           return_id: string | null
           returned: boolean
           returned_quantity: number
+          seller_name: string | null
           source: string
           split_payments: Json | null
           tiendanube_order_id: string | null
@@ -3211,6 +3215,7 @@ export type Database = {
           return_id?: string | null
           returned?: boolean
           returned_quantity?: number
+          seller_name?: string | null
           source?: string
           split_payments?: Json | null
           tiendanube_order_id?: string | null
@@ -3251,6 +3256,7 @@ export type Database = {
           total_ars?: number
           unit_price_ars?: number
           user_id?: string
+          seller_name?: string | null
           variant_id?: string | null
         }
         Relationships: [

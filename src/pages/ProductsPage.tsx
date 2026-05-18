@@ -898,7 +898,12 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         content_ml: parseInt(contentMl) || 100,
-        low_stock_threshold: parseInt(lowStockThreshold) || 3,
+        low_stock_threshold: lowStockThreshold ? parseInt(lowStockThreshold) : null,
+        barcode: barcode.trim() || null,
+        sku: sku.trim() || null,
+        lot_number: lotNumber.trim() || null,
+        expiry_date: expiryDate || null,
+        tags: tags.length > 0 ? tags : null,
       };
       let productId = product?.id;
       if (product) {
