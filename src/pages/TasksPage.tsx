@@ -463,7 +463,6 @@ export default function TasksPage() {
                       </span>
                     )}
                   </div>
-                </div>
 
                   {/* Subtask controls */}
                   {(() => {
