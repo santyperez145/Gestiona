@@ -233,7 +233,34 @@ export default function DebtsPage() {
         const grandTotal = bucketed.reduce((s, b) => s + b.total, 0);
         return (
           <div className="mb-5 bg-card border border-border rounded-xl p-4">
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aging de cuentas a cobrar</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Aging de cuentas a cobrar</h3>
+              {(() => {
+                const over30 = pending.filter(d => {
+                  const age = Math.floor((now - new Date(d.date).getTime()) / 86400000);
+                  return age >= 31 && d.phone;
+                });
+                if (over30.length === 0) return null;
+                const template = getWaDebtTemplate(activeOrg?.id);
+                return (
+                  <button
+                    className="flex items-center gap-1.5 text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-lg px-2.5 py-1.5 transition-colors"
+                    onClick={() => {
+                      const msgs = over30.map(d => buildDebtMsg(d, template));
+                      navigator.clipboard.writeText(msgs.join("\n\n---\n\n"));
+                      toast.success(`${over30.length} mensajes copiados al portapapeles`);
+                      // Open WhatsApp for first debtor
+                      if (over30[0]?.phone) {
+                        window.open(`https://wa.me/${over30[0].phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(buildDebtMsg(over30[0], template))}`, "_blank");
+                      }
+                    }}
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Recordar &gt;30d ({over30.length})
+                  </button>
+                );
+              })()}
+            </div>
             <div className="space-y-2">
               {bucketed.map(b => {
                 const pct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;

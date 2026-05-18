@@ -171,7 +171,7 @@ function buildReceiptText(
 function ReceiptModal({
   items, payMethod, splitMode, splitMethod1, splitMethod2, splitAmount1, splitAmount2,
   customer, total, cashGiven, businessName, orgId, globalDiscountARS, couponDiscount,
-  onClose, onNewSale,
+  note, onClose, onNewSale,
 }: {
   items: CartItem[]; payMethod: PayMethod;
   splitMode: boolean; splitMethod1: PayMethod; splitMethod2: PayMethod;
@@ -179,6 +179,7 @@ function ReceiptModal({
   customer: string; total: number; cashGiven: number;
   businessName: string; orgId: string;
   globalDiscountARS: number; couponDiscount: number;
+  note?: string;
   onClose: () => void; onNewSale: () => void;
 }) {
   const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
@@ -244,6 +245,7 @@ ${customer ? `<p class="center">Cliente: ${customer}</p>` : ""}
 <div class="divider"></div>
 ${paymentInfo}
 <p class="center">${payMethod === "fiado" ? "⚠ PENDIENTE DE PAGO" : "✓ PAGADO"}</p>
+${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><span style="font-weight:bold">Nota:</span> ${note}</div>` : ""}
 <div class="footer">¡Gracias por tu compra!</div>
 </body></html>`;
 
@@ -358,6 +360,12 @@ ${paymentInfo}
               </div>
             )}
           </div>
+          {note && (
+            <div className="mt-3 pt-3 border-t border-dashed border-border">
+              <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Nota interna</p>
+              <p className="text-xs italic text-amber-400/80">{note}</p>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -648,7 +656,7 @@ export default function POSPage() {
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<{
     items: CartItem[]; total: number; cash: number;
-    globalDiscountARS: number; couponDiscount: number;
+    globalDiscountARS: number; couponDiscount: number; note: string;
   } | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [loadingProds, setLoadingProds] = useState(true);
@@ -1069,7 +1077,7 @@ export default function POSPage() {
       if (!isOnline) {
         toast.success(`Venta guardada offline — se sincronizará al reconectar`);
         clearCart();
-        setReceipt({ items: [...cart], total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount });
+        setReceipt({ items: [...cart], total: cartTotal, cash: Number(cashGiven) || 0, globalDiscountARS, couponDiscount, note: posNote });
         return;
       }
 
@@ -1103,6 +1111,7 @@ export default function POSPage() {
         cash: Number(cashGiven) || 0,
         globalDiscountARS,
         couponDiscount,
+        note: posNote,
       });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
       setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now() }]);
@@ -1628,6 +1637,7 @@ export default function POSPage() {
           orgId={activeOrg?.id || ""}
           globalDiscountARS={receipt.globalDiscountARS}
           couponDiscount={receipt.couponDiscount}
+          note={receipt.note}
           onClose={() => setReceipt(null)}
           onNewSale={() => { setReceipt(null); clearCart(); }}
         />

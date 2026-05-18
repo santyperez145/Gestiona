@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -1527,14 +1527,35 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
   const [percent, setPercent] = useState('');
   const [field, setField] = useState('both');
   const [loading, setLoading] = useState(false);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [preview, setPreview] = useState(false);
+
+  useEffect(() => {
+    getProductsDB(userId).then(setAllProducts).catch(() => {});
+  }, [userId]);
+
+  const categories = useMemo(() => [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort(), [allProducts]);
+
+  const previewProducts = useMemo(() => {
+    const pct = parseFloat(percent);
+    if (!pct || pct === 0) return [];
+    const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
+    return toUpdate
+      .filter(p => (field !== 'discount' && Number(p.sale_price_ars) > 0) || (field !== 'sale' && Number(p.discount_price_ars) > 0))
+      .slice(0, 8)
+      .map(p => ({
+        name: p.name,
+        oldSale: Number(p.sale_price_ars),
+        newSale: field !== 'discount' ? Math.round(Number(p.sale_price_ars) * (1 + pct / 100)) : Number(p.sale_price_ars),
+      }));
+  }, [allProducts, category, percent, field]);
 
   const handleApply = async () => {
     const pct = parseFloat(percent);
     if (!pct || pct === 0) { toast.error("Ingresá un porcentaje válido"); return; }
     setLoading(true);
     try {
-      const products = await getProductsDB(userId);
-      const toUpdate = category === 'all' ? products : products.filter(p => p.category === category);
+      const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
       let count = 0;
       for (const p of toUpdate) {
         const updates: any = {};
@@ -1567,6 +1588,9 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
     }
   };
 
+  const pct = parseFloat(percent);
+  const affectedCount = (category === 'all' ? allProducts : allProducts.filter(p => p.category === category)).length;
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Aplicar un porcentaje de aumento o descuento a los precios de venta.</p>
@@ -1575,11 +1599,12 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
-            <SelectItem value="perfume_arabe">Perfume Árabe</SelectItem>
-            <SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem>
-            <SelectItem value="vaper">Vaper</SelectItem>
-            <SelectItem value="electronico">Electrónico</SelectItem>
+            <SelectItem value="all">Todas las categorías ({allProducts.length} productos)</SelectItem>
+            {categories.map(cat => (
+              <SelectItem key={cat} value={cat}>
+                {cat} ({allProducts.filter(p => p.category === cat).length} productos)
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -1596,10 +1621,34 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
-        <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
+        <Input type="number" value={percent} onChange={e => { setPercent(e.target.value); setPreview(false); }} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
       </div>
-      <Button onClick={handleApply} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
-        {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
+
+      {/* Preview */}
+      {pct && pct !== 0 && previewProducts.length > 0 && (
+        <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs space-y-1.5">
+          <div className="flex items-center justify-between text-muted-foreground mb-2">
+            <span className="font-medium text-foreground">Vista previa ({affectedCount} productos)</span>
+            <span className={pct > 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
+              {pct > 0 ? `+${pct}%` : `${pct}%`}
+            </span>
+          </div>
+          {previewProducts.map((p, i) => (
+            <div key={i} className="flex items-center justify-between gap-2">
+              <span className="truncate text-muted-foreground">{p.name}</span>
+              <span className="shrink-0">
+                <span className="line-through text-muted-foreground">{formatARS(p.oldSale)}</span>
+                {" → "}
+                <span className={pct > 0 ? "text-green-400 font-medium" : "text-red-400 font-medium"}>{formatARS(p.newSale)}</span>
+              </span>
+            </div>
+          ))}
+          {affectedCount > 8 && <p className="text-muted-foreground text-center">... y {affectedCount - 8} más</p>}
+        </div>
+      )}
+
+      <Button onClick={handleApply} disabled={loading || !pct || pct === 0} className="w-full gradient-gold text-primary-foreground font-semibold">
+        {loading ? 'Aplicando...' : `Aplicar a ${affectedCount} productos`}
       </Button>
     </div>
   );
