@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -618,6 +618,8 @@ export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
+  const [variantsByProduct, setVariantsByProduct] = useState<Record<string, any[]>>({});
+  const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -802,13 +804,21 @@ export default function POSPage() {
     if (!user) return;
     (async () => {
       const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-      const [prods, sett, { data: recentSales }] = await Promise.all([
+      const [prods, sett, { data: recentSales }, allVariants] = await Promise.all([
         getProductsDB(user.id),
         getSettingsDB(user.id),
         supabase.from('sales').select('product_id, quantity').gte('date', since30.toISOString().slice(0, 10)),
+        getVariantsByUserDB(user.id).catch(() => []),
       ]);
       setProducts(prods);
       setSettings(sett);
+      // Group variants by product_id
+      const varMap: Record<string, any[]> = {};
+      (allVariants || []).forEach((v: any) => {
+        if (!varMap[v.product_id]) varMap[v.product_id] = [];
+        varMap[v.product_id].push(v);
+      });
+      setVariantsByProduct(varMap);
       setLoadingProds(false);
       // Compute top-5 products by units sold in last 30 days
       const vel: Record<string, number> = {};
@@ -879,11 +889,15 @@ export default function POSPage() {
     }
   };
 
-  const addToCart = useCallback((prod: any) => {
+  const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }) => {
+    const cartKey = variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
+    const stockLimit = variantOverride ? variantOverride.stock : prod.stock;
+    const price = (variantOverride?.price ?? Number(prod.sale_price_ars)) || 0;
+    const displayName = variantOverride ? `${prod.name} · ${variantOverride.name}` : prod.name;
     setCart((prev) => {
-      const idx = prev.findIndex((it) => it.productId === prod.id);
+      const idx = prev.findIndex((it) => it.productId === cartKey);
       if (idx >= 0) {
-        if (prev[idx].quantity >= prod.stock && prod.stock > 0) {
+        if (prev[idx].quantity >= stockLimit && stockLimit > 0) {
           toast.warning("Sin stock suficiente");
           return prev;
         }
@@ -892,21 +906,22 @@ export default function POSPage() {
         return updated;
       }
       return [...prev, {
-        productId: prod.id,
-        name: prod.name,
+        productId: cartKey,
+        name: displayName,
         brand: prod.brand,
-        price: Number(prod.sale_price_ars) || 0,
+        price,
         discountPrice: prod.discount_price_ars ? Number(prod.discount_price_ars) : null,
         costUSD: Number(prod.total_cost_usd) || 0,
         exchangeRate: Number(settings?.exchange_rate) || 1695,
         quantity: 1,
-        stock: prod.stock,
+        stock: stockLimit,
         imageUrl: prod.image_url || null,
         useDiscount: false,
       }];
     });
     setShowCart(true);
-  }, [settings]);
+    if (variantPickerProduct) setVariantPickerProduct(null);
+  }, [settings, variantPickerProduct]);
 
   const changeQty = (productId: string, delta: number) => {
     setCart((prev) =>
@@ -1443,6 +1458,58 @@ export default function POSPage() {
 
   return (
     <>
+      {/* Variant Picker modal */}
+      {variantPickerProduct && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setVariantPickerProduct(null)}>
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+              <div className="min-w-0 mr-3">
+                <p className="text-sm font-semibold truncate">{variantPickerProduct.name}</p>
+                <p className="text-xs text-muted-foreground">Seleccioná una variante</p>
+              </div>
+              <button onClick={() => setVariantPickerProduct(null)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
+              {(variantsByProduct[variantPickerProduct.id] || []).map(v => {
+                const outOfStock = v.stock <= 0;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => !outOfStock && addToCart(variantPickerProduct, { id: v.id, name: v.variant_name, stock: v.stock, price: v.price_override || undefined })}
+                    disabled={outOfStock}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${
+                      outOfStock ? 'opacity-40 cursor-not-allowed border-border' : 'border-border hover:border-primary/50 hover:bg-primary/5 active:scale-98'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{v.variant_name}</p>
+                      {v.price_override && <p className="text-xs text-muted-foreground">{formatARS(v.price_override)}</p>}
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      v.stock <= 0 ? 'bg-red-500/15 text-red-400' :
+                      v.stock <= 3 ? 'bg-yellow-500/15 text-yellow-400' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {v.stock <= 0 ? 'Sin stock' : `×${v.stock}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => addToCart(variantPickerProduct)}
+                className="w-full py-2.5 rounded-xl border border-dashed border-border hover:border-primary/40 hover:bg-muted/30 transition-colors text-xs text-muted-foreground"
+              >
+                Sin variante específica (stock total: {variantPickerProduct.stock})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Return modal */}
       {showReturn && user && activeOrg && (
         <QuickReturnModal
@@ -1715,7 +1782,15 @@ export default function POSPage() {
                   return (
                     <button
                       key={prod.id}
-                      onClick={() => !outOfStock && addToCart(prod)}
+                      onClick={() => {
+                        if (outOfStock) return;
+                        const prodVariants = variantsByProduct[prod.id];
+                        if (prodVariants?.length > 0) {
+                          setVariantPickerProduct(prod);
+                        } else {
+                          addToCart(prod);
+                        }
+                      }}
                       disabled={outOfStock}
                       className={`relative flex flex-col bg-card border rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 ${
                         inCart ? "border-primary/60 ring-1 ring-primary/30" : "border-border hover:border-primary/30"
@@ -1733,6 +1808,9 @@ export default function POSPage() {
                       <div className="p-2.5 flex flex-col gap-1">
                         <p className="text-xs font-semibold leading-tight line-clamp-2">{prod.name}</p>
                         {prod.brand && <p className="text-[10px] text-muted-foreground">{prod.brand}</p>}
+                        {variantsByProduct[prod.id]?.length > 0 && (
+                          <p className="text-[9px] text-blue-400 font-medium">{variantsByProduct[prod.id].length} variantes →</p>
+                        )}
 
                         <div className="flex items-center justify-between mt-auto">
                           <div>
