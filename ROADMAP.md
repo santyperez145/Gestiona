@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-13 (sesión 21)**
+Última actualización: **2026-05-18 (sesión 22)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -180,6 +180,15 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **Dashboard: card "Hoy" expandible** — click en el KPI abre panel con ventas totales, ticket promedio, método dominante, top producto del día. _(sesión 21)_
 - **ReportsPage: tab "Proveedores"** — ranking por monto U$S, share %, compras, promedio, última compra, link a /proveedores. _(sesión 21)_
 - **SalesPipelinePage: deals estancados** — banner naranja con count de deals >14d sin actividad; panel expandible con listado y botón "Actualizar" por deal. _(sesión 21)_
+- **POSPage: selector de vendedor de turno** — modal al entrar al POS pregunta quién atiende; badge en top bar con botón "cambiar"; `seller_name` guardado en localStorage por org y enviado en cada venta. _(sesión 22)_
+- **SalesPage: filtro por vendedor** — dropdown que aparece solo si hay datos; filtra ventas por `seller_name` column. _(sesión 22)_
+- **CashSessionPage: breakdown por vendedor** — tabla "Ventas por vendedor" en turno activo; agrupa ventas del turno por seller_name; solo aparece si hay 2+ vendedores. _(sesión 22)_
+- **Dashboard: botón "💡 Insight del día"** — en quick actions; guarda prompt en sessionStorage y navega a AIChatPage; AIChatPage lee el prefill al montar. _(sesión 22)_
+- **AnalyticsPage Tendencia: rango de fechas personalizado** — date pickers (from/to) debajo del gráfico mensual; gráfico diario de ingresos para el período seleccionado. _(sesión 22)_
+- **ProductsPage: columna SKU** — visible en xl+, muestra sku o barcode; hover muestra barcode completo; ya se guarda correctamente en save. _(sesión 22)_
+- **EmailCampaignsPage: preview HTML antes de enviar** — tabs Editar/Vista previa en el textarea de body; render real del HTML en fondo blanco. _(sesión 22)_
+- **TasksPage: subtareas con parent_id** — botón "+subtarea" en cada card; input inline; lista expandible con check individual; progreso N/total visible; DB: ADD COLUMN parent_id (self-ref FK). _(sesión 22)_
+- **fix(schema): low_stock_threshold + seller_name en DB** — columna `low_stock_threshold` agregada a products (era solo en settings); `seller_name` agregada a sales; tipos actualizados; ProductsPage handleSubmit ahora guarda barcode, sku, lot_number, expiry_date, tags y low_stock_threshold. _(sesión 22)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -358,24 +367,24 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 17)
+## Estado por módulo (actualizado sesión 22)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
-| Infraestructura | 85% | E2E tests, staging env |
-| Auth + orgs | 85% | Permisos granulares completados |
-| Inventario | 85% | Lotes en UI |
-| Ventas + POS | 94% | Recibo personalizable, impresoras térmica |
+| Infraestructura | 86% | E2E tests, staging env |
+| Auth + orgs | 85% | Permisos granulares por módulo |
+| Inventario | 88% | Lotes en UI, foto desde cámara |
+| Ventas + POS | 96% | Recibo personalizable, impresora térmica BT |
 | Clientes + CRM | 92% | Segmentos con acciones masivas |
 | Finanzas | 90% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
-| Marketing + Email | 82% | Open rate / click tracking Resend |
-| IA + Analytics | 97% | Más acciones IA, series temporales |
+| Marketing + Email | 85% | Open rate / click tracking Resend |
+| IA + Analytics | 98% | Series temporales, forecasting por SKU |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
-| Mobile + UX | 78% | Capacitor, impresora BT |
+| Mobile + UX | 80% | Capacitor, impresora BT |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **96%** | |
+| **TOTAL** | **97%** | |
 
 ---
 
@@ -454,18 +463,35 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 22)
+## Sesión 22 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | POSPage: selector de vendedor de turno + badge en header | ✅ Hecho |
+| 2 | CashSessionPage: breakdown ventas por vendedor en turno activo | ✅ Hecho |
+| 3 | SalesPage: filtro dropdown por seller_name | ✅ Hecho |
+| 4 | Dashboard: botón "💡 Insight del día" → AIChatPage prefilled | ✅ Hecho |
+| 5 | AnalyticsPage Tendencia: gráfico diario con date range custom | ✅ Hecho |
+| 6 | ProductsPage: columna SKU/barcode en tabla (xl+) | ✅ Hecho |
+| 7 | EmailCampaignsPage: tabs Editar/Vista previa antes de enviar | ✅ Hecho |
+| 8 | TasksPage: subtareas con parent_id (DB + UI colapsable) | ✅ Hecho |
+| 9 | fix(schema): products.low_stock_threshold + sales.seller_name | ✅ Hecho |
+| 10 | fix(products): handleSubmit guardaba barcode/sku/tags/expiry_date/lot_number (pérdida silenciosa) | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 23)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: selector de vendedor de turno** — al entrar al POS, preguntar quién atiende; guardar en `localStorage.gestiona.pos.seller.{orgId}`; mostrar nombre en header; pasar `seller_name` al registrar venta | Trazabilidad y comisiones |
-| 2 | **CashSessionPage: breakdown por vendedor** — en resumen de cierre, agrupar ventas del turno por `seller_name`; mostrar total, cantidad y comisión estimada por vendedor | Gestión de equipo |
-| 3 | **SalesPage: filtro por vendedor** — dropdown "Todos los vendedores" en la barra de filtros; filtra por `seller_name` campo en ventas | Reporte por vendedor |
-| 4 | **Dashboard: AI insight del día en un click** — botón "💡 Insight del día" que dispara análisis Claude específico del día (ventas de hoy vs promedio, producto sorpresa, alerta si hay deal grande sin cerrar) | IA accionable diaria |
-| 5 | **AnalyticsPage: comparativa por período personalizado** — date picker en tab "Tendencia" para elegir rango libre (no solo año); comparativa lado a lado con período anterior | Análisis flexible |
-| 6 | **ProductsPage: código de barras / SKU** — campo `sku` visible en tabla y buscable; búsqueda en POS también funciona por SKU; generación de código de barras SVG en ficha de producto | Operativa de almacén |
-| 7 | **EmailCampaignsPage: preview del email** — botón "Preview" en el dialog muestra render del HTML del email antes de enviar; resuelve `{{nombre}}` con nombre de ejemplo | Calidad de comunicación |
-| 8 | **TasksPage: subtareas** — campo `parent_id` en tasks; lista de subtareas colapsable en el kanban; checkbox por subtarea; progreso visible en task padre | Gestión de proyectos |
+| 1 | **ProductsPage: búsqueda en POS por SKU/barcode** — cuando el usuario tipea en el buscador del POS, también matchear contra `sku` y `barcode`; si el código es exacto, agregar al carrito directo | Operativa de almacén: lector de código de barras |
+| 2 | **ReportsPage: tab "Comparativa de períodos"** — comparar cualquier dos rangos de fechas (ej: semana pasada vs esta semana); ventas, ganancia, ticket promedio, clientes nuevos; tabla y mini-charts | Análisis de tendencia flexible |
+| 3 | **Dashboard: Resumen mensual automático vía IA** — al inicio de cada mes, generar un párrafo con los highlights del mes anterior (mejor día, top producto, aumento/caída vs mes previo) y guardarlo en localStorage; visible en Dashboard | IA periódica de valor |
+| 4 | **ExpensesPage: adjuntar recibo/foto** — botón "Adjuntar" en cada gasto; sube imagen a `expense-receipts` storage bucket; thumb visible en tabla con click para ver full; migración DB `receipt_url` | Contabilidad ordenada |
+| 5 | **ProductsPage: foto desde cámara móvil** — en el formulario de producto, botón "Cámara" usa `input[type=file][accept=image/*][capture=environment]`; preview antes de subir; no requiere app nativa | POS móvil + carga rápida |
+| 6 | **SalesPage: recibo con logo de org** — el recibo imprimible incluye `logo_url` de la org (ya existe en settings) + nombre del negocio + dirección; hace la app más profesional | Imagen de marca |
+| 7 | **CustomersPage: importación CSV de clientes** — botón "Importar CSV"; mapeo de columnas (nombre, email, teléfono, notas); preview antes de confirmar; crea/actualiza clientes por email | Onboarding de base de datos existente |
+| 8 | **SettingsPage: personalización de recibo** — sección "Recibo / Ticket" con campos: mensaje de cierre personalizado, logo, mostrar/ocultar ganancia, mostrar/ocultar detalle de descuento | Experiencia de marca en caja |
 
 ---
 
