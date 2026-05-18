@@ -575,6 +575,12 @@ export default function Dashboard() {
     });
     const prevTotalMonthExpenses = prevMonthExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
 
+    // YoY: same month last year
+    const yoyY = curY - 1;
+    const yoySales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === yoyY && d.getMonth() === curM; });
+    const yoySalesARS = yoySales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+    const yoyGrowth = yoySalesARS > 0 ? ((monthSalesARS - yoySalesARS) / yoySalesARS) * 100 : 0;
+
     // ===== Top products this month vs prev month =====
     const monthProdMap: Record<string, { name: string; qty: number; revenue: number }> = {};
     monthSales.forEach((s: any) => {
@@ -707,6 +713,7 @@ export default function Dashboard() {
       currentRate, totalCostUSDInInventory, products: allProducts,
       // New
       monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData, prevTotalMonthExpenses,
+      yoySalesARS, yoyGrowth,
       salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
@@ -1511,6 +1518,15 @@ export default function Dashboard() {
               </>
             ) : (
               <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo mensual de ventas para ver el progreso aquí.</p>
+            )}
+            {/* YoY comparison */}
+            {stats.yoySalesARS > 0 && (
+              <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Mismo mes {new Date().getFullYear() - 1}: {formatARS(stats.yoySalesARS)}</span>
+                <span className={`font-semibold ${stats.yoyGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {stats.yoyGrowth >= 0 ? '▲' : '▼'} {Math.abs(stats.yoyGrowth).toFixed(1)}% interanual
+                </span>
+              </div>
             )}
           </div>
         );
