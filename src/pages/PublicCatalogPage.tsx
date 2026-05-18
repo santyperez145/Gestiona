@@ -139,7 +139,7 @@ export default function PublicCatalogPage() {
     const [pRes, sRes, fsRes] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, brand, category, gender, sale_price_ars, discount_price_ars, stock, description, image_url, content_ml, total_sold, featured, offer_expires_at, total_cost_usd, user_id")
+        .select("id, name, brand, category, gender, sale_price_ars, discount_price_ars, stock, description, image_url, content_ml, total_sold, featured, offer_expires_at, total_cost_usd, user_id, created_at")
         .eq("user_id", userId)
         .gt("stock", 0)
         .order("category")
@@ -233,6 +233,40 @@ export default function PublicCatalogPage() {
     [filtered],
   );
   const vapers = useMemo(() => filtered.filter((p) => p.category === "vaper"), [filtered]);
+
+  // Dynamic hero config based on top category
+  const heroConfig = useMemo(() => {
+    const sorted = [...categories].sort((a, b) => b.count - a.count);
+    const top = sorted[0]?.value || "all";
+    const cfgs: Record<string, { lines: string[]; sub: string; cta: string; emoji: string; cat: string }> = {
+      perfume_arabe: { lines: ["Fragancias", "de Oriente"], sub: "Perfumes árabes de larga duración", cta: "Ver perfumes árabes", emoji: "🌸", cat: "perfume_arabe" },
+      perfume_diseñador: { lines: ["Perfumes de", "Diseñador"], sub: "Las mejores marcas internacionales", cta: "Ver perfumes", emoji: "✨", cat: "perfume_diseñador" },
+      vaper: { lines: ["Vapers &", "Sabores"], sub: "La mejor selección, la mejor experiencia", cta: "Ver vapers", emoji: "💨", cat: "vaper" },
+      electronico: { lines: ["Tech &", "Electrónica"], sub: "Los últimos gadgets al mejor precio", cta: "Ver electrónica", emoji: "⚡", cat: "electronico" },
+    };
+    return cfgs[top] || { lines: [businessName, "Tienda Online"], sub: `${products.length} productos disponibles`, cta: "Ver catálogo", emoji: "🛍️", cat: "all" };
+  }, [categories, businessName, products.length]);
+
+  // Novedades: latest added products (excluding already-shown)
+  const novedades = useMemo(() => {
+    const shownIds = new Set([...featuredProducts, ...topSellers].map((p) => p.id));
+    return [...products]
+      .filter((p) => !shownIds.has(p.id))
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 6);
+  }, [products, featuredProducts, topSellers]);
+
+  // Ofertas especiales: products with discount, sorted by discount %
+  const ofertasEspeciales = useMemo(() => {
+    return products
+      .filter((p) => p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars))
+      .sort((a, b) => {
+        const pctA = 1 - Number(a.discount_price_ars) / Number(a.sale_price_ars);
+        const pctB = 1 - Number(b.discount_price_ars) / Number(b.sale_price_ars);
+        return pctB - pctA;
+      })
+      .slice(0, 4);
+  }, [products]);
 
   const primaryColor = settings?.primary_color || "#D4A843";
   const businessName = settings?.business_name || "EXENTRY IMPORTS";
@@ -417,26 +451,94 @@ export default function PublicCatalogPage() {
           <div
             className="relative rounded-2xl overflow-hidden mb-8 p-6 sm:p-10"
             style={{
-              background: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}08)`,
+              background: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}05)`,
               border: `1px solid ${primaryColor}25`,
             }}
           >
+            {/* Decorative orbs */}
+            <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] blur-3xl pointer-events-none" style={{ background: primaryColor }} />
+            <div className="absolute -left-8 bottom-0 w-40 h-40 rounded-full opacity-[0.04] blur-2xl pointer-events-none" style={{ background: primaryColor }} />
+
             <div className="relative z-10">
               <p className="text-3xl sm:text-4xl font-black leading-tight mb-2">
-                Perfumes que duran
+                {heroConfig.lines[0]}
                 <br />
-                todo el día <span className="text-2xl">🔥</span>
+                {heroConfig.lines[1]} <span className="text-2xl">{heroConfig.emoji}</span>
               </p>
-              <p className="text-sm sm:text-base text-white/50 font-medium mb-4">Fragancias que llaman la atención</p>
-              <button
-                onClick={() => setFilterCat("perfume_arabe")}
-                className="px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all hover:scale-105"
-                style={{ background: primaryColor }}
-              >
-                Ver perfumes
-              </button>
+              <p className="text-sm sm:text-base text-white/50 font-medium mb-5">{heroConfig.sub}</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => setFilterCat(heroConfig.cat)}
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all hover:scale-105 active:scale-95"
+                  style={{ background: primaryColor, boxShadow: `0 4px 20px ${primaryColor}50` }}
+                >
+                  {heroConfig.cta}
+                </button>
+                {whatsappNumber && (
+                  <a
+                    href={buildWhatsAppUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 rounded-xl font-bold text-sm text-white/70 border border-white/10 hover:bg-white/5 transition-all flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4" />Consultar
+                  </a>
+                )}
+              </div>
+              {/* Quick stats */}
+              <div className="flex items-center gap-6 mt-6 flex-wrap">
+                <div className="text-center">
+                  <p className="text-2xl font-black" style={{ color: primaryColor }}>{products.length}</p>
+                  <p className="text-[10px] text-white/35 uppercase tracking-wider">productos</p>
+                </div>
+                {categories.length > 1 && (
+                  <div className="text-center">
+                    <p className="text-2xl font-black" style={{ color: primaryColor }}>{categories.length}</p>
+                    <p className="text-[10px] text-white/35 uppercase tracking-wider">categorías</p>
+                  </div>
+                )}
+                {ofertasEspeciales.length > 0 && (
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-red-400">{ofertasEspeciales.length}</p>
+                    <p className="text-[10px] text-white/35 uppercase tracking-wider">en oferta</p>
+                  </div>
+                )}
+                {whatsappNumber && (
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-green-400">✓</p>
+                    <p className="text-[10px] text-white/35 uppercase tracking-wider">WhatsApp</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Ofertas Especiales */}
+        {ofertasEspeciales.length > 0 && showAllView && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Tag className="w-5 h-5 text-red-400" />
+                <h2 className="text-lg font-black tracking-wide text-red-300">Ofertas Especiales</h2>
+              </div>
+              <span className="px-2.5 py-1 bg-red-500/15 text-red-300 text-[10px] font-bold rounded-full border border-red-500/20 uppercase tracking-wider">DESCUENTOS</span>
+            </div>
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {ofertasEspeciales.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  primaryColor={primaryColor}
+                  onClick={() => setDetailProduct(p)}
+                  badge={`-${Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100)}% OFF`}
+                  settings={settings}
+                  fullSettings={fullSettings}
+                  onAddToCart={whatsappNumber ? addToCart : undefined}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Featured Section */}
@@ -480,6 +582,33 @@ export default function PublicCatalogPage() {
                   primaryColor={primaryColor}
                   onClick={() => setDetailProduct(p)}
                   badge="Más vendido"
+                  settings={settings}
+                  fullSettings={fullSettings}
+                  onAddToCart={whatsappNumber ? addToCart : undefined}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Novedades */}
+        {showAllView && novedades.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-black tracking-wide text-blue-300">Novedades</h2>
+              </div>
+              <span className="text-xs text-white/30">{novedades.length} nuevos</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {novedades.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  primaryColor={primaryColor}
+                  onClick={() => setDetailProduct(p)}
+                  compact
                   settings={settings}
                   fullSettings={fullSettings}
                   onAddToCart={whatsappNumber ? addToCart : undefined}

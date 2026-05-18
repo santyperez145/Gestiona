@@ -395,80 +395,126 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-6">
-        <div className="relative flex-1">
+      {/* Stats bar */}
+      {products.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          {[
+            { label: "Productos", value: products.length, color: "text-foreground" },
+            { label: "Categorías", value: [...new Set(products.map(p => p.category))].length, color: "text-foreground" },
+            { label: "Marcas", value: [...new Set(products.map(p => p.brand).filter(Boolean))].length, color: "text-foreground" },
+            { label: "En oferta", value: products.filter(p => p.discount_price_ars && p.discount_price_ars < p.sale_price_ars).length, color: "text-primary" },
+          ].map(stat => (
+            <div key={stat.label} className="bg-card border border-border rounded-xl px-4 py-3 text-center">
+              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar producto o marca..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted border-border" />
         </div>
-        <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="w-full sm:w-[160px] bg-muted border-border"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
-            <SelectItem value="perfume_arabe">Perfume Árabe</SelectItem>
-            <SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem>
-            <SelectItem value="vaper">Vaper</SelectItem>
-            <SelectItem value="electronico">Electrónico</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Dynamic category pills */}
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { value: 'all', label: 'Todos', count: products.length },
+            ...[...new Set(products.map(p => p.category))].map(c => ({
+              value: c,
+              label: getCategoryLabel(c),
+              count: products.filter(p => p.category === c).length,
+            })),
+          ].map(cat => (
+            <button
+              key={cat.value}
+              onClick={() => setFilterCat(cat.value)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                filterCat === cat.value
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'bg-muted border-border hover:border-primary/40 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {cat.label} <span className="opacity-60">({cat.count})</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {!filtered.length ? (
         <EmptyState icon={Package} title="No hay productos disponibles" description="No se encontraron productos con stock." />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {filtered.map(p => (
-            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow group">
-              <div className="aspect-square bg-muted flex items-center justify-center relative">
+          {filtered.map(p => {
+            const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
+            const discountPct = hasDiscount ? Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100) : 0;
+            return (
+            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
+              <div className="aspect-square bg-muted/60 flex items-center justify-center relative overflow-hidden">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                 ) : (
-                  <Package className="w-12 h-12 text-muted-foreground/30" />
+                  <Package className="w-12 h-12 text-muted-foreground/20" />
                 )}
+                {/* Badges */}
+                <div className="absolute top-2 left-2 flex flex-col gap-1">
+                  {hasDiscount && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-destructive text-destructive-foreground font-bold flex items-center gap-1">
+                      <Tag className="w-3 h-3" />-{discountPct}%
+                    </span>
+                  )}
+                </div>
                 <div className="absolute top-2 right-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-background/80 backdrop-blur-sm font-medium">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-background/80 backdrop-blur-sm font-medium border border-border/40">
                     {getCategoryLabel(p.category)}
                   </span>
                 </div>
-                {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars && (
-                  <div className="absolute top-2 left-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-destructive text-destructive-foreground font-bold flex items-center gap-1">
-                      <Tag className="w-3 h-3" />
-                      {Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100)}% OFF
+                {/* Low stock warning */}
+                {!isPublic && p.stock <= 3 && p.stock > 0 && (
+                  <div className="absolute bottom-2 left-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/80 text-white font-bold backdrop-blur-sm">
+                      ¡{p.stock} u.!
                     </span>
                   </div>
                 )}
               </div>
               <div className="p-3">
-                <div className="flex items-start justify-between mb-1">
-                  <h3 className="font-semibold text-sm leading-tight flex-1">{p.name}</h3>
-                  <span className="text-xs text-muted-foreground ml-1">{GENDER_ICONS[p.gender]}</span>
+                <div className="flex items-start justify-between mb-0.5">
+                  <h3 className="font-semibold text-sm leading-tight flex-1 line-clamp-2">{p.name}</h3>
+                  <span className="text-xs text-muted-foreground ml-1 shrink-0">{GENDER_ICONS[p.gender]}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2">{p.brand}</p>
-                <div className="space-y-1">
-                  {p.discount_price_ars && p.discount_price_ars < p.sale_price_ars ? (
+                <p className="text-xs text-muted-foreground mb-2.5">{p.brand}</p>
+                <div className="space-y-1.5">
+                  {hasDiscount ? (
                     <>
-                      <div>
+                      <div className="bg-primary/8 border border-primary/15 rounded-lg px-2.5 py-2">
                         <span className="text-base font-bold text-primary">{formatARS(Number(p.discount_price_ars))}</span>
-                        <p className="text-[10px] text-muted-foreground">Efectivo / Transferencia</p>
+                        <p className="text-[10px] text-primary/70 mt-0.5">Efectivo / Transferencia</p>
                       </div>
-                      <div className="mt-1">
-                        <span className="text-xs text-muted-foreground">{formatARS(Number(p.sale_price_ars))}</span>
-                        <p className="text-[10px] text-muted-foreground">Tarjeta hasta 3 cuotas sin interés</p>
+                      <div className="px-1">
+                        <span className="text-xs text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</span>
+                        <p className="text-[10px] text-muted-foreground/60">Tarjeta 3 cuotas s/interés</p>
                       </div>
                     </>
                   ) : (
-                    <span className="text-base font-bold text-primary">{formatARS(Number(p.sale_price_ars))}</span>
+                    <div className="bg-primary/8 border border-primary/15 rounded-lg px-2.5 py-2">
+                      <span className="text-base font-bold text-primary">{formatARS(Number(p.sale_price_ars))}</span>
+                    </div>
                   )}
                   {!isPublic && (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-border">
-                      <span className="text-[10px] text-muted-foreground">Stock: {p.stock}</span>
+                    <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                      <span className={`text-[10px] font-medium ${p.stock === 0 ? 'text-destructive' : p.stock <= 3 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                        Stock: {p.stock}
+                      </span>
                       <span className="text-[10px] text-muted-foreground">{getGenderLabel(p.gender)}</span>
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
