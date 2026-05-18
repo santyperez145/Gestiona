@@ -149,6 +149,35 @@ export default function ReportsPage() {
     purchases.map((p: any) => [new Date(p.date).toLocaleDateString('es-AR'), p.product_name, p.quantity, formatUSD(Number(p.unit_cost_usd)), formatUSD(Number(p.total_usd) - Number(p.unit_cost_usd) * p.quantity), formatUSD(Number(p.total_usd)), formatARS(Number(p.total_ars))])
   );
 
+  // ===== CSV P&L mensual =====
+  const handlePLCSV = () => {
+    const monthMap: Record<string, { revenue: number; cogs: number; grossProfit: number; expenses: number; net: number }> = {};
+    data.sales.forEach((s: any) => {
+      const key = String(s.date).slice(0, 7);
+      if (!monthMap[key]) monthMap[key] = { revenue: 0, cogs: 0, grossProfit: 0, expenses: 0, net: 0 };
+      monthMap[key].revenue += Number(s.total_ars);
+      monthMap[key].grossProfit += Number(s.profit_ars);
+      monthMap[key].cogs += Number(s.total_ars) - Number(s.profit_ars);
+    });
+    data.expenses.forEach((e: any) => {
+      const key = String(e.date).slice(0, 7);
+      if (!monthMap[key]) monthMap[key] = { revenue: 0, cogs: 0, grossProfit: 0, expenses: 0, net: 0 };
+      monthMap[key].expenses += Number(e.amount_ars);
+    });
+    Object.values(monthMap).forEach(m => { m.net = m.grossProfit - m.expenses; });
+    const rows = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).map(([month, m]) => {
+      const [y, mo] = month.split('-');
+      const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+      const grossPct = m.revenue > 0 ? ((m.grossProfit / m.revenue) * 100).toFixed(1) : '0';
+      const netPct = m.revenue > 0 ? ((m.net / m.revenue) * 100).toFixed(1) : '0';
+      return [label, m.revenue.toFixed(0), m.cogs.toFixed(0), m.grossProfit.toFixed(0), grossPct, m.expenses.toFixed(0), m.net.toFixed(0), netPct];
+    });
+    exportCSV(`PL_${new Date().getFullYear()}.csv`,
+      ['Período', 'Ingresos ARS', 'COGS ARS', 'Ganancia Bruta ARS', 'Margen Bruto %', 'Gastos ARS', 'Ganancia Neta ARS', 'Margen Neto %'],
+      rows
+    );
+  };
+
   // ===== PDF Estado de Resultados profesional =====
   const handleIncomeStatementPDF = async () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -394,6 +423,9 @@ export default function ReportsPage() {
                     <SelectItem value="all">Histórico</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button variant="outline" onClick={handlePLCSV} size="sm">
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV P&L
+                </Button>
                 <Button onClick={handleIncomeStatementPDF} className="gradient-gold text-primary-foreground">
                   <FileDown className="w-3.5 h-3.5 mr-1.5" />Descargar PDF
                 </Button>

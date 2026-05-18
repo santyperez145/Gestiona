@@ -225,6 +225,27 @@ export default function ExpensesPage() {
     });
   }, [expenses]);
 
+  const monthlyTrendByCat = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {};
+    expenses.forEach(e => {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const cat = e.category || 'otros';
+      if (!map[key]) map[key] = {};
+      map[key][cat] = (map[key][cat] || 0) + Number(e.amount_ars);
+    });
+    const sorted = Object.keys(map).sort().slice(-6);
+    return sorted.map((key, idx) => {
+      const [y, m] = key.split('-');
+      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+      const total = Object.values(map[key]).reduce((a, b) => a + b, 0);
+      const prevKey = sorted[idx - 1];
+      const prevTotal = prevKey ? Object.values(map[prevKey]).reduce((a, b) => a + b, 0) : null;
+      const delta = prevTotal != null && prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null;
+      return { key, label, total, cats: map[key], delta };
+    });
+  }, [expenses]);
+
   const handleDelete = async (id: string) => {
     await deleteExpenseDB(id);
     if (user) await logAudit(user.id, 'delete', 'expense', id, {});
@@ -608,23 +629,69 @@ export default function ExpensesPage() {
 
       {/* Monthly trend chart */}
       {activeTab === 'tendencia' && monthlyTrend.length > 1 && (
-        <div className="bg-card border border-border rounded-xl shadow-card p-4 mb-6">
-          <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
-              <Tooltip
-                formatter={(v: number) => [formatARS(v), 'Total']}
-                contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 12 }}
-                cursor={{ fill: 'hsl(220,15%,18%)' }}
-              />
-              <Bar dataKey="total" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} maxBarSize={48}
-                label={{ position: 'top', fontSize: 10, fill: 'hsl(220,10%,55%)', formatter: (v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : '' }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="space-y-4 mb-6">
+          <div className="bg-card border border-border rounded-xl shadow-card p-4">
+            <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+                <Tooltip
+                  formatter={(v: number) => [formatARS(v), 'Total']}
+                  contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 12 }}
+                  cursor={{ fill: 'hsl(220,15%,18%)' }}
+                />
+                <Bar dataKey="total" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} maxBarSize={48}
+                  label={{ position: 'top', fontSize: 10, fill: 'hsl(220,10%,55%)', formatter: (v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : '' }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Month-over-month comparison table */}
+          {monthlyTrendByCat.length > 1 && (
+            <div className="bg-card border border-border rounded-xl shadow-card p-4">
+              <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Comparativa mensual por categoría</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/40">
+                      <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Categoría</th>
+                      {monthlyTrendByCat.map(m => (
+                        <th key={m.key} className="text-right py-2 px-2 text-muted-foreground font-medium min-w-[80px]">{m.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from(new Set(expenses.map(e => e.category || 'otros'))).map(cat => (
+                      <tr key={cat} className="border-b border-border/20 hover:bg-muted/10">
+                        <td className="py-2 pr-4 font-medium">{getExpenseCategoryLabel(cat, settings)}</td>
+                        {monthlyTrendByCat.map(m => (
+                          <td key={m.key} className="py-2 px-2 text-right font-mono text-muted-foreground">
+                            {m.cats[cat] ? formatARS(m.cats[cat]).replace('$', '').trim() : '—'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-border font-semibold">
+                      <td className="py-2 pr-4">Total</td>
+                      {monthlyTrendByCat.map(m => (
+                        <td key={m.key} className="py-2 px-2 text-right">
+                          <div>{formatARS(m.total).replace('$', '').trim()}</div>
+                          {m.delta !== null && (
+                            <div className={`text-[10px] font-medium ${m.delta > 0 ? 'text-destructive' : 'text-success'}`}>
+                              {m.delta > 0 ? '▲' : '▼'}{Math.abs(m.delta).toFixed(0)}%
+                            </div>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

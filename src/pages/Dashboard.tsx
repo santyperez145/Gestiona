@@ -1445,6 +1445,60 @@ export default function Dashboard() {
         );
       })()}
 
+      {/* 7-day forecast widget */}
+      {stats.bestWeekdayData.some(d => d.count > 0) && (() => {
+        const today = new Date();
+        const nextDays = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i + 1);
+          const dow = d.getDay();
+          const dayData = stats.bestWeekdayData.find(x => x.dow === dow);
+          return {
+            label: d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' }),
+            day: d.toLocaleDateString('es-AR', { weekday: 'short' }),
+            date: d.getDate(),
+            dow,
+            forecast: dayData?.avg ?? 0,
+            isTop: dow === stats.bestWeekday.dow,
+          };
+        });
+        const maxForecast = Math.max(...nextDays.map(d => d.forecast));
+        const totalForecast = nextDays.reduce((a, d) => a + d.forecast, 0);
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-success" />Forecast próximos 7 días
+              </h3>
+              <span className="text-[10px] text-success font-semibold bg-success/10 px-2 py-0.5 rounded-full">
+                ≈ {formatARS(totalForecast)} estimado
+              </span>
+            </div>
+            <div className="flex items-end gap-1.5 h-20">
+              {nextDays.map(d => {
+                const heightPct = maxForecast > 0 ? (d.forecast / maxForecast) * 100 : 0;
+                return (
+                  <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[9px] text-muted-foreground">{formatARS(d.forecast).replace('$', '').trim()}</span>
+                    <div
+                      className={`w-full rounded-t-md transition-all duration-500 ${d.isTop ? 'bg-success' : 'bg-primary/30'}`}
+                      style={{ height: `${Math.max(8, heightPct * 0.65)}%` }}
+                      title={`${d.label}: ~${formatARS(d.forecast)}`}
+                    />
+                    <div className="text-center">
+                      <span className={`text-[9px] font-medium ${d.isTop ? 'text-success' : 'text-muted-foreground/60'}`}>{d.day}</span>
+                      <br />
+                      <span className="text-[9px] text-muted-foreground/40">{d.date}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Estimación basada en promedio histórico por día de la semana · no considera estacionalidad ni feriados</p>
+          </div>
+        );
+      })()}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
         {kpiCards.map((c, i) => (
