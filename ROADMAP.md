@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 25)**
+Última actualización: **2026-05-18 (sesión 26)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -531,18 +531,34 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 26)
+## Sesión 26 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POSPage: descuento por cupón** | ✅ Ya existía (`validateCouponDB`, campo cupón en POS) |
+| 2 | **LoyaltyPage: historial de puntos por cliente** | ✅ Ya existía (tab "Puntos" + panel detalle con timeline) |
+| 3 | **SalesPage: PDF ejecutivo mensual** — KPIs, top 5 productos, top 5 clientes, método de pago breakdown; botón "PDF" junto al CSV | ✅ Hecho |
+| 4 | **ProveedoresPage: pedido de compra automático** | ✅ Ya existía (PurchaseOrderGenerator en línea 575) |
+| 5 | **ProductsPage: variantes con stock independiente** | ⏳ Sistema de variantes ya existe, UI de stock por variante pendiente |
+| 6 | **ReportsPage: tab "Sucursales"** — stock por location, ventas por vendedor (proxy de sucursal), transferencias recientes | ✅ Hecho |
+| 7 | **AIChatPage: analizar producto específico** — intención "¿cómo va X?" / "analizá el producto X"; card con ventas 30d, margen, stock, días sin venta, variación vs período anterior | ✅ Hecho |
+| 8 | **Dashboard: widget "Mejor día de la semana"** — mini bar chart de Lun–Dom por avg de ventas históricas; badge con mejor día | ✅ Hecho |
+| 9 | **SalesPage: fix settings state** — `settings` no estaba declarado en SalesPage outer scope; añadido `useState` + fetch en `reload` (arregla print receipt + PDF) | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 27)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: descuento por cupón** — campo de cupón en POS; valida contra tabla `coupons`; aplica % u monto fijo; registra uso | Promociones controladas |
-| 2 | **LoyaltyPage: historial de puntos por cliente** — timeline de movimientos (ganados/canjeados/ajustados) con fecha y razón; filtrable por cliente | Transparencia para el cliente |
-| 3 | **SalesPage: exportar ventas por período a PDF** — resumen ejecutivo mensual/semanal con KPIs, top 5 productos, top 5 clientes, método de pago breakdown | Reporte para el dueño |
-| 4 | **ProveedoresPage: pedido de compra automático** — seleccionar proveedor → tabla de productos vinculados con stock actual y mínimo → generar orden de compra en un click | Operaciones más ágiles |
-| 5 | **ProductsPage: variantes con stock independiente** — si el producto tiene variantes (talle, color), cada variante tiene su propio stock y precio; visible en POS | Inventario preciso |
-| 6 | **ReportsPage: tab "Comparativa de sucursales"** — si el negocio tiene ubicaciones/sucursales, comparar ventas, stock y gastos por sucursal | Multi-local |
-| 7 | **AIChatPage: analizar un producto específico** — intención "¿cómo va X?" devuelve card con ventas 30d, margen, stock, días sin venta, comparativa con período anterior | IA accionable |
-| 8 | **Dashboard: widget "Mejor día de la semana"** — basado en historial de ventas, muestra qué día vende más y ranking de días; útil para organizar personal | Planificación operativa |
+| 1 | **ProductsPage: stock por variante en edición** — al editar producto con variantes, mostrar tabla de variantes con stock individual editable | Inventario preciso |
+| 2 | **POSPage: mostrar variantes en selector** — al seleccionar producto con variantes, expandir selector de variante antes de agregar al carrito | Venta correcta por variante |
+| 3 | **CustomersPage: notas de seguimiento masivas** — bulk "Agregar nota" a clientes seleccionados + timestamp | CRM accionable |
+| 4 | **Dashboard: forecast próximos 7 días** — basado en tendencia de ventas + día de la semana; mostrar estimado de ventas por día de la semana que viene | Planificación |
+| 5 | **ExpensesPage: comparativa de gastos por mes** — gráfico de barras de últimos 6 meses de gastos por categoría; tabla de variación mes a mes | Análisis financiero |
+| 6 | **ReportsPage: exportar P&L completo a CSV** — tabla mensual con revenue, costo, ganancia bruta, gastos, ganancia neta | Contador |
+| 7 | **AIChatPage: respuesta mejorada con contexto de ventas** — el edge function ai-chat ya existe; ampliar el sistema prompt con datos reales de la org (últimas ventas, stock crítico, top productos) para respuestas más relevantes | IA contextual |
+| 8 | **SettingsPage: colores/tema del negocio** — selector de color primario para el catálogo público; se aplica al hero y botones del catálogo | Branding personalizado |
 
 ---
 

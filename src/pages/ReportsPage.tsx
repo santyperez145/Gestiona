@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2 } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -258,6 +258,7 @@ export default function ReportsPage() {
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
           <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
           <TabsTrigger value="compare">Comparativa</TabsTrigger>
+          <TabsTrigger value="sucursales">Sucursales</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -457,6 +458,10 @@ export default function ReportsPage() {
 
         <TabsContent value="compare">
           <ComparePeriodTab sales={data.sales} expenses={data.expenses} />
+        </TabsContent>
+
+        <TabsContent value="sucursales">
+          <SucursalesTab sales={data.sales} />
         </TabsContent>
       </Tabs>
     </div>
@@ -2155,6 +2160,183 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
           <FileDown className="w-3.5 h-3.5 mr-1.5" />Imprimir / PDF
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sucursales Tab — stock + transfers by location
+// ─────────────────────────────────────────────────────────────
+function SucursalesTab({ sales }: { sales: any[] }) {
+  const { activeOrg } = useOrg();
+  const [locations, setLocations] = useState<any[]>([]);
+  const [locationStock, setLocationStock] = useState<any[]>([]);
+  const [transfers, setTransfers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      setLoading(true);
+      const [{ data: locs }, { data: ls }, { data: tr }] = await Promise.all([
+        supabase.from("locations").select("id, name, address, is_main, active").eq("org_id", activeOrg.id).eq("active", true).order("is_main", { ascending: false }),
+        supabase.from("location_stock").select("location_id, product_id, stock").eq("org_id", activeOrg.id),
+        supabase.from("stock_transfers").select("id, from_location_id, to_location_id, product_id, quantity, created_at, notes").eq("org_id", activeOrg.id).order("created_at", { ascending: false }).limit(20),
+      ]);
+      setLocations(locs || []);
+      setLocationStock(ls || []);
+      setTransfers(tr || []);
+      setLoading(false);
+    })();
+  }, [activeOrg?.id]);
+
+  // Seller-based sales summary (proxy for per-branch performance)
+  const sellerSummary = useMemo(() => {
+    const map: Record<string, { total: number; profit: number; count: number }> = {};
+    sales.forEach((s: any) => {
+      const seller = s.seller_name || "(Sin asignar)";
+      if (!map[seller]) map[seller] = { total: 0, profit: 0, count: 0 };
+      map[seller].total += Number(s.total_ars);
+      map[seller].profit += Number(s.profit_ars);
+      map[seller].count++;
+    });
+    return Object.entries(map).sort((a, b) => b[1].total - a[1].total).map(([name, d]) => ({ name, ...d }));
+  }, [sales]);
+
+  const totalSales = sellerSummary.reduce((a, s) => a + s.total, 0);
+
+  // Stock per location
+  const stockByLocation = useMemo(() => {
+    return locations.map(loc => {
+      const items = locationStock.filter(ls => ls.location_id === loc.id);
+      const totalUnits = items.reduce((a, ls) => a + Number(ls.stock), 0);
+      const productCount = items.filter(ls => ls.stock > 0).length;
+      return { ...loc, totalUnits, productCount, items };
+    });
+  }, [locations, locationStock]);
+
+  if (loading) return <div className="py-16 text-center text-muted-foreground">Cargando datos de sucursales…</div>;
+
+  if (!locations.length) return (
+    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
+      <MapPin className="w-12 h-12 opacity-20" />
+      <div className="text-center">
+        <p className="font-medium">No tenés sucursales configuradas</p>
+        <p className="text-sm mt-1">Creá tus ubicaciones para ver stock y comparativas por local.</p>
+      </div>
+      <Button size="sm" variant="outline" onClick={() => navigate('/locations')}>
+        Ir a Ubicaciones →
+      </Button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Location stock overview */}
+      <div>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <MapPin className="w-4 h-4" />Stock por sucursal
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {stockByLocation.map(loc => (
+            <div key={loc.id} className={`bg-card border rounded-xl p-4 ${loc.is_main ? 'border-primary/30' : 'border-border'}`}>
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-sm flex items-center gap-1.5">
+                    {loc.name}
+                    {loc.is_main && <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-semibold">Principal</span>}
+                  </p>
+                  {loc.address && <p className="text-[10px] text-muted-foreground mt-0.5">{loc.address}</p>}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="bg-muted/40 rounded-lg p-2 text-center">
+                  <p className="text-lg font-bold">{loc.totalUnits}</p>
+                  <p className="text-[10px] text-muted-foreground">Unidades</p>
+                </div>
+                <div className="bg-muted/40 rounded-lg p-2 text-center">
+                  <p className="text-lg font-bold">{loc.productCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Productos</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Seller sales comparison */}
+      {sellerSummary.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4" />Ventas por vendedor
+          </h3>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left p-3 font-medium">Vendedor</th>
+                  <th className="text-right p-3 font-medium">Ventas</th>
+                  <th className="text-right p-3 font-medium">Facturado</th>
+                  <th className="text-right p-3 font-medium">Ganancia</th>
+                  <th className="text-right p-3 font-medium">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sellerSummary.map(s => {
+                  const share = totalSales > 0 ? (s.total / totalSales) * 100 : 0;
+                  return (
+                    <tr key={s.name} className="border-t border-border/40 hover:bg-muted/20 transition-colors">
+                      <td className="p-3 font-medium">{s.name}</td>
+                      <td className="p-3 text-right text-muted-foreground">{s.count}</td>
+                      <td className="p-3 text-right font-semibold">{formatARS(s.total)}</td>
+                      <td className="p-3 text-right text-success">{formatARS(s.profit)}</td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${share}%` }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-8 text-right">{share.toFixed(0)}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">Las ventas por vendedor actúan como indicador de performance por sucursal cuando cada vendedor trabaja en una ubicación específica.</p>
+        </div>
+      )}
+
+      {/* Recent transfers */}
+      {transfers.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4" />Transferencias recientes entre sucursales
+          </h3>
+          <div className="space-y-2">
+            {transfers.slice(0, 10).map(t => {
+              const from = locations.find(l => l.id === t.from_location_id)?.name || "—";
+              const to = locations.find(l => l.id === t.to_location_id)?.name || "—";
+              return (
+                <div key={t.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3 text-sm">
+                  <div className="flex-1">
+                    <span className="font-medium">{from}</span>
+                    <span className="text-muted-foreground mx-2">→</span>
+                    <span className="font-medium">{to}</span>
+                    <span className="ml-2 text-muted-foreground">· {t.quantity} u.</span>
+                    {t.notes && <span className="ml-2 text-muted-foreground text-xs italic">{t.notes}</span>}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {new Date(t.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
