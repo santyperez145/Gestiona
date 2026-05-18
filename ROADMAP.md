@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 26)**
+Última actualización: **2026-05-18 (sesión 27)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -547,18 +547,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 27)
+## Sesión 27 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: stock por variante en edición** | ⏳ Sistema variantes existe; UI de stock individual pendiente |
+| 2 | **POSPage: mostrar variantes en selector** | ⏳ Próxima sesión |
+| 3 | **CustomersPage: notas masivas con timestamp** — bulk "Agregar nota" en barra flotante; dialog con textarea; upsert en `customer_notes` por cada cliente | ✅ Hecho |
+| 4 | **Dashboard: forecast próximos 7 días** — proyección por día de la semana basada en promedio histórico; mini bar chart; badge total estimado | ✅ Hecho |
+| 5 | **ExpensesPage: comparativa mensual por categoría** — tabla últimos 6 meses con columnas por categoría + fila total + delta % mes anterior | ✅ Hecho |
+| 6 | **ReportsPage: CSV P&L completo** — botón "CSV P&L" en tab Estado de Resultados; exporta tabla mensual con revenue/COGS/ganancia bruta/gastos/ganancia neta/márgenes | ✅ Hecho |
+| 7 | **AI chat: contexto enriquecido** — edge function ai-chat: comparativa mes actual vs anterior, top productos con margen por producto, top productos por margen, estructura más clara | ✅ Hecho |
+| 8 | **SettingsPage: colores/tema del negocio** | ✅ Ya existía (primary_color + secondary_color + publicCatalogPage ya los usa) |
+
+---
+
+## Prioridades inmediatas (sesión 28)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ProductsPage: stock por variante en edición** — al editar producto con variantes, mostrar tabla de variantes con stock individual editable | Inventario preciso |
-| 2 | **POSPage: mostrar variantes en selector** — al seleccionar producto con variantes, expandir selector de variante antes de agregar al carrito | Venta correcta por variante |
-| 3 | **CustomersPage: notas de seguimiento masivas** — bulk "Agregar nota" a clientes seleccionados + timestamp | CRM accionable |
-| 4 | **Dashboard: forecast próximos 7 días** — basado en tendencia de ventas + día de la semana; mostrar estimado de ventas por día de la semana que viene | Planificación |
-| 5 | **ExpensesPage: comparativa de gastos por mes** — gráfico de barras de últimos 6 meses de gastos por categoría; tabla de variación mes a mes | Análisis financiero |
-| 6 | **ReportsPage: exportar P&L completo a CSV** — tabla mensual con revenue, costo, ganancia bruta, gastos, ganancia neta | Contador |
-| 7 | **AIChatPage: respuesta mejorada con contexto de ventas** — el edge function ai-chat ya existe; ampliar el sistema prompt con datos reales de la org (últimas ventas, stock crítico, top productos) para respuestas más relevantes | IA contextual |
-| 8 | **SettingsPage: colores/tema del negocio** — selector de color primario para el catálogo público; se aplica al hero y botones del catálogo | Branding personalizado |
+| 1 | **POS: variantes en selector de producto** — al seleccionar un producto con variantes, mostrar dropdown de variante antes de agregar al carrito | Venta por variante precisa |
+| 2 | **ProductsPage: editar stock por variante** — tabla inline de variantes en form de edición de producto | Inventario por variante |
+| 3 | **AnalyticsPage: insight de rentabilidad** — nuevo tab "Rentabilidad" con Top/Bottom 5 productos por margen neto + breakdown por categoría | Decisiones de pricing |
+| 4 | **SalesPage: modo "vista diaria"** — agrupación por día con subtotal + expandible; filtro de fecha preset "Esta semana" visible en modo lista | UX ventas |
+| 5 | **Dashboard: widget temperatura del negocio** — "semáforo" simple Rojo/Amarillo/Verde calculado de: ventas hoy vs promedio, stock crítico, deudas vencidas, margen del mes | Estado rápido |
+| 6 | **CustomersPage: importación de contactos desde CSV mejorada** — mapeo de columnas flexible; deduplicación por nombre/email; preview de registros antes de importar | Migración de datos |
+| 7 | **POSPage: impresión de ticket ZPL/ESC-POS** — botón "Imprimir ticket" que envía el payload a una impresora térmica en red via WebSocket | Operaciones físicas |
+| 8 | **SettingsPage: gestión de sedes/sucursales desde configuración** — tab "Sucursales" en settings para crear/editar/eliminar locations sin ir a /locations | UX simplificada |
 
 ---
 
