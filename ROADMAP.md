@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 23)**
+Última actualización: **2026-05-18 (sesión 24)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -497,18 +497,33 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 24)
+## Sesión 24 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | POSPage: resumen de turno parcial — botón + modal con KPIs, breakdown por medio de pago, lista de ventas, reiniciar turno | ✅ Hecho |
+| 2 | ReportsPage Comparativa: botón "Imprimir / PDF" que abre print dialog | ✅ Hecho |
+| 3 | ProductsPage: importar precios desde CSV — `ProductsPriceImport` con matching fuzzy, preview diff %, bulk update | ✅ Hecho |
+| 4 | ExpensesPage: alerta toast al 80% y 100% de presupuesto por categoría (sessionStorage anti-spam) | ✅ Hecho |
+| 5 | CustomersPage: segmentación RFM (VIP/Premium/Frecuente/Activo/En riesgo/Dormido/Perdido) | ✅ Ya existía |
+| 6 | AIChatPage: historial de conversaciones — sidebar con save/load/delete, máx 10 por org en localStorage | ✅ Hecho |
+| 7 | SalesPage: editar venta — botón Edit en tabla y cards, modal con SaleForm en modo edición | ✅ Ya existía |
+| 8 | Dashboard: widget "Próximas compras sugeridas" — barra de días de stock, velocidad u/día, orden sugerido, prefill IA | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 25)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: cierre de sesión parcial** — resumen de ventas del turno sin cerrar la sesión de caja completa (útil para cambio de turno sin corte de caja) | Operativa de turno |
-| 2 | **ReportsPage: export PDF de Comparativa** — descargar el tab Comparativa como PDF con logo + tabla de diferencias | Presentación gerencial |
-| 3 | **ProductsPage: importar precios desde Excel** — columnas: nombre/SKU, nuevo precio ARS, opcionalmente precio oferta; recalcula margen en preview antes de aplicar masivo | Actualización de precios en bulk |
-| 4 | **ExpensesPage: presupuesto por categoría mejorado** — mostrar alerta cuando se supera el 80% del presupuesto mensual por categoría (ya hay estado `budgets` en localStorage) | Control de gastos proactivo |
-| 5 | **CustomersPage: segmentación RFM automática** — asignar etiquetas VIP/Activo/En riesgo/Inactivo según recencia×frecuencia×monto calculados semanalmente | CRM accionable |
-| 6 | **AIChatPage: historial de conversaciones** — persistir conversaciones por org en localStorage con listado lateral; máx. 10 conversaciones | UX de herramienta de trabajo |
-| 7 | **SalesPage: editar venta existente** — modal de edición para corregir precio, cantidad o cliente de una venta ya registrada; ajusta stock inversamente | Corrección de errores operativos |
-| 8 | **Dashboard: widget "Próximas compras sugeridas"** — lista de productos con stock ≤ low_stock_threshold, mostrando días de stock restante según velocidad de venta | Gestión proactiva de inventario |
+| 1 | **POSPage: descuento por cliente VIP** — detectar si el cliente en caja es VIP (CustomersPage) y aplicar descuento automático configurable en Settings | CRM → POS feedback loop |
+| 2 | **SalesPage: recibo con desglose de ítems múltiples** — cuando una venta fue multi-producto (POS multi-ítem), el recibo muestra cada línea; actualmente solo muestra el total | Claridad para el cliente |
+| 3 | **ExpensesPage: recurrentes vencidos** — badge/alerta en el header cuando hay gastos recurrentes con `recurring_next_date` vencida (hoy o antes) sin nueva instancia creada | Nunca perderse un gasto fijo |
+| 4 | **ProductsPage: foto desde URL** — además del upload, opción de pegar URL de imagen; valida que sea imagen antes de guardar | Carga rápida desde catálogos online |
+| 5 | **CustomersPage: envío masivo WhatsApp** — botón "Enviar a segmento" en filtro RFM; genera links `wa.me` para cada cliente usando el template de reactivación/birthday de Settings | Marketing 1-click |
+| 6 | **Dashboard: comparativa semanal automática** — widget que muestra la semana actual vs semana pasada (ventas, ganancia, gastos), sin hacer clic | Pulso semanal inmediato |
+| 7 | **ReportsPage: tab "Impuestos proyectados"** — dado el ritmo actual del mes, proyectar IVA e IIBB del mes completo; útil para provisionar | Planificación fiscal |
+| 8 | **AIChatPage: sugerencia automática diaria** — al abrir la página, si no hay conversación activa y no se sugirió hoy, mostrar una pregunta relevante según el contexto del negocio | Engagement proactivo |
 
 ---
 
