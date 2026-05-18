@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 22)**
+Última actualización: **2026-05-18 (sesión 23)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -480,18 +480,35 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 23)
+## Sesión 23 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | POS búsqueda por SKU/barcode | ✅ Ya existía (sesión 22) |
+| 2 | ReportsPage: tab "Comparativa de períodos" con pickers duales, chart y tabla diff | ✅ Hecho |
+| 3 | Dashboard: botón "Resumen del mes" → genera card con stats, guardado en localStorage; "Analizar con IA" prefill | ✅ Hecho |
+| 4 | ExpensesPage: adjuntar recibo/foto → upload a product-images bucket, thumb + link, cámara móvil; DB receipt_url | ✅ Hecho |
+| 5 | ProductsPage: botón "Cámara" (sm:hidden) con capture="environment"; cameraInputRef separado | ✅ Hecho |
+| 6 | SalesPage: recibo imprimible con logo, nombre de negocio y receipt_footer | ✅ Hecho (sesión 22) |
+| 7 | CustomersPage: importación CSV de clientes | ✅ Ya existía |
+| 8 | SettingsPage: campo "Pie de recibo" (receipt_footer) en sección Negocio | ✅ Hecho |
+| 9 | migration 20260518000002: receipt_url (expenses) + receipt_footer (settings) | ✅ Hecho |
+| 10 | types.ts: receipt_url en expenses, receipt_footer en settings (Row/Insert/Update) | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 24)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ProductsPage: búsqueda en POS por SKU/barcode** — cuando el usuario tipea en el buscador del POS, también matchear contra `sku` y `barcode`; si el código es exacto, agregar al carrito directo | Operativa de almacén: lector de código de barras |
-| 2 | **ReportsPage: tab "Comparativa de períodos"** — comparar cualquier dos rangos de fechas (ej: semana pasada vs esta semana); ventas, ganancia, ticket promedio, clientes nuevos; tabla y mini-charts | Análisis de tendencia flexible |
-| 3 | **Dashboard: Resumen mensual automático vía IA** — al inicio de cada mes, generar un párrafo con los highlights del mes anterior (mejor día, top producto, aumento/caída vs mes previo) y guardarlo en localStorage; visible en Dashboard | IA periódica de valor |
-| 4 | **ExpensesPage: adjuntar recibo/foto** — botón "Adjuntar" en cada gasto; sube imagen a `expense-receipts` storage bucket; thumb visible en tabla con click para ver full; migración DB `receipt_url` | Contabilidad ordenada |
-| 5 | **ProductsPage: foto desde cámara móvil** — en el formulario de producto, botón "Cámara" usa `input[type=file][accept=image/*][capture=environment]`; preview antes de subir; no requiere app nativa | POS móvil + carga rápida |
-| 6 | **SalesPage: recibo con logo de org** — el recibo imprimible incluye `logo_url` de la org (ya existe en settings) + nombre del negocio + dirección; hace la app más profesional | Imagen de marca |
-| 7 | **CustomersPage: importación CSV de clientes** — botón "Importar CSV"; mapeo de columnas (nombre, email, teléfono, notas); preview antes de confirmar; crea/actualiza clientes por email | Onboarding de base de datos existente |
-| 8 | **SettingsPage: personalización de recibo** — sección "Recibo / Ticket" con campos: mensaje de cierre personalizado, logo, mostrar/ocultar ganancia, mostrar/ocultar detalle de descuento | Experiencia de marca en caja |
+| 1 | **POSPage: cierre de sesión parcial** — resumen de ventas del turno sin cerrar la sesión de caja completa (útil para cambio de turno sin corte de caja) | Operativa de turno |
+| 2 | **ReportsPage: export PDF de Comparativa** — descargar el tab Comparativa como PDF con logo + tabla de diferencias | Presentación gerencial |
+| 3 | **ProductsPage: importar precios desde Excel** — columnas: nombre/SKU, nuevo precio ARS, opcionalmente precio oferta; recalcula margen en preview antes de aplicar masivo | Actualización de precios en bulk |
+| 4 | **ExpensesPage: presupuesto por categoría mejorado** — mostrar alerta cuando se supera el 80% del presupuesto mensual por categoría (ya hay estado `budgets` en localStorage) | Control de gastos proactivo |
+| 5 | **CustomersPage: segmentación RFM automática** — asignar etiquetas VIP/Activo/En riesgo/Inactivo según recencia×frecuencia×monto calculados semanalmente | CRM accionable |
+| 6 | **AIChatPage: historial de conversaciones** — persistir conversaciones por org en localStorage con listado lateral; máx. 10 conversaciones | UX de herramienta de trabajo |
+| 7 | **SalesPage: editar venta existente** — modal de edición para corregir precio, cantidad o cliente de una venta ya registrada; ajusta stock inversamente | Corrección de errores operativos |
+| 8 | **Dashboard: widget "Próximas compras sugeridas"** — lista de productos con stock ≤ low_stock_threshold, mostrando días de stock restante según velocidad de venta | Gestión proactiva de inventario |
 
 ---
 
