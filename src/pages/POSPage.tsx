@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -655,6 +655,17 @@ export default function POSPage() {
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
+
+  // POS-specific light/dark theme (independent of global app theme)
+  const posThemeKey = `gestiona.pos.theme.${activeOrg?.id || 'default'}`;
+  const [posTheme, setPosTheme] = useState<'dark' | 'light'>(() =>
+    (localStorage.getItem(`gestiona.pos.theme.${activeOrg?.id || 'default'}`) as 'dark' | 'light') || 'dark'
+  );
+  const togglePosTheme = () => {
+    const next = posTheme === 'dark' ? 'light' : 'dark';
+    setPosTheme(next);
+    localStorage.setItem(posThemeKey, next);
+  };
 
   // Seller on shift (localStorage per org)
   const sellerKey = `gestiona.pos.seller.${activeOrg?.id || 'default'}`;
@@ -1666,7 +1677,7 @@ export default function POSPage() {
         </div>
       )}
 
-      <div className="h-[calc(100vh-4rem)] lg:h-screen flex flex-col">
+      <div className={`h-[calc(100vh-4rem)] lg:h-screen flex flex-col ${posTheme === 'light' ? 'bg-white text-gray-900 [&_.bg-card]:bg-gray-50 [&_.bg-muted]:bg-gray-100 [&_.border-border]:border-gray-200 [&_.text-muted-foreground]:text-gray-500 [&_.text-foreground]:text-gray-900' : ''}`}>
         {/* Offline / sync banner */}
         {!isOnline && (
           <div className="shrink-0 flex items-center gap-3 bg-orange-500/10 border-b border-orange-500/30 px-4 py-2 text-xs text-orange-400">
@@ -1722,6 +1733,9 @@ export default function POSPage() {
           <Button size="sm" variant="outline" className="h-9 gap-1.5 shrink-0" onClick={() => scanning ? stopScan() : startScan()}>
             <QrCode className="w-4 h-4" />
             <span className="hidden sm:inline">Escanear</span>
+          </Button>
+          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0" onClick={togglePosTheme} title={posTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
+            {posTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
           </Button>
           {/* Mobile cart toggle */}
           <Button
