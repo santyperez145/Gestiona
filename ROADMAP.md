@@ -189,6 +189,13 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **EmailCampaignsPage: preview HTML antes de enviar** — tabs Editar/Vista previa en el textarea de body; render real del HTML en fondo blanco. _(sesión 22)_
 - **TasksPage: subtareas con parent_id** — botón "+subtarea" en cada card; input inline; lista expandible con check individual; progreso N/total visible; DB: ADD COLUMN parent_id (self-ref FK). _(sesión 22)_
 - **fix(schema): low_stock_threshold + seller_name en DB** — columna `low_stock_threshold` agregada a products (era solo en settings); `seller_name` agregada a sales; tipos actualizados; ProductsPage handleSubmit ahora guarda barcode, sku, lot_number, expiry_date, tags y low_stock_threshold. _(sesión 22)_
+- **CustomersPage: campo empresa/negocio** — migration + company en form, búsqueda, lista, CSV, contact tab. _(sesión 31)_
+- **ProductsPage: BulkPriceAdjust mejorado** — categorías dinámicas, preview vivo de precios antes de confirmar. _(sesión 31)_
+- **POSPage: nota interna en ticket impreso** — posNote en receipt state + ReceiptModal note prop + HTML print. _(sesión 31)_
+- **DebtsPage: "Recordar >30d"** — botón en aging panel para WhatsApp masivo a deudores con antigüedad ≥31d. _(sesión 31)_
+- **SalesPage: filtro por método de pago** — Select con todos los métodos (efectivo/débito/crédito/transferencia/MP/fiado). _(sesión 31)_
+- **AIChatPage: crear tarea desde chat** — CreateTaskCard con título, descripción, fecha, prioridad; chip "Crear tarea". _(sesión 31)_
+- **AnalyticsPage: CSV export tendencia mensual** — botón Download en tab Tendencia; 7 columnas (mes, ingresos, ganancia, COGS, gastos, neto, unidades). _(sesión 30–31)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -577,6 +584,12 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
+## Sesión 29 ✅ COMPLETA (ítems en progreso)
+
+Ver tabla de sesión 29 arriba.
+
+---
+
 ## Sesión 29 ✅ COMPLETA
 
 | # | Acción | Estado |
@@ -608,16 +621,32 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Prioridades inmediatas (sesión 31)
+## Sesión 31 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **CustomersPage: campo "empresa/negocio"** — migration 20260518000003; campo en form + búsqueda por empresa/email/tel; columna tabla; CSV export; contact tab con badge ámbar | ✅ Hecho |
+| 2 | **ProductsPage: bulk price adjust mejorado** — categorías dinámicas desde DB con conteo; preview live de hasta 8 productos (precio viejo → nuevo) antes de confirmar | ✅ Hecho |
+| 3 | **SalesPage: nota interna visible al editar** | ✅ Ya existía (editItem?.notes || '') |
+| 4 | **POSPage: nota en ticket impreso** — `posNote` incluido en receipt state; ReceiptModal acepta prop note; muestra en modal UI y en HTML 80mm de impresión | ✅ Hecho |
+| 5 | **Dashboard: widget "Resultado del mes"** | ✅ Ya existía (KPI "Ganancia Neta (mes)" = netMonthProfitARS) |
+| 6 | **DebtsPage: recordatorio masivo aging >30d** — botón "Recordar >30d (N)" en panel aging; copia mensajes al clipboard + abre WhatsApp del primer deudor | ✅ Hecho |
+| 7 | **SalesPage: filtro por método de pago** — Select dropdown con todos los métodos (efectivo/débito/crédito/transferencia/MP/fiado) | ✅ Hecho |
+| 8 | **AIChatPage: crear tarea desde chat** — intent detection "crear tarea/recordatorio"; CreateTaskCard con título, descripción, fecha vencimiento, prioridad; escribe en tabla tasks; chip "Crear tarea" en ACTION_STARTERS | ✅ Hecho |
+| 9 | **AnalyticsPage: CSV export en tab Tendencia** | ✅ Hecho (sesión 30, finalizado aquí) |
+
+---
+
+## Prioridades inmediatas (sesión 32)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **CustomersPage: campo "empresa/negocio"** — migración DB + campo en form + búsqueda + columna en tabla | CRM B2B |
-| 2 | **ProductsPage: actualización masiva de precios por categoría** — dialog para subir/bajar precios en % por categoría; preview antes de confirmar | Gestión de precios |
-| 3 | **SalesPage: nota interna visible al editar** — pre-llenar textarea de nota cuando se edita una venta existente | Coherencia UX |
-| 4 | **POSPage: nota en ticket impreso** — incluir el campo `notes` en el HTML de impresión del POS | Operaciones |
-| 5 | **Dashboard: widget "Resultado del mes"** — net = ventas − COGS − gastos; delta vs mes anterior; color verde/rojo | Control financiero |
-| 6 | **DebtsPage: recordatorio masivo aging >30d** — botón "Recordar >30 días" que genera WhatsApp links para todos los deudores con antigüedad ≥30d | Cobranza |
+| 1 | **ExpensesPage: campo "proveedor/pagado a"** — migration + campo en form + filtro por proveedor en lista | Trazabilidad de gastos |
+| 2 | **SalesPage: resumen de totales por método al filtrar** — chips de totales (efectivo/MP/etc) visibles cuando se filtra por fecha o método | Cierre de caja |
+| 3 | **Dashboard: alerta "Sin ventas hoy"** — banner si son las 14hs+ y no hay ventas del día | Proactividad |
+| 4 | **ProductsPage: exportar etiquetas QR** — dialog para generar e imprimir QR de producto (nombre + precio) en formato grilla imprimible | Operaciones retail |
+| 5 | **PurchasesPage: estado "En camino"** — migración DB: campo `status` en purchases (pedido/en_camino/recibido); botón "Marcar en camino" | Logística |
+| 6 | **ReportsPage: PDF del tab "Tendencia de margen"** — botón print/PDF en MarginTrendTab con estilo A4 | Presentación |
 
 ---
 
