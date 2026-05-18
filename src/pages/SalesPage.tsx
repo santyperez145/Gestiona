@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, FileDown } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, FileDown, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -130,6 +130,7 @@ export default function SalesPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterSeller, setFilterSeller] = useState('all');
+  const [filterPayMethod, setFilterPayMethod] = useState('all');
 
   const sellerOptions = useMemo(() => {
     const names = Array.from(new Set(sales.map(s => s.seller_name).filter(Boolean))) as string[];
@@ -141,6 +142,7 @@ export default function SalesPage() {
     if (filterPaid === 'paid' && !s.paid) return false;
     if (filterPaid === 'pending' && s.paid) return false;
     if (filterSeller !== 'all' && s.seller_name !== filterSeller) return false;
+    if (filterPayMethod !== 'all' && s.payment_method !== filterPayMethod) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -625,6 +627,21 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </SelectContent>
           </Select>
         )}
+        <Select value={filterPayMethod} onValueChange={v => { setFilterPayMethod(v); setPage(0); }}>
+          <SelectTrigger className="bg-card border-border w-full sm:w-[150px] h-9 text-sm">
+            <CreditCard className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+            <SelectValue placeholder="Método de pago" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los métodos</SelectItem>
+            <SelectItem value="efectivo">💵 Efectivo</SelectItem>
+            <SelectItem value="debito">💳 Débito</SelectItem>
+            <SelectItem value="credito">💳 Crédito</SelectItem>
+            <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
+            <SelectItem value="mercadopago">🔵 Mercado Pago</SelectItem>
+            <SelectItem value="fiado">📋 Fiado</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex rounded-lg border border-border overflow-hidden h-9 shrink-0">
           {([
             { key: 'all', label: 'Todas' },

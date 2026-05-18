@@ -8,14 +8,14 @@ import { toast } from "sonner";
 import {
   Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
   Package, Users, BarChart2, DollarSign, Zap, Plus, CheckCircle2, X,
-  TrendingDown, History, MessageSquare, ChevronLeft,
+  TrendingDown, History, MessageSquare, ChevronLeft, ClipboardList,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -28,6 +28,7 @@ type AIAction =
   | { type: "query_stock"; productName?: string }
   | { type: "query_product_analysis"; productName?: string }
   | { type: "query_restock" }
+  | { type: "create_task" }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -136,6 +137,12 @@ function detectIntent(msg: string): AIAction | null {
       /\bqué\s+(me\s+)?(falta|debería\s+(?:comprar|pedir|reponer)|hay\s+que\s+(?:comprar|pedir|reponer))\b/.test(lower) ||
       /\b(productos?\s+(?:con\s+)?(?:bajo\s+stock|sin\s+stock|agotad[oa]s?|faltantes?)|qué\s+(?:me\s+)?queda\s+poco)\b/.test(lower)) {
     return { type: "query_restock" };
+  }
+
+  // Create task
+  if (/\b(crea(r)?|agrega(r)?|nueva?|añadi(r)?)\s+(una?\s+)?(tarea|recordatorio|pendiente|actividad|to[-\s]?do)\b/.test(lower) ||
+      /\b(recordarme?|recordá(me)?|anotá|apuntá)\s+(que|esto|una tarea)?\b/.test(lower)) {
+    return { type: "create_task" };
   }
 
   return null;
@@ -303,6 +310,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_restock") {
     return <RestockSuggestionCard userId={userId} onDone={onDone} />;
+  }
+
+  if (action.type === "create_task") {
+    return <CreateTaskCard userId={userId} onDone={onDone} />;
   }
 
   if (action.type === "query_product_analysis") {
@@ -933,6 +944,96 @@ const STARTER_QUESTIONS = [
   "¿Qué debería reponer urgente?",
 ];
 
+// ─── CreateTaskCard ───────────────────────────────────────────────────────────
+function CreateTaskCard({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const { activeOrg } = useOrg();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  if (done) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+        <CheckCircle2 className="w-4 h-4" />Tarea creada correctamente
+      </div>
+    );
+  }
+
+  const handleCreate = async () => {
+    if (!title.trim() || !activeOrg) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("tasks").insert({
+        org_id: activeOrg.id,
+        user_id: userId,
+        title: title.trim(),
+        description: description.trim() || null,
+        due_date: dueDate || null,
+        priority,
+        status: "pending",
+      });
+      if (error) throw error;
+      toast.success(`Tarea "${title}" creada`);
+      setDone(true);
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message || "Error creando tarea");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5 space-y-2">
+      <p className="text-xs font-medium text-blue-400 flex items-center gap-1.5">
+        <ClipboardList className="w-3.5 h-3.5" />Nueva tarea
+      </p>
+      <Input
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        placeholder="Título de la tarea *"
+        className="h-7 text-xs"
+        autoFocus
+      />
+      <Input
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        placeholder="Descripción (opcional)"
+        className="h-7 text-xs"
+      />
+      <div className="flex gap-2">
+        <input
+          type="date"
+          value={dueDate}
+          onChange={e => setDueDate(e.target.value)}
+          className="flex-1 h-7 text-xs bg-muted border border-border rounded-md px-2 text-foreground"
+        />
+        <select
+          value={priority}
+          onChange={e => setPriority(e.target.value as "low" | "medium" | "high")}
+          className="h-7 text-xs bg-muted border border-border rounded-md px-2 text-foreground"
+        >
+          <option value="low">🟢 Baja</option>
+          <option value="medium">🟡 Media</option>
+          <option value="high">🔴 Alta</option>
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 text-white flex-1" disabled={!title.trim() || loading} onClick={handleCreate}>
+          {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear tarea
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
 const ACTION_STARTERS = [
   { label: "Registrar venta", icon: ShoppingCart, msg: "Registrar una venta" },
   { label: "Registrar compra", icon: Package, msg: "Registrar una compra" },
@@ -944,6 +1045,7 @@ const ACTION_STARTERS = [
   { label: "Ver stock", icon: Package, msg: "¿Cuánto stock tengo de un producto?" },
   { label: "Analizar producto", icon: BarChart2, msg: "Analizá el producto" },
   { label: "Qué reponer", icon: TrendingDown, msg: "Qué productos debería reponer o comprar?" },
+  { label: "Crear tarea", icon: ClipboardList, msg: "Crear una tarea o recordatorio" },
 ];
 
 const QUICK_ACTIONS = [
