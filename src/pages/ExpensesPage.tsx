@@ -18,7 +18,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePermissions } from "@/lib/usePermissions";
@@ -668,6 +668,39 @@ export default function ExpensesPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Stacked bar chart per category */}
+          {monthlyTrendByCat.length > 1 && (() => {
+            const allCats = Array.from(new Set(expenses.map(e => e.category || 'otros')));
+            const CAT_COLORS = ["hsl(var(--destructive))", "hsl(221,83%,53%)", "hsl(142,71%,45%)", "hsl(38,92%,50%)", "hsl(290,60%,55%)", "hsl(180,60%,45%)", "hsl(0,0%,50%)"];
+            const chartData = monthlyTrendByCat.map(m => {
+              const row: Record<string, number | string> = { label: m.label };
+              allCats.forEach(cat => { row[cat] = m.cats[cat] || 0; });
+              return row;
+            });
+            return (
+              <div className="bg-card border border-border rounded-xl shadow-card p-4">
+                <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Distribución por categoría</h2>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+                    <Tooltip
+                      formatter={(v: number, name: string) => [formatARS(v), getExpenseCategoryLabel(name, settings)]}
+                      contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 12 }}
+                    />
+                    <Legend formatter={name => getExpenseCategoryLabel(name, settings)} wrapperStyle={{ fontSize: 10, color: 'hsl(220,10%,55%)' }} />
+                    {allCats.map((cat, i) => (
+                      <Bar key={cat} dataKey={cat} stackId="a" fill={CAT_COLORS[i % CAT_COLORS.length]} maxBarSize={48}
+                        radius={i === allCats.length - 1 ? [4, 4, 0, 0] : undefined}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
 
           {/* Month-over-month comparison table */}
           {monthlyTrendByCat.length > 1 && (
