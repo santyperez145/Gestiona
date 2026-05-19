@@ -179,6 +179,7 @@ export default function ProductsPage() {
   const [filterExpiry, setFilterExpiry] = useState('all');
   const [filterTag, setFilterTag] = useState('');
   const [filterMovement, setFilterMovement] = useState('all');
+  const [filterMargin, setFilterMargin] = useState('all');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -259,6 +260,15 @@ export default function ProductsPage() {
         if (daysSince < 30) return false;
       }
       // products with no sale data in 60 days always match 'no30'
+    }
+    if (filterMargin !== 'all') {
+      const saleP = Number(p.sale_price_ars) || 0;
+      const costP = (Number(p.total_cost_usd) || 0) * (Number(settings?.exchange_rate) || 1695);
+      const margin = saleP > 0 ? ((saleP - costP) / saleP) * 100 : 0;
+      if (filterMargin === 'low' && margin >= 20) return false;
+      if (filterMargin === 'mid' && (margin < 20 || margin >= 40)) return false;
+      if (filterMargin === 'high' && margin < 40) return false;
+      if (filterMargin === 'negative' && margin >= 0) return false;
     }
     return true;
   });
@@ -537,6 +547,16 @@ export default function ProductsPage() {
             <SelectContent>
               <SelectItem value="all">Movimiento: todos</SelectItem>
               <SelectItem value="no30">Sin venta 30+ días</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterMargin} onValueChange={v => { setFilterMargin(v); setPage(0); }}>
+            <SelectTrigger className="w-[150px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Margen: todos</SelectItem>
+              <SelectItem value="high">&gt;40% (alto)</SelectItem>
+              <SelectItem value="mid">20–40% (medio)</SelectItem>
+              <SelectItem value="low">&lt;20% (bajo)</SelectItem>
+              <SelectItem value="negative">Negativo</SelectItem>
             </SelectContent>
           </Select>
         </div>
