@@ -120,7 +120,7 @@ export default function SalesPage() {
   }, [products]);
 
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session">("list");
+  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
@@ -155,6 +155,20 @@ export default function SalesPage() {
       if (s.date > map[key].lastDate) map[key].lastDate = s.date;
       const pn = s.product_name || "?";
       map[key].products[pn] = (map[key].products[pn] || 0) + Number(s.quantity || 1);
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }, [filtered]);
+
+  const productGroups = useMemo(() => {
+    const map: Record<string, { name: string; units: number; total: number; profit: number; sales: number; lastDate: string }> = {};
+    filtered.forEach(s => {
+      const key = s.product_name || "(Sin nombre)";
+      if (!map[key]) map[key] = { name: key, units: 0, total: 0, profit: 0, sales: 0, lastDate: s.date };
+      map[key].units += Number(s.quantity || 1);
+      map[key].total += Number(s.total_ars || 0);
+      map[key].profit += Number(s.profit_ars || 0);
+      map[key].sales++;
+      if (s.date > map[key].lastDate) map[key].lastDate = s.date;
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [filtered]);
@@ -495,6 +509,13 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           >
             <ShoppingCart className="w-3.5 h-3.5" />Sesiones
           </button>
+          <button
+            onClick={() => setViewMode("by_product")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_product" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Ranking de productos más vendidos"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />Por producto
+          </button>
         </div>
       </div>
 
@@ -586,6 +607,60 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           ))}
           {sessionGroups.length === 0 && (
             <EmptyState icon={ShoppingCart} title="Sin sesiones" description="No hay ventas en el período seleccionado." />
+          )}
+        </div>
+      ) : viewMode === "by_product" ? (
+        /* ── By Product view ── */
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold">{productGroups.length} productos</h3>
+            <span className="text-xs text-muted-foreground">{formatARS(totalSales)} total · {filtered.length} ventas</span>
+          </div>
+          {productGroups.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-10">Sin ventas en el período</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unidades</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ingresos</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Ganancia</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Margen</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Última venta</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {productGroups.map((p, i) => {
+                  const share = totalSales > 0 ? (p.total / totalSales) * 100 : 0;
+                  const margin = p.total > 0 ? (p.profit / p.total) * 100 : 0;
+                  return (
+                    <tr key={p.name} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{i + 1}</td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-sm">{p.name}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <div className="h-1 bg-primary/50 rounded-full" style={{ width: `${Math.min(share * 1.5, 80)}px` }} />
+                            <span className="text-[10px] text-muted-foreground">{share.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-sm">{p.units}</td>
+                      <td className="px-4 py-3 text-right font-bold">{formatARS(p.total)}</td>
+                      <td className="px-4 py-3 text-right text-success hidden md:table-cell">{formatARS(p.profit)}</td>
+                      <td className={`px-4 py-3 text-right hidden lg:table-cell font-semibold text-xs ${margin >= 30 ? 'text-success' : margin >= 15 ? 'text-warning' : 'text-destructive'}`}>
+                        {margin.toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell">
+                        {new Date(p.lastDate + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
       ) : (

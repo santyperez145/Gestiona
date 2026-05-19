@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Search, FileText, Download, Send,
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
-  DollarSign,
+  DollarSign, Mail,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -225,6 +225,7 @@ export default function PresupuestosPage() {
   const [mpLoading, setMpLoading] = useState<string | null>(null);
   const [payLinks, setPayLinks] = useState<Record<string, string>>({});
   const [payLinkLoading, setPayLinkLoading] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState<string | null>(null);
 
   const generatePayLink = async (q: Quote) => {
     if (payLinks[q.id]) { navigator.clipboard.writeText(payLinks[q.id]); toast.success("Link copiado"); return; }
@@ -255,6 +256,35 @@ export default function PresupuestosPage() {
       toast.error("Error al generar link de pago");
     } finally {
       setPayLinkLoading(null);
+    }
+  };
+
+  const sendQuoteEmail = async (q: Quote) => {
+    if (!q.customer_email) { toast.error("El presupuesto no tiene email de cliente"); return; }
+    setEmailLoading(q.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-invoice-email", {
+        body: {
+          to: q.customer_email,
+          subject: `Presupuesto ${q.quote_number} — ${orgName}`,
+          invoiceNumber: q.quote_number,
+          customerName: q.customer_name,
+          orgName,
+          totalARS: q.total,
+          dueDate: q.valid_until || null,
+          notes: [
+            q.items.map(it => `• ${it.qty}× ${it.description} — ${formatARS(it.total)}`).join("\n"),
+            q.notes ? `\nNotas: ${q.notes}` : "",
+          ].join(""),
+        },
+      });
+      if (error) throw error;
+      toast.success(`Presupuesto enviado a ${q.customer_email}`);
+      if (q.status === "draft") updateStatus(q.id, "sent");
+    } catch {
+      toast.error("Error al enviar el email");
+    } finally {
+      setEmailLoading(null);
     }
   };
 
@@ -553,6 +583,18 @@ export default function PresupuestosPage() {
                   <button onClick={() => generateRemito(q, orgName)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Remito de entrega">
                     <FileText className="w-4 h-4" />
                   </button>
+                  {q.customer_email && (
+                    <button
+                      onClick={() => sendQuoteEmail(q)}
+                      disabled={emailLoading === q.id}
+                      className="p-1.5 rounded-lg hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors disabled:opacity-50"
+                      title={`Enviar por email a ${q.customer_email}`}
+                    >
+                      {emailLoading === q.id
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Mail className="w-4 h-4" />}
+                    </button>
+                  )}
                   <button onClick={() => copyWhatsApp(q)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Copiar para WhatsApp">
                     <Copy className="w-4 h-4" />
                   </button>

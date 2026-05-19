@@ -334,41 +334,50 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           doc.text(handle, W / 2, H - 10, { align: 'center' });
         };
 
-        // ── SOLD OUT diagonal stamp ───────────────────────────────────────────
-        // Draws a solid red diagonal band (2 triangles) from bottom-left → top-right
+        // ── SOLD OUT rubber stamp ─────────────────────────────────────────────
+        // Rectangular stamp style (like a real red rubber stamp), rotated -15°
         const drawSoldOut = (x: number, y: number, cw: number, ch: number) => {
-          const x1 = x + 3,  y1 = y + ch - 3;   // bottom-left anchor
-          const x2 = x + cw - 3, y2 = y + 3;    // top-right anchor
-          const dx = x2 - x1, dy = y2 - y1;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          // Perpendicular unit vector
-          const px = -dy / len, py = dx / len;
-          const bh = 7; // half-band thickness in mm
+          const mx = x + cw / 2;
+          const my = y + ch / 2;
 
-          // Four corners of the rotated rectangle
-          const ax = x1 + px * bh, ay = y1 + py * bh; // top-left of band
-          const bx = x1 - px * bh, by = y1 - py * bh; // bottom-left of band
-          const cx2 = x2 - px * bh, cy2 = y2 - py * bh; // bottom-right of band
-          const dx2 = x2 + px * bh, dy2 = y2 + py * bh; // top-right of band
+          const sw = cw - 5;   // stamp width  (leave 2.5mm each side)
+          const sh = 13;        // stamp height mm
+          const bw = 2.2;       // border thickness mm
+          const θ = -15 * Math.PI / 180;
+          const cosA = Math.cos(θ), sinA = Math.sin(θ);
 
-          // Fill as two triangles → solid rectangle
+          const rot = (px: number, py: number): [number, number] => [
+            mx + px * cosA - py * sinA,
+            my + px * sinA + py * cosA,
+          ];
+
+          // Outer red rectangle corners
+          const [oTLx, oTLy] = rot(-sw / 2, -sh / 2);
+          const [oTRx, oTRy] = rot( sw / 2, -sh / 2);
+          const [oBRx, oBRy] = rot( sw / 2,  sh / 2);
+          const [oBLx, oBLy] = rot(-sw / 2,  sh / 2);
+
+          // Inner cutout corners (inset by bw to create thick border)
+          const [iTLx, iTLy] = rot(-sw / 2 + bw, -sh / 2 + bw);
+          const [iTRx, iTRy] = rot( sw / 2 - bw, -sh / 2 + bw);
+          const [iBRx, iBRy] = rot( sw / 2 - bw,  sh / 2 - bw);
+          const [iBLx, iBLy] = rot(-sw / 2 + bw,  sh / 2 - bw);
+
+          // Draw outer filled red rect (two triangles)
           doc.setFillColor(205, 18, 18);
-          doc.triangle(ax, ay, bx, by, cx2, cy2, 'F');
-          doc.triangle(ax, ay, cx2, cy2, dx2, dy2, 'F');
+          doc.triangle(oTLx, oTLy, oTRx, oTRy, oBRx, oBRy, 'F');
+          doc.triangle(oTLx, oTLy, oBRx, oBRy, oBLx, oBLy, 'F');
 
-          // White border lines along the long edges
-          doc.setDrawColor(255, 255, 255);
-          doc.setLineWidth(0.65);
-          doc.line(ax, ay, dx2, dy2);
-          doc.line(bx, by, cx2, cy2);
+          // Draw inner dark rect to punch out the border → creates frame effect
+          doc.setFillColor(bgR, bgG, bgB);
+          doc.triangle(iTLx, iTLy, iTRx, iTRy, iBRx, iBRy, 'F');
+          doc.triangle(iTLx, iTLy, iBRx, iBRy, iBLx, iBLy, 'F');
 
-          // Rotated "SOLD OUT" text centred in the band
-          const angleDeg = Math.atan2(-(y2 - y1), x2 - x1) * 180 / Math.PI;
-          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(11);
+          // Red "SOLD OUT" text centred inside the stamp
+          doc.setTextColor(205, 18, 18);
+          doc.setFontSize(10.5);
           doc.setFont('helvetica', 'bold');
-          doc.text('SOLD OUT', mx, my + 1, { align: 'center', angle: angleDeg });
+          doc.text('SOLD OUT', mx, my + 1, { align: 'center', angle: -15 });
         };
 
         // ── drawGridRows ──────────────────────────────────────────────────────
