@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 40)**
+Última actualización: **2026-05-19 (sesión 41)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -231,6 +231,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **SalesPage: descarga PDF individual** — downloadSalePDF() con jsPDF A4, logo, nombre del negocio, cliente, items, total, método de pago; botón FileDown por fila. _(sesión 40)_
 - **Dashboard: banner proactivo "Stock crítico"** — aparece cuando hay productos sin stock o stock bajo; link directo a /productos?filter=lowstock. _(sesión 40)_
 - **ProductsPage: URL param ?filter=lowstock** — inicializa filterStock='low' automáticamente; badge de vencimiento en 3 niveles (VENC. / <30d / <60d). _(sesión 40)_
+- **ProductsPage: variante stock inline expand** — badge clickeable con ícono Layers; toggle expandedVariants; fila adicional con pills color-coded (rojo=0, naranja≤2, verde) por variante activa. _(sesión 41)_
+- **ReportsPage: tab "📅 Por día"** — WeeklyTrendTab con selector 4/8/12 semanas; bar chart lun–dom con cell dorada en mejor día; tabla de participación con progress bars; heatmap semanal con intensidad gold. _(sesión 41)_
+- **AnalyticsPage: "Nuevos vs Recurrentes"** — stacked BarChart en tab Clientes; últimos 6 meses; clasifica compradores como nuevo (primera compra en ese mes) o recurrente; verde/azul. _(sesión 41)_
+- **POSPage: descuento por categoría** — categoryDiscounts persistido en localStorage por org; panel toggle con % por categoría; cadena total: subtotal → catDiscount → coupon → globalDiscount; display en sección totales. _(sesión 41)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -787,15 +791,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 41)
+## Sesión 41 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POSPage: descuento por categoría** — panel toggle, % por categoría, localStorage, cadena total subtotal→catDiscount→coupon→globalDiscount | ✅ Hecho |
+| 2 | **ProductsPage: variante con stock inline expand** — badge Layers clickeable, expandedVariants Set, fila extra con pills color-coded | ✅ Hecho |
+| 3 | **ReportsPage: tab "📅 Por día"** — WeeklyTrendTab, selector semanas, bar chart lun–dom, heatmap gold | ✅ Hecho |
+| 4 | **AnalyticsPage: "Nuevos vs Recurrentes"** — stacked BarChart 6 meses, classifica first purchase, verde/azul | ✅ Hecho |
+| 5 | **EmailCampaignsPage: tracking abiertos/clicks** — ya existía (open_count/click_count progress bars vía Resend webhooks) | ✅ Ya existía |
+
+---
+
+## Prioridades inmediatas (sesión 42)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: descuento por categoría** — porcentaje de descuento aplicable a todos los productos de una categoría en el POS | Ventas B2B / mayorista |
-| 2 | **ProductsPage: variante con stock independiente** — UI de stock individual por variante; descuento de stock al vender variante específica | Inventario multi-variante |
-| 3 | **ReportsPage: tab "Tendencia semanal"** — ventas por día de la semana (lun–dom) últimas 8 semanas; heatmap o bar chart | Analytics accionable |
-| 4 | **AnalyticsPage: segmento "Nuevos clientes"** — porcentaje de compradores por primera vez vs recurrentes en el período filtrado | CRM |
-| 5 | **EmailCampaignsPage: tracking abiertos/clicks** — tabla con métricas por campaña enviada (open rate %, click rate %) vía Resend webhooks | Marketing |
+| 1 | **POSPage: descuento global en % + importe fijo** — actualmente solo existe globalDiscount en %; añadir toggle ARS/% y campo separado para descuento en importe fijo absoluto | UX ventas B2C |
+| 2 | **ProductsPage: filtro por etiqueta/tag** — dropdown multi-select de tags existentes en la barra de filtros; filtrado en `filtered` useMemo | Búsqueda rápida |
+| 3 | **SalesPage: recibo con QR de comprobante** — incluir QR con sale.id en el HTML de impresión del recibo individual y multi-venta | Trazabilidad |
+| 4 | **CustomersPage: widget "Top clientes del mes"** — 5 primeros por compras en el mes actual; total, frecuencia, badge VIP si aplica; enlace a ficha | CRM accionable |
+| 5 | **Dashboard: mini chart "Ventas de hoy por hora"** — bar chart 0–23hs con ventas registradas hoy; visible en la card expandible "Hoy" | Gestión en tiempo real |
 
 ---
 
