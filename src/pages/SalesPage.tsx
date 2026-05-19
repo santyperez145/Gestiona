@@ -507,6 +507,38 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         );
       })()}
 
+      {/* Daily sparkline */}
+      {(() => {
+        const dailyMap: Record<string, number> = {};
+        filtered.forEach(s => { const d = String(s.date).slice(0, 10); dailyMap[d] = (dailyMap[d] || 0) + Number(s.total_ars); });
+        const days = Object.keys(dailyMap).sort();
+        if (days.length < 2) return null;
+        const maxVal = Math.max(...days.map(d => dailyMap[d]));
+        const show = days.slice(-30);
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tendencia diaria ({show.length} días)</h3>
+            <div className="flex items-end gap-0.5 h-14 overflow-x-auto">
+              {show.map(d => {
+                const val = dailyMap[d];
+                const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+                const label = new Date(d + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+                return (
+                  <div key={d} className="flex flex-col items-center gap-0.5 flex-1 min-w-[12px] group relative" title={`${label}: ${formatARS(val)}`}>
+                    <div className="w-full bg-primary/70 rounded-sm hover:bg-primary transition-colors"
+                      style={{ height: `${Math.max(4, pct)}%`, minHeight: 3, maxHeight: "100%" }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between text-[9px] text-muted-foreground mt-1.5">
+              <span>{new Date(show[0] + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}</span>
+              <span>{new Date(show[show.length - 1] + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Date presets */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {[
