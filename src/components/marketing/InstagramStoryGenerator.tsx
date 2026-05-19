@@ -98,6 +98,11 @@ async function renderStory(opts: {
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
+  // Layout constants — when flavors are shown we need more vertical space below the image
+  const hasFlavors = !!(flavors && flavors.length > 0);
+  // Max image height: reserve ~380px for brand+name+price, plus ~260px for flavor pills when present
+  const MAX_IMG_H = hasFlavors ? 520 : 1000;
+
   // Product image
   let imgH = 0;
   if (product.image_url) {
@@ -105,8 +110,8 @@ async function renderStory(opts: {
       const img = await loadImage(product.image_url);
       const targetW = 820;
       const ratio = img.height / img.width;
-      const targetH = Math.min(targetW * ratio, 1000);
-      const finalW = targetH === 1000 ? 1000 / ratio : targetW;
+      const targetH = Math.min(targetW * ratio, MAX_IMG_H);
+      const finalW = targetH === MAX_IMG_H ? MAX_IMG_H / ratio : targetW;
       const x = (W - finalW) / 2;
       const y = 380;
       // soft shadow
@@ -125,18 +130,19 @@ async function renderStory(opts: {
       ctx.restore();
       imgH = y + targetH;
     } catch {
-      imgH = 900;
+      imgH = hasFlavors ? 780 : 900;
     }
   } else {
-    // Placeholder block
+    // Placeholder block — smaller when flavors need room
+    const placeholderH = hasFlavors ? 520 : 820;
     ctx.fillStyle = "rgba(255,255,255,0.05)";
-    drawRoundRect(ctx, 130, 380, 820, 820, 40);
+    drawRoundRect(ctx, 130, 380, 820, placeholderH, 40);
     ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,0.3)";
     ctx.font = "bold 120px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("📦", W / 2, 880);
-    imgH = 1200;
+    ctx.fillText("📦", W / 2, 380 + placeholderH / 2 + 44);
+    imgH = 380 + placeholderH;
   }
 
   const tpl = templateData || FALLBACK_TEMPLATES.find((t) => t.id === template) || FALLBACK_TEMPLATES[0];
@@ -193,34 +199,55 @@ async function renderStory(opts: {
     ctx.fillText(String(product.brand).toUpperCase(), W / 2, imgH + 90);
   }
 
-  // Product name (wrapped)
+  // Product name (wrapped) — slightly smaller when flavors need room
+  const nameFontSize = hasFlavors ? 56 : 64;
+  const nameLineH = hasFlavors ? 65 : 75;
   ctx.fillStyle = "#fff";
-  ctx.font = "800 64px Inter, sans-serif";
+  ctx.font = `800 ${nameFontSize}px Inter, sans-serif`;
   const name = customText || product.name || "Producto";
   const lines = wrapText(ctx, name, W - 160);
-  let y = imgH + 170;
+  let y = imgH + (hasFlavors ? 140 : 170);
   lines.slice(0, 2).forEach((l) => {
     ctx.fillText(l, W / 2, y);
-    y += 75;
+    y += nameLineH;
   });
 
-  // Price
+  // Price — slightly smaller when flavors need room
+  const priceFontSize = hasFlavors ? 90 : 110;
+  const priceBlockH = hasFlavors ? 110 : 130;
   const priceVal = customPrice || (product.sale_price_ars ? `$${Number(product.sale_price_ars).toLocaleString("es-AR")}` : "");
   if (priceVal) {
-    y += 30;
+    y += hasFlavors ? 20 : 30;
     ctx.fillStyle = primaryColor;
-    ctx.font = "900 110px Inter, sans-serif";
-    ctx.fillText(priceVal, W / 2, y + 80);
-    y += 130;
+    ctx.font = `900 ${priceFontSize}px Inter, sans-serif`;
+    ctx.fillText(priceVal, W / 2, y + (hasFlavors ? 65 : 80));
+    y += priceBlockH;
   }
 
   // Flavor pills (only for vaper products) — adaptive layout that never exceeds CTA area
   const ctaY = H - 220;
   if (flavors && flavors.length > 0) {
     // Space from current y to CTA (leave 20px margin before CTA)
-    const blockStart = y + 20;
+    const blockStart = y + 16;
     const blockEnd = ctaY - 20;
     const available = blockEnd - blockStart;
+
+    // Thin gold separator between price and flavors
+    if (available > 40) {
+      const sepY = blockStart - 8;
+      const sepW = 200;
+      const sepX = (W - sepW) / 2;
+      const sepGrad = ctx.createLinearGradient(sepX, 0, sepX + sepW, 0);
+      sepGrad.addColorStop(0, "transparent");
+      sepGrad.addColorStop(0.5, primaryColor + "80");
+      sepGrad.addColorStop(1, "transparent");
+      ctx.strokeStyle = sepGrad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sepX, sepY);
+      ctx.lineTo(sepX + sepW, sepY);
+      ctx.stroke();
+    }
 
     if (available > 60) {
       // Adaptive sizing: fewer flavors → bigger pills, more flavors → smaller
