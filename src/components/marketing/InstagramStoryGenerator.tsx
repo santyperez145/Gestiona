@@ -214,82 +214,108 @@ async function renderStory(opts: {
     y += 130;
   }
 
-  // Flavor pills (only for vaper products)
+  // Flavor pills (only for vaper products) — adaptive layout that never exceeds CTA area
+  const ctaY = H - 220;
   if (flavors && flavors.length > 0) {
-    const pillPad = 28;
-    const pillH = 58;
-    const pillGap = 14;
-    const pillFont = "700 30px Inter, sans-serif";
-    ctx.font = pillFont;
+    // Space from current y to CTA (leave 20px margin before CTA)
+    const blockStart = y + 20;
+    const blockEnd = ctaY - 20;
+    const available = blockEnd - blockStart;
 
-    // Section label
-    y += 30;
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.font = "600 28px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("SABORES DISPONIBLES", W / 2, y);
-    y += 20;
+    if (available > 60) {
+      // Adaptive sizing: fewer flavors → bigger pills, more flavors → smaller
+      const count = flavors.length;
+      const pillH = count > 14 ? 40 : count > 9 ? 48 : 56;
+      const pillFontSize = count > 14 ? 22 : count > 9 ? 25 : 28;
+      const pillPad = count > 14 ? 18 : count > 9 ? 22 : 26;
+      const pillGap = count > 14 ? 8 : 11;
+      const rowGap = count > 14 ? 10 : 13;
+      const maxPerRow = count > 14 ? 5 : 4;
+      const labelH = 46; // label text + gap below
 
-    // Layout pills in rows of max 4
-    const maxPerRow = 4;
-    const pillWidths = flavors.map((f) => {
+      const pillFont = `700 ${pillFontSize}px Inter, sans-serif`;
       ctx.font = pillFont;
-      return ctx.measureText(f).width + pillPad * 2;
-    });
+      const pillWidths = flavors.map((f) => ctx.measureText(f).width + pillPad * 2);
 
-    let row: { text: string; w: number }[] = [];
-    let rowW = 0;
+      // Build rows greedily, capping at what fits vertically
+      const rowH = pillH + rowGap;
+      const maxRows = Math.max(1, Math.floor((available - labelH) / rowH));
 
-    const flushRow = (items: { text: string; w: number }[], startY: number) => {
-      const totalW = items.reduce((s, p) => s + p.w, 0) + (items.length - 1) * pillGap;
-      let px = (W - totalW) / 2;
+      const rows: { text: string; w: number }[][] = [[]];
+      let rowW = 0;
+      let clipped = false;
+
+      for (let i = 0; i < flavors.length; i++) {
+        const pill = { text: flavors[i], w: pillWidths[i] };
+        const testW = rowW + (rows[rows.length - 1].length > 0 ? pillGap : 0) + pill.w;
+        const needsNewRow = rows[rows.length - 1].length >= maxPerRow || testW > W - 80;
+        if (needsNewRow) {
+          if (rows.length >= maxRows) { clipped = true; break; }
+          rows.push([pill]);
+          rowW = pill.w;
+        } else {
+          rows[rows.length - 1].push(pill);
+          rowW = testW;
+        }
+      }
+
+      // Total height: label + rows
+      const extraLine = clipped ? rowH : 0;
+      const totalH = labelH + rows.length * rowH + extraLine;
+
+      // Vertically center the block in available space
+      const offsetY = Math.max(0, (available - totalH) / 2);
+      let drawY = blockStart + offsetY;
+
+      // Label
+      ctx.fillStyle = "rgba(255,255,255,0.30)";
+      ctx.font = `600 ${Math.round(pillFontSize * 0.85)}px Inter, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText("SABORES DISPONIBLES", W / 2, drawY + pillFontSize);
+      drawY += labelH;
+
+      // Draw each row
       ctx.font = pillFont;
-      items.forEach(({ text, w }, idx) => {
-        const isHighlighted = idx === 0 && items.length === 1 && flavors.length === 1;
-        // Pill background
-        ctx.fillStyle = isHighlighted ? primaryColor : "rgba(255,255,255,0.10)";
-        drawRoundRect(ctx, px, startY, w, pillH, pillH / 2);
-        ctx.fill();
-        // Pill border (gold accent)
-        ctx.strokeStyle = primaryColor + "55";
-        ctx.lineWidth = 2;
-        drawRoundRect(ctx, px, startY, w, pillH, pillH / 2);
-        ctx.stroke();
-        // Text
-        ctx.fillStyle = isHighlighted ? "#0a0a14" : "#fff";
+      for (const row of rows) {
+        const totalRowW = row.reduce((s, p) => s + p.w, 0) + (row.length - 1) * pillGap;
+        let px = (W - totalRowW) / 2;
+        for (const { text, w } of row) {
+          // Pill bg (semi-transparent dark)
+          ctx.fillStyle = "rgba(255,255,255,0.08)";
+          drawRoundRect(ctx, px, drawY, w, pillH, pillH / 2);
+          ctx.fill();
+          // Gold border
+          ctx.strokeStyle = primaryColor + "70";
+          ctx.lineWidth = 2;
+          drawRoundRect(ctx, px, drawY, w, pillH, pillH / 2);
+          ctx.stroke();
+          // Label
+          ctx.fillStyle = "#fff";
+          ctx.textAlign = "center";
+          ctx.fillText(text, px + w / 2, drawY + pillH * 0.64);
+          px += w + pillGap;
+        }
+        drawY += rowH;
+      }
+
+      // "y N más..." line if clipped
+      if (clipped) {
+        const shown = rows.flat().length;
+        const extra = flavors.length - shown;
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.font = `400 ${Math.round(pillFontSize * 0.8)}px Inter, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText(text, px + w / 2, startY + 38);
-        px += w + pillGap;
-      });
-    };
-
-    for (let i = 0; i < flavors.length; i++) {
-      const pill = { text: flavors[i], w: pillWidths[i] };
-      const testW = rowW + (row.length > 0 ? pillGap : 0) + pill.w;
-      if (row.length >= maxPerRow || testW > W - 80) {
-        y += pillH + 16;
-        flushRow(row, y);
-        row = [pill];
-        rowW = pill.w;
-      } else {
-        row.push(pill);
-        rowW = testW;
+        ctx.fillText(`+ ${extra} sabor${extra !== 1 ? "es" : ""} más`, W / 2, drawY + 6);
       }
     }
-    if (row.length > 0) {
-      y += pillH + 16;
-      flushRow(row, y);
-    }
-    y += 30;
   }
 
-  // CTA button
+  // CTA button — always fixed at bottom, never displaced by flavors
   const cta = ctaText || "ESCRIBINOS YA 📲";
   ctx.font = "800 44px Inter, sans-serif";
   const ctaW = ctx.measureText(cta).width + 120;
   const ctaH = 110;
   const ctaX = (W - ctaW) / 2;
-  const ctaY = H - 220;
   ctx.fillStyle = primaryColor;
   drawRoundRect(ctx, ctaX, ctaY, ctaW, ctaH, 55);
   ctx.fill();
