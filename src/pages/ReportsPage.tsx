@@ -590,6 +590,73 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
     );
   };
 
+  const exportInventoryPDF = () => {
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    const businessName = settings?.business_name || "Mi negocio";
+    const now = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+
+    // Header
+    doc.setFontSize(16);
+    doc.setTextColor(40, 40, 40);
+    doc.text("Inventario Valorado", 40, 40);
+    doc.setFontSize(10);
+    doc.setTextColor(120, 120, 120);
+    doc.text(businessName, 40, 56);
+    doc.text(`Generado: ${now}  ·  ${rows.length} productos`, 40, 70);
+
+    // KPI summary line
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    const summaryY = 84;
+    doc.text(`Unidades: ${totalUnits.toLocaleString("es-AR")}`, 40, summaryY);
+    doc.text(`Val. Costo: ${formatARS(totalCostValue)}`, 160, summaryY);
+    doc.text(`Val. Retail: ${formatARS(totalRetailValue)}`, 310, summaryY);
+    doc.text(`Margen no realizado: ${unrealizedMargin.toFixed(1)}%`, 470, summaryY);
+    doc.text(`USD inmovilizado: ${formatUSD(totalCostUSD)}`, 630, summaryY);
+
+    autoTable(doc, {
+      startY: 98,
+      head: [["Producto", "Marca", "Categoría", "Stock", "Costo ARS", "Precio ARS", "Margen %", "Val. Costo", "Val. Retail", "Días stock"]],
+      body: rows.map(r => [
+        r.name,
+        r.brand || "",
+        getCategoryLabel(r.category),
+        r.stock,
+        formatARS(r.costARS).replace("$ ", "$ "),
+        formatARS(Number(r.sale_price_ars) || 0).replace("$ ", "$ "),
+        `${r.margin.toFixed(1)}%`,
+        formatARS(r.costValue).replace("$ ", "$ "),
+        formatARS(r.retailValue).replace("$ ", "$ "),
+        r.days_remaining !== null ? `${r.days_remaining}d` : "—",
+      ]),
+      foot: [["TOTAL", "", "", totalUnits, "", "", `${unrealizedMargin.toFixed(1)}%`, formatARS(totalCostValue), formatARS(totalRetailValue), ""]],
+      styles: { fontSize: 7.5, cellPadding: 3 },
+      headStyles: { fillColor: [40, 40, 40], textColor: [255, 255, 255], fontSize: 8 },
+      footStyles: { fillColor: [240, 240, 240], fontStyle: "bold", fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 130 },
+        3: { halign: "center" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "center" },
+        7: { halign: "right" },
+        8: { halign: "right" },
+        9: { halign: "center" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 6) {
+          const margin = parseFloat(data.cell.text[0]);
+          if (margin >= 30) data.cell.styles.textColor = [34, 197, 94];
+          else if (margin >= 15) data.cell.styles.textColor = [234, 179, 8];
+          else data.cell.styles.textColor = [239, 68, 68];
+        }
+      },
+    });
+
+    doc.save(`inventario-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF descargado");
+  };
+
   const tooltipStyle = { background: "hsl(220, 18%, 12%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8, color: "hsl(40, 20%, 92%)" };
   const PALETTE = ["hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)", "hsl(280,60%,55%)", "hsl(0,65%,55%)", "hsl(60,70%,50%)", "hsl(25,70%,50%)", "hsl(320,60%,50%)", "hsl(180,60%,45%)", "hsl(100,55%,40%)"];
 
@@ -678,9 +745,14 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" size="sm" onClick={exportInventoryCSV}>
-          <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportInventoryCSV}>
+            <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportInventoryPDF}>
+            <FileText className="w-3.5 h-3.5 mr-1.5" />PDF
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
