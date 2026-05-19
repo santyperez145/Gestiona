@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 41)**
+Última actualización: **2026-05-19 (sesión 42)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -803,15 +803,29 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 42)
+## Sesión 42 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **Imágenes por variante de vaper** — upload por variante en ProductForm; catálogo público muestra cards 72×56px; PDF usa imagen de variante como celdas | ✅ Hecho |
+| 2 | **SalesPage: QR en recibos** — QR api.qrserver con `VTA-{sale.id}`; recibo individual y multi-venta; referencia corta (8 chars) debajo del QR | ✅ Hecho |
+| 3 | **CustomersPage: widget "Top clientes del mes"** — top-5 por ARS en el mes actual; medallas 🥇🥈🥉; progress bars; badge VIP; count de compras; formatARS total | ✅ Hecho |
+| 4 | **Dashboard: ventas de hoy por hora** — BarChart Recharts en card expandible "Hoy"; Cell gold en hora pico; badge "Pico: Xh" | ✅ Hecho |
+| 5 | **SalesPage: preset "Este año"** — chip + applyPreset("year") Jan 1 → hoy | ✅ Hecho |
+| 6 | **ProductsPage: thumbnail de variante en expand row** — img 16×16 rounded en cada pill del expand inline | ✅ Hecho |
+| + | **Migration**: `product_variants.image_url TEXT` aplicada en producción | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 43)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: descuento global en % + importe fijo** — actualmente solo existe globalDiscount en %; añadir toggle ARS/% y campo separado para descuento en importe fijo absoluto | UX ventas B2C |
-| 2 | **ProductsPage: filtro por etiqueta/tag** — dropdown multi-select de tags existentes en la barra de filtros; filtrado en `filtered` useMemo | Búsqueda rápida |
-| 3 | **SalesPage: recibo con QR de comprobante** — incluir QR con sale.id en el HTML de impresión del recibo individual y multi-venta | Trazabilidad |
-| 4 | **CustomersPage: widget "Top clientes del mes"** — 5 primeros por compras en el mes actual; total, frecuencia, badge VIP si aplica; enlace a ficha | CRM accionable |
-| 5 | **Dashboard: mini chart "Ventas de hoy por hora"** — bar chart 0–23hs con ventas registradas hoy; visible en la card expandible "Hoy" | Gestión en tiempo real |
+| 1 | **POSPage: descuento en importe fijo (ARS)** — toggle % / ARS en el campo globalDiscount; actualmente solo acepta porcentaje; cálculo correcto en totales y recibo | Ventas B2C con monto fijo de rebaja |
+| 2 | **SalesPage: sticky header en tabla** — encabezado de columnas fijo al hacer scroll; las filas se deslizan por debajo | UX en listados largos |
+| 3 | **ProductsPage: filtro combinado tag + margen** — aplicar ambos filtros simultáneamente en el useMemo `filtered`; badge de filtros activos | Gestión avanzada de catálogo |
+| 4 | **Dashboard: widget "Ranking de productos de la semana"** — top-5 más vendidos (unidades + ARS) de lun a hoy; delta vs semana anterior | Visibilidad operativa |
+| 5 | **CustomersPage: exportar top clientes del mes a CSV** — botón en el widget de top clientes: nombre, total ARS, cantidad de compras, badge VIP | Reporte comercial rápido |
 
 ---
 
