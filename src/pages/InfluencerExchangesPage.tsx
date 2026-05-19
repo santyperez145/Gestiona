@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone, Copy, Tag } from "lucide-react";
+import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone, Copy, Tag, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
@@ -86,6 +86,49 @@ export default function InfluencerExchangesPage() {
     reload();
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncCosts = async () => {
+    const exchangesWithProduct = exchanges.filter(e => e.product_id);
+    if (!exchangesWithProduct.length) { toast.info('No hay canjes con producto vinculado'); return; }
+    setSyncing(true);
+    try {
+      const [allProducts, settings] = await Promise.all([
+        getProductsDB(user!.id),
+        getSettingsDB(user!.id),
+      ]);
+      const productMap: Record<string, any> = {};
+      for (const p of allProducts) productMap[p.id] = p;
+      const rate = Number(settings?.exchange_rate || 1200);
+
+      let updated = 0;
+      await Promise.all(exchangesWithProduct.map(async (ex) => {
+        const p = productMap[ex.product_id];
+        if (!p) return;
+        const costUSD = Number(p.total_cost_usd || 0);
+        const newCostPerUnit = costUSD > 0
+          ? costUSD * rate
+          : Number(p.sale_price_ars || 0) * 0.4;
+        if (newCostPerUnit <= 0) return;
+        const current = Number(ex.product_value_ars || 0);
+        if (Math.abs(current - newCostPerUnit) < 1) return; // already up to date
+        await updateExchangeDB(ex.id, { product_value_ars: newCostPerUnit });
+        updated++;
+      }));
+
+      await reload();
+      if (updated > 0) {
+        toast.success(`${updated} canje${updated > 1 ? 's' : ''} actualizado${updated > 1 ? 's' : ''} al costo actual`);
+      } else {
+        toast.info('Todos los canjes ya tienen el costo actualizado');
+      }
+    } catch (err: any) {
+      toast.error('Error al sincronizar: ' + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   return (
@@ -95,6 +138,11 @@ export default function InfluencerExchangesPage() {
         title="Canjes & Influencers"
         description="Gestión de canjes, regalos y colaboraciones con influencers"
         actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleSyncCosts} disabled={syncing} title="Recalcula product_value_ars de todos los canjes según el costo USD actual del producto">
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Actualizando...' : 'Sincronizar costos'}
+            </Button>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
             <DialogTrigger asChild>
               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo Canje</Button>
@@ -104,6 +152,7 @@ export default function InfluencerExchangesPage() {
               <ExchangeForm userId={user!.id} editItem={editItem} existingExchanges={exchanges} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
             </DialogContent>
           </Dialog>
+          </div>
         }
       />
 
