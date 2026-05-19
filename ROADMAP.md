@@ -211,6 +211,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **Dashboard: widget "Flujo de caja 7 días"** — ingresos vs gastos vs compras last 7d; net flow coloreado; progress bars. _(sesión 36)_
 - **InvoicesPage: filtro por tipo de comprobante** — dropdown A/B/C/Nota de Crédito/Sin tipo junto a los chips de estado. _(sesión 36)_
 - **ProductsPage: PDF de aging** — botón exportar en panel de aging; HTML imprimible con tabla completa, costo USD y sugerencia. _(sesión 36)_
+- **CustomersPage: CSV export de RFM** — botón en panel RFM; exporta todos los clientes con R/F/M scores + RFM total. _(sesión 37)_
+- **DebtsPage: proyección de cobros 30d** — widget en tab "Próximos cobros"; buckets hoy/1-7d/8-15d/16-30d con barras y totales. _(sesión 37)_
+- **SalesPage: vista "Por fecha"** — nuevo modo `by_date`; barras de totales diarios + delta ▲/▼ vs mismo día -7d. _(sesión 37)_
+- **AIChatPage: exportar conversación** — botón "Exportar" descarga .txt con todos los mensajes del chat actual. _(sesión 37)_
+- **ReportsPage: comparativa de dos períodos** — panel en tab Tendencia de Margen; selectores mes A y mes B; tabla con Δ en todas las métricas (ingresos, ganancias, márgenes, gastos). _(sesión 37)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -722,11 +727,11 @@ Ver tabla de sesión 29 arriba.
 
 | # | Acción | Estado |
 |---|--------|--------|
-| 1 | **SalesPage: vista "Por día" con comparativa semanal** — nuevo viewMode "by_date"; agrupa ventas por día; delta ▲/▼ vs misma fecha semana anterior; share bar; totales en footer | ✅ Hecho |
-| 2 | **AIChatPage: exportar conversación** — botón "Exportar .txt" en header (mensajes activos) y en sidebar por conversación guardada; descarga transcript con roles y separadores | ✅ Hecho |
-| 3 | **DebtsPage: proyección de cobros 30d** | ✅ Ya existía (remote sesión 36) |
-| 4 | **ReportsPage: Rentabilidad — comparar 2 períodos** — toggle "Comparar períodos"; selectores de mes A y B; tabla con Ganancia A/B, Δ ganancia, Margen A/B, delta en pp | ✅ Hecho |
-| 5 | **CustomersPage: CSV RFM scores** | ✅ Ya existía (remote sesión 36) |
+| 1 | **SalesPage: vista "Por fecha"** — modo by_date, barras diarias, delta ▲/▼ vs -7d | ✅ Hecho |
+| 2 | **AIChatPage: exportar conversación** — botón "Exportar" descarga .txt | ✅ Hecho |
+| 3 | **DebtsPage: proyección de cobros 30d** — buckets hoy/1-7/8-15/16-30d, barras | ✅ Hecho |
+| 4 | **ReportsPage: comparativa de dos períodos** — selectores A/B, tabla con Δ | ✅ Hecho |
+| 5 | **CustomersPage: CSV export de RFM** — botón en panel RFM, todos los clientes | ✅ Hecho |
 
 ---
 
@@ -734,11 +739,11 @@ Ver tabla de sesión 29 arriba.
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **PurchasesPage: resumen de costos por proveedor con gráfico** — en tab "Por Proveedor", agregar mini BarChart por proveedor con monto USD y ARS | Visibilidad de compras |
-| 2 | **CustomersPage: agregar tag/etiqueta manual a cliente** — campo de tags libres (ej: "mayorista", "VIP-manual") que se guarda en DB y filtra | CRM |
-| 3 | **ExpensesPage: duplicar gasto** — ícono Copy en cada fila para pre-llenar el form con los datos del gasto seleccionado | Velocidad de registro |
-| 4 | **SalesPage: exportar por método de pago** — en footer de lista, botón que genera CSV con breakdown completo por método | Control financiero |
-| 5 | **Dashboard: tarjeta de deuda de clientes en riesgo de incobrabilidad** — deudas >90d sin actividad con badge rojo y link a /deudas | Cobranza |
+| 1 | **PurchasesPage: dashboard de estado de pedidos** — KPIs pendientes/en camino/recibidos + timeline visual | Gestión compras |
+| 2 | **PresupuestosPage: vencimiento y estado "Expirado"** — detectar presupuestos vencidos (>30d sin conversión), badge y filtro | CRM ventas |
+| 3 | **Dashboard: widget "Mejor horario de ventas"** — mostrar en qué horario del día se registran más ventas (usa created_at de ventas) | Operaciones |
+| 4 | **SalesPage: resumen de comisiones del período** — columna estimada de comisión por vendedor en vista by_customer/by_product | Gestión equipo |
+| 5 | **AlertsPage: historial de alertas disparadas** — tabla de últimas alertas con timestamp, tipo y acción tomada | Observabilidad |
 
 ---
 

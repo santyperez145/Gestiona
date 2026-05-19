@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, CalendarDays } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -125,6 +125,7 @@ export default function SalesPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterMethod, setFilterMethod] = useState('all');
+  const [commPct, setCommPct] = useState(5);
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
@@ -619,6 +620,31 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </button>
           ))}
         </div>
+        {/* Commission summary (only in by_customer / by_product) */}
+        {(viewMode === "by_customer" || viewMode === "by_product") && (() => {
+          const sellerMap: Record<string, { total: number; count: number }> = {};
+          filtered.forEach(s => {
+            const key = (s as any).seller_name?.trim() || "(Sin vendedor)";
+            if (!sellerMap[key]) sellerMap[key] = { total: 0, count: 0 };
+            sellerMap[key].total += Number(s.total_ars);
+            sellerMap[key].count++;
+          });
+          const sellers = Object.entries(sellerMap).filter(([k]) => k !== "(Sin vendedor)");
+          if (sellers.length === 0) return null;
+          return (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-lg text-xs">
+              <span className="text-muted-foreground">Comisiones:</span>
+              <input type="number" min={0} max={100} value={commPct} onChange={e => setCommPct(Number(e.target.value))}
+                className="w-12 bg-muted border border-border rounded px-1.5 text-center" />
+              <span className="text-muted-foreground">%</span>
+              {sellers.map(([name, data]) => (
+                <span key={name} className="ml-2 font-medium text-success">
+                  {name}: {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(data.total * commPct / 100)}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
         <div className="flex rounded-lg border border-border overflow-hidden h-9">
           <button
             onClick={() => setViewMode("list")}
@@ -651,9 +677,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           <button
             onClick={() => setViewMode("by_date")}
             className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_date" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
-            title="Agrupar por día con comparativa vs semana anterior"
+            title="Agrupar por día con delta vs semana anterior"
           >
-            <CalendarDays className="w-3.5 h-3.5" />Por día
+            <Calendar className="w-3.5 h-3.5" />Por fecha
           </button>
         </div>
       </div>
@@ -803,69 +829,57 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           )}
         </div>
       ) : viewMode === "by_date" ? (
-        /* ── By Date view with week-over-week comparison ── */
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <h3 className="text-sm font-semibold">{dateGroups.length} día{dateGroups.length !== 1 ? 's' : ''}</h3>
-            <span className="text-xs text-muted-foreground">{formatARS(totalSales)} total · vs semana anterior</span>
-          </div>
-          {dateGroups.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-10">Sin ventas en el período</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Día</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ventas</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Ganancia</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">vs sem. ant.</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {dateGroups.map(d => {
-                  const hasComp = d.prevWeekTotal > 0;
-                  const diffPct = hasComp ? ((d.total - d.prevWeekTotal) / d.prevWeekTotal) * 100 : null;
-                  const diffStr = diffPct !== null ? `${diffPct >= 0 ? '▲' : '▼'}${Math.abs(diffPct).toFixed(0)}%` : '—';
-                  const diffColor = diffPct === null ? 'text-muted-foreground' : diffPct >= 0 ? 'text-success' : 'text-destructive';
-                  const dayDate = new Date(d.date + 'T12:00:00');
-                  const dayLabel = dayDate.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: 'short' });
-                  const isToday = d.date === new Date().toISOString().slice(0, 10);
-                  const share = totalSales > 0 ? (d.total / totalSales) * 100 : 0;
-                  return (
-                    <tr key={d.date} className={`hover:bg-muted/20 transition-colors ${isToday ? 'bg-primary/5' : ''}`}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {isToday && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
-                          <span className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>{dayLabel}</span>
-                        </div>
-                        <div className="flex items-center gap-1 mt-0.5 ml-3.5">
-                          <div className="h-1 bg-primary/40 rounded-full" style={{ width: `${Math.min(share * 2, 100)}px` }} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right text-muted-foreground text-xs">{d.count} {d.paid < d.count && <span className="text-warning">({d.count - d.paid} deben)</span>}</td>
-                      <td className="px-4 py-3 text-right font-bold font-mono">{formatARS(d.total)}</td>
-                      <td className="px-4 py-3 text-right text-success hidden md:table-cell font-mono text-xs">{formatARS(d.profit)}</td>
-                      <td className={`px-4 py-3 text-right font-semibold text-xs hidden md:table-cell ${diffColor}`}>
-                        {diffStr}
-                        {hasComp && <span className="block text-[10px] font-normal text-muted-foreground">{formatARS(d.prevWeekTotal)}</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border bg-muted/30">
-                  <td className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Total período</td>
-                  <td className="px-4 py-3 text-right text-xs font-semibold">{filtered.length} ventas</td>
-                  <td className="px-4 py-3 text-right font-bold text-success">{formatARS(totalSales)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-success hidden md:table-cell">{formatARS(totalProfit)}</td>
-                  <td className="hidden md:table-cell" />
-                </tr>
-              </tfoot>
-            </table>
-          )}
-        </div>
+        /* ── By Date view ── */
+        (() => {
+          const dateMap: Record<string, { total: number; profit: number; count: number; paid: number }> = {};
+          filtered.forEach(s => {
+            const d = String(s.date).slice(0, 10);
+            if (!dateMap[d]) dateMap[d] = { total: 0, profit: 0, count: 0, paid: 0 };
+            dateMap[d].total += Number(s.total_ars);
+            dateMap[d].profit += Number(s.profit_ars || 0);
+            dateMap[d].count += 1;
+            if (s.status === "paid") dateMap[d].paid += Number(s.total_ars);
+          });
+          const dates = Object.keys(dateMap).sort().reverse();
+          if (dates.length === 0) return <EmptyState icon={Calendar} title="Sin ventas" description="No hay ventas en el período seleccionado." />;
+          return (
+            <div className="space-y-2">
+              {dates.map(d => {
+                const data = dateMap[d];
+                // Delta vs same weekday 7 days ago
+                const prevDay = new Date(d + "T12:00:00");
+                prevDay.setDate(prevDay.getDate() - 7);
+                const prevKey = prevDay.toISOString().slice(0, 10);
+                const prevData = dateMap[prevKey];
+                const delta = prevData && prevData.total > 0 ? ((data.total - prevData.total) / prevData.total) * 100 : null;
+                const label = new Date(d + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" });
+                return (
+                  <div key={d} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-4">
+                    <div className="w-28 shrink-0">
+                      <p className="text-sm font-semibold capitalize">{label}</p>
+                      <p className="text-[10px] text-muted-foreground">{data.count} venta{data.count !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                      <div className="h-full bg-primary/60 rounded-full" style={{ width: `${Math.min(100, (data.total / (dateMap[dates[dates.length - 1]]?.total || 1)) * 100)}%` }} />
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold text-sm font-mono">{formatARS(data.total)}</p>
+                      <p className="text-[10px] text-success">{formatARS(data.profit)} gan.</p>
+                    </div>
+                    {delta !== null ? (
+                      <div className={`w-14 text-right shrink-0 text-xs font-semibold ${delta >= 0 ? "text-success" : "text-destructive"}`}>
+                        {delta >= 0 ? "▲" : "▼"}{Math.abs(delta).toFixed(0)}%
+                        <p className="text-[9px] font-normal text-muted-foreground">vs -7d</p>
+                      </div>
+                    ) : (
+                      <div className="w-14 shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()
       ) : (
         <>
           {/* Bulk action bar */}

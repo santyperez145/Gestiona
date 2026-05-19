@@ -172,6 +172,31 @@ export default function PurchasesPage() {
         <KPICard label="Programadas" value={scheduledCount} icon={CalendarClock} color="warning" sub="pendientes de concretar" />
       </div>
 
+      {/* Order status pipeline */}
+      {(() => {
+        const pending = purchases.filter(p => p.is_scheduled && p.travel_status !== 'en_camino');
+        const inTransit = purchases.filter(p => p.is_scheduled && p.travel_status === 'en_camino');
+        const received30 = purchases.filter(p => !p.is_scheduled && new Date(p.date) >= new Date(Date.now() - 30 * 86400000));
+        const stages = [
+          { label: "Pedidos pendientes", count: pending.length, value: pending.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: "📋" },
+          { label: "En camino", count: inTransit.length, value: inTransit.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: "🚚" },
+          { label: "Recibidos (30d)", count: received30.length, value: received30.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-success/30 bg-success/5 text-success", icon: "✅" },
+        ];
+        if (stages.every(s => s.count === 0)) return null;
+        return (
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {stages.map(s => (
+              <div key={s.label} className={`rounded-xl border p-3 ${s.color}`}>
+                <div className="text-lg mb-1">{s.icon}</div>
+                <p className="text-xs font-medium opacity-80">{s.label}</p>
+                <p className="text-xl font-bold">{s.count}</p>
+                {s.value > 0 && <p className="text-[10px] opacity-70">{formatUSD(s.value)}</p>}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Tabs */}
       {/* Search + supplier filter */}
       <div className="flex flex-wrap gap-2 mb-4">

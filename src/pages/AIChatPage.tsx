@@ -1321,7 +1321,18 @@ export default function AIChatPage() {
             </Button>
           )}
           {messages.length >= 2 && (
-            <Button variant="ghost" size="sm" onClick={exportConversation} className="text-muted-foreground" title="Exportar conversación como .txt">
+            <Button variant="ghost" size="sm" className="text-muted-foreground" title="Exportar conversación como texto"
+              onClick={() => {
+                const orgName = activeOrg?.name || "Mi negocio";
+                const dateStr = new Date().toLocaleDateString("es-AR");
+                const lines = messages.map(m => `[${m.role === "user" ? "Vos" : "IA"}] ${m.content}`).join("\n\n");
+                const text = `Conversación con IA — ${orgName}\n${dateStr}\n${"=".repeat(40)}\n\n${lines}`;
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+                a.download = `chat-ia-${new Date().toISOString().slice(0, 10)}.txt`;
+                a.click();
+              }}
+            >
               <Download className="w-3.5 h-3.5 mr-1.5" />Exportar
             </Button>
           )}

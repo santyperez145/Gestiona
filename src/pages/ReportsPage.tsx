@@ -2896,6 +2896,93 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
           </tbody>
         </table>
       </div>
+
+      {/* Period comparison panel */}
+      {(() => {
+        const allMonths = Array.from(new Set(sales.map((s: any) => String(s.date).slice(0, 7)))).sort().reverse().slice(0, 24);
+        if (allMonths.length < 2) return null;
+        const [monthA, setMonthA] = useState(allMonths[1] || allMonths[0]);
+        const [monthB, setMonthB] = useState(allMonths[0]);
+        const computeMonth = (key: string) => {
+          const ms = sales.filter((s: any) => String(s.date).slice(0, 7) === key);
+          const es = expenses.filter((e: any) => String(e.date).slice(0, 7) === key);
+          const revenue = ms.reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+          const grossProfit = ms.reduce((a: number, s: any) => a + Number(s.profit_ars), 0);
+          const totalExpenses = es.reduce((a: number, e: any) => a + Number(e.amount_ars), 0);
+          const net = grossProfit - totalExpenses;
+          return { revenue, grossProfit, net, totalExpenses, grossMargin: revenue > 0 ? (grossProfit / revenue) * 100 : 0, netMargin: revenue > 0 ? (net / revenue) * 100 : 0 };
+        };
+        const dataA = computeMonth(monthA);
+        const dataB = computeMonth(monthB);
+        const monthLabel = (k: string) => { const [y, m] = k.split('-'); return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: '2-digit' }); };
+        const Delta = ({ a, b, pct = false }: { a: number; b: number; pct?: boolean }) => {
+          const diff = a - b;
+          const diffPct = b !== 0 ? (diff / Math.abs(b)) * 100 : null;
+          return diff === 0 ? <span className="text-muted-foreground text-xs">=</span> : (
+            <span className={`text-xs font-semibold ${diff > 0 ? 'text-success' : 'text-destructive'}`}>
+              {diff > 0 ? '▲' : '▼'} {pct ? `${Math.abs(diff).toFixed(1)}pp` : diffPct !== null ? `${Math.abs(diffPct).toFixed(0)}%` : '—'}
+            </span>
+          );
+        };
+        return (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">Comparativa de dos períodos</h4>
+            <div className="flex gap-3 mb-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-12">Período A:</span>
+                <select value={monthA} onChange={e => setMonthA(e.target.value)} className="text-xs bg-muted border border-border rounded-lg px-2 py-1">
+                  {allMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-12">Período B:</span>
+                <select value={monthB} onChange={e => setMonthB(e.target.value)} className="text-xs bg-muted border border-border rounded-lg px-2 py-1">
+                  {allMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="text-left py-2 pr-4">Métrica</th>
+                    <th className="text-right py-2 px-3 capitalize">{monthLabel(monthA)}</th>
+                    <th className="text-right py-2 px-3 capitalize">{monthLabel(monthB)}</th>
+                    <th className="text-right py-2 pl-3">Δ A vs B</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {[
+                    { label: "Ingresos", a: dataA.revenue, b: dataB.revenue },
+                    { label: "Ganancia bruta", a: dataA.grossProfit, b: dataB.grossProfit },
+                    { label: "Gastos", a: dataA.totalExpenses, b: dataB.totalExpenses },
+                    { label: "Resultado neto", a: dataA.net, b: dataB.net },
+                  ].map(row => (
+                    <tr key={row.label}>
+                      <td className="py-2 pr-4 text-muted-foreground">{row.label}</td>
+                      <td className="py-2 px-3 text-right font-mono">{fmtARS(row.a)}</td>
+                      <td className="py-2 px-3 text-right font-mono text-muted-foreground">{fmtARS(row.b)}</td>
+                      <td className="py-2 pl-3 text-right"><Delta a={row.a} b={row.b} /></td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td className="py-2 pr-4 text-muted-foreground">Margen bruto %</td>
+                    <td className={`py-2 px-3 text-right font-semibold ${dataA.grossMargin >= 30 ? 'text-success' : dataA.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.grossMargin.toFixed(1)}%</td>
+                    <td className={`py-2 px-3 text-right font-semibold text-muted-foreground`}>{dataB.grossMargin.toFixed(1)}%</td>
+                    <td className="py-2 pl-3 text-right"><Delta a={dataA.grossMargin} b={dataB.grossMargin} pct /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 text-muted-foreground">Margen neto %</td>
+                    <td className={`py-2 px-3 text-right font-semibold ${dataA.netMargin >= 15 ? 'text-success' : dataA.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.netMargin.toFixed(1)}%</td>
+                    <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{dataB.netMargin.toFixed(1)}%</td>
+                    <td className="py-2 pl-3 text-right"><Delta a={dataA.netMargin} b={dataB.netMargin} pct /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

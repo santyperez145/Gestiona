@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2 } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -698,6 +698,23 @@ export default function Dashboard() {
     }));
     const bestWeekday = bestWeekdayData.reduce((best, cur) => cur.avg > best.avg ? cur : best, bestWeekdayData[0]);
 
+    // Best hour of day from created_at
+    const hourTotals: Record<number, { total: number; count: number }> = {};
+    allSales.forEach((s: any) => {
+      if (!s.created_at) return;
+      const h = new Date(s.created_at).getHours();
+      if (!hourTotals[h]) hourTotals[h] = { total: 0, count: 0 };
+      hourTotals[h].total += Number(s.total_ars);
+      hourTotals[h].count++;
+    });
+    const hourData = Array.from({ length: 24 }, (_, h) => ({
+      hour: h,
+      label: `${String(h).padStart(2, '0')}:00`,
+      total: hourTotals[h]?.total || 0,
+      count: hourTotals[h]?.count || 0,
+    })).filter(h => h.count > 0);
+    const bestHour = hourData.length > 0 ? [...hourData].sort((a, b) => b.count - a.count)[0] : null;
+
     // Weekly cash flow (last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
     const weekIncome = sales.filter((s: any) => new Date(s.date) >= sevenDaysAgo).reduce((a: number, s: any) => a + Number(s.total_ars), 0);
@@ -738,6 +755,7 @@ export default function Dashboard() {
       bestWeekdayData, bestWeekday,
       avgDailySalesARS,
       agingCount30,
+      hourData, bestHour,
       weekIncome, weekExpensesAmt, weekPurchasesAmt, weekNetCashFlow,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
@@ -1735,6 +1753,34 @@ export default function Dashboard() {
           </div>
         );
       })()}
+
+      {/* Best hour of day widget */}
+      {stats.bestHour && stats.hourData.length >= 3 && (
+        <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-primary" />Mejor horario de ventas
+            </h3>
+            <span className="text-[10px] text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
+              🕐 {stats.bestHour.label} · {stats.bestHour.count} ventas
+            </span>
+          </div>
+          <div className="flex items-end gap-0.5 h-12 overflow-x-auto">
+            {stats.hourData.map(h => {
+              const maxCount = Math.max(...stats.hourData.map(x => x.count));
+              const pct = maxCount > 0 ? (h.count / maxCount) * 100 : 0;
+              const isBest = h.hour === stats.bestHour!.hour;
+              return (
+                <div key={h.hour} className="flex flex-col items-center gap-0.5 flex-1 min-w-[16px]" title={`${h.label}: ${h.count} ventas`}>
+                  <div className={`w-full rounded-sm ${isBest ? 'bg-primary' : 'bg-muted-foreground/20'}`} style={{ height: `${Math.max(4, pct)}%` }} />
+                  {(h.hour % 4 === 0) && <span className="text-[8px] text-muted-foreground">{h.hour}</span>}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">Basado en hora de registro (created_at) de todas las ventas</p>
+        </div>
+      )}
 
       {/* 7-day forecast widget */}
       {stats.bestWeekdayData.some(d => d.count > 0) && (() => {
