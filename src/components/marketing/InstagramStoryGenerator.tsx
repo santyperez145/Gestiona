@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB } from "@/lib/supabaseStore";
+import { getProductsDB, getVariantsDB } from "@/lib/supabaseStore";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sparkles, Download, Image as ImageIcon, Loader2, Copy } from "lucide-react";
+import { Sparkles, Download, Image as ImageIcon, Loader2, Copy, Wind } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { listStoryTemplates } from "@/lib/marketingExtraDB";
@@ -72,8 +72,9 @@ async function renderStory(opts: {
   customText?: string;
   customPrice?: string;
   ctaText?: string;
+  flavors?: string[];
 }): Promise<HTMLCanvasElement> {
-  const { template, templateData, product, primaryColor, businessName, logoUrl, customText, customPrice, ctaText } = opts;
+  const { template, templateData, product, primaryColor, businessName, logoUrl, customText, customPrice, ctaText, flavors } = opts;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -213,6 +214,75 @@ async function renderStory(opts: {
     y += 130;
   }
 
+  // Flavor pills (only for vaper products)
+  if (flavors && flavors.length > 0) {
+    const pillPad = 28;
+    const pillH = 58;
+    const pillGap = 14;
+    const pillFont = "700 30px Inter, sans-serif";
+    ctx.font = pillFont;
+
+    // Section label
+    y += 30;
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.font = "600 28px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("SABORES DISPONIBLES", W / 2, y);
+    y += 20;
+
+    // Layout pills in rows of max 4
+    const maxPerRow = 4;
+    const pillWidths = flavors.map((f) => {
+      ctx.font = pillFont;
+      return ctx.measureText(f).width + pillPad * 2;
+    });
+
+    let row: { text: string; w: number }[] = [];
+    let rowW = 0;
+
+    const flushRow = (items: { text: string; w: number }[], startY: number) => {
+      const totalW = items.reduce((s, p) => s + p.w, 0) + (items.length - 1) * pillGap;
+      let px = (W - totalW) / 2;
+      ctx.font = pillFont;
+      items.forEach(({ text, w }, idx) => {
+        const isHighlighted = idx === 0 && items.length === 1 && flavors.length === 1;
+        // Pill background
+        ctx.fillStyle = isHighlighted ? primaryColor : "rgba(255,255,255,0.10)";
+        drawRoundRect(ctx, px, startY, w, pillH, pillH / 2);
+        ctx.fill();
+        // Pill border (gold accent)
+        ctx.strokeStyle = primaryColor + "55";
+        ctx.lineWidth = 2;
+        drawRoundRect(ctx, px, startY, w, pillH, pillH / 2);
+        ctx.stroke();
+        // Text
+        ctx.fillStyle = isHighlighted ? "#0a0a14" : "#fff";
+        ctx.textAlign = "center";
+        ctx.fillText(text, px + w / 2, startY + 38);
+        px += w + pillGap;
+      });
+    };
+
+    for (let i = 0; i < flavors.length; i++) {
+      const pill = { text: flavors[i], w: pillWidths[i] };
+      const testW = rowW + (row.length > 0 ? pillGap : 0) + pill.w;
+      if (row.length >= maxPerRow || testW > W - 80) {
+        y += pillH + 16;
+        flushRow(row, y);
+        row = [pill];
+        rowW = pill.w;
+      } else {
+        row.push(pill);
+        rowW = testW;
+      }
+    }
+    if (row.length > 0) {
+      y += pillH + 16;
+      flushRow(row, y);
+    }
+    y += 30;
+  }
+
   // CTA button
   const cta = ctaText || "ESCRIBINOS YA 📲";
   ctx.font = "800 44px Inter, sans-serif";
@@ -248,6 +318,9 @@ export function InstagramStoryGenerator() {
   const [rendering, setRendering] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  // Vaper flavors
+  const [variants, setVariants] = useState<any[]>([]);
+  const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user || !open) return;
@@ -270,8 +343,26 @@ export function InstagramStoryGenerator() {
     });
   }, [user, open]);
 
+  // Load variants when product changes
+  useEffect(() => {
+    if (!productId) { setVariants([]); setSelectedFlavors([]); return; }
+    const prod = products.find((p) => p.id === productId);
+    if (prod?.category === 'vaper') {
+      getVariantsDB(productId).then((v) => {
+        const active = v.filter((x: any) => x.active !== false);
+        setVariants(active);
+        // Pre-select all flavors
+        setSelectedFlavors(active.map((x: any) => x.variant_name));
+      });
+    } else {
+      setVariants([]);
+      setSelectedFlavors([]);
+    }
+  }, [productId, products]);
+
   const product = products.find((p) => p.id === productId);
   const tplData = templates.find((t) => t.id === template);
+  const isVaper = product?.category === 'vaper';
 
   const generatePreview = async () => {
     if (!product) return;
@@ -287,6 +378,7 @@ export function InstagramStoryGenerator() {
         customText: customText || undefined,
         customPrice: customPrice || undefined,
         ctaText: ctaText || defaultCta,
+        flavors: selectedFlavors.length > 0 ? selectedFlavors : undefined,
       });
       setPreviewUrl(canvas.toDataURL("image/png"));
     } catch (e: any) {
@@ -299,7 +391,7 @@ export function InstagramStoryGenerator() {
   useEffect(() => {
     if (product && open) generatePreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, template, customText, customPrice, ctaText, open]);
+  }, [productId, template, customText, customPrice, ctaText, open, selectedFlavors]);
 
   const downloadStory = async () => {
     if (!product) return;
@@ -313,6 +405,7 @@ export function InstagramStoryGenerator() {
       customText: customText || undefined,
       customPrice: customPrice || undefined,
       ctaText: ctaText || defaultCta,
+      flavors: selectedFlavors.length > 0 ? selectedFlavors : undefined,
     });
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -334,7 +427,7 @@ export function InstagramStoryGenerator() {
         body: {
           type: "marketing_copy",
           data: {
-            products: [{ name: product.name, brand: product.brand, category: product.category, price: product.sale_price_ars }],
+            products: [{ name: product.name, brand: product.brand, category: product.category, price: product.sale_price_ars, flavors: selectedFlavors.length > 0 ? selectedFlavors : undefined }],
             postType: "story",
             theme: tplData?.name || "promoción",
           },
@@ -383,6 +476,65 @@ export function InstagramStoryGenerator() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Vaper flavors selector */}
+            {isVaper && variants.length > 0 && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium flex items-center gap-1.5 text-primary">
+                    <Wind className="w-3.5 h-3.5" />
+                    Sabores a mostrar en la historia
+                  </label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFlavors(variants.map((v: any) => v.variant_name))}
+                      className="text-[10px] px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      Todos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFlavors([])}
+                      className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      Ninguno
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                  {variants.map((v: any) => {
+                    const active = selectedFlavors.includes(v.variant_name);
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedFlavors((prev) =>
+                            active ? prev.filter((f) => f !== v.variant_name) : [...prev, v.variant_name]
+                          )
+                        }
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                          active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted border-border text-muted-foreground hover:border-primary/40"
+                        }`}
+                      >
+                        {v.variant_name}
+                        {v.stock != null && (
+                          <span className={`ml-1 opacity-60 text-[10px]`}>({v.stock})</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedFlavors.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    {selectedFlavors.length} sabor{selectedFlavors.length !== 1 ? "es" : ""} seleccionado{selectedFlavors.length !== 1 ? "s" : ""} — aparecerán en la historia
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="text-sm text-muted-foreground mb-2 block">Plantilla</label>
