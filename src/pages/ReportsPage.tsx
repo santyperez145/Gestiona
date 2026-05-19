@@ -454,7 +454,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="inventory">
-          <InventoryTab products={products} settings={settings} />
+          <InventoryTab products={products} settings={settings} sales={data.sales} />
         </TabsContent>
 
         <TabsContent value="sellers">
@@ -508,12 +508,26 @@ export default function ReportsPage() {
 // ─────────────────────────────────────────────────────────────
 // Inventario Valorado Tab
 // ─────────────────────────────────────────────────────────────
-function InventoryTab({ products, settings }: { products: any[]; settings: any }) {
+function InventoryTab({ products, settings, sales }: { products: any[]; settings: any; sales: any[] }) {
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<"cost_value" | "retail_value" | "stock" | "margin">("cost_value");
+  const [sortKey, setSortKey] = useState<"cost_value" | "retail_value" | "stock" | "margin" | "days_remaining">("cost_value");
   const [sortAsc, setSortAsc] = useState(false);
   const [catFilter, setCatFilter] = useState("all");
   const rate = Number(settings?.exchange_rate) || 1695;
+
+  // Compute units sold per product in last 30 days
+  const velocityMap = useMemo(() => {
+    const cutoff = Date.now() - 30 * 86400000;
+    const map: Record<string, number> = {};
+    for (const s of sales) {
+      if (new Date(s.created_at).getTime() < cutoff) continue;
+      for (const it of s.items ?? []) {
+        const pid = it.product_id || it.id;
+        if (pid) map[pid] = (map[pid] || 0) + (Number(it.quantity) || 0);
+      }
+    }
+    return map;
+  }, [sales]);
 
   const rows = useMemo(() => {
     return products
@@ -527,19 +541,31 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
         const margin = retailARS > 0 ? ((retailARS - costARS) / retailARS) * 100 : 0;
         const costValue = costARS * p.stock;
         const retailValue = retailARS * p.stock;
-        return { ...p, costARS, margin, costValue, retailValue };
+        const unitsSold30 = velocityMap[p.id] || 0;
+        const velocity = unitsSold30 / 30; // units/day
+        const days_remaining = velocity > 0 && p.stock > 0 ? Math.round(p.stock / velocity) : null;
+        return { ...p, costARS, margin, costValue, retailValue, unitsSold30, velocity, days_remaining };
       })
       .sort((a, b) => {
         const dir = sortAsc ? 1 : -1;
+        if (sortKey === "days_remaining") {
+          // nulls (no recent sales) always go to end
+          if (a.days_remaining === null && b.days_remaining === null) return 0;
+          if (a.days_remaining === null) return 1;
+          if (b.days_remaining === null) return -1;
+          return (a.days_remaining - b.days_remaining) * dir;
+        }
         return (a[sortKey] - b[sortKey]) * dir;
       });
-  }, [products, search, catFilter, sortKey, sortAsc, rate]);
+  }, [products, search, catFilter, sortKey, sortAsc, rate, velocityMap]);
 
   const totalCostValue = rows.reduce((s, r) => s + r.costValue, 0);
   const totalRetailValue = rows.reduce((s, r) => s + r.retailValue, 0);
   const totalUnits = rows.reduce((s, r) => s + r.stock, 0);
   const totalCostUSD = rows.reduce((s, r) => s + (Number(r.total_cost_usd) || 0) * r.stock, 0);
   const unrealizedMargin = totalRetailValue > 0 ? ((totalRetailValue - totalCostValue) / totalRetailValue) * 100 : 0;
+  const criticalStock = rows.filter(r => r.days_remaining !== null && r.days_remaining < 7).length;
+  const lowStock = rows.filter(r => r.days_remaining !== null && r.days_remaining >= 7 && r.days_remaining < 30).length;
 
   // Top 10 by cost value for chart
   const top10 = [...rows].sort((a, b) => b.costValue - a.costValue).slice(0, 10);
@@ -553,12 +579,13 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
 
   const exportInventoryCSV = () => {
     exportCSV("inventario-valorado.csv",
-      ["Producto", "Marca", "Categoría", "Stock", "Costo USD", "Costo ARS", "Precio ARS", "Margen %", "Valor Costo (ARS)", "Valor Retail (ARS)"],
+      ["Producto", "Marca", "Categoría", "Stock", "Costo USD", "Costo ARS", "Precio ARS", "Margen %", "Valor Costo (ARS)", "Valor Retail (ARS)", "Uds vendidas 30d", "Días stock restante"],
       rows.map(r => [
         r.name, r.brand || "", getCategoryLabel(r.category),
         r.stock, (Number(r.total_cost_usd) || 0).toFixed(2),
         Math.round(r.costARS).toString(), r.sale_price_ars || "",
         r.margin.toFixed(1), Math.round(r.costValue).toString(), Math.round(r.retailValue).toString(),
+        r.unitsSold30.toString(), r.days_remaining !== null ? r.days_remaining.toString() : "—",
       ])
     );
   };
@@ -598,9 +625,21 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
             <span className="font-bold text-success">{formatARS(totalRetailValue - totalCostValue)}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Productos sin stock: </span>
+            <span className="text-muted-foreground">Sin stock: </span>
             <span className="font-bold text-destructive">{products.filter(p => p.stock <= 0).length}</span>
           </div>
+          {criticalStock > 0 && (
+            <div>
+              <span className="text-muted-foreground">Stock crítico (&lt;7d): </span>
+              <span className="font-bold text-red-400">{criticalStock}</span>
+            </div>
+          )}
+          {lowStock > 0 && (
+            <div>
+              <span className="text-muted-foreground">Stock bajo (7-30d): </span>
+              <span className="font-bold text-yellow-400">{lowStock}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -658,12 +697,13 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
                 <SortTh label="Margen %" sortKey="margin" current={sortKey} asc={sortAsc} onClick={handleSort} right />
                 <SortTh label="Val. Costo" sortKey="cost_value" current={sortKey} asc={sortAsc} onClick={handleSort} right />
                 <SortTh label="Val. Retail" sortKey="retail_value" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+                <SortTh label="Días stock" sortKey="days_remaining" current={sortKey} asc={sortAsc} onClick={handleSort} right />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-muted-foreground text-sm">Sin productos</td>
+                  <td colSpan={9} className="text-center py-10 text-muted-foreground text-sm">Sin productos</td>
                 </tr>
               ) : rows.map(r => {
                 const pct = totalCostValue > 0 ? (r.costValue / totalCostValue) * 100 : 0;
@@ -699,6 +739,19 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
                     </td>
                     <td className="px-3 py-2.5 text-right text-xs font-mono text-warning">{formatARS(r.costValue)}</td>
                     <td className="px-3 py-2.5 text-right text-xs font-mono text-success">{formatARS(r.retailValue)}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      {r.days_remaining !== null ? (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          r.days_remaining < 7 ? "bg-red-500/15 text-red-400" :
+                          r.days_remaining < 30 ? "bg-yellow-500/15 text-yellow-400" :
+                          "bg-green-500/15 text-green-400"
+                        }`}>
+                          {r.days_remaining}d
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -714,6 +767,7 @@ function InventoryTab({ products, settings }: { products: any[]; settings: any }
                   <td className="px-3 py-2.5 text-right">{unrealizedMargin.toFixed(1)}%</td>
                   <td className="px-3 py-2.5 text-right text-warning font-mono">{formatARS(totalCostValue)}</td>
                   <td className="px-3 py-2.5 text-right text-success font-mono">{formatARS(totalRetailValue)}</td>
+                  <td />
                 </tr>
               </tfoot>
             )}
