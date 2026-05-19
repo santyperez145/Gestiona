@@ -335,35 +335,40 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         };
 
         // ── SOLD OUT diagonal stamp ───────────────────────────────────────────
-        // Draws a diagonal red band from bottom-left → top-right with white text
+        // Draws a solid red diagonal band (2 triangles) from bottom-left → top-right
         const drawSoldOut = (x: number, y: number, cw: number, ch: number) => {
-          const x1 = x + 3,  y1 = y + ch - 3;   // bottom-left
-          const x2 = x + cw - 3, y2 = y + 3;    // top-right
+          const x1 = x + 3,  y1 = y + ch - 3;   // bottom-left anchor
+          const x2 = x + cw - 3, y2 = y + 3;    // top-right anchor
           const dx = x2 - x1, dy = y2 - y1;
           const len = Math.sqrt(dx * dx + dy * dy);
-          // Perpendicular unit vector (rotated 90° CCW: (-dy, dx) normalised)
-          const nx = -dy / len, ny = dx / len;
-          const half = 6.5; // half-band thickness in mm
+          // Perpendicular unit vector
+          const px = -dy / len, py = dx / len;
+          const bh = 7; // half-band thickness in mm
 
-          // Red filled band as two overlapping thick strokes
-          doc.setDrawColor(205, 18, 18);
-          doc.setLineWidth(half * 2);
-          doc.line(x1, y1, x2, y2);
+          // Four corners of the rotated rectangle
+          const ax = x1 + px * bh, ay = y1 + py * bh; // top-left of band
+          const bx = x1 - px * bh, by = y1 - py * bh; // bottom-left of band
+          const cx2 = x2 - px * bh, cy2 = y2 - py * bh; // bottom-right of band
+          const dx2 = x2 + px * bh, dy2 = y2 + py * bh; // top-right of band
 
-          // White border lines
+          // Fill as two triangles → solid rectangle
+          doc.setFillColor(205, 18, 18);
+          doc.triangle(ax, ay, bx, by, cx2, cy2, 'F');
+          doc.triangle(ax, ay, cx2, cy2, dx2, dy2, 'F');
+
+          // White border lines along the long edges
           doc.setDrawColor(255, 255, 255);
-          doc.setLineWidth(0.55);
-          doc.line(x1 + nx * half, y1 + ny * half, x2 + nx * half, y2 + ny * half);
-          doc.line(x1 - nx * half, y1 - ny * half, x2 - nx * half, y2 - ny * half);
+          doc.setLineWidth(0.65);
+          doc.line(ax, ay, dx2, dy2);
+          doc.line(bx, by, cx2, cy2);
 
-          // Text at band angle — jsPDF angle = CCW degrees from horizontal
-          const angleDeg = Math.atan2(ch - 6, cw - 6) * 180 / Math.PI;
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(10.5);
-          doc.setFont('helvetica', 'bold');
-          // Mid-point of the band
+          // Rotated "SOLD OUT" text centred in the band
+          const angleDeg = Math.atan2(-(y2 - y1), x2 - x1) * 180 / Math.PI;
           const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-          doc.text('SOLD OUT', mx, my + 2, { align: 'center', angle: angleDeg });
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text('SOLD OUT', mx, my + 1, { align: 'center', angle: angleDeg });
         };
 
         // ── drawGridRows ──────────────────────────────────────────────────────

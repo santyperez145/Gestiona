@@ -139,7 +139,7 @@ export default function PublicCatalogPage() {
     const [pRes, sRes, fsRes] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, brand, category, gender, sale_price_ars, discount_price_ars, stock, description, image_url, content_ml, total_sold, featured, offer_expires_at, total_cost_usd, user_id, created_at")
+        .select("id, name, brand, category, gender, sale_price_ars, discount_price_ars, price_2x_ars, stock, description, image_url, content_ml, total_sold, featured, offer_expires_at, total_cost_usd, user_id, created_at")
         .eq("user_id", userId)
         .gt("stock", 0)
         .order("category")
@@ -1063,6 +1063,16 @@ function ProductCard({
           )}
         </div>
 
+        {/* Vaper: ver sabores hint */}
+        {p.category === "vaper" && !compact && (
+          <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+            <Zap className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+            <span className="text-[10px] font-semibold" style={{ color: primaryColor }}>
+              Ver sabores disponibles
+            </span>
+          </div>
+        )}
+
         {/* Scarcity + Social proof + Volume badge */}
         {!compact && (
           <div className="mt-2 space-y-1">
@@ -1127,6 +1137,27 @@ function ProductDetailModal({
   onAddToCart?: (product: any, size?: string) => void;
 }) {
   const [selectedSize, setSelectedSize] = useState<string>("full");
+  const isVaper = p.category === "vaper";
+
+  // Vaper flavor variants
+  const [variants, setVariants] = useState<{ id: string; variant_name: string; stock: number }[]>([]);
+  const [variantsLoading, setVariantsLoading] = useState(false);
+  const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isVaper) return;
+    setVariantsLoading(true);
+    supabase
+      .from("product_variants")
+      .select("id, variant_name, stock")
+      .eq("product_id", p.id)
+      .order("variant_name")
+      .then(({ data }) => {
+        setVariants(data || []);
+        setVariantsLoading(false);
+      });
+  }, [p.id, isVaper]);
+
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;
   const discountPct = hasDiscount ? Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100) : 0;
   const savings = hasDiscount ? Number(p.sale_price_ars) - Number(p.discount_price_ars) : 0;
@@ -1237,6 +1268,64 @@ function ProductDetailModal({
 
         {p.description && <p className="text-sm text-white/50 leading-relaxed">{p.description}</p>}
 
+        {/* Vaper flavor grid */}
+        {isVaper && (
+          <div>
+            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <Zap className="w-3 h-3" style={{ color: primaryColor }} />
+              Sabores disponibles
+              {variants.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-white/[0.06]">
+                  {variants.filter(v => (v.stock ?? 0) > 0).length}/{variants.length}
+                </span>
+              )}
+            </p>
+            {variantsLoading ? (
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Skeleton key={i} className="h-8 w-20 rounded-xl bg-white/[0.04]" />
+                ))}
+              </div>
+            ) : variants.length === 0 ? (
+              <p className="text-xs text-white/30 italic">Consultá sabores disponibles por WhatsApp</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                {variants.map(v => {
+                  const inStock = (v.stock ?? 0) > 0;
+                  const scarce = inStock && v.stock <= 3;
+                  const isSelected = selectedFlavor === v.variant_name;
+                  return (
+                    <button
+                      key={v.id}
+                      disabled={!inStock}
+                      onClick={() => setSelectedFlavor(isSelected ? null : v.variant_name)}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
+                        !inStock
+                          ? "opacity-35 cursor-not-allowed bg-white/[0.02] border-white/[0.05] text-white/30 line-through"
+                          : isSelected
+                            ? "text-black border-transparent scale-105 shadow-lg"
+                            : "bg-white/[0.06] border-white/[0.09] text-white/70 hover:bg-white/[0.11] hover:text-white hover:border-white/[0.15]"
+                      }`}
+                      style={isSelected ? { background: primaryColor, boxShadow: `0 4px 14px ${primaryColor}55` } : {}}
+                    >
+                      {v.variant_name}
+                      {scarce && !isSelected && (
+                        <span className="ml-1 text-[9px] text-amber-400 font-bold">·{v.stock}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {selectedFlavor && (
+              <p className="mt-2 text-[10px] font-semibold flex items-center gap-1" style={{ color: primaryColor }}>
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style={{ background: primaryColor }} />
+                Sabor seleccionado: {selectedFlavor}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Decant size selector for perfumes */}
         {isPerfume && decantSizes.length > 0 && (
           <div>
@@ -1340,6 +1429,27 @@ function ProductDetailModal({
           )}
         </div>
 
+        {/* Vaper 2X pack price */}
+        {isVaper && p.price_2x_ars && (
+          <div
+            className="rounded-xl p-3 flex items-center justify-between gap-3"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            <div>
+              <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">Pack 2 unidades</p>
+              <p className="text-xl font-black mt-0.5" style={{ color: primaryColor }}>
+                2X {fmtARS(Number(p.price_2x_ars))}
+              </p>
+              <p className="text-[9px] text-white/30 mt-0.5">
+                {fmtARS(Math.round(Number(p.price_2x_ars) / 2))} c/u · ahorrás {fmtARS(Number(p.sale_price_ars) * 2 - Number(p.price_2x_ars))}
+              </p>
+            </div>
+            <span className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-green-500/15 text-green-400 border border-green-500/20">
+              PROMO
+            </span>
+          </div>
+        )}
+
         {/* Social proof */}
         <div className="space-y-1.5">
           {p.stock <= 5 && (
@@ -1369,7 +1479,15 @@ function ProductDetailModal({
           )}
           {whatsappNumber && (
             <a
-              href={buildWhatsAppUrl(p, selectedSize)}
+              href={(() => {
+                if (!whatsappNumber) return "";
+                const num = whatsappNumber.replace(/[^0-9]/g, "");
+                let msg = `Hola! Me interesa: *${p.name}*`;
+                if (isVaper && selectedFlavor) msg += ` — sabor *${selectedFlavor}*`;
+                if (!isVaper && selectedSize !== "full") msg += ` (${selectedSize}ml)`;
+                msg += ` — ${fmtARS(currentPrice)} 🛍️`;
+                return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+              })()}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
@@ -1379,7 +1497,13 @@ function ProductDetailModal({
               }}
             >
               <MessageCircle className="w-5 h-5" fill="white" />
-              {selectedSize !== "full" ? `Consultar decant ${selectedSize}ml` : "Consultar por WhatsApp"}
+              {isVaper
+                ? selectedFlavor
+                  ? `Pedir sabor ${selectedFlavor}`
+                  : "Consultar por WhatsApp"
+                : selectedSize !== "full"
+                  ? `Consultar decant ${selectedSize}ml`
+                  : "Consultar por WhatsApp"}
             </a>
           )}
           <button
