@@ -697,6 +697,13 @@ export default function Dashboard() {
     }));
     const bestWeekday = bestWeekdayData.reduce((best, cur) => cur.avg > best.avg ? cur : best, bestWeekdayData[0]);
 
+    // Weekly cash flow (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+    const weekIncome = sales.filter((s: any) => new Date(s.date) >= sevenDaysAgo).reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+    const weekExpensesAmt = expenses.filter((e: any) => new Date(e.date) >= sevenDaysAgo).reduce((a: number, e: any) => a + Number(e.amount_ars), 0);
+    const weekPurchasesAmt = allPurchases.filter((p: any) => new Date(p.date) >= sevenDaysAgo).reduce((a: number, p: any) => a + Number(p.total_ars || 0), 0);
+    const weekNetCashFlow = weekIncome - weekExpensesAmt - weekPurchasesAmt;
+
     return {
       totalProducts: products.length, totalStock, totalSalesARS, totalSalesCount: sales.length,
       totalPurchasesUSD, totalPurchasesARS,
@@ -730,6 +737,7 @@ export default function Dashboard() {
       bestWeekdayData, bestWeekday,
       avgDailySalesARS,
       agingCount30,
+      weekIncome, weekExpensesAmt, weekPurchasesAmt, weekNetCashFlow,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
@@ -1233,6 +1241,41 @@ export default function Dashboard() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Weekly cash flow widget */}
+      {(stats.weekIncome > 0 || stats.weekExpensesAmt > 0 || stats.weekPurchasesAmt > 0) && (
+        <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-primary" />Flujo de caja (últimos 7 días)
+            </h3>
+            <span className={`text-xs font-bold ${stats.weekNetCashFlow >= 0 ? "text-success" : "text-destructive"}`}>
+              {stats.weekNetCashFlow >= 0 ? "+" : ""}{formatARS(stats.weekNetCashFlow)}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {[
+              { label: "Ingresos (ventas)", value: stats.weekIncome, color: "bg-success/60" },
+              { label: "Gastos operativos", value: -stats.weekExpensesAmt, color: "bg-destructive/60" },
+              { label: "Compras / proveedores", value: -stats.weekPurchasesAmt, color: "bg-warning/60" },
+            ].map(row => {
+              const max = Math.max(stats.weekIncome, stats.weekExpensesAmt + stats.weekPurchasesAmt, 1);
+              const pct = (Math.abs(row.value) / max) * 100;
+              return (
+                <div key={row.label} className="flex items-center gap-2 text-xs">
+                  <span className="w-36 shrink-0 text-muted-foreground">{row.label}</span>
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${row.color}`} style={{ width: `${Math.max(2, pct)}%` }} />
+                  </div>
+                  <span className={`w-28 text-right font-mono font-medium shrink-0 ${row.value >= 0 ? "text-success" : "text-destructive"}`}>
+                    {row.value >= 0 ? "+" : ""}{formatARS(Math.abs(row.value))}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
