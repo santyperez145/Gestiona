@@ -475,17 +475,28 @@ export default function PresupuestosPage() {
   };
 
   const filtered = quotes.filter(q => {
-    const matchStatus = filterStatus === "all" || q.status === filterStatus;
+    let matchStatus: boolean;
+    if (filterStatus === "all") matchStatus = true;
+    else if (filterStatus === "expired_pending") matchStatus = expiredQuotes.some(e => e.id === q.id);
+    else matchStatus = q.status === filterStatus;
     const matchSearch = q.customer_name.toLowerCase().includes(search.toLowerCase()) ||
       q.quote_number.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
+
+  const now30 = new Date(); now30.setDate(now30.getDate() - 30);
+  // Quotes that are draft/sent and were created >30d ago without conversion are considered "expired"
+  const expiredQuotes = quotes.filter(q =>
+    (q.status === "draft" || q.status === "sent") &&
+    new Date(q.created_at) < now30
+  );
 
   const stats = {
     total: quotes.length,
     accepted: quotes.filter(q => q.status === "accepted").length,
     totalValue: quotes.filter(q => q.status === "accepted").reduce((s, q) => s + q.total, 0),
     pending: quotes.filter(q => q.status === "sent").length,
+    expired: expiredQuotes.length,
   };
 
   return (
@@ -518,6 +529,22 @@ export default function PresupuestosPage() {
         <KPICard label="Valor ganado" value={formatARS(stats.totalValue)} icon={DollarSign} color="success" sub="de presupuestos aceptados" />
       </div>
 
+      {/* Expired quotes banner */}
+      {stats.expired > 0 && (
+        <div className="bg-orange-500/5 border border-orange-500/30 rounded-xl p-3 flex items-center gap-3">
+          <Clock className="w-4 h-4 text-orange-400 shrink-0" />
+          <p className="text-sm text-orange-400 flex-1">
+            <span className="font-semibold">{stats.expired} presupuesto{stats.expired !== 1 ? "s" : ""}</span> sin respuesta hace más de 30 días — considerá hacer seguimiento o marcarlos como expirados.
+          </p>
+          <button
+            className="text-xs px-3 py-1.5 rounded-lg border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 transition-colors shrink-0"
+            onClick={() => setFilterStatus("expired_pending")}
+          >
+            Ver ({stats.expired})
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -533,6 +560,7 @@ export default function PresupuestosPage() {
             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v.label}</SelectItem>
             ))}
+            <SelectItem value="expired_pending">⚠ Sin respuesta +30d</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" className="h-9" onClick={() => {
