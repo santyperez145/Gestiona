@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, ImagePlus } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -958,6 +958,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [bulkVariants, setBulkVariants] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
+  const [activeVariantImgIdx, setActiveVariantImgIdx] = useState<number | null>(null);
+  const variantImgInputRef = useRef<HTMLInputElement>(null);
 
   const isVaper = category === 'vaper';
   const VARIANT_TYPE_LABELS: Record<string, string> = {
@@ -1073,6 +1075,16 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     }
   };
 
+  const handleVariantImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (activeVariantImgIdx === null) return;
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const previewUrl = URL.createObjectURL(file);
+    setVariants(prev => prev.map((v, i) => i === activeVariantImgIdx ? { ...v, image_url: previewUrl, _imgFile: file } : v));
+    if (variantImgInputRef.current) variantImgInputRef.current.value = '';
+    setActiveVariantImgIdx(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
@@ -1113,10 +1125,25 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
         }
         for (const v of variants) {
+          // Upload pending variant image file
+          let variantImgUrl: string | null = v.image_url && !v._imgFile ? v.image_url : null;
+          if (v._imgFile) {
+            try {
+              const ext = (v._imgFile.name.split('.').pop() || 'jpg').toLowerCase();
+              const path = `${userId}/variant-${crypto.randomUUID()}.${ext}`;
+              const { error: upErr } = await supabase.storage.from('product-images').upload(path, v._imgFile, {
+                cacheControl: '31536000', contentType: v._imgFile.type || `image/${ext}`, upsert: false,
+              });
+              if (!upErr) {
+                const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+                variantImgUrl = urlData.publicUrl;
+              }
+            } catch { /* keep old url */ }
+          }
           if (v.id && existingIds.has(v.id)) {
-            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
+            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false, image_url: variantImgUrl });
           } else if (v._new || !v.id) {
-            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
+            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType, image_url: variantImgUrl });
           }
         }
       }
@@ -1370,10 +1397,30 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               setNewVariantName(''); setNewVariantStock('0');
             }}><Plus className="w-3 h-3" /></Button>
           </div>
+          <input
+            ref={variantImgInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleVariantImageChange}
+          />
           {variants.length > 0 && (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            <div className="space-y-1.5 max-h-52 overflow-y-auto">
               {variants.map((v, i) => (
                 <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border">
+                  {/* Per-variant image thumbnail / upload button */}
+                  <button
+                    type="button"
+                    title="Cargar foto de este sabor"
+                    onClick={() => { setActiveVariantImgIdx(i); variantImgInputRef.current?.click(); }}
+                    className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border border-border flex items-center justify-center bg-muted hover:border-primary/50 transition-colors"
+                  >
+                    {v.image_url ? (
+                      <img src={v.image_url} alt={v.variant_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImagePlus className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </button>
                   <span className="text-xs font-medium flex-1 truncate">{v.variant_name}</span>
                   <Input type="number" min="0" value={String(v.stock)} onChange={e => {
                     const updated = [...variants];

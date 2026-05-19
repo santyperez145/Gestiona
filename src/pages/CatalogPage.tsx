@@ -225,6 +225,13 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           variantsByProduct[v.product_id].push(v);
         }
 
+        // ── Preload variant-level images ──────────────────────────────────────
+        const variantImgCache: Record<string, string | null> = {};
+        const variantImgUrls = [...new Set(variantRows.map(v => v.image_url).filter(Boolean) as string[])];
+        await Promise.all(variantImgUrls.map(async (url) => {
+          variantImgCache[url] = await loadImageAsBase64(url);
+        }));
+
         // ── Constants ─────────────────────────────────────────────────────────
         // Background: very dark navy, matching reference
         const bgR = 7, bgG = 9, bgB = 33;
@@ -398,9 +405,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
               doc.setFillColor(18, 20, 52);
               doc.roundedRect(cx, cy, cellW, cellImgH, 2, 2, 'F');
 
-              // Product image (same for all flavors)
-              if (imgData) {
-                try { doc.addImage(imgData, 'JPEG', cx, cy, cellW, cellImgH); } catch { /* */ }
+              // Per-variant image if available, else fall back to product image
+              const varImgData = v.image_url ? (variantImgCache[v.image_url] ?? null) : null;
+              const cellImgData = varImgData || imgData;
+              if (cellImgData) {
+                try { doc.addImage(cellImgData, 'JPEG', cx, cy, cellW, cellImgH); } catch { /* */ }
               }
 
               // SOLD OUT stamp
