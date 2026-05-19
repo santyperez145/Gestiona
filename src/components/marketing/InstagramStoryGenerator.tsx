@@ -36,6 +36,43 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * Removes white / near-white background from a logo image.
+ * Works pixel-by-pixel: pixels with high brightness and low saturation
+ * become transparent, with a smooth edge transition.
+ */
+async function removeWhiteBackground(src: string, tolerance = 30): Promise<string> {
+  const img = await loadImage(src);
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  const ctx2 = c.getContext("2d")!;
+  ctx2.drawImage(img, 0, 0);
+  const imageData = ctx2.getImageData(0, 0, c.width, c.height);
+  const d = imageData.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    // "Whiteness": average channel value — 255=pure white, 0=black
+    const brightness = (r + g + b) / 3;
+    // Saturation: spread between max and min channels (0=grey/white, high=coloured)
+    const maxC = Math.max(r, g, b);
+    const minC = Math.min(r, g, b);
+    const saturation = maxC > 0 ? (maxC - minC) / maxC : 0;
+
+    // Threshold: high brightness + low saturation → background
+    const threshold = 255 - tolerance;
+    if (brightness >= threshold && saturation < 0.15) {
+      // Smooth falloff: pixel closer to white → more transparent
+      const alpha = Math.max(0, (threshold - brightness + tolerance) / tolerance);
+      d[i + 3] = Math.round(alpha * (d[i + 3] ?? 255));
+    }
+  }
+
+  ctx2.putImageData(imageData, 0, 0);
+  return c.toDataURL("image/png");
+}
+
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
@@ -409,6 +446,9 @@ export function InstagramStoryGenerator() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   // Top text override
   const [topText, setTopText] = useState("");
+  // Processed logo (white background removed)
+  const [processedLogoUrl, setProcessedLogoUrl] = useState<string | null>(null);
+  const [processingLogo, setProcessingLogo] = useState(false);
   // Vaper flavors
   const [variants, setVariants] = useState<any[]>([]);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
@@ -416,6 +456,16 @@ export function InstagramStoryGenerator() {
   const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(new Set());
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [bulkDone, setBulkDone] = useState(0);
+
+  // Process logo once when dialog opens (or logo URL changes)
+  useEffect(() => {
+    if (!open || !config.logoUrl) { setProcessedLogoUrl(null); return; }
+    setProcessingLogo(true);
+    removeWhiteBackground(config.logoUrl)
+      .then((url) => setProcessedLogoUrl(url))
+      .catch(() => setProcessedLogoUrl(config.logoUrl)) // fallback to original
+      .finally(() => setProcessingLogo(false));
+  }, [open, config.logoUrl]);
 
   useEffect(() => {
     if (!user || !open) return;
@@ -469,7 +519,7 @@ export function InstagramStoryGenerator() {
         product,
         primaryColor: config.primaryColor,
         businessName: config.businessName,
-        logoUrl: config.logoUrl,
+        logoUrl: processedLogoUrl ?? config.logoUrl,
         customText: customText || undefined,
         customPrice: customPrice || undefined,
         ctaText: ctaText || defaultCta,
@@ -497,7 +547,7 @@ export function InstagramStoryGenerator() {
       product,
       primaryColor: config.primaryColor,
       businessName: config.businessName,
-      logoUrl: config.logoUrl,
+      logoUrl: processedLogoUrl ?? config.logoUrl,
       customText: customText || undefined,
       customPrice: customPrice || undefined,
       ctaText: ctaText || defaultCta,
@@ -565,7 +615,7 @@ export function InstagramStoryGenerator() {
           product: p,
           primaryColor: config.primaryColor,
           businessName: config.businessName,
-          logoUrl: config.logoUrl,
+          logoUrl: processedLogoUrl ?? config.logoUrl,
           ctaText: ctaText || defaultCta,
           flavors: flavs,
           topText: topText || undefined,
