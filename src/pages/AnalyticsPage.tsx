@@ -683,6 +683,65 @@ export default function AnalyticsPage() {
               <div className="text-xs text-muted-foreground mt-1">Nuevos últimos 30d</div>
             </div>
           </div>
+          {/* Nuevos vs Recurrentes por mes */}
+          {(() => {
+            const allSales: any[] = rawData?.sales || [];
+            const today = new Date();
+            const months: { key: string; label: string; newC: Set<string>; returnC: Set<string> }[] = [];
+            for (let m = 5; m >= 0; m--) {
+              const d = new Date(today.getFullYear(), today.getMonth() - m, 1);
+              months.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }), newC: new Set(), returnC: new Set() });
+            }
+            // First purchase date per customer (across all sales)
+            const firstPurchase: Record<string, string> = {};
+            const allSortedSales = [...allSales].sort((a: any, b: any) => a.date.localeCompare(b.date));
+            allSortedSales.forEach((s: any) => {
+              const name = s.customer_name || '';
+              if (name && !firstPurchase[name]) firstPurchase[name] = s.date.slice(0, 7);
+            });
+            // Classify each month's buyers
+            allSortedSales.forEach((s: any) => {
+              const name = s.customer_name || '';
+              if (!name) return;
+              const sMonth = s.date.slice(0, 7);
+              const mb = months.find(m => m.key === sMonth);
+              if (!mb) return;
+              if (firstPurchase[name] === sMonth) mb.newC.add(name);
+              else mb.returnC.add(name);
+            });
+            const chartData = months.map(m => ({
+              month: m.label,
+              nuevos: m.newC.size,
+              recurrentes: m.returnC.size,
+            }));
+            const totalNew = months.reduce((s, m) => s + m.newC.size, 0);
+            const totalRet = months.reduce((s, m) => s + m.returnC.size, 0);
+            if (totalNew + totalRet === 0) return null;
+            const newPct = totalNew + totalRet > 0 ? Math.round((totalNew / (totalNew + totalRet)) * 100) : 0;
+            return (
+              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Users className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold flex-1">Nuevos vs Recurrentes</h3>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" />Nuevos {newPct}%</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />Recurrentes {100 - newPct}%</span>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <Tooltip formatter={(v: number, name: string) => [v, name === 'nuevos' ? 'Nuevos' : 'Recurrentes']} />
+                    <Bar dataKey="nuevos" name="nuevos" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="recurrentes" name="recurrentes" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-[10px] text-muted-foreground">Un "nuevo" cliente es quien compra por primera vez en ese mes. Un "recurrente" ya había comprado antes.</p>
+              </div>
+            );
+          })()}
+
           {/* Pareto / concentration widget */}
           {derived.customerData.length >= 3 && (() => {
             const sorted = [...derived.customerData].sort((a: any, b: any) => b.total - a.total);

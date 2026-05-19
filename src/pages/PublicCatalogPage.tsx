@@ -1140,7 +1140,7 @@ function ProductDetailModal({
   const isVaper = p.category === "vaper";
 
   // Vaper flavor variants
-  const [variants, setVariants] = useState<{ id: string; variant_name: string; stock: number }[]>([]);
+  const [variants, setVariants] = useState<{ id: string; variant_name: string; stock: number; image_url?: string | null }[]>([]);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
 
@@ -1149,7 +1149,7 @@ function ProductDetailModal({
     setVariantsLoading(true);
     supabase
       .from("product_variants")
-      .select("id, variant_name, stock")
+      .select("id, variant_name, stock, image_url")
       .eq("product_id", p.id)
       .order("variant_name")
       .then(({ data }) => {
@@ -1289,17 +1289,20 @@ function ProductDetailModal({
             ) : variants.length === 0 ? (
               <p className="text-xs text-white/30 italic">Consultá sabores disponibles por WhatsApp</p>
             ) : (
-              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+              <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1">
                 {variants.map(v => {
                   const inStock = (v.stock ?? 0) > 0;
                   const scarce = inStock && v.stock <= 3;
                   const isSelected = selectedFlavor === v.variant_name;
+                  const hasImg = !!v.image_url;
                   return (
                     <button
                       key={v.id}
                       disabled={!inStock}
                       onClick={() => setSelectedFlavor(isSelected ? null : v.variant_name)}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
+                      className={`flex items-center gap-1.5 transition-all border rounded-xl font-semibold ${
+                        hasImg ? "flex-col p-1.5 text-[10px] w-[72px]" : "px-3 py-1.5 text-[11px]"
+                      } ${
                         !inStock
                           ? "opacity-35 cursor-not-allowed bg-white/[0.02] border-white/[0.05] text-white/30 line-through"
                           : isSelected
@@ -1308,9 +1311,19 @@ function ProductDetailModal({
                       }`}
                       style={isSelected ? { background: primaryColor, boxShadow: `0 4px 14px ${primaryColor}55` } : {}}
                     >
-                      {v.variant_name}
+                      {hasImg && (
+                        <img
+                          src={v.image_url!}
+                          alt={v.variant_name}
+                          className="w-full h-14 object-cover rounded-lg shrink-0"
+                          loading="lazy"
+                        />
+                      )}
+                      <span className={hasImg ? "text-center leading-tight px-0.5 truncate w-full" : ""}>
+                        {v.variant_name}
+                      </span>
                       {scarce && !isSelected && (
-                        <span className="ml-1 text-[9px] text-amber-400 font-bold">·{v.stock}</span>
+                        <span className={`text-[9px] text-amber-400 font-bold ${hasImg ? "" : "ml-1"}`}>·{v.stock}</span>
                       )}
                     </button>
                   );
