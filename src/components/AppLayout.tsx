@@ -12,47 +12,42 @@ import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 
 const allNavItems = [
+  // ── Principal ───────────────────────────────────────────────────────────────
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'], section: 'principal' },
   { to: "/caja", label: "Caja / POS", icon: ScanLine, roles: ['admin', 'vendedor'], section: 'principal' },
-  { to: "/caja/turno", label: "Turno de Caja", icon: Banknote, roles: ['admin'], section: 'principal' },
+  { to: "/tareas", label: "Tareas", icon: CheckSquare, roles: ['admin', 'vendedor'], section: 'principal' },
+  // ── Inventario ──────────────────────────────────────────────────────────────
   { to: "/productos", label: "Productos", icon: Package, roles: ['admin'], section: 'inventario' },
   { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
-  { to: "/restock", label: "Auto-Restock", icon: PackageOpen, roles: ['admin'], section: 'inventario' },
-  { to: "/toma-fisica", label: "Toma Física", icon: ListChecks, roles: ['admin'], section: 'inventario' },
-  { to: "/kardex", label: "Kardex", icon: History, roles: ['admin'], section: 'inventario' },
+  // ── Ventas & CRM ────────────────────────────────────────────────────────────
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
-  { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
-  { to: "/clientes", label: "Clientes", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/clientes", label: "Clientes / CRM", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/pipeline", label: "Pipeline", icon: Kanban, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
+  { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
+  { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
   { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
-  { to: "/referidos", label: "Referidos", icon: Users, roles: ['admin'], section: 'ventas' },
+  // ── Finanzas ────────────────────────────────────────────────────────────────
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
-  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
-  { to: "/cheques", label: "Cheques", icon: FileText, roles: ['admin'], section: 'finanzas' },
-  { to: "/comisiones", label: "Comisiones", icon: Users, roles: ['admin'], section: 'finanzas' },
-  { to: "/tareas", label: "Tareas", icon: CheckSquare, roles: ['admin', 'vendedor'], section: 'principal' },
   { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
   { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
-  { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
-  { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
+  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
+  { to: "/cheques", label: "Cheques", icon: FileText, roles: ['admin'], section: 'finanzas' },
+  { to: "/comisiones", label: "Comisiones", icon: Receipt, roles: ['admin'], section: 'finanzas' },
+  { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'finanzas' },
+  // ── Analytics ───────────────────────────────────────────────────────────────
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
-  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'analytics' },
-  { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'analytics' },
   { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'analytics' },
-  { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'analytics' },
-  { to: "/templates", label: "Templates", icon: Sparkles, roles: ['admin'], section: 'analytics' },
-  { to: "/influencers", label: "Influencers", icon: Gift, roles: ['admin'], section: 'analytics' },
-  { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'analytics' },
-  { to: "/liquidaciones", label: "Liquidaciones", icon: Receipt, roles: ['admin'], section: 'analytics' },
-  { to: "/canjes", label: "Canjes", icon: Gift, roles: ['admin'], section: 'analytics' },
-  { to: "/combos-banners", label: "Combos & Banners", icon: Sparkles, roles: ['admin'], section: 'analytics' },
-  { to: "/catalogo", label: "Catálogo", icon: BookOpen, roles: ['admin'], section: 'analytics' },
-  { to: "/tiendanube", label: "Tiendanube", icon: ShoppingBag, roles: ['admin'], section: 'analytics' },
-  { to: "/ia", label: "IA Insights", icon: Brain, roles: ['admin'], section: 'analytics' },
-  { to: "/chat-ia", label: "Chat IA", icon: Sparkles, roles: ['admin'], section: 'analytics' },
-  { to: "/marca-ia", label: "Marcas IA", icon: Brain, roles: ['admin'], section: 'analytics' },
-  { to: "/sucursales", label: "Sucursales", icon: MapPin, roles: ['admin'], section: 'config' },
+  // ── Marketing ───────────────────────────────────────────────────────────────
+  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
+  { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
+  { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
+  { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
+  // ── IA ──────────────────────────────────────────────────────────────────────
+  { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'ia' },
+  { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'ia' },
+  // ── Sistema ─────────────────────────────────────────────────────────────────
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
@@ -63,9 +58,11 @@ const allNavItems = [
 const SECTION_LABELS: Record<string, string> = {
   principal: '',
   inventario: 'Inventario',
-  ventas: 'Ventas',
+  ventas: 'Ventas & CRM',
   finanzas: 'Finanzas',
   analytics: 'Analytics',
+  marketing: 'Marketing',
+  ia: 'Inteligencia Artificial',
   config: 'Sistema',
 };
 

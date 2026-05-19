@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, formatARS } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, Eye, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -53,11 +54,16 @@ export default function InfluencerExchangesPage() {
     return true;
   });
 
-  const totalValue = exchanges.reduce((s, e) => s + Number(e.product_value_ars) * e.quantity, 0);
+  // product_value_ars now stores COST (investment), not sale price
+  const totalInversion = exchanges.reduce((s, e) => s + Number(e.product_value_ars) * e.quantity, 0);
+  const totalSalesGenerated = exchanges.reduce((s, e) => s + Number(e.sales_generated_ars || 0), 0);
+  const totalReach = exchanges.reduce((s, e) => s + (e.influencer_followers || 0) * (e.actual_posts || e.expected_posts || 1), 0);
   const totalExpected = exchanges.reduce((s, e) => s + (e.expected_posts || 0), 0);
   const totalActual = exchanges.reduce((s, e) => s + (e.actual_posts || 0), 0);
   const fulfillmentRate = totalExpected > 0 ? (totalActual / totalExpected * 100) : 0;
   const uniqueInfluencers = new Set(exchanges.map(e => e.influencer_instagram || e.influencer_name)).size;
+  const roiPct = totalInversion > 0 && totalSalesGenerated > 0 ? ((totalSalesGenerated - totalInversion) / totalInversion * 100) : null;
+  const cpm = totalReach > 0 && totalInversion > 0 ? (totalInversion / totalReach * 1000) : null;
 
   const handleDelete = async (ex: any) => {
     await deleteExchangeDB(ex.id);
@@ -102,10 +108,10 @@ export default function InfluencerExchangesPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Total Canjes" value={exchanges.length} icon={Gift} sub="Registrados" />
-        <KPICard label="Valor Entregado" value={formatARS(totalValue)} icon={BarChart3} sub="En productos" />
-        <KPICard label="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} sub={`${totalActual}/${totalExpected} posts`} />
-        <KPICard label="Influencers" value={uniqueInfluencers} icon={Users} sub="Activos" />
+        <KPICard label="Inversión (costo)" value={formatARS(totalInversion)} icon={Target} sub="Lo que realmente costó" />
+        <KPICard label="Ventas generadas" value={totalSalesGenerated > 0 ? formatARS(totalSalesGenerated) : "Sin datos"} icon={DollarSign} sub={roiPct !== null ? `ROI ${roiPct > 0 ? '+' : ''}${roiPct.toFixed(0)}%` : "Cargá ventas atribuidas"} />
+        <KPICard label="Cumplimiento" value={`${fulfillmentRate.toFixed(0)}%`} icon={CheckCircle} sub={`${totalActual}/${totalExpected} posts · ${uniqueInfluencers} influencers`} />
+        <KPICard label="CPM" value={cpm !== null ? formatARS(cpm) : "—"} icon={Megaphone} sub={`${(totalReach / 1000).toFixed(1)}K alcance estimado`} />
       </div>
 
       {/* Filters */}
@@ -151,31 +157,41 @@ export default function InfluencerExchangesPage() {
                   <th className="text-left p-3 font-medium">Influencer</th>
                   <th className="text-left p-3 font-medium">Producto</th>
                   <th className="text-center p-3 font-medium">Tipo</th>
-                  <th className="text-right p-3 font-medium">Valor</th>
+                  <th className="text-right p-3 font-medium">Inversión</th>
+                  <th className="text-right p-3 font-medium">Ventas atr.</th>
                   <th className="text-center p-3 font-medium">Posts</th>
                   <th className="text-center p-3 font-medium">Estado</th>
-                  <th className="text-center p-3 font-medium">ROI Est.</th>
+                  <th className="text-center p-3 font-medium">ROI</th>
                   <th className="text-center p-3 font-medium">Acc.</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(ex => {
-                  const value = Number(ex.product_value_ars) * ex.quantity;
-                  const reach = (ex.influencer_followers || 0) * (ex.actual_posts || ex.expected_posts || 1);
-                  const costPerReach = reach > 0 ? value / reach : 0;
+                  const inversion = Number(ex.product_value_ars) * ex.quantity;
+                  const salesAtr = Number(ex.sales_generated_ars || 0);
+                  const roi = inversion > 0 && salesAtr > 0 ? ((salesAtr - inversion) / inversion * 100) : null;
                   return (
                     <tr key={ex.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="p-3">
                         <p className="font-medium">{ex.influencer_name}</p>
                         {ex.influencer_instagram && <p className="text-xs text-muted-foreground flex items-center gap-1"><Instagram className="w-3 h-3" />@{ex.influencer_instagram}</p>}
-                        {ex.influencer_followers > 0 && <p className="text-[10px] text-muted-foreground">{ex.influencer_followers.toLocaleString()} seguidores</p>}
+                        {ex.influencer_followers > 0 && <p className="text-[10px] text-muted-foreground">{ex.influencer_followers.toLocaleString()} seg.</p>}
                       </td>
                       <td className="p-3">
                         <p>{ex.product_name}</p>
                         <p className="text-xs text-muted-foreground">x{ex.quantity}</p>
                       </td>
                       <td className="p-3 text-center"><span className="text-xs">{TYPE_MAP[ex.exchange_type] || ex.exchange_type}</span></td>
-                      <td className="p-3 text-right font-medium">{formatARS(value)}</td>
+                      <td className="p-3 text-right font-medium text-warning">{formatARS(inversion)}</td>
+                      <td className="p-3 text-right">
+                        <Input
+                          type="number" min="0"
+                          className="w-24 h-7 text-xs text-right bg-muted border-border"
+                          value={ex.sales_generated_ars || ""}
+                          placeholder="0"
+                          onChange={e => updateExchangeDB(ex.id, { sales_generated_ars: parseFloat(e.target.value) || 0 }).then(reload)}
+                        />
+                      </td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <Input type="number" min="0" className="w-12 h-7 text-xs text-center bg-muted border-border p-0" value={ex.actual_posts} onChange={e => handleUpdatePosts(ex, parseInt(e.target.value) || 0)} />
@@ -193,7 +209,9 @@ export default function InfluencerExchangesPage() {
                         </Select>
                       </td>
                       <td className="p-3 text-center">
-                        <span className="text-xs text-muted-foreground">{costPerReach > 0 ? `$${costPerReach.toFixed(2)}/reach` : '—'}</span>
+                        {roi !== null
+                          ? <span className={`text-xs font-semibold ${roi >= 0 ? 'text-success' : 'text-destructive'}`}>{roi >= 0 ? '+' : ''}{roi.toFixed(0)}%</span>
+                          : <span className="text-xs text-muted-foreground">—</span>}
                       </td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -255,6 +273,7 @@ export default function InfluencerExchangesPage() {
 
 function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [productId, setProductId] = useState(editItem?.product_id || '');
   const [quantity, setQuantity] = useState(String(editItem?.quantity || 1));
   const [influencerName, setInfluencerName] = useState(editItem?.influencer_name || '');
@@ -263,13 +282,21 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const [exchangeType, setExchangeType] = useState(editItem?.exchange_type || 'canje');
   const [expectedPosts, setExpectedPosts] = useState(String(editItem?.expected_posts || 1));
   const [notes, setNotes] = useState(editItem?.notes || '');
+  const [goalNotes, setGoalNotes] = useState(editItem?.goal_notes || '');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { getProductsDB(userId).then(setProducts); }, [userId]);
+  useEffect(() => {
+    getProductsDB(userId).then(setProducts);
+    getSettingsDB(userId).then(setSettings);
+  }, [userId]);
 
   const product = products.find(p => p.id === productId);
   const qty = parseInt(quantity) || 1;
-  const value = product ? Number(product.sale_price_ars) * qty : 0;
+  const exchangeRate = settings?.exchange_rate || 1200;
+  // Investment = cost (what we paid), not sale price
+  const costUSD = product ? Number(product.total_cost_usd || 0) : 0;
+  const investmentARS = costUSD > 0 ? costUSD * exchangeRate * qty : (product ? Number(product.sale_price_ars) * 0.4 * qty : 0);
+  const saleValueARS = product ? Number(product.sale_price_ars) * qty : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,9 +312,10 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
           influencer_instagram: influencerIg.trim() || null,
           influencer_followers: parseInt(influencerFollowers) || 0,
           product_id: productId, product_name: product!.name,
-          quantity: qty, product_value_ars: Number(product!.sale_price_ars),
+          quantity: qty, product_value_ars: investmentARS / qty,
           exchange_type: exchangeType, expected_posts: parseInt(expectedPosts) || 1,
           notes: notes.trim() || null,
+          goal_notes: goalNotes.trim() || null,
         });
         toast.success("Canje actualizado");
       } else {
@@ -297,9 +325,10 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
           influencer_instagram: influencerIg.trim() || null,
           influencer_followers: parseInt(influencerFollowers) || 0,
           product_id: productId, product_name: product!.name,
-          quantity: qty, product_value_ars: Number(product!.sale_price_ars),
+          quantity: qty, product_value_ars: investmentARS / qty,
           exchange_type: exchangeType, expected_posts: parseInt(expectedPosts) || 1,
           notes: notes.trim() || null,
+          goal_notes: goalNotes.trim() || null,
         });
         await logAudit(userId, 'create', 'exchange', undefined, { influencer: influencerName, product: product!.name, qty });
         toast.success("Canje registrado — stock descontado");
@@ -346,9 +375,22 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
       </div>
       <div><label className="text-sm text-muted-foreground">Notas</label>
         <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles del acuerdo..." className="bg-muted border-border" /></div>
+      <div><label className="text-sm text-muted-foreground">Objetivo de campaña</label>
+        <Textarea value={goalNotes} onChange={e => setGoalNotes(e.target.value)} placeholder="Ej: Aumentar awareness de perfume árabe, meta 5K impresiones, código INFLUENCER10" rows={2} className="bg-muted border-border resize-none" />
+      </div>
       {product && (
-        <div className="bg-muted rounded-lg p-3 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Valor de mercado:</span><span className="font-bold text-primary">{formatARS(value)}</span></div>
+        <div className="bg-muted rounded-lg p-3 text-sm space-y-1.5">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Inversión (costo real):</span>
+            <span className="font-bold text-warning">{formatARS(investmentARS)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Valor de venta (referencia):</span>
+            <span className="text-muted-foreground">{formatARS(saleValueARS)}</span>
+          </div>
+          {costUSD === 0 && (
+            <p className="text-[11px] text-muted-foreground/60">⚠ Sin costo USD en producto — estimando 40% del precio de venta</p>
+          )}
         </div>
       )}
       <Button type="submit" disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">

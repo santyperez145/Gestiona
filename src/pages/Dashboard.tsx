@@ -855,12 +855,12 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 mb-4 mt-3">
         {[
-          { label: "Nueva Venta", icon: DollarSign, path: "/sales", color: "text-primary" },
-          { label: "POS", icon: ShoppingBag, path: "/pos", color: "text-success" },
-          { label: "Nuevo Cliente", icon: Users, path: "/customers", color: "text-blue-400" },
-          { label: "Inventario", icon: Package, path: "/products", color: "text-warning" },
-          { label: "Gastos", icon: Wallet, path: "/expenses", color: "text-destructive" },
-          { label: "Reportes", icon: BarChart3, path: "/reports", color: "text-purple-400" },
+          { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
+          { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-success" },
+          { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
+          { label: "Inventario", icon: Package, path: "/productos", color: "text-warning" },
+          { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },
+          { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-purple-400" },
         ].map(a => (
           <Link key={a.path} to={a.path}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">
@@ -871,7 +871,7 @@ export default function Dashboard() {
         <button
           onClick={() => {
             sessionStorage.setItem("gestiona.ai_prefill", "Dame un insight del día: qué vendí hoy, qué productos destacaron y qué debería priorizar ahora");
-            navigate("/ai-chat");
+            navigate("/chat-ia");
           }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
         >
@@ -896,7 +896,7 @@ export default function Dashboard() {
             <p className="text-xs text-foreground leading-relaxed">{monthlySummary}</p>
           </div>
           <div className="flex flex-col gap-1 shrink-0">
-            <button onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`); navigate("/ai-chat"); }}
+            <button onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Analizá este resumen y dame 3 recomendaciones concretas: ${monthlySummary}`); navigate("/chat-ia"); }}
               className="text-[10px] text-primary hover:underline whitespace-nowrap">Analizar con IA</button>
             <button onClick={() => { setMonthlySummaryDismissed(true); localStorage.setItem(monthlySummaryKey + '.dismissed', '1'); }}
               className="text-[10px] text-muted-foreground hover:text-foreground">Cerrar</button>
@@ -939,7 +939,7 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top producto</p>
               <p className="text-sm font-semibold truncate">{weeklyComparison.topProd || "—"}</p>
               <button
-                onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`); navigate("/ai-chat"); }}
+                onClick={() => { sessionStorage.setItem("gestiona.ai_prefill", `Comparativa semanal: esta semana ${formatARS(weeklyComparison.thisTotal)} (${weeklyComparison.thisUnits} uds), semana anterior ${formatARS(weeklyComparison.lastTotal)} (${weeklyComparison.lastUnits} uds). Variación ${weeklyComparison.diff.toFixed(1)}%. Dame 2 acciones concretas.`); navigate("/chat-ia"); }}
                 className="text-[10px] text-primary hover:underline"
               >Analizar con IA →</button>
             </div>
@@ -2103,7 +2103,7 @@ export default function Dashboard() {
             onClick={() => {
               const list = stats.restockSuggestions.map((r: any) => `${r.name} (${r.stock}u, ${r.daysOfStock !== Infinity ? r.daysOfStock + 'd restantes' : 'sin datos'}, sugerir ${r.suggestedOrder}u)`).join('\n');
               sessionStorage.setItem("gestiona.ai_prefill", `Tengo estos productos con stock crítico:\n${list}\n\n¿Qué priorizo comprar primero y por qué?`);
-              navigate("/ai-chat");
+              navigate("/chat-ia");
             }}
             className="mt-3 text-xs text-primary hover:underline flex items-center gap-1"
           >
