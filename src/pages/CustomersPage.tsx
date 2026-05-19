@@ -1223,9 +1223,31 @@ export default function CustomersPage() {
                     ))}
                   </tbody>
                 </table>
-                {rfmData.length > 15 && (
-                  <p className="text-[10px] text-muted-foreground text-center mt-2">Mostrando top 15 — exportá CSV para ver todos</p>
-                )}
+                <div className="flex items-center justify-between mt-3">
+                  {rfmData.length > 15 && (
+                    <p className="text-[10px] text-muted-foreground">Mostrando top 15</p>
+                  )}
+                  <button
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all"
+                    onClick={() => {
+                      const bom = '﻿';
+                      const headers = ['Nombre', 'Segmento', 'R (Recency)', 'F (Frequency)', 'M (Monetary)', 'RFM Total', 'Días desde última compra', 'Compras', 'Facturación ARS'];
+                      const rows = [...rfmData].sort((a, b) => b.rfmScore - a.rfmScore).map(c => [
+                        c.name, c.segment, c.rScore, c.fScore, c.mScore, c.rfmScore,
+                        c.daysSinceLastPurchase < 999 ? c.daysSinceLastPurchase : '',
+                        c.purchaseCount, c.totalSpent.toFixed(2),
+                      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+                      const csv = bom + [headers.join(','), ...rows].join('\n');
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+                      a.download = `rfm_clientes_${new Date().toISOString().slice(0, 10)}.csv`;
+                      a.click();
+                      toast.success('RFM exportado');
+                    }}
+                  >
+                    <Download className="w-3.5 h-3.5" />CSV RFM
+                  </button>
+                </div>
               </div>
             </div>
           )}
