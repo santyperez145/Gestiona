@@ -123,6 +123,14 @@ export default function Dashboard() {
   const [weeklyTarget, setWeeklyTarget] = useState<number>(() => Number(localStorage.getItem(`gestiona.dashboard.weekly_target.${typeof localStorage !== 'undefined' ? (localStorage.getItem('gestiona.activeOrgId') || 'default') : 'default'}`) || 0));
   const [editingWeeklyTarget, setEditingWeeklyTarget] = useState(false);
   const [weeklyTargetInput, setWeeklyTargetInput] = useState("");
+  // Seller goals
+  const sellerGoalsKey = `gestiona.seller_goals.${orgForWeekly?.id || 'default'}`;
+  const [sellerGoals, setSellerGoals] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem(`gestiona.seller_goals.${localStorage.getItem('gestiona.activeOrgId') || 'default'}`) || '{}'); }
+    catch { return {}; }
+  });
+  const [editingSellerGoal, setEditingSellerGoal] = useState<string | null>(null);
+  const [sellerGoalInput, setSellerGoalInput] = useState("");
 
   // Monthly AI summary (cached in localStorage, refreshed once per month)
   const monthlySummaryKey = `gestiona.monthly_summary.${orgForWeekly?.id || 'default'}.${new Date().getFullYear()}.${new Date().getMonth()}`;
@@ -1716,6 +1724,94 @@ export default function Dashboard() {
             ) : (
               <p className="text-xs text-muted-foreground mt-1">Fijá tu objetivo semanal de ventas para hacer seguimiento diario.</p>
             )}
+          </div>
+        );
+      })()}
+
+      {/* Seller weekly goals widget */}
+      {(() => {
+        const weekNow = new Date();
+        const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - weekNow.getDay()); weekStart.setHours(0,0,0,0);
+        const weekSales = (stats.rawSales || []).filter((s: any) => new Date(s.date) >= weekStart);
+        // Build per-seller totals
+        const sellerMap: Record<string, number> = {};
+        weekSales.forEach((s: any) => {
+          const name = s.seller_name?.trim() || '';
+          if (!name) return;
+          sellerMap[name] = (sellerMap[name] || 0) + Number(s.total_ars || 0);
+        });
+        const sellers = Object.entries(sellerMap).sort((a, b) => b[1] - a[1]);
+        if (sellers.length === 0) return null;
+        const saveGoal = (name: string, val: number) => {
+          const next = { ...sellerGoals, [name]: val };
+          setSellerGoals(next);
+          localStorage.setItem(sellerGoalsKey, JSON.stringify(next));
+        };
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-primary" />Objetivos por vendedor — esta semana
+              </h3>
+              <span className="text-[10px] text-muted-foreground">{sellers.length} vendedor{sellers.length !== 1 ? 'es' : ''}</span>
+            </div>
+            <div className="space-y-3">
+              {sellers.map(([name, total]) => {
+                const goal = sellerGoals[name] || 0;
+                const pct = goal > 0 ? Math.min(100, (total / goal) * 100) : 0;
+                const isEditing = editingSellerGoal === name;
+                return (
+                  <div key={name}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium truncate max-w-[140px]">{name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold">{formatARS(total)}</span>
+                        {goal > 0 && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${pct >= 100 ? 'bg-success/20 text-success' : pct >= 75 ? 'bg-blue-500/20 text-blue-400' : 'bg-muted text-muted-foreground'}`}>
+                            {pct.toFixed(0)}%
+                          </span>
+                        )}
+                        <button
+                          onClick={() => { setEditingSellerGoal(isEditing ? null : name); setSellerGoalInput(goal > 0 ? String(goal) : ''); }}
+                          className="text-[10px] text-primary hover:underline shrink-0"
+                        >
+                          {goal > 0 ? 'Meta' : '+ Meta'}
+                        </button>
+                      </div>
+                    </div>
+                    {goal > 0 && (
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? 'bg-success' : pct >= 75 ? 'bg-blue-400' : 'bg-primary/60'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                    {isEditing && (
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <input
+                          type="number"
+                          value={sellerGoalInput}
+                          onChange={e => setSellerGoalInput(e.target.value)}
+                          placeholder="Meta semanal ARS"
+                          className="flex-1 h-7 px-2.5 rounded-lg border border-border bg-muted text-xs"
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { const v = Number(sellerGoalInput); if (v > 0) saveGoal(name, v); setEditingSellerGoal(null); }
+                            if (e.key === 'Escape') setEditingSellerGoal(null);
+                          }}
+                        />
+                        <button
+                          className="px-2.5 h-7 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold"
+                          onClick={() => { const v = Number(sellerGoalInput); if (v > 0) saveGoal(name, v); setEditingSellerGoal(null); }}
+                        >OK</button>
+                        <button onClick={() => setEditingSellerGoal(null)} className="text-muted-foreground text-xs">✕</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })()}

@@ -158,15 +158,16 @@ export default function AlertsPage() {
     setRules((data as AlertRule[]) ?? []);
   }, [orgId]);
 
+  const [historialTypeFilter, setHistorialTypeFilter] = useState("all");
+
   const loadNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
-      .in("type", ["stock_bajo", "deuda_vencida", "sistema"])
       .order("created_at", { ascending: false })
-      .limit(40);
+      .limit(80);
     setNotifications((data as Notification[]) ?? []);
   }, [user]);
 
@@ -471,70 +472,125 @@ export default function AlertsPage() {
         </div>
       </div>
 
-      {/* Notification history */}
+      {/* Notification history — enhanced table */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             Historial de alertas
             {unreadCount > 0 && (
-              <Badge className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0">
+              <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0">
                 {unreadCount} nuevas
               </Badge>
             )}
           </h2>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={markAllRead} className="gap-1 text-xs h-7">
-              <CheckCheck className="w-3 h-3" /> Marcar todas como leídas
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Type filter */}
+            {(() => {
+              const types = [...new Set(notifications.map(n => n.type))];
+              if (types.length < 2) return null;
+              return (
+                <select
+                  value={historialTypeFilter}
+                  onChange={e => setHistorialTypeFilter(e.target.value)}
+                  className="bg-card border border-border rounded-lg px-2 py-1 text-xs text-foreground"
+                >
+                  <option value="all">Todos los tipos</option>
+                  {types.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+                </select>
+              );
+            })()}
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={markAllRead} className="gap-1 text-xs h-7">
+                <CheckCheck className="w-3 h-3" /> Leídas
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          {notifications.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center">
-              <Bell className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Sin alertas recientes — hacé clic en "Revisar ahora" para ejecutar una revisión.
-              </p>
+        {/* Summary stats by type */}
+        {notifications.length > 0 && (() => {
+          const byType: Record<string, number> = {};
+          notifications.forEach(n => { byType[n.type] = (byType[n.type] || 0) + 1; });
+          const entries = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 5);
+          return (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {entries.map(([type, count]) => {
+                const Icon = NOTIF_ICON[type] ?? Bell;
+                return (
+                  <button key={type} onClick={() => setHistorialTypeFilter(prev => prev === type ? 'all' : type)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-all ${historialTypeFilter === type ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/20'}`}>
+                    <Icon className="w-3 h-3" />
+                    {type.replace(/_/g, ' ')} <span className="font-bold tabular-nums">({count})</span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          );
+        })()}
 
-          {notifications.map(n => {
-            const Icon = NOTIF_ICON[n.type] ?? Bell;
-            const cfg = Object.values(RULE_CONFIG).find(c => {
-              if (n.type === "stock_bajo") return c.label === "Stock bajo";
-              if (n.type === "deuda_vencida") return c.label === "Deudas vencidas";
-              return false;
-            });
-            const color = cfg?.color ?? "text-muted-foreground";
-            const bg = cfg?.bg ?? "bg-muted/30";
-            const border = cfg?.border ?? "border-border";
-
-            return (
-              <div
-                key={n.id}
-                className={`flex items-start gap-3 rounded-xl border p-3 transition-all ${
-                  n.read ? "opacity-60 bg-muted/10 border-border" : `${bg} ${border}`
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${bg}`}>
-                  <Icon className={`w-4 h-4 ${color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium leading-tight">{n.title}</p>
-                    {!n.read && (
-                      <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">
-                    {formatDistanceToNow(new Date(n.created_at), { locale: es, addSuffix: true })}
-                  </p>
-                </div>
+        {/* Table */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {(() => {
+            const visibleNotifs = historialTypeFilter === 'all'
+              ? notifications
+              : notifications.filter(n => n.type === historialTypeFilter);
+            if (visibleNotifs.length === 0) return (
+              <div className="p-8 text-center">
+                <Bell className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {notifications.length === 0
+                    ? 'Sin alertas registradas — hacé clic en "Revisar ahora" para ejecutar una revisión.'
+                    : 'Sin alertas para este tipo.'}
+                </p>
               </div>
             );
-          })}
+            return (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide w-8"></th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Alerta</th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Tipo</th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Cuándo</th>
+                    <th className="text-center px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide w-8">●</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {visibleNotifs.slice(0, 50).map(n => {
+                    const Icon = NOTIF_ICON[n.type] ?? Bell;
+                    const cfg = Object.values(RULE_CONFIG).find(c => {
+                      if (n.type === "stock_bajo") return c.label === "Stock bajo";
+                      if (n.type === "deuda_vencida") return c.label === "Deudas vencidas";
+                      return false;
+                    });
+                    const color = cfg?.color ?? "text-muted-foreground";
+                    return (
+                      <tr key={n.id} className={`transition-colors hover:bg-muted/10 ${n.read ? 'opacity-60' : ''}`}>
+                        <td className="px-4 py-2.5">
+                          <Icon className={`w-4 h-4 ${color}`} />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <p className="font-medium text-sm leading-tight">{n.title}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{n.message}</p>
+                        </td>
+                        <td className="px-4 py-2.5 hidden md:table-cell">
+                          <span className="text-[10px] bg-muted rounded-full px-2 py-0.5 text-muted-foreground font-mono">{n.type.replace(/_/g, ' ')}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-[11px] text-muted-foreground hidden sm:table-cell">
+                          <span title={new Date(n.created_at).toLocaleString('es-AR')}>
+                            {formatDistanceToNow(new Date(n.created_at), { locale: es, addSuffix: true })}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {!n.read && <div className="w-2 h-2 rounded-full bg-primary mx-auto" />}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       </div>
 

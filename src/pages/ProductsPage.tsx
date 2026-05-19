@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -66,6 +66,59 @@ function exportQRLabels(products: any[], businessName: string) {
   .sku { font-size: 6px; color: #aaa; font-family: monospace; margin-top: 1px; }
 </style></head><body>
 <h2>${businessName} — Etiquetas QR (${inStock.length} productos)</h2>
+<div class="grid">${rows}</div>
+</body></html>`;
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+}
+
+function exportPriceLabels(products: any[], businessName: string) {
+  const inStock = products.filter(p => p.stock > 0).slice(0, 80);
+  if (!inStock.length) { return; }
+  const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+  const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const rows = inStock.map(p => {
+    const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+      ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+    const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
+    const qrData = encodeURIComponent(`${p.name}|${fmtARS(price)}`);
+    return `
+      <div class="label">
+        <div class="label-body">
+          <div class="biz">${businessName}</div>
+          <div class="name">${p.name.slice(0, 34)}${p.name.length > 34 ? '…' : ''}</div>
+          ${p.brand ? `<div class="brand">${p.brand}</div>` : ''}
+          <div class="price-row">
+            ${hasDiscount ? `<span class="original">${fmtARS(Number(p.sale_price_ars))}</span>` : ''}
+            <span class="price">${fmtARS(price)}</span>
+          </div>
+          ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+        </div>
+        <div class="qr-col">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${qrData}" width="70" height="70" alt="QR" />
+        </div>
+      </div>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Etiquetas de precio — ${businessName}</title>
+<style>
+  @page { size: A4; margin: 8mm; }
+  body { font-family: Arial, sans-serif; margin: 0; background: #fff; color: #111; }
+  h2 { font-size: 11px; color: #555; text-align: center; margin: 0 0 6px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; }
+  .label { display: flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; padding: 4mm 3mm; gap: 3mm; break-inside: avoid; min-height: 32mm; }
+  .label-body { flex: 1; min-width: 0; }
+  .biz { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .name { font-size: 9px; font-weight: bold; color: #111; line-height: 1.25; word-break: break-word; }
+  .brand { font-size: 8px; color: #555; margin-top: 1px; }
+  .price-row { display: flex; align-items: baseline; gap: 4px; margin-top: 4px; }
+  .original { font-size: 9px; color: #aaa; text-decoration: line-through; }
+  .price { font-size: 18px; font-weight: 900; color: #b8860b; line-height: 1; }
+  .sku { font-size: 7px; color: #bbb; font-family: monospace; margin-top: 3px; }
+  .qr-col { flex-shrink: 0; }
+  .qr-col img { display: block; }
+</style></head><body>
+<h2>${businessName} — Etiquetas de precio · ${date} · ${inStock.length} productos</h2>
 <div class="grid">${rows}</div>
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
@@ -359,6 +412,9 @@ export default function ProductsPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas QR por producto">
               <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas de precio para tienda">
+              <Tag className="w-4 h-4 mr-2" />Etiquetas precio
             </Button>
             {canCreate && (
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>

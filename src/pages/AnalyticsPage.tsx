@@ -480,6 +480,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="cohorts" className="text-xs">👥 Cohorts</TabsTrigger>
           <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
           <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
+          <TabsTrigger value="canales" className="text-xs">💳 Canales</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1394,6 +1395,157 @@ export default function AnalyticsPage() {
               </div>
             </>
           )}
+        </TabsContent>
+
+        {/* ── CANALES DE VENTA TAB ── */}
+        <TabsContent value="canales" className="mt-4 space-y-4">
+          {(() => {
+            const sales: any[] = rawData?.sales || [];
+            const yearOffset = Number(year);
+            const yearSales = sales.filter((s: any) => {
+              const d = new Date(s.date);
+              return d.getFullYear() === new Date().getFullYear() - yearOffset;
+            });
+
+            // Method labels
+            const METHOD_LABELS: Record<string, string> = {
+              efectivo: "Efectivo",
+              tarjeta: "Tarjeta",
+              debito: "Débito",
+              credito: "Crédito",
+              transferencia: "Transferencia",
+              mercado_pago: "Mercado Pago",
+              mp: "Mercado Pago",
+              fiado: "Fiado",
+              otro: "Otro",
+            };
+            const METHOD_COLORS: Record<string, string> = {
+              "Efectivo": "hsl(150,60%,40%)",
+              "Tarjeta": "hsl(200,70%,55%)",
+              "Débito": "hsl(220,65%,60%)",
+              "Crédito": "hsl(280,60%,55%)",
+              "Transferencia": "hsl(40,70%,50%)",
+              "Mercado Pago": "hsl(195,80%,45%)",
+              "Fiado": "hsl(0,65%,55%)",
+              "Otro": "hsl(60,60%,50%)",
+            };
+
+            // Channel totals
+            const channelMap: Record<string, { total: number; count: number; profit: number }> = {};
+            yearSales.forEach((s: any) => {
+              const raw = (s.payment_method || "efectivo").toLowerCase();
+              const label = METHOD_LABELS[raw] || raw;
+              if (!channelMap[label]) channelMap[label] = { total: 0, count: 0, profit: 0 };
+              channelMap[label].total += Number(s.total_ars || 0);
+              channelMap[label].count += 1;
+              channelMap[label].profit += Number(s.profit_ars || 0);
+            });
+            const totalRev = Object.values(channelMap).reduce((s, c) => s + c.total, 0);
+            const channels = Object.entries(channelMap)
+              .map(([name, d]) => ({ name, ...d, share: totalRev > 0 ? (d.total / totalRev) * 100 : 0 }))
+              .sort((a, b) => b.total - a.total);
+
+            // Monthly trend by channel (stacked bar)
+            const MONTHS_SHORT2 = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+            const monthlyByChannel: Record<string, Record<string, number>> = {};
+            MONTHS_SHORT2.forEach((m) => { monthlyByChannel[m] = {}; });
+            yearSales.forEach((s: any) => {
+              const mon = MONTHS_SHORT2[new Date(s.date).getMonth()];
+              const raw = (s.payment_method || "efectivo").toLowerCase();
+              const label = METHOD_LABELS[raw] || raw;
+              if (!monthlyByChannel[mon][label]) monthlyByChannel[mon][label] = 0;
+              monthlyByChannel[mon][label] += Number(s.total_ars || 0);
+            });
+            const trendData = MONTHS_SHORT2.map((month) => ({ month, ...monthlyByChannel[month] }));
+
+            // Pie data
+            const pieData = channels.map(c => ({ name: c.name, value: Math.round(c.total) }));
+
+            if (channels.length === 0) {
+              return (
+                <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
+                  Sin datos de ventas para este año.
+                </div>
+              );
+            }
+
+            return (
+              <>
+                {/* KPI chips */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {channels.slice(0, 4).map(c => (
+                    <div key={c.name} className="bg-card border border-border rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">{c.name}</span>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: (METHOD_COLORS[c.name] || '#888') + '30', color: METHOD_COLORS[c.name] || '#888' }}>
+                          {c.share.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="text-xl font-bold font-display">{formatARS(c.total)}</div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{c.count} transacciones</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Pie / Donut chart */}
+                  <div className="bg-card border border-border rounded-2xl p-5">
+                    <h3 className="text-sm font-semibold mb-4">Distribución por canal</h3>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">
+                          {pieData.map((entry, i) => (
+                            <Cell key={entry.name} fill={METHOD_COLORS[entry.name] || PALETTE[i % PALETTE.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
+                        <Legend formatter={(v) => <span className="text-xs">{v}</span>} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Table share breakdown */}
+                  <div className="bg-card border border-border rounded-2xl p-5">
+                    <h3 className="text-sm font-semibold mb-4">Share por método de pago</h3>
+                    <div className="space-y-3">
+                      {channels.map(c => (
+                        <div key={c.name}>
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="font-medium">{c.name}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-muted-foreground">{c.count} txns</span>
+                              <span className="font-bold">{formatARS(c.total)}</span>
+                              <span className="text-xs" style={{ color: METHOD_COLORS[c.name] || '#888' }}>{c.share.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${c.share}%`, background: METHOD_COLORS[c.name] || '#888' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stacked monthly trend */}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <h3 className="text-sm font-semibold mb-4">Tendencia mensual por canal — {new Date().getFullYear() - yearOffset}</h3>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={trendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barSize={18}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,22%)" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(220,15%,60%)" }} />
+                      <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10, fill: "hsl(220,15%,60%)" }} />
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
+                      <Legend formatter={(v) => <span className="text-xs">{v}</span>} />
+                      {channels.map((c, i) => (
+                        <Bar key={c.name} dataKey={c.name} stackId="a" fill={METHOD_COLORS[c.name] || PALETTE[i % PALETTE.length]} radius={i === channels.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
       </Tabs>
     </div>

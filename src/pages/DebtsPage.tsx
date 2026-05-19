@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2 } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks } from "lucide-react";
 import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -50,6 +50,16 @@ export default function DebtsPage() {
   const [tab, setTab] = useState<"pending" | "paid" | "cobros" | "aging" | "payments">("pending");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  // Payment plan
+  const [planningDebt, setPlanningDebt] = useState<any>(null);
+  const [planInstallments, setPlanInstallments] = useState("3");
+  const [planStart, setPlanStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [planFreq, setPlanFreq] = useState<"weekly" | "biweekly" | "monthly">("monthly");
+  const plansKey = `gestiona.debt_plans.${activeOrg?.id || 'default'}`;
+  const [savedPlans, setSavedPlans] = useState<Record<string, { installments: { date: string; amount: number; paid: boolean }[] }>>(() => {
+    try { return JSON.parse(localStorage.getItem(`gestiona.debt_plans.${localStorage.getItem('gestiona.activeOrgId') || 'default'}`) || '{}'); }
+    catch { return {}; }
+  });
 
   const reload = async () => {
     if (user) { setDebts(await getDebtsDB(user.id)); setLoading(false); }
@@ -452,6 +462,133 @@ export default function DebtsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Payment Plan Dialog */}
+      <Dialog open={!!planningDebt} onOpenChange={v => { if (!v) setPlanningDebt(null); }}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display flex items-center gap-2"><ListChecks className="w-5 h-5 text-primary" />Plan de pago en cuotas</DialogTitle></DialogHeader>
+          {planningDebt && (() => {
+            const remaining = Number(planningDebt.remaining_ars);
+            const n = Math.max(1, Math.min(36, Number(planInstallments) || 3));
+            const amtPerInstall = remaining / n;
+            // Generate installment dates
+            const dates: string[] = [];
+            for (let i = 0; i < n; i++) {
+              const d = new Date(planStart);
+              if (planFreq === 'weekly') d.setDate(d.getDate() + i * 7);
+              else if (planFreq === 'biweekly') d.setDate(d.getDate() + i * 14);
+              else d.setMonth(d.getMonth() + i);
+              dates.push(d.toISOString().slice(0, 10));
+            }
+            const existingPlan = savedPlans[planningDebt.id];
+            const savePlan = () => {
+              const plan = {
+                installments: dates.map((date, idx) => ({
+                  date,
+                  amount: Math.round(amtPerInstall),
+                  paid: existingPlan?.installments[idx]?.paid || false,
+                })),
+              };
+              const next = { ...savedPlans, [planningDebt.id]: plan };
+              setSavedPlans(next);
+              localStorage.setItem(plansKey, JSON.stringify(next));
+              toast.success(`Plan de ${n} cuotas guardado`);
+              setPlanningDebt(null);
+            };
+            const toggleInstallmentPaid = (idx: number) => {
+              if (!existingPlan) return;
+              const updated = { ...existingPlan, installments: existingPlan.installments.map((inst: any, i: number) => i === idx ? { ...inst, paid: !inst.paid } : inst) };
+              const next = { ...savedPlans, [planningDebt.id]: updated };
+              setSavedPlans(next);
+              localStorage.setItem(plansKey, JSON.stringify(next));
+            };
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-xl">
+                  <div>
+                    <p className="font-semibold text-sm">{planningDebt.customer_name}</p>
+                    <p className="text-xs text-muted-foreground">{planningDebt.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-destructive">{formatARS(remaining)}</p>
+                    <p className="text-[10px] text-muted-foreground">a distribuir</p>
+                  </div>
+                </div>
+
+                {/* Config */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Cuotas</label>
+                    <Input type="number" min={1} max={36} value={planInstallments} onChange={e => setPlanInstallments(e.target.value)} className="bg-muted border-border text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Frecuencia</label>
+                    <Select value={planFreq} onValueChange={(v: "weekly" | "biweekly" | "monthly") => setPlanFreq(v)}>
+                      <SelectTrigger className="bg-muted border-border text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Semanal</SelectItem>
+                        <SelectItem value="biweekly">Quincenal</SelectItem>
+                        <SelectItem value="monthly">Mensual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Primera cuota</label>
+                    <input type="date" value={planStart} onChange={e => setPlanStart(e.target.value)} className="w-full h-9 px-3 rounded-md border border-border bg-muted text-sm text-foreground" />
+                  </div>
+                </div>
+
+                {/* Preview schedule */}
+                <div className="border border-border rounded-xl overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between">
+                    <span className="text-xs font-semibold">Cronograma de cuotas</span>
+                    <span className="text-xs text-primary font-bold">{formatARS(Math.round(amtPerInstall))} / cuota</span>
+                  </div>
+                  <div className="divide-y divide-border max-h-52 overflow-y-auto">
+                    {dates.map((date, idx) => {
+                      const isPaid = existingPlan?.installments[idx]?.paid || false;
+                      const isOverdue = !isPaid && date < new Date().toISOString().slice(0, 10);
+                      return (
+                        <div key={idx} className="flex items-center justify-between px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleInstallmentPaid(idx)}
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${isPaid ? 'border-success bg-success/20 text-success' : 'border-border hover:border-primary/50'}`}
+                              title={isPaid ? "Marcar sin pagar" : "Marcar pagado"}
+                            >
+                              {isPaid && <CheckCircle2 className="w-3 h-3" />}
+                            </button>
+                            <span className={`text-xs ${isPaid ? 'line-through text-muted-foreground' : isOverdue ? 'text-destructive font-medium' : ''}`}>
+                              Cuota {idx + 1} — {new Date(date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              {isOverdue && <span className="ml-1 text-[10px]">⚠ vencida</span>}
+                            </span>
+                          </div>
+                          <span className={`text-xs font-semibold ${isPaid ? 'text-success' : ''}`}>{formatARS(Math.round(amtPerInstall))}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button className="flex-1 gradient-gold text-primary-foreground font-semibold" onClick={savePlan}>
+                    <CalendarDays className="w-4 h-4 mr-2" />Guardar plan
+                  </Button>
+                  {existingPlan && (
+                    <Button variant="outline" className="text-destructive border-destructive/30" onClick={() => {
+                      const next = { ...savedPlans }; delete next[planningDebt.id];
+                      setSavedPlans(next); localStorage.setItem(plansKey, JSON.stringify(next));
+                      toast.success("Plan eliminado"); setPlanningDebt(null);
+                    }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Empty state — only for table tabs */}
       {(tab === "pending" || tab === "paid") && !shown.length && (
         tab === "pending"
@@ -522,6 +659,12 @@ export default function DebtsPage() {
                           <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs border-success/30 text-success hover:bg-success/10" onClick={() => setPayingDebt(d)}>
                             <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
                           </Button>
+                          <Button size="sm" variant="outline"
+                            className={`h-7 px-2 text-xs ${savedPlans[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}
+                            title="Plan de pago en cuotas"
+                            onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(new Date().toISOString().slice(0, 10)); }}>
+                            <ListChecks className="w-3.5 h-3.5 mr-1" />{savedPlans[d.id] ? 'Plan ✓' : 'Plan'}
+                          </Button>
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
                             title="Enviar recordatorio por WhatsApp"
                             onClick={() => window.open(waDebtLink(d, activeOrg?.id), "_blank")}>
@@ -568,9 +711,29 @@ export default function DebtsPage() {
                   </div>
                 )}
                 {tab === "pending" && (
+                  <>
+                  {savedPlans[d.id] && (() => {
+                    const plan = savedPlans[d.id];
+                    const paidCount = plan.installments.filter((i: any) => i.paid).length;
+                    const total = plan.installments.length;
+                    return (
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${(paidCount / total) * 100}%` }} />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{paidCount}/{total} cuotas</span>
+                      </div>
+                    );
+                  })()}
                   <div className="flex gap-2">
                     <Button size="sm" className="flex-1 h-8 text-xs gradient-gold text-primary-foreground" onClick={() => setPayingDebt(d)}>
                       <DollarSign className="w-3.5 h-3.5 mr-1.5" />Registrar pago
+                    </Button>
+                    <Button size="sm" variant="outline"
+                      className={`h-8 w-8 p-0 ${savedPlans[d.id] ? 'border-primary/40 text-primary' : 'border-border text-muted-foreground'}`}
+                      title="Plan de cuotas"
+                      onClick={() => { setPlanningDebt(d); setPlanInstallments("3"); setPlanStart(new Date().toISOString().slice(0, 10)); }}>
+                      <ListChecks className="w-3.5 h-3.5" />
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-500/30 text-green-400 hover:bg-green-500/10"
                       title="Recordatorio WhatsApp"
@@ -584,6 +747,7 @@ export default function DebtsPage() {
                       onConfirm={() => handleDelete(d)}
                     />
                   </div>
+                  </>
                 )}
               </div>
             ))}
