@@ -838,6 +838,7 @@ export default function ProductsPage() {
                                    v.stock <= 2 ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
                                    'bg-success/10 text-success border-success/20'
                                  }`}>
+                                   {v.image_url && <img src={v.image_url} alt={v.variant_name} className="w-4 h-4 rounded object-cover shrink-0" />}
                                    {v.variant_name} · <span className="font-bold">{v.stock}</span>
                                  </span>
                                ))}

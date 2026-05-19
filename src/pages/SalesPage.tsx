@@ -102,6 +102,9 @@ export default function SalesPage() {
       setDateFrom(new Date(now.getFullYear(), now.getMonth() - 1, 1));
       setDateTo(new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)); return;
     }
+    if (preset === "year") {
+      setDateFrom(new Date(now.getFullYear(), 0, 1)); setDateTo(now); return;
+    }
   };
   const reload = async () => {
     if (user) {
@@ -384,8 +387,12 @@ ${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span>
 <div class="total">TOTAL: ${formatARS(Number(s.total_ars))}</div>
 <div style="text-align:right;margin-top:4px"><span class="estado">${s.paid ? "✓ Cobrado" : "Pendiente"}</span></div>
 <div class="footer"><p>¡Gracias por su compra!</p></div>
+<div class="qr-block" style="text-align:center;border-top:1px dashed #ddd;padding-top:12px;margin-top:14px">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent('VTA-' + s.id)}" alt="QR" width="72" height="72" style="opacity:.55" />
+  <p style="font-size:8px;color:#bbb;margin:4px 0 0">Ref: ${s.id.slice(0,8).toUpperCase()}</p>
+</div>
 </body></html>`;
-    const w = window.open("", "_blank", "width=380,height=500");
+    const w = window.open("", "_blank", "width=380,height=560");
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   };
 
@@ -423,8 +430,12 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
 <div class="total">TOTAL: ${formatARS(total)}</div>
 <div style="text-align:right;margin-top:4px"><span class="estado">${allPaid ? "✓ Cobrado" : "Pendiente"}</span></div>
 <div class="footer"><p>¡Gracias por su compra!</p></div>
+<div style="text-align:center;border-top:1px dashed #ddd;padding-top:12px;margin-top:14px">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent(selected.map(s => s.id.slice(0,8)).join(','))}" alt="QR" width="72" height="72" style="opacity:.5" />
+  <p style="font-size:8px;color:#bbb;margin:4px 0 0">${selected.length} comprobante${selected.length > 1 ? 's' : ''}</p>
+</div>
 </body></html>`;
-    const w = window.open("", "_blank", "width=440,height=600");
+    const w = window.open("", "_blank", "width=440,height=660");
     if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 200); }
   };
 
@@ -677,6 +688,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           { key: "week", label: "Esta semana" },
           { key: "month", label: "Este mes" },
           { key: "lastmonth", label: "Mes anterior" },
+          { key: "year", label: "Este año" },
         ].map(p => (
           <button key={p.key} onClick={() => applyPreset(p.key)}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${datePreset === p.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}>
