@@ -99,6 +99,7 @@ export default function Dashboard() {
   const [filterCat, setFilterCat] = useState('all');
   const [reloadKey, setReloadKey] = useState(0);
   const [liveTodaySales, setLiveTodaySales] = useState<{ total: number; count: number } | null>(null);
+  const [noSalesAlertDismissed, setNoSalesAlertDismissed] = useState<boolean>(() => sessionStorage.getItem('gestiona.no_sales_dismissed') === new Date().toISOString().slice(0, 10));
   const [birthdayCustomers, setBirthdayCustomers] = useState<{ name: string; phone?: string; birthday: string; daysUntil: number }[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
   const [todayTasks, setTodayTasks] = useState<{ id: string; title: string; priority: string; due_date: string | null }[]>([]);
@@ -1436,6 +1437,20 @@ export default function Dashboard() {
               <Bell className="w-3 h-3" /> Configurar alertas →
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* Sin ventas hoy — banner after 14h with zero recorded sales */}
+      {!noSalesAlertDismissed && liveTodaySales !== null && liveTodaySales.count === 0 && new Date().getHours() >= 14 && (
+        <div className="mb-5 flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-orange-500/10 border-orange-500/30 text-orange-400 text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Son las {new Date().getHours()}h y no registraste ventas hoy — ¿todo bien?</span>
+          <Link to="/pos" className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100 shrink-0">Registrar →</Link>
+          <button
+            onClick={() => { setNoSalesAlertDismissed(true); sessionStorage.setItem('gestiona.no_sales_dismissed', new Date().toISOString().slice(0, 10)); }}
+            className="text-orange-400/60 hover:text-orange-400 transition-colors ml-1 text-lg leading-none"
+            title="Cerrar"
+          >×</button>
         </div>
       )}
 

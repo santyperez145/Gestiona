@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
@@ -579,7 +578,16 @@ export default function ProveedoresPage() {
               </div>
             )}
           </div>
-        </>)}
+
+      </>)}
+
+      {/* ── Pagos Tab ── */}
+      {activeTab === 'pagos' && (
+        <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Historial de pagos a proveedores — próximamente</p>
+        </div>
+      )}
 
       {/* New Debt Dialog */}
       <Dialog open={debtOpen} onOpenChange={v => { setDebtOpen(v); if (!v) setDebtForm(DEBT_EMPTY); }}>
