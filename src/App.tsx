@@ -228,18 +228,54 @@ function ProtectedRoutes() {
   );
 }
 
+const CHUNK_RELOAD_KEY = 'chunk_reload_once';
+
+const isChunkError = (err: unknown) => {
+  const msg = (err as any)?.message ?? '';
+  return (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('Loading chunk') ||
+    msg.includes('MIME type')
+  );
+};
+
 const App = () => (
-  <Sentry.ErrorBoundary fallback={
-    <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
-      <div>
-        <h1 className="text-xl font-bold mb-2">Algo salió mal</h1>
-        <p className="text-muted-foreground text-sm mb-4">El error fue reportado automáticamente.</p>
-        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm" onClick={() => window.location.reload()}>
-          Recargar
-        </button>
+  <Sentry.ErrorBoundary fallback={({ error }) => {
+    if (isChunkError(error)) {
+      // New deploy wiped old chunks — reload once to get fresh index.html
+      if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+        window.location.reload();
+        return null;
+      }
+      // Already reloaded once — show update prompt instead of blank screen
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
+          <div>
+            <h1 className="text-xl font-bold mb-2">Nueva versión disponible</h1>
+            <p className="text-muted-foreground text-sm mb-4">La app se actualizó. Recargá para continuar.</p>
+            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
+              onClick={() => { sessionStorage.removeItem(CHUNK_RELOAD_KEY); window.location.reload(); }}>
+              Actualizar ahora
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
+        <div>
+          <h1 className="text-xl font-bold mb-2">Algo salió mal</h1>
+          <p className="text-muted-foreground text-sm mb-4">El error fue reportado automáticamente.</p>
+          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm" onClick={() => window.location.reload()}>
+            Recargar
+          </button>
+        </div>
       </div>
-    </div>
-  }>
+    );
+  }}>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
