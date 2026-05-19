@@ -682,6 +682,61 @@ export default function AnalyticsPage() {
               <div className="text-xs text-muted-foreground mt-1">Nuevos últimos 30d</div>
             </div>
           </div>
+          {/* Pareto / concentration widget */}
+          {derived.customerData.length >= 3 && (() => {
+            const sorted = [...derived.customerData].sort((a: any, b: any) => b.total - a.total);
+            const totalRev = sorted.reduce((s: number, c: any) => s + c.total, 0);
+            const top20idx = Math.max(1, Math.ceil(sorted.length * 0.2));
+            const top20rev = sorted.slice(0, top20idx).reduce((s: number, c: any) => s + c.total, 0);
+            const top20pct = totalRev > 0 ? Math.round((top20rev / totalRev) * 100) : 0;
+            const top50idx = Math.max(1, Math.ceil(sorted.length * 0.5));
+            const top50rev = sorted.slice(0, top50idx).reduce((s: number, c: any) => s + c.total, 0);
+            const top50pct = totalRev > 0 ? Math.round((top50rev / totalRev) * 100) : 0;
+            return (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Concentración de ingresos (Pareto)</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-muted/40 rounded-lg p-3 text-center">
+                    <div className={`text-2xl font-bold ${top20pct >= 80 ? "text-yellow-400" : top20pct >= 60 ? "text-orange-400" : "text-green-400"}`}>{top20pct}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">del revenue viene del top 20% de clientes</div>
+                    <div className="text-[10px] text-muted-foreground">({top20idx} de {sorted.length} clientes)</div>
+                  </div>
+                  <div className="bg-muted/40 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-400">{top50pct}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">del revenue viene del top 50% de clientes</div>
+                    <div className="text-[10px] text-muted-foreground">({top50idx} de {sorted.length} clientes)</div>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {sorted.slice(0, 8).map((c: any, i: number) => {
+                    const cumRev = sorted.slice(0, i + 1).reduce((s: number, x: any) => s + x.total, 0);
+                    const cumPct = totalRev > 0 ? (cumRev / totalRev) * 100 : 0;
+                    const barPct = totalRev > 0 ? (c.total / totalRev) * 100 : 0;
+                    return (
+                      <div key={c.name} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                        <span className="text-xs truncate w-28 shrink-0">{c.name}</span>
+                        <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-primary/70" style={{ width: `${barPct}%` }} />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">{barPct.toFixed(1)}%</span>
+                        <span className={`text-[10px] w-12 text-right shrink-0 ${cumPct >= 80 ? "text-yellow-400" : "text-muted-foreground"}`}>↑{cumPct.toFixed(0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {top20pct >= 80 && (
+                  <p className="text-[10px] text-yellow-400 mt-3 bg-yellow-500/5 rounded-lg px-3 py-2 border border-yellow-500/20">
+                    ⚠ Alta concentración: riesgo si alguno de tus top clientes deja de comprar. Diversificá tu base.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className="px-5 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
