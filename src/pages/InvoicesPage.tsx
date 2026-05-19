@@ -280,6 +280,7 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [creatingNC, setCreatingNC] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = useState(false);
   const fromSaleHandled = useRef(false);
@@ -569,6 +570,13 @@ export default function InvoicesPage() {
 
   const filteredInvoices = invoices.filter((inv) => {
     if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+    if (filterType !== "all") {
+      if (filterType === "NC" && !inv.number.startsWith("NC-")) return false;
+      if (filterType === "A" && (inv.tipo_comprobante !== 1 || inv.number.startsWith("NC-"))) return false;
+      if (filterType === "B" && (inv.tipo_comprobante !== 6 || inv.number.startsWith("NC-"))) return false;
+      if (filterType === "C" && (inv.tipo_comprobante !== 11 || inv.number.startsWith("NC-"))) return false;
+      if (filterType === "none" && (inv.tipo_comprobante !== null || inv.number.startsWith("NC-"))) return false;
+    }
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -787,6 +795,18 @@ export default function InvoicesPage() {
               </button>
             ))}
           </div>
+          <select
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+            className="h-8 text-xs bg-muted/40 border border-border rounded-lg px-2 focus:outline-none focus:ring-1 focus:ring-primary/40"
+          >
+            <option value="all">Tipo: Todos</option>
+            <option value="A">Factura A</option>
+            <option value="B">Factura B</option>
+            <option value="C">Factura C</option>
+            <option value="NC">Nota de Crédito</option>
+            <option value="none">Sin tipo</option>
+          </select>
           <div className="relative ml-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <input
