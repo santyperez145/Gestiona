@@ -341,7 +341,20 @@ export default function Dashboard() {
     const productCount: Record<string, number> = {};
     todaySales.forEach((s: any) => { const n = s.product_name || "Sin nombre"; productCount[n] = (productCount[n] || 0) + (s.quantity || 1); });
     const topProduct = Object.entries(productCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-    return { avgTicket, dominantMethod, topProduct, count: todaySales.length };
+    // Hourly breakdown using created_at (falls back to noon if not available)
+    const hourMap: Record<number, number> = {};
+    todaySales.forEach((s: any) => {
+      const h = s.created_at ? new Date(s.created_at).getHours() : 12;
+      hourMap[h] = (hourMap[h] || 0) + Number(s.total_ars);
+    });
+    const maxHour = Object.keys(hourMap).length ? Math.max(...Object.keys(hourMap).map(Number)) : 23;
+    const minHour = Object.keys(hourMap).length ? Math.min(...Object.keys(hourMap).map(Number)) : 8;
+    const hourlyData = Array.from({ length: maxHour - minHour + 1 }, (_, i) => {
+      const h = minHour + i;
+      return { hour: `${String(h).padStart(2, '0')}h`, total: hourMap[h] || 0 };
+    });
+    const peakHour = Object.entries(hourMap).sort((a, b) => b[1] - a[1])[0];
+    return { avgTicket, dominantMethod, topProduct, count: todaySales.length, hourlyData, peakHour: peakHour ? `${String(Number(peakHour[0])).padStart(2, '0')}h` : null };
   }, [rawData]);
 
   // Weekly comparison: this week Mon–today vs same period last week
@@ -1154,6 +1167,29 @@ export default function Dashboard() {
               <p className="text-sm font-semibold mt-0.5 truncate" title={todayDetail.topProduct}>{todayDetail.topProduct || "—"}</p>
             </div>
           </div>
+          {/* Hourly bar chart */}
+          {todayDetail.hourlyData && todayDetail.hourlyData.length > 1 && (
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />Ventas por hora
+                {todayDetail.peakHour && <span className="ml-auto text-primary font-semibold">Pico: {todayDetail.peakHour}</span>}
+              </p>
+              <ResponsiveContainer width="100%" height={64}>
+                <BarChart data={todayDetail.hourlyData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="hour" tick={{ fontSize: 8, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'hsl(220,15%,12%)', border: '1px solid hsl(220,15%,20%)', borderRadius: 6, fontSize: 11 }}
+                    formatter={(v: number) => [formatARS(v), 'Ventas']}
+                  />
+                  <Bar dataKey="total" radius={[2, 2, 0, 0]}>
+                    {todayDetail.hourlyData.map((d: any, i: number) => (
+                      <Cell key={i} fill={d.hour === todayDetail.peakHour ? 'hsl(43,89%,55%)' : 'hsl(220,15%,30%)'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
 

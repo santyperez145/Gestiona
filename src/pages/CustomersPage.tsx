@@ -1016,6 +1016,21 @@ export default function CustomersPage() {
   const totalPurchases = customers.reduce((s, c) => s + c.purchaseCount, 0);
   const avgTicketGlobal = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
+  // Top 5 clientes del mes actual
+  const topThisMonth = useMemo(() => {
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const monthSales = sales.filter((s: any) => String(s.date).slice(0, 7) === thisMonth);
+    if (!monthSales.length) return [];
+    const map: Record<string, { name: string; total: number; count: number }> = {};
+    monthSales.forEach((s: any) => {
+      const n = s.customer_name || "Anónimo";
+      if (!map[n]) map[n] = { name: n, total: 0, count: 0 };
+      map[n].total += Number(s.total_ars);
+      map[n].count++;
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5);
+  }, [sales]);
+
   return (
     <div className="space-y-6">
       {/* Form modal */}
@@ -1094,6 +1109,41 @@ export default function CustomersPage() {
           color={totalDebt > 0 ? "destructive" : "success"}
           sub={`${customers.filter(c => c.pendingDebt > 0).length} con saldo pendiente`} />
       </div>
+
+      {/* Top clientes del mes */}
+      {topThisMonth.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Crown className="w-4 h-4 text-primary" />
+            Top clientes — {new Date().toLocaleDateString('es-AR', { month: 'long' })}
+          </h2>
+          <div className="space-y-2.5">
+            {topThisMonth.map((c, i) => {
+              const customerData = customers.find(x => x.name === c.name);
+              const isVip = customerData?.segment === 'VIP' || customerData?.segment === 'Premium';
+              const barPct = (c.total / topThisMonth[0].total) * 100;
+              return (
+                <div key={c.name} className="flex items-center gap-3">
+                  <span className={`w-5 text-center text-xs font-bold shrink-0 ${i === 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-sm font-medium truncate">{c.name}</span>
+                      {isVip && <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary">VIP</span>}
+                      <span className="shrink-0 text-[10px] text-muted-foreground">{c.count}x</span>
+                    </div>
+                    <div className="h-1 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary/50 rounded-full transition-all" style={{ width: `${barPct}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-sm font-mono font-semibold text-primary shrink-0">{formatARS(c.total)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Segmentation Chart */}
       {segmentCounts.length > 0 && (
