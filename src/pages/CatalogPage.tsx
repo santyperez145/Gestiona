@@ -216,10 +216,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         // Load flavor variants
         const variantRows: any[] = [];
         const { data: vData } = await supabase
-          .from('product_variants')
-          .select('*')
-          .in('product_id', filtered.map(p => p.id))
-          .order('variant_name');
+          .from('product_variants').select('*')
+          .in('product_id', filtered.map(p => p.id)).order('variant_name');
         if (vData) variantRows.push(...vData);
         const variantsByProduct: Record<string, any[]> = {};
         for (const v of variantRows) {
@@ -227,198 +225,244 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           variantsByProduct[v.product_id].push(v);
         }
 
-        const gM = 8;           // page margin
-        const GCOLS = 3;        // flavor grid columns
-        const gGap = 5;         // gap between grid cells
-        const cellW = (W - gM * 2 - gGap * (GCOLS - 1)) / GCOLS; // ~61.3mm
-        const cellImgH = 52;    // image height per flavor cell
-        const cellTextH = 14;   // text area below image
+        // ── Layout constants ──────────────────────────────────────────────────
+        const BG: [number, number, number] = [10, 12, 40];   // dark navy
+        const gM = 9;                                         // side margin
+        const GCOLS = 4;
+        const gGap = 4;
+        const cellW  = (W - gM * 2 - gGap * (GCOLS - 1)) / GCOLS;   // ≈ 45 mm
+        const cellImgH = 40;
+        const cellTextH = 14;
         const cellH = cellImgH + cellTextH;
         const rowGap = 5;
 
-        // Helper: draw SOLD OUT stamp on a flavor cell
-        const drawSoldOut = (cx: number, cy: number) => {
-          const r = 11;
-          doc.setFillColor(208, 28, 28);
-          doc.circle(cx, cy, r, 'F');
-          doc.setDrawColor(255, 255, 255);
-          doc.setLineWidth(0.8);
-          doc.circle(cx, cy, r - 1.5, 'S');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(6);
-          doc.setFont('helvetica', 'bold');
-          doc.text('SOLD', cx, cy - 1.5, { align: 'center' });
-          doc.text('OUT', cx, cy + 4.5, { align: 'center' });
+        const HEADER_H1 = 78;   // first page header height
+        const HEADER_HC = 28;   // continuation header height
+        const FOOTER_H  = 28;
+        const GRID_PAD  = 4;    // gap above/below grid
+
+        const rowsFirstPage = Math.floor((H - HEADER_H1 - GRID_PAD * 2 - FOOTER_H) / (cellH + rowGap));
+        const rowsContPage  = Math.floor((H - HEADER_HC - GRID_PAD * 2 - FOOTER_H) / (cellH + rowGap));
+
+        // Social handle for footer
+        const socialHandle = `@${bName.replace(/\s+/g, '').toUpperCase()}`;
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+        const fillBg = () => {
+          doc.setFillColor(...BG);
+          doc.rect(0, 0, W, H, 'F');
         };
 
+        const drawFirstHeader = (brand: string, model: string, puffs: string | null, eff: number, twoX: number) => {
+          // Brand box (white rounded rect centered)
+          doc.setFontSize(26);
+          doc.setFont('helvetica', 'bold');
+          const bTxt = brand;
+          const bBoxW = doc.getTextWidth(bTxt) + 24;
+          const bBoxX = W / 2 - bBoxW / 2;
+          doc.setFillColor(255, 255, 255);
+          doc.roundedRect(bBoxX, 10, bBoxW, 20, 3, 3, 'F');
+          doc.setTextColor(15, 15, 15);
+          doc.text(bTxt, W / 2, 24, { align: 'center' });
+
+          // Model name (accent color)
+          let curY = 40;
+          if (model) {
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(pR, pG, pB);
+            doc.text(model, W / 2, curY, { align: 'center' });
+            curY += 9;
+          }
+
+          // Puffs
+          if (puffs) {
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(195, 195, 220);
+            doc.text(puffs, W / 2, curY, { align: 'center' });
+            curY += 9;
+          }
+
+          // Separator
+          curY += 2;
+          doc.setDrawColor(50, 52, 80);
+          doc.setLineWidth(0.4);
+          doc.line(W / 2 - 35, curY, W / 2 + 35, curY);
+          curY += 7;
+
+          // 1X price (accent color, large)
+          doc.setFontSize(20);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(pR, pG, pB);
+          doc.text(`1X  ${fmtARS(eff)}`, W / 2, curY, { align: 'center' });
+          curY += 12;
+
+          // 2X price (white, large)
+          doc.setFontSize(20);
+          doc.setTextColor(230, 230, 250);
+          doc.text(`2X  ${fmtARS(twoX)}`, W / 2, curY, { align: 'center' });
+        };
+
+        const drawContHeader = (brand: string, model: string) => {
+          doc.setFontSize(13);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(255, 255, 255);
+          doc.text(`${brand} ${model}`, W / 2, 16, { align: 'center' });
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(pR, pG, pB);
+          doc.text('continuación', W / 2, 23, { align: 'center' });
+        };
+
+        const drawFooter = () => {
+          // Social handle
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(pR, pG, pB);
+          doc.text(socialHandle, W / 2, H - 14, { align: 'center' });
+          // URL / date
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80, 82, 115);
+          doc.text(publicUrl, W / 2, H - 6, { align: 'center' });
+        };
+
+        // ── SOLD OUT diagonal stamp ───────────────────────────────────────────
+        const drawSoldOutStamp = (cx: number, cy: number, cw: number, ch: number) => {
+          // Thick diagonal red band (thick stroke line)
+          doc.setDrawColor(210, 25, 25);
+          doc.setLineWidth(13);
+          doc.line(cx + 4, cy + ch - 4, cx + cw - 4, cy + 4);
+          // Thinner white outline lines for contrast
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.6);
+          const offset = 7;
+          doc.line(cx + 4 - offset * 0.6, cy + ch - 4 + offset * 0.8,
+                   cx + cw - 4 - offset * 0.6, cy + 4 + offset * 0.8);
+          doc.line(cx + 4 + offset * 0.6, cy + ch - 4 - offset * 0.8,
+                   cx + cw - 4 + offset * 0.6, cy + 4 - offset * 0.8);
+          // "SOLD OUT" text at angle
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(9.5);
+          doc.setFont('helvetica', 'bold');
+          const angle = Math.atan2(ch - 8, cw - 8) * 180 / Math.PI;
+          doc.text('SOLD OUT', cx + cw / 2, cy + ch / 2 + 2, { align: 'center', angle });
+        };
+
+        // ── Draw flavor grid rows ─────────────────────────────────────────────
+        const drawGridRows = (
+          variants: any[],
+          startIdx: number,
+          maxRows: number,
+          gridY: number,
+          productImgData: string | null
+        ) => {
+          let idx = startIdx;
+          for (let row = 0; row < maxRows && idx < variants.length; row++) {
+            for (let col = 0; col < GCOLS && idx < variants.length; col++) {
+              const v = variants[idx++];
+              const inStock = v.stock > 0;
+              const cellX = gM + col * (cellW + gGap);
+              const cellY = gridY + row * (cellH + rowGap);
+
+              // Cell image bg (slightly lighter than page bg)
+              doc.setFillColor(22, 25, 55);
+              doc.roundedRect(cellX, cellY, cellW, cellImgH, 3, 3, 'F');
+
+              // Product image
+              if (productImgData) {
+                try {
+                  doc.addImage(productImgData, 'JPEG', cellX, cellY, cellW, cellImgH);
+                } catch { /* */ }
+              }
+
+              // SOLD OUT diagonal stamp
+              if (!inStock) {
+                drawSoldOutStamp(cellX, cellY, cellW, cellImgH);
+              }
+
+              // Flavor name centered below image
+              const flavorY = cellY + cellImgH + 3;
+              doc.setFontSize(6.5);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(inStock ? 240 : 100, inStock ? 240 : 100, inStock ? 255 : 120);
+              const fLines = doc.splitTextToSize((v.variant_name as string).toUpperCase(), cellW - 2);
+              doc.text(fLines.slice(0, 2), cellX + cellW / 2, flavorY + 5, { align: 'center' });
+
+              if (!isPublic) {
+                doc.setFontSize(5);
+                doc.setTextColor(70, 72, 105);
+                doc.text(`${v.stock}u`, cellX + cellW - 1, flavorY + 5, { align: 'right' });
+              }
+            }
+          }
+          return idx;
+        };
+
+        // ── Render each product ───────────────────────────────────────────────
         for (const p of filtered) {
           const variants = variantsByProduct[p.id] || [];
           const effPrice = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
             ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
-          const cardPrice = Number(p.sale_price_ars);
 
-          // Extract puffs e.g. "ELFBAR TE30K" → "30.000 PUFFS"
           const puffsMatch = p.name.match(/(\d+\.?\d*)\s*[Kk]\b/);
           const puffsNum = puffsMatch ? parseFloat(puffsMatch[1]) * 1000 : null;
           const puffsLabel = puffsNum
             ? `${new Intl.NumberFormat('es-AR').format(puffsNum)} PUFFS`
             : null;
+          const brandWord = (p.brand || '').toUpperCase() || p.name.split(/\s+/)[0].toUpperCase();
+          const modelWord = p.name.replace(new RegExp(`^${(p.brand || '').trim()}\\s*`, 'i'), '').toUpperCase();
+          const imgData = p.image_url ? (imageCache[p.image_url] ?? null) : null;
 
-          // Split brand vs model: first word = brand, rest = model
-          const nameParts = p.name.trim().split(/\s+/);
-          const brandWord = (p.brand || nameParts[0] || '').toUpperCase();
-          const modelWord = nameParts.slice(1).join(' ').toUpperCase() || '';
+          let variantIdx = 0;
+          let isFirstPage = true;
 
-          doc.addPage();
+          do {
+            doc.addPage();
+            fillBg();
 
-          // ── WHITE BACKGROUND ───────────────────────────────────────────────
-          doc.setFillColor(255, 255, 255);
-          doc.rect(0, 0, W, H, 'F');
-
-          // ── HEADER (cream bg) ──────────────────────────────────────────────
-          const headerH = 72;
-          doc.setFillColor(238, 236, 230);
-          doc.rect(0, 0, W, headerH, 'F');
-
-          // Bottom accent stripe on header
-          doc.setFillColor(pR, pG, pB);
-          doc.rect(0, headerH - 2.5, W, 2.5, 'F');
-
-          // Brand name + model name on same line, centered
-          doc.setFontSize(34);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(20, 20, 20);
-          const brandW = doc.getTextWidth(brandWord);
-          doc.setFontSize(26);
-          const modelW = modelWord ? doc.getTextWidth(' ' + modelWord) : 0;
-          const totalNameW = brandW + modelW;
-          const nameStartX = W / 2 - totalNameW / 2;
-
-          doc.setFontSize(34);
-          doc.setTextColor(20, 20, 20);
-          doc.text(brandWord, nameStartX, 22);
-
-          if (modelWord) {
-            doc.setFontSize(26);
-            doc.setTextColor(pR, pG, pB);
-            doc.text(' ' + modelWord, nameStartX + brandW, 22);
-          }
-
-          // Puffs line
-          if (puffsLabel) {
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(60, 60, 60);
-            doc.text(puffsLabel, W / 2, 32, { align: 'center' });
-          }
-
-          // Description / feature text
-          const desc: string = p.description || p.notes || '';
-          if (desc) {
-            doc.setFontSize(8.5);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(40, 40, 40);
-            const descLines = doc.splitTextToSize(desc.toUpperCase(), W - gM * 2);
-            doc.text(descLines.slice(0, 2), W / 2, 40, { align: 'center' });
-          }
-
-          // Separator
-          doc.setDrawColor(180, 178, 172);
-          doc.setLineWidth(0.4);
-          doc.line(gM, 46, W - gM, 46);
-
-          // Efectivo price — huge
-          doc.setFontSize(30);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(20, 20, 20);
-          doc.text(fmtARS(effPrice), W / 2, 60, { align: 'center' });
-
-          // Tarjeta price
-          doc.setFontSize(18);
-          doc.setTextColor(60, 60, 60);
-          doc.text(`2X ${fmtARS(effPrice * 2)}`, W / 2, 70, { align: 'center' });
-
-          // ── FLAVOR GRID ────────────────────────────────────────────────────
-          const gridStartY = headerH + 6;
-
-          if (variants.length === 0) {
-            // No variants — show single big product image centered
-            const sImgW = 100;
-            const sImgH = 120;
-            const sImgX = W / 2 - sImgW / 2;
-            const sImgY = gridStartY + 10;
-            doc.setFillColor(245, 245, 245);
-            doc.roundedRect(sImgX, sImgY, sImgW, sImgH, 4, 4, 'F');
-            if (p.image_url && imageCache[p.image_url]) {
-              try { doc.addImage(imageCache[p.image_url]!, 'JPEG', sImgX, sImgY, sImgW, sImgH); } catch { /* */ }
+            const hH = isFirstPage ? HEADER_H1 : HEADER_HC;
+            if (isFirstPage) {
+              drawFirstHeader(brandWord, modelWord, puffsLabel, effPrice, effPrice * 2);
+            } else {
+              drawContHeader(brandWord, modelWord);
             }
-            if (!isPublic) {
-              doc.setFontSize(7);
-              doc.setTextColor(150, 150, 150);
-              doc.text(`Stock: ${p.stock} u.`, W / 2, sImgY + sImgH + 8, { align: 'center' });
-            }
-          } else {
-            for (let i = 0; i < variants.length; i++) {
-              const col = i % GCOLS;
-              const row = Math.floor(i / GCOLS);
-              const cellX = gM + col * (cellW + gGap);
-              const cellY = gridStartY + row * (cellH + rowGap);
 
-              const v = variants[i];
-              const inStock = v.stock > 0;
+            const gridY = hH + GRID_PAD;
+            const maxRows = isFirstPage ? rowsFirstPage : rowsContPage;
 
-              // Cell image bg
-              doc.setFillColor(245, 244, 242);
-              doc.roundedRect(cellX, cellY, cellW, cellImgH, 3, 3, 'F');
-
-              if (p.image_url && imageCache[p.image_url]) {
-                try {
-                  doc.addImage(imageCache[p.image_url]!, 'JPEG', cellX, cellY, cellW, cellImgH);
-                } catch { /* */ }
+            if (variants.length === 0) {
+              // No variants — large centered product image
+              const sW = 90, sH = 110;
+              const sX = W / 2 - sW / 2, sY = gridY + 8;
+              doc.setFillColor(22, 25, 55);
+              doc.roundedRect(sX, sY, sW, sH, 4, 4, 'F');
+              if (imgData) {
+                try { doc.addImage(imgData, 'JPEG', sX, sY, sW, sH); } catch { /* */ }
               }
-
-              // SOLD OUT stamp (circle badge upper-left of image)
-              if (!inStock) {
-                drawSoldOut(cellX + 14, cellY + 14);
-              }
-
-              // Flavor name below image
-              const flavorY = cellY + cellImgH + 2;
-              doc.setFontSize(6.5);
-              doc.setFont('helvetica', 'bold');
-              doc.setTextColor(inStock ? 20 : 160, inStock ? 20 : 160, inStock ? 20 : 160);
-              const flavorLines = doc.splitTextToSize((v.variant_name as string).toUpperCase(), cellW);
-              doc.text(flavorLines.slice(0, 2), cellX + cellW / 2, flavorY + 5, { align: 'center' });
-
-              // Stock count (internal)
               if (!isPublic) {
-                doc.setFontSize(5.5);
-                doc.setTextColor(180, 180, 180);
-                doc.text(`${v.stock} u.`, cellX + cellW - 1, flavorY + 5, { align: 'right' });
+                doc.setFontSize(7);
+                doc.setTextColor(80, 82, 115);
+                doc.text(`Stock: ${p.stock} u.`, W / 2, sY + sH + 9, { align: 'center' });
               }
+            } else {
+              variantIdx = drawGridRows(variants, variantIdx, maxRows, gridY, imgData);
             }
-          }
 
-          // ── FOOTER ─────────────────────────────────────────────────────────
-          doc.setFillColor(240, 238, 234);
-          doc.rect(0, H - 9, W, 9, 'F');
-          doc.setFillColor(pR, pG, pB);
-          doc.rect(0, H - 9, W, 0.5, 'F');
-          doc.setFontSize(6);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(120, 120, 120);
-          doc.text(`${bName} · ${today}`, gM, H - 3);
-          doc.text(publicUrl, W - gM, H - 3, { align: 'right' });
+            drawFooter();
+            isFirstPage = false;
+          } while (variantIdx < variants.length);
         }
 
-        // Page numbers (skip cover + back cover)
-        const totalVaperPages = doc.getNumberOfPages();
-        for (let i = 2; i <= totalVaperPages - 1; i++) {
+        // Page numbers on vaper product pages (skip cover + back cover)
+        const totalVP = doc.getNumberOfPages();
+        for (let i = 2; i <= totalVP - 1; i++) {
           doc.setPage(i);
           doc.setFontSize(6);
           doc.setFont('helvetica', 'normal');
-          doc.setTextColor(120, 120, 120);
-          doc.text(`${i - 1} / ${totalVaperPages - 2}`, W / 2, H - 3, { align: 'center' });
+          doc.setTextColor(60, 62, 95);
+          doc.text(`${i - 1} / ${totalVP - 2}`, W / 2, H - 1, { align: 'center' });
         }
 
       } else {
