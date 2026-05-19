@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 35)**
+Última actualización: **2026-05-19 (sesión 36)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -206,6 +206,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **CustomersPage: panel "Análisis RFM"** — collapsible; quintiles 1–5 para R/F/M; mini barras de distribución por dimensión; tabla top-15 sorteable por R/F/M/total; badges color-coded. _(sesión 35)_
 - **InvoicesPage: envío masivo de facturas** — checkboxes por fila, select-all, barra de acción flotante "Enviar emails"; loop con send-invoice-email edge function; auto-update status draft→sent. _(sesión 35)_
 - **ReportsPage tab "Clientes"** — ranking por facturación, frecuencia, ticket promedio, último pedido; KPI cards; CSV export; filtro por período. _(sesión 34–35)_
+- **ExpensesPage: stacked bar chart por categoría** — BarChart apilado últimos 6 meses con Legend y tooltip por categoría en tab Tendencia. _(sesión 36)_
+- **AnalyticsPage: widget Pareto de clientes** — concentración top 20% y 50%, barras de contribución individual, alerta de alta concentración. _(sesión 36)_
+- **Dashboard: widget "Flujo de caja 7 días"** — ingresos vs gastos vs compras last 7d; net flow coloreado; progress bars. _(sesión 36)_
+- **InvoicesPage: filtro por tipo de comprobante** — dropdown A/B/C/Nota de Crédito/Sin tipo junto a los chips de estado. _(sesión 36)_
+- **ProductsPage: PDF de aging** — botón exportar en panel de aging; HTML imprimible con tabla completa, costo USD y sugerencia. _(sesión 36)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -701,15 +706,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 36)
+## Sesión 36 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ExpensesPage: stacked bar chart por categoría en tab Tendencia** | ✅ Hecho |
+| 2 | **AnalyticsPage: widget Pareto de clientes** — top 20%/50%, barras, alerta concentración | ✅ Hecho |
+| 3 | **Dashboard: widget "Flujo de caja 7 días"** — income / gastos / compras net | ✅ Hecho |
+| 4 | **InvoicesPage: filtro por tipo A/B/C/NC** | ✅ Hecho |
+| 5 | **ProductsPage: PDF de aging** — botón en panel, HTML imprimible con sugerencias | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 37)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ExpensesPage: gráfico de tendencia mensual por categoría** — mini líneas/barras por categoría de gasto en los últimos 6 meses | Visibilidad de costos |
-| 2 | **AnalyticsPage: Pareto de clientes** — concentración de ingresos, qué % del revenue viene del top 20% de clientes | Foco comercial |
-| 3 | **Dashboard: resumen de flujo de caja semanal** — ingresos - gastos - pagos a proveedores de los últimos 7 días | Control financiero |
-| 4 | **InvoicesPage: filtro por tipo (A/B/C/NC)** — dropdown rápido junto al filtro de estado | Usabilidad facturas |
-| 5 | **ProductsPage: exportar PDF de productos sin movimiento** — lista de aging con costo inmovilizado para decisión de liquidación | Gestión inventario |
+| 1 | **SalesPage: comparativa por período (mes vs mes anterior) en vista por fecha** — al agrupar por día, mostrar delta vs misma semana anterior | Insight operativo |
+| 2 | **AIChatPage: exportar conversación como texto/PDF** — botón en historial para guardar transcript | UX IA |
+| 3 | **DebtsPage: proyección de cobros** — cuánto se espera cobrar en los próximos 30d por due_date | Cash flow |
+| 4 | **ReportsPage: tab "Rentabilidad" — comparar 2 períodos** — selector dual para ver margen mes X vs mes Y | Análisis avanzado |
+| 5 | **CustomersPage: export de análisis RFM a CSV** — botón en panel de RFM que descarga todos los clientes con R/F/M scores | Data export |
 
 ---
 
