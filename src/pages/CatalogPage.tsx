@@ -213,7 +213,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
       // ── PRODUCT PAGES ────────────────────────────────────────────────────
       if (isVaperMode) {
-        // Load flavor variants
+        // ── Load variants ─────────────────────────────────────────────────────
         const variantRows: any[] = [];
         const { data: vData } = await supabase
           .from('product_variants').select('*')
@@ -225,245 +225,263 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           variantsByProduct[v.product_id].push(v);
         }
 
-        // ── Layout constants ──────────────────────────────────────────────────
-        const BG: [number, number, number] = [10, 12, 40];   // dark navy
-        const gM = 9;                                         // side margin
+        // ── Constants ─────────────────────────────────────────────────────────
+        // Background: very dark navy, matching reference
+        const bgR = 7, bgG = 9, bgB = 33;
+
+        // Grid: 4 columns, ~44mm wide cells
+        const gM    = 9;
         const GCOLS = 4;
-        const gGap = 4;
-        const cellW  = (W - gM * 2 - gGap * (GCOLS - 1)) / GCOLS;   // ≈ 45 mm
-        const cellImgH = 40;
-        const cellTextH = 14;
-        const cellH = cellImgH + cellTextH;
-        const rowGap = 5;
+        const gGap  = 5;
+        const cellW   = (W - gM * 2 - gGap * (GCOLS - 1)) / GCOLS;   // ≈ 44.25 mm
+        const cellImgH = 44;   // nearly square
+        const cellTextH = 15;  // 2 lines of flavor name
+        const cellH    = cellImgH + cellTextH;
+        const rowGap   = 6;
 
-        const HEADER_H1 = 78;   // first page header height
-        const HEADER_HC = 28;   // continuation header height
-        const FOOTER_H  = 28;
-        const GRID_PAD  = 4;    // gap above/below grid
+        // Header heights
+        const HDR1 = 76;    // first page
+        const HDRC = 26;    // continuation
+        const FTR  = 36;    // footer
+        const PAD  = 3;     // grid top/bottom padding
 
-        const rowsFirstPage = Math.floor((H - HEADER_H1 - GRID_PAD * 2 - FOOTER_H) / (cellH + rowGap));
-        const rowsContPage  = Math.floor((H - HEADER_HC - GRID_PAD * 2 - FOOTER_H) / (cellH + rowGap));
+        const maxRowsP1   = Math.floor((H - HDR1 - PAD * 2 - FTR) / (cellH + rowGap)); // ≥ 3
+        const maxRowsCont = Math.floor((H - HDRC - PAD * 2 - FTR) / (cellH + rowGap));
 
-        // Social handle for footer
-        const socialHandle = `@${bName.replace(/\s+/g, '').toUpperCase()}`;
+        // Contact info
+        const waNumber = (settings?.whatsapp_number || '').replace(/\D/g, '');
+        const spacedWA = waNumber.split('').join(' ');   // "3 8 0 4 2 4 9 7 7 2"
+        const handle   = `@${bName.replace(/\s+/g, '').toUpperCase()}`;
 
-        // ── Helpers ───────────────────────────────────────────────────────────
-        const fillBg = () => {
-          doc.setFillColor(...BG);
+        // ── fillBg ────────────────────────────────────────────────────────────
+        const fillBgV = () => {
+          doc.setFillColor(bgR, bgG, bgB);
           doc.rect(0, 0, W, H, 'F');
         };
 
-        const drawFirstHeader = (brand: string, model: string, puffs: string | null, eff: number, twoX: number) => {
-          // Brand box (white rounded rect centered)
-          doc.setFontSize(26);
+        // ── drawFirstHeader ───────────────────────────────────────────────────
+        const drawFirstHeader = (
+          brand: string, model: string,
+          puffs: string | null,
+          eff: number, twoX: number
+        ) => {
+          // ── Brand box ──────────────────────────────────────────
+          doc.setFontSize(28);
           doc.setFont('helvetica', 'bold');
-          const bTxt = brand;
-          const bBoxW = doc.getTextWidth(bTxt) + 24;
-          const bBoxX = W / 2 - bBoxW / 2;
+          const bw = doc.getTextWidth(brand) + 28;
+          const bx = W / 2 - bw / 2;
           doc.setFillColor(255, 255, 255);
-          doc.roundedRect(bBoxX, 10, bBoxW, 20, 3, 3, 'F');
-          doc.setTextColor(15, 15, 15);
-          doc.text(bTxt, W / 2, 24, { align: 'center' });
+          doc.roundedRect(bx, 9, bw, 22, 3, 3, 'F');
+          doc.setTextColor(10, 10, 10);
+          doc.text(brand, W / 2, 24.5, { align: 'center' });
 
-          // Model name (accent color)
-          let curY = 40;
+          // ── Model name ─────────────────────────────────────────
+          let y = 38;
           if (model) {
-            doc.setFontSize(12);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(pR, pG, pB);
-            doc.text(model, W / 2, curY, { align: 'center' });
-            curY += 9;
+            doc.text(model, W / 2, y, { align: 'center' });
+            y += 9;
           }
 
-          // Puffs
+          // ── Puffs ──────────────────────────────────────────────
           if (puffs) {
-            doc.setFontSize(10);
+            doc.setFontSize(9.5);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(195, 195, 220);
-            doc.text(puffs, W / 2, curY, { align: 'center' });
-            curY += 9;
+            doc.setTextColor(190, 192, 225);
+            doc.text(puffs, W / 2, y, { align: 'center' });
+            y += 9;
           }
 
-          // Separator
-          curY += 2;
-          doc.setDrawColor(50, 52, 80);
-          doc.setLineWidth(0.4);
-          doc.line(W / 2 - 35, curY, W / 2 + 35, curY);
-          curY += 7;
-
-          // 1X price (accent color, large)
-          doc.setFontSize(20);
+          // ── 1X price ───────────────────────────────────────────
+          y += 2;
+          doc.setFontSize(21);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(pR, pG, pB);
-          doc.text(`1X  ${fmtARS(eff)}`, W / 2, curY, { align: 'center' });
-          curY += 12;
+          doc.text(`1X  ${fmtARS(eff)}`, W / 2, y, { align: 'center' });
+          y += 13;
 
-          // 2X price (white, large)
-          doc.setFontSize(20);
-          doc.setTextColor(230, 230, 250);
-          doc.text(`2X  ${fmtARS(twoX)}`, W / 2, curY, { align: 'center' });
+          // ── 2X price ───────────────────────────────────────────
+          doc.setFontSize(21);
+          doc.setTextColor(235, 236, 255);
+          doc.text(`2X  ${fmtARS(twoX)}`, W / 2, y, { align: 'center' });
         };
 
+        // ── drawContHeader ────────────────────────────────────────────────────
         const drawContHeader = (brand: string, model: string) => {
-          doc.setFontSize(13);
+          doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(255, 255, 255);
-          doc.text(`${brand} ${model}`, W / 2, 16, { align: 'center' });
+          doc.setTextColor(235, 236, 255);
+          doc.text(`${brand}  ${model}`, W / 2, 15, { align: 'center' });
           doc.setFontSize(7);
           doc.setFont('helvetica', 'normal');
           doc.setTextColor(pR, pG, pB);
-          doc.text('continuación', W / 2, 23, { align: 'center' });
+          doc.text('continuación', W / 2, 22, { align: 'center' });
         };
 
-        const drawFooter = () => {
-          // Social handle
-          doc.setFontSize(14);
+        // ── drawFooter ────────────────────────────────────────────────────────
+        const drawVaperFooter = () => {
+          if (spacedWA) {
+            doc.setFontSize(13);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(pR, pG, pB);
+            doc.text(spacedWA, W / 2, H - 22, { align: 'center' });
+          }
+          doc.setFontSize(11);
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(pR, pG, pB);
-          doc.text(socialHandle, W / 2, H - 14, { align: 'center' });
-          // URL / date
-          doc.setFontSize(6.5);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(80, 82, 115);
-          doc.text(publicUrl, W / 2, H - 6, { align: 'center' });
+          doc.setTextColor(225, 226, 255);
+          doc.text(handle, W / 2, H - 10, { align: 'center' });
         };
 
         // ── SOLD OUT diagonal stamp ───────────────────────────────────────────
-        const drawSoldOutStamp = (cx: number, cy: number, cw: number, ch: number) => {
-          // Thick diagonal red band (thick stroke line)
-          doc.setDrawColor(210, 25, 25);
-          doc.setLineWidth(13);
-          doc.line(cx + 4, cy + ch - 4, cx + cw - 4, cy + 4);
-          // Thinner white outline lines for contrast
+        // Draws a diagonal red band from bottom-left → top-right with white text
+        const drawSoldOut = (x: number, y: number, cw: number, ch: number) => {
+          const x1 = x + 3,  y1 = y + ch - 3;   // bottom-left
+          const x2 = x + cw - 3, y2 = y + 3;    // top-right
+          const dx = x2 - x1, dy = y2 - y1;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          // Perpendicular unit vector (rotated 90° CCW: (-dy, dx) normalised)
+          const nx = -dy / len, ny = dx / len;
+          const half = 6.5; // half-band thickness in mm
+
+          // Red filled band as two overlapping thick strokes
+          doc.setDrawColor(205, 18, 18);
+          doc.setLineWidth(half * 2);
+          doc.line(x1, y1, x2, y2);
+
+          // White border lines
           doc.setDrawColor(255, 255, 255);
-          doc.setLineWidth(0.6);
-          const offset = 7;
-          doc.line(cx + 4 - offset * 0.6, cy + ch - 4 + offset * 0.8,
-                   cx + cw - 4 - offset * 0.6, cy + 4 + offset * 0.8);
-          doc.line(cx + 4 + offset * 0.6, cy + ch - 4 - offset * 0.8,
-                   cx + cw - 4 + offset * 0.6, cy + 4 - offset * 0.8);
-          // "SOLD OUT" text at angle
+          doc.setLineWidth(0.55);
+          doc.line(x1 + nx * half, y1 + ny * half, x2 + nx * half, y2 + ny * half);
+          doc.line(x1 - nx * half, y1 - ny * half, x2 - nx * half, y2 - ny * half);
+
+          // Text at band angle — jsPDF angle = CCW degrees from horizontal
+          const angleDeg = Math.atan2(ch - 6, cw - 6) * 180 / Math.PI;
           doc.setTextColor(255, 255, 255);
-          doc.setFontSize(9.5);
+          doc.setFontSize(10.5);
           doc.setFont('helvetica', 'bold');
-          const angle = Math.atan2(ch - 8, cw - 8) * 180 / Math.PI;
-          doc.text('SOLD OUT', cx + cw / 2, cy + ch / 2 + 2, { align: 'center', angle });
+          // Mid-point of the band
+          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+          doc.text('SOLD OUT', mx, my + 2, { align: 'center', angle: angleDeg });
         };
 
-        // ── Draw flavor grid rows ─────────────────────────────────────────────
+        // ── drawGridRows ──────────────────────────────────────────────────────
         const drawGridRows = (
-          variants: any[],
-          startIdx: number,
-          maxRows: number,
-          gridY: number,
-          productImgData: string | null
-        ) => {
+          variants: any[], startIdx: number,
+          maxRows: number, gridStartY: number,
+          imgData: string | null
+        ): number => {
           let idx = startIdx;
           for (let row = 0; row < maxRows && idx < variants.length; row++) {
             for (let col = 0; col < GCOLS && idx < variants.length; col++) {
               const v = variants[idx++];
-              const inStock = v.stock > 0;
-              const cellX = gM + col * (cellW + gGap);
-              const cellY = gridY + row * (cellH + rowGap);
+              const inStock = (v.stock ?? 0) > 0;
+              const cx = gM + col * (cellW + gGap);
+              const cy = gridStartY + row * (cellH + rowGap);
 
-              // Cell image bg (slightly lighter than page bg)
-              doc.setFillColor(22, 25, 55);
-              doc.roundedRect(cellX, cellY, cellW, cellImgH, 3, 3, 'F');
+              // Image background
+              doc.setFillColor(18, 20, 52);
+              doc.roundedRect(cx, cy, cellW, cellImgH, 2, 2, 'F');
 
-              // Product image
-              if (productImgData) {
-                try {
-                  doc.addImage(productImgData, 'JPEG', cellX, cellY, cellW, cellImgH);
-                } catch { /* */ }
+              // Product image (same for all flavors)
+              if (imgData) {
+                try { doc.addImage(imgData, 'JPEG', cx, cy, cellW, cellImgH); } catch { /* */ }
               }
 
-              // SOLD OUT diagonal stamp
-              if (!inStock) {
-                drawSoldOutStamp(cellX, cellY, cellW, cellImgH);
-              }
+              // SOLD OUT stamp
+              if (!inStock) drawSoldOut(cx, cy, cellW, cellImgH);
 
-              // Flavor name centered below image
-              const flavorY = cellY + cellImgH + 3;
-              doc.setFontSize(6.5);
+              // Flavor name — white bold, 2 lines max
+              const labelY = cy + cellImgH + 4;
+              doc.setFontSize(6.8);
               doc.setFont('helvetica', 'bold');
-              doc.setTextColor(inStock ? 240 : 100, inStock ? 240 : 100, inStock ? 255 : 120);
-              const fLines = doc.splitTextToSize((v.variant_name as string).toUpperCase(), cellW - 2);
-              doc.text(fLines.slice(0, 2), cellX + cellW / 2, flavorY + 5, { align: 'center' });
+              doc.setTextColor(
+                inStock ? 238 : 110,
+                inStock ? 238 : 110,
+                inStock ? 255 : 130
+              );
+              const fLines = doc.splitTextToSize(
+                (v.variant_name as string).toUpperCase(), cellW - 1
+              );
+              doc.text(fLines.slice(0, 2), cx + cellW / 2, labelY + 4.5, { align: 'center' });
 
+              // Stock (internal only)
               if (!isPublic) {
-                doc.setFontSize(5);
-                doc.setTextColor(70, 72, 105);
-                doc.text(`${v.stock}u`, cellX + cellW - 1, flavorY + 5, { align: 'right' });
+                doc.setFontSize(4.8);
+                doc.setTextColor(55, 57, 95);
+                doc.text(`${v.stock}u`, cx + cellW - 0.5, labelY + 4.5, { align: 'right' });
               }
             }
           }
           return idx;
         };
 
-        // ── Render each product ───────────────────────────────────────────────
+        // ── Render ────────────────────────────────────────────────────────────
         for (const p of filtered) {
-          const variants = variantsByProduct[p.id] || [];
-          const effPrice = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+          const variants  = variantsByProduct[p.id] || [];
+          const effPrice  = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
             ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
           const twoXPrice = p.price_2x_ars ? Number(p.price_2x_ars) : effPrice * 2;
 
           const puffsMatch = p.name.match(/(\d+\.?\d*)\s*[Kk]\b/);
-          const puffsNum = puffsMatch ? parseFloat(puffsMatch[1]) * 1000 : null;
+          const puffsNum   = puffsMatch ? parseFloat(puffsMatch[1]) * 1000 : null;
           const puffsLabel = puffsNum
             ? `${new Intl.NumberFormat('es-AR').format(puffsNum)} PUFFS`
             : null;
-          const brandWord = (p.brand || '').toUpperCase() || p.name.split(/\s+/)[0].toUpperCase();
-          const modelWord = p.name.replace(new RegExp(`^${(p.brand || '').trim()}\\s*`, 'i'), '').toUpperCase();
+          const brandWord = (p.brand || p.name.split(/\s+/)[0]).toUpperCase();
+          const modelWord = p.name
+            .replace(new RegExp(`^${(p.brand || '').trim()}\\s*`, 'i'), '')
+            .toUpperCase();
           const imgData = p.image_url ? (imageCache[p.image_url] ?? null) : null;
 
-          let variantIdx = 0;
-          let isFirstPage = true;
+          let vidx = 0;
+          let firstPage = true;
 
           do {
             doc.addPage();
-            fillBg();
+            fillBgV();
 
-            const hH = isFirstPage ? HEADER_H1 : HEADER_HC;
-            if (isFirstPage) {
+            if (firstPage) {
               drawFirstHeader(brandWord, modelWord, puffsLabel, effPrice, twoXPrice);
             } else {
               drawContHeader(brandWord, modelWord);
             }
 
-            const gridY = hH + GRID_PAD;
-            const maxRows = isFirstPage ? rowsFirstPage : rowsContPage;
+            const gridY  = (firstPage ? HDR1 : HDRC) + PAD;
+            const maxR   = firstPage ? maxRowsP1 : maxRowsCont;
 
             if (variants.length === 0) {
-              // No variants — large centered product image
-              const sW = 90, sH = 110;
-              const sX = W / 2 - sW / 2, sY = gridY + 8;
-              doc.setFillColor(22, 25, 55);
-              doc.roundedRect(sX, sY, sW, sH, 4, 4, 'F');
+              // No flavors — show large centered product image
+              const iw = 88, ih = 108;
+              const ix = W / 2 - iw / 2, iy = gridY + 6;
+              doc.setFillColor(18, 20, 52);
+              doc.roundedRect(ix, iy, iw, ih, 3, 3, 'F');
               if (imgData) {
-                try { doc.addImage(imgData, 'JPEG', sX, sY, sW, sH); } catch { /* */ }
+                try { doc.addImage(imgData, 'JPEG', ix, iy, iw, ih); } catch { /* */ }
               }
               if (!isPublic) {
                 doc.setFontSize(7);
-                doc.setTextColor(80, 82, 115);
-                doc.text(`Stock: ${p.stock} u.`, W / 2, sY + sH + 9, { align: 'center' });
+                doc.setTextColor(70, 72, 110);
+                doc.text(`Stock: ${p.stock} u.`, W / 2, iy + ih + 9, { align: 'center' });
               }
             } else {
-              variantIdx = drawGridRows(variants, variantIdx, maxRows, gridY, imgData);
+              vidx = drawGridRows(variants, vidx, maxR, gridY, imgData);
             }
 
-            drawFooter();
-            isFirstPage = false;
-          } while (variantIdx < variants.length);
+            drawVaperFooter();
+            firstPage = false;
+          } while (vidx < variants.length);
         }
 
-        // Page numbers on vaper product pages (skip cover + back cover)
-        const totalVP = doc.getNumberOfPages();
-        for (let i = 2; i <= totalVP - 1; i++) {
+        // Page numbers (tiny, bottom center, skip cover & back cover)
+        const tvp = doc.getNumberOfPages();
+        for (let i = 2; i <= tvp - 1; i++) {
           doc.setPage(i);
-          doc.setFontSize(6);
+          doc.setFontSize(5.5);
           doc.setFont('helvetica', 'normal');
-          doc.setTextColor(60, 62, 95);
-          doc.text(`${i - 1} / ${totalVP - 2}`, W / 2, H - 1, { align: 'center' });
+          doc.setTextColor(45, 47, 80);
+          doc.text(`${i - 1} / ${tvp - 2}`, W / 2, H - 1, { align: 'center' });
         }
 
       } else {
