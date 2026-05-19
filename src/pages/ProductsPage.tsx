@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -29,6 +29,48 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
+
+function exportQRLabels(products: any[], businessName: string) {
+  const inStock = products.filter(p => p.stock > 0).slice(0, 60);
+  if (!inStock.length) return;
+  const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+  const rows = inStock.map(p => {
+    const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+      ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+    const qrData = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, price }));
+    return `
+      <div class="label">
+        <div class="qr-wrap">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${qrData}" alt="QR" width="80" height="80" />
+        </div>
+        <div class="info">
+          <div class="name">${p.name.slice(0, 28)}${p.name.length > 28 ? '…' : ''}</div>
+          ${p.brand ? `<div class="brand">${p.brand}</div>` : ''}
+          <div class="price">${fmtARS(price)}</div>
+          ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas QR — ${businessName}</title>
+<style>
+  @page { margin: 10mm; }
+  body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
+  h2 { font-size: 12px; color: #555; text-align: center; margin: 0 0 8px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 4mm; justify-content: flex-start; }
+  .label { width: 55mm; border: 0.5px solid #ddd; border-radius: 4px; padding: 3mm; display: flex; align-items: center; gap: 3mm; break-inside: avoid; }
+  .qr-wrap img { display: block; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-size: 8px; font-weight: bold; color: #111; word-break: break-word; line-height: 1.2; }
+  .brand { font-size: 7px; color: #777; margin-top: 1px; }
+  .price { font-size: 11px; font-weight: bold; color: #b8860b; margin-top: 2px; }
+  .sku { font-size: 6px; color: #aaa; font-family: monospace; margin-top: 1px; }
+</style></head><body>
+<h2>${businessName} — Etiquetas QR (${inStock.length} productos)</h2>
+<div class="grid">${rows}</div>
+</body></html>`;
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+}
 
 function exportPriceListPDF(products: any[], businessName: string) {
   const inStock = products.filter(p => p.stock > 0);
@@ -277,6 +319,9 @@ export default function ProductsPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
               <FileText className="w-4 h-4 mr-2" />Lista precios
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas QR por producto">
+              <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
             </Button>
             {canCreate && (
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>

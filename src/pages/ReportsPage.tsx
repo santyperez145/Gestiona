@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -2473,20 +2473,64 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
 
   const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
 
+  const printPDF = () => {
+    const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+    const rows = chartData.filter(d => d.revenue > 0).map(d => `
+      <tr>
+        <td>${d.label}</td>
+        <td>${fmtARS(d.revenue)}</td>
+        <td>${fmtARS(d.grossProfit)}</td>
+        <td style="color:${d.grossMargin >= 30 ? '#16a34a' : d.grossMargin >= 15 ? '#d97706' : '#dc2626'};font-weight:bold">${fmtPct(d.grossMargin)}</td>
+        <td>${fmtARS(d.expenses)}</td>
+        <td>${fmtARS(d.net)}</td>
+        <td style="color:${d.netMargin >= 15 ? '#16a34a' : d.netMargin >= 0 ? '#d97706' : '#dc2626'};font-weight:bold">${fmtPct(d.netMargin)}</td>
+      </tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Tendencia de Márgenes</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px}
+  h1{font-size:16px;margin-bottom:4px}p.sub{color:#666;font-size:10px;margin:0 0 16px}
+  table{width:100%;border-collapse:collapse}th{background:#f3f4f6;text-align:left;padding:6px 8px;font-size:10px;border-bottom:2px solid #e5e7eb}
+  td{padding:5px 8px;border-bottom:1px solid #f0f0f0}
+  .kpi{display:flex;gap:16px;margin-bottom:16px}
+  .kpi-item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 14px;min-width:120px;text-align:center}
+  .kpi-item .val{font-size:18px;font-weight:bold;color:#b8860b}.kpi-item .lbl{font-size:9px;color:#777;margin-top:2px}
+</style></head><body>
+<h1>📈 Tendencia de Márgenes — Últimos ${months} meses</h1>
+<p class="sub">Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+<div class="kpi">
+  <div class="kpi-item"><div class="val">${avgGrossMargin.toFixed(1)}%</div><div class="lbl">Margen bruto promedio</div></div>
+  ${lastMonth?.revenue > 0 ? `<div class="kpi-item"><div class="val">${lastMonth.grossMargin.toFixed(1)}%</div><div class="lbl">Margen mes actual</div></div>` : ''}
+  ${bestMonth ? `<div class="kpi-item"><div class="val">${bestMonth.grossMargin.toFixed(1)}%</div><div class="lbl">Mejor mes (${bestMonth.label})</div></div>` : ''}
+  ${worstMonth ? `<div class="kpi-item"><div class="val">${worstMonth.grossMargin.toFixed(1)}%</div><div class="lbl">Peor mes (${worstMonth.label})</div></div>` : ''}
+</div>
+<table>
+  <thead><tr><th>Mes</th><th>Ingresos</th><th>Gan. Bruta</th><th>Margen %</th><th>Gastos</th><th>Gan. Neta</th><th>Margen Neto %</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+</body></html>`;
+    const w = window.open('', '_blank', 'width=900,height=600');
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 500); }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold">Tendencia de Márgenes</h3>
-        <select
-          value={months}
-          onChange={e => setMonths(Number(e.target.value))}
-          className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
-        >
-          <option value={3}>3 meses</option>
-          <option value={6}>6 meses</option>
-          <option value={12}>12 meses</option>
-          <option value={24}>24 meses</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={months}
+            onChange={e => setMonths(Number(e.target.value))}
+            className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
+          >
+            <option value={3}>3 meses</option>
+            <option value={6}>6 meses</option>
+            <option value={12}>12 meses</option>
+            <option value={24}>24 meses</option>
+          </select>
+          <Button variant="outline" size="sm" onClick={printPDF} className="h-8 text-xs">
+            <Printer className="w-3.5 h-3.5 mr-1.5" />PDF
+          </Button>
+        </div>
       </div>
 
       {/* KPI row */}

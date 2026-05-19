@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB } from "@/lib/supabaseStore";
+import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode, attributeSaleToExchange } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -124,11 +124,13 @@ export default function SalesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
+  const [filterMethod, setFilterMethod] = useState('all');
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
     if (filterPaid === 'paid' && !s.paid) return false;
     if (filterPaid === 'pending' && s.paid) return false;
+    if (filterMethod !== 'all' && s.payment_method !== filterMethod) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -442,12 +444,21 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
         </div>
         <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
-          <SelectTrigger className="bg-card border-border w-full sm:w-[160px] h-9 text-sm">
+          <SelectTrigger className="bg-card border-border w-full sm:w-[150px] h-9 text-sm">
             <Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterMethod} onValueChange={v => { setFilterMethod(v); setPage(0); }}>
+          <SelectTrigger className="bg-card border-border w-full sm:w-[140px] h-9 text-sm">
+            <SelectValue placeholder="Método pago" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todo método</SelectItem>
+            {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <div className="flex rounded-lg border border-border overflow-hidden h-9 shrink-0">
@@ -866,6 +877,15 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
     if (!couponCode.trim()) return;
     setValidatingCoupon(true);
     try {
+      // Check influencer exchange code first (INF- prefix)
+      if (couponCode.trim().toUpperCase().startsWith('INF-')) {
+        const exchange = await findExchangeByCode(couponCode);
+        if (exchange) {
+          setCouponResult({ valid: true, coupon: { id: null, discount_type: 'influencer', influencer_exchange: exchange, description: `Canje: ${exchange.influencer_name}` } });
+          setValidatingCoupon(false);
+          return;
+        }
+      }
       const result = await validateCouponDB(userId, couponCode);
       setCouponResult(result);
     } catch { setCouponResult({ valid: false, reason: 'Error al validar' }); }
@@ -957,7 +977,13 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           await logAudit(userId, 'create', 'sale', saleId, { product: calc.productLabel, total: calc.total, profit: calc.profitARS, paymentMethod });
           if (line.productId && !calc.isDecant && !line.variantId) await checkStockAfterSale(line.productId, calc.product.name);
         }
-        if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
+        if (couponResult?.valid && couponResult.coupon?.id) await incrementCouponUse(couponResult.coupon.id);
+        // Auto-attribute to influencer exchange when INF- code used
+        if (couponResult?.valid && couponResult.coupon?.discount_type === 'influencer' && couponResult.coupon?.influencer_exchange) {
+          const totalSaleAmount = lineCalcs.reduce((sum, { calc }) => sum + (calc?.total ?? 0), 0);
+          await attributeSaleToExchange(couponResult.coupon.influencer_exchange.id, totalSaleAmount);
+          toast.success(`✓ Venta atribuida a ${couponResult.coupon.influencer_exchange.influencer_name}`);
+        }
         toast.success(`${lines.length === 1 ? 'Venta registrada' : `${lines.length} ventas registradas`}`);
       }
       onSave();

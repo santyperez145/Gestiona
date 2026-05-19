@@ -230,6 +230,30 @@ export async function deleteExchangeDB(id: string) {
   if (error) throw error;
 }
 
+export function generateInfluencerCode(influencerName: string): string {
+  const slug = influencerName.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'INF';
+  const rand = Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, '0');
+  return `INF-${slug}-${rand}`;
+}
+
+export async function findExchangeByCode(code: string): Promise<any | null> {
+  const { data } = await supabase
+    .from('influencer_exchanges')
+    .select('*')
+    .ilike('discount_code', code.trim())
+    .maybeSingle();
+  return data || null;
+}
+
+export async function attributeSaleToExchange(exchangeId: string, saleAmount: number) {
+  const { data } = await supabase.from('influencer_exchanges').select('sales_generated_ars').eq('id', exchangeId).single();
+  if (data) {
+    await supabase.from('influencer_exchanges').update({
+      sales_generated_ars: Number(data.sales_generated_ars || 0) + saleAmount,
+    }).eq('id', exchangeId);
+  }
+}
+
 // ========= SALES EDIT =========
 export async function updateSaleDB(id: string, updates: any, oldSale?: any) {
   const { error } = await supabase.from('sales').update(updates).eq('id', id);

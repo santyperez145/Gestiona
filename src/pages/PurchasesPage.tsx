@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck } from "lucide-react";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -288,7 +288,14 @@ export default function PurchasesPage() {
                 {paged.map(p => (
                   <tr key={p.id} className="hover:bg-muted/20 transition-colors group">
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(p.date)}</td>
-                    <td className="px-4 py-3 font-medium">{p.product_name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <span>{p.product_name}</span>
+                      {p.is_scheduled && p.travel_status === 'en_camino' && (
+                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">
+                          <Truck className="w-3 h-3" />En camino
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{p.supplier || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <span className="bg-muted px-2 py-0.5 rounded text-xs font-medium">{p.quantity}</span>
@@ -299,6 +306,11 @@ export default function PurchasesPage() {
                     {(canEdit || canDelete) && (
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canEdit && p.is_scheduled && p.travel_status !== 'en_camino' && (
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-blue-400 hover:text-blue-400 hover:bg-blue-400/10" title="Marcar como en camino" onClick={async () => { await updatePurchaseDB(p.id, { travel_status: 'en_camino' }); reload(); toast.success('Marcado como en camino'); }}>
+                              <Truck className="w-3.5 h-3.5 mr-1" />En camino
+                            </Button>
+                          )}
                           {canEdit && p.is_scheduled && (
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-success hover:text-success hover:bg-success/10" title="Registrar recepción (puede ser parcial)" onClick={() => setReceivingOrder({ purchase: p, qty: String(p.quantity) })}>
                               <CalendarClock className="w-3.5 h-3.5 mr-1" />Recibido

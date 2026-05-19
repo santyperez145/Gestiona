@@ -113,6 +113,9 @@ export default function Dashboard() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [dolarRates, setDolarRates] = useState<{ blue: number; oficial: number; mep: number } | null>(null);
   const [openCashSession, setOpenCashSession] = useState<{ id: string; opened_at: string } | null>(null);
+  const [noSalesDismissed, setNoSalesDismissed] = useState(() =>
+    !!sessionStorage.getItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`)
+  );
   const [lastWeekSameDaySales, setLastWeekSameDaySales] = useState<number>(0);
   const { activeOrg: orgForWeekly } = useOrg();
   const weeklyTargetKey = `gestiona.dashboard.weekly_target.${orgForWeekly?.id || 'default'}`;
@@ -813,6 +816,25 @@ export default function Dashboard() {
             desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
           </span>
           <Link to="/caja" className="ml-auto text-xs text-primary hover:underline font-medium">Ver caja →</Link>
+        </div>
+      )}
+
+      {/* Sin ventas hoy — alert after 14hs */}
+      {new Date().getHours() >= 14 && (liveTodaySales?.count ?? 0) === 0 && !noSalesDismissed && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-warning/10 border border-warning/30 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <span className="text-sm font-medium text-warning">Sin ventas hoy</span>
+          <span className="text-xs text-muted-foreground hidden sm:block">Son las {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} y no hay ventas registradas.</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Link to="/ventas" className="text-xs text-primary hover:underline font-medium">Registrar →</Link>
+            <button
+              onClick={() => {
+                sessionStorage.setItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, '1');
+                setNoSalesDismissed(true);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+            >✕</button>
+          </div>
         </div>
       )}
 

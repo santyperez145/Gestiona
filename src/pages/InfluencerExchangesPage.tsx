@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
-import { getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB } from "@/lib/supabaseStore";
+import { getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB, generateInfluencerCode, formatARS as _fmt } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone } from "lucide-react";
+import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone, Copy, Tag } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -114,6 +115,37 @@ export default function InfluencerExchangesPage() {
         <KPICard label="CPM" value={cpm !== null ? formatARS(cpm) : "—"} icon={Megaphone} sub={`${(totalReach / 1000).toFixed(1)}K alcance estimado`} />
       </div>
 
+      {/* ROI chart — only when there are exchanges with sales data */}
+      {exchanges.filter(e => Number(e.sales_generated_ars || 0) > 0).length > 0 && (() => {
+        const chartData = exchanges
+          .filter(e => Number(e.product_value_ars) * e.quantity > 0)
+          .map(e => {
+            const inv = Number(e.product_value_ars) * e.quantity;
+            const sales = Number(e.sales_generated_ars || 0);
+            const roi = inv > 0 && sales > 0 ? ((sales - inv) / inv * 100) : 0;
+            return { name: e.influencer_name.split(' ')[0], roi: parseFloat(roi.toFixed(1)), inv, sales };
+          })
+          .sort((a, b) => b.roi - a.roi)
+          .slice(0, 8);
+        return (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" />ROI por Influencer (%)</h3>
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 9 }} tickFormatter={v => `${v}%`} />
+                <Tooltip formatter={(v: any) => [`${v}%`, 'ROI']} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 11 }} />
+                <Bar dataKey="roi" radius={[3, 3, 0, 0]}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.roi >= 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <Input placeholder="Buscar influencer o producto..." value={search} onChange={e => setSearch(e.target.value)} className="bg-muted border-border sm:max-w-xs" />
@@ -156,7 +188,7 @@ export default function InfluencerExchangesPage() {
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="text-left p-3 font-medium">Influencer</th>
                   <th className="text-left p-3 font-medium">Producto</th>
-                  <th className="text-center p-3 font-medium">Tipo</th>
+                  <th className="text-center p-3 font-medium">Código</th>
                   <th className="text-right p-3 font-medium">Inversión</th>
                   <th className="text-right p-3 font-medium">Ventas atr.</th>
                   <th className="text-center p-3 font-medium">Posts</th>
@@ -181,7 +213,21 @@ export default function InfluencerExchangesPage() {
                         <p>{ex.product_name}</p>
                         <p className="text-xs text-muted-foreground">x{ex.quantity}</p>
                       </td>
-                      <td className="p-3 text-center"><span className="text-xs">{TYPE_MAP[ex.exchange_type] || ex.exchange_type}</span></td>
+                      <td className="p-3 text-center">
+                        {ex.discount_code ? (
+                          <button
+                            className="flex items-center gap-1 mx-auto px-2 py-1 rounded bg-muted hover:bg-primary/10 border border-border hover:border-primary/40 transition-colors group"
+                            title="Copiar código"
+                            onClick={() => { navigator.clipboard.writeText(ex.discount_code); toast.success(`Código ${ex.discount_code} copiado`); }}
+                          >
+                            <Tag className="w-3 h-3 text-primary shrink-0" />
+                            <span className="text-[11px] font-mono font-semibold text-primary">{ex.discount_code}</span>
+                            <Copy className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">—</span>
+                        )}
+                      </td>
                       <td className="p-3 text-right font-medium text-warning">{formatARS(inversion)}</td>
                       <td className="p-3 text-right">
                         <Input
@@ -283,7 +329,15 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const [expectedPosts, setExpectedPosts] = useState(String(editItem?.expected_posts || 1));
   const [notes, setNotes] = useState(editItem?.notes || '');
   const [goalNotes, setGoalNotes] = useState(editItem?.goal_notes || '');
+  const [discountCode, setDiscountCode] = useState(editItem?.discount_code || '');
   const [saving, setSaving] = useState(false);
+
+  // Auto-generate code when influencer name is set (new form only)
+  useEffect(() => {
+    if (!editItem && influencerName.trim().length >= 2 && !discountCode) {
+      setDiscountCode(generateInfluencerCode(influencerName));
+    }
+  }, [influencerName]);
 
   useEffect(() => {
     getProductsDB(userId).then(setProducts);
@@ -316,6 +370,7 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
           exchange_type: exchangeType, expected_posts: parseInt(expectedPosts) || 1,
           notes: notes.trim() || null,
           goal_notes: goalNotes.trim() || null,
+          discount_code: discountCode.trim().toUpperCase() || null,
         });
         toast.success("Canje actualizado");
       } else {
@@ -329,6 +384,7 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
           exchange_type: exchangeType, expected_posts: parseInt(expectedPosts) || 1,
           notes: notes.trim() || null,
           goal_notes: goalNotes.trim() || null,
+          discount_code: discountCode.trim().toUpperCase() || null,
         });
         await logAudit(userId, 'create', 'exchange', undefined, { influencer: influencerName, product: product!.name, qty });
         toast.success("Canje registrado — stock descontado");
@@ -376,7 +432,22 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
       <div><label className="text-sm text-muted-foreground">Notas</label>
         <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles del acuerdo..." className="bg-muted border-border" /></div>
       <div><label className="text-sm text-muted-foreground">Objetivo de campaña</label>
-        <Textarea value={goalNotes} onChange={e => setGoalNotes(e.target.value)} placeholder="Ej: Aumentar awareness de perfume árabe, meta 5K impresiones, código INFLUENCER10" rows={2} className="bg-muted border-border resize-none" />
+        <Textarea value={goalNotes} onChange={e => setGoalNotes(e.target.value)} placeholder="Ej: Aumentar awareness de perfume árabe, meta 5K impresiones" rows={2} className="bg-muted border-border resize-none" />
+      </div>
+      <div>
+        <label className="text-sm text-muted-foreground flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-primary" />Código de descuento para rastrear ventas</label>
+        <div className="flex gap-2 mt-1">
+          <Input
+            value={discountCode}
+            onChange={e => setDiscountCode(e.target.value.toUpperCase())}
+            placeholder="INF-NOMBRE-XXXX"
+            className="bg-muted border-border font-mono uppercase"
+          />
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setDiscountCode(generateInfluencerCode(influencerName || 'INF'))}>
+            Regenerar
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-1">El influencer comparte este código. Al usarlo en POS o Ventas, la venta se atribuye automáticamente.</p>
       </div>
       {product && (
         <div className="bg-muted rounded-lg p-3 text-sm space-y-1.5">
