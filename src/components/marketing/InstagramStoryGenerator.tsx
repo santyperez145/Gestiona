@@ -215,13 +215,43 @@ async function renderStory(opts: {
   // Price — slightly smaller when flavors need room
   const priceFontSize = hasFlavors ? 90 : 110;
   const priceBlockH = hasFlavors ? 110 : 130;
-  const priceVal = customPrice || (product.sale_price_ars ? `$${Number(product.sale_price_ars).toLocaleString("es-AR")}` : "");
+  const rawPrice = product.sale_price_ars ? Number(product.sale_price_ars) : 0;
+  const priceVal = customPrice || (rawPrice ? `$${rawPrice.toLocaleString("es-AR")}` : "");
   if (priceVal) {
     y += hasFlavors ? 20 : 30;
+    // "1 unidad" label above main price
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.font = `500 26px Inter, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText("1 UNIDAD", W / 2, y + 10);
+    // Main price
     ctx.fillStyle = primaryColor;
     ctx.font = `900 ${priceFontSize}px Inter, sans-serif`;
-    ctx.fillText(priceVal, W / 2, y + (hasFlavors ? 65 : 80));
+    ctx.fillText(priceVal, W / 2, y + (hasFlavors ? 80 : 95));
     y += priceBlockH;
+    // Price x2 — shown only when we have a real numeric price and space allows
+    const ctaYCheck = H - 220;
+    if (rawPrice > 0 && !customPrice && y + 70 < ctaYCheck - 20) {
+      const price2 = rawPrice * 2;
+      const price2Str = `$${price2.toLocaleString("es-AR")}`;
+      const price2FontSize = Math.round(priceFontSize * 0.52);
+      ctx.font = `700 ${price2FontSize}px Inter, sans-serif`;
+      // Pill background
+      const p2W = ctx.measureText(`2 × ${price2Str}`).width + 60;
+      const p2H = price2FontSize + 28;
+      const p2X = (W - p2W) / 2;
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      drawRoundRect(ctx, p2X, y, p2W, p2H, p2H / 2);
+      ctx.fill();
+      ctx.strokeStyle = primaryColor + "55";
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, p2X, y, p2W, p2H, p2H / 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.70)";
+      ctx.textAlign = "center";
+      ctx.fillText(`2 × ${price2Str}`, W / 2, y + p2H * 0.66);
+      y += p2H + 10;
+    }
   }
 
   // Flavor pills (only for vaper products) — adaptive layout that never exceeds CTA area
