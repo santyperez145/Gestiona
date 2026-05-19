@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -70,6 +70,32 @@ function exportQRLabels(products: any[], businessName: string) {
 </body></html>`;
   const w = window.open('', '_blank', 'width=900,height=700');
   if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+}
+
+function printAgingPDF(aged: { name: string; stock: number; daysSince: number; valueARS: number }[], businessName: string, exchangeRate: number) {
+  const totalValue = aged.reduce((s, p) => s + p.valueARS, 0);
+  const rows = aged.map(p => `
+    <tr>
+      <td>${p.name}</td>
+      <td style="text-align:center">${p.stock}</td>
+      <td style="text-align:center">${p.daysSince >= 999 ? "Nunca" : p.daysSince + "d"}</td>
+      <td style="text-align:right">U$S ${(p.valueARS / exchangeRate).toFixed(2)}</td>
+      <td style="text-align:right; color:${p.daysSince >= 91 ? "#f87171" : p.daysSince >= 61 ? "#fb923c" : "#fbbf24"}">
+        ${p.daysSince >= 91 ? "⚠ Liquidar" : p.daysSince >= 61 ? "Promocionar" : "Vigilar"}
+      </td>
+    </tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Inventario sin movimiento</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;color:#111}h1{font-size:18px;margin-bottom:4px}p{font-size:12px;color:#555;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;padding:8px;text-align:left;border-bottom:2px solid #e5e7eb}
+  td{padding:6px 8px;border-bottom:1px solid #e5e7eb}tfoot td{font-weight:bold;border-top:2px solid #111}</style></head>
+  <body><h1>${businessName} — Inventario sin movimiento</h1>
+  <p>Generado el ${new Date().toLocaleDateString("es-AR")} · ${aged.length} productos · U$S ${(totalValue / exchangeRate).toFixed(0)} inmovilizado</p>
+  <table><thead><tr><th>Producto</th><th>Stock</th><th>Sin venta</th><th>Costo estimado</th><th>Sugerencia</th></tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr><td colspan="3">TOTAL</td><td style="text-align:right">U$S ${(totalValue / exchangeRate).toFixed(0)}</td><td></td></tr></tfoot>
+  </table></body></html>`;
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); w.print(); }
 }
 
 function exportPriceListPDF(products: any[], businessName: string) {
@@ -438,18 +464,25 @@ export default function ProductsPage() {
         const totalAtRisk = aged.reduce((s, p) => s + p.valueARS, 0);
         return (
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <button
-              onClick={() => setShowAging(!showAging)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors text-left"
-            >
-              <div className="flex items-center gap-2">
+            <div className="flex items-center w-full gap-2 pr-2">
+              <button
+                onClick={() => setShowAging(!showAging)}
+                className="flex-1 flex items-center gap-2 px-4 py-3 hover:bg-muted/20 transition-colors text-left"
+              >
                 <BarChart2 className="w-4 h-4 text-amber-400" />
                 <span className="text-sm font-semibold">Análisis de aging — inventario sin movimiento</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">{aged.length} productos</span>
                 <span className="text-xs text-muted-foreground hidden sm:inline">· {formatUSD(totalAtRisk / 900)} en riesgo</span>
-              </div>
-              {showAging ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-            </button>
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); printAgingPDF(aged, settings?.business_name || "Mi Negocio", Number(settings?.exchange_rate) || 900); }}
+                className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                title="Exportar PDF de productos sin movimiento"
+              >
+                <FileDown className="w-4 h-4" />
+              </button>
+              {showAging ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+            </div>
             {showAging && (
               <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
