@@ -693,6 +693,21 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState("");
   const [posNote, setPosNote] = useState("");
+  const [showRecentCustomers, setShowRecentCustomers] = useState(false);
+  const [recentCustomers] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("gestiona.pos.recent_customers") || "[]"); }
+    catch { return []; }
+  });
+
+  const saveRecentCustomer = (name: string) => {
+    if (!name.trim()) return;
+    const existing: string[] = (() => {
+      try { return JSON.parse(localStorage.getItem("gestiona.pos.recent_customers") || "[]"); }
+      catch { return []; }
+    })();
+    const updated = [name.trim(), ...existing.filter(c => c.toLowerCase() !== name.trim().toLowerCase())].slice(0, 8);
+    localStorage.setItem("gestiona.pos.recent_customers", JSON.stringify(updated));
+  };
 
   // Single payment
   const [payMethod, setPayMethod] = useState<PayMethod>("efectivo");
@@ -1165,6 +1180,7 @@ export default function POSPage() {
         }
       });
 
+      if (customer.trim()) saveRecentCustomer(customer.trim());
       setReceipt({
         items: [...cart],
         total: cartTotal,
@@ -1294,12 +1310,32 @@ export default function POSPage() {
 
       {/* Customer + Payment */}
       <div className="px-4 py-3 border-t border-border space-y-3">
-        <Input
-          placeholder="Cliente (opcional)"
-          value={customer}
-          onChange={(e) => setCustomer(e.target.value)}
-          className="h-8 text-sm bg-muted"
-        />
+        <div className="relative">
+          <Input
+            placeholder="Cliente (opcional)"
+            value={customer}
+            onChange={(e) => setCustomer(e.target.value)}
+            onFocus={() => setShowRecentCustomers(true)}
+            onBlur={() => setTimeout(() => setShowRecentCustomers(false), 150)}
+            className="h-8 text-sm bg-muted"
+          />
+          {showRecentCustomers && recentCustomers.filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase())).length > 0 && (
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+              {recentCustomers
+                .filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase()))
+                .slice(0, 5)
+                .map(c => (
+                  <button
+                    key={c}
+                    onMouseDown={() => { setCustomer(c); setShowRecentCustomers(false); }}
+                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors truncate"
+                  >
+                    {c}
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
         {vipLoading && <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Verificando nivel…</p>}
         {vipTier && !vipLoading && (
           <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium ${

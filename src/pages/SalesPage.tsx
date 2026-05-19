@@ -882,6 +882,18 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             ))}
           </div>
 
+          {/* Period totals footer */}
+          {filtered.length > 0 && (
+            <div className="mt-3 bg-card border border-border rounded-xl px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
+              <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Totales del período</span>
+              <span className="font-bold text-primary">{formatARS(totalSales)}</span>
+              <span className="text-success text-xs">{formatARS(totalProfit)} ganancia</span>
+              <span className="text-muted-foreground text-xs">{marginPct.toFixed(1)}% margen</span>
+              <span className="text-muted-foreground text-xs">{filtered.length} ventas</span>
+              {debtCount > 0 && <span className="text-destructive text-xs font-medium">{formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente</span>}
+            </div>
+          )}
+
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
