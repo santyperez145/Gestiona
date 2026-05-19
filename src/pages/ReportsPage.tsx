@@ -289,6 +289,7 @@ export default function ReportsPage() {
           <TabsTrigger value="compare">Comparativa</TabsTrigger>
           <TabsTrigger value="sucursales">Sucursales</TabsTrigger>
           <TabsTrigger value="margin_trend">📈 Tendencia</TabsTrigger>
+          <TabsTrigger value="customers">Clientes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -499,6 +500,10 @@ export default function ReportsPage() {
 
         <TabsContent value="margin_trend">
           <MarginTrendTab sales={data.sales} expenses={data.expenses} />
+        </TabsContent>
+
+        <TabsContent value="customers">
+          <CustomersTab sales={filtered.sales} period={filtered.label} />
         </TabsContent>
       </Tabs>
     </div>
@@ -2782,6 +2787,154 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Clientes Tab
+// ─────────────────────────────────────────────────────────────
+function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
+  const [sortKey, setSortKey] = useState<"total" | "profit" | "count" | "avgTicket" | "lastDate">("total");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const rows = useMemo(() => {
+    const map: Record<string, { name: string; total: number; profit: number; count: number; lastDate: string; units: number }> = {};
+    for (const s of sales) {
+      const key = s.customer_name?.trim() || "(Sin nombre)";
+      if (!map[key]) map[key] = { name: key, total: 0, profit: 0, count: 0, lastDate: s.date || "", units: 0 };
+      map[key].total += Number(s.total_ars) || 0;
+      map[key].profit += Number(s.profit_ars) || 0;
+      map[key].count++;
+      map[key].units += Number(s.quantity) || 0;
+      if ((s.date || "") > map[key].lastDate) map[key].lastDate = s.date;
+    }
+    const arr = Object.values(map).map(r => ({ ...r, avgTicket: r.count > 0 ? r.total / r.count : 0, margin: r.total > 0 ? (r.profit / r.total) * 100 : 0 }));
+    const totalRev = arr.reduce((a, r) => a + r.total, 0);
+    const withShare = arr.map(r => ({ ...r, share: totalRev > 0 ? (r.total / totalRev) * 100 : 0 }));
+    return withShare
+      .filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => {
+        const dir = sortAsc ? 1 : -1;
+        if (sortKey === "lastDate") return a.lastDate.localeCompare(b.lastDate) * dir;
+        return (a[sortKey as keyof typeof a] as number - (b[sortKey as keyof typeof b] as number)) * dir;
+      });
+  }, [sales, sortKey, sortAsc, search]);
+
+  const grandTotal = rows.reduce((a, r) => a + r.total, 0);
+  const grandProfit = rows.reduce((a, r) => a + r.profit, 0);
+  const top20Count = Math.max(1, Math.ceil(rows.length * 0.2));
+  const top20Rev = [...rows].sort((a, b) => b.total - a.total).slice(0, top20Count).reduce((a, r) => a + r.total, 0);
+  const concentration = grandTotal > 0 ? (top20Rev / grandTotal) * 100 : 0;
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else { setSortKey(key); setSortAsc(false); }
+  };
+
+  const exportCSVCustomers = () => {
+    exportCSV("clientes-reporte.csv",
+      ["Cliente", "Compras", "Unidades", "Total ARS", "Ganancia ARS", "Margen %", "Ticket Prom.", "% del total", "Última compra"],
+      rows.map(r => [
+        r.name, r.count.toString(), r.units.toString(),
+        Math.round(r.total).toString(), Math.round(r.profit).toString(),
+        r.margin.toFixed(1), Math.round(r.avgTicket).toString(),
+        r.share.toFixed(1), r.lastDate,
+      ])
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Clientes únicos", value: rows.length.toLocaleString("es-AR"), icon: Users, color: "text-primary" },
+          { label: "Revenue por cliente", value: formatARS(rows.length > 0 ? grandTotal / rows.length : 0), icon: DollarSign, color: "text-success" },
+          { label: "Ticket promedio", value: formatARS(sales.length > 0 ? grandTotal / sales.length : 0), icon: TrendingUp, color: "text-warning" },
+          { label: `Concentración top ${top20Count}`, value: `${concentration.toFixed(0)}%`, icon: BarChart2, color: concentration > 80 ? "text-destructive" : concentration > 60 ? "text-warning" : "text-success" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">{k.label}</span>
+              <k.icon className={`w-3.5 h-3.5 shrink-0 ${k.color}`} />
+            </div>
+            <p className={`text-lg font-bold font-display ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="bg-muted border-border w-56" />
+        <div className="flex gap-2 items-center">
+          <span className="text-xs text-muted-foreground">{period}</span>
+          <Button variant="outline" size="sm" onClick={exportCSVCustomers}>
+            <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium">#</th>
+                <th className="text-left px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium">Cliente</th>
+                <SortTh label="Compras" sortKey="count" current={sortKey} asc={sortAsc} onClick={handleSort} />
+                <SortTh label="Total ARS" sortKey="total" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+                <SortTh label="Ganancia" sortKey="profit" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+                <SortTh label="Ticket prom." sortKey="avgTicket" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+                <th className="text-right px-3 py-2.5 text-xs text-muted-foreground uppercase tracking-wide font-medium hidden md:table-cell">% Total</th>
+                <SortTh label="Última compra" sortKey="lastDate" current={sortKey} asc={sortAsc} onClick={handleSort} right />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.length === 0 ? (
+                <tr><td colSpan={8} className="text-center py-10 text-muted-foreground text-sm">Sin datos para el período seleccionado</td></tr>
+              ) : rows.map((r, i) => (
+                <tr key={r.name} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{i + 1}</td>
+                  <td className="px-3 py-2.5">
+                    <div>
+                      <p className="font-medium text-sm leading-tight">{r.name}</p>
+                      <div className="w-full bg-muted h-1 rounded-full mt-1">
+                        <div className="h-1 rounded-full bg-primary/60" style={{ width: `${Math.min(100, r.share * 3)}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{r.count}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-xs font-mono text-primary">{formatARS(r.total)}</td>
+                  <td className="px-3 py-2.5 text-right text-xs font-mono text-success">{formatARS(r.profit)}</td>
+                  <td className="px-3 py-2.5 text-right text-xs font-mono">{formatARS(r.avgTicket)}</td>
+                  <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden md:table-cell">{r.share.toFixed(1)}%</td>
+                  <td className="px-3 py-2.5 text-right text-xs text-muted-foreground">
+                    {r.lastDate ? new Date(r.lastDate + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/40 font-bold text-sm">
+                  <td className="px-3 py-2.5" colSpan={2}>TOTAL ({rows.length} clientes)</td>
+                  <td className="px-3 py-2.5 text-center">{sales.length}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-primary">{formatARS(grandTotal)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-success">{formatARS(grandProfit)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono">{formatARS(sales.length > 0 ? grandTotal / sales.length : 0)}</td>
+                  <td className="hidden md:table-cell" />
+                  <td />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
       </div>
     </div>
   );
