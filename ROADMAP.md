@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 33)**
+Última actualización: **2026-05-19 (sesión 34)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~97% completo.**
+**MVP avanzado con SaaS billing funcional. ~98% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -196,6 +196,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **SalesPage: filtro por método de pago** — Select con todos los métodos (efectivo/débito/crédito/transferencia/MP/fiado). _(sesión 31)_
 - **AIChatPage: crear tarea desde chat** — CreateTaskCard con título, descripción, fecha, prioridad; chip "Crear tarea". _(sesión 31)_
 - **AnalyticsPage: CSV export tendencia mensual** — botón Download en tab Tendencia; 7 columnas (mes, ingresos, ganancia, COGS, gastos, neto, unidades). _(sesión 30–31)_
+- **SalesPage: totales de período en footer** — fila sticky al final de la lista mobile con total ARS, ganancia, margen %, count y pendiente. _(sesión 34)_
+- **POSPage: cliente reciente (favorito)** — dropdown con últimos 5 clientes desde localStorage, guardado automático post-venta. _(sesión 34)_
+- **ReportsPage InventoryTab: rotación y días de stock** — columna "Días stock" color-coded (rojo/amarillo/verde) basada en velocity 30d; métricas de stock crítico/bajo en resumen. _(sesión 34)_
+- **ReportsPage InventoryTab: PDF export** — PDF A4 landscape con jsPDF/autoTable: KPIs en header, tabla completa con márgenes color-coded, fila de totales. _(sesión 34)_
+- **Dashboard temperatura: 5ª señal "Prod. sin movim. 30d"** — agingCount30 en stats; semáforo rojo si >5 productos sin venta 30d; grid-cols-5 en lg. _(sesión 34)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -374,7 +379,7 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 
 ---
 
-## Estado por módulo (actualizado sesión 22)
+## Estado por módulo (actualizado sesión 34)
 
 | Módulo | % | Próximo milestone |
 |--------|---|-------------------|
@@ -386,12 +391,12 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 | Finanzas | 90% | Conciliación automática, auditoría |
 | Facturación AFIP | 65% | Notas de crédito |
 | Marketing + Email | 85% | Open rate / click tracking Resend |
-| IA + Analytics | 98% | Series temporales, forecasting por SKU |
+| IA + Analytics | 99% | Series temporales, forecasting por SKU |
 | Integraciones | 75% | Shopify, MeLi |
 | SaaS + billing | 82% | Permisos por plan granulares |
 | Mobile + UX | 80% | Capacitor, impresora BT |
 | Testing + calidad | 40% | E2E, mocks edge fns |
-| **TOTAL** | **97%** | |
+| **TOTAL** | **98%** | |
 
 ---
 
@@ -666,15 +671,28 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 34)
+## Sesión 34 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **CustomersPage: segmentación automática VIP/regular/inactivo** | ✅ Ya existía (RFM en sesión 9) |
+| 2 | **SalesPage: totales de período en footer de tabla** | ✅ Hecho (sesión 34a) |
+| 3 | **Dashboard: widget temperatura — 5ª señal "prod. sin movim. 30d"** — agingCount30 en stats useMemo; grid-cols-5 en lg | ✅ Hecho |
+| 4 | **ReportsPage InventoryTab: columna "Días stock"** — velocidad 30d, color rojo/amarillo/verde, sort por días, CSV actualizado | ✅ Hecho |
+| 5 | **ReportsPage InventoryTab: PDF export** — jsPDF landscape A4 con KPIs header, autoTable con color-coding de márgenes | ✅ Hecho |
+| 6 | **POSPage: cliente favorito / recientes** — dropdown con últimos 5 clientes desde localStorage, guardado post-venta | ✅ Hecho (sesión 34a) |
+
+---
+
+## Prioridades inmediatas (sesión 35)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **CustomersPage: segmentación automática VIP/regular/inactivo** — badge automático según gasto y frecuencia en últimos 90d | CRM accionable |
-| 2 | **SalesPage: totales de período en footer de tabla** — fila de totales visible al hacer scroll | UX cierre de caja |
-| 3 | **Dashboard: widget de temperatura actualizado** — include aging products en semáforo | Proactividad |
-| 4 | **ReportsPage: tab "Inventario"** — tablas de rotación, valor por categoría, stock aging | Gestión stock |
-| 5 | **POSPage: cliente favorito** — historial de últimos 5 clientes para autocompletar rápido | Velocidad caja |
+| 1 | **SalesPage: gráfico de tendencia diaria en el período filtrado** — mini BarChart por día sin recharts extra; datos ya disponibles | Insight rápido |
+| 2 | **ProductsPage: filtro avanzado por margen** — rango de margen (ej: "margen < 20%") | Gestión precios |
+| 3 | **CustomersPage: tab "Análisis RFM"** — tabla con score R/F/M individual por cliente, distribución de segmentos | CRM data-driven |
+| 4 | **InvoicesPage: envío masivo de facturas** — checkboxes + barra flotante "Enviar por email" | Facturación eficiente |
+| 5 | **ReportsPage tab "Clientes"** — top clientes por facturación del período, frecuencia, ticket promedio, último pedido | Analytics comercial |
 
 ---
 
