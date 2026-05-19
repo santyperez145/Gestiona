@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 36)**
+Última actualización: **2026-05-19 (sesión 37)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -718,15 +718,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 37)
+## Sesión 37 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: vista "Por día" con comparativa semanal** — nuevo viewMode "by_date"; agrupa ventas por día; delta ▲/▼ vs misma fecha semana anterior; share bar; totales en footer | ✅ Hecho |
+| 2 | **AIChatPage: exportar conversación** — botón "Exportar .txt" en header (mensajes activos) y en sidebar por conversación guardada; descarga transcript con roles y separadores | ✅ Hecho |
+| 3 | **DebtsPage: proyección de cobros 30d** | ✅ Ya existía (remote sesión 36) |
+| 4 | **ReportsPage: Rentabilidad — comparar 2 períodos** — toggle "Comparar períodos"; selectores de mes A y B; tabla con Ganancia A/B, Δ ganancia, Margen A/B, delta en pp | ✅ Hecho |
+| 5 | **CustomersPage: CSV RFM scores** | ✅ Ya existía (remote sesión 36) |
+
+---
+
+## Prioridades inmediatas (sesión 38)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **SalesPage: comparativa por período (mes vs mes anterior) en vista por fecha** — al agrupar por día, mostrar delta vs misma semana anterior | Insight operativo |
-| 2 | **AIChatPage: exportar conversación como texto/PDF** — botón en historial para guardar transcript | UX IA |
-| 3 | **DebtsPage: proyección de cobros** — cuánto se espera cobrar en los próximos 30d por due_date | Cash flow |
-| 4 | **ReportsPage: tab "Rentabilidad" — comparar 2 períodos** — selector dual para ver margen mes X vs mes Y | Análisis avanzado |
-| 5 | **CustomersPage: export de análisis RFM a CSV** — botón en panel de RFM que descarga todos los clientes con R/F/M scores | Data export |
+| 1 | **PurchasesPage: resumen de costos por proveedor con gráfico** — en tab "Por Proveedor", agregar mini BarChart por proveedor con monto USD y ARS | Visibilidad de compras |
+| 2 | **CustomersPage: agregar tag/etiqueta manual a cliente** — campo de tags libres (ej: "mayorista", "VIP-manual") que se guarda en DB y filtra | CRM |
+| 3 | **ExpensesPage: duplicar gasto** — ícono Copy en cada fila para pre-llenar el form con los datos del gasto seleccionado | Velocidad de registro |
+| 4 | **SalesPage: exportar por método de pago** — en footer de lista, botón que genera CSV con breakdown completo por método | Control financiero |
+| 5 | **Dashboard: tarjeta de deuda de clientes en riesgo de incobrabilidad** — deudas >90d sin actividad con badge rojo y link a /deudas | Cobranza |
 
 ---
 

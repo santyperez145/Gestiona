@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, CalendarDays } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -120,7 +120,7 @@ export default function SalesPage() {
   }, [products]);
 
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product">("list");
+  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
@@ -193,6 +193,32 @@ export default function SalesPage() {
     });
     return sessions;
   }, [filtered]);
+
+  // Group by calendar day + compare vs same day 7 days prior
+  const dateGroups = useMemo(() => {
+    const map: Record<string, { date: string; total: number; profit: number; count: number; paid: number }> = {};
+    filtered.forEach(s => {
+      const day = s.date.slice(0, 10);
+      if (!map[day]) map[day] = { date: day, total: 0, profit: 0, count: 0, paid: 0 };
+      map[day].total += Number(s.total_ars || 0);
+      map[day].profit += Number(s.profit_ars || 0);
+      map[day].count++;
+      if (s.paid) map[day].paid++;
+    });
+    // Build a lookup for prior week same-day sales (from allSales not filtered by date)
+    const prevWeekMap: Record<string, number> = {};
+    sales.forEach(s => {
+      const d = new Date(s.date);
+      const nextWeek = new Date(d); nextWeek.setDate(d.getDate() + 7);
+      const nextDay = nextWeek.toISOString().slice(0, 10);
+      if (map[nextDay] !== undefined) {
+        prevWeekMap[nextDay] = (prevWeekMap[nextDay] || 0) + Number(s.total_ars || 0);
+      }
+    });
+    return Object.values(map)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map(d => ({ ...d, prevWeekTotal: prevWeekMap[d.date] || 0 }));
+  }, [filtered, sales]);
 
   // Period comparison: prior equivalent period
   const prevPeriod = useMemo(() => {
@@ -622,6 +648,13 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           >
             <TrendingUp className="w-3.5 h-3.5" />Por producto
           </button>
+          <button
+            onClick={() => setViewMode("by_date")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_date" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Agrupar por día con comparativa vs semana anterior"
+          >
+            <CalendarDays className="w-3.5 h-3.5" />Por día
+          </button>
         </div>
       </div>
 
@@ -766,6 +799,70 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                   );
                 })}
               </tbody>
+            </table>
+          )}
+        </div>
+      ) : viewMode === "by_date" ? (
+        /* ── By Date view with week-over-week comparison ── */
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold">{dateGroups.length} día{dateGroups.length !== 1 ? 's' : ''}</h3>
+            <span className="text-xs text-muted-foreground">{formatARS(totalSales)} total · vs semana anterior</span>
+          </div>
+          {dateGroups.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-10">Sin ventas en el período</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Día</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ventas</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Ganancia</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">vs sem. ant.</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {dateGroups.map(d => {
+                  const hasComp = d.prevWeekTotal > 0;
+                  const diffPct = hasComp ? ((d.total - d.prevWeekTotal) / d.prevWeekTotal) * 100 : null;
+                  const diffStr = diffPct !== null ? `${diffPct >= 0 ? '▲' : '▼'}${Math.abs(diffPct).toFixed(0)}%` : '—';
+                  const diffColor = diffPct === null ? 'text-muted-foreground' : diffPct >= 0 ? 'text-success' : 'text-destructive';
+                  const dayDate = new Date(d.date + 'T12:00:00');
+                  const dayLabel = dayDate.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: 'short' });
+                  const isToday = d.date === new Date().toISOString().slice(0, 10);
+                  const share = totalSales > 0 ? (d.total / totalSales) * 100 : 0;
+                  return (
+                    <tr key={d.date} className={`hover:bg-muted/20 transition-colors ${isToday ? 'bg-primary/5' : ''}`}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {isToday && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                          <span className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>{dayLabel}</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5 ml-3.5">
+                          <div className="h-1 bg-primary/40 rounded-full" style={{ width: `${Math.min(share * 2, 100)}px` }} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-muted-foreground text-xs">{d.count} {d.paid < d.count && <span className="text-warning">({d.count - d.paid} deben)</span>}</td>
+                      <td className="px-4 py-3 text-right font-bold font-mono">{formatARS(d.total)}</td>
+                      <td className="px-4 py-3 text-right text-success hidden md:table-cell font-mono text-xs">{formatARS(d.profit)}</td>
+                      <td className={`px-4 py-3 text-right font-semibold text-xs hidden md:table-cell ${diffColor}`}>
+                        {diffStr}
+                        {hasComp && <span className="block text-[10px] font-normal text-muted-foreground">{formatARS(d.prevWeekTotal)}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/30">
+                  <td className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Total período</td>
+                  <td className="px-4 py-3 text-right text-xs font-semibold">{filtered.length} ventas</td>
+                  <td className="px-4 py-3 text-right font-bold text-success">{formatARS(totalSales)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-success hidden md:table-cell">{formatARS(totalProfit)}</td>
+                  <td className="hidden md:table-cell" />
+                </tr>
+              </tfoot>
             </table>
           )}
         </div>

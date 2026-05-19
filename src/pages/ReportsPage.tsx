@@ -467,7 +467,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="products">
-          <ProductProfitabilityTab sales={filtered.sales} />
+          <ProductProfitabilityTab sales={filtered.sales} allSales={data.sales} />
         </TabsContent>
 
         <TabsContent value="budget">
@@ -1816,16 +1816,28 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
 }
 
 // ─────────────────────────────────────────────────────────────
+// ─── helper: build month label for input[type=month] ────────
+function monthLabel(yyyy: number, mm: number) {
+  return `${yyyy}-${String(mm + 1).padStart(2, '0')}`;
+}
+
 // Rentabilidad por Producto Tab
 // ─────────────────────────────────────────────────────────────
-function ProductProfitabilityTab({ sales }: { sales: any[] }) {
+function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: any[] }) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<"profit" | "revenue" | "units" | "margin">("profit");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const rows = useMemo(() => {
+  // Period comparison state — default: current month vs previous month
+  const now = new Date();
+  const [compareMode, setCompareMode] = useState(false);
+  const [periodA, setPeriodA] = useState(() => monthLabel(now.getFullYear(), now.getMonth()));
+  const [periodB, setPeriodB] = useState(() => monthLabel(now.getFullYear(), now.getMonth() - 1 >= 0 ? now.getMonth() - 1 : 11));
+
+  // Build rows from either provided sales (normal mode) or filtered by period (compare mode)
+  function buildRows(salesArr: any[]) {
     const map: Record<string, { name: string; revenue: number; profit: number; units: number; transactions: number }> = {};
-    sales.forEach((s: any) => {
+    salesArr.forEach((s: any) => {
       const key = s.product_name || "Sin nombre";
       if (!map[key]) map[key] = { name: key, revenue: 0, profit: 0, units: 0, transactions: 0 };
       map[key].revenue += Number(s.total_ars);
@@ -1834,7 +1846,37 @@ function ProductProfitabilityTab({ sales }: { sales: any[] }) {
       map[key].transactions++;
     });
     return Object.values(map).map(r => ({ ...r, margin: r.revenue > 0 ? (r.profit / r.revenue) * 100 : 0 }));
-  }, [sales]);
+  }
+
+  const salesA = useMemo(() => compareMode
+    ? allSales.filter((s: any) => s.date?.startsWith(periodA))
+    : sales, [compareMode, allSales, periodA, sales]);
+
+  const salesB = useMemo(() => compareMode
+    ? allSales.filter((s: any) => s.date?.startsWith(periodB))
+    : [], [compareMode, allSales, periodB]);
+
+  const rowsA = useMemo(() => buildRows(salesA), [salesA]);
+  const rowsB = useMemo(() => buildRows(salesB), [salesB]);
+
+  // In compare mode, merge both period results
+  const rows = useMemo(() => {
+    if (!compareMode) return rowsA;
+    const allNames = new Set([...rowsA.map(r => r.name), ...rowsB.map(r => r.name)]);
+    const mapA = Object.fromEntries(rowsA.map(r => [r.name, r]));
+    const mapB = Object.fromEntries(rowsB.map(r => [r.name, r]));
+    return Array.from(allNames).map(name => ({
+      name,
+      revenue: mapA[name]?.revenue || 0,
+      profit: mapA[name]?.profit || 0,
+      units: mapA[name]?.units || 0,
+      transactions: mapA[name]?.transactions || 0,
+      margin: mapA[name]?.margin || 0,
+      revB: mapB[name]?.revenue || 0,
+      profitB: mapB[name]?.profit || 0,
+      marginB: mapB[name]?.margin || 0,
+    }));
+  }, [compareMode, rowsA, rowsB]);
 
   const filtered = useMemo(() => {
     let list = search ? rows.filter(r => r.name.toLowerCase().includes(search.toLowerCase())) : rows;
@@ -1908,10 +1950,37 @@ function ProductProfitabilityTab({ sales }: { sales: any[] }) {
           onChange={e => setSearch(e.target.value)}
           className="bg-muted h-8 text-sm w-full sm:w-64"
         />
-        <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 shrink-0">
-          <FileSpreadsheet className="w-3.5 h-3.5" />Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setCompareMode(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${compareMode ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />Comparar períodos
+          </button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 shrink-0">
+            <FileSpreadsheet className="w-3.5 h-3.5" />CSV
+          </Button>
+        </div>
       </div>
+
+      {/* Compare period pickers */}
+      {compareMode && (
+        <div className="flex flex-wrap items-center gap-4 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
+          <ArrowUpDown className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground font-medium">Período A:</label>
+            <input type="month" value={periodA} onChange={e => setPeriodA(e.target.value)}
+              className="bg-card border border-border rounded-lg px-2 py-1 text-xs" />
+          </div>
+          <span className="text-muted-foreground text-xs">vs</span>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground font-medium">Período B:</label>
+            <input type="month" value={periodB} onChange={e => setPeriodB(e.target.value)}
+              className="bg-card border border-border rounded-lg px-2 py-1 text-xs" />
+          </div>
+          <span className="text-[10px] text-muted-foreground">{salesA.length} vs {salesB.length} ventas</span>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -1920,48 +1989,87 @@ function ProductProfitabilityTab({ sales }: { sales: any[] }) {
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Producto</th>
-                {(["revenue", "profit", "margin", "units"] as const).map(k => (
-                  <th key={k} className="text-right px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide cursor-pointer hover:text-foreground transition-colors" onClick={() => toggle(k)}>
-                    <span className="flex items-center justify-end gap-1">
-                      {k === "revenue" ? "Facturación" : k === "profit" ? "Ganancia" : k === "margin" ? "Margen %" : "Unidades"}
-                      <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-primary" : "opacity-40"}`} />
-                    </span>
-                  </th>
-                ))}
-                <th className="text-right px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Ventas</th>
+                {compareMode ? (
+                  <>
+                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-primary/70 uppercase tracking-wide">Ganancia A</th>
+                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Ganancia B</th>
+                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Δ Ganancia</th>
+                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-primary/70 uppercase tracking-wide">Margen A</th>
+                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Margen B</th>
+                  </>
+                ) : (
+                  <>
+                    {(["revenue", "profit", "margin", "units"] as const).map(k => (
+                      <th key={k} className="text-right px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide cursor-pointer hover:text-foreground transition-colors" onClick={() => toggle(k)}>
+                        <span className="flex items-center justify-end gap-1">
+                          {k === "revenue" ? "Facturación" : k === "profit" ? "Ganancia" : k === "margin" ? "Margen %" : "Unidades"}
+                          <ArrowUpDown className={`w-3 h-3 ${sortKey === k ? "text-primary" : "opacity-40"}`} />
+                        </span>
+                      </th>
+                    ))}
+                    <th className="text-right px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Ventas</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((r, i) => (
-                <tr key={r.name} className={`hover:bg-muted/20 transition-colors ${i === 0 && sortKey === "profit" && !sortAsc ? "bg-primary/5" : ""}`}>
-                  <td className="px-4 py-2.5 font-medium text-sm max-w-[200px] truncate" title={r.name}>
-                    {i === 0 && sortKey === "profit" && !sortAsc && <span className="mr-1">🥇</span>}
-                    {r.name}
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-emerald-400">{formatARS(r.profit)}</td>
-                  <td className="px-4 py-2.5 text-right">
-                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${r.margin >= 40 ? "bg-emerald-500/15 text-emerald-400" : r.margin >= 20 ? "bg-yellow-500/15 text-yellow-400" : "bg-red-500/15 text-red-400"}`}>
-                      {r.margin.toFixed(1)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.units}</td>
-                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.transactions}</td>
-                </tr>
-              ))}
+              {filtered.map((r, i) => {
+                const rAny = r as any;
+                if (compareMode) {
+                  const profitDiff = rAny.profit - (rAny.profitB || 0);
+                  const marginDiff = rAny.margin - (rAny.marginB || 0);
+                  return (
+                    <tr key={r.name} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-sm max-w-[160px] truncate" title={r.name}>{r.name}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-primary/80">{formatARS(r.profit)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-muted-foreground">{formatARS(rAny.profitB || 0)}</td>
+                      <td className={`px-3 py-2.5 text-right font-semibold text-xs ${profitDiff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {profitDiff >= 0 ? '▲' : '▼'}{formatARS(Math.abs(profitDiff))}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-xs">
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${r.margin >= 40 ? "bg-emerald-500/15 text-emerald-400" : r.margin >= 20 ? "bg-yellow-500/15 text-yellow-400" : "bg-red-500/15 text-red-400"}`}>
+                          {r.margin.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className={`px-3 py-2.5 text-right text-xs font-semibold ${marginDiff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {marginDiff >= 0 ? '+' : ''}{marginDiff.toFixed(1)}pp
+                      </td>
+                    </tr>
+                  );
+                }
+                return (
+                  <tr key={r.name} className={`hover:bg-muted/20 transition-colors ${i === 0 && sortKey === "profit" && !sortAsc ? "bg-primary/5" : ""}`}>
+                    <td className="px-4 py-2.5 font-medium text-sm max-w-[200px] truncate" title={r.name}>
+                      {i === 0 && sortKey === "profit" && !sortAsc && <span className="mr-1">🥇</span>}
+                      {r.name}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-emerald-400">{formatARS(r.profit)}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${r.margin >= 40 ? "bg-emerald-500/15 text-emerald-400" : r.margin >= 20 ? "bg-yellow-500/15 text-yellow-400" : "bg-red-500/15 text-red-400"}`}>
+                        {r.margin.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.units}</td>
+                    <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.transactions}</td>
+                  </tr>
+                );
+              })}
             </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                <td className="px-4 py-2.5 text-sm">Total ({filtered.length} productos)</td>
-                <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
-                <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(totals.profit)}</td>
-                <td className="px-4 py-2.5 text-right text-xs">
-                  <span className="text-xs font-semibold">{totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0.0"}%</span>
-                </td>
-                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{totals.units}</td>
-                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{filtered.reduce((s, r) => s + r.transactions, 0)}</td>
-              </tr>
-            </tfoot>
+            {!compareMode && (
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                  <td className="px-4 py-2.5 text-sm">Total ({filtered.length} productos)</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(totals.profit)}</td>
+                  <td className="px-4 py-2.5 text-right text-xs">
+                    <span className="text-xs font-semibold">{totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0.0"}%</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{totals.units}</td>
+                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{filtered.reduce((s, r) => s + r.transactions, 0)}</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

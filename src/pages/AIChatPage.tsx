@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
   Package, Users, BarChart2, DollarSign, Zap, Plus, CheckCircle2, X,
-  TrendingDown, History, MessageSquare, ChevronLeft, ClipboardList,
+  TrendingDown, History, MessageSquare, ChevronLeft, ClipboardList, Download,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
@@ -1164,6 +1164,25 @@ export default function AIChatPage() {
     toast.success("Conversación guardada");
   };
 
+  const exportConversation = () => {
+    if (messages.length === 0) return;
+    const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const header = `Conversación con IA — Gestiona / Exentry Imports\n${date}\n${'─'.repeat(60)}\n\n`;
+    const body = messages.map(m => {
+      const role = m.role === 'user' ? '👤 Usuario' : '🤖 Asistente IA';
+      return `${role}:\n${m.content}\n`;
+    }).join('\n' + '─'.repeat(40) + '\n\n');
+    const text = header + body;
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversacion_ia_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Conversación exportada');
+  };
+
   const loadConversation = (conv: SavedConversation) => {
     setMessages(conv.messages);
     setDismissedActions(new Set());
@@ -1260,10 +1279,22 @@ export default function AIChatPage() {
                   <p className="text-xs font-medium truncate">{c.title}</p>
                   <p className="text-[10px] text-muted-foreground">{new Date(c.savedAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
-                <button onClick={e => { e.stopPropagation(); deleteConversation(c.id); }}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0 transition-all">
+                  <button onClick={e => {
+                    e.stopPropagation();
+                    const date = new Date(c.savedAt).toLocaleDateString('es-AR');
+                    const header = `${c.title}\n${date}\n${'─'.repeat(50)}\n\n`;
+                    const body = c.messages.map(m => `${m.role === 'user' ? '👤 Usuario' : '🤖 IA'}:\n${m.content}\n`).join('\n──────────────────────────────────────\n\n');
+                    const blob = new Blob([header + body], { type: 'text/plain;charset=utf-8' });
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ia_${new Date(c.savedAt).toISOString().slice(0,10)}.txt`; a.click();
+                  }} className="text-muted-foreground hover:text-primary" title="Exportar">
+                    <Download className="w-3 h-3" />
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); deleteConversation(c.id); }}
+                    className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1287,6 +1318,11 @@ export default function AIChatPage() {
           {messages.length >= 2 && (
             <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
               💾 Guardar
+            </Button>
+          )}
+          {messages.length >= 2 && (
+            <Button variant="ghost" size="sm" onClick={exportConversation} className="text-muted-foreground" title="Exportar conversación como .txt">
+              <Download className="w-3.5 h-3.5 mr-1.5" />Exportar
             </Button>
           )}
           {messages.length > 0 && (
