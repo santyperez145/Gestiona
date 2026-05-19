@@ -88,236 +88,382 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     setGenerating(true);
     try {
       const { default: jsPDF } = await import('jspdf');
-
       const doc = new jsPDF('p', 'mm', 'a4');
-      const W = doc.internal.pageSize.getWidth();   // 210
-      const H = doc.internal.pageSize.getHeight();   // 297
-      const businessName = settings?.business_name || 'Exentry Imports';
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+      const bName = settings?.business_name || 'Exentry Imports';
       const hex = settings?.primary_color || '#D4A843';
       const pR = parseInt(hex.slice(1, 3), 16);
       const pG = parseInt(hex.slice(3, 5), 16);
       const pB = parseInt(hex.slice(5, 7), 16);
       const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const publicUrl = `${window.location.origin}/catalogo/${userId}`;
+      const catLabel = filterCat !== 'all' ? getCategoryLabel(filterCat) : 'Todos los productos';
 
-      // Preload images
+      // QR code → canvas → PNG
+      let qrDataUrl: string | null = null;
+      try {
+        const svgEl = document.getElementById('catalog-qr-svg');
+        if (svgEl) {
+          const svgData = new XMLSerializer().serializeToString(svgEl);
+          const canvas = document.createElement('canvas');
+          canvas.width = 300; canvas.height = 300;
+          const ctx = canvas.getContext('2d')!;
+          const img = new Image();
+          await new Promise<void>((res, rej) => {
+            img.onload = () => { ctx.drawImage(img, 0, 0, 300, 300); res(); };
+            img.onerror = rej;
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+          });
+          qrDataUrl = canvas.toDataURL('image/png');
+        }
+      } catch { /* no QR */ }
+
+      // Preload product images
       const imageCache: Record<string, string | null> = {};
       const imageUrls = [...new Set(filtered.map(p => p.image_url).filter(Boolean))];
       await Promise.all(imageUrls.map(async (url) => {
         imageCache[url] = await loadImageAsBase64(url);
       }));
 
-      const drawHeader = () => {
-        doc.setFillColor(20, 20, 40);
-        doc.rect(0, 0, W, 28, 'F');
-        doc.setFillColor(pR, pG, pB);
-        doc.rect(0, 28, W, 1.5, 'F');
+      // ── COVER PAGE ───────────────────────────────────────────────────────
+      doc.setFillColor(14, 14, 28);
+      doc.rect(0, 0, W, H, 'F');
 
+      // Top accent bar
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(0, 0, W, 3, 'F');
+
+      // Decorative circle top-right
+      doc.setFillColor(Math.round(pR * 0.08 + 14), Math.round(pG * 0.08 + 14), Math.round(pB * 0.08 + 28));
+      doc.circle(W + 28, -28, 88, 'F');
+      doc.setFillColor(14, 14, 28);
+      doc.circle(W + 28, -28, 70, 'F');
+
+      // Business name — last word in primary color
+      const nameParts = bName.trim().split(' ');
+      const lastWord = nameParts.pop() || '';
+      const firstPart = nameParts.join(' ');
+      doc.setFontSize(40);
+      doc.setFont('helvetica', 'bold');
+      const fullW = doc.getTextWidth((firstPart ? firstPart + ' ' : '') + lastWord);
+      const nameStartX = W / 2 - fullW / 2;
+      if (firstPart) {
+        doc.setTextColor(235, 235, 248);
+        doc.text(firstPart + ' ', nameStartX, 110);
         doc.setTextColor(pR, pG, pB);
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text(businessName.toUpperCase(), 12, 14);
+        doc.text(lastWord, nameStartX + doc.getTextWidth(firstPart + ' '), 110);
+      } else {
+        doc.setTextColor(pR, pG, pB);
+        doc.text(lastWord, W / 2, 110, { align: 'center' });
+      }
 
-        doc.setTextColor(180, 180, 190);
+      // Subtitle
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(155, 155, 178);
+      doc.text('CATÁLOGO DE PRODUCTOS', W / 2, 121, { align: 'center' });
+
+      // Separator
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(W / 2 - 20, 126, 40, 0.7, 'F');
+
+      // Category pill
+      doc.setFillColor(pR, pG, pB);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      const pillTxt = catLabel.toUpperCase();
+      const pillW = doc.getTextWidth(pillTxt) + 14;
+      doc.roundedRect(W / 2 - pillW / 2, 131, pillW, 9, 2.5, 2.5, 'F');
+      doc.setTextColor(14, 14, 28);
+      doc.text(pillTxt, W / 2, 137.2, { align: 'center' });
+
+      // Count + date
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(175, 175, 198);
+      doc.text(`${filtered.length} producto${filtered.length !== 1 ? 's' : ''}`, W / 2, 149, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setTextColor(115, 115, 138);
+      doc.text(today, W / 2, 157, { align: 'center' });
+
+      // QR bottom-right
+      if (qrDataUrl) {
+        const qrS = 36;
+        const qrX = W - 18 - qrS;
+        const qrY = H - 20 - qrS;
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(qrX - 3, qrY - 3, qrS + 6, qrS + 6, 3, 3, 'F');
+        doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrS, qrS);
+        doc.setFontSize(5.5);
+        doc.setTextColor(115, 115, 138);
+        doc.text('Catálogo online', qrX + qrS / 2, qrY + qrS + 6, { align: 'center' });
+      }
+
+      // Footer bar
+      doc.setFillColor(20, 20, 36);
+      doc.rect(0, H - 14, W, 14, 'F');
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(0, H - 14, W, 0.5, 'F');
+      doc.setFontSize(7.5);
+      doc.setTextColor(155, 155, 178);
+      doc.text(publicUrl, W / 2, H - 5.5, { align: 'center' });
+
+      // ── PRODUCT PAGES ────────────────────────────────────────────────────
+      const COLS = 2;
+      const margin = 12;
+      const gap = 6;
+      const cardW = (W - margin * 2 - gap) / COLS;
+      const imgH = 64;
+      const textH = 46;
+      const cardH = imgH + textH;
+      const headerH = 32;
+      const footerH = 10;
+
+      const drawPageHeader = () => {
+        doc.setFillColor(20, 20, 40);
+        doc.rect(0, 0, W, headerH, 'F');
+        doc.setFillColor(pR, pG, pB);
+        doc.rect(0, headerH, W, 1.2, 'F');
+        doc.setTextColor(pR, pG, pB);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(bName.toUpperCase(), 12, 16);
+        doc.setTextColor(175, 175, 198);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text('CATÁLOGO DE PRODUCTOS', 12, 21);
-        doc.text(today, W - 12, 21, { align: 'right' });
-
-        return 35; // Y after header
+        doc.text('CATÁLOGO DE PRODUCTOS', 12, 24);
+        doc.setTextColor(115, 115, 138);
+        doc.text(today, W - 12, 24, { align: 'right' });
       };
 
-      const drawFooter = () => {
+      const drawPageFooter = (pageN: number, total: number) => {
         doc.setFillColor(20, 20, 40);
-        doc.rect(0, H - 10, W, 10, 'F');
+        doc.rect(0, H - footerH, W, footerH, 'F');
         doc.setFillColor(pR, pG, pB);
-        doc.rect(0, H - 10, W, 0.4, 'F');
+        doc.rect(0, H - footerH, W, 0.4, 'F');
+        doc.setFontSize(6);
+        doc.setTextColor(115, 115, 138);
+        doc.text(`${bName} · ${today}`, 12, H - 3.2);
+        doc.text(`${pageN} / ${total}`, W - 12, H - 3.2, { align: 'right' });
       };
 
-      // Card dimensions
-      const COLS = 3;
-      const margin = 12;
-      const gap = 5;
-      const cardW = (W - margin * 2 - gap * (COLS - 1)) / COLS; // ~58.67
-      const imgH = cardW * 0.7; // image area height
-      const textH = 38; // text area height — more room for stacked prices
-      const cardH = imgH + textH;
-
-      // Group by category
-      const categories = [...new Set(filtered.map(p => p.category))];
-      let y = drawHeader();
-      let pageNum = 1;
+      doc.addPage();
+      drawPageHeader();
+      let y = headerH + 5;
 
       const newPage = () => {
-        drawFooter();
         doc.addPage();
-        pageNum++;
-        y = drawHeader();
+        drawPageHeader();
+        y = headerH + 5;
       };
+
+      const categories = [...new Set(filtered.map(p => p.category))];
 
       for (const cat of categories) {
         const catProducts = filtered.filter(p => p.category === cat);
 
-        // Category header
-        if (y + 10 > H - 15) newPage();
-
+        if (y + 12 > H - footerH - 5) newPage();
         doc.setFillColor(pR, pG, pB);
-        doc.roundedRect(margin, y, W - margin * 2, 7, 1.5, 1.5, 'F');
-        doc.setTextColor(20, 20, 40);
-        doc.setFontSize(9);
+        doc.roundedRect(margin, y, W - margin * 2, 9, 2, 2, 'F');
+        doc.setTextColor(14, 14, 28);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${getCategoryLabel(cat).toUpperCase()}  —  ${catProducts.length} producto${catProducts.length > 1 ? 's' : ''}`, margin + 4, y + 5);
-        y += 11;
+        doc.text(
+          `${getCategoryLabel(cat).toUpperCase()}  —  ${catProducts.length} producto${catProducts.length > 1 ? 's' : ''}`,
+          margin + 5, y + 6
+        );
+        y += 14;
 
-        // Draw product cards in grid
         for (let i = 0; i < catProducts.length; i++) {
           const col = i % COLS;
           if (col === 0 && i > 0) y += cardH + gap;
-          if (y + cardH > H - 15) {
-            newPage();
-          }
+          if (y + cardH > H - footerH - 3) newPage();
 
           const p = catProducts[i];
           const x = margin + col * (cardW + gap);
 
-          // Card background
-          doc.setFillColor(30, 30, 52);
-          doc.roundedRect(x, y, cardW, cardH, 2, 2, 'F');
+          // Shadow
+          doc.setFillColor(10, 10, 20);
+          doc.roundedRect(x + 1.5, y + 1.5, cardW, cardH, 3, 3, 'F');
 
-          // Card border
-          doc.setDrawColor(50, 50, 75);
+          // Card bg
+          doc.setFillColor(22, 22, 38);
+          doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
+          doc.setDrawColor(45, 45, 70);
           doc.setLineWidth(0.3);
-          doc.roundedRect(x, y, cardW, cardH, 2, 2, 'S');
+          doc.roundedRect(x, y, cardW, cardH, 3, 3, 'S');
 
           // Image area
-          doc.setFillColor(25, 25, 45);
-          doc.rect(x + 0.5, y + 0.5, cardW - 1, imgH - 1, 'F');
+          doc.setFillColor(18, 18, 32);
+          doc.roundedRect(x + 0.5, y + 0.5, cardW - 1, imgH - 1, 3, 3, 'F');
 
           if (p.image_url && imageCache[p.image_url]) {
             try {
               doc.addImage(imageCache[p.image_url]!, 'JPEG', x + 1, y + 1, cardW - 2, imgH - 2);
             } catch {
-              // fallback: no image
-              doc.setTextColor(80, 80, 100);
-              doc.setFontSize(7);
+              doc.setTextColor(70, 70, 95);
+              doc.setFontSize(8);
               doc.text('Sin imagen', x + cardW / 2, y + imgH / 2, { align: 'center' });
             }
           } else {
-            doc.setTextColor(80, 80, 100);
-            doc.setFontSize(7);
+            doc.setTextColor(70, 70, 95);
+            doc.setFontSize(8);
             doc.text('Sin imagen', x + cardW / 2, y + imgH / 2, { align: 'center' });
           }
 
           // Discount badge
-          if (p.discount_price_ars && p.discount_price_ars < p.sale_price_ars) {
-            const pct = Math.round((1 - p.discount_price_ars / p.sale_price_ars) * 100);
-            doc.setFillColor(220, 40, 40);
-            doc.roundedRect(x + 1.5, y + 1.5, 14, 5, 1, 1, 'F');
+          if (p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)) {
+            const pct = Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100);
+            doc.setFillColor(215, 38, 38);
+            doc.roundedRect(x + 2, y + 2, 19, 7.5, 1.5, 1.5, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(6);
+            doc.setFontSize(8.5);
             doc.setFont('helvetica', 'bold');
-            doc.text(`-${pct}%`, x + 8.5, y + 5, { align: 'center' });
+            doc.text(`-${pct}%`, x + 11.5, y + 7.2, { align: 'center' });
           }
 
-          // Gender badge (for perfumes)
-          const isPerfume = p.category === 'perfume_arabe' || p.category === 'perfume_diseñador';
-          if (isPerfume && p.gender) {
-            const gLabel = p.gender === 'masculino' ? '♂ MASC' : p.gender === 'femenino' ? '♀ FEM' : '⚥ UNI';
-            const gW = doc.getTextWidth(gLabel) + 5;
-            // Gender badge colors
-            const gBg = p.gender === 'masculino' ? [40, 60, 120] : p.gender === 'femenino' ? [120, 40, 80] : [80, 50, 120];
-            doc.setFillColor(gBg[0], gBg[1], gBg[2]);
-            doc.roundedRect(x + cardW - gW - 2, y + imgH - 6.5, gW, 5, 1, 1, 'F');
-            doc.setTextColor(200, 210, 255);
-            doc.setFontSize(5.5);
-            doc.setFont('helvetica', 'bold');
-            doc.text(gLabel, x + cardW - 4, y + imgH - 3.2, { align: 'right' });
-          }
-
-          // Category pill
-          const catLabel = getCategoryLabel(p.category);
-          const pillW = doc.getTextWidth(catLabel) + 4;
-          doc.setFillColor(20, 20, 40);
-          doc.roundedRect(x + cardW - pillW - 2, y + 1.5, pillW, 4.5, 1, 1, 'F');
-          doc.setTextColor(160, 160, 180);
-          doc.setFontSize(5);
+          // Category pill top-right
+          const cLab = getCategoryLabel(p.category);
+          const cpW = doc.getTextWidth(cLab) + 5;
+          doc.setFillColor(14, 14, 26);
+          doc.roundedRect(x + cardW - cpW - 2, y + 2, cpW, 5.5, 1, 1, 'F');
+          doc.setTextColor(160, 160, 182);
+          doc.setFontSize(5.5);
           doc.setFont('helvetica', 'normal');
-          doc.text(catLabel, x + cardW - 3.5, y + 4.5, { align: 'right' });
+          doc.text(cLab, x + cardW - 3.5, y + 6.2, { align: 'right' });
 
           // Text area
-          const tY = y + imgH + 3;
+          const tY = y + imgH + 4;
 
-          // Product name (larger)
-          doc.setTextColor(235, 235, 245);
-          doc.setFontSize(9);
+          // Product name
+          doc.setTextColor(235, 235, 248);
+          doc.setFontSize(10.5);
           doc.setFont('helvetica', 'bold');
-          const nameLines = doc.splitTextToSize(p.name, cardW - 6);
-          doc.text(nameLines.slice(0, 2), x + 3, tY + 3.5);
-          const nameOffset = Math.min(nameLines.length, 2) * 3.8;
+          const nameLines = doc.splitTextToSize(p.name, cardW - 8);
+          doc.text(nameLines.slice(0, 2), x + 4, tY + 5);
+          const nameH = Math.min(nameLines.length, 2) * 5;
 
-          // Brand + gender
-          doc.setTextColor(150, 150, 170);
-          doc.setFontSize(7);
+          // Brand
+          doc.setTextColor(135, 135, 160);
+          doc.setFontSize(7.5);
           doc.setFont('helvetica', 'normal');
-          doc.text(`${p.brand} · ${getGenderLabel(p.gender)}`, x + 3, tY + nameOffset + 4);
+          doc.text(p.brand || '', x + 4, tY + nameH + 6.5);
 
-          // Separator line
-          doc.setDrawColor(50, 50, 75);
-          doc.setLineWidth(0.2);
-          doc.line(x + 3, tY + nameOffset + 6.5, x + cardW - 3, tY + nameOffset + 6.5);
-
-          // Prices — stacked vertically
-          if (p.discount_price_ars && p.discount_price_ars < p.sale_price_ars) {
-            // Discount price (large, primary color) — Efectivo/Transferencia
-            doc.setTextColor(pR, pG, pB);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(fmtARS(Number(p.discount_price_ars)), x + 3, tY + nameOffset + 11.5);
-            doc.setFontSize(5);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Efectivo / Transferencia', x + 3, tY + nameOffset + 14.5);
-
-            // List price (no strikethrough) — Tarjeta
-            doc.setTextColor(180, 180, 195);
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.text(fmtARS(Number(p.sale_price_ars)), x + 3, tY + nameOffset + 19);
-            doc.setFontSize(5);
-            doc.text('Tarjeta hasta 3 cuotas sin interés', x + 3, tY + nameOffset + 22);
-          } else {
-            doc.setTextColor(pR, pG, pB);
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            doc.text(fmtARS(Number(p.sale_price_ars)), x + 3, tY + nameOffset + 12.5);
+          // Description / flavor notes
+          const desc: string = p.description || p.flavor_notes || p.notes || '';
+          if (desc) {
+            doc.setTextColor(110, 110, 138);
+            doc.setFontSize(6.5);
+            const descLines = doc.splitTextToSize(desc, cardW - 8);
+            doc.text(descLines.slice(0, 2), x + 4, tY + nameH + 12);
           }
 
-          // Stock (only non-public)
+          // Separator
+          doc.setDrawColor(45, 45, 70);
+          doc.setLineWidth(0.2);
+          doc.line(x + 4, tY + nameH + 15, x + cardW - 4, tY + nameH + 15);
+
+          // Prices
+          const priceY = tY + nameH + 20.5;
+          if (p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)) {
+            doc.setTextColor(pR, pG, pB);
+            doc.setFontSize(13);
+            doc.setFont('helvetica', 'bold');
+            doc.text(fmtARS(Number(p.discount_price_ars)), x + 4, priceY);
+            doc.setFontSize(5.5);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(Math.round(pR * 0.8), Math.round(pG * 0.8), Math.round(pB * 0.8));
+            doc.text('Efectivo / Transferencia', x + 4, priceY + 4.5);
+            doc.setTextColor(145, 145, 168);
+            doc.setFontSize(9.5);
+            doc.setFont('helvetica', 'normal');
+            doc.text(fmtARS(Number(p.sale_price_ars)), x + 4, priceY + 10.5);
+            doc.setFontSize(5.5);
+            doc.text('Tarjeta 3 cuotas s/interés', x + 4, priceY + 14.5);
+          } else {
+            doc.setTextColor(pR, pG, pB);
+            doc.setFontSize(13);
+            doc.setFont('helvetica', 'bold');
+            doc.text(fmtARS(Number(p.sale_price_ars)), x + 4, priceY);
+          }
+
           if (!isPublic) {
-            doc.setTextColor(100, 100, 120);
+            doc.setTextColor(85, 85, 112);
             doc.setFontSize(6);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Stock: ${p.stock}`, x + cardW - 3, tY + nameOffset + 17.5, { align: 'right' });
+            doc.text(`Stock: ${p.stock}`, x + cardW - 4, priceY + 10, { align: 'right' });
           }
         }
 
-        // After last row of this category
         const lastRowItems = catProducts.length % COLS || COLS;
         if (lastRowItems > 0) y += cardH + gap;
-        y += 3; // extra space between categories
+        y += 5;
       }
 
-      drawFooter();
+      // ── BACK COVER ───────────────────────────────────────────────────────
+      doc.addPage();
+      doc.setFillColor(14, 14, 28);
+      doc.rect(0, 0, W, H, 'F');
 
-      // Page numbers
+      // Concentric decorative rings
+      const cx = W / 2, cy = H / 2;
+      for (let r = 115; r >= 25; r -= 14) {
+        const t = (115 - r) / 90;
+        doc.setDrawColor(
+          Math.round(14 + t * (pR - 14) * 0.25),
+          Math.round(14 + t * (pG - 14) * 0.25),
+          Math.round(28 + t * 18)
+        );
+        doc.setLineWidth(0.35);
+        doc.circle(cx, cy, r, 'S');
+      }
+
+      doc.setFontSize(30);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(232, 232, 248);
+      doc.text('Catálogo', cx, cy - 70, { align: 'center' });
+      doc.setTextColor(pR, pG, pB);
+      doc.text('Online', cx, cy - 53, { align: 'center' });
+
+      if (qrDataUrl) {
+        const qrS = 60;
+        const qrX = cx - qrS / 2;
+        const qrY = cy - 26;
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(qrX - 5, qrY - 5, qrS + 10, qrS + 10, 4, 4, 'F');
+        doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrS, qrS);
+      }
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(175, 175, 198);
+      doc.text('Escaneá para ver el catálogo completo', cx, cy + 46, { align: 'center' });
+      doc.setFontSize(8.5);
+      doc.setTextColor(115, 115, 138);
+      doc.text(publicUrl, cx, cy + 55, { align: 'center' });
+
+      doc.setFillColor(20, 20, 36);
+      doc.rect(0, H - 18, W, 18, 'F');
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(0, H - 18, W, 0.5, 'F');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(pR, pG, pB);
+      doc.text(bName.toUpperCase(), cx, H - 9, { align: 'center' });
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(115, 115, 138);
+      doc.text(today, cx, H - 4, { align: 'center' });
+
+      // Page numbers on product pages only (skip cover and back cover)
       const totalPages = doc.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
+      for (let i = 2; i <= totalPages - 1; i++) {
         doc.setPage(i);
-        doc.setTextColor(120, 120, 140);
-        doc.setFontSize(6);
-        doc.text(`${businessName} · ${today}`, 12, H - 4);
-        doc.text(`${i} / ${totalPages}`, W - 12, H - 4, { align: 'right' });
+        drawPageFooter(i - 1, totalPages - 2);
       }
 
-      doc.save(`${businessName.replace(/\s+/g, '_')}_Catalogo.pdf`);
+      doc.save(`${bName.replace(/\s+/g, '_')}_Catalogo.pdf`);
       toast.success('Catálogo PDF descargado');
     } catch (err) {
       console.error('PDF error:', err);
@@ -325,7 +471,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     } finally {
       setGenerating(false);
     }
-  }, [filtered, settings, isPublic]);
+  }, [filtered, settings, isPublic, filterCat, userId]);
 
   const printQR = useCallback(() => {
     const url = `${window.location.origin}/catalogo/${userId}`;
