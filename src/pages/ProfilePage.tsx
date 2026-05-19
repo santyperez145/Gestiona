@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck } from 'lucide-react';
+import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail } from 'lucide-react';
 
 const ROLE_LABEL: Record<string, string> = {
   owner: 'Dueño', admin: 'Administrador', vendedor: 'Vendedor', viewer: 'Viewer',
@@ -31,6 +31,9 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const [newEmail, setNewEmail] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.user_metadata?.avatar_url || null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -75,6 +78,25 @@ export default function ProfilePage() {
       setConfirmPassword('');
     }
     setSavingPassword(false);
+  };
+
+  // ── Change email ──────────────────────────────────────────────────────────
+
+  const handleChangeEmail = async () => {
+    const trimmed = newEmail.trim().toLowerCase();
+    if (!trimmed || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
+      toast.error('Ingresá un email válido');
+      return;
+    }
+    if (trimmed === user?.email) { toast.error('Es el mismo email actual'); return; }
+    setSavingEmail(true);
+    const { error } = await supabase.auth.updateUser({ email: trimmed });
+    if (error) toast.error(error.message);
+    else {
+      toast.success('Confirmación enviada — revisá tu nuevo email para verificar el cambio');
+      setNewEmail('');
+    }
+    setSavingEmail(false);
   };
 
   // ── Upload avatar ─────────────────────────────────────────────────────────
@@ -171,11 +193,35 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Email (read-only) */}
+        {/* Email current */}
         <div className="space-y-1.5">
-          <Label>Email</Label>
-          <Input value={user?.email || ''} readOnly className="h-9 bg-muted cursor-not-allowed" />
-          <p className="text-xs text-muted-foreground">El email no se puede cambiar desde aquí.</p>
+          <Label>Email actual</Label>
+          <Input value={user?.email || ''} readOnly className="h-9 bg-muted cursor-not-allowed text-muted-foreground" />
+        </div>
+
+        {/* Change email */}
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Cambiar email</Label>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+              placeholder="nuevo@email.com"
+              className="h-9 flex-1"
+              onKeyDown={e => e.key === 'Enter' && handleChangeEmail()}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleChangeEmail}
+              disabled={savingEmail || !newEmail.trim()}
+              className="shrink-0"
+            >
+              {savingEmail ? 'Enviando...' : 'Confirmar'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Se enviará un link de verificación al nuevo email antes de realizar el cambio.</p>
         </div>
       </div>
 

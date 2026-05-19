@@ -3,7 +3,7 @@ import { safeChannel } from "@/lib/realtimeChannel";
 import {
   Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
-  Clock, Zap, Info, ShieldCheck,
+  Clock, Zap, Info, ShieldCheck, CalendarX2,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,18 @@ const RULE_CONFIG: Record<string, {
     thresholdLabel: "Límite mensual",
     thresholdUnit: "ARS",
     useDays: false,
+  },
+  product_expiry: {
+    label: "Productos por vencer",
+    description: "Avisa cuando productos con stock tienen fecha de vencimiento próxima.",
+    icon: CalendarX2,
+    color: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/20",
+    thresholdLabel: "Días de anticipación",
+    thresholdUnit: "días",
+    useDays: true,
+    daysLabel: "días antes de vencer",
   },
 };
 
@@ -311,7 +323,41 @@ export default function AlertsPage() {
         <div className="grid gap-3">
           {Object.entries(RULE_CONFIG).map(([type, cfg]) => {
             const rule = rules.find(r => r.type === type);
-            if (!rule) return null;
+
+            // Rule doesn't exist in DB yet — show a create button
+            if (!rule) {
+              const Icon = cfg.icon;
+              return (
+                <div key={type} className="rounded-xl border border-dashed border-border p-4 flex items-center gap-3 opacity-60">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg} border ${cfg.border}`}>
+                    <Icon className={`w-4 h-4 ${cfg.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-sm">{cfg.label}</span>
+                    <p className="text-xs text-muted-foreground">{cfg.description}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs shrink-0"
+                    onClick={async () => {
+                      if (!orgId) return;
+                      await supabase.from("alert_rules").insert({
+                        org_id: orgId,
+                        type,
+                        threshold_value: cfg.useDays ? 0 : 5,
+                        threshold_days: cfg.useDays ? 30 : 0,
+                        enabled: true,
+                      });
+                      loadRules();
+                      toast.success("Regla creada");
+                    }}
+                  >
+                    + Crear
+                  </Button>
+                </div>
+              );
+            }
             const e = getEdit(rule);
             const hasChanges = !!edits[rule.id];
             const Icon = cfg.icon;

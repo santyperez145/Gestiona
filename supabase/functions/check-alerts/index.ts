@@ -165,6 +165,39 @@ Deno.serve(async (req) => {
           }
         }
 
+        if (rule.type === "product_expiry") {
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() + rule.threshold_days);
+          const todayStr = now.toISOString().slice(0, 10);
+          const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+
+          const { data: prods } = await supabase
+            .from("products")
+            .select("id, name, expiry_date, stock")
+            .eq("org_id", orgId)
+            .gt("stock", 0)
+            .not("expiry_date", "is", null)
+            .lte("expiry_date", cutoffStr)
+            .limit(20);
+
+          for (const p of prods ?? []) {
+            const daysLeft = Math.ceil(
+              (new Date(p.expiry_date).getTime() - now.getTime()) / 86400000
+            );
+            const expired = daysLeft < 0;
+            alerts.push({
+              type: "sistema",
+              title: expired
+                ? `Vencido: ${p.name}`
+                : `Por vencer: ${p.name}`,
+              message: expired
+                ? `Venció hace ${Math.abs(daysLeft)} día${Math.abs(daysLeft) !== 1 ? 's' : ''} — ${p.stock} unidades en stock.`
+                : `Vence en ${daysLeft} día${daysLeft !== 1 ? 's' : ''} (${p.expiry_date}) — ${p.stock} unidades.`,
+              entityKey: `product_expiry:${p.id}:${todayStr}`,
+            });
+          }
+        }
+
         // Update last_run_at for the rule
         await supabase
           .from("alert_rules")
