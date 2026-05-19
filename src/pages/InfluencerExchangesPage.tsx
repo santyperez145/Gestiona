@@ -382,15 +382,22 @@ function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { us
   const [saving, setSaving] = useState(false);
 
   // Unique influencers from previous exchanges (for the quick-picker)
-  const knownInfluencers: { name: string; ig: string; followers: string }[] = useMemo(() => {
-    const seen = new Map<string, { name: string; ig: string; followers: string }>();
-    for (const ex of existingExchanges) {
+  // Each influencer keeps ONE discount code across all their canjes
+  const knownInfluencers: { name: string; ig: string; followers: string; code: string }[] = useMemo(() => {
+    // Sort by created_at desc so the first match per influencer is the most recent data
+    const sorted = [...existingExchanges].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    const seen = new Map<string, { name: string; ig: string; followers: string; code: string }>();
+    for (const ex of sorted) {
       const key = ex.influencer_name?.trim().toLowerCase();
       if (key && !seen.has(key)) {
         seen.set(key, {
           name: ex.influencer_name,
           ig: ex.influencer_instagram || '',
           followers: String(ex.influencer_followers || ''),
+          // Reuse their existing code — if none, generate one now
+          code: ex.discount_code || generateInfluencerCode(ex.influencer_name),
         });
       }
     }
@@ -403,8 +410,8 @@ function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { us
     setInfluencerName(inf.name);
     setInfluencerIg(inf.ig);
     setInfluencerFollowers(inf.followers);
-    // Fresh code for this new exchange, same name prefix
-    setDiscountCode(generateInfluencerCode(inf.name));
+    // Always reuse the same code — one code per influencer across all canjes
+    setDiscountCode(inf.code);
   };
 
   // Auto-generate code when influencer name is set (new form only)
@@ -500,7 +507,7 @@ function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { us
           </div>
           {influencerName && knownInfluencers.some(i => i.name === influencerName) && (
             <p className="text-[10px] text-primary/70 mt-2">
-              Datos auto-completados · podés modificarlos si cambiaron
+              Datos auto-completados · código reutilizado — el influencer conserva su mismo código en todos sus canjes
             </p>
           )}
         </div>

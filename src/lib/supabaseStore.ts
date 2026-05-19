@@ -237,10 +237,13 @@ export function generateInfluencerCode(influencerName: string): string {
 }
 
 export async function findExchangeByCode(code: string): Promise<any | null> {
+  // Return the most recent exchange for this influencer code (all their canjes share one code)
   const { data } = await supabase
     .from('influencer_exchanges')
     .select('*')
     .ilike('discount_code', code.trim())
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
   return data || null;
 }
