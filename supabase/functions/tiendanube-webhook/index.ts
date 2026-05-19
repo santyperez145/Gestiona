@@ -104,9 +104,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify HMAC signature if we have a client_secret and a signature header
+    // Verify HMAC signature — mandatory when client_secret is configured
     const clientSecret = conn.client_secret || Deno.env.get("TIENDANUBE_CLIENT_SECRET") || "";
-    if (clientSecret && signature) {
+    if (clientSecret) {
+      if (!signature) {
+        console.warn(`Missing webhook signature for store ${storeId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "missing signature" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
       const valid = await verifySignature(rawBody, signature, clientSecret);
       if (!valid) {
         console.warn(`Invalid webhook signature for store ${storeId}`);

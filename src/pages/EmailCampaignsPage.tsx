@@ -584,9 +584,12 @@ export default function EmailCampaignsPage() {
                 </div>
               </div>
               {showBodyPreview ? (
-                <div
-                  className="min-h-[220px] rounded-lg border border-border overflow-auto bg-gray-50"
-                  dangerouslySetInnerHTML={{ __html: bodyHtml ? buildBrandedEmail(bodyHtml, orgSettings.logo_url, orgSettings.business_name) : '<p style="color:#aaa;padding:16px">El cuerpo del email aparecerá aquí...</p>' }}
+                <iframe
+                  sandbox=""
+                  srcDoc={bodyHtml ? buildBrandedEmail(bodyHtml, orgSettings.logo_url, orgSettings.business_name) : '<p style="color:#aaa;padding:16px;font-family:sans-serif">El cuerpo del email aparecerá aquí...</p>'}
+                  className="min-h-[220px] w-full rounded-lg border border-border bg-gray-50"
+                  style={{ minHeight: 220 }}
+                  title="Vista previa del email"
                 />
               ) : (
                 <Textarea
@@ -629,9 +632,12 @@ export default function EmailCampaignsPage() {
           <DialogHeader>
             <DialogTitle>Vista previa: {preview?.subject}</DialogTitle>
           </DialogHeader>
-          <div
-            className="prose prose-invert prose-sm max-w-none rounded-lg border border-border p-4 bg-card text-sm"
-            dangerouslySetInnerHTML={{ __html: preview?.body_html || "" }}
+          <iframe
+            sandbox=""
+            srcDoc={preview?.body_html || "<p style='color:#aaa;font-family:sans-serif;padding:16px'>Sin contenido</p>"}
+            className="w-full rounded-lg border border-border bg-white"
+            style={{ minHeight: 400 }}
+            title="Vista previa de la campaña"
           />
         </DialogContent>
       </Dialog>

@@ -81,9 +81,15 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const orgIdFromQuery = url.searchParams.get("org_id") || "";
 
-    // Fetch using global MP webhook secret if set, or per-org after lookup
+    // Verify MP signature — mandatory when MP_WEBHOOK_SECRET is configured
     const globalWebhookSecret = Deno.env.get("MP_WEBHOOK_SECRET") || "";
-    if (globalWebhookSecret && signature && requestId) {
+    if (globalWebhookSecret) {
+      if (!signature || !requestId) {
+        console.warn(`Missing MP signature headers for payment ${paymentId}`);
+        return new Response(JSON.stringify({ ok: false, reason: "missing signature headers" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
       const valid = await verifyMpSignature(paymentId, requestId, signature, globalWebhookSecret);
       if (!valid) {
         console.warn(`Invalid MP signature for payment ${paymentId}`);

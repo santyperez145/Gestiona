@@ -52,6 +52,18 @@ serve(async (req) => {
       });
     }
 
+    // Verify the authenticated user belongs to the requested org (prevents org_id spoofing)
+    const { data: membership } = await sb.from("memberships")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Sin acceso a esta organización" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Load business context from Supabase using service role
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 

@@ -13,6 +13,23 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (checkRateLimit(req, "send-email-campaign", { max: 5, windowMs: 60_000 })) return rateLimitResponse();
 
+  // — JWT auth check —
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "No autenticado" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const sbAuth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userRes } = await sbAuth.auth.getUser();
+  if (!userRes?.user?.id) {
+    return new Response(JSON.stringify({ error: "Token inválido o expirado" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   if (!RESEND_API_KEY) {
     return new Response(JSON.stringify({ error: "RESEND_API_KEY no configurada" }), {
@@ -47,6 +64,19 @@ serve(async (req) => {
       .eq("id", campaignId)
       .single();
     const orgId: string = campRow?.org_id ?? "";
+
+    // Verify the authenticated user belongs to this campaign's org
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", userRes.user.id)
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Sin permisos para esta organización" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     let sent = 0;
     let failed = 0;

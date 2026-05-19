@@ -18,7 +18,7 @@ const supabase = createClient(
 
 async function verifyResendSignature(req: Request, rawBody: string): Promise<boolean> {
   const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
-  if (!secret) return true; // Skip if not configured (dev/staging)
+  if (!secret) return false; // Reject if secret is not configured — never skip in production
 
   const svixId = req.headers.get("svix-id");
   const svixTs = req.headers.get("svix-timestamp");
