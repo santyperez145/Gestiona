@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 39)**
+Última actualización: **2026-05-19 (sesión 40)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -226,6 +226,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **Dashboard: widget "Objetivos por vendedor"** — sellers activos esta semana; meta configurable por vendedor; progress bars color-coded. _(sesión 39)_
 - **AnalyticsPage: tab "Canales de venta"** — distribución y share por método de pago; donut chart; stacked bar trend mensual. _(sesión 39)_
 - **InstagramStoryGenerator: sabores disponibles para vapers** — chips seleccionables pre-cargados desde `product_variants`; pills renderizadas en canvas con border gold. _(sesión 39)_
+- **InstagramStoryGenerator: eliminación de fondo blanco del logo** — pixel-by-pixel brightness+saturation removal; smooth alpha falloff; PNG sin fondo en canvas. _(sesión 39–40)_
+- **CustomersPage: filtro de cumpleaños** — Select 'Esta semana' / 'Este mes'; badge 🎂 pink en fila del cliente; botón 'WhatsApp cumpleaños' en barra bulk con dialog wa.me por cliente. _(sesión 40)_
+- **SalesPage: descarga PDF individual** — downloadSalePDF() con jsPDF A4, logo, nombre del negocio, cliente, items, total, método de pago; botón FileDown por fila. _(sesión 40)_
+- **Dashboard: banner proactivo "Stock crítico"** — aparece cuando hay productos sin stock o stock bajo; link directo a /productos?filter=lowstock. _(sesión 40)_
+- **ProductsPage: URL param ?filter=lowstock** — inicializa filterStock='low' automáticamente; badge de vencimiento en 3 niveles (VENC. / <30d / <60d). _(sesión 40)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -770,15 +775,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 40)
+## Sesión 40 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: alerta de vencimiento por producto** — badge 3 niveles (VENC./&lt;30d/&lt;60d); URL param ?filter=lowstock | ✅ Hecho |
+| 2 | **CustomersPage: filtro cumpleaños** — 'Esta semana'/'Este mes'; badge 🎂 en fila; bulk WhatsApp cumpleaños con dialog wa.me | ✅ Hecho |
+| 3 | **SalesPage: descarga PDF individual** — jsPDF A4, logo, cliente, items, total, método de pago; botón FileDown por fila | ✅ Hecho |
+| 4 | **PresupuestosPage: PDF de presupuesto** — ya existía con generatePDF() + botón Download | ✅ Ya existía |
+| 5 | **Dashboard: banner proactivo "Stock crítico"** — count, link a /productos?filter=lowstock | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 41)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ProductsPage: alerta de vencimiento por producto** — badge rojo/ámbar en tabla si `expiry_date` < 30/60 días; filtro "Por vencer" | Gestión stock farmacia/alimentos |
-| 2 | **CustomersPage: campo "cumpleaños" en lista** — columna visible en tabla, filtro "cumpleaños esta semana/mes", envío masivo WhatsApp felicitaciones | CRM retención |
-| 3 | **SalesPage: descarga PDF de venta individual** — botón en cada fila para generar recibo PDF A4 con logo, items, totales, método de pago | Operaciones |
-| 4 | **PresupuestosPage: PDF de presupuesto** — botón "Imprimir/PDF" genera A4 con logo, cliente, items, validez, totales, firma | Ventas B2B |
-| 5 | **Dashboard: alert "Stock crítico"** — si hay N productos con stock ≤ threshold, banner proactivo con link a /products?filter=lowstock | Inventario |
+| 1 | **POSPage: descuento por categoría** — porcentaje de descuento aplicable a todos los productos de una categoría en el POS | Ventas B2B / mayorista |
+| 2 | **ProductsPage: variante con stock independiente** — UI de stock individual por variante; descuento de stock al vender variante específica | Inventario multi-variante |
+| 3 | **ReportsPage: tab "Tendencia semanal"** — ventas por día de la semana (lun–dom) últimas 8 semanas; heatmap o bar chart | Analytics accionable |
+| 4 | **AnalyticsPage: segmento "Nuevos clientes"** — porcentaje de compradores por primera vez vs recurrentes en el período filtrado | CRM |
+| 5 | **EmailCampaignsPage: tracking abiertos/clicks** — tabla con métricas por campaña enviada (open rate %, click rate %) vía Resend webhooks | Marketing |
 
 ---
 
