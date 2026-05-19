@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 37)**
+Última actualización: **2026-05-19 (sesión 38)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -216,6 +216,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **SalesPage: vista "Por fecha"** — nuevo modo `by_date`; barras de totales diarios + delta ▲/▼ vs mismo día -7d. _(sesión 37)_
 - **AIChatPage: exportar conversación** — botón "Exportar" descarga .txt con todos los mensajes del chat actual. _(sesión 37)_
 - **ReportsPage: comparativa de dos períodos** — panel en tab Tendencia de Margen; selectores mes A y mes B; tabla con Δ en todas las métricas (ingresos, ganancias, márgenes, gastos). _(sesión 37)_
+- **PurchasesPage: pipeline de estado de pedidos** — 3 KPI cards (Pendientes / En camino / Recibidos 30d) con totales USD; distingue `travel_status='en_camino'` de pedidos sin confirmar. _(sesión 38)_
+- **PresupuestosPage: detección de presupuestos vencidos** — banner naranja para presupuestos draft/sent sin conversión >30 días; filtro "Sin respuesta +30d"; estado `expired_pending`. _(sesión 38)_
+- **Dashboard: widget "Mejor horario de ventas"** — mini bar chart de 24h; calcula hora con más ventas desde `created_at`; badge con hora exacta y total de transacciones. _(sesión 38)_
+- **SalesPage: resumen de comisiones del período** — widget con % editable (default 5%); totales por vendedor y comisión estimada en vistas by_customer y by_product. _(sesión 38)_
+- **AlertsPage: historial de reglas disparadas** — tabla "Última vez disparadas" con `last_triggered_at` por regla; badges "Hoy" / "Anterior"; ordenado por recencia. _(sesión 38)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -735,15 +740,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 38)
+## Sesión 38 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **PurchasesPage: pipeline de estado de pedidos** — 3 KPI cards (Pendientes / En camino / Recibidos 30d) + totales USD | ✅ Hecho |
+| 2 | **PresupuestosPage: presupuestos vencidos >30d** — banner naranja, filtro "Sin respuesta +30d", estado expired_pending | ✅ Hecho |
+| 3 | **Dashboard: widget "Mejor horario de ventas"** — bar chart 24h, calcula desde created_at, badge hora pico | ✅ Hecho |
+| 4 | **SalesPage: resumen de comisiones del período** — widget con % editable, totales por vendedor en by_customer/by_product | ✅ Hecho |
+| 5 | **AlertsPage: historial de reglas disparadas** — tabla last_triggered_at por regla, badges Hoy/Anterior | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 39)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **PurchasesPage: dashboard de estado de pedidos** — KPIs pendientes/en camino/recibidos + timeline visual | Gestión compras |
-| 2 | **PresupuestosPage: vencimiento y estado "Expirado"** — detectar presupuestos vencidos (>30d sin conversión), badge y filtro | CRM ventas |
-| 3 | **Dashboard: widget "Mejor horario de ventas"** — mostrar en qué horario del día se registran más ventas (usa created_at de ventas) | Operaciones |
-| 4 | **SalesPage: resumen de comisiones del período** — columna estimada de comisión por vendedor en vista by_customer/by_product | Gestión equipo |
-| 5 | **AlertsPage: historial de alertas disparadas** — tabla de últimas alertas con timestamp, tipo y acción tomada | Observabilidad |
+| 1 | **ProductsPage: exportar etiquetas de precio** — PDF/HTML imprimible con nombre, precio y QR/barcode para cada producto (útil en tiendas físicas) | Operaciones tienda |
+| 2 | **DebtsPage: plan de pago en cuotas** — desde una deuda pendiente, crear cuotas con fechas y montos parciales; progreso de cada plan visible en la ficha | Cobranzas |
+| 3 | **SalesPage: agrupación por sesión de caja** — nueva vista `by_session` que agrupa ventas por `cash_session_id` con totales de turno | Gestión caja |
+| 4 | **Dashboard: widget "Objetivos por vendedor"** — cada vendedor tiene su meta semanal configurable; progress bar individual con delta vs meta | Gestión equipo |
+| 5 | **AnalyticsPage: tab "Canales de venta"** — distribución de ventas por método de pago (efectivo/tarjeta/MP/fiado) con tendencia mensual y share % | Business intelligence |
 
 ---
 
