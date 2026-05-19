@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
@@ -241,6 +241,7 @@ async function exportProductsXLSX(products: any[], settings: any) {
 
 export default function ProductsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
@@ -254,7 +255,10 @@ export default function ProductsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
-  const [filterStock, setFilterStock] = useState('all');
+  const [filterStock, setFilterStock] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get('filter');
+    return p === 'lowstock' ? 'low' : 'all';
+  });
   const [filterExpiry, setFilterExpiry] = useState('all');
   const [filterTag, setFilterTag] = useState('');
   const [filterMovement, setFilterMovement] = useState('all');
@@ -313,6 +317,7 @@ export default function ProductsPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const in30Days = new Date(today); in30Days.setDate(today.getDate() + 30);
+  const in60Days = new Date(today); in60Days.setDate(today.getDate() + 60);
   const in90Days = new Date(today); in90Days.setDate(today.getDate() + 90);
 
   const expiringSoon = products.filter(p => {
@@ -694,11 +699,14 @@ export default function ProductsPage() {
                               {p.expiry_date && (() => {
                                 const exp = new Date(p.expiry_date);
                                 const isExpired = exp < today;
-                                const isSoon = exp <= in30Days;
-                                if (!isExpired && !isSoon) return null;
+                                const isVeryS = !isExpired && exp <= in30Days;
+                                const isMedS = !isExpired && !isVeryS && exp <= in60Days;
+                                if (!isExpired && !isVeryS && !isMedS) return null;
+                                const cls = isExpired ? 'bg-destructive/20 text-destructive' : isVeryS ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/15 text-yellow-400';
+                                const label = isExpired ? 'VENC.' : isVeryS ? '< 30d' : '< 60d';
                                 return (
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${isExpired ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/20 text-orange-400'}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
-                                    {isExpired ? 'VENC.' : 'PROX.'}
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${cls}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
+                                    {label}
                                   </span>
                                 );
                               })()}

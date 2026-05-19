@@ -557,6 +557,8 @@ export default function CustomersPage() {
   const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
   const [bulkNoteText, setBulkNoteText] = useState("");
   const [bulkNoteSaving, setBulkNoteSaving] = useState(false);
+  const [filterBirthday, setFilterBirthday] = useState("all");
+  const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
 
   const loadData = async () => {
@@ -760,6 +762,24 @@ export default function CustomersPage() {
     return list;
   }, [sales, debts, profiles, profileByName]);
 
+  // Helper: check if a birthday falls within a range relative to today (comparing month+day only)
+  const bdayInRange = (birthday: string | undefined, range: string): boolean => {
+    if (!birthday) return false;
+    const bd = new Date(birthday + 'T12:00:00');
+    const bMonth = bd.getMonth();
+    const bDay = bd.getDate();
+    const today = new Date();
+    if (range === 'this_month') return bMonth === today.getMonth();
+    if (range === 'this_week') {
+      for (let i = 0; i <= 7; i++) {
+        const d = new Date(today); d.setDate(today.getDate() + i);
+        if (d.getMonth() === bMonth && d.getDate() === bDay) return true;
+      }
+      return false;
+    }
+    return false;
+  };
+
   const filtered = useMemo(() => {
     let list = customers;
     if (search) {
@@ -772,12 +792,13 @@ export default function CustomersPage() {
       );
     }
     if (segmentFilter !== "all") list = list.filter(c => c.segment === segmentFilter);
+    if (filterBirthday !== "all") list = list.filter(c => bdayInRange(c.birthday, filterBirthday));
     list.sort((a, b) => {
       if (sortBy === "lastPurchase") return new Date(b.lastPurchase).getTime() - new Date(a.lastPurchase).getTime();
       return b[sortBy as keyof typeof b] as number - (a[sortBy as keyof typeof a] as number);
     });
     return list;
-  }, [customers, search, segmentFilter, sortBy]);
+  }, [customers, search, segmentFilter, sortBy, filterBirthday]);
 
   const segmentCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -1306,7 +1327,7 @@ export default function CustomersPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 flex-wrap">
         <Input
           placeholder="Buscar cliente..."
           value={search}
@@ -1321,6 +1342,14 @@ export default function CustomersPage() {
             <SelectItem value="purchaseCount">Más compras</SelectItem>
             <SelectItem value="avgTicket">Mayor ticket</SelectItem>
             <SelectItem value="lastPurchase">Más reciente</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterBirthday} onValueChange={v => setFilterBirthday(v)}>
+          <SelectTrigger className="bg-muted border-border w-full sm:w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">🎂 Cumpleaños: todos</SelectItem>
+            <SelectItem value="this_week">Esta semana</SelectItem>
+            <SelectItem value="this_month">Este mes</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1386,9 +1415,60 @@ export default function CustomersPage() {
             <MessageCircle className="w-4 h-4" />
             WhatsApp masivo
           </button>
+          {filtered.filter(c => selectedCustomerNames.has(c.name) && c.birthday && bdayInRange(c.birthday, 'this_month')).length > 0 && (
+            <button
+              onClick={() => setBulkBdayWaOpen(true)}
+              className="px-4 py-1.5 rounded-xl bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 transition-colors flex items-center gap-2"
+            >
+              🎂 WhatsApp cumpleaños
+            </button>
+          )}
           <button onClick={() => setSelectedCustomerNames(new Set())} className="text-muted-foreground hover:text-foreground text-xs transition-colors">✕ Limpiar</button>
         </div>
       )}
+
+      {/* Bulk Birthday WhatsApp Dialog */}
+      <Dialog open={bulkBdayWaOpen} onOpenChange={setBulkBdayWaOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              🎂 WhatsApp de cumpleaños
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-xs text-muted-foreground">Se enviarán mensajes personalizados a los clientes seleccionados con cumpleaños este mes.</p>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto border border-border rounded-lg p-3">
+              {filtered
+                .filter(c => selectedCustomerNames.has(c.name) && c.birthday && bdayInRange(c.birthday, 'this_month'))
+                .map(c => {
+                  const bday = new Date(c.birthday! + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'long' });
+                  const firstName = c.name.split(' ')[0];
+                  const msg = `🎂 ¡Feliz cumpleaños ${firstName}! 🎉 Queremos desearte un día increíble. Como regalo especial, tenemos una sorpresa para vos. ¡Te esperamos!`;
+                  const waUrl = c.phone
+                    ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+                    : null;
+                  return (
+                    <div key={c.name} className="flex items-center justify-between gap-2 py-1.5 border-b border-border last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{c.name}</p>
+                        <p className="text-[10px] text-pink-400">{bday}</p>
+                      </div>
+                      {waUrl ? (
+                        <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-green-400 hover:underline flex items-center gap-1 shrink-0">
+                          <MessageCircle className="w-3.5 h-3.5" />Enviar
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">Sin teléfono</span>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+            <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white" onClick={() => setBulkBdayWaOpen(false)}>Cerrar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Bulk WhatsApp Dialog */}
       <Dialog open={bulkWaOpen} onOpenChange={setBulkWaOpen}>
@@ -1675,6 +1755,12 @@ export default function CustomersPage() {
                     <div className="flex items-center gap-2 shrink-0 ml-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.segmentColor}`}>{c.segment}</span>
                       {c.purchaseCount > 0 && <HealthScoreBadge score={c.healthScore} />}
+                      {c.birthday && bdayInRange(c.birthday, 'this_week') && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/20 text-pink-400 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Esta semana</span>
+                      )}
+                      {c.birthday && !bdayInRange(c.birthday, 'this_week') && bdayInRange(c.birthday, 'this_month') && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/10 text-pink-300 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Este mes</span>
+                      )}
                       {c.pendingDebt > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive hidden sm:block">
                           Debe {formatARS(c.pendingDebt)}

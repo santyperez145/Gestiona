@@ -881,6 +881,20 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Stock crítico banner — proactivo */}
+      {stats && (stats.outOfStockProducts?.length > 0 || stats.lowStockProducts?.length > 0) && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-destructive/10 border border-destructive/30 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+          <span className="text-sm font-medium text-destructive">Stock crítico</span>
+          <span className="text-xs text-muted-foreground hidden sm:block">
+            {stats.outOfStockProducts?.length > 0 && `${stats.outOfStockProducts.length} sin stock`}
+            {stats.outOfStockProducts?.length > 0 && stats.lowStockProducts?.length > 0 && ' · '}
+            {stats.lowStockProducts?.length > 0 && `${stats.lowStockProducts.length} con stock bajo`}
+          </span>
+          <Link to="/productos?filter=lowstock" className="ml-auto text-xs text-destructive hover:underline font-medium shrink-0">Ver productos →</Link>
+        </div>
+      )}
+
       {/* USD Rates Banner */}
       {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
         <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-2.5 bg-card border border-border rounded-xl">

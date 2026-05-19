@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -254,8 +254,110 @@ export default function SalesPage() {
     toast.success("Venta eliminada");
   };
 
+  const downloadSalePDF = async (s: any) => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const PW = 210;
+    const businessName = (settings as any)?.business_name || "Mi Negocio";
+    const logoUrl = (settings as any)?.logo_url;
+    const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+
+    // Header
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, PW, 32, "F");
+
+    // Logo
+    let logoX = 12;
+    if (logoUrl) {
+      try {
+        const resp = await fetch(logoUrl);
+        const blob = await resp.blob();
+        const dataUrl = await new Promise<string>(res => {
+          const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob);
+        });
+        doc.addImage(dataUrl, "PNG", 12, 4, 24, 24);
+        logoX = 42;
+      } catch { /* fallback: just text */ }
+    }
+
+    doc.setTextColor(212, 168, 67);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(businessName, logoX, 14);
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(9);
+    doc.text("RECIBO DE VENTA", logoX, 22);
+    doc.setFontSize(9);
+    doc.text(`N° ${s.id?.slice(0, 8).toUpperCase() || "—"}`, PW - 12, 12, { align: "right" });
+    doc.text(date, PW - 12, 19, { align: "right" });
+    doc.text(s.paid ? "✓ COBRADO" : "⏳ PENDIENTE", PW - 12, 26, { align: "right" });
+
+    // Client
+    let y = 44;
+    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("CLIENTE:", 14, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(s.customer_name || "Consumidor final", 40, y);
+
+    // Divider
+    y += 8;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, y, PW - 14, y);
+
+    // Items table
+    y += 8;
+    doc.setFillColor(240, 240, 248);
+    doc.rect(14, y - 4, PW - 28, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Producto", 16, y);
+    doc.text("Cant.", 120, y, { align: "center" });
+    doc.text("P. Unit.", 155, y, { align: "right" });
+    doc.text("Total", PW - 16, y, { align: "right" });
+
+    y += 8;
+    doc.setFont("helvetica", "normal");
+    doc.text(s.product_name || "—", 16, y);
+    doc.text(String(s.quantity || 1), 120, y, { align: "center" });
+    doc.text(formatARS(Number(s.unit_price_ars)), 155, y, { align: "right" });
+    doc.text(formatARS(Number(s.total_ars)), PW - 16, y, { align: "right" });
+
+    // Totals
+    y += 14;
+    doc.line(14, y, PW - 14, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(26, 26, 46);
+    doc.text("TOTAL:", 120, y);
+    doc.setTextColor(212, 168, 67);
+    doc.text(formatARS(Number(s.total_ars)), PW - 16, y, { align: "right" });
+
+    // Payment method
+    y += 10;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Método de pago: ${s.payment_method || "efectivo"}`, 14, y);
+    if (s.notes) {
+      y += 6;
+      doc.text(`Nota: ${s.notes}`, 14, y);
+    }
+
+    // Footer
+    y = 275;
+    doc.setFontSize(8);
+    doc.setTextColor(160, 160, 160);
+    doc.text("¡Gracias por su compra!", PW / 2, y, { align: "center" });
+
+    doc.save(`recibo_${(s.product_name || "venta").replace(/\s+/g, '_')}_${s.date}.pdf`);
+    toast.success("PDF descargado");
+  };
+
   const printReceipt = (s: any) => {
-    const businessName = (sales as any).businessName || "Mi Negocio";
+    const businessName = (settings as any)?.business_name || "Mi Negocio";
     const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
 <style>
@@ -957,6 +1059,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Imprimir recibo" onClick={() => printReceipt(s)}>
                           <Printer className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Descargar PDF" onClick={() => downloadSalePDF(s)}>
+                          <FileDown className="w-3.5 h-3.5 text-muted-foreground" />
                         </Button>
                         {isAdmin && <>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
