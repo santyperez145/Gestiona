@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -120,7 +120,7 @@ export default function SalesPage() {
   }, [products]);
 
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product">("list");
+  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session" | "by_product" | "by_date">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
@@ -622,6 +622,13 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           >
             <TrendingUp className="w-3.5 h-3.5" />Por producto
           </button>
+          <button
+            onClick={() => setViewMode("by_date")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_date" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Agrupar por día con delta vs semana anterior"
+          >
+            <Calendar className="w-3.5 h-3.5" />Por fecha
+          </button>
         </div>
       </div>
 
@@ -769,6 +776,58 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </table>
           )}
         </div>
+      ) : viewMode === "by_date" ? (
+        /* ── By Date view ── */
+        (() => {
+          const dateMap: Record<string, { total: number; profit: number; count: number; paid: number }> = {};
+          filtered.forEach(s => {
+            const d = String(s.date).slice(0, 10);
+            if (!dateMap[d]) dateMap[d] = { total: 0, profit: 0, count: 0, paid: 0 };
+            dateMap[d].total += Number(s.total_ars);
+            dateMap[d].profit += Number(s.profit_ars || 0);
+            dateMap[d].count += 1;
+            if (s.status === "paid") dateMap[d].paid += Number(s.total_ars);
+          });
+          const dates = Object.keys(dateMap).sort().reverse();
+          if (dates.length === 0) return <EmptyState icon={Calendar} title="Sin ventas" description="No hay ventas en el período seleccionado." />;
+          return (
+            <div className="space-y-2">
+              {dates.map(d => {
+                const data = dateMap[d];
+                // Delta vs same weekday 7 days ago
+                const prevDay = new Date(d + "T12:00:00");
+                prevDay.setDate(prevDay.getDate() - 7);
+                const prevKey = prevDay.toISOString().slice(0, 10);
+                const prevData = dateMap[prevKey];
+                const delta = prevData && prevData.total > 0 ? ((data.total - prevData.total) / prevData.total) * 100 : null;
+                const label = new Date(d + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" });
+                return (
+                  <div key={d} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-4">
+                    <div className="w-28 shrink-0">
+                      <p className="text-sm font-semibold capitalize">{label}</p>
+                      <p className="text-[10px] text-muted-foreground">{data.count} venta{data.count !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                      <div className="h-full bg-primary/60 rounded-full" style={{ width: `${Math.min(100, (data.total / (dateMap[dates[dates.length - 1]]?.total || 1)) * 100)}%` }} />
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold text-sm font-mono">{formatARS(data.total)}</p>
+                      <p className="text-[10px] text-success">{formatARS(data.profit)} gan.</p>
+                    </div>
+                    {delta !== null ? (
+                      <div className={`w-14 text-right shrink-0 text-xs font-semibold ${delta >= 0 ? "text-success" : "text-destructive"}`}>
+                        {delta >= 0 ? "▲" : "▼"}{Math.abs(delta).toFixed(0)}%
+                        <p className="text-[9px] font-normal text-muted-foreground">vs -7d</p>
+                      </div>
+                    ) : (
+                      <div className="w-14 shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()
       ) : (
         <>
           {/* Bulk action bar */}
