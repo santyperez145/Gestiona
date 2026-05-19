@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 34)**
+Última actualización: **2026-05-19 (sesión 35)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~98% completo.**
+**MVP avanzado con SaaS billing funcional. ~99% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -201,6 +201,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ReportsPage InventoryTab: rotación y días de stock** — columna "Días stock" color-coded (rojo/amarillo/verde) basada en velocity 30d; métricas de stock crítico/bajo en resumen. _(sesión 34)_
 - **ReportsPage InventoryTab: PDF export** — PDF A4 landscape con jsPDF/autoTable: KPIs en header, tabla completa con márgenes color-coded, fila de totales. _(sesión 34)_
 - **Dashboard temperatura: 5ª señal "Prod. sin movim. 30d"** — agingCount30 en stats; semáforo rojo si >5 productos sin venta 30d; grid-cols-5 en lg. _(sesión 34)_
+- **SalesPage: tendencia diaria en período filtrado** — mini CSS-only sparkline de hasta 30 días; renderiza solo con 2+ días de datos; tooltips con fecha/monto. _(sesión 35)_
+- **ProductsPage: filtro por margen** — Select dropdown >40% / 20–40% / <20% / negativo; filtra usando sale_price_ars + total_cost_usd × TC. _(sesión 35)_
+- **CustomersPage: panel "Análisis RFM"** — collapsible; quintiles 1–5 para R/F/M; mini barras de distribución por dimensión; tabla top-15 sorteable por R/F/M/total; badges color-coded. _(sesión 35)_
+- **InvoicesPage: envío masivo de facturas** — checkboxes por fila, select-all, barra de acción flotante "Enviar emails"; loop con send-invoice-email edge function; auto-update status draft→sent. _(sesión 35)_
+- **ReportsPage tab "Clientes"** — ranking por facturación, frecuencia, ticket promedio, último pedido; KPI cards; CSV export; filtro por período. _(sesión 34–35)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -684,15 +689,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 35)
+## Sesión 35 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: gráfico de tendencia diaria** — CSS sparkline hasta 30 días, tooltip fecha/monto, renderiza solo con 2+ días | ✅ Hecho |
+| 2 | **ProductsPage: filtro por margen** — Select >40%/20–40%/<20%/negativo usando precios y TC | ✅ Hecho |
+| 3 | **CustomersPage: panel "Análisis RFM"** — collapsible, quintiles 1–5, mini charts distribución, tabla top-15 sorteable | ✅ Hecho |
+| 4 | **InvoicesPage: envío masivo de facturas** — checkboxes, select-all, barra flotante, loop con edge function | ✅ Hecho |
+| 5 | **ReportsPage tab "Clientes"** — ranking facturación/frecuencia/ticket/último pedido, KPIs, CSV | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 36)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **SalesPage: gráfico de tendencia diaria en el período filtrado** — mini BarChart por día sin recharts extra; datos ya disponibles | Insight rápido |
-| 2 | **ProductsPage: filtro avanzado por margen** — rango de margen (ej: "margen < 20%") | Gestión precios |
-| 3 | **CustomersPage: tab "Análisis RFM"** — tabla con score R/F/M individual por cliente, distribución de segmentos | CRM data-driven |
-| 4 | **InvoicesPage: envío masivo de facturas** — checkboxes + barra flotante "Enviar por email" | Facturación eficiente |
-| 5 | **ReportsPage tab "Clientes"** — top clientes por facturación del período, frecuencia, ticket promedio, último pedido | Analytics comercial |
+| 1 | **ExpensesPage: gráfico de tendencia mensual por categoría** — mini líneas/barras por categoría de gasto en los últimos 6 meses | Visibilidad de costos |
+| 2 | **AnalyticsPage: Pareto de clientes** — concentración de ingresos, qué % del revenue viene del top 20% de clientes | Foco comercial |
+| 3 | **Dashboard: resumen de flujo de caja semanal** — ingresos - gastos - pagos a proveedores de los últimos 7 días | Control financiero |
+| 4 | **InvoicesPage: filtro por tipo (A/B/C/NC)** — dropdown rápido junto al filtro de estado | Usabilidad facturas |
+| 5 | **ProductsPage: exportar PDF de productos sin movimiento** — lista de aging con costo inmovilizado para decisión de liquidación | Gestión inventario |
 
 ---
 
