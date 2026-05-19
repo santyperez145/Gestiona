@@ -125,6 +125,7 @@ export default function SalesPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterMethod, setFilterMethod] = useState('all');
+  const [commPct, setCommPct] = useState(5);
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
@@ -593,6 +594,31 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </button>
           ))}
         </div>
+        {/* Commission summary (only in by_customer / by_product) */}
+        {(viewMode === "by_customer" || viewMode === "by_product") && (() => {
+          const sellerMap: Record<string, { total: number; count: number }> = {};
+          filtered.forEach(s => {
+            const key = (s as any).seller_name?.trim() || "(Sin vendedor)";
+            if (!sellerMap[key]) sellerMap[key] = { total: 0, count: 0 };
+            sellerMap[key].total += Number(s.total_ars);
+            sellerMap[key].count++;
+          });
+          const sellers = Object.entries(sellerMap).filter(([k]) => k !== "(Sin vendedor)");
+          if (sellers.length === 0) return null;
+          return (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-lg text-xs">
+              <span className="text-muted-foreground">Comisiones:</span>
+              <input type="number" min={0} max={100} value={commPct} onChange={e => setCommPct(Number(e.target.value))}
+                className="w-12 bg-muted border border-border rounded px-1.5 text-center" />
+              <span className="text-muted-foreground">%</span>
+              {sellers.map(([name, data]) => (
+                <span key={name} className="ml-2 font-medium text-success">
+                  {name}: {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(data.total * commPct / 100)}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
         <div className="flex rounded-lg border border-border overflow-hidden h-9">
           <button
             onClick={() => setViewMode("list")}
