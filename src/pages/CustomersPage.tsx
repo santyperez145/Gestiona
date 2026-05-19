@@ -541,6 +541,8 @@ export default function CustomersPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, string> } | null>(null);
+  const [showRFM, setShowRFM] = useState(false);
+  const [rfmSort, setRfmSort] = useState<"rfmScore" | "rScore" | "fScore" | "mScore">("rfmScore");
   const [csvPreviewOpen, setCsvPreviewOpen] = useState(false);
   const [installments, setInstallments] = useState<any[]>([]);
   const [payingInstallment, setPayingInstallment] = useState<string | null>(null);
@@ -781,6 +783,28 @@ export default function CustomersPage() {
     const counts: Record<string, number> = {};
     customers.forEach(c => { counts[c.segment] = (counts[c.segment] || 0) + 1; });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [customers]);
+
+  const rfmData = useMemo(() => {
+    const withPurchases = customers.filter(c => c.purchaseCount > 0);
+    if (withPurchases.length === 0) return [];
+    const quintile = (arr: number[], val: number, inverse = false) => {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const idx = sorted.findIndex(v => v >= val);
+      const pct = idx < 0 ? 1 : idx / sorted.length;
+      const score = Math.ceil((inverse ? 1 - pct : pct) * 5);
+      return Math.max(1, Math.min(5, score));
+    };
+    const recencies = withPurchases.map(c => c.daysSinceLastPurchase);
+    const frequencies = withPurchases.map(c => c.purchaseCount);
+    const monetaries = withPurchases.map(c => c.totalSpent);
+    return withPurchases.map(c => {
+      const rScore = quintile(recencies, c.daysSinceLastPurchase, true);
+      const fScore = quintile(frequencies, c.purchaseCount, false);
+      const mScore = quintile(monetaries, c.totalSpent, false);
+      const rfmScore = rScore + fScore + mScore;
+      return { ...c, rScore, fScore, mScore, rfmScore };
+    });
   }, [customers]);
 
   const saveCurrentSegment = async () => {
@@ -1118,6 +1142,95 @@ export default function CustomersPage() {
           </div>
         );
       })()}
+
+      {/* RFM Analysis Panel */}
+      {rfmData.length > 0 && (
+        <div className="bg-card border border-border rounded-xl mb-4">
+          <button
+            className="w-full flex items-center justify-between px-4 py-3 text-left"
+            onClick={() => setShowRFM(v => !v)}
+          >
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold">Análisis RFM</span>
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{rfmData.length} clientes con compras</span>
+            </div>
+            {showRFM ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showRFM && (
+            <div className="border-t border-border px-4 pb-4 pt-3">
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  { label: "Recency (R)", desc: "Cuándo compraron por última vez", key: "rScore" as const, color: "text-blue-400" },
+                  { label: "Frequency (F)", desc: "Con qué frecuencia compran", key: "fScore" as const, color: "text-purple-400" },
+                  { label: "Monetary (M)", desc: "Cuánto gastan en total", key: "mScore" as const, color: "text-green-400" },
+                ].map(dim => {
+                  const dist = [1, 2, 3, 4, 5].map(s => rfmData.filter(c => c[dim.key] === s).length);
+                  const max = Math.max(...dist, 1);
+                  return (
+                    <div key={dim.key} className="bg-muted/40 rounded-lg p-3">
+                      <p className={`text-xs font-semibold mb-0.5 ${dim.color}`}>{dim.label}</p>
+                      <p className="text-[10px] text-muted-foreground mb-2">{dim.desc}</p>
+                      <div className="flex items-end gap-1 h-10">
+                        {dist.map((count, i) => (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                            <div className="w-full rounded-sm bg-primary/60" style={{ height: `${Math.max(4, (count / max) * 100)}%` }} />
+                            <span className="text-[8px] text-muted-foreground">{i + 1}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-muted-foreground">Ordenar por:</span>
+                {(["rfmScore", "rScore", "fScore", "mScore"] as const).map(k => (
+                  <button key={k} onClick={() => setRfmSort(k)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all ${rfmSort === k ? "bg-primary/15 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/20"}`}
+                  >
+                    {k === "rfmScore" ? "Total RFM" : k === "rScore" ? "Recency" : k === "fScore" ? "Frequency" : "Monetary"}
+                  </button>
+                ))}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground">
+                      <th className="text-left py-1.5 pr-3 font-medium">Cliente</th>
+                      <th className="text-left py-1.5 pr-3 font-medium">Segmento</th>
+                      <th className="text-center py-1.5 pr-2 font-medium text-blue-400">R</th>
+                      <th className="text-center py-1.5 pr-2 font-medium text-purple-400">F</th>
+                      <th className="text-center py-1.5 pr-2 font-medium text-green-400">M</th>
+                      <th className="text-center py-1.5 pr-3 font-medium">RFM</th>
+                      <th className="text-right py-1.5 font-medium">Facturación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...rfmData].sort((a, b) => b[rfmSort] - a[rfmSort]).slice(0, 15).map(c => (
+                      <tr key={c.name} className="border-b border-border/40 hover:bg-muted/20">
+                        <td className="py-1.5 pr-3 font-medium truncate max-w-[120px]">{c.name}</td>
+                        <td className="py-1.5 pr-3"><span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${c.segmentColor}`}>{c.segment}</span></td>
+                        <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.rScore >= 4 ? "text-blue-400" : c.rScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.rScore}</span></td>
+                        <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.fScore >= 4 ? "text-purple-400" : c.fScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.fScore}</span></td>
+                        <td className="text-center py-1.5 pr-2"><span className={`font-bold ${c.mScore >= 4 ? "text-green-400" : c.mScore <= 2 ? "text-red-400" : "text-muted-foreground"}`}>{c.mScore}</span></td>
+                        <td className="text-center py-1.5 pr-3">
+                          <span className={`font-bold text-sm ${c.rfmScore >= 12 ? "text-green-400" : c.rfmScore >= 8 ? "text-yellow-400" : "text-red-400"}`}>{c.rfmScore}</span>
+                          <span className="text-muted-foreground">/15</span>
+                        </td>
+                        <td className="text-right py-1.5 font-mono">{formatARS(c.totalSpent)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {rfmData.length > 15 && (
+                  <p className="text-[10px] text-muted-foreground text-center mt-2">Mostrando top 15 — exportá CSV para ver todos</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Saved segments */}
       {(savedSegments.length > 0 || segmentFilter !== "all") && (
