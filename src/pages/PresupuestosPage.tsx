@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Search, FileText, Download, Send,
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
-  DollarSign, Mail,
+  DollarSign, Mail, CopyPlus,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -383,6 +383,39 @@ export default function PresupuestosPage() {
     else { toast.success(`Estado actualizado: ${STATUS_CONFIG[status]?.label}`); load(); }
   };
 
+  const [duplicating, setDuplicating] = useState<string | null>(null);
+
+  const duplicateQuote = async (q: Quote) => {
+    if (!activeOrg || !user) return;
+    setDuplicating(q.id);
+    try {
+      const { data: numData } = await supabase.rpc("next_quote_number", { p_org_id: activeOrg.id });
+      const quoteNumber = numData || `PRE-${Date.now()}`;
+      const { error } = await supabase.from("quotes").insert({
+        org_id: activeOrg.id,
+        quote_number: quoteNumber,
+        customer_name: q.customer_name,
+        customer_email: q.customer_email || null,
+        customer_phone: q.customer_phone || null,
+        items: q.items,
+        subtotal: q.subtotal,
+        discount_amount: q.discount_amount || 0,
+        total: q.total,
+        status: "draft",
+        valid_until: null,
+        notes: q.notes || null,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      toast.success(`Presupuesto duplicado: ${quoteNumber}`);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Error al duplicar");
+    } finally {
+      setDuplicating(null);
+    }
+  };
+
   const [converting, setConverting] = useState<string | null>(null);
   const [convertModal, setConvertModal] = useState<{ quote: Quote; method: string } | null>(null);
 
@@ -597,6 +630,9 @@ export default function PresupuestosPage() {
                   )}
                   <button onClick={() => copyWhatsApp(q)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Copiar para WhatsApp">
                     <Copy className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => duplicateQuote(q)} disabled={duplicating === q.id} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors disabled:opacity-50" title="Duplicar presupuesto">
+                    {duplicating === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CopyPlus className="w-4 h-4" />}
                   </button>
                   <ConfirmDialog title="Eliminar presupuesto" description="Esta acción no se puede deshacer." onConfirm={() => handleDelete(q.id)}>
                     <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">

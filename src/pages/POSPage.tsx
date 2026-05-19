@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -183,6 +183,41 @@ function ReceiptModal({
   onClose: () => void; onNewSale: () => void;
 }) {
   const change = !splitMode && payMethod === "efectivo" && cashGiven > total ? cashGiven - total : 0;
+  const [emailTo, setEmailTo] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
+  const sendReceiptEmail = async () => {
+    const trimmed = emailTo.trim().toLowerCase();
+    if (!trimmed || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
+      toast.error("Ingresá un email válido");
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const itemsText = items.map(it => `• ${it.quantity}× ${it.name} — ${formatARS(it.price * it.quantity)}`).join("\n");
+      const { error } = await supabase.functions.invoke("send-invoice-email", {
+        body: {
+          to: trimmed,
+          subject: `Recibo de compra — ${businessName}`,
+          invoiceNumber: `REC-${Date.now().toString().slice(-6)}`,
+          customerName: customer || "Cliente",
+          orgName: businessName,
+          totalARS: total,
+          dueDate: null,
+          notes: itemsText,
+        },
+      });
+      if (error) throw error;
+      setEmailSent(true);
+      toast.success(`Recibo enviado a ${trimmed}`);
+    } catch {
+      toast.error("Error al enviar el recibo");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const receiptText = buildReceiptText(
     items, payMethod, splitMode, splitMethod1, splitMethod2,
     splitAmount1, splitAmount2, customer, total, cashGiven, businessName,
@@ -403,6 +438,31 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
                 <Copy className="w-3.5 h-3.5" />
               </Button>
             </div>
+          )}
+
+          {/* Email receipt */}
+          {!emailSent ? (
+            <div className="flex gap-1.5">
+              <Input
+                type="email"
+                value={emailTo}
+                onChange={e => setEmailTo(e.target.value)}
+                placeholder="email@cliente.com"
+                className="h-9 text-sm bg-muted border-border flex-1"
+                onKeyDown={e => e.key === "Enter" && sendReceiptEmail()}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={sendReceiptEmail}
+                disabled={sendingEmail || !emailTo.trim()}
+                className="h-9 gap-1.5 shrink-0 border-blue-500/30 text-blue-400 hover:bg-blue-500/5"
+              >
+                {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-success text-center">✓ Recibo enviado a {emailTo}</p>
           )}
 
           <Button className="w-full gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>

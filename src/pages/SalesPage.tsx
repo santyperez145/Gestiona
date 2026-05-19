@@ -322,6 +322,75 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     toast.success(`${filtered.length} ventas exportadas`);
   };
 
+  const printCierreCaja = () => {
+    const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
+    const periodLabel = (() => {
+      if (!dateFrom) return 'Todo el período';
+      const from = dateFrom.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const to = dateTo ? dateTo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return from === to ? from : `${from} – ${to}`;
+    })();
+    const byMethod: Record<string, { total: number; count: number; paid: number; debt: number }> = {};
+    filtered.forEach(s => {
+      const m = s.payment_method || 'efectivo';
+      if (!byMethod[m]) byMethod[m] = { total: 0, count: 0, paid: 0, debt: 0 };
+      byMethod[m].total += Number(s.total_ars);
+      byMethod[m].count++;
+      if (s.paid) byMethod[m].paid += Number(s.total_ars);
+      else byMethod[m].debt += Number(s.total_ars);
+    });
+    const methods = Object.entries(byMethod).sort((a, b) => b[1].total - a[1].total);
+    const methodRows = methods.map(([m, d]) => `
+      <tr>
+        <td style="text-transform:capitalize">${m}</td>
+        <td style="text-align:right">${d.count}</td>
+        <td style="text-align:right;font-weight:bold">${fmtARS(d.total)}</td>
+        <td style="text-align:right;color:#16a34a">${fmtARS(d.paid)}</td>
+        <td style="text-align:right;color:#dc2626">${fmtARS(d.debt)}</td>
+      </tr>`).join('');
+    const topProds = (() => {
+      const map: Record<string, number> = {};
+      filtered.forEach(s => { const k = s.product_name || '—'; map[k] = (map[k] || 0) + Number(s.total_ars); });
+      return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    })();
+    const topRows = topProds.map(([name, total]) => `<tr><td>${name}</td><td style="text-align:right;font-weight:bold">${fmtARS(total)}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cierre de Caja</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;margin:24px;max-width:700px}
+  h1{font-size:18px;margin:0 0 2px}
+  p.sub{color:#666;font-size:10px;margin:0 0 20px}
+  h2{font-size:13px;margin:16px 0 6px;color:#444;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  table{width:100%;border-collapse:collapse;margin-bottom:12px}
+  th{background:#f3f4f6;text-align:left;padding:5px 8px;font-size:10px;border-bottom:2px solid #d1d5db}
+  td{padding:4px 8px;border-bottom:1px solid #f0f0f0}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center}
+  .kpi .val{font-size:16px;font-weight:bold;color:#b8860b}.kpi .lbl{font-size:9px;color:#777;margin-top:2px}
+  @media print{body{margin:10px}}
+</style></head><body>
+<h1>📊 Cierre de Caja</h1>
+<p class="sub">Período: ${periodLabel} · Generado el ${new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+<div class="kpis">
+  <div class="kpi"><div class="val">${fmtARS(totalSales)}</div><div class="lbl">Total facturado</div></div>
+  <div class="kpi"><div class="val">${fmtARS(totalProfit)}</div><div class="lbl">Ganancia neta</div></div>
+  <div class="kpi"><div class="val">${marginPct.toFixed(1)}%</div><div class="lbl">Margen</div></div>
+  <div class="kpi"><div class="val">${filtered.length}</div><div class="lbl">Ventas</div></div>
+</div>
+<h2>Por método de pago</h2>
+<table>
+  <thead><tr><th>Método</th><th style="text-align:right">Cant.</th><th style="text-align:right">Total</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Debe</th></tr></thead>
+  <tbody>${methodRows}</tbody>
+</table>
+<h2>Top 5 productos</h2>
+<table>
+  <thead><tr><th>Producto</th><th style="text-align:right">Facturado</th></tr></thead>
+  <tbody>${topRows}</tbody>
+</table>
+</body></html>`;
+    const w = window.open('', '_blank', 'width=800,height=600');
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 400); }
+  };
+
   const unpaidPaged = paged.filter(s => !s.paid);
   const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => {
@@ -356,9 +425,14 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           <div className="flex items-center gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
             {filtered.length > 0 && (
-              <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
-                <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={printCierreCaja} title="Imprimir cierre de caja" className="hidden sm:flex">
+                  <Printer className="w-4 h-4 mr-1.5" />Cierre
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
+                  <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+                </Button>
+              </>
             )}
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
               <DialogTrigger asChild>
