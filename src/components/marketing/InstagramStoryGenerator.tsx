@@ -155,39 +155,42 @@ async function renderStory(opts: {
   if (logoUrl) {
     try {
       const logoImg = await loadImage(logoUrl);
-      const maxLogoH = 90;
-      const maxLogoW = 400;
+      const maxLogoH = 160;           // bigger logo
+      const maxLogoW = 600;
       const ratio = logoImg.width / logoImg.height;
       const logoH = Math.min(maxLogoH, logoImg.height);
       const logoW = Math.min(maxLogoW, logoH * ratio);
       const lx = (W - logoW) / 2;
-      const ly = 60;
-      // Subtle glow behind logo
+      const ly = 50;
+
+      // Draw logo with "screen" blend mode so white areas become transparent
+      // on the dark background, leaving only the coloured/dark parts of the logo
       ctx.save();
-      ctx.shadowColor = "rgba(212,168,67,0.4)";
-      ctx.shadowBlur = 30;
+      ctx.globalCompositeOperation = "screen";
+      ctx.shadowColor = "rgba(212,168,67,0.5)";
+      ctx.shadowBlur = 40;
       ctx.drawImage(logoImg, lx, ly, logoW, logoH);
       ctx.restore();
     } catch {
       // fallback to text
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.font = "600 36px Inter, sans-serif";
-      ctx.fillText(displayName.toUpperCase(), W / 2, 130);
+      ctx.fillText(displayName.toUpperCase(), W / 2, 160);
     }
   } else {
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.font = "600 36px Inter, sans-serif";
-    ctx.fillText(displayName.toUpperCase(), W / 2, 130);
+    ctx.fillText(displayName.toUpperCase(), W / 2, 160);
   }
 
-  // Badge
+  // Badge — moved down to clear the taller logo
   if (tpl.badge && template !== "limpio") {
     ctx.font = "900 56px Inter, sans-serif";
     const badgeText = `${tpl.emoji} ${tpl.badge}`;
     const tw = ctx.measureText(badgeText).width;
     const padX = 50;
     const bx = (W - tw - padX * 2) / 2;
-    const by = 180;
+    const by = 240;
     ctx.fillStyle = primaryColor;
     drawRoundRect(ctx, bx, by, tw + padX * 2, 100, 50);
     ctx.fill();
