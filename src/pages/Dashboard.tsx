@@ -622,6 +622,13 @@ export default function Dashboard() {
       .sort(([, a], [, b]) => b - a)
       .map(([source, total]) => ({ source, total }));
 
+    // ===== Aging inventory (stock > 0, no sale in last 30 days) =====
+    const thirtyDaysAgoStr = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const soldLast30 = new Set(
+      allSales.filter((s: any) => String(s.date).slice(0, 10) >= thirtyDaysAgoStr).map((s: any) => s.product_id)
+    );
+    const agingCount30 = products.filter((p: any) => p.stock > 0 && !soldLast30.has(p.id)).length;
+
     const dueDebtsWeek = debts.filter((d: any) => d.status !== 'paid' && d.due_date && new Date(d.due_date) > new Date() && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000)).length;
     const expensesRatio = monthSalesARS > 0 ? (totalMonthExpenses / monthSalesARS) * 100 : 0;
     const lowMarginCount = products.filter((p: any) => Number(p.sale_price_ars) > 0 && (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 < marginAlertPct).length;
@@ -722,6 +729,7 @@ export default function Dashboard() {
       anomalies: anomalies.slice(0, 5),
       bestWeekdayData, bestWeekday,
       avgDailySalesARS,
+      agingCount30,
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
@@ -992,13 +1000,15 @@ export default function Dashboard() {
         const salesPct = avgDaily > 0 ? (todaySales / avgDaily) * 100 : (todaySales > 0 ? 100 : 0);
         const monthMargin = stats.monthSalesARS > 0 ? (stats.monthGrossProfit / stats.monthSalesARS) * 100 : 0;
         const criticalStock = stats.outOfStock;
+        const agingCount = stats.agingCount30 || 0;
 
         // Evaluate each signal: 2=green, 1=yellow, 0=red
         const sigSales = salesPct >= 80 ? 2 : salesPct >= 40 ? 1 : 0;
         const sigStock = criticalStock === 0 ? 2 : criticalStock <= 3 ? 1 : 0;
         const sigDebt = overdueCount === 0 ? 2 : overdueCount <= 2 ? 1 : 0;
         const sigMargin = monthMargin >= 25 ? 2 : monthMargin >= 10 ? 1 : 0;
-        const worstScore = Math.min(sigSales, sigStock, sigDebt, sigMargin);
+        const sigAging = agingCount === 0 ? 2 : agingCount <= 5 ? 1 : 0;
+        const worstScore = Math.min(sigSales, sigStock, sigDebt, sigMargin, sigAging);
         const overallColor = worstScore === 2 ? 'green' : worstScore === 1 ? 'yellow' : 'red';
 
         const colorCls = {
@@ -1022,7 +1032,7 @@ export default function Dashboard() {
               </h3>
               <span className={`text-xs font-bold ${colorCls.label}`}>{colorCls.text}</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ventas hoy</p>
                 {sigLabel(sigSales, [
@@ -1053,6 +1063,14 @@ export default function Dashboard() {
                   `${monthMargin.toFixed(1)}% (bajo)`,
                   `${monthMargin.toFixed(1)}% (aceptable)`,
                   `${monthMargin.toFixed(1)}% ✓`,
+                ])}
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 space-y-0.5 col-span-2 sm:col-span-1">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Prod. sin movim. 30d</p>
+                {sigLabel(sigAging, [
+                  `${agingCount} sin ventas (30d)`,
+                  `${agingCount} sin ventas (30d)`,
+                  'Todos rotando ✓',
                 ])}
               </div>
             </div>
