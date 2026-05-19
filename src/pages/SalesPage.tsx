@@ -4,11 +4,10 @@ import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, FileDown, CreditCard } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -104,14 +103,11 @@ export default function SalesPage() {
       setDateTo(new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)); return;
     }
   };
-  const [settings, setSettings] = useState<any>(null);
-
   const reload = async () => {
     if (user) {
-      const [s, p, cfg] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id), getSettingsDB(user.id)]);
+      const [s, p] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id)]);
       setSales(s);
       setProducts(p);
-      setSettings(cfg);
       setLoading(false);
     }
   };
@@ -124,25 +120,15 @@ export default function SalesPage() {
   }, [products]);
 
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_date">("list");
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"list" | "by_customer" | "by_session">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
-  const [filterSeller, setFilterSeller] = useState('all');
-  const [filterPayMethod, setFilterPayMethod] = useState('all');
-
-  const sellerOptions = useMemo(() => {
-    const names = Array.from(new Set(sales.map(s => s.seller_name).filter(Boolean))) as string[];
-    return names.sort();
-  }, [sales]);
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
     if (filterPaid === 'paid' && !s.paid) return false;
     if (filterPaid === 'pending' && s.paid) return false;
-    if (filterSeller !== 'all' && s.seller_name !== filterSeller) return false;
-    if (filterPayMethod !== 'all' && s.payment_method !== filterPayMethod) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -171,25 +157,26 @@ export default function SalesPage() {
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [filtered]);
 
-  const dateGroups = useMemo(() => {
-    const map: Record<string, { date: string; count: number; total: number; profit: number; paid: number; sales: any[] }> = {};
-    filtered.forEach(s => {
-      const d = String(s.date).slice(0, 10);
-      if (!map[d]) map[d] = { date: d, count: 0, total: 0, profit: 0, paid: 0, sales: [] };
-      map[d].count++;
-      map[d].total += Number(s.total_ars || 0);
-      map[d].profit += Number(s.profit_ars || 0);
-      if (s.paid) map[d].paid++;
-      map[d].sales.push(s);
+  // Group sales by POS session: same customer + within 3 minutes of each other
+  const sessionGroups = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+    const sessions: { id: string; customer: string; date: string; items: any[]; total: number; paid: boolean; method: string }[] = [];
+    sorted.forEach(s => {
+      const sTime = new Date(s.date).getTime();
+      const existing = sessions.find(sess => {
+        const sessTime = new Date(sess.date).getTime();
+        return sess.customer === (s.customer_name || '') && Math.abs(sTime - sessTime) <= 3 * 60 * 1000;
+      });
+      if (existing) {
+        existing.items.push(s);
+        existing.total += Number(s.total_ars || 0);
+        if (!s.paid) existing.paid = false;
+      } else {
+        sessions.push({ id: s.id, customer: s.customer_name || '(Sin cliente)', date: s.date, items: [s], total: Number(s.total_ars || 0), paid: !!s.paid, method: s.payment_method || 'efectivo' });
+      }
     });
-    return Object.values(map).sort((a, b) => b.date.localeCompare(a.date));
+    return sessions;
   }, [filtered]);
-
-  const toggleDate = (date: string) => setExpandedDates(prev => {
-    const next = new Set(prev);
-    next.has(date) ? next.delete(date) : next.add(date);
-    return next;
-  });
 
   // Period comparison: prior equivalent period
   const prevPeriod = useMemo(() => {
@@ -225,37 +212,11 @@ export default function SalesPage() {
   };
 
   const printReceipt = (s: any) => {
-    const businessName = settings?.business_name || "Mi Negocio";
-    const logoUrl = settings?.logo_url || "";
-    const receiptFooter = settings?.receipt_footer || "¡Gracias por su compra!";
+    const businessName = (sales as any).businessName || "Mi Negocio";
     const date = new Date(s.date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
-
-    // Group related items: same customer + same date + same payment_method ≈ same transaction
-    const relatedItems = s.customer_name
-      ? sales.filter(
-          r => r.customer_name === s.customer_name &&
-               r.date === s.date &&
-               r.payment_method === s.payment_method &&
-               !r.returned
-        )
-      : [s];
-    const itemsToShow = relatedItems.length > 1 ? relatedItems : [s];
-    const grandTotal = itemsToShow.reduce((sum: number, r: any) => sum + Number(r.total_ars), 0);
-    const allPaid = itemsToShow.every((r: any) => r.paid);
-
-    const isMulti = itemsToShow.length > 1;
-    const itemRows = itemsToShow.map((r: any) =>
-      `<tr>
-        <td style="padding:4px 0">${r.product_name || "—"}</td>
-        <td style="text-align:center;padding:4px 4px">x${r.quantity}</td>
-        <td style="text-align:right;padding:4px 0;color:#666;font-size:11px">${formatARS(Number(r.unit_price_ars))}</td>
-        <td style="text-align:right;padding:4px 0;font-weight:600">${formatARS(Number(r.total_ars))}</td>
-      </tr>`
-    ).join("");
-
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo</title>
 <style>
-  body{font-family:Arial,sans-serif;max-width:360px;margin:20px auto;font-size:13px;color:#333}
+  body{font-family:Arial,sans-serif;max-width:320px;margin:20px auto;font-size:13px;color:#333}
   h1{font-size:18px;text-align:center;margin-bottom:4px}
   .sub{text-align:center;color:#666;font-size:11px;margin-bottom:16px}
   hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
@@ -263,38 +224,23 @@ export default function SalesPage() {
   .bold{font-weight:bold}
   .total{font-size:16px;font-weight:bold;text-align:right;margin-top:12px}
   .footer{text-align:center;font-size:10px;color:#999;margin-top:20px}
-  .logo{display:block;max-height:60px;max-width:180px;margin:0 auto 8px}
-  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${allPaid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
-  table{width:100%;border-collapse:collapse}
-  th{text-align:left;border-bottom:1px solid #ccc;padding:4px 0;font-size:11px;color:#666}
-  th:last-child,th:nth-child(3){text-align:right}
+  .estado{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;${s.paid ? "background:#d1fae5;color:#065f46" : "background:#fee2e2;color:#991b1b"}}
 </style></head><body>
-${logoUrl ? `<img src="${logoUrl}" class="logo" alt="logo" />` : ""}
-<h1>${businessName}</h1>
-<div class="sub">Recibo de venta · ${date}</div>
+<h1>RECIBO DE VENTA</h1>
+<div class="sub">Fecha: ${date}</div>
 <hr>
-${s.customer_name ? `<div class="row"><span>Cliente:</span><span class="bold">${s.customer_name}</span></div>` : ""}
+<div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
+${s.customer_name ? `<div class="row"><span>Cliente:</span><span>${s.customer_name}</span></div>` : ""}
+<div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
+<div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>
+${s.discount_applied ? `<div class="row"><span>Descuento:</span><span>—</span></div>` : ""}
 <div class="row"><span>Método de pago:</span><span>${s.payment_method || "efectivo"}</span></div>
 <hr>
-${isMulti
-  ? `<table>
-      <thead><tr>
-        <th>Producto</th><th style="text-align:center">Cant.</th>
-        <th style="text-align:right">P.Unit</th><th style="text-align:right">Total</th>
-      </tr></thead>
-      <tbody>${itemRows}</tbody>
-    </table>`
-  : `<div class="row"><span>Producto:</span><span class="bold">${s.product_name || "—"}</span></div>
-     <div class="row"><span>Cantidad:</span><span>${s.quantity}</span></div>
-     <div class="row"><span>Precio unitario:</span><span>${formatARS(Number(s.unit_price_ars))}</span></div>`
-}
-<hr>
-<div class="total">TOTAL: ${formatARS(grandTotal)}</div>
-<div style="text-align:right;margin-top:4px"><span class="estado">${allPaid ? "✓ Cobrado" : "Pendiente"}</span></div>
-${s.notes ? `<div style="margin-top:10px;padding:6px 8px;background:#f9f9f9;border-radius:6px;font-size:11px;color:#555"><span style="font-weight:600">Nota:</span> ${s.notes}</div>` : ""}
-<div class="footer"><p>${receiptFooter}</p></div>
+<div class="total">TOTAL: ${formatARS(Number(s.total_ars))}</div>
+<div style="text-align:right;margin-top:4px"><span class="estado">${s.paid ? "✓ Cobrado" : "Pendiente"}</span></div>
+<div class="footer"><p>¡Gracias por su compra!</p></div>
 </body></html>`;
-    const w = window.open("", "_blank", "width=400,height=520");
+    const w = window.open("", "_blank", "width=380,height=500");
     if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   };
 
@@ -360,112 +306,6 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     toast.success(`${filtered.length} ventas exportadas`);
   };
 
-  const exportMonthlyPDF = () => {
-    const businessName = settings?.business_name || "Mi Negocio";
-    const logoUrl = settings?.logo_url || "";
-    const now = new Date();
-    const periodLabel = dateFrom
-      ? `${dateFrom.toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} – ${(dateTo || now).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}`
-      : now.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-
-    // Top 5 products
-    const prodMap: Record<string, { name: string; qty: number; rev: number; profit: number }> = {};
-    filtered.forEach(s => {
-      const k = s.product_name || "?";
-      if (!prodMap[k]) prodMap[k] = { name: k, qty: 0, rev: 0, profit: 0 };
-      prodMap[k].qty += Number(s.quantity);
-      prodMap[k].rev += Number(s.total_ars);
-      prodMap[k].profit += Number(s.profit_ars);
-    });
-    const top5Prod = Object.values(prodMap).sort((a, b) => b.rev - a.rev).slice(0, 5);
-
-    // Top 5 customers
-    const custMap: Record<string, { name: string; total: number; count: number }> = {};
-    filtered.forEach(s => {
-      const k = s.customer_name || "(Sin nombre)";
-      if (!custMap[k]) custMap[k] = { name: k, total: 0, count: 0 };
-      custMap[k].total += Number(s.total_ars);
-      custMap[k].count++;
-    });
-    const top5Cust = Object.values(custMap).sort((a, b) => b.total - a.total).slice(0, 5);
-
-    // Payment methods
-    const methodMap: Record<string, { total: number; count: number }> = {};
-    filtered.forEach(s => {
-      const m = s.payment_method || "efectivo";
-      if (!methodMap[m]) methodMap[m] = { total: 0, count: 0 };
-      methodMap[m].total += Number(s.total_ars);
-      methodMap[m].count++;
-    });
-    const methods = Object.entries(methodMap).sort((a, b) => b[1].total - a[1].total);
-
-    const fmtN = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
-    const prodRows = top5Prod.map(p =>
-      `<tr><td>${p.name}</td><td style="text-align:center">${p.qty}</td><td style="text-align:right">${fmtN(p.rev)}</td><td style="text-align:right;color:#16a34a">${fmtN(p.profit)}</td></tr>`
-    ).join("");
-    const custRows = top5Cust.map(c =>
-      `<tr><td>${c.name}</td><td style="text-align:center">${c.count}</td><td style="text-align:right">${fmtN(c.total)}</td></tr>`
-    ).join("");
-    const methodRows = methods.map(([m, d]) => {
-      const pct = totalSales > 0 ? ((d.total / totalSales) * 100).toFixed(0) : "0";
-      return `<tr><td style="text-transform:capitalize">${m}</td><td style="text-align:center">${d.count}</td><td style="text-align:right">${fmtN(d.total)}</td><td style="text-align:right;color:#64748b">${pct}%</td></tr>`;
-    }).join("");
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Informe de Ventas</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:Arial,sans-serif;max-width:780px;margin:0 auto;padding:32px;font-size:13px;color:#1e293b;background:#fff}
-  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;border-bottom:2px solid #f59e0b;padding-bottom:16px}
-  .logo{max-height:56px;max-width:160px}
-  .biz{font-size:22px;font-weight:800;color:#0f172a}
-  .period{font-size:13px;color:#64748b;margin-top:2px}
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-  .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center}
-  .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;font-weight:600}
-  .kpi-value{font-size:20px;font-weight:800;margin-top:4px;color:#0f172a}
-  .kpi-sub{font-size:10px;color:#94a3b8;margin-top:2px}
-  h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin:20px 0 8px;border-top:1px solid #e2e8f0;padding-top:16px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th{text-align:left;border-bottom:2px solid #e2e8f0;padding:6px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;font-weight:700}
-  td{padding:7px 4px;border-bottom:1px solid #f1f5f9}
-  tr:last-child td{border-bottom:none}
-  .footer{margin-top:32px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
-  @media print{body{padding:16px}}
-</style></head><body>
-<div class="header">
-  <div>
-    <div class="biz">${businessName}</div>
-    <div class="period">Informe Ejecutivo de Ventas · ${periodLabel}</div>
-  </div>
-  ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="logo" />` : ""}
-</div>
-
-<div class="kpi-grid">
-  <div class="kpi"><div class="kpi-label">Facturación</div><div class="kpi-value">${fmtN(totalSales)}</div><div class="kpi-sub">${filtered.length} ventas</div></div>
-  <div class="kpi"><div class="kpi-label">Ganancia</div><div class="kpi-value" style="color:#16a34a">${fmtN(totalProfit)}</div><div class="kpi-sub">Neta del período</div></div>
-  <div class="kpi"><div class="kpi-label">Margen</div><div class="kpi-value">${(totalSales > 0 ? (totalProfit / totalSales * 100) : 0).toFixed(1)}%</div><div class="kpi-sub">Promedio</div></div>
-  <div class="kpi"><div class="kpi-label">Cobradas</div><div class="kpi-value">${filtered.filter(s => s.paid).length}</div><div class="kpi-sub">${filtered.filter(s => !s.paid).length} pendientes</div></div>
-</div>
-
-<h2>Top 5 Productos</h2>
-<table><thead><tr><th>Producto</th><th style="text-align:center">Uds.</th><th style="text-align:right">Facturado</th><th style="text-align:right">Ganancia</th></tr></thead>
-<tbody>${prodRows}</tbody></table>
-
-<h2>Top 5 Clientes</h2>
-<table><thead><tr><th>Cliente</th><th style="text-align:center">Compras</th><th style="text-align:right">Total</th></tr></thead>
-<tbody>${custRows}</tbody></table>
-
-<h2>Método de Pago</h2>
-<table><thead><tr><th>Método</th><th style="text-align:center">Ventas</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
-<tbody>${methodRows}</tbody></table>
-
-<div class="footer">Generado el ${new Date().toLocaleDateString("es-AR", { weekday:"long", day:"2-digit", month:"long", year:"numeric" })} · ${businessName}</div>
-</body></html>`;
-
-    const w = window.open("", "_blank", "width=900,height=700");
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300); }
-  };
-
   const unpaidPaged = paged.filter(s => !s.paid);
   const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => {
@@ -500,14 +340,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           <div className="flex items-center gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
             {filtered.length > 0 && (
-              <>
-                <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
-                  <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
-                </Button>
-                <Button variant="outline" size="sm" onClick={exportMonthlyPDF} title="Informe ejecutivo PDF">
-                  <FileDown className="w-4 h-4 mr-1.5" />PDF
-                </Button>
-              </>
+              <Button variant="outline" size="sm" onClick={exportSalesCSV} title={`Exportar ${filtered.length} ventas a CSV`}>
+                <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+              </Button>
             )}
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
               <DialogTrigger asChild>
@@ -615,33 +450,6 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        {sellerOptions.length > 0 && (
-          <Select value={filterSeller} onValueChange={v => { setFilterSeller(v); setPage(0); }}>
-            <SelectTrigger className="bg-card border-border w-full sm:w-[150px] h-9 text-sm">
-              <Users className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Vendedor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los vendedores</SelectItem>
-              {sellerOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        )}
-        <Select value={filterPayMethod} onValueChange={v => { setFilterPayMethod(v); setPage(0); }}>
-          <SelectTrigger className="bg-card border-border w-full sm:w-[150px] h-9 text-sm">
-            <CreditCard className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-            <SelectValue placeholder="Método de pago" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los métodos</SelectItem>
-            <SelectItem value="efectivo">💵 Efectivo</SelectItem>
-            <SelectItem value="debito">💳 Débito</SelectItem>
-            <SelectItem value="credito">💳 Crédito</SelectItem>
-            <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
-            <SelectItem value="mercadopago">🔵 Mercado Pago</SelectItem>
-            <SelectItem value="fiado">📋 Fiado</SelectItem>
-          </SelectContent>
-        </Select>
         <div className="flex rounded-lg border border-border overflow-hidden h-9 shrink-0">
           {([
             { key: 'all', label: 'Todas' },
@@ -670,64 +478,17 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             <Users className="w-3.5 h-3.5" />Por cliente
           </button>
           <button
-            onClick={() => setViewMode("by_date")}
-            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_date" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
-            title="Agrupar por sesión / fecha"
+            onClick={() => setViewMode("by_session")}
+            className={`px-3 flex items-center gap-1.5 text-xs transition-colors ${viewMode === "by_session" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+            title="Agrupar ventas del mismo POS en una sesión"
           >
-            <Filter className="w-3.5 h-3.5" />Por fecha
+            <ShoppingCart className="w-3.5 h-3.5" />Sesiones
           </button>
         </div>
       </div>
 
       {!filtered.length ? (
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
-      ) : viewMode === "by_date" ? (
-        /* ── By Date / POS session view ── */
-        <div className="space-y-2">
-          {dateGroups.map(group => {
-            const isOpen = expandedDates.has(group.date);
-            const label = new Date(group.date + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "long" });
-            return (
-              <div key={group.date} className="bg-card border border-border rounded-xl overflow-hidden">
-                <button
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors text-left"
-                  onClick={() => toggleDate(group.date)}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] transition-transform ${isOpen ? "rotate-90" : ""}`}>▶</span>
-                    <div>
-                      <p className="text-sm font-semibold capitalize">{label}</p>
-                      <p className="text-[11px] text-muted-foreground">{group.count} venta{group.count !== 1 ? 's' : ''} · {group.paid} cobrada{group.paid !== 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold">{formatARS(group.total)}</p>
-                    <p className="text-[11px] text-success">{formatARS(group.profit)} gan.</p>
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="border-t border-border divide-y divide-border/50">
-                    {group.sales.map((s: any) => (
-                      <div key={s.id} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/10 transition-colors">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.paid ? 'bg-success' : 'bg-destructive'}`} />
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{s.product_name}</p>
-                            <p className="text-[11px] text-muted-foreground">{s.customer_name || 'Sin cliente'} · {s.payment_method}</p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className="font-semibold">{formatARS(Number(s.total_ars))}</p>
-                          <p className="text-[11px] text-muted-foreground">×{s.quantity}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
       ) : viewMode === "by_customer" ? (
         /* ── By Customer view ── */
         <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -779,6 +540,43 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </tbody>
           </table>
         </div>
+      ) : viewMode === "by_session" ? (
+        /* ── By Session view ── */
+        <div className="space-y-3">
+          {sessionGroups.map((sess) => (
+            <div key={sess.id} className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <span className="font-semibold text-sm">{sess.customer}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{formatDateAR(sess.date)} · {new Date(sess.date).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sess.paid ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>{sess.paid ? '✓ Cobrado' : 'Pendiente'}</span>
+                  <span className="font-bold text-sm">{formatARS(sess.total)}</span>
+                  {sess.items.length > 1 && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => printBulkReceipt()} title="Imprimir recibo de esta sesión">
+                      <Printer className="w-3 h-3 mr-1" />{sess.items.length} ítem{sess.items.length !== 1 ? 's' : ''}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="divide-y divide-border">
+                {sess.items.map(s => (
+                  <div key={s.id} className="px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-sm">{s.product_name} <span className="text-xs text-muted-foreground">×{s.quantity}</span></span>
+                    <span className="text-sm font-medium">{formatARS(Number(s.total_ars))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {sessionGroups.length === 0 && (
+            <EmptyState icon={ShoppingCart} title="Sin sesiones" description="No hay ventas en el período seleccionado." />
+          )}
+        </div>
       ) : (
         <>
           {/* Bulk action bar */}
@@ -826,16 +624,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                       </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(s.date)}</td>
-                    <td className="px-4 py-3 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        {s.product_name}
-                        {s.notes && (
-                          <span title={s.notes} className="text-amber-400 cursor-help shrink-0">
-                            <FileText className="w-3 h-3 inline" />
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    <td className="px-4 py-3 font-medium">{s.product_name}</td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
@@ -911,11 +700,6 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     )}
                   </div>
                 </div>
-                {s.notes && (
-                  <p className="text-[10px] text-amber-400/80 italic mt-1 mb-1 flex items-center gap-1">
-                    <FileText className="w-3 h-3 shrink-0" />{s.notes}
-                  </p>
-                )}
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4 text-sm">
                     <span>x{s.quantity}</span>
@@ -1047,7 +831,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   const [couponResult, setCouponResult] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [saleNote, setSaleNote] = useState(editItem?.notes || '');
 
   useEffect(() => {
     (async () => {
@@ -1133,7 +916,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
             variant_id: line.variantId || null,
-            notes: saleNote.trim() || null,
           };
 
           if (i === 0) {
@@ -1164,7 +946,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
             variant_id: line.variantId || null,
-            notes: saleNote.trim() || null,
             source: "manual",
           };
 
@@ -1282,24 +1063,6 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
               ? `✓ Cupón aplicado: ${couponResult.coupon.discount_percent > 0 ? `-${couponResult.coupon.discount_percent}%` : `-${formatARS(Number(couponResult.coupon.discount_fixed_ars))}`}`
               : `✗ ${couponResult.reason}`}
           </p>
-        )}
-      </div>
-
-      {/* Internal note */}
-      <div>
-        <label className="text-sm text-muted-foreground flex items-center gap-1">
-          <FileText className="w-3.5 h-3.5" />Nota interna (opcional)
-        </label>
-        <Textarea
-          value={saleNote}
-          onChange={e => setSaleNote(e.target.value)}
-          placeholder="Ej: cliente especial, acordó pago en 2 días, pedido a domicilio..."
-          className="bg-muted border-border resize-none text-sm mt-1"
-          rows={2}
-          maxLength={300}
-        />
-        {saleNote.length > 0 && (
-          <p className="text-[10px] text-muted-foreground text-right mt-0.5">{saleNote.length}/300</p>
         )}
       </div>
 

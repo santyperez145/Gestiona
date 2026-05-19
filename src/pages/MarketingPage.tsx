@@ -298,7 +298,7 @@ const IMG_STYLES = [
 ];
 
 function AIImageGenerator({ products }: { products: any[] }) {
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedProductId, setSelectedProductId] = useState<string>('__none__');
   const [styleId, setStyleId] = useState('showcase');
   const [customPrompt, setCustomPrompt] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -376,7 +376,7 @@ function AIImageGenerator({ products }: { products: any[] }) {
                   <SelectValue placeholder="Seleccioná un producto..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  <SelectItem value="">Sin producto específico</SelectItem>
+                  <SelectItem value="__none__">Sin producto específico</SelectItem>
                   {products.filter(p => p.stock > 0).map(p => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.image_url && <img src={p.image_url} className="w-4 h-4 rounded object-cover inline mr-2" />}

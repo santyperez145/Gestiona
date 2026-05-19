@@ -234,6 +234,11 @@ export default function PublicCatalogPage() {
   );
   const vapers = useMemo(() => filtered.filter((p) => p.category === "vaper"), [filtered]);
 
+  const primaryColor = settings?.primary_color || "#D4A843";
+  const businessName = settings?.business_name || "EXENTRY IMPORTS";
+  const logoUrl = settings?.logo_url;
+  const whatsappNumber = settings?.whatsapp_number;
+
   // Dynamic hero config based on top category
   const heroConfig = useMemo(() => {
     const sorted = [...categories].sort((a, b) => b.count - a.count);
@@ -267,11 +272,6 @@ export default function PublicCatalogPage() {
       })
       .slice(0, 4);
   }, [products]);
-
-  const primaryColor = settings?.primary_color || "#D4A843";
-  const businessName = settings?.business_name || "EXENTRY IMPORTS";
-  const logoUrl = settings?.logo_url;
-  const whatsappNumber = settings?.whatsapp_number;
 
   if (valid === null)
     return (

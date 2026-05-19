@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -10,13 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, Camera, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
-import ProductsPriceImport from "@/components/products/ProductsPriceImport";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -31,7 +30,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
 
-async function exportPriceListPDF(products: any[], businessName: string, logoUrl?: string | null) {
+function exportPriceListPDF(products: any[], businessName: string) {
   const inStock = products.filter(p => p.stock > 0);
   const grouped: Record<string, typeof inStock> = {};
   inStock.forEach(p => {
@@ -40,23 +39,6 @@ async function exportPriceListPDF(products: any[], businessName: string, logoUrl
     grouped[cat].push(p);
   });
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-
-  // Convert logo to base64 so it works in the print window
-  let logoHtml = '';
-  if (logoUrl) {
-    try {
-      const res = await fetch(logoUrl);
-      const blob = await res.blob();
-      const b64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      logoHtml = `<img src="${b64}" style="max-height:64px;max-width:220px;display:block;margin-bottom:6px">`;
-    } catch { /* logo not available, skip */ }
-  }
-
   let rows = '';
   Object.entries(grouped).forEach(([cat, items]) => {
     rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
@@ -71,9 +53,8 @@ async function exportPriceListPDF(products: any[], businessName: string, logoUrl
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lista de Precios</title>
 <style>
   body{font-family:Arial,sans-serif;margin:20px;font-size:12px;color:#222}
-  .header{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #d4a843}
-  h1{font-size:20px;margin:0}
-  .sub{color:#666;font-size:11px;margin-top:3px}
+  h1{font-size:20px;margin-bottom:2px}
+  .sub{color:#666;font-size:11px;margin-bottom:16px}
   table{border-collapse:collapse;width:100%}
   th{background:#1a1a2e;color:#d4a843;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;text-align:left}
   th.price,td.price{text-align:right}
@@ -85,13 +66,8 @@ async function exportPriceListPDF(products: any[], businessName: string, logoUrl
   .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
   @media print{.no-print{display:none}}
 </style></head><body>
-<div class="header">
-  ${logoHtml}
-  <div>
-    <h1>${businessName}</h1>
-    <div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
-  </div>
-</div>
+<h1>${businessName}</h1>
+<div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
   <tbody>${rows}</tbody>
@@ -142,58 +118,6 @@ async function exportProductsXLSX(products: any[], settings: any) {
   toast.success('Excel exportado con hojas por categoría');
 }
 
-function exportProductsCSV(products: any[]) {
-  const headers = [
-    'Nombre', 'Marca', 'Categoría', 'SKU', 'Barcode', 'Género',
-    'Costo USD', 'Pasero USD', 'Costo Total USD', 'TC',
-    'Precio Venta ARS', 'Precio Desc. ARS', 'Ganancia ARS', 'Margen %',
-    'Stock', 'Stock Mínimo',
-    'Contenido ml', 'Notas', 'Tags',
-    'Lote', 'Vencimiento', 'Días sin venta',
-    'Última modificación',
-  ];
-  const now = Date.now();
-  const rows = products.map((p: any) => {
-    const lastSale = p.last_sale_date ? Math.floor((now - new Date(p.last_sale_date).getTime()) / 86400000) : '';
-    const margin = p.sale_price_ars > 0 && p.total_cost_usd > 0
-      ? ((Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100).toFixed(1)
-      : '';
-    return [
-      p.name || '',
-      p.brand || '',
-      getCategoryLabel(p.category),
-      p.sku || '',
-      p.barcode || '',
-      p.gender || '',
-      Number(p.cost_usd) || '',
-      Number(p.customs_fee) || '',
-      Number(p.total_cost_usd) || '',
-      Number(p.exchange_rate) || '',
-      Number(p.sale_price_ars) || '',
-      Number(p.discount_price_ars) || '',
-      Number(p.profit_per_unit_ars) || '',
-      margin,
-      p.stock,
-      p.low_stock_threshold || '',
-      p.content_ml || '',
-      (p.notes || '').replace(/"/g, '""'),
-      (p.tags || []).join('|'),
-      p.lot_number || '',
-      p.expiry_date || '',
-      lastSale,
-      p.updated_at ? new Date(p.updated_at).toLocaleDateString('es-AR') : '',
-    ];
-  });
-  const bom = '﻿';
-  const csv = bom + [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `productos_exentry_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  toast.success(`${products.length} productos exportados a CSV`);
-}
-
 export default function ProductsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -207,7 +131,6 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [priceImportOpen, setPriceImportOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
@@ -220,9 +143,6 @@ export default function ProductsPage() {
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
-  const [editingPrice, setEditingPrice] = useState<{ id: string; value: string } | null>(null);
-  const [reorderDismissed, setReorderDismissed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'productos' | 'alertas' | 'precios'>('productos');
 
   const reload = async () => {
     if (!user) return;
@@ -257,15 +177,6 @@ export default function ProductsPage() {
     setLastSaleDate(lastSale);
   };
   useEffect(() => { reload(); }, [user]);
-
-  const saveInlinePrice = async (productId: string, newPrice: string) => {
-    const parsed = parseFloat(newPrice);
-    if (isNaN(parsed) || parsed < 0) { setEditingPrice(null); return; }
-    await updateProductDB(productId, { sale_price_ars: parsed });
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, sale_price_ars: parsed } : p));
-    setEditingPrice(null);
-    toast.success("Precio actualizado");
-  };
 
   const saveInlineStock = async (productId: string, newStock: string) => {
     const parsed = parseInt(newStock, 10);
@@ -364,10 +275,7 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportProductsCSV(filtered)} title="Exportar CSV completo (todos los campos)">
-              <FileText className="w-4 h-4 mr-2" />CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Exportar lista de precios para imprimir">
+            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
               <FileText className="w-4 h-4 mr-2" />Lista precios
             </Button>
             {canCreate && (
@@ -378,11 +286,6 @@ export default function ProductsPage() {
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
                 <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
-              </Button>
-            )}
-            {canEdit && (
-              <Button variant="outline" size="sm" onClick={() => setPriceImportOpen(true)} className="hidden md:flex">
-                <FileSpreadsheet className="w-4 h-4 mr-2" />Precios CSV
               </Button>
             )}
             {canCreate && (productLimit !== null && products.length >= productLimit ? (
@@ -419,72 +322,6 @@ export default function ProductsPage() {
           color={outOfStockCount > 0 ? "destructive" : "success"} sub="agotados" />
       </div>
 
-      {/* Tab nav */}
-      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
-        {([
-          { id: 'productos', label: 'Productos', icon: Package },
-          { id: 'alertas', label: 'Alertas de Stock', icon: AlertTriangle },
-          { id: 'precios', label: 'Lista de precios', icon: FileText },
-        ] as const).map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            <tab.icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Reorder alerts banner */}
-      {activeTab === 'productos' && !reorderDismissed && (() => {
-        const reorderNeeded = products.filter(p => {
-          const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
-          return p.stock > 0 && p.stock <= threshold;
-        });
-        if (!reorderNeeded.length) return null;
-        return (
-          <div className="bg-warning/5 border border-warning/30 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
-                <span className="text-sm font-semibold text-warning">{reorderNeeded.length} producto{reorderNeeded.length !== 1 ? 's' : ''} necesitan reposición</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate('/compras')}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-warning/15 text-warning font-semibold hover:bg-warning/25 transition-colors"
-                >
-                  + Nueva compra
-                </button>
-                <button onClick={() => setReorderDismissed(true)} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {reorderNeeded.slice(0, 8).map(p => {
-                const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
-                return (
-                  <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-warning/20 text-xs">
-                    <span className="font-medium truncate max-w-[120px]">{p.name}</span>
-                    <span className="text-warning font-bold">{p.stock}</span>
-                    <span className="text-muted-foreground">/ {threshold} mín</span>
-                    <button
-                      onClick={() => navigate(`/compras?product=${encodeURIComponent(p.name)}`)}
-                      className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-warning/20 text-warning font-semibold hover:bg-warning/30 transition-colors"
-                    >
-                      Pedir
-                    </button>
-                  </div>
-                );
-              })}
-              {reorderNeeded.length > 8 && (
-                <span className="text-xs text-muted-foreground self-center">+{reorderNeeded.length - 8} más</span>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Bulk price adjustment modal */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
@@ -500,14 +337,6 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Price import from CSV modal */}
-      <Dialog open={priceImportOpen} onOpenChange={setPriceImportOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
-          <DialogHeader><DialogTitle className="font-display">Actualizar Precios desde CSV</DialogTitle></DialogHeader>
-          <ProductsPriceImport products={products} onDone={() => { setPriceImportOpen(false); reload(); }} />
-        </DialogContent>
-      </Dialog>
-
       {/* Price history modal */}
       <PriceHistoryModal
         productId={priceHistoryProduct?.id || ""}
@@ -516,130 +345,7 @@ export default function ProductsPage() {
         onClose={() => setPriceHistoryProduct(null)}
       />
 
-      {/* Alertas de Stock tab */}
-      {activeTab === 'alertas' && (() => {
-        const lowStock = products.filter(p => p.stock > 0 && p.stock <= (Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3));
-        const outStock = products.filter(p => p.stock <= 0);
-        return (
-          <div className="space-y-4">
-            {lowStock.length === 0 && outStock.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground">
-                <AlertTriangle className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                <p className="text-sm">No hay productos con stock bajo o sin stock</p>
-              </div>
-            ) : (
-              <>
-                {lowStock.length > 0 && (
-                  <div className="bg-card border border-warning/30 rounded-xl overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-warning/5">
-                      <AlertTriangle className="w-4 h-4 text-warning" />
-                      <h3 className="text-sm font-semibold text-warning">Stock bajo ({lowStock.length})</h3>
-                    </div>
-                    <div className="divide-y divide-border">
-                      {lowStock.map(p => {
-                        const threshold = Number(p.low_stock_threshold) > 0 ? Number(p.low_stock_threshold) : 3;
-                        return (
-                          <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                            {p.image_url && <img src={p.image_url} alt="" className="w-9 h-9 rounded object-cover shrink-0" />}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{p.name}</p>
-                              <p className="text-xs text-muted-foreground">{p.brand} · {getCategoryLabel(p.category)}</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-sm font-bold text-warning">{p.stock} uds</p>
-                              <p className="text-[10px] text-muted-foreground">mín {threshold}</p>
-                            </div>
-                            <button
-                              onClick={() => navigate(`/compras?product=${encodeURIComponent(p.name)}`)}
-                              className="px-3 py-1.5 rounded-lg bg-warning/15 text-warning text-xs font-semibold hover:bg-warning/25 transition-colors shrink-0"
-                            >
-                              Pedir
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {outStock.length > 0 && (
-                  <div className="bg-card border border-destructive/30 rounded-xl overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-destructive/5">
-                      <X className="w-4 h-4 text-destructive" />
-                      <h3 className="text-sm font-semibold text-destructive">Sin stock ({outStock.length})</h3>
-                    </div>
-                    <div className="divide-y divide-border">
-                      {outStock.map(p => (
-                        <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                          {p.image_url && <img src={p.image_url} alt="" className="w-9 h-9 rounded object-cover shrink-0" />}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{p.name}</p>
-                            <p className="text-xs text-muted-foreground">{p.brand} · {getCategoryLabel(p.category)}</p>
-                          </div>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold shrink-0">Agotado</span>
-                          <button
-                            onClick={() => navigate(`/compras?product=${encodeURIComponent(p.name)}`)}
-                            className="px-3 py-1.5 rounded-lg bg-destructive/15 text-destructive text-xs font-semibold hover:bg-destructive/25 transition-colors shrink-0"
-                          >
-                            Pedir
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Lista de precios tab */}
-      {activeTab === 'precios' && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => exportPriceListPDF(products.filter(p => p.stock > 0), settings?.business_name || "Mi Negocio", settings?.logo_url)}>
-              <FileText className="w-4 h-4 mr-2" />Exportar PDF de lista de precios
-            </Button>
-            <Button variant="outline" onClick={() => exportProductsXLSX(products, settings)}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" />Exportar Excel completo
-            </Button>
-            {canEdit && (
-              <Button variant="outline" onClick={() => setPriceImportOpen(true)}>
-                <Upload className="w-4 h-4 mr-2" />Actualizar precios desde CSV
-              </Button>
-            )}
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Vista previa de precios</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="text-left p-2 font-medium">Producto</th>
-                    <th className="text-left p-2 font-medium">Categoría</th>
-                    <th className="text-right p-2 font-medium">Precio Venta</th>
-                    <th className="text-right p-2 font-medium">Precio Oferta</th>
-                    <th className="text-right p-2 font-medium">Stock</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {products.filter(p => p.stock > 0).slice(0, 50).map(p => (
-                    <tr key={p.id} className="hover:bg-muted/20">
-                      <td className="p-2 font-medium">{p.name}</td>
-                      <td className="p-2 text-muted-foreground text-xs">{getCategoryLabel(p.category)}</td>
-                      <td className="p-2 text-right font-semibold">{formatARS(Number(p.sale_price_ars))}</td>
-                      <td className="p-2 text-right text-muted-foreground">{p.discount_price_ars ? formatARS(Number(p.discount_price_ars)) : '—'}</td>
-                      <td className="p-2 text-right">{p.stock}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'productos' && expiringSoon.length > 0 && (
+      {expiringSoon.length > 0 && (
         <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
           <div className="flex-1 text-sm">
@@ -650,7 +356,6 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {activeTab === 'productos' && (<>
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -719,7 +424,6 @@ export default function ProductsPage() {
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
                        <th className="text-left p-3 font-medium">Nombre</th>
-                       <th className="text-left p-3 font-medium hidden xl:table-cell">SKU</th>
                        <th className="text-center p-3 font-medium">Gen.</th>
                        <th className="text-left p-3 font-medium">Cat.</th>
                        <th className="text-right p-3 font-medium">Costo</th>
@@ -762,40 +466,10 @@ export default function ProductsPage() {
                               ))}
                             </div>
                           </td>
-                         <td className="p-3 hidden xl:table-cell">
-                           {p.sku || p.barcode
-                             ? <span className="text-[10px] font-mono text-muted-foreground" title={p.barcode ? `Barcode: ${p.barcode}` : undefined}>{p.sku || p.barcode}</span>
-                             : <span className="text-[10px] text-muted-foreground/40">—</span>
-                           }
-                         </td>
                          <td className="p-3 text-center">{GENDER_ICONS[p.gender] || ''}</td>
                          <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
-                         <td className="p-3 text-right font-medium text-xs">
-                           {editingPrice?.id === p.id ? (
-                             <input
-                               type="number"
-                               min="0"
-                               autoFocus
-                               value={editingPrice.value}
-                               onChange={e => setEditingPrice({ id: p.id, value: e.target.value })}
-                               onBlur={() => saveInlinePrice(p.id, editingPrice.value)}
-                               onKeyDown={e => {
-                                 if (e.key === "Enter") saveInlinePrice(p.id, editingPrice.value);
-                                 if (e.key === "Escape") setEditingPrice(null);
-                               }}
-                               className="w-24 text-right text-xs border border-primary/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
-                             />
-                           ) : (
-                             <button
-                               onClick={() => { if (canEdit) setEditingPrice({ id: p.id, value: String(Math.round(Number(p.sale_price_ars))) }); }}
-                               className={canEdit ? "hover:text-primary transition-colors" : ""}
-                               title={canEdit ? "Click para editar precio" : undefined}
-                             >
-                               {Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}
-                             </button>
-                           )}
-                         </td>
+                         <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
                          <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
                          <td className="p-3 text-right">
                            {(() => {
@@ -951,7 +625,6 @@ export default function ProductsPage() {
           )}
         </>
       )}
-      </>)}
     </div>
   );
 }
@@ -973,7 +646,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [sku, setSku] = useState(product?.sku || '');
   const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
   const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
-  const [lowStockThreshold, setLowStockThreshold] = useState(product?.low_stock_threshold?.toString() || '3');
   const [tags, setTags] = useState<string[]>(product?.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [generatingDesc, setGeneratingDesc] = useState(false);
@@ -987,10 +659,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     initialImages.map((u: string) => ({ url: u }))
   );
   const [uploading, setUploading] = useState(false);
-  const [urlInput, setUrlInput] = useState("");
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   // Variants state
   const [variants, setVariants] = useState<any[]>([]);
   const [variantType, setVariantType] = useState(product?.variant_type || 'sabor');
@@ -1054,7 +723,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     if (files.length === 0) return;
     addFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = '';
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
   const removeImageAt = (idx: number) => {
     setImageItems(prev => prev.filter((_, i) => i !== idx));
@@ -1136,12 +804,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         content_ml: parseInt(contentMl) || 100,
-        low_stock_threshold: lowStockThreshold ? parseInt(lowStockThreshold) : null,
-        barcode: barcode.trim() || null,
-        sku: sku.trim() || null,
-        lot_number: lotNumber.trim() || null,
-        expiry_date: expiryDate || null,
-        tags: tags.length > 0 ? tags : null,
       };
       let productId = product?.id;
       if (product) {
@@ -1206,55 +868,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             </div>
           ))}
           {imageItems.length < 8 && (
-            <>
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                <Upload className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5">Agregar</span>
-              </button>
-              <button type="button" onClick={() => cameraInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors sm:hidden">
-                <Camera className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5">Cámara</span>
-              </button>
-              <button type="button" onClick={() => setShowUrlInput(v => !v)} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                <Link2 className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5">URL</span>
-              </button>
-            </>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+              <Upload className="w-5 h-5" />
+              <span className="text-[10px] mt-0.5">Agregar</span>
+            </button>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
-          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
         </div>
-        {showUrlInput && (
-          <div className="flex gap-2 items-center mt-2">
-            <Input
-              value={urlInput}
-              onChange={e => setUrlInput(e.target.value)}
-              placeholder="https://... URL de imagen"
-              className="bg-muted h-8 text-sm flex-1"
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const url = urlInput.trim();
-                  if (!url) return;
-                  if (!url.startsWith('http')) { toast.error('URL inválida'); return; }
-                  if (imageItems.length >= 8) { toast.error('Máximo 8 imágenes'); return; }
-                  setImageItems(prev => [...prev, { url }]);
-                  setUrlInput('');
-                  setShowUrlInput(false);
-                }
-              }}
-            />
-            <Button type="button" size="sm" variant="outline" className="h-8 shrink-0" onClick={() => {
-              const url = urlInput.trim();
-              if (!url) return;
-              if (!url.startsWith('http')) { toast.error('URL inválida'); return; }
-              if (imageItems.length >= 8) { toast.error('Máximo 8 imágenes'); return; }
-              setImageItems(prev => [...prev, { url }]);
-              setUrlInput('');
-              setShowUrlInput(false);
-            }}>Añadir</Button>
-          </div>
-        )}
         <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
       <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>
@@ -1273,13 +893,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </Select>
         </div>
         <div><label className="text-sm text-muted-foreground">Stock</label><Input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="bg-muted border-border" /></div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-sm text-muted-foreground">Stock mínimo (reposición)</label>
-          <Input type="number" min="0" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} className="bg-muted border-border" placeholder="3" />
-          <p className="text-[10px] text-muted-foreground mt-1">Alerta cuando el stock llegue a este número</p>
-        </div>
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Costo USD *</label>
@@ -1527,35 +1140,14 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
   const [percent, setPercent] = useState('');
   const [field, setField] = useState('both');
   const [loading, setLoading] = useState(false);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [preview, setPreview] = useState(false);
-
-  useEffect(() => {
-    getProductsDB(userId).then(setAllProducts).catch(() => {});
-  }, [userId]);
-
-  const categories = useMemo(() => [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort(), [allProducts]);
-
-  const previewProducts = useMemo(() => {
-    const pct = parseFloat(percent);
-    if (!pct || pct === 0) return [];
-    const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
-    return toUpdate
-      .filter(p => (field !== 'discount' && Number(p.sale_price_ars) > 0) || (field !== 'sale' && Number(p.discount_price_ars) > 0))
-      .slice(0, 8)
-      .map(p => ({
-        name: p.name,
-        oldSale: Number(p.sale_price_ars),
-        newSale: field !== 'discount' ? Math.round(Number(p.sale_price_ars) * (1 + pct / 100)) : Number(p.sale_price_ars),
-      }));
-  }, [allProducts, category, percent, field]);
 
   const handleApply = async () => {
     const pct = parseFloat(percent);
     if (!pct || pct === 0) { toast.error("Ingresá un porcentaje válido"); return; }
     setLoading(true);
     try {
-      const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
+      const products = await getProductsDB(userId);
+      const toUpdate = category === 'all' ? products : products.filter(p => p.category === category);
       let count = 0;
       for (const p of toUpdate) {
         const updates: any = {};
@@ -1588,9 +1180,6 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
     }
   };
 
-  const pct = parseFloat(percent);
-  const affectedCount = (category === 'all' ? allProducts : allProducts.filter(p => p.category === category)).length;
-
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Aplicar un porcentaje de aumento o descuento a los precios de venta.</p>
@@ -1599,12 +1188,11 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas las categorías ({allProducts.length} productos)</SelectItem>
-            {categories.map(cat => (
-              <SelectItem key={cat} value={cat}>
-                {cat} ({allProducts.filter(p => p.category === cat).length} productos)
-              </SelectItem>
-            ))}
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            <SelectItem value="perfume_arabe">Perfume Árabe</SelectItem>
+            <SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem>
+            <SelectItem value="vaper">Vaper</SelectItem>
+            <SelectItem value="electronico">Electrónico</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1621,34 +1209,10 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
       </div>
       <div>
         <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
-        <Input type="number" value={percent} onChange={e => { setPercent(e.target.value); setPreview(false); }} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
+        <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
       </div>
-
-      {/* Preview */}
-      {pct && pct !== 0 && previewProducts.length > 0 && (
-        <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs space-y-1.5">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="font-medium text-foreground">Vista previa ({affectedCount} productos)</span>
-            <span className={pct > 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
-              {pct > 0 ? `+${pct}%` : `${pct}%`}
-            </span>
-          </div>
-          {previewProducts.map((p, i) => (
-            <div key={i} className="flex items-center justify-between gap-2">
-              <span className="truncate text-muted-foreground">{p.name}</span>
-              <span className="shrink-0">
-                <span className="line-through text-muted-foreground">{formatARS(p.oldSale)}</span>
-                {" → "}
-                <span className={pct > 0 ? "text-green-400 font-medium" : "text-red-400 font-medium"}>{formatARS(p.newSale)}</span>
-              </span>
-            </div>
-          ))}
-          {affectedCount > 8 && <p className="text-muted-foreground text-center">... y {affectedCount - 8} más</p>}
-        </div>
-      )}
-
-      <Button onClick={handleApply} disabled={loading || !pct || pct === 0} className="w-full gradient-gold text-primary-foreground font-semibold">
-        {loading ? 'Aplicando...' : `Aplicar a ${affectedCount} productos`}
+      <Button onClick={handleApply} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+        {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
       </Button>
     </div>
   );

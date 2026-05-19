@@ -35,7 +35,7 @@ const POST_TYPES = [
 ];
 
 const INDUSTRIES = [
-  { value: "", label: "Todas las industrias" },
+  { value: "all", label: "Todas las industrias" },
   { value: "perfumeria", label: "Perfumería" },
   { value: "vaper", label: "Vaper / E-cigarette" },
   { value: "electronico", label: "Electrónica" },
@@ -130,7 +130,7 @@ export default function MarketingTemplatesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-  const [industryFilter, setIndustryFilter] = useState("");
+  const [industryFilter, setIndustryFilter] = useState("all");
   const [tab, setTab] = useState<"marketplace" | "mine">("marketplace");
 
   const load = async () => {
@@ -173,7 +173,7 @@ export default function MarketingTemplatesPage() {
   const filtered = displayTemplates.filter(t => {
     const q = search.toLowerCase();
     const matchSearch = !q || t.title.toLowerCase().includes(q) || t.content.toLowerCase().includes(q) || (t.tags || []).some(tag => tag.toLowerCase().includes(q));
-    const matchIndustry = !industryFilter || t.industry === industryFilter;
+    const matchIndustry = industryFilter === "all" || t.industry === industryFilter;
     return matchSearch && matchIndustry;
   });
 

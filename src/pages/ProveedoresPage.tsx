@@ -367,7 +367,7 @@ export default function ProveedoresPage() {
         </div>
       )}
 
-      </TabsContent>
+      </>)}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
@@ -417,8 +417,8 @@ export default function ProveedoresPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Cuentas a Pagar Tab ── */}
-        <TabsContent value="debts">
+      {/* ── Aging AP Tab ── */}
+      {activeTab === 'aging' && (<>
           <div className="space-y-4">
             {/* KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -579,8 +579,7 @@ export default function ProveedoresPage() {
               </div>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        </>)}
 
       {/* New Debt Dialog */}
       <Dialog open={debtOpen} onOpenChange={v => { setDebtOpen(v); if (!v) setDebtForm(DEBT_EMPTY); }}>
