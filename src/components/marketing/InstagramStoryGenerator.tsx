@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sparkles, Download, Image as ImageIcon, Loader2, Copy, Wind } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, Download, Image as ImageIcon, Loader2, Copy, Wind, Layers, Square, CheckSquare, Type } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { listStoryTemplates } from "@/lib/marketingExtraDB";
@@ -73,8 +74,10 @@ async function renderStory(opts: {
   customPrice?: string;
   ctaText?: string;
   flavors?: string[];
+  topText?: string;
 }): Promise<HTMLCanvasElement> {
-  const { template, templateData, product, primaryColor, businessName, logoUrl, customText, customPrice, ctaText, flavors } = opts;
+  const { template, templateData, product, primaryColor, businessName, logoUrl, customText, customPrice, ctaText, flavors, topText } = opts;
+  const displayName = topText?.trim() || businessName;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -169,12 +172,12 @@ async function renderStory(opts: {
       // fallback to text
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.font = "600 36px Inter, sans-serif";
-      ctx.fillText(businessName.toUpperCase(), W / 2, 130);
+      ctx.fillText(displayName.toUpperCase(), W / 2, 130);
     }
   } else {
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.font = "600 36px Inter, sans-serif";
-    ctx.fillText(businessName.toUpperCase(), W / 2, 130);
+    ctx.fillText(displayName.toUpperCase(), W / 2, 130);
   }
 
   // Badge
@@ -401,9 +404,15 @@ export function InstagramStoryGenerator() {
   const [rendering, setRendering] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  // Top text override
+  const [topText, setTopText] = useState("");
   // Vaper flavors
   const [variants, setVariants] = useState<any[]>([]);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
+  // Bulk mode
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkDone, setBulkDone] = useState(0);
 
   useEffect(() => {
     if (!user || !open) return;
@@ -462,6 +471,7 @@ export function InstagramStoryGenerator() {
         customPrice: customPrice || undefined,
         ctaText: ctaText || defaultCta,
         flavors: selectedFlavors.length > 0 ? selectedFlavors : undefined,
+        topText: topText || undefined,
       });
       setPreviewUrl(canvas.toDataURL("image/png"));
     } catch (e: any) {
@@ -474,7 +484,7 @@ export function InstagramStoryGenerator() {
   useEffect(() => {
     if (product && open) generatePreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, template, customText, customPrice, ctaText, open, selectedFlavors]);
+  }, [productId, template, customText, customPrice, ctaText, open, selectedFlavors, topText]);
 
   const downloadStory = async () => {
     if (!product) return;
@@ -489,6 +499,7 @@ export function InstagramStoryGenerator() {
       customPrice: customPrice || undefined,
       ctaText: ctaText || defaultCta,
       flavors: selectedFlavors.length > 0 ? selectedFlavors : undefined,
+      topText: topText || undefined,
     });
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -526,6 +537,59 @@ export function InstagramStoryGenerator() {
     }
   };
 
+  const toggleBulk = (id: string) =>
+    setBulkSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const generateBulk = async () => {
+    const selected = products.filter((p) => bulkSelectedIds.has(p.id));
+    if (!selected.length) { toast.error("Seleccioná al menos un producto"); return; }
+    setBulkGenerating(true);
+    setBulkDone(0);
+    let ok = 0;
+    for (const p of selected) {
+      let flavs: string[] | undefined;
+      if (p.category === "vaper") {
+        try {
+          const vs = await getVariantsDB(p.id);
+          const active = vs.filter((v: any) => v.active !== false);
+          if (active.length) flavs = active.map((v: any) => v.variant_name);
+        } catch { /* skip */ }
+      }
+      try {
+        const canvas = await renderStory({
+          template,
+          templateData: tplData,
+          product: p,
+          primaryColor: config.primaryColor,
+          businessName: config.businessName,
+          logoUrl: config.logoUrl,
+          ctaText: ctaText || defaultCta,
+          flavors: flavs,
+          topText: topText || undefined,
+        });
+        await new Promise<void>((resolve) => {
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `historia-${p.name.replace(/\s+/g, "-").toLowerCase()}.png`;
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 500);
+            }
+            resolve();
+          }, "image/png");
+        });
+        ok++;
+        setBulkDone(ok);
+        // small pause so browser doesn't block multiple downloads
+        await new Promise((r) => setTimeout(r, 700));
+      } catch { /* skip failed */ }
+    }
+    setBulkGenerating(false);
+    toast.success(`${ok} historia${ok !== 1 ? "s" : ""} descargada${ok !== 1 ? "s" : ""} 📲`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -541,196 +605,277 @@ export function InstagramStoryGenerator() {
             Generador de Historias para Instagram
           </DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Controls */}
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-muted-foreground">Producto</label>
-              <Select value={productId} onValueChange={setProductId}>
-                <SelectTrigger className="bg-muted border-border">
-                  <SelectValue placeholder="Elegí un producto" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} {p.brand ? `· ${p.brand}` : ""} {p.stock > 0 ? `(${p.stock})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* Vaper flavors selector */}
-            {isVaper && variants.length > 0 && (
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium flex items-center gap-1.5 text-primary">
-                    <Wind className="w-3.5 h-3.5" />
-                    Sabores a mostrar en la historia
+        <Tabs defaultValue="single" className="w-full">
+          <TabsList className="w-full bg-muted/60 mb-4">
+            <TabsTrigger value="single" className="flex-1 gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5" />Individual
+            </TabsTrigger>
+            <TabsTrigger value="bulk" className="flex-1 gap-1.5">
+              <Layers className="w-3.5 h-3.5" />Masivo
+              {bulkSelectedIds.size > 0 && (
+                <span className="ml-1 text-[10px] bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 font-bold">
+                  {bulkSelectedIds.size}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ── INDIVIDUAL TAB ── */}
+          <TabsContent value="single">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Controls */}
+              <div className="space-y-4">
+                {/* Top text override */}
+                <div>
+                  <label className="text-sm text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <Type className="w-3.5 h-3.5" />Texto superior (marca / frase)
                   </label>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedFlavors(variants.map((v: any) => v.variant_name))}
-                      className="text-[10px] px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-                    >
+                  <Input
+                    value={topText}
+                    onChange={(e) => setTopText(e.target.value)}
+                    placeholder={config.businessName || "Nombre del negocio"}
+                    className="bg-muted border-border"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Reemplaza el nombre del negocio en la parte de arriba
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Producto</label>
+                  <Select value={productId} onValueChange={setProductId}>
+                    <SelectTrigger className="bg-muted border-border">
+                      <SelectValue placeholder="Elegí un producto" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} {p.brand ? `· ${p.brand}` : ""} {p.stock > 0 ? `(${p.stock})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Vaper flavors selector */}
+                {isVaper && variants.length > 0 && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium flex items-center gap-1.5 text-primary">
+                        <Wind className="w-3.5 h-3.5" />Sabores a mostrar
+                      </label>
+                      <div className="flex gap-1.5">
+                        <button type="button" onClick={() => setSelectedFlavors(variants.map((v: any) => v.variant_name))}
+                          className="text-[10px] px-2 py-0.5 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors">Todos</button>
+                        <button type="button" onClick={() => setSelectedFlavors([])}
+                          className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:bg-muted transition-colors">Ninguno</button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                      {variants.map((v: any) => {
+                        const active = selectedFlavors.includes(v.variant_name);
+                        return (
+                          <button key={v.id} type="button"
+                            onClick={() => setSelectedFlavors((prev) => active ? prev.filter((f) => f !== v.variant_name) : [...prev, v.variant_name])}
+                            className={`text-xs px-2.5 py-1 rounded-full border transition-all ${active ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:border-primary/40"}`}>
+                            {v.variant_name}
+                            {v.stock != null && <span className="ml-1 opacity-60 text-[10px]">({v.stock})</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedFlavors.length > 0 && (
+                      <p className="text-[10px] text-muted-foreground mt-1.5">
+                        {selectedFlavors.length} sabor{selectedFlavors.length !== 1 ? "es" : ""} seleccionado{selectedFlavors.length !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Plantilla</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {templates.map((t) => (
+                      <button key={t.id} type="button" onClick={() => setTemplate(t.id)}
+                        className={`text-xs p-2 rounded border transition-colors ${template === t.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border hover:border-primary/40"}`}>
+                        {t.emoji} {t.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Texto principal (opcional)</label>
+                  <Input value={customText} onChange={(e) => setCustomText(e.target.value)}
+                    placeholder={product?.name || "Nombre del producto"} className="bg-muted border-border" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-muted-foreground">Precio (opcional)</label>
+                    <Input value={customPrice} onChange={(e) => setCustomPrice(e.target.value)}
+                      placeholder={product?.sale_price_ars ? `$${product.sale_price_ars}` : "$0"} className="bg-muted border-border" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">Botón CTA</label>
+                    <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)}
+                      placeholder={defaultCta} className="bg-muted border-border" />
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm text-muted-foreground">Copy con IA</label>
+                    <Button size="sm" variant="outline" onClick={generateAiCaption} disabled={loadingAi || !product}>
+                      {loadingAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      <span className="ml-1">Generar</span>
+                    </Button>
+                  </div>
+                  <Textarea value={aiCaption} onChange={(e) => setAiCaption(e.target.value)}
+                    placeholder="Texto para acompañar la historia..." rows={3} className="bg-muted border-border text-xs" />
+                  {aiCaption && (
+                    <Button size="sm" variant="ghost" className="mt-1"
+                      onClick={() => { navigator.clipboard.writeText(aiCaption); toast.success("Copiado"); }}>
+                      <Copy className="w-3 h-3 mr-1" />Copiar texto
+                    </Button>
+                  )}
+                </div>
+
+                <Button onClick={downloadStory} disabled={!product || rendering}
+                  className="w-full gradient-gold text-primary-foreground font-semibold shadow-gold">
+                  <Download className="w-4 h-4 mr-2" />Descargar Historia (1080×1920)
+                </Button>
+              </div>
+
+              {/* Preview */}
+              <div ref={previewRef} className="flex justify-center items-start">
+                <div className="relative bg-black rounded-2xl overflow-hidden border-2 border-border shadow-2xl" style={{ width: 270, height: 480 }}>
+                  {rendering && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  )}
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Elegí un producto</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── BULK TAB ── */}
+          <TabsContent value="bulk">
+            <div className="space-y-5">
+              {/* Shared settings for bulk */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/40 rounded-xl border border-border">
+                <div>
+                  <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                    <Type className="w-3 h-3" />Texto superior
+                  </label>
+                  <Input value={topText} onChange={(e) => setTopText(e.target.value)}
+                    placeholder={config.businessName || "Nombre del negocio"} className="bg-muted border-border text-sm h-8" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Plantilla</label>
+                  <Select value={template} onValueChange={(v) => setTemplate(v as Template)}>
+                    <SelectTrigger className="bg-muted border-border text-sm h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.emoji} {t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Botón CTA</label>
+                  <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)}
+                    placeholder={defaultCta} className="bg-muted border-border text-sm h-8" />
+                </div>
+              </div>
+
+              {/* Product list */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    Productos en stock ({products.length})
+                    {bulkSelectedIds.size > 0 && <span className="ml-2 text-primary font-bold">· {bulkSelectedIds.size} seleccionados</span>}
+                  </span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setBulkSelectedIds(new Set(products.map((p) => p.id)))}
+                      className="text-xs px-2.5 py-1 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors">
                       Todos
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedFlavors([])}
-                      className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:bg-muted transition-colors"
-                    >
+                    <button type="button" onClick={() => setBulkSelectedIds(new Set())}
+                      className="text-xs px-2.5 py-1 rounded border border-border text-muted-foreground hover:bg-muted transition-colors">
                       Ninguno
                     </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                  {variants.map((v: any) => {
-                    const active = selectedFlavors.includes(v.variant_name);
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() =>
-                          setSelectedFlavors((prev) =>
-                            active ? prev.filter((f) => f !== v.variant_name) : [...prev, v.variant_name]
-                          )
-                        }
-                        className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-                          active
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted border-border text-muted-foreground hover:border-primary/40"
-                        }`}
-                      >
-                        {v.variant_name}
-                        {v.stock != null && (
-                          <span className={`ml-1 opacity-60 text-[10px]`}>({v.stock})</span>
-                        )}
-                      </button>
-                    );
-                  })}
+
+                <div className="border border-border rounded-xl overflow-hidden max-h-[340px] overflow-y-auto">
+                  {products.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Sin productos en stock</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {products.map((p) => {
+                        const checked = bulkSelectedIds.has(p.id);
+                        return (
+                          <button key={p.id} type="button" onClick={() => toggleBulk(p.id)}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${checked ? "bg-primary/5" : "hover:bg-muted/50"}`}>
+                            {checked
+                              ? <CheckSquare className="w-4 h-4 text-primary shrink-0" />
+                              : <Square className="w-4 h-4 text-muted-foreground/40 shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{p.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {p.brand ? `${p.brand} · ` : ""}
+                                Stock: {p.stock}
+                                {p.category === "vaper" ? " · 🌬️ vaper" : ""}
+                              </p>
+                            </div>
+                            {p.sale_price_ars && (
+                              <span className="text-sm font-semibold text-primary shrink-0">
+                                ${Number(p.sale_price_ars).toLocaleString("es-AR")}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                {selectedFlavors.length > 0 && (
-                  <p className="text-[10px] text-muted-foreground mt-1.5">
-                    {selectedFlavors.length} sabor{selectedFlavors.length !== 1 ? "es" : ""} seleccionado{selectedFlavors.length !== 1 ? "s" : ""} — aparecerán en la historia
-                  </p>
-                )}
               </div>
-            )}
 
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Plantilla</label>
-              <div className="grid grid-cols-3 gap-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTemplate(t.id)}
-                    className={`text-xs p-2 rounded border transition-colors ${
-                      template === t.id
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-muted border-border hover:border-primary/40"
-                    }`}
-                  >
-                    {t.emoji} {t.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground">Texto principal (opcional)</label>
-              <Input
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-                placeholder={product?.name || "Nombre del producto"}
-                className="bg-muted border-border"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-muted-foreground">Precio (opcional)</label>
-                <Input
-                  value={customPrice}
-                  onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder={product?.sale_price_ars ? `$${product.sale_price_ars}` : "$0"}
-                  className="bg-muted border-border"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Botón CTA</label>
-                <Input
-                  value={ctaText}
-                  onChange={(e) => setCtaText(e.target.value)}
-                  placeholder={defaultCta}
-                  className="bg-muted border-border"
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm text-muted-foreground">Copy con IA (para el sticker de texto)</label>
-                <Button size="sm" variant="outline" onClick={generateAiCaption} disabled={loadingAi || !product}>
-                  {loadingAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                  <span className="ml-1">Generar</span>
-                </Button>
-              </div>
-              <Textarea
-                value={aiCaption}
-                onChange={(e) => setAiCaption(e.target.value)}
-                placeholder="Texto para acompañar la historia..."
-                rows={4}
-                className="bg-muted border-border text-xs"
-              />
-              {aiCaption && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="mt-1"
-                  onClick={() => {
-                    navigator.clipboard.writeText(aiCaption);
-                    toast.success("Copiado");
-                  }}
-                >
-                  <Copy className="w-3 h-3 mr-1" /> Copiar texto
-                </Button>
-              )}
-            </div>
-
-            <Button
-              onClick={downloadStory}
-              disabled={!product || rendering}
-              className="w-full gradient-gold text-primary-foreground font-semibold shadow-gold"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Descargar Historia (1080x1920)
-            </Button>
-          </div>
-
-          {/* Preview */}
-          <div ref={previewRef} className="flex justify-center items-start">
-            <div
-              className="relative bg-black rounded-2xl overflow-hidden border-2 border-border shadow-2xl"
-              style={{ width: 270, height: 480 }}
-            >
-              {rendering && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              {/* Progress + Generate button */}
+              {bulkGenerating && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" />Generando historias…</span>
+                    <span>{bulkDone} / {bulkSelectedIds.size}</span>
+                  </div>
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${bulkSelectedIds.size > 0 ? (bulkDone / bulkSelectedIds.size) * 100 : 0}%` }} />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Las imágenes se descargan automáticamente una por una</p>
                 </div>
               )}
-              {previewUrl ? (
-                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  Elegí un producto
-                </div>
-              )}
+
+              <Button onClick={generateBulk} disabled={bulkGenerating || bulkSelectedIds.size === 0}
+                className="w-full gradient-gold text-primary-foreground font-semibold shadow-gold">
+                {bulkGenerating
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generando {bulkDone}/{bulkSelectedIds.size}…</>
+                  : <><Layers className="w-4 h-4 mr-2" />Generar {bulkSelectedIds.size > 0 ? bulkSelectedIds.size : ""} historia{bulkSelectedIds.size !== 1 ? "s" : ""} (1080×1920)</>
+                }
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Cada historia se descarga como un PNG separado · los vapers incluyen sus sabores automáticamente
+              </p>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
