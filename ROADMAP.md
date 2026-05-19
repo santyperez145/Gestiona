@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 38)**
+Última actualización: **2026-05-19 (sesión 39)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -221,6 +221,11 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **Dashboard: widget "Mejor horario de ventas"** — mini bar chart de 24h; calcula hora con más ventas desde `created_at`; badge con hora exacta y total de transacciones. _(sesión 38)_
 - **SalesPage: resumen de comisiones del período** — widget con % editable (default 5%); totales por vendedor y comisión estimada en vistas by_customer y by_product. _(sesión 38)_
 - **AlertsPage: historial de reglas disparadas** — tabla "Última vez disparadas" con `last_triggered_at` por regla; badges "Hoy" / "Anterior"; ordenado por recencia. _(sesión 38)_
+- **ProductsPage: etiquetas de precio imprimibles** — HTML A4 2 columnas; precio grande en gold; QR de producto; descuento tachado. _(sesión 39)_
+- **DebtsPage: plan de pago en cuotas** — N cuotas con frecuencia semanal/quincenal/mensual; cronograma interactivo; progress bar en mobile; localStorage. _(sesión 39)_
+- **Dashboard: widget "Objetivos por vendedor"** — sellers activos esta semana; meta configurable por vendedor; progress bars color-coded. _(sesión 39)_
+- **AnalyticsPage: tab "Canales de venta"** — distribución y share por método de pago; donut chart; stacked bar trend mensual. _(sesión 39)_
+- **InstagramStoryGenerator: sabores disponibles para vapers** — chips seleccionables pre-cargados desde `product_variants`; pills renderizadas en canvas con border gold. _(sesión 39)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -752,15 +757,28 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 39)
+## Sesión 39 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: etiquetas de precio** — HTML A4 imprimible, 2 col, precio grande gold, QR de 70px, SKU/barcode, marca, precios tachados si hay descuento | ✅ Hecho |
+| 2 | **DebtsPage: plan de pago en cuotas** — dialog con N cuotas, frecuencia semanal/quincenal/mensual, cronograma interactivo (marcar cuotas pagadas), mini progress bar en tarjeta móvil, localStorage | ✅ Hecho |
+| 3 | **SalesPage: agrupación por sesión de caja** | ✅ Ya existía (by_session view) |
+| 4 | **Dashboard: widget "Objetivos por vendedor"** — sellers activos esta semana, meta semanal configurable por vendedor, progress bar color-coded, localStorage por org | ✅ Hecho |
+| 5 | **AnalyticsPage: tab "Canales de venta"** — donut de distribución, share % por método de pago, stacked bar chart mensual, KPI cards por canal | ✅ Hecho |
+| + | **InstagramStoryGenerator: sabores de vapers** — chips seleccionables, render en canvas como pills con border gold, multi-row, pre-selección automática | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 40)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ProductsPage: exportar etiquetas de precio** — PDF/HTML imprimible con nombre, precio y QR/barcode para cada producto (útil en tiendas físicas) | Operaciones tienda |
-| 2 | **DebtsPage: plan de pago en cuotas** — desde una deuda pendiente, crear cuotas con fechas y montos parciales; progreso de cada plan visible en la ficha | Cobranzas |
-| 3 | **SalesPage: agrupación por sesión de caja** — nueva vista `by_session` que agrupa ventas por `cash_session_id` con totales de turno | Gestión caja |
-| 4 | **Dashboard: widget "Objetivos por vendedor"** — cada vendedor tiene su meta semanal configurable; progress bar individual con delta vs meta | Gestión equipo |
-| 5 | **AnalyticsPage: tab "Canales de venta"** — distribución de ventas por método de pago (efectivo/tarjeta/MP/fiado) con tendencia mensual y share % | Business intelligence |
+| 1 | **ProductsPage: alerta de vencimiento por producto** — badge rojo/ámbar en tabla si `expiry_date` < 30/60 días; filtro "Por vencer" | Gestión stock farmacia/alimentos |
+| 2 | **CustomersPage: campo "cumpleaños" en lista** — columna visible en tabla, filtro "cumpleaños esta semana/mes", envío masivo WhatsApp felicitaciones | CRM retención |
+| 3 | **SalesPage: descarga PDF de venta individual** — botón en cada fila para generar recibo PDF A4 con logo, items, totales, método de pago | Operaciones |
+| 4 | **PresupuestosPage: PDF de presupuesto** — botón "Imprimir/PDF" genera A4 con logo, cliente, items, validez, totales, firma | Ventas B2B |
+| 5 | **Dashboard: alert "Stock crítico"** — si hay N productos con stock ≤ threshold, banner proactivo con link a /products?filter=lowstock | Inventario |
 
 ---
 
