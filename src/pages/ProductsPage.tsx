@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -267,6 +267,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
+  const [variantsByProduct, setVariantsByProduct] = useState<Record<string, any[]>>({});
+  const [expandedVariants, setExpandedVariants] = useState<Set<string>>(new Set());
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
@@ -286,8 +288,14 @@ export default function ProductsPage() {
     ]);
     setProducts(p); setSettings(s); setLoading(false);
     const counts: Record<string, number> = {};
-    allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
+    const byProd: Record<string, any[]> = {};
+    allVariants.forEach((v: any) => {
+      counts[v.product_id] = (counts[v.product_id] || 0) + 1;
+      if (!byProd[v.product_id]) byProd[v.product_id] = [];
+      byProd[v.product_id].push(v);
+    });
     setVariantCounts(counts);
+    setVariantsByProduct(byProd);
     // Calculate daily sales velocity per product (units/day over last 60 days)
     const velocity: Record<string, number> = {};
     const lastSale: Record<string, string> = {};
@@ -685,16 +693,28 @@ export default function ProductsPage() {
                   </thead>
                   <tbody>
                      {items.map((p: any) => (
-                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                       <React.Fragment key={p.id}>
+                       <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="p-3 font-medium max-w-[200px] truncate">
                             <div className="flex items-center gap-2">
                               {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
                               <span className="truncate">{p.name}</span>
                               {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                               {variantCounts[p.id] > 0 && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setExpandedVariants(prev => {
+                                      const next = new Set(prev);
+                                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                                      return next;
+                                    });
+                                  }}
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 flex items-center gap-0.5 transition-colors ${expandedVariants.has(p.id) ? 'bg-success/30 text-success' : 'bg-success/15 text-success hover:bg-success/25'}`}
+                                  title={`${variantCounts[p.id]} sabores/variantes — click para ver stock`}
+                                >
                                   <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
-                                </span>
+                                </button>
                               )}
                               {p.expiry_date && (() => {
                                 const exp = new Date(p.expiry_date);
@@ -807,6 +827,26 @@ export default function ProductsPage() {
                            )}
                          </td>
                        </tr>
+                       {/* Variant stock expand row */}
+                       {variantCounts[p.id] > 0 && expandedVariants.has(p.id) && (
+                         <tr className="bg-muted/20">
+                           <td colSpan={12} className="px-4 py-2">
+                             <div className="flex flex-wrap gap-2">
+                               {(variantsByProduct[p.id] || []).filter((v: any) => v.active !== false).map((v: any) => (
+                                 <span key={v.id} className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                   v.stock <= 0 ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                                   v.stock <= 2 ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                   'bg-success/10 text-success border-success/20'
+                                 }`}>
+                                   {v.variant_name} · <span className="font-bold">{v.stock}</span>
+                                 </span>
+                               ))}
+                               <span className="text-[10px] text-muted-foreground self-center">Stock por variante</span>
+                             </div>
+                           </td>
+                         </tr>
+                       )}
+                       </React.Fragment>
                      ))}
                   </tbody>
                 </table>

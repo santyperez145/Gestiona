@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -32,6 +32,7 @@ interface CartItem {
   imageUrl?: string | null;
   useDiscount: boolean;
   discountPrice?: number | null;
+  category?: string;
 }
 
 type PayMethod = "efectivo" | "transferencia" | "debito" | "credito" | "mayorista" | "fiado";
@@ -724,6 +725,17 @@ export default function POSPage() {
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
   const [discountValue, setDiscountValue] = useState("");
 
+  // Category discounts
+  const catDiscKey = `gestiona.pos.catDisc.${activeOrg?.id || 'default'}`;
+  const [categoryDiscounts, setCategoryDiscounts] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem(catDiscKey) || '{}'); } catch { return {}; }
+  });
+  const [showCatDiscount, setShowCatDiscount] = useState(false);
+  const saveCatDiscounts = (next: Record<string, number>) => {
+    setCategoryDiscounts(next);
+    localStorage.setItem(catDiscKey, JSON.stringify(next));
+  };
+
   // VIP auto-discount based on loyalty tier
   const [vipTier, setVipTier] = useState<{ name: string; pct: number; points: number } | null>(null);
   const [vipLoading, setVipLoading] = useState(false);
@@ -948,13 +960,22 @@ export default function POSPage() {
 
   const cartSubtotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
 
+  // Category discount: sum per-item discounts based on configured category %
+  const catDiscountARS = cart.reduce((s, it) => {
+    const pct = it.category ? (categoryDiscounts[it.category] || 0) : 0;
+    if (pct <= 0) return s;
+    return s + priceFor(it) * it.quantity * (pct / 100);
+  }, 0);
+
+  const afterCatDiscount = Math.max(0, cartSubtotal - catDiscountARS);
+
   const couponDiscount = couponResult?.valid
     ? couponResult.coupon.discount_type === "percentage"
-      ? cartSubtotal * (couponResult.coupon.discount_value / 100)
-      : Math.min(couponResult.coupon.discount_value, cartSubtotal)
+      ? afterCatDiscount * (couponResult.coupon.discount_value / 100)
+      : Math.min(couponResult.coupon.discount_value, afterCatDiscount)
     : 0;
 
-  const afterCoupon = Math.max(0, cartSubtotal - couponDiscount);
+  const afterCoupon = Math.max(0, afterCatDiscount - couponDiscount);
 
   const globalDiscountARS = showDiscount && discountValue
     ? discountType === "percent"
@@ -1012,6 +1033,7 @@ export default function POSPage() {
         stock: stockLimit,
         imageUrl: prod.image_url || null,
         useDiscount: false,
+        category: prod.category || '',
       }];
     });
     setShowCart(true);
@@ -1531,12 +1553,64 @@ export default function POSPage() {
           )}
         </div>
 
+        {/* Category discount panel */}
+        {cart.length > 0 && (() => {
+          const cats = [...new Set(cart.map(it => it.category).filter(Boolean))] as string[];
+          if (cats.length === 0) return null;
+          return (
+            <div className="space-y-1.5">
+              <button
+                onClick={() => setShowCatDiscount(!showCatDiscount)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                  showCatDiscount || catDiscountARS > 0
+                    ? 'border-primary/40 bg-primary/5 text-primary'
+                    : 'border-border bg-card text-muted-foreground hover:border-primary/30'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" />
+                  Desc. por categoría
+                </span>
+                {catDiscountARS > 0 && <span className="text-success font-mono">-{formatARS(catDiscountARS)}</span>}
+              </button>
+              {showCatDiscount && (
+                <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+                  {cats.map(cat => (
+                    <div key={cat} className="flex items-center gap-2">
+                      <span className="text-xs flex-1 truncate capitalize">{cat.replace(/_/g, ' ')}</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={categoryDiscounts[cat] || ''}
+                          onChange={e => saveCatDiscounts({ ...categoryDiscounts, [cat]: Math.min(100, Number(e.target.value) || 0) })}
+                          className="w-14 text-right text-xs border border-border rounded bg-card px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/60"
+                          placeholder="0"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground">El % se aplica al precio de cada ítem de esa categoría.</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Total + confirm */}
         <div className="bg-primary/10 rounded-xl px-4 py-3 border border-primary/20 space-y-1">
           {cartSubtotal !== cartTotal && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
               <span className="font-mono">{formatARS(cartSubtotal)}</span>
+            </div>
+          )}
+          {catDiscountARS > 0 && (
+            <div className="flex items-center justify-between text-xs text-success">
+              <span>Desc. categoría</span>
+              <span className="font-mono">-{formatARS(catDiscountARS)}</span>
             </div>
           )}
           {couponDiscount > 0 && (

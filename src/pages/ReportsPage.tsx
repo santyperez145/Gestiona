@@ -290,6 +290,7 @@ export default function ReportsPage() {
           <TabsTrigger value="sucursales">Sucursales</TabsTrigger>
           <TabsTrigger value="margin_trend">📈 Tendencia</TabsTrigger>
           <TabsTrigger value="customers">Clientes</TabsTrigger>
+          <TabsTrigger value="weekly_trend">📅 Por día</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -504,6 +505,10 @@ export default function ReportsPage() {
 
         <TabsContent value="customers">
           <CustomersTab sales={filtered.sales} period={filtered.label} />
+        </TabsContent>
+
+        <TabsContent value="weekly_trend">
+          <WeeklyTrendTab sales={data.sales} />
         </TabsContent>
       </Tabs>
     </div>
@@ -3131,6 +3136,222 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tendencia por Día de Semana Tab
+// ─────────────────────────────────────────────────────────────
+function WeeklyTrendTab({ sales }: { sales: any[] }) {
+  const [weeks, setWeeks] = useState(8);
+
+  const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  const { byDay, byDayByWeek, topDay } = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - weeks * 7);
+
+    const recent = sales.filter(s => new Date(s.date + 'T12:00:00') >= cutoff);
+
+    // Count occurrences of each weekday in the period (to compute averages)
+    const dayCount: number[] = [0, 0, 0, 0, 0, 0, 0];
+    const d = new Date(cutoff);
+    while (d <= new Date()) {
+      dayCount[d.getDay()]++;
+      d.setDate(d.getDate() + 1);
+    }
+
+    // Aggregate totals and profit per weekday
+    const totals: number[] = [0, 0, 0, 0, 0, 0, 0];
+    const profits: number[] = [0, 0, 0, 0, 0, 0, 0];
+    const counts: number[] = [0, 0, 0, 0, 0, 0, 0];
+    recent.forEach(s => {
+      const dow = new Date(s.date + 'T12:00:00').getDay();
+      totals[dow] += Number(s.total_ars || 0);
+      profits[dow] += Number(s.profit_ars || 0);
+      counts[dow]++;
+    });
+
+    const byDay = DAY_NAMES.map((name, i) => ({
+      name: DAY_SHORT[i],
+      fullName: name,
+      avgRevenue: dayCount[i] > 0 ? Math.round(totals[i] / dayCount[i]) : 0,
+      avgProfit: dayCount[i] > 0 ? Math.round(profits[i] / dayCount[i]) : 0,
+      totalRevenue: totals[i],
+      salesCount: counts[i],
+    }));
+
+    // Reorder Mon→Sun (1..6, 0)
+    const ordered = [...byDay.slice(1), byDay[0]];
+
+    const topDay = ordered.reduce((best, d) => d.avgRevenue > best.avgRevenue ? d : best, ordered[0]);
+
+    // Week-by-week heatmap data (last N weeks, grouped by week start)
+    const weekMap: Record<string, { week: string; days: number[] }> = {};
+    recent.forEach(s => {
+      const dt = new Date(s.date + 'T12:00:00');
+      const mon = new Date(dt);
+      mon.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); // Monday of that week
+      const key = mon.toISOString().slice(0, 10);
+      if (!weekMap[key]) {
+        weekMap[key] = { week: mon.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }), days: [0, 0, 0, 0, 0, 0, 0] };
+      }
+      const dow = (dt.getDay() + 6) % 7; // 0=Mon … 6=Sun
+      weekMap[key].days[dow] += Number(s.total_ars || 0);
+    });
+    const byDayByWeek = Object.entries(weekMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-weeks)
+      .map(([, v]) => v);
+
+    return { byDay: ordered, byDayByWeek, topDay };
+  }, [sales, weeks]);
+
+  const maxRevenue = Math.max(...byDay.map(d => d.avgRevenue), 1);
+
+  const exportCSV2 = () => {
+    const rows = byDay.map(d => [d.fullName, formatARS(d.avgRevenue), formatARS(d.avgProfit), String(d.salesCount)]);
+    exportCSV(`tendencia_semanal_${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Día', 'Ingreso Promedio (ARS)', 'Ganancia Promedio (ARS)', '# Ventas'],
+      rows
+    );
+  };
+
+  return (
+    <div className="space-y-6 mt-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="text-sm font-display font-semibold uppercase tracking-wider">Tendencia por día de semana</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Promedio de ingresos y ganancias por día, últimas {weeks} semanas</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={weeks}
+            onChange={e => setWeeks(Number(e.target.value))}
+            className="text-xs bg-muted border border-border rounded px-2 py-1"
+          >
+            <option value={4}>Últimas 4 semanas</option>
+            <option value={8}>Últimas 8 semanas</option>
+            <option value={12}>Últimas 12 semanas</option>
+          </select>
+          <button onClick={exportCSV2} className="text-xs text-primary hover:underline flex items-center gap-1">
+            <FileSpreadsheet className="w-3.5 h-3.5" />CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Best day badge */}
+      {topDay && topDay.avgRevenue > 0 && (
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+          <TrendingUp className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs font-medium">Mejor día: <span className="text-primary font-bold">{topDay.fullName}</span> — promedio {formatARS(topDay.avgRevenue)}</span>
+        </div>
+      )}
+
+      {/* Bar chart */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ingreso promedio por día</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={byDay} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+            <YAxis width={80} tickFormatter={v => formatARS(v)} tick={{ fontSize: 10 }} />
+            <Tooltip
+              formatter={(v: number, name: string) => [formatARS(v), name === 'avgRevenue' ? 'Ingresos' : 'Ganancia']}
+              labelFormatter={(l: string) => DAY_NAMES[['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].indexOf(l)] || l}
+            />
+            <Bar dataKey="avgRevenue" name="avgRevenue" radius={[4, 4, 0, 0]}>
+              {byDay.map((d, i) => (
+                <Cell key={i} fill={d.avgRevenue === maxRevenue ? '#D4A843' : '#6366f1'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Detail table */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground text-xs">
+              <th className="text-left px-4 py-2.5 font-medium">Día</th>
+              <th className="text-right px-4 py-2.5 font-medium">Ing. promedio</th>
+              <th className="text-right px-4 py-2.5 font-medium">Gan. promedio</th>
+              <th className="text-right px-4 py-2.5 font-medium"># Ventas</th>
+              <th className="text-right px-4 py-2.5 font-medium hidden md:table-cell">Participación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {byDay.map((d, i) => {
+              const pct = maxRevenue > 0 ? (d.avgRevenue / maxRevenue) * 100 : 0;
+              const isTop = d.avgRevenue === maxRevenue && d.avgRevenue > 0;
+              return (
+                <tr key={i} className={`border-b border-border last:border-0 ${isTop ? 'bg-primary/5' : 'hover:bg-muted/20'}`}>
+                  <td className="px-4 py-2.5 font-medium">
+                    {d.fullName}
+                    {isTop && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold">MEJOR</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-primary text-xs">{formatARS(d.avgRevenue)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-success text-xs">{formatARS(d.avgProfit)}</td>
+                  <td className="px-4 py-2.5 text-right text-muted-foreground text-xs">{d.salesCount}</td>
+                  <td className="px-4 py-2.5 hidden md:table-cell">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground w-8 text-right">{Math.round(pct)}%</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Weekly heatmap */}
+      {byDayByWeek.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Heatmap semanal (ingresos por día)</p>
+          <div className="overflow-x-auto">
+            <table className="text-[10px] border-collapse w-full min-w-[360px]">
+              <thead>
+                <tr>
+                  <th className="text-left pr-2 pb-1 text-muted-foreground font-medium">Semana</th>
+                  {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
+                    <th key={d} className="px-1 pb-1 text-center text-muted-foreground font-medium w-14">{d}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {byDayByWeek.map((w, wi) => {
+                  const maxDay = Math.max(...w.days, 1);
+                  return (
+                    <tr key={wi}>
+                      <td className="pr-2 py-0.5 text-muted-foreground font-mono whitespace-nowrap">{w.week}</td>
+                      {w.days.map((val, di) => {
+                        const intensity = val > 0 ? Math.max(0.1, val / maxDay) : 0;
+                        return (
+                          <td key={di} className="px-0.5 py-0.5">
+                            <div
+                              className="rounded text-center py-1 text-[9px] font-mono"
+                              style={{ background: val > 0 ? `rgba(212, 168, 67, ${intensity})` : 'transparent', color: intensity > 0.6 ? '#1a1a1a' : '#aaa' }}
+                              title={val > 0 ? formatARS(val) : 'Sin ventas'}
+                            >
+                              {val > 0 ? `${Math.round(val / 1000)}k` : '—'}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
