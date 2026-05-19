@@ -405,6 +405,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           const variants = variantsByProduct[p.id] || [];
           const effPrice = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
             ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+          const twoXPrice = p.price_2x_ars ? Number(p.price_2x_ars) : effPrice * 2;
 
           const puffsMatch = p.name.match(/(\d+\.?\d*)\s*[Kk]\b/);
           const puffsNum = puffsMatch ? parseFloat(puffsMatch[1]) * 1000 : null;
@@ -424,7 +425,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
             const hH = isFirstPage ? HEADER_H1 : HEADER_HC;
             if (isFirstPage) {
-              drawFirstHeader(brandWord, modelWord, puffsLabel, effPrice, effPrice * 2);
+              drawFirstHeader(brandWord, modelWord, puffsLabel, effPrice, twoXPrice);
             } else {
               drawContHeader(brandWord, modelWord);
             }

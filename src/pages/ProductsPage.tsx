@@ -682,6 +682,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [costUSD, setCostUSD] = useState(product?.cost_usd?.toString() || '');
   const [salePriceARS, setSalePriceARS] = useState(product?.sale_price_ars?.toString() || '');
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
+  const [price2xARS, setPrice2xARS] = useState(product?.price_2x_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
   const [description, setDescription] = useState(product?.description || '');
   const [featured, setFeatured] = useState(product?.featured || false);
@@ -842,6 +843,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         name: name.trim().toUpperCase(), brand: brand.trim().toUpperCase(), category, gender, description: description.trim() || null,
         cost_usd: cost, customs_fee: customsFee, total_cost_usd: totalCostUSD,
         sale_price_ars: salePrice, discount_price_ars: parseFloat(discountPriceARS) || null,
+        price_2x_ars: isVaper ? (parseFloat(price2xARS) || null) : null,
         profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
         stock: variantTotal,
         image_url: imageUrl,
@@ -968,6 +970,24 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
         </div>
       </div>
+      {isVaper && (
+        <div className="rounded-lg border border-success/30 bg-success/5 p-3">
+          <label className="text-sm font-medium text-success flex items-center gap-1.5 mb-1.5">
+            <DollarSign className="w-3.5 h-3.5" /> Precio pack 2X (marketing)
+          </label>
+          <Input
+            type="number"
+            min="0"
+            value={price2xARS}
+            onChange={e => setPrice2xARS(e.target.value)}
+            placeholder={`Ej: ${Math.round((parseFloat(discountPriceARS) || parseFloat(salePriceARS) || 0) * 1.9).toLocaleString('es-AR')}`}
+            className="bg-muted border-border"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Se muestra como "2X $XX.XXX" en el catálogo PDF · dejá vacío para calcular automático (precio × 2)
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm text-muted-foreground">Descripción</label>
