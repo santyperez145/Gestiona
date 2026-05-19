@@ -101,7 +101,7 @@ export default function InfluencerExchangesPage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Canje' : 'Registrar Canje'}</DialogTitle></DialogHeader>
-              <ExchangeForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
+              <ExchangeForm userId={user!.id} editItem={editItem} existingExchanges={exchanges} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
             </DialogContent>
           </Dialog>
         }
@@ -317,7 +317,7 @@ export default function InfluencerExchangesPage() {
   );
 }
 
-function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
+function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { userId: string; editItem?: any; existingExchanges?: any[]; onSave: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [productId, setProductId] = useState(editItem?.product_id || '');
@@ -331,6 +331,32 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
   const [goalNotes, setGoalNotes] = useState(editItem?.goal_notes || '');
   const [discountCode, setDiscountCode] = useState(editItem?.discount_code || '');
   const [saving, setSaving] = useState(false);
+
+  // Unique influencers from previous exchanges (for the quick-picker)
+  const knownInfluencers: { name: string; ig: string; followers: string }[] = useMemo(() => {
+    const seen = new Map<string, { name: string; ig: string; followers: string }>();
+    for (const ex of existingExchanges) {
+      const key = ex.influencer_name?.trim().toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.set(key, {
+          name: ex.influencer_name,
+          ig: ex.influencer_instagram || '',
+          followers: String(ex.influencer_followers || ''),
+        });
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [existingExchanges]);
+
+  const handlePickInfluencer = (name: string) => {
+    const inf = knownInfluencers.find(i => i.name === name);
+    if (!inf) return;
+    setInfluencerName(inf.name);
+    setInfluencerIg(inf.ig);
+    setInfluencerFollowers(inf.followers);
+    // Fresh code for this new exchange, same name prefix
+    setDiscountCode(generateInfluencerCode(inf.name));
+  };
 
   // Auto-generate code when influencer name is set (new form only)
   useEffect(() => {
@@ -399,6 +425,38 @@ function ExchangeForm({ userId, editItem, onSave }: { userId: string; editItem?:
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
+      {/* ── Influencer existente (quick-fill) ── */}
+      {!editItem && knownInfluencers.length > 0 && (
+        <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
+          <label className="text-xs font-semibold text-primary uppercase tracking-wide flex items-center gap-1.5 mb-2">
+            <Users className="w-3.5 h-3.5" /> Nuevo canje con influencer existente
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {knownInfluencers.map(inf => (
+              <button
+                key={inf.name}
+                type="button"
+                onClick={() => handlePickInfluencer(inf.name)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  influencerName === inf.name
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                }`}
+              >
+                {inf.name}
+                {inf.ig && <span className="ml-1 opacity-60">{inf.ig}</span>}
+              </button>
+            ))}
+          </div>
+          {influencerName && knownInfluencers.some(i => i.name === influencerName) && (
+            <p className="text-[10px] text-primary/70 mt-2">
+              Datos auto-completados · podés modificarlos si cambiaron
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2"><label className="text-sm text-muted-foreground">Nombre del Influencer *</label>
           <Input value={influencerName} onChange={e => setInfluencerName(e.target.value)} placeholder="Nombre" className="bg-muted border-border" /></div>
