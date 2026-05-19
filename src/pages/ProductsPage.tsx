@@ -664,6 +664,38 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* Active filters badge row */}
+      {(() => {
+        const activeFilters: { label: string; clear: () => void }[] = [];
+        if (filterCat !== 'all') activeFilters.push({ label: `Cat: ${filterCat.replace('_', ' ')}`, clear: () => setFilterCat('all') });
+        if (filterStock !== 'all') activeFilters.push({ label: filterStock === 'low' ? 'Stock bajo' : filterStock === 'out' ? 'Sin stock' : 'En stock', clear: () => setFilterStock('all') });
+        if (filterExpiry !== 'all') activeFilters.push({ label: filterExpiry === 'expired' ? 'Vencidos' : filterExpiry === 'soon30' ? 'Vence 30d' : filterExpiry === 'soon90' ? 'Vence 90d' : 'Con vencim.', clear: () => setFilterExpiry('all') });
+        if (filterTag) activeFilters.push({ label: `#${filterTag}`, clear: () => setFilterTag('') });
+        if (filterMovement !== 'all') activeFilters.push({ label: 'Sin venta 30d', clear: () => setFilterMovement('all') });
+        if (filterMargin !== 'all') activeFilters.push({ label: filterMargin === 'high' ? 'Margen >40%' : filterMargin === 'mid' ? 'Margen 20–40%' : filterMargin === 'low' ? 'Margen <20%' : 'Margen negativo', clear: () => setFilterMargin('all') });
+        if (search) activeFilters.push({ label: `"${search}"`, clear: () => setSearch('') });
+        if (!activeFilters.length) return null;
+        return (
+          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <span className="text-[11px] text-muted-foreground font-medium">Filtros activos:</span>
+            {activeFilters.map((f, i) => (
+              <button key={i} onClick={() => { f.clear(); setPage(0); }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
+                {f.label}
+                <span className="opacity-60 hover:opacity-100 text-xs">×</span>
+              </button>
+            ))}
+            {activeFilters.length > 1 && (
+              <button onClick={() => { setFilterCat('all'); setFilterStock('all'); setFilterExpiry('all'); setFilterTag(''); setFilterMovement('all'); setFilterMargin('all'); setSearch(''); setPage(0); }}
+                className="text-[11px] text-muted-foreground underline hover:text-foreground transition-colors ml-1">
+                Limpiar todo
+              </button>
+            )}
+            <span className="ml-auto text-[11px] text-muted-foreground">{filtered.length} producto{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+        );
+      })()}
+
       {!filtered.length ? (
         <EmptyState icon={Package} title={products.length ? 'Sin resultados' : 'No hay productos aún'} description="Agregá tu primer producto para empezar." actionLabel="Nuevo Producto" onAction={() => setOpen(true)} />
       ) : (

@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 42)**
+Última actualización: **2026-05-19 (sesión 43)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -817,15 +817,28 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 43)
+## Sesión 43 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POSPage: descuento en importe fijo (ARS)** — ya existía con toggle % / Monto fijo funcional | ✅ Ya existía |
+| 2 | **SalesPage: sticky header en tabla desktop** — `<thead className="sticky top-0 z-10">` + wrapper `overflow-y-auto max-h-[calc(100vh-340px)]` | ✅ Hecho |
+| 3 | **ProductsPage: badge de filtros activos** — chips coloreados debajo de la barra de filtros con ×, "Limpiar todo" y contador de resultados | ✅ Hecho |
+| 4 | **Dashboard: widget "Ranking de productos de la semana"** — top-5 por unidades de lun a hoy; barra gold para el #1; delta ▲/▼ vs semana anterior | ✅ Hecho |
+| 5 | **CustomersPage: CSV export del widget top clientes del mes** — botón Download en el header del widget; columnas: posición, nombre, total ARS, compras, VIP | ✅ Hecho |
+| + | **Seguridad (sesión 43b)**: 10 vulnerabilidades parcheadas — JWT auth en edge functions, XSS iframe sandbox, HMAC obligatorio en webhooks, CORS restrictivo en admin, membership check en ai-chat, security headers HTTP | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 44)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **POSPage: descuento en importe fijo (ARS)** — toggle % / ARS en el campo globalDiscount; actualmente solo acepta porcentaje; cálculo correcto en totales y recibo | Ventas B2C con monto fijo de rebaja |
-| 2 | **SalesPage: sticky header en tabla** — encabezado de columnas fijo al hacer scroll; las filas se deslizan por debajo | UX en listados largos |
-| 3 | **ProductsPage: filtro combinado tag + margen** — aplicar ambos filtros simultáneamente en el useMemo `filtered`; badge de filtros activos | Gestión avanzada de catálogo |
-| 4 | **Dashboard: widget "Ranking de productos de la semana"** — top-5 más vendidos (unidades + ARS) de lun a hoy; delta vs semana anterior | Visibilidad operativa |
-| 5 | **CustomersPage: exportar top clientes del mes a CSV** — botón en el widget de top clientes: nombre, total ARS, cantidad de compras, badge VIP | Reporte comercial rápido |
+| 1 | **SalesPage: agrupar ventas del mismo ticket en una sola fila** — ventas creadas en la misma transacción POS (mismo created_at / misma session) colapsadas en una fila expandible | UX — evita duplicados visuales |
+| 2 | **ProductsPage: importar desde factura de proveedor (foto/PDF)** — botón "Importar factura", upload de imagen/PDF, extracción IA con Claude Vision de productos+precios+cantidades | Diferenciación IA |
+| 3 | **Dashboard: alerta proactiva de días sin ventas** — si son las 15h+ y no hay ventas hoy (existía lógica en sesión anterior), y también si el día anterior tuvo 0 ventas | Operación en tiempo real |
+| 4 | **AnalyticsPage: métricas de conversión por vendedor** — tasa de cierre (ventas / atenciones registradas), ticket promedio, comisión estimada por semana | Performance del equipo |
+| 5 | **POSPage: historial de las últimas N ventas del turno** — panel colapsable en el POS que lista las últimas 5-10 ventas del turno actual con opción de anular | Corrección de errores rápida |
 
 ---
 

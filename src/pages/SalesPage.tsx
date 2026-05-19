@@ -1013,9 +1013,10 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           )}
 
           <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
+            <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-border bg-muted/30 shadow-sm">
                   <th className="px-3 py-3 w-8">
                     <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors" title="Seleccionar todas">
                       {selectedIds.size > 0 && selectedIds.size === paged.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
@@ -1096,6 +1097,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           <div className="md:hidden space-y-3">

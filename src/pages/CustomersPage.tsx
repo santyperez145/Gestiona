@@ -1113,10 +1113,31 @@ export default function CustomersPage() {
       {/* Top clientes del mes */}
       {topThisMonth.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4">
-          <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Crown className="w-4 h-4 text-primary" />
-            Top clientes — {new Date().toLocaleDateString('es-AR', { month: 'long' })}
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Crown className="w-4 h-4 text-primary" />
+              Top clientes — {new Date().toLocaleDateString('es-AR', { month: 'long' })}
+            </h2>
+            <button
+              onClick={() => {
+                const monthLabel = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                const header = 'Posición,Nombre,Total ARS,Compras,VIP';
+                const rows = topThisMonth.map((c, i) => {
+                  const cData = customers.find((x: any) => x.name === c.name);
+                  const isVip = cData?.segment === 'VIP' || cData?.segment === 'Premium';
+                  return `${i + 1},"${c.name}",${c.total.toFixed(2)},${c.count},${isVip ? 'Sí' : 'No'}`;
+                });
+                const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = `top-clientes-${monthLabel.replace(/\s/g, '-')}.csv`; a.click();
+              }}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded border border-border hover:border-primary/30"
+              title="Exportar CSV"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              CSV
+            </button>
+          </div>
           <div className="space-y-2.5">
             {topThisMonth.map((c, i) => {
               const customerData = customers.find(x => x.name === c.name);

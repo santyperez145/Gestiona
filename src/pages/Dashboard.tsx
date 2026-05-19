@@ -577,8 +577,26 @@ export default function Dashboard() {
     // Net profit: gross - expenses - taxes (if enabled)
     // ===== This week sales =====
     const weekNow = new Date();
-    const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - weekNow.getDay()); weekStart.setHours(0, 0, 0, 0);
-    const weekSalesARS = sales.filter((s: any) => new Date(s.date) >= weekStart).reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+    const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - (weekNow.getDay() === 0 ? 6 : weekNow.getDay() - 1)); weekStart.setHours(0, 0, 0, 0);
+    const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(weekStart.getDate() - 7);
+    const weekSales = sales.filter((s: any) => new Date(s.date) >= weekStart);
+    const weekSalesARS = weekSales.reduce((a: number, s: any) => a + Number(s.total_ars), 0);
+    const prevWeekSales = sales.filter((s: any) => { const d = new Date(s.date); return d >= prevWeekStart && d < weekStart; });
+
+    // Top products this week (by units + revenue) vs last week
+    const weekProdMap: Record<string, { name: string; qty: number; revenue: number }> = {};
+    weekSales.forEach((s: any) => {
+      const k = s.product_name || "?";
+      if (!weekProdMap[k]) weekProdMap[k] = { name: k, qty: 0, revenue: 0 };
+      weekProdMap[k].qty += Number(s.quantity);
+      weekProdMap[k].revenue += Number(s.total_ars);
+    });
+    const prevWeekProdMap: Record<string, number> = {};
+    prevWeekSales.forEach((s: any) => { const k = s.product_name || "?"; prevWeekProdMap[k] = (prevWeekProdMap[k] || 0) + Number(s.quantity); });
+    const topWeekProducts = Object.values(weekProdMap)
+      .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
+      .slice(0, 5)
+      .map(p => ({ ...p, prevQty: prevWeekProdMap[p.name] || 0 }));
 
     const monthSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === curY && d.getMonth() === curM; });
     const monthGrossProfit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
@@ -770,7 +788,7 @@ export default function Dashboard() {
       // New
       monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData, prevTotalMonthExpenses,
       yoySalesARS, yoyGrowth,
-      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
+      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts, topWeekProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
       bestWeekdayData, bestWeekday,
@@ -2205,6 +2223,47 @@ export default function Dashboard() {
               <Bar dataKey="netProfit" fill="hsl(40, 70%, 50%)" radius={[3, 3, 0, 0]} name="netProfit" />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Top Products This Week */}
+      {stats.topWeekProducts?.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-primary" />Ranking de la semana
+            </h2>
+            <span className="text-[10px] text-muted-foreground">Lun → hoy · unidades</span>
+          </div>
+          <div className="space-y-2">
+            {stats.topWeekProducts.map((p: any, i: number) => {
+              const maxQty = stats.topWeekProducts[0]?.qty || 1;
+              const pct = (p.qty / maxQty) * 100;
+              const qtyDelta = p.prevQty > 0 ? p.qty - p.prevQty : null;
+              return (
+                <div key={p.name}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-bold text-muted-foreground/60 w-4 shrink-0">{i + 1}</span>
+                      <span className="truncate font-medium">{p.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-semibold font-mono text-primary">{p.qty} u</span>
+                      <span className="text-muted-foreground text-[10px]">{formatARS(p.revenue)}</span>
+                      {qtyDelta !== null && (
+                        <span className={`text-[10px] font-medium ${qtyDelta >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {qtyDelta >= 0 ? '▲' : '▼'}{Math.abs(qtyDelta)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: i === 0 ? 'hsl(43,89%,55%)' : 'hsl(var(--primary)/.5)' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
