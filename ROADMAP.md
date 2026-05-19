@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-18 (sesión 31)**
+Última actualización: **2026-05-19 (sesión 33)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -9,7 +9,7 @@ Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, sto
 
 ## Estado general
 
-**MVP avanzado con SaaS billing funcional. ~95% completo.**
+**MVP avanzado con SaaS billing funcional. ~97% completo.**
 
 La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Query, Supabase, Edge Functions, PWA, Sentry, Stripe, Tiendanube, Mercado Pago, AFIP, Resend y Anthropic Claude. Infraestructura estabilizada en sesión 6: service worker auto-update, canales realtime sin crash, JWT anon key.
 
@@ -637,16 +637,44 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 32)
+## Sesión 32 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ExpensesPage: campo "proveedor/pagado a"** — vendor en form, filtro, CSV export | ✅ Ya existía |
+| 2 | **SalesPage: resumen de totales por método al filtrar** — desglose por método visible debajo de KPIs | ✅ Ya existía |
+| 3 | **Dashboard: alerta "Sin ventas hoy"** — banner proactivo si son las 14hs+ y 0 ventas del día | ✅ Ya existía |
+| 4 | **ProductsPage: exportar etiquetas QR** — grilla imprimible de QR por producto | ✅ Ya existía |
+| 5 | **PurchasesPage: estado "En camino"** — campo travel_status, botón "Marcar en camino" | ✅ Ya existía |
+| 6 | **ReportsPage: PDF del tab "Tendencia de margen"** — botón print/PDF en MarginTrendTab | ✅ Ya existía |
+| 7 | **AlertsPage: product_expiry** — alerta de vencimiento próximo con CalendarX2 icon + "Crear" button | ✅ Hecho |
+| 8 | **check-alerts edge function: product_expiry** — query products con expiry_date próximo, notifica admins | ✅ Hecho |
+| 9 | **Migration 20260519000001** — agrega product_expiry a alert_rules CHECK constraint, seed, backfill | ✅ Hecho |
+| 10 | **ProfilePage: cambiar email** — input nuevo email + supabase.auth.updateUser({ email }) + verificación | ✅ Hecho |
+
+---
+
+## Sesión 33 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: Cierre de caja PDF** — printCierreCaja() genera A4 con KPIs, desglose por método, top 5 productos; botón "Cierre" en header | ✅ Hecho |
+| 2 | **PresupuestosPage: Duplicar presupuesto** — duplicateQuote() copia items+cliente con nuevo número; botón CopyPlus | ✅ Hecho |
+| 3 | **POSPage: Recibo por email** — ReceiptModal tiene input email + botón Mail; envía vía send-invoice-email edge function | ✅ Hecho |
+| 4 | **InvoicesPage: Notas de Crédito** — createCreditNote() crea factura con negativos y prefijo "NC-"; badge "N.Crédito" naranja; botón FileMinus en facturas pagadas/enviadas | ✅ Hecho |
+| 5 | **ProductsPage: Análisis de aging** — panel colapsable que agrupa productos con stock sin venta en 31-60d/61-90d/90+d/nunca; muestra inversión en riesgo | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 34)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ExpensesPage: campo "proveedor/pagado a"** — migration + campo en form + filtro por proveedor en lista | Trazabilidad de gastos |
-| 2 | **SalesPage: resumen de totales por método al filtrar** — chips de totales (efectivo/MP/etc) visibles cuando se filtra por fecha o método | Cierre de caja |
-| 3 | **Dashboard: alerta "Sin ventas hoy"** — banner si son las 14hs+ y no hay ventas del día | Proactividad |
-| 4 | **ProductsPage: exportar etiquetas QR** — dialog para generar e imprimir QR de producto (nombre + precio) en formato grilla imprimible | Operaciones retail |
-| 5 | **PurchasesPage: estado "En camino"** — migración DB: campo `status` en purchases (pedido/en_camino/recibido); botón "Marcar en camino" | Logística |
-| 6 | **ReportsPage: PDF del tab "Tendencia de margen"** — botón print/PDF en MarginTrendTab con estilo A4 | Presentación |
+| 1 | **CustomersPage: segmentación automática VIP/regular/inactivo** — badge automático según gasto y frecuencia en últimos 90d | CRM accionable |
+| 2 | **SalesPage: totales de período en footer de tabla** — fila de totales visible al hacer scroll | UX cierre de caja |
+| 3 | **Dashboard: widget de temperatura actualizado** — include aging products en semáforo | Proactividad |
+| 4 | **ReportsPage: tab "Inventario"** — tablas de rotación, valor por categoría, stock aging | Gestión stock |
+| 5 | **POSPage: cliente favorito** — historial de últimos 5 clientes para autocompletar rápido | Velocidad caja |
 
 ---
 

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -185,6 +185,7 @@ export default function ProductsPage() {
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
+  const [showAging, setShowAging] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -400,6 +401,92 @@ export default function ProductsPage() {
           <button onClick={() => setFilterExpiry('soon30')} className="text-xs text-orange-400 hover:underline shrink-0">Ver</button>
         </div>
       )}
+
+      {/* ── Inventory Aging Panel ─────────────────────────────────── */}
+      {(() => {
+        const now = today.getTime();
+        const withStock = products.filter(p => p.stock > 0);
+        const aged = withStock.map(p => {
+          const last = lastSaleDate[p.id];
+          const daysSince = last ? Math.floor((now - new Date(last + 'T12:00:00').getTime()) / 86400000) : 999;
+          const costUSD = Number(p.cost_usd || 0);
+          const exchangeRate = Number(p.exchange_rate || 900);
+          const valueARS = costUSD * exchangeRate * Number(p.stock);
+          return { ...p, daysSince, valueARS };
+        }).filter(p => p.daysSince > 30);
+        if (aged.length === 0) return null;
+        const buckets = [
+          { label: '31–60 días', min: 31, max: 60, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', barColor: 'bg-amber-400' },
+          { label: '61–90 días', min: 61, max: 90, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20', barColor: 'bg-orange-400' },
+          { label: '90+ días',   min: 91, max: 9999, color: 'text-destructive bg-destructive/10 border-destructive/20', barColor: 'bg-destructive' },
+          { label: 'Nunca vendido', min: 998, max: 9999, color: 'text-muted-foreground bg-muted/20 border-border', barColor: 'bg-muted-foreground' },
+        ];
+        const grouped2 = buckets.map(b => ({
+          ...b,
+          items: aged.filter(p => b.label === 'Nunca vendido' ? p.daysSince >= 999 : (p.daysSince >= b.min && p.daysSince < b.max && p.daysSince < 999)),
+        })).filter(b => b.items.length > 0);
+        const totalAtRisk = aged.reduce((s, p) => s + p.valueARS, 0);
+        return (
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowAging(!showAging)}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                <BarChart2 className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-semibold">Análisis de aging — inventario sin movimiento</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">{aged.length} productos</span>
+                <span className="text-xs text-muted-foreground hidden sm:inline">· {formatUSD(totalAtRisk / 900)} en riesgo</span>
+              </div>
+              {showAging ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+            {showAging && (
+              <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {grouped2.map(b => (
+                    <div key={b.label} className={`rounded-lg border px-3 py-2 text-xs ${b.color}`}>
+                      <p className="font-semibold">{b.label}</p>
+                      <p className="text-lg font-bold mt-0.5">{b.items.length}</p>
+                      <p className="opacity-70">{formatUSD(b.items.reduce((s, p) => s + p.valueARS, 0) / 900)} inversión</p>
+                    </div>
+                  ))}
+                </div>
+                {grouped2.map(b => (
+                  <div key={b.label}>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{b.label} ({b.items.length})</h4>
+                    <div className="space-y-1">
+                      {b.items.slice(0, 8).map(p => {
+                        const totalProducts = b.items.reduce((s, x) => s + x.valueARS, 0);
+                        const pct = totalProducts > 0 ? (p.valueARS / totalProducts) * 100 : 0;
+                        return (
+                          <div key={p.id} className="flex items-center gap-3 text-xs">
+                            <span className="flex-1 truncate font-medium">{p.name}</span>
+                            <span className="text-muted-foreground shrink-0">{p.stock} uds</span>
+                            <div className="hidden sm:flex items-center gap-1 w-20 shrink-0">
+                              <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                                <div className={`h-full ${b.barColor}`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => { setFilterMovement('no30'); setSearch(p.name); setPage(0); }}
+                              className="text-[10px] text-primary hover:underline shrink-0"
+                            >
+                              Ver
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {b.items.length > 8 && (
+                        <p className="text-[10px] text-muted-foreground">+{b.items.length - 8} más — filtrá por "Sin venta 30+ días"</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">

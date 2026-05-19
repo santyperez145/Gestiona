@@ -15,7 +15,7 @@ import autoTable from "jspdf-autotable";
 import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
-  ShieldCheck, ShieldAlert, Loader2, QrCode, Search,
+  ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -277,6 +277,7 @@ export default function InvoicesPage() {
   const [authorizingId, setAuthorizingId] = useState<string | null>(null);
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
   const [search, setSearch] = useState("");
+  const [creatingNC, setCreatingNC] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const fromSaleHandled = useRef(false);
   const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
@@ -486,6 +487,44 @@ export default function InvoicesPage() {
     await supabase.from("invoices").delete().eq("id", id);
     toast.success("Factura eliminada");
     load();
+  };
+
+  const createCreditNote = async (inv: Invoice) => {
+    if (!activeOrg) return;
+    setCreatingNC(inv.id);
+    try {
+      const ncNumber = `NC-${inv.number}`;
+      const ncItems = (inv.invoice_items ?? [{ description: `Anulación ${inv.number}`, quantity: 1, unit_price: Number(inv.total), total: Number(inv.total) }])
+        .map((it) => ({ ...it, unit_price: -Math.abs(it.unit_price), total: -Math.abs(it.total) }));
+      const ncSubtotal = ncItems.reduce((s, it) => s + it.total, 0);
+      const taxAmt = ncSubtotal * (Number(inv.tax_pct) / 100);
+      const { error } = await supabase.from("invoices").insert({
+        org_id: activeOrg.id,
+        number: ncNumber,
+        customer_name: inv.customer_name,
+        customer_email: inv.customer_email,
+        customer_address: inv.customer_address,
+        customer_tax_id: inv.customer_tax_id,
+        issue_date: new Date().toISOString().slice(0, 10),
+        due_date: null,
+        status: "draft",
+        currency: inv.currency || "ARS",
+        subtotal: ncSubtotal,
+        tax_pct: Number(inv.tax_pct),
+        tax_amount: taxAmt,
+        total: ncSubtotal + taxAmt,
+        notes: `Nota de Crédito — anula/ajusta factura ${inv.number}`,
+        invoice_items: ncItems,
+        tipo_comprobante: null,
+      });
+      if (error) throw error;
+      toast.success(`Nota de Crédito ${ncNumber} creada`);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Error al crear Nota de Crédito");
+    } finally {
+      setCreatingNC(null);
+    }
   };
 
   const stats = {
@@ -774,7 +813,12 @@ export default function InvoicesPage() {
                     <button className="flex-1 flex items-center gap-3 min-w-0 text-left" onClick={() => setExpanded(isOpen ? null : inv.id)}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-sm font-semibold">{inv.number}</span>
+                          <span className={`font-mono text-sm font-semibold ${inv.number.startsWith("NC-") ? "text-orange-400" : ""}`}>{inv.number}</span>
+                          {inv.number.startsWith("NC-") && (
+                            <span className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-bold border border-orange-500/30 text-orange-400 bg-orange-500/5">
+                              N.Crédito
+                            </span>
+                          )}
                           {tipoCbte && (
                             <span className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-bold border border-primary/30 text-primary bg-primary/5">
                               F{tipoCbte}
@@ -855,6 +899,15 @@ export default function InvoicesPage() {
                           onClick={() => updateStatus(inv.id, "paid")}
                         >
                           <CheckCircle2 className="w-4 h-4 text-green-400" />
+                        </Button>
+                      )}
+                      {canManage && (inv.status === "paid" || inv.status === "sent") && !inv.number.startsWith("NC-") && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Crédito"
+                          onClick={() => createCreditNote(inv)} disabled={creatingNC === inv.id}
+                        >
+                          {creatingNC === inv.id
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <FileMinus className="w-4 h-4 text-orange-400" />}
                         </Button>
                       )}
                       {canManage && (
