@@ -537,6 +537,57 @@ export default function AlertsPage() {
           })}
         </div>
       </div>
+
+      {/* Alert rules fire log */}
+      {rules.some(r => r.last_triggered_at) && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Última vez disparadas</h2>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30">
+                <tr>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Alerta</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden sm:table-cell">Tipo</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Última vez</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {[...rules].filter(r => r.last_triggered_at).sort((a, b) =>
+                  new Date(b.last_triggered_at!).getTime() - new Date(a.last_triggered_at!).getTime()
+                ).map(r => {
+                  const cfg = RULE_CONFIG[r.type] || { label: r.type, color: "text-muted-foreground", bg: "bg-muted/30", border: "border-border", icon: Bell };
+                  const Icon = cfg.icon;
+                  const firedAt = new Date(r.last_triggered_at!);
+                  const wasToday = firedAt > new Date(Date.now() - 86400000);
+                  return (
+                    <tr key={r.id} className="hover:bg-muted/20">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
+                          <span className="font-medium text-xs">{r.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 hidden sm:table-cell">
+                        <span className="text-xs text-muted-foreground">{cfg.label}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
+                        {formatDistanceToNow(firedAt, { locale: es, addSuffix: true })}
+                      </td>
+                      <td className="px-4 py-2.5 text-right hidden md:table-cell">
+                        {wasToday
+                          ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-warning/20 text-warning font-semibold">Hoy</span>
+                          : <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Anterior</span>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
