@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2 } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2 } from "lucide-react";
 import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -199,6 +199,51 @@ export default function DebtsPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 30-day projection */}
+      {tab === "cobros" && (() => {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const next30 = new Date(today); next30.setDate(next30.getDate() + 30);
+        const buckets = [
+          { label: "Hoy", days: 0, max: 0 },
+          { label: "1–7 días", days: 1, max: 7 },
+          { label: "8–15 días", days: 8, max: 15 },
+          { label: "16–30 días", days: 16, max: 30 },
+        ];
+        const rows = buckets.map(b => {
+          const items = pending.filter(d => {
+            if (!d.due_date) return false;
+            const dd = new Date(d.due_date + "T12:00:00");
+            const diffDays = Math.floor((dd.getTime() - today.getTime()) / 86400000);
+            return diffDays >= b.days && diffDays <= b.max;
+          });
+          return { ...b, count: items.length, total: items.reduce((s, d) => s + Number(d.remaining_ars), 0) };
+        }).filter(r => r.count > 0);
+        if (rows.length === 0) return null;
+        const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+        const maxVal = Math.max(...rows.map(r => r.total), 1);
+        return (
+          <div className="mb-5 bg-card border border-success/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4 text-success" />
+              <h3 className="text-sm font-semibold">Proyección de cobros — próximos 30 días</h3>
+              <span className="ml-auto text-sm font-bold text-success">{formatARS(grandTotal)}</span>
+            </div>
+            <div className="space-y-2">
+              {rows.map(r => (
+                <div key={r.label} className="flex items-center gap-2 text-xs">
+                  <span className="w-24 shrink-0 text-muted-foreground">{r.label}</span>
+                  <div className="flex-1 bg-muted rounded-full h-2.5 overflow-hidden">
+                    <div className="h-full rounded-full bg-success/60" style={{ width: `${(r.total / maxVal) * 100}%` }} />
+                  </div>
+                  <span className="w-24 text-right font-mono shrink-0">{formatARS(r.total)}</span>
+                  <span className="w-12 text-right text-muted-foreground shrink-0">{r.count} deuda{r.count !== 1 ? "s" : ""}</span>
+                </div>
+              ))}
             </div>
           </div>
         );
