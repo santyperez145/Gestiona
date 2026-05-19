@@ -16,6 +16,7 @@ import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
   ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
+  Square, CheckSquare, CheckCheck,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -279,6 +280,8 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [creatingNC, setCreatingNC] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
   const fromSaleHandled = useRef(false);
   const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
 
@@ -344,6 +347,36 @@ export default function InvoicesPage() {
     } finally {
       setSendingEmail(null);
     }
+  };
+
+  const handleBulkSendEmail = async () => {
+    const toSend = filteredInvoices.filter(inv => selectedIds.has(inv.id) && inv.customer_email);
+    if (toSend.length === 0) { toast.error("Ninguna factura seleccionada tiene email de cliente"); return; }
+    setBulkSending(true);
+    let sent = 0; let failed = 0;
+    for (const inv of toSend) {
+      try {
+        const { error } = await supabase.functions.invoke("send-invoice-email", {
+          body: {
+            to: inv.customer_email,
+            subject: `Factura N° ${inv.number} — ${activeOrg?.name || ""}`,
+            invoiceNumber: inv.number,
+            customerName: inv.customer_name,
+            orgName: activeOrg?.name || "",
+            totalARS: new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(inv.total)),
+            dueDate: inv.due_date,
+            notes: inv.notes,
+          },
+        });
+        if (error) throw error;
+        if (inv.status === "draft") await updateStatus(inv.id, "sent");
+        sent++;
+      } catch { failed++; }
+    }
+    if (sent > 0) toast.success(`${sent} email${sent > 1 ? "s" : ""} enviado${sent > 1 ? "s" : ""}${failed > 0 ? `, ${failed} fallaron` : ""}`);
+    else toast.error(`${failed} envíos fallaron`);
+    setSelectedIds(new Set());
+    setBulkSending(false);
   };
 
   const handleAuthorizeAfip = async (inv: Invoice) => {
@@ -788,7 +821,40 @@ export default function InvoicesPage() {
           }}>
             <FileDown className="w-3.5 h-3.5 mr-1.5" />CSV
           </Button>
+          {canManage && (
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/30 transition-all"
+              title="Seleccionar todas"
+              onClick={() => {
+                if (selectedIds.size === filteredInvoices.length) {
+                  setSelectedIds(new Set());
+                } else {
+                  setSelectedIds(new Set(filteredInvoices.map(i => i.id)));
+                }
+              }}
+            >
+              {selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0
+                ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                : <Square className="w-3.5 h-3.5" />
+              }
+              {selectedIds.size > 0 ? `${selectedIds.size} sel.` : "Sel."}
+            </button>
+          )}
         </div>
+        {/* Bulk action bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 px-5 py-2.5 bg-primary/5 border-b border-primary/20">
+            <CheckSquare className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs text-primary font-medium">{selectedIds.size} factura{selectedIds.size > 1 ? "s" : ""} seleccionada{selectedIds.size > 1 ? "s" : ""}</span>
+            <Button size="sm" variant="outline" className="h-7 text-xs ml-auto border-primary/30 text-primary hover:bg-primary/10"
+              onClick={handleBulkSendEmail} disabled={bulkSending}
+            >
+              {bulkSending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Mail className="w-3.5 h-3.5 mr-1.5" />}
+              Enviar emails
+            </Button>
+            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSelectedIds(new Set())}>Cancelar</button>
+          </div>
+        )}
         {loading ? (
           <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
         ) : filteredInvoices.length === 0 ? (
@@ -810,6 +876,17 @@ export default function InvoicesPage() {
               return (
                 <div key={inv.id}>
                   <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors">
+                    {canManage && (
+                      <button
+                        className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => { const n = new Set(prev); n.has(inv.id) ? n.delete(inv.id) : n.add(inv.id); return n; }); }}
+                      >
+                        {selectedIds.has(inv.id)
+                          ? <CheckSquare className="w-4 h-4 text-primary" />
+                          : <Square className="w-4 h-4" />
+                        }
+                      </button>
+                    )}
                     <button className="flex-1 flex items-center gap-3 min-w-0 text-left" onClick={() => setExpanded(isOpen ? null : inv.id)}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
