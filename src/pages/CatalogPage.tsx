@@ -213,7 +213,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
       // ── PRODUCT PAGES ────────────────────────────────────────────────────
       if (isVaperMode) {
-        // Load flavor variants for all vaper products
+        // Load flavor variants
         const variantRows: any[] = [];
         const { data: vData } = await supabase
           .from('product_variants')
@@ -227,213 +227,198 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
           variantsByProduct[v.product_id].push(v);
         }
 
-        const imgMarginV = 10;
-        const imgWV = W - imgMarginV * 2;
-        const imgHV = 100;
+        const gM = 8;           // page margin
+        const GCOLS = 3;        // flavor grid columns
+        const gGap = 5;         // gap between grid cells
+        const cellW = (W - gM * 2 - gGap * (GCOLS - 1)) / GCOLS; // ~61.3mm
+        const cellImgH = 52;    // image height per flavor cell
+        const cellTextH = 14;   // text area below image
+        const cellH = cellImgH + cellTextH;
+        const rowGap = 5;
+
+        // Helper: draw SOLD OUT stamp on a flavor cell
+        const drawSoldOut = (cx: number, cy: number) => {
+          const r = 11;
+          doc.setFillColor(208, 28, 28);
+          doc.circle(cx, cy, r, 'F');
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.8);
+          doc.circle(cx, cy, r - 1.5, 'S');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'bold');
+          doc.text('SOLD', cx, cy - 1.5, { align: 'center' });
+          doc.text('OUT', cx, cy + 4.5, { align: 'center' });
+        };
 
         for (const p of filtered) {
-          doc.addPage();
-
-          // Full dark background
-          doc.setFillColor(13, 13, 26);
-          doc.rect(0, 0, W, H, 'F');
-
-          // Top accent bar
-          doc.setFillColor(pR, pG, pB);
-          doc.rect(0, 0, W, 4, 'F');
-
-          // Brand name top-left
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(pR, pG, pB);
-          doc.text((p.brand || '').toUpperCase(), imgMarginV, 14);
-
-          // "CATÁLOGO DE VAPERS" top-right
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(120, 120, 145);
-          doc.text('CATÁLOGO DE VAPERS', W - imgMarginV, 14, { align: 'right' });
-
-          // Separator line under header
-          doc.setFillColor(45, 45, 70);
-          doc.rect(imgMarginV, 17.5, imgWV, 0.4, 'F');
-
-          // Product image
-          const imgY = 21;
-          doc.setFillColor(20, 20, 38);
-          doc.roundedRect(imgMarginV, imgY, imgWV, imgHV, 4, 4, 'F');
-          doc.setDrawColor(40, 40, 65);
-          doc.setLineWidth(0.4);
-          doc.roundedRect(imgMarginV, imgY, imgWV, imgHV, 4, 4, 'S');
-          if (p.image_url && imageCache[p.image_url]) {
-            try {
-              doc.addImage(imageCache[p.image_url]!, 'JPEG', imgMarginV + 1, imgY + 1, imgWV - 2, imgHV - 2);
-            } catch { /* skip */ }
-          } else {
-            doc.setTextColor(60, 60, 88);
-            doc.setFontSize(10);
-            doc.text('Sin imagen', W / 2, imgY + imgHV / 2, { align: 'center' });
-          }
-
-          // Discount badge over image
-          if (p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)) {
-            const pct = Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100);
-            doc.setFillColor(215, 38, 38);
-            doc.roundedRect(imgMarginV + 3, imgY + 3, 22, 9, 2, 2, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`-${pct}%`, imgMarginV + 14, imgY + 9, { align: 'center' });
-          }
-
-          let tY = imgY + imgHV + 9;
-
-          // Extract puffs from product name e.g. "ELFBAR TE30K" → "30K PUFFS"
-          const puffsMatch = p.name.match(/(\d+\.?\d*)\s*[Kk]\b/);
-          const puffsLabel = puffsMatch ? `${puffsMatch[1]}K PUFFS` : null;
-
-          // Product name
-          doc.setFontSize(22);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(235, 235, 252);
-          doc.text(p.name, W / 2, tY, { align: 'center' });
-          tY += 8;
-
-          // Puffs pill
-          if (puffsLabel) {
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'bold');
-            const pPillW = doc.getTextWidth(puffsLabel) + 12;
-            doc.setFillColor(pR, pG, pB);
-            doc.roundedRect(W / 2 - pPillW / 2, tY, pPillW, 8, 2, 2, 'F');
-            doc.setTextColor(13, 13, 26);
-            doc.text(puffsLabel, W / 2, tY + 5.6, { align: 'center' });
-            tY += 14;
-          }
-
-          // Price boxes
-          const boxW = (imgWV - 6) / 2;
-          const boxH = 22;
+          const variants = variantsByProduct[p.id] || [];
           const effPrice = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
             ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
           const cardPrice = Number(p.sale_price_ars);
 
-          // Box 1 — Efectivo/Transferencia
-          doc.setFillColor(Math.round(pR * 0.2 + 13), Math.round(pG * 0.2 + 13), Math.round(pB * 0.2 + 26));
-          doc.roundedRect(imgMarginV, tY, boxW, boxH, 3, 3, 'F');
-          doc.setDrawColor(pR, pG, pB);
-          doc.setLineWidth(0.5);
-          doc.roundedRect(imgMarginV, tY, boxW, boxH, 3, 3, 'S');
-          doc.setFontSize(6.5);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(pR, pG, pB);
-          doc.text('EFECTIVO / TRANSFERENCIA', imgMarginV + boxW / 2, tY + 6, { align: 'center' });
-          doc.setFontSize(15);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(235, 235, 252);
-          doc.text(fmtARS(effPrice), imgMarginV + boxW / 2, tY + 17, { align: 'center' });
+          // Extract puffs e.g. "ELFBAR TE30K" → "30.000 PUFFS"
+          const puffsMatch = p.name.match(/(\d+\.?\d*)\s*[Kk]\b/);
+          const puffsNum = puffsMatch ? parseFloat(puffsMatch[1]) * 1000 : null;
+          const puffsLabel = puffsNum
+            ? `${new Intl.NumberFormat('es-AR').format(puffsNum)} PUFFS`
+            : null;
 
-          // Box 2 — Tarjeta
-          const b2X = imgMarginV + boxW + 6;
-          doc.setFillColor(22, 22, 40);
-          doc.roundedRect(b2X, tY, boxW, boxH, 3, 3, 'F');
-          doc.setDrawColor(55, 55, 80);
-          doc.setLineWidth(0.4);
-          doc.roundedRect(b2X, tY, boxW, boxH, 3, 3, 'S');
-          doc.setFontSize(6.5);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(140, 140, 168);
-          doc.text('TARJETA / CUOTAS', b2X + boxW / 2, tY + 6, { align: 'center' });
-          doc.setFontSize(15);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(195, 195, 220);
-          doc.text(fmtARS(cardPrice), b2X + boxW / 2, tY + 17, { align: 'center' });
+          // Split brand vs model: first word = brand, rest = model
+          const nameParts = p.name.trim().split(/\s+/);
+          const brandWord = (p.brand || nameParts[0] || '').toUpperCase();
+          const modelWord = nameParts.slice(1).join(' ').toUpperCase() || '';
 
-          tY += boxH + 10;
+          doc.addPage();
 
-          // Flavors section
-          const variants = variantsByProduct[p.id] || [];
-          if (variants.length > 0) {
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(pR, pG, pB);
-            doc.text('SABORES DISPONIBLES', imgMarginV, tY);
-            const availCount = variants.filter((v: any) => v.stock > 0).length;
-            doc.setFontSize(6.5);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(120, 120, 145);
-            doc.text(`${availCount} disponibles / ${variants.length} total`, W - imgMarginV, tY, { align: 'right' });
-            tY += 5;
+          // ── WHITE BACKGROUND ───────────────────────────────────────────────
+          doc.setFillColor(255, 255, 255);
+          doc.rect(0, 0, W, H, 'F');
 
-            doc.setFillColor(45, 45, 70);
-            doc.rect(imgMarginV, tY, imgWV, 0.3, 'F');
-            tY += 5;
+          // ── HEADER (cream bg) ──────────────────────────────────────────────
+          const headerH = 72;
+          doc.setFillColor(238, 236, 230);
+          doc.rect(0, 0, W, headerH, 'F');
 
-            const chipH = 7.5;
-            const chipGapX = 3;
-            const chipGapY = 3;
-            let chipX = imgMarginV;
-
-            for (const v of variants) {
-              const inStock = v.stock > 0;
-              doc.setFontSize(6.5);
-              doc.setFont('helvetica', inStock ? 'bold' : 'normal');
-              const chipTxt: string = v.variant_name;
-              const chipW = doc.getTextWidth(chipTxt) + 9;
-
-              if (chipX + chipW > W - imgMarginV + 1) {
-                chipX = imgMarginV;
-                tY += chipH + chipGapY;
-              }
-
-              if (inStock) {
-                doc.setFillColor(18, 72, 35);
-                doc.roundedRect(chipX, tY, chipW, chipH, 1.8, 1.8, 'F');
-                doc.setDrawColor(40, 150, 70);
-                doc.setLineWidth(0.35);
-                doc.roundedRect(chipX, tY, chipW, chipH, 1.8, 1.8, 'S');
-                doc.setTextColor(95, 210, 125);
-              } else {
-                doc.setFillColor(26, 26, 44);
-                doc.roundedRect(chipX, tY, chipW, chipH, 1.8, 1.8, 'F');
-                doc.setDrawColor(52, 52, 72);
-                doc.setLineWidth(0.3);
-                doc.roundedRect(chipX, tY, chipW, chipH, 1.8, 1.8, 'S');
-                doc.setTextColor(95, 95, 120);
-              }
-              doc.text(chipTxt, chipX + chipW / 2, tY + 5.1, { align: 'center' });
-              chipX += chipW + chipGapX;
-            }
-            tY += chipH + 5;
-          }
-
-          // Internal stock note
-          if (!isPublic) {
-            doc.setFontSize(6.5);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(75, 75, 105);
-            doc.text(`Stock: ${p.stock} u.`, W - imgMarginV, tY, { align: 'right' });
-          }
-
-          // Bottom footer
-          doc.setFillColor(18, 18, 34);
-          doc.rect(0, H - 10, W, 10, 'F');
+          // Bottom accent stripe on header
           doc.setFillColor(pR, pG, pB);
-          doc.rect(0, H - 10, W, 0.4, 'F');
+          doc.rect(0, headerH - 2.5, W, 2.5, 'F');
+
+          // Brand name + model name on same line, centered
+          doc.setFontSize(34);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(20, 20, 20);
+          const brandW = doc.getTextWidth(brandWord);
+          doc.setFontSize(26);
+          const modelW = modelWord ? doc.getTextWidth(' ' + modelWord) : 0;
+          const totalNameW = brandW + modelW;
+          const nameStartX = W / 2 - totalNameW / 2;
+
+          doc.setFontSize(34);
+          doc.setTextColor(20, 20, 20);
+          doc.text(brandWord, nameStartX, 22);
+
+          if (modelWord) {
+            doc.setFontSize(26);
+            doc.setTextColor(pR, pG, pB);
+            doc.text(' ' + modelWord, nameStartX + brandW, 22);
+          }
+
+          // Puffs line
+          if (puffsLabel) {
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(60, 60, 60);
+            doc.text(puffsLabel, W / 2, 32, { align: 'center' });
+          }
+
+          // Description / feature text
+          const desc: string = p.description || p.notes || '';
+          if (desc) {
+            doc.setFontSize(8.5);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(40, 40, 40);
+            const descLines = doc.splitTextToSize(desc.toUpperCase(), W - gM * 2);
+            doc.text(descLines.slice(0, 2), W / 2, 40, { align: 'center' });
+          }
+
+          // Separator
+          doc.setDrawColor(180, 178, 172);
+          doc.setLineWidth(0.4);
+          doc.line(gM, 46, W - gM, 46);
+
+          // Efectivo price — huge
+          doc.setFontSize(30);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(20, 20, 20);
+          doc.text(fmtARS(effPrice), W / 2, 60, { align: 'center' });
+
+          // Tarjeta price
+          doc.setFontSize(18);
+          doc.setTextColor(60, 60, 60);
+          doc.text(`2X ${fmtARS(effPrice * 2)}`, W / 2, 70, { align: 'center' });
+
+          // ── FLAVOR GRID ────────────────────────────────────────────────────
+          const gridStartY = headerH + 6;
+
+          if (variants.length === 0) {
+            // No variants — show single big product image centered
+            const sImgW = 100;
+            const sImgH = 120;
+            const sImgX = W / 2 - sImgW / 2;
+            const sImgY = gridStartY + 10;
+            doc.setFillColor(245, 245, 245);
+            doc.roundedRect(sImgX, sImgY, sImgW, sImgH, 4, 4, 'F');
+            if (p.image_url && imageCache[p.image_url]) {
+              try { doc.addImage(imageCache[p.image_url]!, 'JPEG', sImgX, sImgY, sImgW, sImgH); } catch { /* */ }
+            }
+            if (!isPublic) {
+              doc.setFontSize(7);
+              doc.setTextColor(150, 150, 150);
+              doc.text(`Stock: ${p.stock} u.`, W / 2, sImgY + sImgH + 8, { align: 'center' });
+            }
+          } else {
+            for (let i = 0; i < variants.length; i++) {
+              const col = i % GCOLS;
+              const row = Math.floor(i / GCOLS);
+              const cellX = gM + col * (cellW + gGap);
+              const cellY = gridStartY + row * (cellH + rowGap);
+
+              const v = variants[i];
+              const inStock = v.stock > 0;
+
+              // Cell image bg
+              doc.setFillColor(245, 244, 242);
+              doc.roundedRect(cellX, cellY, cellW, cellImgH, 3, 3, 'F');
+
+              if (p.image_url && imageCache[p.image_url]) {
+                try {
+                  doc.addImage(imageCache[p.image_url]!, 'JPEG', cellX, cellY, cellW, cellImgH);
+                } catch { /* */ }
+              }
+
+              // SOLD OUT stamp (circle badge upper-left of image)
+              if (!inStock) {
+                drawSoldOut(cellX + 14, cellY + 14);
+              }
+
+              // Flavor name below image
+              const flavorY = cellY + cellImgH + 2;
+              doc.setFontSize(6.5);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(inStock ? 20 : 160, inStock ? 20 : 160, inStock ? 20 : 160);
+              const flavorLines = doc.splitTextToSize((v.variant_name as string).toUpperCase(), cellW);
+              doc.text(flavorLines.slice(0, 2), cellX + cellW / 2, flavorY + 5, { align: 'center' });
+
+              // Stock count (internal)
+              if (!isPublic) {
+                doc.setFontSize(5.5);
+                doc.setTextColor(180, 180, 180);
+                doc.text(`${v.stock} u.`, cellX + cellW - 1, flavorY + 5, { align: 'right' });
+              }
+            }
+          }
+
+          // ── FOOTER ─────────────────────────────────────────────────────────
+          doc.setFillColor(240, 238, 234);
+          doc.rect(0, H - 9, W, 9, 'F');
+          doc.setFillColor(pR, pG, pB);
+          doc.rect(0, H - 9, W, 0.5, 'F');
           doc.setFontSize(6);
           doc.setFont('helvetica', 'normal');
-          doc.setTextColor(115, 115, 138);
-          doc.text(`${bName} · ${today}`, imgMarginV, H - 3.5);
-          doc.text(publicUrl, W - imgMarginV, H - 3.5, { align: 'right' });
+          doc.setTextColor(120, 120, 120);
+          doc.text(`${bName} · ${today}`, gM, H - 3);
+          doc.text(publicUrl, W - gM, H - 3, { align: 'right' });
         }
 
-        // Page numbers for vaper pages (skip cover + back cover)
+        // Page numbers (skip cover + back cover)
         const totalVaperPages = doc.getNumberOfPages();
         for (let i = 2; i <= totalVaperPages - 1; i++) {
           doc.setPage(i);
           doc.setFontSize(6);
-          doc.setTextColor(115, 115, 138);
-          doc.text(`${i - 1} / ${totalVaperPages - 2}`, W - 10, H - 3.5, { align: 'right' });
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(120, 120, 120);
+          doc.text(`${i - 1} / ${totalVaperPages - 2}`, W / 2, H - 3, { align: 'center' });
         }
 
       } else {
