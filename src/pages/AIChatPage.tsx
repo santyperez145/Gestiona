@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
   Package, Users, BarChart2, DollarSign, Zap, Plus, CheckCircle2, X,
-  TrendingDown, History, MessageSquare, ChevronLeft, ClipboardList,
+  TrendingDown, History, MessageSquare, ChevronLeft, ClipboardList, Download,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
@@ -1287,6 +1287,22 @@ export default function AIChatPage() {
           {messages.length >= 2 && (
             <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
               💾 Guardar
+            </Button>
+          )}
+          {messages.length >= 2 && (
+            <Button variant="ghost" size="sm" className="text-muted-foreground" title="Exportar conversación como texto"
+              onClick={() => {
+                const orgName = activeOrg?.name || "Mi negocio";
+                const dateStr = new Date().toLocaleDateString("es-AR");
+                const lines = messages.map(m => `[${m.role === "user" ? "Vos" : "IA"}] ${m.content}`).join("\n\n");
+                const text = `Conversación con IA — ${orgName}\n${dateStr}\n${"=".repeat(40)}\n\n${lines}`;
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+                a.download = `chat-ia-${new Date().toISOString().slice(0, 10)}.txt`;
+                a.click();
+              }}
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />Exportar
             </Button>
           )}
           {messages.length > 0 && (
