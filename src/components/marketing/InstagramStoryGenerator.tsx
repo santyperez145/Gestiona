@@ -143,7 +143,9 @@ async function renderStory(opts: {
   // Max image height: reserve ~380px for brand+name+price, plus ~260px for flavor pills when present
   const MAX_IMG_H = hasFlavors ? 520 : 1000;
 
-  // Product image
+  // Product image — Y start clears the logo (with 40px breathing room)
+  const imgStartY = Math.max(380, Math.ceil(logoBottomY) + 40);
+
   let imgH = 0;
   if (product.image_url) {
     try {
@@ -153,7 +155,7 @@ async function renderStory(opts: {
       const targetH = Math.min(targetW * ratio, MAX_IMG_H);
       const finalW = targetH === MAX_IMG_H ? MAX_IMG_H / ratio : targetW;
       const x = (W - finalW) / 2;
-      const y = 380;
+      const y = imgStartY;
       // soft shadow
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.6)";
@@ -170,64 +172,75 @@ async function renderStory(opts: {
       ctx.restore();
       imgH = y + targetH;
     } catch {
-      imgH = hasFlavors ? 780 : 900;
+      imgH = hasFlavors ? imgStartY + 400 : imgStartY + 520;
     }
   } else {
     // Placeholder block — smaller when flavors need room
     const placeholderH = hasFlavors ? 520 : 820;
     ctx.fillStyle = "rgba(255,255,255,0.05)";
-    drawRoundRect(ctx, 130, 380, 820, placeholderH, 40);
+    drawRoundRect(ctx, 130, imgStartY, 820, placeholderH, 40);
     ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,0.3)";
     ctx.font = "bold 120px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("📦", W / 2, 380 + placeholderH / 2 + 44);
-    imgH = 380 + placeholderH;
+    ctx.fillText("📦", W / 2, imgStartY + placeholderH / 2 + 44);
+    imgH = imgStartY + placeholderH;
   }
 
   const tpl = templateData || FALLBACK_TEMPLATES.find((t) => t.id === template) || FALLBACK_TEMPLATES[0];
 
-  // Top: logo or business name
+  // Top: logo or business name — size varies per template
+  // "limpio" has no badge so the logo can fill the full header zone
+  const isLimpio = template === "limpio";
+  const maxLogoH = isLimpio ? 300 : 210;   // limpio: max 300px tall; others: 210px
+  const maxLogoW = isLimpio ? 980 : 860;   // limpio: near full-width; others: wide but room for badge
+  const logoTopY  = isLimpio ? 40  : 45;   // Y start
+
+  let logoBottomY = logoTopY; // track where logo ends (for badge positioning)
+
   ctx.textAlign = "center";
   if (logoUrl) {
     try {
       const logoImg = await loadImage(logoUrl);
-      const maxLogoH = 160;           // bigger logo
-      const maxLogoW = 600;
-      const ratio = logoImg.width / logoImg.height;
-      const logoH = Math.min(maxLogoH, logoImg.height);
-      const logoW = Math.min(maxLogoW, logoH * ratio);
+      const imgRatio = logoImg.width / logoImg.height;
+      // Compute final dimensions respecting both max W and max H
+      let logoH = Math.min(maxLogoH, logoImg.naturalHeight || logoImg.height);
+      let logoW = logoH * imgRatio;
+      if (logoW > maxLogoW) { logoW = maxLogoW; logoH = logoW / imgRatio; }
       const lx = (W - logoW) / 2;
-      const ly = 50;
+      const ly = logoTopY;
+      logoBottomY = ly + logoH;
 
-      // Draw logo with "screen" blend mode so white areas become transparent
-      // on the dark background, leaving only the coloured/dark parts of the logo
+      // "screen" blend makes white pixels invisible on the dark background,
+      // leaving only the orange/coloured portions of the logo
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.shadowColor = "rgba(212,168,67,0.5)";
-      ctx.shadowBlur = 40;
+      ctx.shadowColor = "rgba(212,168,67,0.55)";
+      ctx.shadowBlur = isLimpio ? 60 : 40;
       ctx.drawImage(logoImg, lx, ly, logoW, logoH);
       ctx.restore();
     } catch {
       // fallback to text
       ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.font = "600 36px Inter, sans-serif";
-      ctx.fillText(displayName.toUpperCase(), W / 2, 160);
+      ctx.font = `600 ${isLimpio ? 52 : 36}px Inter, sans-serif`;
+      ctx.fillText(displayName.toUpperCase(), W / 2, logoTopY + (isLimpio ? 60 : 50));
+      logoBottomY = logoTopY + (isLimpio ? 80 : 60);
     }
   } else {
     ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.font = "600 36px Inter, sans-serif";
-    ctx.fillText(displayName.toUpperCase(), W / 2, 160);
+    ctx.font = `600 ${isLimpio ? 52 : 36}px Inter, sans-serif`;
+    ctx.fillText(displayName.toUpperCase(), W / 2, logoTopY + (isLimpio ? 60 : 50));
+    logoBottomY = logoTopY + (isLimpio ? 80 : 60);
   }
 
-  // Badge — moved down to clear the taller logo
-  if (tpl.badge && template !== "limpio") {
+  // Badge — positioned 20px below wherever the logo bottom landed
+  if (tpl.badge && !isLimpio) {
     ctx.font = "900 56px Inter, sans-serif";
     const badgeText = `${tpl.emoji} ${tpl.badge}`;
     const tw = ctx.measureText(badgeText).width;
     const padX = 50;
     const bx = (W - tw - padX * 2) / 2;
-    const by = 240;
+    const by = Math.max(logoBottomY + 20, 270); // never overlap logo
     ctx.fillStyle = primaryColor;
     drawRoundRect(ctx, bx, by, tw + padX * 2, 100, 50);
     ctx.fill();
