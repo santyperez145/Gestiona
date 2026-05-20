@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles } from "lucide-react";
+import InvoiceImportDialog from "@/components/products/InvoiceImportDialog";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -37,6 +38,7 @@ export default function PurchasesPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [orderOpen, setOrderOpen] = useState(false);
+  const [invoiceImportOpen, setInvoiceImportOpen] = useState(false);
   const reload = async () => { if (user) { setPurchases(await getPurchasesDB(user.id)); setLoading(false); } };
   useEffect(() => { reload(); }, [user]);
 
@@ -149,6 +151,11 @@ export default function PurchasesPage() {
             <Button variant="outline" size="sm" onClick={() => setOrderOpen(true)}>
               <ClipboardList className="w-4 h-4 mr-1.5" />Orden de Compra
             </Button>
+            {canCreate && (
+              <Button variant="outline" size="sm" onClick={() => setInvoiceImportOpen(true)} title="Importar compras desde una foto o PDF de factura usando IA">
+                <Sparkles className="w-4 h-4 mr-1.5 text-primary" />Factura IA
+              </Button>
+            )}
             {canCreate && (
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
                 <DialogTrigger asChild>
@@ -398,6 +405,17 @@ export default function PurchasesPage() {
           )}
         </>
       )}
+
+      {/* Invoice AI import modal */}
+      <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
+        <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
+          <InvoiceImportDialog
+            mode="purchases"
+            onClose={() => setInvoiceImportOpen(false)}
+            onImported={reload}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Partial receipt dialog */}
       <Dialog open={!!receivingOrder} onOpenChange={v => { if (!v) setReceivingOrder(null); }}>

@@ -16,6 +16,7 @@ import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
+import InvoiceImportDialog from "@/components/products/InvoiceImportDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -253,6 +254,7 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [invoiceImportOpen, setInvoiceImportOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState(() => {
@@ -434,6 +436,11 @@ export default function ProductsPage() {
                 <Upload className="w-4 h-4 mr-2" />Importar Excel
               </Button>
             )}
+            {canCreate && (
+              <Button variant="outline" size="sm" onClick={() => setInvoiceImportOpen(true)} title="Importar productos desde una foto o PDF de factura usando IA">
+                <Sparkles className="w-4 h-4 mr-2 text-primary" />Factura IA
+              </Button>
+            )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
                 <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
@@ -485,6 +492,17 @@ export default function ProductsPage() {
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="bg-card border-border max-w-5xl">
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice AI import modal */}
+      <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
+        <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
+          <InvoiceImportDialog
+            mode="products"
+            onClose={() => setInvoiceImportOpen(false)}
+            onImported={reload}
+          />
         </DialogContent>
       </Dialog>
 

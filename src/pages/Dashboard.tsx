@@ -313,6 +313,63 @@ export default function Dashboard() {
   }, [orgForTasks]);
 
   const [showTodayDetail, setShowTodayDetail] = useState(false);
+  const [endOfDayDismissed, setEndOfDayDismissed] = useState<boolean>(
+    () => sessionStorage.getItem('gestiona.eod_dismissed') === new Date().toISOString().slice(0, 10)
+  );
+
+  // End-of-day summary: computed once from rawData (after 20h)
+  const endOfDaySummary = useMemo(() => {
+    if (!rawData?.sales) return null;
+    const now = new Date();
+    if (now.getHours() < 20) return null; // Only show after 20:00
+    const today = now.toISOString().slice(0, 10);
+    const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
+    if (!todaySales.length) return null;
+
+    const totalARS = todaySales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0);
+    const totalProfit = todaySales.reduce((s: number, sale: any) => s + Number(sale.profit_ars || 0), 0);
+    const count = todaySales.length;
+    const avgTicket = totalARS / count;
+
+    // Yesterday comparison
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const yesterStr = yesterday.toISOString().slice(0, 10);
+    const yesterSales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === yesterStr);
+    const yesterTotal = yesterSales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0);
+    const vsYesterday = yesterTotal > 0 ? ((totalARS - yesterTotal) / yesterTotal) * 100 : null;
+
+    // Payment method breakdown
+    const methodMap: Record<string, { count: number; total: number }> = {};
+    todaySales.forEach((s: any) => {
+      const m = s.payment_method || "otro";
+      if (!methodMap[m]) methodMap[m] = { count: 0, total: 0 };
+      methodMap[m].count += 1;
+      methodMap[m].total += Number(s.total_ars);
+    });
+    const methods = Object.entries(methodMap).sort((a, b) => b[1].total - a[1].total);
+
+    // Top 3 products by qty
+    const prodMap: Record<string, { qty: number; total: number }> = {};
+    todaySales.forEach((s: any) => {
+      const n = s.product_name || "Sin nombre";
+      if (!prodMap[n]) prodMap[n] = { qty: 0, total: 0 };
+      prodMap[n].qty += Number(s.quantity || 1);
+      prodMap[n].total += Number(s.total_ars);
+    });
+    const topProducts = Object.entries(prodMap).sort((a, b) => b[1].qty - a[1].qty).slice(0, 3);
+
+    // Top seller
+    const sellerMap: Record<string, number> = {};
+    todaySales.forEach((s: any) => { const n = s.seller_name?.trim() || null; if (n) sellerMap[n] = (sellerMap[n] || 0) + Number(s.total_ars); });
+    const topSeller = Object.entries(sellerMap).sort((a, b) => b[1] - a[1])[0] || null;
+
+    // Today's expenses (deduct from profit)
+    const todayExpenses = (rawData.expenses || []).filter((e: any) => String(e.date).slice(0, 10) === today);
+    const totalExpensesARS = todayExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars || 0), 0);
+    const netProfit = totalProfit - totalExpensesARS;
+
+    return { totalARS, totalProfit, count, avgTicket, vsYesterday, methods, topProducts, topSeller, netProfit, totalExpensesARS };
+  }, [rawData]);
 
   // Seed liveTodaySales + last-week same-day comparison from initial data load
   useEffect(() => {
@@ -1157,6 +1214,124 @@ export default function Dashboard() {
           </div>
         );
       })()}
+
+      {/* ── End-of-Day Summary (after 20h) ──────────────────────────── */}
+      {endOfDaySummary && !endOfDayDismissed && (
+        <div className="mb-5 bg-gradient-to-br from-primary/10 via-card to-card border border-primary/25 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                <span className="text-base">🌙</span>
+              </div>
+              <div>
+                <h3 className="font-display font-semibold text-sm">Resumen del día</h3>
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const text = `🌙 Cierre del día — ${new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long" })}\n💰 Total: ${formatARS(endOfDaySummary.totalARS)} (${endOfDaySummary.count} venta${endOfDaySummary.count !== 1 ? "s" : ""})\n📦 Ticket prom: ${formatARS(endOfDaySummary.avgTicket)}${endOfDaySummary.topProducts[0] ? `\n🏆 Más vendido: ${endOfDaySummary.topProducts[0][0]}` : ""}\n\nVía Gestiona`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                }}
+                className="flex items-center gap-1 text-[10px] text-success hover:text-success/80 transition-colors"
+                title="Compartir resumen por WhatsApp"
+              >
+                <Share2 className="w-3.5 h-3.5" />WhatsApp
+              </button>
+              <button
+                onClick={() => { sessionStorage.setItem('gestiona.eod_dismissed', new Date().toISOString().slice(0, 10)); setEndOfDayDismissed(true); }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Cerrar"
+              >
+                <span className="text-sm">×</span>
+              </button>
+            </div>
+          </div>
+
+          {/* KPIs row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Total vendido</p>
+              <p className="text-lg font-bold font-display text-primary">{formatARS(endOfDaySummary.totalARS)}</p>
+              {endOfDaySummary.vsYesterday !== null && (
+                <p className={`text-[10px] mt-0.5 font-medium ${endOfDaySummary.vsYesterday >= 0 ? "text-success" : "text-destructive"}`}>
+                  {endOfDaySummary.vsYesterday >= 0 ? "▲" : "▼"}{Math.abs(endOfDaySummary.vsYesterday).toFixed(1)}% vs ayer
+                </p>
+              )}
+            </div>
+            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Transacciones</p>
+              <p className="text-lg font-bold font-display">{endOfDaySummary.count}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">prom {formatARS(endOfDaySummary.avgTicket)}</p>
+            </div>
+            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Ganancia bruta</p>
+              <p className={`text-lg font-bold font-display ${endOfDaySummary.totalProfit >= 0 ? "text-success" : "text-destructive"}`}>
+                {formatARS(endOfDaySummary.totalProfit)}
+              </p>
+              {endOfDaySummary.totalExpensesARS > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">gastos {formatARS(endOfDaySummary.totalExpensesARS)}</p>
+              )}
+            </div>
+            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Ganancia neta</p>
+              <p className={`text-lg font-bold font-display ${endOfDaySummary.netProfit >= 0 ? "text-success" : "text-destructive"}`}>
+                {formatARS(endOfDaySummary.netProfit)}
+              </p>
+              {endOfDaySummary.topSeller && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">🏅 {endOfDaySummary.topSeller[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom: methods + top products */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Payment methods */}
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Por método de pago</p>
+              <div className="space-y-1.5">
+                {endOfDaySummary.methods.slice(0, 4).map(([method, data]) => {
+                  const pct = endOfDaySummary.totalARS > 0 ? (data.total / endOfDaySummary.totalARS) * 100 : 0;
+                  return (
+                    <div key={method}>
+                      <div className="flex items-center justify-between text-xs mb-0.5">
+                        <span className="capitalize text-muted-foreground">{method} <span className="text-[10px]">({data.count})</span></span>
+                        <span className="font-medium font-mono">{formatARS(data.total)}</span>
+                      </div>
+                      <div className="h-1 bg-muted/40 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Top products */}
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Productos más vendidos</p>
+              <div className="space-y-1.5">
+                {endOfDaySummary.topProducts.map(([name, data], i) => (
+                  <div key={name} className="flex items-center gap-2 text-xs">
+                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${i === 0 ? "bg-yellow-500/20 text-yellow-400" : i === 1 ? "bg-slate-500/20 text-slate-400" : "bg-orange-800/20 text-orange-700"}`}>
+                      {i + 1}
+                    </span>
+                    <span className="truncate flex-1">{name}</span>
+                    <span className="text-muted-foreground shrink-0">×{data.qty}</span>
+                    <span className="font-medium font-mono shrink-0">{formatARS(data.total)}</span>
+                  </div>
+                ))}
+                {endOfDaySummary.topProducts.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">Sin datos de productos</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Today detail panel */}
       {showTodayDetail && todayDetail && (

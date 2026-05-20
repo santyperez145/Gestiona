@@ -45,6 +45,7 @@ type CustomerData = {
   segment: string;
   segmentColor: string;
   healthScore: number;
+  sellers: string[]; // seller_name values from sales
   // Profile from customers table (if exists)
   profileId?: string;
   company?: string;
@@ -558,6 +559,7 @@ export default function CustomersPage() {
   const [bulkNoteText, setBulkNoteText] = useState("");
   const [bulkNoteSaving, setBulkNoteSaving] = useState(false);
   const [filterBirthday, setFilterBirthday] = useState("all");
+  const [filterSeller, setFilterSeller] = useState("all");
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -697,7 +699,7 @@ export default function CustomersPage() {
         map[name] = {
           name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0, avgTicket: 0,
           lastPurchase: s.date, firstPurchase: s.date, daysSinceLastPurchase: 0,
-          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "",
+          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [],
         };
       }
       const c = map[name];
@@ -711,6 +713,7 @@ export default function CustomersPage() {
       if (!c.products[pName]) c.products[pName] = { qty: 0, revenue: 0 };
       c.products[pName].qty += s.quantity;
       c.products[pName].revenue += Number(s.total_ars);
+      if (s.seller_name?.trim() && !c.sellers.includes(s.seller_name.trim())) c.sellers.push(s.seller_name.trim());
     });
 
     debts.filter(d => d.status !== "paid").forEach((d: any) => {
@@ -726,7 +729,7 @@ export default function CustomersPage() {
           name: p.name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0,
           avgTicket: 0, lastPurchase: new Date().toISOString(), firstPurchase: new Date().toISOString(),
           daysSinceLastPurchase: 999, frequency: 999, pendingDebt: 0, products: {},
-          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground",
+          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [],
         };
       }
       const prof = profileByName[p.name.toLowerCase()];
@@ -780,6 +783,13 @@ export default function CustomersPage() {
     return false;
   };
 
+  // All unique sellers from raw sales data
+  const sellerOptions = useMemo(() => {
+    const names = new Set<string>();
+    sales.forEach((s: any) => { if (s.seller_name?.trim()) names.add(s.seller_name.trim()); });
+    return Array.from(names).sort();
+  }, [sales]);
+
   const filtered = useMemo(() => {
     let list = customers;
     if (search) {
@@ -793,12 +803,13 @@ export default function CustomersPage() {
     }
     if (segmentFilter !== "all") list = list.filter(c => c.segment === segmentFilter);
     if (filterBirthday !== "all") list = list.filter(c => bdayInRange(c.birthday, filterBirthday));
+    if (filterSeller !== "all") list = list.filter(c => c.sellers.includes(filterSeller));
     list.sort((a, b) => {
       if (sortBy === "lastPurchase") return new Date(b.lastPurchase).getTime() - new Date(a.lastPurchase).getTime();
       return b[sortBy as keyof typeof b] as number - (a[sortBy as keyof typeof a] as number);
     });
     return list;
-  }, [customers, search, segmentFilter, sortBy, filterBirthday]);
+  }, [customers, search, segmentFilter, sortBy, filterBirthday, filterSeller]);
 
   const segmentCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -1423,6 +1434,26 @@ export default function CustomersPage() {
             <SelectItem value="this_month">Este mes</SelectItem>
           </SelectContent>
         </Select>
+        {sellerOptions.length > 0 && (
+          <Select value={filterSeller} onValueChange={v => setFilterSeller(v)}>
+            <SelectTrigger className="bg-muted border-border w-full sm:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">👤 Vendedor: todos</SelectItem>
+              {sellerOptions.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {filterSeller !== "all" && (
+          <button
+            onClick={() => setFilterSeller("all")}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+          >
+            <X className="w-3 h-3" />
+            {filterSeller}
+          </button>
+        )}
       </div>
 
       {/* Customer List */}

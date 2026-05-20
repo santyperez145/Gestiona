@@ -199,6 +199,13 @@ export default function SalesPage() {
     return sessions;
   }, [filtered]);
 
+  // Set of sale IDs that belong to multi-item POS sessions (for Ticket badge in list view)
+  const multiItemSaleIds = useMemo(() => {
+    const s = new Set<string>();
+    sessionGroups.forEach(sess => { if (sess.items.length > 1) sess.items.forEach(it => s.add(it.id)); });
+    return s;
+  }, [sessionGroups]);
+
   // Group by calendar day + compare vs same day 7 days prior
   const dateGroups = useMemo(() => {
     const map: Record<string, { date: string; total: number; profit: number; count: number; paid: number }> = {};
@@ -1062,14 +1069,27 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
               </thead>
               <tbody className="divide-y divide-border">
                 {paged.map(s => (
-                  <tr key={s.id} className={`hover:bg-muted/20 transition-colors group ${selectedIds.has(s.id) ? 'bg-primary/5' : ''}`}>
+                  <tr key={s.id} className={`hover:bg-muted/20 transition-colors group ${selectedIds.has(s.id) ? 'bg-primary/5' : multiItemSaleIds.has(s.id) ? 'bg-primary/[0.02]' : ''}`}>
                     <td className="px-3 py-3 w-8">
                       <button onClick={() => toggleSelect(s.id)} className="text-muted-foreground hover:text-primary transition-colors">
                         {selectedIds.has(s.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 opacity-40 group-hover:opacity-100" />}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(s.date)}</td>
-                    <td className="px-4 py-3 font-medium">{s.product_name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{s.product_name}</span>
+                        {multiItemSaleIds.has(s.id) && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20 cursor-pointer"
+                            title="Parte de un ticket con múltiples productos — ver en vista Sesiones"
+                            onClick={() => setViewMode("by_session")}
+                          >
+                            <Ticket className="w-3 h-3" />Ticket
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>

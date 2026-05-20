@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 44)**
+Última actualización: **2026-05-20 (sesión 45)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -842,15 +842,15 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 45)
+## Sesión 45 ✅ COMPLETA
 
-| # | Acción | Por qué |
-|---|--------|---------|
-| 1 | **ProductsPage: importar factura de proveedor con IA** — botón "Importar factura", upload imagen/PDF, extracción con Claude Vision de nombre+precio+cantidad, preview editable antes de guardar | Diferenciación IA — ahorra tiempo de carga |
-| 2 | **PurchasesPage: importar factura de proveedor con IA** — mismo flujo aplicado a compras, crea registros de purchase con el proveedor y productos detectados | Automatización compras |
-| 3 | **SalesPage: resaltar ventas del mismo ticket en lista** — en la vista lista, ventas dentro de 3min del mismo cliente tienen un borde izquierdo coloreado y badge "Ticket" | UX — evita confusión en lista |
-| 4 | **Dashboard: widget "Resumen del día al cierre"** — aparece a partir de las 20h; muestra ventas del día, comparativa con ayer, mejor producto, método dominante; compatible con "Insight del día" | Cierre de jornada |
-| 5 | **CustomersPage: filtro de clientes por vendedor** — cuando hay datos de seller_name en ventas, aparece un Select para filtrar los clientes que compraron con un vendedor específico | Cross-analysis POS ↔ CRM |
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **Edge function `extract-invoice`** — nueva función Deno/Claude Vision con JWT auth + rate limit 10/min; acepta imagen (JPEG/PNG/WebP/GIF) o PDF; modelo `claude-opus-4-5`; retorna `{ supplier, invoice_date, items[{ name, brand, qty, unit_price, currency, notes }] }` | ✅ Hecho |
+| 2 | **`InvoiceImportDialog` component** — modal React reutilizable; drag-and-drop zona; conversión a base64; preview editable con tabla (nombre, marca, cant., precio, moneda, notas); "Guardar N productos/compras"; integrado en ProductsPage (modo `products`) y PurchasesPage (modo `purchases`) con botón "✨ Factura IA" | ✅ Hecho |
+| 3 | **SalesPage: badge "Ticket" en vista lista** — ventas que pertenecen a un ticket multi-ítem (≥2 ventas dentro de 3min del mismo cliente) muestran un chip `🎫 Ticket` junto al nombre de producto; click cambia a vista Sesiones; fondo sutil diferenciador | ✅ Hecho |
+| 4 | **Dashboard: widget "Resumen del día"** — aparece automáticamente después de las 20h; 4 KPIs (total vendido con Δ% vs ayer, transacciones, ganancia bruta, ganancia neta); barras de método de pago; top-3 productos del día; botón compartir WhatsApp; se puede descartar hasta el día siguiente | ✅ Hecho |
+| 5 | **CustomersPage: filtro por vendedor** — cuando hay `seller_name` en ventas: Select "👤 Vendedor: todos / Juan / María / …"; chip activo con × para limpiar; `sellers[]` trackeado por customer en el useMemo de aggregación | ✅ Hecho |
 
 ---
 
