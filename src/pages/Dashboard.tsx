@@ -5,6 +5,7 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock } from "lucide-react";
+import SetupChecklist from "@/components/dashboard/SetupChecklist";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -1054,6 +1055,16 @@ export default function Dashboard() {
           📅 Resumen del mes
         </button>
       </div>
+
+      {/* Setup checklist — only shown to new users */}
+      <SetupChecklist
+        businessName={stats.rawSettings?.business_name || ""}
+        hasLogo={!!stats.rawSettings?.logo_url}
+        hasExchangeRate={Number(stats.rawSettings?.exchange_rate) > 0}
+        hasProducts={stats.products?.length > 0}
+        hasSales={stats.rawSales?.length > 0}
+        hasPurchases={stats.rawPurchases?.length > 0}
+      />
 
       {/* Monthly summary card */}
       {monthlySummary && !monthlySummaryDismissed && (

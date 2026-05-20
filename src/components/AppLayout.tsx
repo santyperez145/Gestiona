@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { useEntitlements } from "@/lib/useEntitlements";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
+import PageGuide from "@/components/shared/PageGuide";
 
 const allNavItems = [
   // ── Principal ───────────────────────────────────────────────────────────────
@@ -80,6 +82,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
   }, [role]);
+
+  // Pages with "Nuevo" guide tips that haven't been seen yet
+  const unseenNewPages = useMemo(() => {
+    try {
+      const seen = new Set<string>(JSON.parse(localStorage.getItem("gestiona.guide.seen") || "[]"));
+      return new Set(
+        Object.entries(PAGE_GUIDES)
+          .filter(([path, g]) => !seen.has(path) && g.tips.some(t => t.tag === "Nuevo"))
+          .map(([path]) => path)
+      );
+    } catch { return new Set<string>(); }
+  }, [pathname]); // re-check when user navigates
 
   // Group nav items by section
   const groupedNav = useMemo(() => {
@@ -158,6 +172,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {gi > 0 && collapsed && <div className="my-2 mx-2 border-t border-sidebar-border/50" />}
               {group.items.map(({ to, label, icon: Icon }) => {
                 const active = pathname === to;
+                const hasNew = unseenNewPages.has(to);
                 return (
                   <Link
                     key={to}
@@ -167,8 +182,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                       collapsed ? 'justify-center px-2' : ''
                     } ${
-                      active 
-                        ? "bg-primary/10 text-primary" 
+                      active
+                        ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
@@ -176,10 +191,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {active && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary shadow-gold" />
                     )}
-                    <div className={`shrink-0 ${active ? '' : 'group-hover:scale-110 transition-transform duration-200'}`}>
+                    <div className={`relative shrink-0 ${active ? '' : 'group-hover:scale-110 transition-transform duration-200'}`}>
                       <Icon className="w-[18px] h-[18px]" />
+                      {/* "Nuevo" pulse dot */}
+                      {hasNew && !active && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary">
+                          <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+                        </span>
+                      )}
                     </div>
-                    {!collapsed && <span>{label}</span>}
+                    {!collapsed && <span className="flex-1">{label}</span>}
+                    {!collapsed && hasNew && !active && (
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-primary/15 text-primary uppercase tracking-wide">new</span>
+                    )}
                   </Link>
                 );
               })}
@@ -298,6 +322,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
           {children}
         </div>
+        {/* Floating page guide — rendered per-route, no-op if no guide exists */}
+        <PageGuide />
       </main>
     </div>
   );

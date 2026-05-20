@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-20 (sesión 48)**
+Última actualización: **2026-05-20 (sesión 49)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -243,6 +243,8 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **StockCountPage: escáner de barras** — useBarcodeScanner con overlay, botón con badge conteo, scroll+focus en fila, highlight dorado, badge "sin código" en productos sin barcode/SKU. _(sesión 48)_
 - **POSPage: precio personalizado por ítem** — `customPrice` override con lápiz inline, Enter/Esc, fondo dorado, badge "personalizado", botón restaurar. _(sesión 48)_
 - **POSPage: margen por ítem** — badge verde/amarillo/rojo con % de margen calculado live desde costUSD×TC vs precio efectivo. _(sesión 48)_
+- **Sistema de guías por página (PageGuide)** — botón flotante `?` en todas las pantallas; Sheet lateral con hasta 7 tips por página; 28 páginas cubiertas con tips y tags Nuevo/Pro/IA/Tip; `?` key como atajo; badge "New" + pulse dot en nav para páginas con novedades no vistas; estado persistido en localStorage. _(sesión 49)_
+- **Dashboard: checklist de configuración inicial** — widget `SetupChecklist` con 6 pasos (nombre, logo, TC, primer producto, primera venta, primera compra); barra de progreso; auto-oculta al completar todos; dismissible. _(sesión 49)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -897,6 +899,17 @@ Ver tabla de sesión 29 arriba.
 | 6 | **StockCountPage — escáner de código de barras** — `useBarcodeScanner` hook + `handleBarcodeScan` que busca por barcode/sku/nombre y hace +1 al contado; overlay fullscreen con brackets y línea animada; botón "Escanear" con badge de conteo; `rowRefs` para scroll+focus; highlight dorado en fila escaneada; badge "sin código" en productos sin barcode ni SKU | ✅ Hecho |
 | 7 | **POSPage — precio personalizado por ítem del carrito** — `customPrice` en `CartItem`; `priceFor()` respeta precio override; botón lápiz junto al precio abre input inline (Enter=confirmar, Esc=cancelar); fondo dorado en ítem con precio personalizado; badge "personalizado"; botón "× restaurar" para volver al precio original | ✅ Hecho |
 | 8 | **POSPage — margen estimado por ítem del carrito** — badge color-coded (verde ≥40%, amarillo ≥20%, rojo <20%) junto al nombre del producto calculado desde `costUSD × exchangeRate` vs `unitPrice` | ✅ Hecho |
+
+---
+
+## Sesión 49 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **Sistema de guías por pantalla (PageGuide)** — `src/data/pageGuides.tsx` con 28 rutas cubiertas (Dashboard, POS, Productos, Compras, Ventas, Clientes, Pipeline, Presupuestos, Deudas, Gastos, Proveedores, Toma Física, Reportes, Analytics, Facturas, Fidelidad, Alertas, Marketing, Email Marketing, Catálogo, Chat IA, Automatizaciones, Integraciones, Ajustes, Tareas, Caja/Turno, Banco, Restock, Kardex, Comisiones, Devoluciones, Cuotas, Cheques) | ✅ Hecho |
+| 2 | **PageGuide component** — botón flotante `?` (bottom-right) con pulse dot cuando la página es nueva; Sheet lateral con hasta 7 tips por guía; tags color-coded (Nuevo/Pro/IA/Tip); atajo de teclado `?` para abrir/cerrar; estado persistido en localStorage por ruta | ✅ Hecho |
+| 3 | **"New" badge en nav** — íconos del sidebar muestran pulse dot dorado + chip "new" cuando la ruta tiene tips con tag "Nuevo" y no fue vista; se limpia al abrir la guía | ✅ Hecho |
+| 4 | **Dashboard: SetupChecklist** — widget de 6 pasos de configuración inicial (nombre del negocio, logo, tipo de cambio, primer producto, primera venta, primera compra); barra de progreso % con color; links directos a cada sección; auto-oculta cuando todo está completo; dismissible con X | ✅ Hecho |
 
 ---
 
