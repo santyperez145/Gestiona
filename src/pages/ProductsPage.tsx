@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, ImagePlus, ScanLine } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, ImagePlus, ScanLine, Copy } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -930,6 +930,15 @@ export default function ProductsPage() {
                          </td>
                          <td className="p-3 text-center space-x-1">
                            {canEdit && <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>}
+                           {canCreate && (
+                             <Button variant="ghost" size="sm" title="Duplicar producto"
+                               onClick={() => {
+                                 const { id: _id, created_at: _ca, ...rest } = p;
+                                 setEditing({ ...rest, id: undefined, name: `Copia de ${p.name}`, stock: 0 });
+                                 setOpen(true);
+                               }}
+                             ><Copy className="w-3.5 h-3.5 text-muted-foreground" /></Button>
+                           )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                            {canDelete && (
                              <ConfirmDialog

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -9,7 +9,40 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine } from "lucide-react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+
+function useBarcodeScanner(onDetected: (code: string) => void) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  const start = useCallback(async () => {
+    try {
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
+      setScanning(true);
+      await reader.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
+        if (result) {
+          onDetected(result.getText());
+          stop();
+        }
+      });
+    } catch { setScanning(false); }
+  }, [onDetected]);
+
+  const stop = useCallback(() => {
+    readerRef.current?.reset();
+    readerRef.current = null;
+    setScanning(false);
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  return { videoRef, scanning, start, stop };
+}
 import InvoiceImportDialog from "@/components/products/InvoiceImportDialog";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -45,6 +78,13 @@ export default function PurchasesPage() {
   const [tab, setTab] = useState<'all' | 'scheduled' | 'suppliers'>('all');
   const [search, setSearch] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('all');
+
+  const handleBarcode = useCallback((code: string) => {
+    setSearch(code);
+    setPage(0);
+    toast.success(`Código escaneado: ${code}`);
+  }, []);
+  const { videoRef: scanVideoRef, scanning: scannerOpen, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcode);
 
   const supplierOptions = Array.from(new Set(purchases.map(p => p.supplier).filter(Boolean))).sort();
 
@@ -204,13 +244,31 @@ export default function PurchasesPage() {
         );
       })()}
 
-      {/* Tabs */}
+      {/* Barcode scanner overlay */}
+      {scannerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center gap-4">
+          <p className="text-white text-sm font-medium">Apuntá la cámara al código de barras</p>
+          <div className="relative w-72 h-48 rounded-xl overflow-hidden border-2 border-primary">
+            <video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-48 h-1 bg-primary/70 animate-pulse rounded" />
+            </div>
+          </div>
+          <Button variant="secondary" onClick={stopScan}>Cancelar</Button>
+        </div>
+      )}
+
       {/* Search + supplier filter */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-[160px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Buscar producto o proveedor..."
-            className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
+        <div className="relative flex-1 min-w-[160px] flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Buscar producto o proveedor..."
+              className="w-full pl-9 pr-3 h-9 text-sm rounded-lg bg-card border border-border outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground" />
+          </div>
+          <Button size="sm" variant="outline" className="h-9 w-9 p-0 shrink-0" title="Escanear código de barras" onClick={startScan}>
+            <ScanLine className="w-4 h-4" />
+          </Button>
         </div>
         {supplierOptions.length > 0 && (
           <Select value={filterSupplier} onValueChange={v => { setFilterSupplier(v); setPage(0); }}>

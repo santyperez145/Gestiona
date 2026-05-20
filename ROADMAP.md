@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-20 (sesión 45)**
+Última actualización: **2026-05-20 (sesión 47)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -863,6 +863,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **Notas de Crédito → Devoluciones** — `createCreditNote` mejorado: Dialog de confirmación con checkboxes "Marcar venta como devuelta" y "Revertir stock"; cuando `inv.sale_id` existe, actualiza la venta a `payment_method='devolucion'` y devuelve stock de cada producto de la venta; vincula `sale_id` en la NC creada; banner informativo cuando la factura no tiene venta vinculada | ✅ Hecho |
 | 4 | **Permisos granulares — vendedor ve sus ventas** — `SalesPage`: si `!isAdmin`, filtra `filtered` por `seller_name === localStorage('gestiona.pos.seller')`; banner informativo azul mostrando el nombre del vendedor activo; degradación graceful si el vendedor no tiene nombre configurado | ✅ Hecho |
 | 5 | **Push Notifications PWA** — `src/sw.ts` custom con workbox-precaching, runtime caching, handler `push` y `notificationclick`; `vite.config.ts` migrado a `strategies: 'injectManifest'`; `src/lib/pushNotifications.ts` con `subscribeToPush`, `unsubscribeFromPush`, `getCurrentSubscription`, `isPushSupported`; edge function `push-subscribe` (guarda subscription en DB con JWT auth); edge function `send-push` (Web Push Protocol con VAPID JWT ES256, limpia subs expiradas); migration `push_subscriptions` con RLS; `check-alerts` dispara push automáticamente al crear notificaciones; panel toggle en SettingsPage con estado live | ✅ Hecho |
+
+---
+
+## Sesión 47 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POSPage — pantalla completa** — botón `Maximize2`/`Minimize2` en la barra del POS; usa `document.documentElement.requestFullscreen()` / `exitFullscreen()`; oculto en mobile (hidden sm:flex); ícono cambia dinámicamente según estado fullscreen | ✅ Hecho |
+| 2 | **ProductsPage — duplicar producto** — botón `Copy` en la columna de acciones (solo si `canCreate`); copia todos los campos del producto excepto `id` y `created_at`; pre-rellena el form con nombre "Copia de X" y stock 0; abre el dialog de edición listo para guardar | ✅ Hecho |
+| 3 | **SalesPage — compartir resumen por WhatsApp** — botón `MessageCircle` verde en PageHeader; genera resumen del período filtrado (rango de fechas, total, ganancia, margen, cantidad de ventas, clientes únicos, top 3 productos); abre `wa.me/?text=...` con el mensaje codificado | ✅ Hecho |
+| 4 | **PurchasesPage — escáner de código de barras** — mismo patrón `useBarcodeScanner` con ZXing que ProductsPage; botón `ScanLine` junto al buscador; overlay fullscreen con cámara y línea animada; al detectar, setea `search` y muestra toast de confirmación | ✅ Hecho |
 
 ---
 

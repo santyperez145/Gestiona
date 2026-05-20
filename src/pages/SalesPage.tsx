@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -566,6 +566,37 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
   const paidCount = filtered.filter(s => s.paid).length;
   const debtCount = filtered.length - paidCount;
 
+  const sharePeriodWhatsApp = () => {
+    if (!filtered.length) return;
+    const from = dateFrom ? dateFrom.toLocaleDateString("es-AR") : null;
+    const to = dateTo ? dateTo.toLocaleDateString("es-AR") : null;
+    const range = from && to ? `${from} al ${to}` : from ? `desde ${from}` : "todo el historial";
+
+    // Top 3 products by total
+    const prodMap: Record<string, number> = {};
+    filtered.forEach(s => { prodMap[s.product_name || "?"] = (prodMap[s.product_name || "?"] || 0) + Number(s.total_ars); });
+    const top3 = Object.entries(prodMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+    // Unique customers
+    const uniqCustomers = new Set(filtered.map(s => s.customer_name).filter(Boolean)).size;
+
+    const margin = totalSales > 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : "0";
+
+    const lines = [
+      `📊 *Resumen de Ventas — ${range}*`,
+      ``,
+      `💰 Total facturado: *${formatARS(totalSales)}*`,
+      `📈 Ganancia bruta: *${formatARS(totalProfit)}* (${margin}%)`,
+      `🛒 Transacciones: *${filtered.length}*`,
+      `👥 Clientes distintos: *${uniqCustomers}*`,
+      `✅ Cobradas: ${paidCount} | ⏳ Pendientes: ${debtCount}`,
+      ``,
+      `🏆 *Top productos:*`,
+      ...top3.map(([ name, val ], i) => `  ${["🥇","🥈","🥉"][i]} ${name}: ${formatARS(val)}`),
+    ];
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
+  };
+
   return (
     <div>
       <PageHeader
@@ -578,6 +609,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
             {filtered.length > 0 && (
               <>
+                <Button variant="outline" size="sm" onClick={sharePeriodWhatsApp} title="Compartir resumen por WhatsApp" className="hidden sm:flex gap-1.5 border-green-500/30 text-green-400 hover:bg-green-500/10">
+                  <MessageCircle className="w-4 h-4" />WA
+                </Button>
                 <Button variant="outline" size="sm" onClick={printCierreCaja} title="Imprimir cierre de caja" className="hidden sm:flex">
                   <Printer className="w-4 h-4 mr-1.5" />Cierre
                 </Button>
