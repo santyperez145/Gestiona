@@ -481,6 +481,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
           <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
           <TabsTrigger value="canales" className="text-xs">💳 Canales</TabsTrigger>
+          <TabsTrigger value="vendedores" className="text-xs">👤 Vendedores</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1599,6 +1600,126 @@ export default function AnalyticsPage() {
                       {channels.map((c, i) => (
                         <Bar key={c.name} dataKey={c.name} stackId="a" fill={METHOD_COLORS[c.name] || PALETTE[i % PALETTE.length]} radius={i === channels.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]} />
                       ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            );
+          })()}
+        </TabsContent>
+
+        {/* ── Tab Vendedores ── */}
+        <TabsContent value="vendedores" className="mt-4 space-y-4">
+          {(() => {
+            const sales: any[] = rawData?.sales || [];
+            if (!sales.length) return <p className="text-center text-muted-foreground text-sm py-10">Sin datos de ventas</p>;
+
+            // Build seller stats from last 30 days
+            const today = new Date();
+            const d30 = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+            const thisWeekStart = new Date(today); thisWeekStart.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1)); thisWeekStart.setHours(0,0,0,0);
+            const weekStr = thisWeekStart.toISOString().slice(0, 10);
+
+            const sellerMap: Record<string, { name: string; total: number; profit: number; count: number; weekTotal: number; weekCount: number; tickets: Set<string> }> = {};
+            sales.filter((s: any) => s.seller_name).forEach((s: any) => {
+              const n: string = s.seller_name;
+              if (!sellerMap[n]) sellerMap[n] = { name: n, total: 0, profit: 0, count: 0, weekTotal: 0, weekCount: 0, tickets: new Set() };
+              if (String(s.date).slice(0, 10) >= d30) {
+                sellerMap[n].total += Number(s.total_ars);
+                sellerMap[n].profit += Number(s.profit_ars);
+                sellerMap[n].count++;
+                // Group by created_at minute as "ticket" proxy
+                const ticketKey = String(s.date).slice(0, 16) + '_' + (s.customer_name || '');
+                sellerMap[n].tickets.add(ticketKey);
+              }
+              if (String(s.date).slice(0, 10) >= weekStr) {
+                sellerMap[n].weekTotal += Number(s.total_ars);
+                sellerMap[n].weekCount++;
+              }
+            });
+
+            const sellers = Object.values(sellerMap).sort((a, b) => b.total - a.total);
+            if (!sellers.length) return (
+              <div className="bg-card border border-border rounded-xl p-6 text-center">
+                <p className="text-muted-foreground text-sm">No hay ventas con vendedor asignado en los últimos 30 días.</p>
+                <p className="text-xs text-muted-foreground mt-1">Configurá el vendedor de turno en el POS para ver métricas aquí.</p>
+              </div>
+            );
+
+            const maxTotal = sellers[0]?.total || 1;
+            const commissionPct = 5; // default
+
+            return (
+              <>
+                {/* KPI cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Vendedores activos', value: String(sellers.length), sub: 'últimos 30d' },
+                    { label: 'Top vendedor', value: sellers[0]?.name || '—', sub: formatARS(sellers[0]?.total || 0) },
+                    { label: 'Ticket promedio', value: formatARS(sellers.reduce((s, v) => s + (v.count > 0 ? v.total / v.count : 0), 0) / sellers.length), sub: 'promedio de todos' },
+                    { label: 'Ganancia total 30d', value: formatARS(sellers.reduce((s, v) => s + v.profit, 0)), sub: 'suma de vendedores' },
+                  ].map(k => (
+                    <div key={k.label} className="bg-card border border-border rounded-xl p-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                      <p className="text-lg font-bold font-display mt-0.5 truncate">{k.value}</p>
+                      <p className="text-[10px] text-muted-foreground">{k.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Ranking table */}
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <h3 className="text-sm font-semibold">Rendimiento por vendedor — últimos 30 días</h3>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {sellers.map((s, i) => {
+                      const ticketAvg = s.count > 0 ? s.total / s.count : 0;
+                      const margin = s.total > 0 ? (s.profit / s.total) * 100 : 0;
+                      const commission = s.total * (commissionPct / 100);
+                      const barPct = (s.total / maxTotal) * 100;
+                      return (
+                        <div key={s.name} className="px-4 py-3">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-muted-foreground/60 w-4">{i + 1}</span>
+                              <span className="font-semibold text-sm">{s.name}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs">
+                              <span className="text-muted-foreground">{s.count} ventas</span>
+                              <span className="text-muted-foreground hidden sm:inline">Ticket: {formatARS(ticketAvg)}</span>
+                              <span className="text-success hidden md:inline">Margen: {margin.toFixed(1)}%</span>
+                              <span className="text-primary hidden lg:inline">Comisión: {formatARS(commission)}</span>
+                              <span className="font-bold font-mono">{formatARS(s.total)}</span>
+                            </div>
+                          </div>
+                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: i === 0 ? 'hsl(43,89%,55%)' : 'hsl(var(--primary)/.5)' }} />
+                          </div>
+                          {/* Weekly mini stats */}
+                          <div className="flex gap-4 mt-1.5 text-[10px] text-muted-foreground">
+                            <span>Esta semana: {formatARS(s.weekTotal)} ({s.weekCount} ventas)</span>
+                            <span>Comisión semana: {formatARS(s.weekTotal * commissionPct / 100)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bar chart weekly */}
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3">Ventas esta semana por vendedor</h3>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={sellers.filter(s => s.weekTotal > 0)} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis hide />
+                      <Tooltip formatter={(v: any) => formatARS(Number(v))} />
+                      <Bar dataKey="weekTotal" name="Ventas semana" radius={[4,4,0,0]}>
+                        {sellers.filter(s => s.weekTotal > 0).map((_s, idx) => (
+                          <Cell key={idx} fill={idx === 0 ? 'hsl(43,89%,55%)' : 'hsl(var(--primary)/.6)'} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

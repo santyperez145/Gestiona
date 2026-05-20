@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
-import { getProductsDB, getSettingsDB, addSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSettingsDB, addSaleDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -770,7 +770,8 @@ export default function POSPage() {
   const [sellerInput, setSellerInput] = useState("");
 
   // Turno (shift) sales tracking — accumulates each successful checkout
-  const [turnoSales, setTurnoSales] = useState<Array<{ items: CartItem[]; total: number; method: string; customer: string; ts: number }>>([]);
+  const [turnoSales, setTurnoSales] = useState<Array<{ items: CartItem[]; total: number; method: string; customer: string; ts: number; saleIds: string[] }>>([]);
+  const [showTurnoHistory, setShowTurnoHistory] = useState(false);
   const [showTurnoSummary, setShowTurnoSummary] = useState(false);
 
   useEffect(() => {
@@ -1089,6 +1090,7 @@ export default function POSPage() {
         ? (splitAmt1 >= splitAmt2 ? splitMethod1 : splitMethod2)
         : payMethod;
       const date = new Date().toISOString();
+      const txSaleIds: string[] = [];
 
       for (const item of cart) {
         const unitPrice = priceFor(item);
@@ -1109,8 +1111,10 @@ export default function POSPage() {
           { method: splitMethod2, amount: Math.round(adjustedTotal * (splitAmt2 / cartTotal)) },
         ] : null;
 
+        const txItemId = crypto.randomUUID();
+        txSaleIds.push(txItemId);
         const saleData: any = {
-          id: crypto.randomUUID(),
+          id: txItemId,
           user_id: user.id,
           org_id: orgId,
           product_id: item.productId,
@@ -1212,7 +1216,7 @@ export default function POSPage() {
         note: posNote,
       });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
-      setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now() }]);
+      setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now(), saleIds: txSaleIds }]);
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
     } finally {
@@ -1642,6 +1646,53 @@ export default function POSPage() {
             </div>
           )}
         </div>
+
+        {/* Historial del turno */}
+        {turnoSales.length > 0 && (
+          <div className="border border-border rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowTurnoHistory(!showTurnoHistory)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <RotateCcw className="w-3 h-3" />
+                Últimas ventas del turno ({turnoSales.length})
+              </span>
+              <ChevronUp className={`w-3 h-3 transition-transform ${showTurnoHistory ? '' : 'rotate-180'}`} />
+            </button>
+            {showTurnoHistory && (
+              <div className="divide-y divide-border max-h-48 overflow-y-auto">
+                {[...turnoSales].reverse().map((s, i) => (
+                  <div key={s.ts} className="flex items-center justify-between px-3 py-2 text-xs gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{s.items.map(it => it.name).join(', ')}</p>
+                      <p className="text-muted-foreground text-[10px]">
+                        {s.customer || 'Sin cliente'} · {s.method} · {new Date(s.ts).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <span className="font-mono font-semibold text-primary shrink-0">{formatARS(s.total)}</span>
+                    <button
+                      onClick={async () => {
+                        if (!confirm('¿Anular esta venta?')) return;
+                        try {
+                          await Promise.all(s.saleIds.map(id => deleteSaleDB(id)));
+                          setTurnoSales(prev => prev.filter(t => t.ts !== s.ts));
+                          toast.success('Venta anulada');
+                          const updated = await getProductsDB(user!.id);
+                          setProducts(updated);
+                        } catch { toast.error('Error al anular'); }
+                      }}
+                      className="shrink-0 p-1 text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                      title="Anular venta"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <Button
           className="w-full gradient-gold text-primary-foreground font-semibold h-11 text-base gap-2"

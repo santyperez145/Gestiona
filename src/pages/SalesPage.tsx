@@ -129,6 +129,7 @@ export default function SalesPage() {
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterMethod, setFilterMethod] = useState('all');
   const [commPct, setCommPct] = useState(5);
+  const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
 
   const filtered = sales.filter(s => {
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
@@ -853,39 +854,65 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         </div>
       ) : viewMode === "by_session" ? (
         /* ── By Session view ── */
-        <div className="space-y-3">
-          {sessionGroups.map((sess) => (
-            <div key={sess.id} className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
-                  <div>
-                    <span className="font-semibold text-sm">{sess.customer}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{formatDateAR(sess.date)} · {new Date(sess.date).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs text-muted-foreground">{sessionGroups.length} ticket{sessionGroups.length !== 1 ? 's' : ''} · {filtered.length} líneas · {formatARS(totalSales)}</span>
+            <button onClick={() => setCollapsedSessions(prev => prev.size > 0 ? new Set() : new Set(sessionGroups.map(s => s.id)))}
+              className="text-[11px] text-primary hover:underline">
+              {collapsedSessions.size > 0 ? 'Expandir todo' : 'Colapsar todo'}
+            </button>
+          </div>
+          {sessionGroups.map((sess) => {
+            const isCollapsed = collapsedSessions.has(sess.id);
+            const toggleCollapse = () => setCollapsedSessions(prev => {
+              const next = new Set(prev);
+              if (next.has(sess.id)) next.delete(sess.id); else next.add(sess.id);
+              return next;
+            });
+            return (
+              <div key={sess.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                <button
+                  className="w-full px-4 py-3 bg-muted/30 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  onClick={toggleCollapse}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
+                    <div className="text-left min-w-0">
+                      <span className="font-semibold text-sm">{sess.customer}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{formatDateAR(sess.date)} · {new Date(sess.date).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sess.paid ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>{sess.paid ? '✓ Cobrado' : 'Pendiente'}</span>
-                  <span className="font-bold text-sm">{formatARS(sess.total)}</span>
-                  {sess.items.length > 1 && (
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => printBulkReceipt()} title="Imprimir recibo de esta sesión">
-                      <Printer className="w-3 h-3 mr-1" />{sess.items.length} ítem{sess.items.length !== 1 ? 's' : ''}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="divide-y divide-border">
-                {sess.items.map(s => (
-                  <div key={s.id} className="px-4 py-2.5 flex items-center justify-between">
-                    <span className="text-sm">{s.product_name} <span className="text-xs text-muted-foreground">×{s.quantity}</span></span>
-                    <span className="text-sm font-medium">{formatARS(Number(s.total_ars))}</span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-muted-foreground">{sess.items.length} ítem{sess.items.length !== 1 ? 's' : ''}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sess.paid ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>{sess.paid ? '✓' : 'Debe'}</span>
+                    <span className="font-bold text-sm">{formatARS(sess.total)}</span>
+                    <ChevronLeft className={`w-4 h-4 text-muted-foreground transition-transform ${isCollapsed ? '-rotate-90' : 'rotate-90'}`} />
                   </div>
-                ))}
+                </button>
+                {!isCollapsed && (
+                  <div className="divide-y divide-border">
+                    {sess.items.map(s => (
+                      <div key={s.id} className="px-4 py-2.5 flex items-center justify-between">
+                        <span className="text-sm">{s.product_name} <span className="text-xs text-muted-foreground">×{s.quantity}</span></span>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>{s.payment_method || 'efectivo'}</span>
+                          <span className="text-sm font-medium">{formatARS(Number(s.total_ars))}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="px-4 py-2 bg-muted/20 flex justify-between items-center">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => { setSelectedIds(new Set(sess.items.map((s: any) => s.id))); }}>
+                        <Printer className="w-3 h-3" />Recibo
+                      </Button>
+                      <span className="text-xs font-bold">{formatARS(sess.total)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
           {sessionGroups.length === 0 && (
-            <EmptyState icon={ShoppingCart} title="Sin sesiones" description="No hay ventas en el período seleccionado." />
+            <EmptyState icon={ShoppingCart} title="Sin tickets" description="No hay ventas en el período seleccionado." />
           )}
         </div>
       ) : viewMode === "by_product" ? (
