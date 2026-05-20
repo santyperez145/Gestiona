@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
+import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -58,8 +59,38 @@ export default function SettingsPage() {
   const [decantMargin5, setDecantMargin5] = useState('350');
   const [decantMargin2_5, setDecantMargin2_5] = useState('500');
 
+  // Push notification state
+  const [pushSubscribed, setPushSubscribed] = useState<boolean>(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushSupported] = useState(() => isPushSupported());
+
+  const checkPushStatus = useCallback(async () => {
+    const sub = await getCurrentSubscription();
+    setPushSubscribed(!!sub);
+  }, []);
+
+  useEffect(() => { checkPushStatus(); }, [checkPushStatus]);
+
   // Notification preferences (localStorage per org)
   const { activeOrg: orgForTemplates } = useOrg();
+
+  const handlePushToggle = async () => {
+    if (!orgForTemplates) return;
+    setPushLoading(true);
+    try {
+      if (pushSubscribed) {
+        await unsubscribeFromPush(orgForTemplates.id);
+        setPushSubscribed(false);
+        toast.success("Notificaciones push desactivadas");
+      } else {
+        const ok = await subscribeToPush(orgForTemplates.id);
+        if (ok) { setPushSubscribed(true); toast.success("Notificaciones push activadas 🔔"); }
+        else toast.error("No se pudo activar. Asegurate de que el navegador tenga permiso.");
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  };
   const notifKey = `gestiona.notif_prefs.${orgForTemplates?.id || 'default'}`;
   const DEFAULT_NOTIF_PREFS = { low_stock: true, overdue_debt: true, monthly_goal_risk: true, birthday: true, new_customer: false, large_sale: false };
   const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(() => {
@@ -405,6 +436,35 @@ export default function SettingsPage() {
                 <Switch checked={!!notifPrefs[key]} onCheckedChange={() => toggleNotif(key)} />
               </div>
             ))}
+          </div>
+
+          {/* Push notifications */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+            <div>
+              <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-primary" />Notificaciones Push (PWA)
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">Recibí alertas en tu dispositivo aunque la app esté cerrada. Requiere tener la app instalada como PWA.</p>
+            </div>
+            {!pushSupported ? (
+              <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
+                <XCircle className="w-4 h-4 shrink-0" />
+                Este navegador no soporta notificaciones push.
+              </div>
+            ) : (
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="text-sm font-medium">{pushSubscribed ? "Notificaciones push activas" : "Notificaciones push inactivas"}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pushSubscribed ? "Recibirás alertas de stock, deudas y más en este dispositivo." : "Activá para recibir alertas en este dispositivo."}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {pushLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  <Switch checked={pushSubscribed} onCheckedChange={handlePushToggle} disabled={pushLoading} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payment method discounts */}

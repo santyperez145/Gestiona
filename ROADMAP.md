@@ -854,6 +854,18 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
+## Sesión 46 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **Email tracking via Resend webhooks** — ya estaba completo: `resend-webhook` edge function con Svix HMAC, `email_events` insert, incremento de `open_count`/`click_count`/`unsubscribe_count`, barras de progreso en EmailCampaignsPage, realtime via Supabase channel | ✅ Ya existía |
+| 2 | **Lector de código de barras en ProductsPage** — botón ScanLine junto al buscador; `useBarcodeScanner` hook (misma lógica que POS) con ZXing; overlay de cámara con línea animada; al detectar código setea el filtro de búsqueda automáticamente; POS ya tenía el scanner completo | ✅ Hecho |
+| 3 | **Notas de Crédito → Devoluciones** — `createCreditNote` mejorado: Dialog de confirmación con checkboxes "Marcar venta como devuelta" y "Revertir stock"; cuando `inv.sale_id` existe, actualiza la venta a `payment_method='devolucion'` y devuelve stock de cada producto de la venta; vincula `sale_id` en la NC creada; banner informativo cuando la factura no tiene venta vinculada | ✅ Hecho |
+| 4 | **Permisos granulares — vendedor ve sus ventas** — `SalesPage`: si `!isAdmin`, filtra `filtered` por `seller_name === localStorage('gestiona.pos.seller')`; banner informativo azul mostrando el nombre del vendedor activo; degradación graceful si el vendedor no tiene nombre configurado | ✅ Hecho |
+| 5 | **Push Notifications PWA** — `src/sw.ts` custom con workbox-precaching, runtime caching, handler `push` y `notificationclick`; `vite.config.ts` migrado a `strategies: 'injectManifest'`; `src/lib/pushNotifications.ts` con `subscribeToPush`, `unsubscribeFromPush`, `getCurrentSubscription`, `isPushSupported`; edge function `push-subscribe` (guarda subscription en DB con JWT auth); edge function `send-push` (Web Push Protocol con VAPID JWT ES256, limpia subs expiradas); migration `push_subscriptions` con RLS; `check-alerts` dispara push automáticamente al crear notificaciones; panel toggle en SettingsPage con estado live | ✅ Hecho |
+
+---
+
 ## Criterio de terminado por funcionalidad
 
 Una funcionalidad se considera lista cuando:

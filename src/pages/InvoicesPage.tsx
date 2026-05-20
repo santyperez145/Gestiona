@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -16,7 +17,7 @@ import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
   ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
-  Square, CheckSquare, CheckCheck,
+  Square, CheckSquare, CheckCheck, RotateCcw, Package,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -279,6 +280,9 @@ export default function InvoicesPage() {
   const [afipSettings, setAfipSettings] = useState<AfipSettings | null>(null);
   const [search, setSearch] = useState("");
   const [creatingNC, setCreatingNC] = useState<string | null>(null);
+  const [ncDialogInv, setNcDialogInv] = useState<Invoice | null>(null);
+  const [ncRevertStock, setNcRevertStock] = useState(true);
+  const [ncMarkReturned, setNcMarkReturned] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -523,9 +527,10 @@ export default function InvoicesPage() {
     load();
   };
 
-  const createCreditNote = async (inv: Invoice) => {
+  const createCreditNote = async (inv: Invoice, revertStock: boolean, markReturned: boolean) => {
     if (!activeOrg) return;
     setCreatingNC(inv.id);
+    setNcDialogInv(null);
     try {
       const ncNumber = `NC-${inv.number}`;
       const ncItems = (inv.invoice_items ?? [{ description: `Anulación ${inv.number}`, quantity: 1, unit_price: Number(inv.total), total: Number(inv.total) }])
@@ -549,10 +554,32 @@ export default function InvoicesPage() {
         total: ncSubtotal + taxAmt,
         notes: `Nota de Crédito — anula/ajusta factura ${inv.number}`,
         invoice_items: ncItems,
+        sale_id: inv.sale_id,
         tipo_comprobante: null,
       });
       if (error) throw error;
-      toast.success(`Nota de Crédito ${ncNumber} creada`);
+
+      // If linked to a sale, optionally revert stock and mark as returned
+      if (inv.sale_id) {
+        if (markReturned) {
+          await supabase.from("sales").update({ paid: false, payment_method: "devolucion" }).eq("id", inv.sale_id);
+        }
+        if (revertStock) {
+          // Get all sale rows for this sale (multi-item sales have multiple rows with same session)
+          const { data: saleRows } = await supabase.from("sales").select("product_id, quantity").eq("id", inv.sale_id);
+          if (saleRows && saleRows.length > 0) {
+            for (const row of saleRows) {
+              if (!row.product_id || !row.quantity) continue;
+              const { data: prod } = await supabase.from("products").select("stock").eq("id", row.product_id).single();
+              if (prod) {
+                await supabase.from("products").update({ stock: (prod.stock ?? 0) + Number(row.quantity) }).eq("id", row.product_id);
+              }
+            }
+          }
+        }
+      }
+
+      toast.success(`Nota de Crédito ${ncNumber} creada${revertStock && inv.sale_id ? " · Stock revertido" : ""}`);
       load();
     } catch (e: any) {
       toast.error(e.message || "Error al crear Nota de Crédito");
@@ -1000,7 +1027,7 @@ export default function InvoicesPage() {
                       )}
                       {canManage && (inv.status === "paid" || inv.status === "sent") && !inv.number.startsWith("NC-") && (
                         <Button size="icon" variant="ghost" className="h-8 w-8" title="Crear Nota de Crédito"
-                          onClick={() => createCreditNote(inv)} disabled={creatingNC === inv.id}
+                          onClick={() => { setNcDialogInv(inv); setNcRevertStock(true); setNcMarkReturned(true); }} disabled={creatingNC === inv.id}
                         >
                           {creatingNC === inv.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -1091,6 +1118,70 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+
+      {/* NC Confirm Dialog */}
+      <Dialog open={!!ncDialogInv} onOpenChange={v => { if (!v) setNcDialogInv(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileMinus className="w-5 h-5 text-orange-400" />
+              Nota de Crédito — {ncDialogInv?.number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Se creará la Nota de Crédito <strong className="text-foreground">NC-{ncDialogInv?.number}</strong> con los ítems negados de la factura original.
+            </p>
+            {ncDialogInv?.sale_id && (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Opciones de devolución</p>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ncMarkReturned}
+                    onChange={e => setNcMarkReturned(e.target.checked)}
+                    className="mt-0.5 accent-primary"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Marcar venta como devuelta</p>
+                    <p className="text-xs text-muted-foreground">Cambia el estado de la venta vinculada a "devolución"</p>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ncRevertStock}
+                    onChange={e => setNcRevertStock(e.target.checked)}
+                    className="mt-0.5 accent-primary"
+                  />
+                  <div className="flex items-start gap-1.5">
+                    <div>
+                      <p className="text-sm font-medium flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-primary" />Revertir stock</p>
+                      <p className="text-xs text-muted-foreground">Devuelve al inventario las unidades de la venta</p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            )}
+            {!ncDialogInv?.sale_id && (
+              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-300">
+                Esta factura no está vinculada a una venta. Solo se creará la NC sin modificar el inventario.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNcDialogInv(null)}>Cancelar</Button>
+            <Button
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={() => ncDialogInv && createCreditNote(ncDialogInv, ncRevertStock, ncMarkReturned)}
+              disabled={!!creatingNC}
+            >
+              {creatingNC ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <RotateCcw className="w-4 h-4 mr-1.5" />}
+              Crear Nota de Crédito
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

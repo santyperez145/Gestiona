@@ -65,6 +65,8 @@ function createLineItem(): SaleLineItem {
 export default function SalesPage() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  // If vendedor, only show their own sales
+  const sellerFilter = !isAdmin ? (localStorage.getItem('gestiona.pos.seller') || null) : null;
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -132,6 +134,8 @@ export default function SalesPage() {
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
 
   const filtered = sales.filter(s => {
+    // Vendedor can only see their own sales (if seller name is set in localStorage)
+    if (sellerFilter && s.seller_name && s.seller_name.trim() !== sellerFilter) return false;
     if (filterCat !== 'all' && productCatMap[s.product_id] !== filterCat) return false;
     if (filterPaid === 'paid' && !s.paid) return false;
     if (filterPaid === 'pending' && s.paid) return false;
@@ -598,6 +602,14 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           </div>
         }
       />
+
+      {/* Seller mode banner */}
+      {sellerFilter && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-2.5 text-sm text-blue-300">
+          <Users className="w-4 h-4 shrink-0" />
+          <span>Mostrando solo tus ventas como <strong>{sellerFilter}</strong>. Los admins ven todas.</span>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">

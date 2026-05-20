@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, ImagePlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, ImagePlus, ScanLine } from "lucide-react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -248,6 +249,35 @@ async function exportProductsXLSX(products: any[], settings: any) {
   toast.success('Excel exportado con hojas por categoría');
 }
 
+// ─────────────────────────────────────────────────────────────
+// Barcode scanner hook (reused from POS)
+// ─────────────────────────────────────────────────────────────
+function useBarcodeScanner(onDetect: (code: string) => void) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  const stop = useCallback(() => {
+    readerRef.current?.reset();
+    setScanning(false);
+  }, []);
+
+  const start = useCallback(async () => {
+    try {
+      readerRef.current = new BrowserMultiFormatReader();
+      setScanning(true);
+      await readerRef.current.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
+        if (result) { onDetect(result.getText()); stop(); }
+      });
+    } catch {
+      import("sonner").then(({ toast }) => toast.error("No se pudo acceder a la cámara"));
+      setScanning(false);
+    }
+  }, [onDetect, stop]);
+
+  return { videoRef, scanning, start, stop };
+}
+
 export default function ProductsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -264,6 +294,14 @@ export default function ProductsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [invoiceImportOpen, setInvoiceImportOpen] = useState(false);
   const [search, setSearch] = useState('');
+
+  // Barcode scanner
+  const handleBarcode = useCallback((code: string) => {
+    setSearch(code);
+    setPage(0);
+    import("sonner").then(({ toast }) => toast.success(`Código escaneado: ${code}`));
+  }, []);
+  const { videoRef: scanVideoRef, scanning: scannerOpen, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcode);
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState(() => {
     const p = new URLSearchParams(window.location.search).get('filter');
@@ -626,10 +664,29 @@ export default function ProductsPage() {
         );
       })()}
 
+      {/* Barcode scanner overlay */}
+      {scannerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4">
+          <p className="text-white font-semibold">Apuntá la cámara al código de barras</p>
+          <div className="relative w-72 h-48 rounded-2xl overflow-hidden border-2 border-primary">
+            <video ref={scanVideoRef} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-48 h-0.5 bg-primary animate-pulse" />
+            </div>
+          </div>
+          <Button variant="outline" onClick={stopScan} className="border-primary/40 text-primary">Cancelar</Button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
+        <div className="relative flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
+          </div>
+          <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Escanear código de barras" onClick={() => scannerOpen ? stopScan() : startScan()}>
+            <ScanLine className="w-4 h-4" />
+          </Button>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>

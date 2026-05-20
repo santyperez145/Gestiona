@@ -252,6 +252,24 @@ Deno.serve(async (req) => {
           .update({ last_triggered_at: now.toISOString() })
           .eq("org_id", orgId)
           .eq("enabled", true);
+
+        // Send push notification summary for this org
+        const distinctAlerts = [...new Set(alerts.map(a => a.title))];
+        const pushTitle = distinctAlerts.length === 1 ? distinctAlerts[0] : `${distinctAlerts.length} alertas nuevas`;
+        const pushBody = distinctAlerts.length === 1 ? alerts[0].message : distinctAlerts.slice(0, 3).join(" · ");
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ org_id: orgId, title: pushTitle, body: pushBody, url: "/alertas", tag: "gestiona-alerts" }),
+          });
+        } catch (pushErr) {
+          console.warn("check-alerts: push notification failed", pushErr);
+        }
       }
     }
 
