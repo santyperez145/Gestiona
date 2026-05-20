@@ -327,4 +327,190 @@
       min-width: 40px;
     }
   }
+
+  /* ── Large data number display ───────────────────────────────────────
+     Use for hero metrics (not in KPI cards, but page-level stats).
+     .num-lg   → 2rem    .num-xl → 2.8rem    .num-2xl → 3.8rem         */
+  .num-lg, .num-xl, .num-2xl {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .num-lg  { font-size: 2rem; }
+  .num-xl  { font-size: 2.8rem; }
+  .num-2xl { font-size: 3.8rem; }
+
+  /* ── Section rule — dotted divider with center label ──────────────── */
+  .section-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: hsl(228 12% 36%);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--font-display);
+  }
+  .section-rule::before,
+  .section-rule::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(228 20% 14%), transparent);
+  }
+
+  /* ── Label-value pair — terminal key: val ────────────────────────── */
+  .kv-pair {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    font-size: 13px;
+  }
+  .kv-pair .kv-key {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: hsl(228 12% 42%);
+    white-space: nowrap;
+    font-family: var(--font-display);
+  }
+  .kv-pair .kv-val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: hsl(var(--foreground));
+  }
+
+  /* ── Mono table cell — right-aligned numbers in tables ───────────── */
+  .td-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    font-size: 13px;
+    letter-spacing: -0.02em;
+    text-align: right;
+  }
+
+  /* ── Row highlight for selected/active table rows ────────────────── */
+  .row-active {
+    background: hsl(38 82% 52% / 0.06) !important;
+    border-left: 2px solid hsl(var(--primary));
+  }
+
+  /* ── Ticker — blinking cursor for live data ──────────────────────── */
+  .ticker-live::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: hsl(var(--success));
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: pulse-dot 1.8s ease-in-out infinite;
+  }
+
+  /* ── Vertical divider ────────────────────────────────────────────── */
+  .vr {
+    width: 1px;
+    align-self: stretch;
+    background: hsl(228 20% 13%);
+    flex-shrink: 0;
+  }
+}
+
+/* ── Recharts global overrides ──────────────────────────────────────────────
+   Apply to ALL charts in the app — removes generic look.                     */
+@layer base {
+  /* Grid lines — barely visible */
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: hsl(228, 20%, 12%);
+    stroke-dasharray: none;
+  }
+
+  /* Axis text */
+  .recharts-cartesian-axis-tick-value {
+    fill: hsl(228, 12%, 40%) !important;
+    font-size: 10px !important;
+    font-family: var(--font-mono) !important;
+  }
+
+  /* Tooltip — dark, sharp, not the browser default gray */
+  .recharts-default-tooltip {
+    background: hsl(228, 26%, 7%) !important;
+    border: 1px solid hsl(228, 20%, 14%) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 32px hsl(0, 0%, 0% / 0.55) !important;
+    padding: 8px 12px !important;
+  }
+  .recharts-tooltip-label {
+    color: hsl(220, 20%, 65%) !important;
+    font-size: 11px !important;
+    font-family: var(--font-display) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    margin-bottom: 4px !important;
+  }
+  .recharts-tooltip-item {
+    color: hsl(220, 20%, 91%) !important;
+    font-size: 13px !important;
+    font-family: var(--font-mono) !important;
+    padding: 1px 0 !important;
+  }
+  .recharts-tooltip-item-name {
+    color: hsl(228, 12%, 55%) !important;
+    font-size: 11px !important;
+  }
+
+  /* Legend text */
+  .recharts-legend-item-text {
+    color: hsl(228, 12%, 52%) !important;
+    font-size: 11px !important;
+    font-family: var(--font-display) !important;
+  }
+
+  /* Cursor line on charts */
+  .recharts-curve.recharts-tooltip-cursor {
+    stroke: hsl(228, 20%, 20%) !important;
+  }
+  .recharts-rectangle.recharts-tooltip-cursor {
+    fill: hsl(228, 20%, 12% / 0.6) !important;
+  }
+
+  /* Global textarea — match input style */
+  textarea {
+    background: hsl(228, 26%, 5.5%);
+    border: 1px solid hsl(228, 20%, 12% / 0.55);
+    border-radius: 7px;
+    font-size: 13px;
+    color: hsl(var(--foreground));
+    resize: vertical;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: hsl(38, 82%, 52% / 0.45);
+    box-shadow: 0 0 0 3px hsl(38, 82%, 52% / 0.08),
+                inset 0 0 0 1px hsl(38, 82%, 52% / 0.12);
+  }
+  textarea::placeholder {
+    color: hsl(228, 12%, 38%);
+  }
+
+  /* Hide number input spinners globally */
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] { -moz-appearance: textfield; }
+
+  /* Remove search cancel button */
+  input[type=search]::-webkit-search-cancel-button { display: none; }
 }

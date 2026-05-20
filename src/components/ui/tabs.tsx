@@ -3,8 +3,13 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+// Underline-indicator style — NO box container, no `bg-muted` pill.
+// Active tab gets a gold bottom bar. Feels like Linear/Vercel, not shadcn defaults.
+
 const Tabs = TabsPrimitive.Root;
 
+// ── TabsList — just a bottom border, no box ───────────────────────────────────
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -12,7 +17,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      "flex items-end gap-0 border-b border-border/40",
       className,
     )}
     {...props}
@@ -20,6 +25,7 @@ const TabsList = React.forwardRef<
 ));
 TabsList.displayName = TabsPrimitive.List.displayName;
 
+// ── TabsTrigger — text only, underline active indicator ──────────────────────
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
@@ -27,7 +33,21 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      // Base
+      "relative shrink-0",
+      "px-4 pb-2.5 pt-1",
+      "text-[11px] font-semibold uppercase tracking-[0.1em]",
+      "text-muted-foreground/55 transition-colors duration-150",
+      // Hover
+      "hover:text-foreground/80",
+      // Active text
+      "data-[state=active]:text-primary",
+      // Active bottom indicator — the gold bar
+      "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-[2px]",
+      "after:bg-primary after:scale-x-0 after:transition-transform after:duration-200 after:origin-left",
+      "data-[state=active]:after:scale-x-100",
+      // Disabled
+      "disabled:pointer-events-none disabled:opacity-30",
       className,
     )}
     {...props}
@@ -35,6 +55,7 @@ const TabsTrigger = React.forwardRef<
 ));
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
+// ── TabsContent ───────────────────────────────────────────────────────────────
 const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
@@ -42,7 +63,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "mt-4 focus-visible:outline-none",
       className,
     )}
     {...props}
