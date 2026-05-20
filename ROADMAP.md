@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-19 (sesión 43)**
+Última actualización: **2026-05-19 (sesión 44)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -830,15 +830,27 @@ Ver tabla de sesión 29 arriba.
 
 ---
 
-## Prioridades inmediatas (sesión 44)
+## Sesión 44 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: tickets POS colapsables** — vista "Sesiones" mejorada: cada ticket es un acordeón con header resumen, "Colapsar/Expandir todo", método por línea, botón Recibo por ticket | ✅ Hecho |
+| 2 | **ProductsPage: importar factura IA** — requiere Claude Vision + procesamiento de PDF/imagen | ⏳ Próxima sesión |
+| 3 | **Dashboard: alerta "sin ventas hoy"** — ya existía desde sesión 32 (banner a las 14h+) | ✅ Ya existía |
+| 4 | **AnalyticsPage: tab "👤 Vendedores"** — KPIs, tabla ranking 30d con barras, comisión estimada, stats semanales, bar chart | ✅ Hecho |
+| 5 | **POSPage: historial del turno con anular** — panel colapsable, lista últimas ventas, botón × llama deleteSaleDB y restaura stock | ✅ Hecho |
+
+---
+
+## Prioridades inmediatas (sesión 45)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **SalesPage: agrupar ventas del mismo ticket en una sola fila** — ventas creadas en la misma transacción POS (mismo created_at / misma session) colapsadas en una fila expandible | UX — evita duplicados visuales |
-| 2 | **ProductsPage: importar desde factura de proveedor (foto/PDF)** — botón "Importar factura", upload de imagen/PDF, extracción IA con Claude Vision de productos+precios+cantidades | Diferenciación IA |
-| 3 | **Dashboard: alerta proactiva de días sin ventas** — si son las 15h+ y no hay ventas hoy (existía lógica en sesión anterior), y también si el día anterior tuvo 0 ventas | Operación en tiempo real |
-| 4 | **AnalyticsPage: métricas de conversión por vendedor** — tasa de cierre (ventas / atenciones registradas), ticket promedio, comisión estimada por semana | Performance del equipo |
-| 5 | **POSPage: historial de las últimas N ventas del turno** — panel colapsable en el POS que lista las últimas 5-10 ventas del turno actual con opción de anular | Corrección de errores rápida |
+| 1 | **ProductsPage: importar factura de proveedor con IA** — botón "Importar factura", upload imagen/PDF, extracción con Claude Vision de nombre+precio+cantidad, preview editable antes de guardar | Diferenciación IA — ahorra tiempo de carga |
+| 2 | **PurchasesPage: importar factura de proveedor con IA** — mismo flujo aplicado a compras, crea registros de purchase con el proveedor y productos detectados | Automatización compras |
+| 3 | **SalesPage: resaltar ventas del mismo ticket en lista** — en la vista lista, ventas dentro de 3min del mismo cliente tienen un borde izquierdo coloreado y badge "Ticket" | UX — evita confusión en lista |
+| 4 | **Dashboard: widget "Resumen del día al cierre"** — aparece a partir de las 20h; muestra ventas del día, comparativa con ayer, mejor producto, método dominante; compatible con "Insight del día" | Cierre de jornada |
+| 5 | **CustomersPage: filtro de clientes por vendedor** — cuando hay datos de seller_name en ventas, aparece un Select para filtrar los clientes que compraron con un vendedor específico | Cross-analysis POS ↔ CRM |
 
 ---
 
