@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-20 (sesión 49)**
+Última actualización: **2026-05-20 (sesión 50)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -245,6 +245,14 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **POSPage: margen por ítem** — badge verde/amarillo/rojo con % de margen calculado live desde costUSD×TC vs precio efectivo. _(sesión 48)_
 - **Sistema de guías por página (PageGuide)** — botón flotante `?` en todas las pantallas; Sheet lateral con hasta 7 tips por página; 28 páginas cubiertas con tips y tags Nuevo/Pro/IA/Tip; `?` key como atajo; badge "New" + pulse dot en nav para páginas con novedades no vistas; estado persistido en localStorage. _(sesión 49)_
 - **Dashboard: checklist de configuración inicial** — widget `SetupChecklist` con 6 pasos (nombre, logo, TC, primer producto, primera venta, primera compra); barra de progreso; auto-oculta al completar todos; dismissible. _(sesión 49)_
+- **Rediseño visual completo del frontend (sesión 50)** — nuevo sistema de diseño propietario, diferenciado de apps genéricas de IA:
+  - `index.css`: paleta noir profunda (228 28% 4.5%), tipografía dual Space Grotesk + JetBrains Mono, sombras con inner highlight, utilidades `.data-num` `.dot-grid` `.texture-noise` `.nav-section-label`, ambient page glow.
+  - `tailwind.config.ts`: fontFamily display/mono, keyframes `number-up` `glow-pulse` `slide-in-right`, spring easing `cubic-bezier(0.16,1,0.3,1)`.
+  - `KPICard.tsx`: barra lateral de acento de 3px, número grande JetBrains Mono, glow de hover por color, sin caja de icono, tendencia con fuente mono.
+  - `PageHeader.tsx`: icono inline sutil, título editorial Space Grotesk con underline dorada de 2px, descripción muted.
+  - `Button.tsx`: primario con gradiente dorado + shadow glow, outline con hover dorado, variante `xs`, active scale.
+  - `Card.tsx`: highlight top-edge interno (gradiente blanco sutil), `shadow-card`, `rounded-[10px]`, CardTitle con font-display.
+  - `AppLayout.tsx` sidebar: 240px, active item con gradiente `from-primary/14 to-transparent` + barra izquierda con glow, sección labels con `nav-section-label`, collapse button nativo.
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_

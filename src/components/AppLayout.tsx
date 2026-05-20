@@ -130,108 +130,128 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className={`
         fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
         transform transition-all duration-300 ease-out h-screen
-        ${collapsed ? 'w-[68px]' : 'w-[260px]'}
-        ${mobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}
+        ${collapsed ? 'w-[68px]' : 'w-[240px]'}
+        ${mobileOpen ? 'translate-x-0 w-[240px]' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Logo Header */}
-        <div className={`${collapsed ? 'px-3 py-4' : 'px-5 py-5'} border-b border-sidebar-border flex items-center justify-between`}>
+        {/* ── Logo / Brand Header ──────────────────────────────────── */}
+        <div className={`${collapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
           <div className="flex items-center gap-3 min-w-0">
             {config.logoUrl ? (
               <div className="relative shrink-0">
-                <img src={config.logoUrl} alt="Logo" className="w-9 h-9 rounded-xl object-cover ring-2 ring-primary/20" />
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-sidebar" />
+                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-[8px] object-cover ring-1 ring-primary/25" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-[1.5px] border-sidebar" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-xl gradient-gold flex items-center justify-center shrink-0 shadow-gold">
-                <span className="text-primary-foreground font-bold text-sm">E</span>
+              <div className="w-8 h-8 rounded-[8px] gradient-gold flex items-center justify-center shrink-0 shadow-[0_2px_12px_-2px_hsl(38_82%_52%/0.5)]">
+                <span className="text-primary-foreground font-bold text-[13px]">E</span>
               </div>
             )}
             {!collapsed && (
               <div className="min-w-0 animate-fade-in">
-                <h1 className="text-lg font-bold text-primary tracking-wide truncate font-mono text-center border-0 border-none">{config.businessName}</h1>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium border mt-0.5 ${roleBadgeClass}`}>
+                <p className="text-[13px] font-display font-bold text-foreground/90 truncate tracking-tight leading-none">
+                  {config.businessName}
+                </p>
+                <span className={`inline-flex items-center px-1.5 py-[2px] rounded-[4px] text-[9px] font-semibold border mt-1 uppercase tracking-wide ${roleBadgeClass}`}>
                   {roleLabel}
                 </span>
               </div>
             )}
           </div>
-          <Button variant="ghost" size="sm" className="lg:hidden shrink-0 text-sidebar-foreground" onClick={() => setMobileOpen(false)}>
+          <Button variant="ghost" size="sm" className="lg:hidden shrink-0 text-sidebar-foreground h-7 w-7 p-0" onClick={() => setMobileOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto scrollbar-hide">
+        {/* ── Navigation ───────────────────────────────────────────── */}
+        <nav className="flex-1 px-2 py-2.5 overflow-y-auto scrollbar-hide">
           {groupedNav.map((group, gi) => (
-            <div key={group.section}>
+            <div key={group.section} className={gi > 0 ? 'mt-1' : ''}>
+              {/* Section label */}
               {group.label && !collapsed && (
-                <div className={`px-3 ${gi > 0 ? 'pt-4 mt-1' : 'pt-1'} pb-1.5`}>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">{group.label}</span>
+                <div className={`px-2.5 ${gi > 0 ? 'pt-4 pb-1.5' : 'pb-1.5'}`}>
+                  <span className="nav-section-label">{group.label}</span>
                 </div>
               )}
-              {gi > 0 && collapsed && <div className="my-2 mx-2 border-t border-sidebar-border/50" />}
-              {group.items.map(({ to, label, icon: Icon }) => {
-                const active = pathname === to;
-                const hasNew = unseenNewPages.has(to);
-                return (
-                  <Link
-                    key={to}
-                    to={to}
-                    onClick={() => setMobileOpen(false)}
-                    title={collapsed ? label : undefined}
-                    className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
-                      collapsed ? 'justify-center px-2' : ''
-                    } ${
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    }`}
-                  >
-                    {/* Active indicator bar */}
-                    {active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary shadow-gold" />
-                    )}
-                    <div className={`relative shrink-0 ${active ? '' : 'group-hover:scale-110 transition-transform duration-200'}`}>
-                      <Icon className="w-[18px] h-[18px]" />
-                      {/* "Nuevo" pulse dot */}
-                      {hasNew && !active && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary">
-                          <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+              {gi > 0 && collapsed && (
+                <div className="my-2 mx-3 border-t border-sidebar-border/40" />
+              )}
+              {/* Nav items */}
+              <div className="space-y-[2px]">
+                {group.items.map(({ to, label, icon: Icon }) => {
+                  const active = pathname === to;
+                  const hasNew = unseenNewPages.has(to);
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={() => setMobileOpen(false)}
+                      title={collapsed ? label : undefined}
+                      className={`group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
+                        collapsed ? 'justify-center px-0' : 'px-2.5'
+                      } ${
+                        active
+                          ? "bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
+                      }`}
+                    >
+                      {/* Active left bar — glowing */}
+                      {active && (
+                        <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(38_82%_52%/0.7)]" />
+                      )}
+
+                      {/* Icon */}
+                      <div className={`relative shrink-0 transition-transform duration-150 ${active ? '' : 'group-hover:scale-105'}`}>
+                        <Icon className={`w-[17px] h-[17px] ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90'}`} />
+                        {hasNew && !active && (
+                          <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-primary">
+                            <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Label */}
+                      {!collapsed && (
+                        <span className="flex-1 truncate">{label}</span>
+                      )}
+
+                      {/* "new" badge */}
+                      {!collapsed && hasNew && !active && (
+                        <span className="text-[8px] font-bold px-1 py-px rounded-[3px] bg-primary/15 text-primary uppercase tracking-wider shrink-0">
+                          new
                         </span>
                       )}
-                    </div>
-                    {!collapsed && <span className="flex-1">{label}</span>}
-                    {!collapsed && hasNew && !active && (
-                      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-primary/15 text-primary uppercase tracking-wide">new</span>
-                    )}
-                  </Link>
-                );
-              })}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </nav>
 
-        {/* Collapse toggle */}
-        <div className="hidden lg:block px-2 py-1.5 border-t border-sidebar-border/50">
-          <Button variant="ghost" size="sm" className="w-full justify-center text-muted-foreground/60 hover:text-muted-foreground h-8" onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
-          </Button>
+        {/* ── Collapse toggle ──────────────────────────────────────── */}
+        <div className="hidden lg:block px-2 py-1 border-t border-sidebar-border/40">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="w-full flex items-center justify-center h-7 rounded-[6px] text-muted-foreground/40 hover:text-muted-foreground/80 hover:bg-sidebar-accent/50 transition-all duration-150"
+          >
+            {collapsed ? <ChevronsRight className="w-3.5 h-3.5" /> : <ChevronsLeft className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
-        {/* Footer */}
-        <div className={`${collapsed ? 'px-2 py-3' : 'px-4 py-4'} border-t border-sidebar-border space-y-2`}>
+        {/* ── Footer ───────────────────────────────────────────────── */}
+        <div className={`${collapsed ? 'px-2 py-3' : 'px-3 py-3'} border-t border-sidebar-border/60 space-y-1.5`}>
           <OrgSwitcher collapsed={collapsed} />
           <NotificationBell collapsed={collapsed} />
           {isPlatformAdmin && (
             <Link
               to="/platform/admin"
               title={collapsed ? 'Platform Admin' : undefined}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors w-full ${
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full ${
                 collapsed ? 'justify-center' : ''
               } ${
                 pathname === '/platform/admin'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground/60 hover:bg-sidebar-accent hover:text-primary'
+                  ? 'bg-primary/12 text-primary'
+                  : 'text-muted-foreground/50 hover:bg-sidebar-accent/60 hover:text-primary'
               }`}
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
@@ -239,24 +259,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           )}
           {!collapsed && (
-            <div className="px-1 pt-1">
-              <p className="text-[11px] text-muted-foreground/70 truncate">{user?.email}</p>
-              <p className="text-[10px] text-muted-foreground/40 mt-0.5">{config.businessName} · v8.5</p>
+            <div className="px-1 py-1">
+              <p className="text-[11px] text-muted-foreground/55 truncate font-mono">{user?.email}</p>
+              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest">v8.5</p>
             </div>
           )}
-          <Button
-            variant="ghost" size="sm"
-            className={`w-full ${collapsed ? 'justify-center' : 'justify-start'} text-muted-foreground/60 hover:text-destructive h-8`}
+          <button
             onClick={handleLogout}
             title={collapsed ? 'Cerrar sesión' : undefined}
+            className={`w-full flex items-center ${collapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'} py-1.5 rounded-[7px] text-[12px] text-muted-foreground/50 hover:text-destructive hover:bg-destructive/8 transition-all duration-150`}
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            {!collapsed && <span className="ml-2 text-[13px]">Cerrar sesión</span>}
-          </Button>
+            {!collapsed && <span>Cerrar sesión</span>}
+          </button>
         </div>
       </aside>
 
-      <main className={`flex-1 overflow-auto w-full transition-all duration-300 ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'}`}>
+      <main className={`flex-1 overflow-auto w-full transition-all duration-300 ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
         {/* Mobile header */}
         <div className="lg:hidden sticky top-0 z-30 glass border-b border-border/50 px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="h-8 w-8 p-0">
