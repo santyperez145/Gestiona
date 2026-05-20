@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-20 (sesión 47)**
+Última actualización: **2026-05-20 (sesión 48)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -235,6 +235,14 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ReportsPage: tab "📅 Por día"** — WeeklyTrendTab con selector 4/8/12 semanas; bar chart lun–dom con cell dorada en mejor día; tabla de participación con progress bars; heatmap semanal con intensidad gold. _(sesión 41)_
 - **AnalyticsPage: "Nuevos vs Recurrentes"** — stacked BarChart en tab Clientes; últimos 6 meses; clasifica compradores como nuevo (primera compra en ese mes) o recurrente; verde/azul. _(sesión 41)_
 - **POSPage: descuento por categoría** — categoryDiscounts persistido en localStorage por org; panel toggle con % por categoría; cadena total: subtotal → catDiscount → coupon → globalDiscount; display en sección totales. _(sesión 41)_
+- **fix(sw.ts): self.__WB_MANIFEST** — fix de build Vercel: workbox injectManifest requiere la literal `self.__WB_MANIFEST` en el JS compilado. _(sesión 48)_
+- **ColorPicker RGB/HSV completo** — selector de gradiente (saturación×brillo) + barra de tono, inputs HEX y R/G/B con validación, 32 swatches, copy hex, preview antes/después. _(sesión 48)_
+- **SettingsPage: paletas de marca + colores del catálogo** — 8 paletas predefinidas aplicables con un click; guardar/eliminar paletas propias con nombre; 3 ColorPickers para fondo/cards/acento del catálogo; todo en DB (catalog_bg_color, catalog_card_color, catalog_accent_color, brand_palettes JSONB). _(sesión 48)_
+- **CatalogPage PDF: colores dinámicos** — portada, headers, cards, precios, decorativos usan los colores de catálogo configurados en Settings. _(sesión 48)_
+- **PublicCatalogPage: acento dinámico** — pills de categorías y CTA button usan `catalog_accent_color`. _(sesión 48)_
+- **StockCountPage: escáner de barras** — useBarcodeScanner con overlay, botón con badge conteo, scroll+focus en fila, highlight dorado, badge "sin código" en productos sin barcode/SKU. _(sesión 48)_
+- **POSPage: precio personalizado por ítem** — `customPrice` override con lápiz inline, Enter/Esc, fondo dorado, badge "personalizado", botón restaurar. _(sesión 48)_
+- **POSPage: margen por ítem** — badge verde/amarillo/rojo con % de margen calculado live desde costUSD×TC vs precio efectivo. _(sesión 48)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -874,6 +882,21 @@ Ver tabla de sesión 29 arriba.
 | 2 | **ProductsPage — duplicar producto** — botón `Copy` en la columna de acciones (solo si `canCreate`); copia todos los campos del producto excepto `id` y `created_at`; pre-rellena el form con nombre "Copia de X" y stock 0; abre el dialog de edición listo para guardar | ✅ Hecho |
 | 3 | **SalesPage — compartir resumen por WhatsApp** — botón `MessageCircle` verde en PageHeader; genera resumen del período filtrado (rango de fechas, total, ganancia, margen, cantidad de ventas, clientes únicos, top 3 productos); abre `wa.me/?text=...` con el mensaje codificado | ✅ Hecho |
 | 4 | **PurchasesPage — escáner de código de barras** — mismo patrón `useBarcodeScanner` con ZXing que ProductsPage; botón `ScanLine` junto al buscador; overlay fullscreen con cámara y línea animada; al detectar, setea `search` y muestra toast de confirmación | ✅ Hecho |
+
+---
+
+## Sesión 48 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **fix(sw.ts): self.__WB_MANIFEST para workbox injectManifest** — cambiado `declare const __WB_MANIFEST` por extensión de tipo en `self` para que la cadena literal `self.__WB_MANIFEST` aparezca en el JS compilado; fix de build Vercel | ✅ Hecho |
+| 2 | **Sistema de colores RGB completo** — `ColorPicker` component: selector HSV (gradiente de saturación×brillo + barra de tono), inputs HEX y R/G/B, 32 swatches predefinidos, copy hex, preview; `supabase/migrations/20260520000003_catalog_colors.sql`: columnas `catalog_bg_color`, `catalog_card_color`, `catalog_accent_color`, `brand_palettes` JSONB | ✅ Hecho |
+| 3 | **SettingsPage — paletas de marca y colores del catálogo** — 8 paletas predefinidas (Gold, Night Blue, Purple, Emerald, Crimson, Amber, Rose, Slate); aplicar paleta pone los 5 colores de un click; guardar paleta propia con nombre personalizado; eliminar; 3 `ColorPicker` para fondo/cards/acento del catálogo; todo persistido en DB | ✅ Hecho |
+| 4 | **CatalogPage PDF — colores dinámicos** — portada, encabezados, cards, precios, decorativos usan `parseHex(hexBg/hexCard/hexAccent/hexPrimary)` en lugar de valores hardcodeados | ✅ Hecho |
+| 5 | **PublicCatalogPage — colores de acento dinámicos** — pills de categorías y botón CTA usan `catalog_accent_color` del settings | ✅ Hecho |
+| 6 | **StockCountPage — escáner de código de barras** — `useBarcodeScanner` hook + `handleBarcodeScan` que busca por barcode/sku/nombre y hace +1 al contado; overlay fullscreen con brackets y línea animada; botón "Escanear" con badge de conteo; `rowRefs` para scroll+focus; highlight dorado en fila escaneada; badge "sin código" en productos sin barcode ni SKU | ✅ Hecho |
+| 7 | **POSPage — precio personalizado por ítem del carrito** — `customPrice` en `CartItem`; `priceFor()` respeta precio override; botón lápiz junto al precio abre input inline (Enter=confirmar, Esc=cancelar); fondo dorado en ítem con precio personalizado; badge "personalizado"; botón "× restaurar" para volver al precio original | ✅ Hecho |
+| 8 | **POSPage — margen estimado por ítem del carrito** — badge color-coded (verde ≥40%, amarillo ≥20%, rojo <20%) junto al nombre del producto calculado desde `costUSD × exchangeRate` vs `unitPrice` | ✅ Hecho |
 
 ---
 

@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -32,6 +32,7 @@ interface CartItem {
   imageUrl?: string | null;
   useDiscount: boolean;
   discountPrice?: number | null;
+  customPrice?: number | null;   // per-item price override set in cart
   category?: string;
 }
 
@@ -692,6 +693,8 @@ export default function POSPage() {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [editingPriceVal, setEditingPriceVal] = useState("");
   const [customer, setCustomer] = useState("");
   const [posNote, setPosNote] = useState("");
   const [showRecentCustomers, setShowRecentCustomers] = useState(false);
@@ -956,8 +959,10 @@ export default function POSPage() {
   const effectivePayMethod = splitMode ? splitMethod1 : payMethod;
   const usesDiscount = PAY_METHODS.find(m => m.value === effectivePayMethod)?.usesDiscount ?? false;
 
-  const priceFor = (item: CartItem) =>
-    usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
+  const priceFor = (item: CartItem) => {
+    if (item.customPrice != null && item.customPrice > 0) return item.customPrice;
+    return usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
+  };
 
   const cartSubtotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
 
@@ -1050,6 +1055,16 @@ export default function POSPage() {
   };
 
   const removeItem = (productId: string) => setCart((prev) => prev.filter((it) => it.productId !== productId));
+
+  const applyPriceOverride = (productId: string, raw: string) => {
+    const num = parseFloat(raw.replace(",", "."));
+    setCart(prev => prev.map(it =>
+      it.productId === productId
+        ? { ...it, customPrice: !isNaN(num) && num > 0 ? num : null }
+        : it
+    ));
+    setEditingPriceId(null);
+  };
 
   const clearCart = () => {
     setCart([]);
@@ -1298,12 +1313,72 @@ export default function POSPage() {
         ) : (
           cart.map((it) => {
             const unitP = priceFor(it);
+            const isEditingPrice = editingPriceId === it.productId;
+            const hasCustom = it.customPrice != null && it.customPrice > 0;
+            const costARS = it.costUSD * it.exchangeRate;
+            const marginPct = unitP > 0 && costARS > 0 ? ((unitP - costARS) / unitP) * 100 : null;
             return (
-              <div key={it.productId} className="bg-muted/40 rounded-xl p-3 space-y-2">
+              <div key={it.productId} className={`rounded-xl p-3 space-y-2 transition-colors ${hasCustom ? "bg-primary/8 border border-primary/20" : "bg-muted/40"}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-tight truncate">{it.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatARS(unitP)} c/u</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium leading-tight truncate flex-1">{it.name}</p>
+                      {marginPct !== null && (
+                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${
+                          marginPct >= 40 ? 'bg-green-500/20 text-green-400' :
+                          marginPct >= 20 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {marginPct.toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {isEditingPrice ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground">$</span>
+                          <input
+                            autoFocus
+                            type="number"
+                            min={0}
+                            value={editingPriceVal}
+                            onChange={e => setEditingPriceVal(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") applyPriceOverride(it.productId, editingPriceVal);
+                              if (e.key === "Escape") setEditingPriceId(null);
+                            }}
+                            className="w-24 h-5 text-xs font-mono bg-background border border-primary/50 rounded px-1 outline-none focus:ring-1 focus:ring-primary/50"
+                            placeholder={String(unitP)}
+                          />
+                          <button
+                            onClick={() => applyPriceOverride(it.productId, editingPriceVal)}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => setEditingPriceId(null)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingPriceId(it.productId);
+                            setEditingPriceVal(String(hasCustom ? it.customPrice : unitP));
+                          }}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground group"
+                          title="Editar precio"
+                        >
+                          <span className={hasCustom ? "text-primary font-semibold" : ""}>{formatARS(unitP)}</span>
+                          <span className="text-muted-foreground/40">c/u</span>
+                          <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-70 transition-opacity ml-0.5" />
+                          {hasCustom && <span className="text-[9px] text-primary/70 font-medium">personalizado</span>}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <button onClick={() => removeItem(it.productId)} className="text-muted-foreground hover:text-destructive shrink-0 mt-0.5">
                     <X className="w-3.5 h-3.5" />
@@ -1326,7 +1401,18 @@ export default function POSPage() {
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
-                  <span className="font-semibold text-sm font-mono">{formatARS(unitP * it.quantity)}</span>
+                  <div className="text-right">
+                    <span className="font-semibold text-sm font-mono">{formatARS(unitP * it.quantity)}</span>
+                    {hasCustom && (
+                      <button
+                        onClick={() => setCart(prev => prev.map(c => c.productId === it.productId ? { ...c, customPrice: null } : c))}
+                        className="block text-[9px] text-muted-foreground hover:text-destructive ml-auto mt-0.5"
+                        title="Restablecer precio original"
+                      >
+                        × restaurar
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

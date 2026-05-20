@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,9 +11,41 @@ import { toast } from "sonner";
 import {
   ClipboardList, CheckCircle2, AlertTriangle, RefreshCw,
   Loader2, Download, Search, ChevronUp, ChevronDown,
-  PackageCheck, TrendingDown, TrendingUp, Minus,
+  PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+
+// ─── Barcode scanner hook ─────────────────────────────────────────────────────
+
+function useBarcodeScanner(onDetected: (code: string) => void) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  const start = useCallback(async () => {
+    try {
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
+      setScanning(true);
+      await reader.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
+        if (result) { onDetected(result.getText()); stop(); }
+      });
+    } catch { setScanning(false); }
+  }, [onDetected]);
+
+  const stop = useCallback(() => {
+    readerRef.current?.reset();
+    readerRef.current = null;
+    setScanning(false);
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  return { videoRef, scanning, start, stop };
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +56,8 @@ interface Product {
   stock: number;
   cost_usd: number;
   image_url?: string | null;
+  barcode?: string | null;
+  sku?: string | null;
 }
 
 interface CountRow {
@@ -55,6 +89,52 @@ export default function StockCountPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [scanCount, setScanCount] = useState(0);
+
+  // Barcode scan handler: find product by barcode/sku/name, increment its count
+  const handleBarcodeScan = useCallback((code: string) => {
+    const found = rows.find(r =>
+      r.product.barcode === code ||
+      r.product.sku === code ||
+      r.product.name.toLowerCase() === code.toLowerCase()
+    );
+    if (!found) {
+      // Try partial match by name
+      const partial = rows.find(r => r.product.name.toLowerCase().includes(code.toLowerCase()));
+      if (!partial) { toast.error(`Código "${code}" no encontrado`); return; }
+      const id = partial.product.id;
+      setRows(prev => prev.map(r => r.product.id === id
+        ? { ...r, counted: String((r.counted === '' ? r.product.stock : Number(r.counted)) + 1) }
+        : r
+      ));
+      setHighlightedId(id);
+      setScanCount(n => n + 1);
+      setTimeout(() => {
+        rowRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputRefs.current[id]?.focus();
+        setHighlightedId(null);
+      }, 150);
+      toast.success(`${partial.product.name} +1`);
+      return;
+    }
+    const id = found.product.id;
+    setRows(prev => prev.map(r => r.product.id === id
+      ? { ...r, counted: String((r.counted === '' ? r.product.stock : Number(r.counted)) + 1) }
+      : r
+    ));
+    setHighlightedId(id);
+    setScanCount(n => n + 1);
+    setTimeout(() => {
+      rowRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inputRefs.current[id]?.focus();
+      setHighlightedId(null);
+    }, 150);
+    toast.success(`${found.product.name} +1`);
+  }, [rows]);
+
+  const { videoRef: scanVideoRef, scanning: scannerOpen, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcodeScan);
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +144,7 @@ export default function StockCountPage() {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id,name,category,stock,cost_usd,image_url")
+        .select("id,name,category,stock,cost_usd,image_url,barcode,sku")
         .eq("org_id", activeOrg.id)
         .order("name");
       if (error) throw error;
@@ -232,12 +312,27 @@ export default function StockCountPage() {
             </Button>
           ))}
         </div>
-        <div className="flex gap-2 ml-auto">
+        <div className="flex gap-2 ml-auto flex-wrap">
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={loading}>
             <Download className="w-4 h-4 mr-1" /> CSV
           </Button>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Recargar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={startScan}
+            disabled={loading || scannerOpen}
+            className="gap-1 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <ScanLine className="w-4 h-4" />
+            Escanear
+            {scanCount > 0 && (
+              <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                {scanCount}
+              </span>
+            )}
           </Button>
           <Button
             size="sm"
@@ -341,10 +436,19 @@ export default function StockCountPage() {
                       : "text-muted-foreground";
                 const rowBg = diff !== null && diff !== 0 ? (diff > 0 ? "bg-green-950/10" : "bg-red-950/10") : "";
 
+                const isHighlighted = highlightedId === row.product.id;
+
                 return (
-                  <tr key={row.product.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${rowBg}`}>
+                  <tr
+                    key={row.product.id}
+                    ref={el => { rowRefs.current[row.product.id] = el; }}
+                    className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${rowBg} ${isHighlighted ? "ring-2 ring-inset ring-primary/60 bg-primary/10" : ""}`}
+                  >
                     <td className="px-4 py-2.5">
                       <div className="font-medium">{row.product.name}</div>
+                      {!row.product.barcode && !row.product.sku && (
+                        <span className="text-[9px] text-muted-foreground/50 font-mono">sin código</span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell">
                       {CAT_LABELS[row.product.category] || row.product.category}
@@ -385,6 +489,45 @@ export default function StockCountPage() {
           Los cambios no se aplican hasta confirmar.
         </p>
       )}
+
+      {/* ── Scanner overlay ───────────────────────────────────────────────── */}
+      {scannerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center gap-4">
+          <div className="relative w-full max-w-sm rounded-2xl overflow-hidden border-2 border-primary/60 shadow-2xl">
+            <video ref={scanVideoRef} className="w-full aspect-video object-cover" autoPlay playsInline muted />
+            {/* Animated scan line */}
+            <div
+              className="absolute left-0 right-0 h-0.5 bg-primary/80 shadow-[0_0_8px_2px_var(--primary)]"
+              style={{ animation: "scanline 2s linear infinite", top: "50%" }}
+            />
+            {/* Corner brackets */}
+            <div className="absolute inset-4 pointer-events-none">
+              <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary rounded-tl-md" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary rounded-tr-md" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-md" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-md" />
+            </div>
+          </div>
+          <p className="text-white/70 text-sm flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary animate-pulse" />
+            Apuntá la cámara al código de barras
+          </p>
+          {scanCount > 0 && (
+            <p className="text-primary font-semibold text-sm">{scanCount} ítem{scanCount !== 1 ? "s" : ""} escaneado{scanCount !== 1 ? "s" : ""}</p>
+          )}
+          <Button variant="outline" onClick={stopScan} className="border-white/30 text-white hover:bg-white/10">
+            Cancelar
+          </Button>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes scanline {
+          0%   { top: 20%; }
+          50%  { top: 80%; }
+          100% { top: 20%; }
+        }
+      `}</style>
     </div>
   );
 }
