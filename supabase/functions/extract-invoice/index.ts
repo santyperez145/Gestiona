@@ -9,7 +9,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+
+// ── Inlined rate limiter (avoids _shared import issues during deploy) ──
+const _rlStore = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(req: Request, fnName: string, opts: { max: number; windowMs: number }): boolean {
+  const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const key = `${fnName}:${ip}`;
+  const now = Date.now();
+  const win = _rlStore.get(key);
+  if (!win || now > win.resetAt) { _rlStore.set(key, { count: 1, resetAt: now + opts.windowMs }); return false; }
+  win.count += 1;
+  return win.count > opts.max;
+}
+function rateLimitResponse(): Response {
+  return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
+    status: 429,
+    headers: { "Content-Type": "application/json", "Retry-After": "60", "Access-Control-Allow-Origin": "*" },
+  });
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
