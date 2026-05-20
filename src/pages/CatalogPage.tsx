@@ -102,6 +102,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const publicUrl = `${window.location.origin}/catalogo/${userId}`;
       const catLabel = filterCat !== 'all' ? getCategoryLabel(filterCat) : 'Todos los productos';
 
+      // Preload logo for cover page
+      const coverLogoUrl = settings?.logo_url || `${window.location.origin}/exentry-logo.png`;
+      const coverLogoBase64 = await loadImageAsBase64(coverLogoUrl).catch(() => null);
+
       // QR code → canvas → PNG
       let qrDataUrl: string | null = null;
       try {
@@ -142,33 +146,50 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       doc.setFillColor(14, 14, 28);
       doc.circle(W + 28, -28, 70, 'F');
 
-      // Business name — last word in primary color
-      const nameParts = bName.trim().split(' ');
-      const lastWord = nameParts.pop() || '';
-      const firstPart = nameParts.join(' ');
-      doc.setFontSize(40);
-      doc.setFont('helvetica', 'bold');
-      const fullW = doc.getTextWidth((firstPart ? firstPart + ' ' : '') + lastWord);
-      const nameStartX = W / 2 - fullW / 2;
-      if (firstPart) {
-        doc.setTextColor(235, 235, 248);
-        doc.text(firstPart + ' ', nameStartX, 110);
-        doc.setTextColor(pR, pG, pB);
-        doc.text(lastWord, nameStartX + doc.getTextWidth(firstPart + ' '), 110);
+      // Cover logo or text business name
+      if (coverLogoBase64) {
+        // Render logo centered — white rounded rect background so it reads on dark cover
+        const logoMaxW = 110;
+        const logoMaxH = 40;
+        // Approximate aspect ratio 3:1 (landscape logo)
+        const logoW = logoMaxW;
+        const logoH = logoMaxH;
+        const logoX = W / 2 - logoW / 2;
+        const logoY = 88;
+        // White pill background
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(logoX - 6, logoY - 5, logoW + 12, logoH + 10, 6, 6, 'F');
+        doc.addImage(coverLogoBase64, 'PNG', logoX, logoY, logoW, logoH);
       } else {
-        doc.setTextColor(pR, pG, pB);
-        doc.text(lastWord, W / 2, 110, { align: 'center' });
+        // Fallback: stylized text business name
+        const nameParts = bName.trim().split(' ');
+        const lastWord = nameParts.pop() || '';
+        const firstPart = nameParts.join(' ');
+        doc.setFontSize(40);
+        doc.setFont('helvetica', 'bold');
+        const fullW = doc.getTextWidth((firstPart ? firstPart + ' ' : '') + lastWord);
+        const nameStartX = W / 2 - fullW / 2;
+        if (firstPart) {
+          doc.setTextColor(235, 235, 248);
+          doc.text(firstPart + ' ', nameStartX, 110);
+          doc.setTextColor(pR, pG, pB);
+          doc.text(lastWord, nameStartX + doc.getTextWidth(firstPart + ' '), 110);
+        } else {
+          doc.setTextColor(pR, pG, pB);
+          doc.text(lastWord, W / 2, 110, { align: 'center' });
+        }
       }
 
-      // Subtitle
+      // Subtitle (Y adjusts depending on whether logo or text name was used)
+      const subtitleY = coverLogoBase64 ? 143 : 121;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(155, 155, 178);
-      doc.text('CATÁLOGO DE PRODUCTOS', W / 2, 121, { align: 'center' });
+      doc.text('CATÁLOGO DE PRODUCTOS', W / 2, subtitleY, { align: 'center' });
 
       // Separator
       doc.setFillColor(pR, pG, pB);
-      doc.rect(W / 2 - 20, 126, 40, 0.7, 'F');
+      doc.rect(W / 2 - 20, subtitleY + 5, 40, 0.7, 'F');
 
       // Category pill
       doc.setFillColor(pR, pG, pB);
@@ -176,18 +197,18 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       doc.setFont('helvetica', 'bold');
       const pillTxt = catLabel.toUpperCase();
       const pillW = doc.getTextWidth(pillTxt) + 14;
-      doc.roundedRect(W / 2 - pillW / 2, 131, pillW, 9, 2.5, 2.5, 'F');
+      doc.roundedRect(W / 2 - pillW / 2, subtitleY + 10, pillW, 9, 2.5, 2.5, 'F');
       doc.setTextColor(14, 14, 28);
-      doc.text(pillTxt, W / 2, 137.2, { align: 'center' });
+      doc.text(pillTxt, W / 2, subtitleY + 16.2, { align: 'center' });
 
       // Count + date
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(175, 175, 198);
-      doc.text(`${filtered.length} producto${filtered.length !== 1 ? 's' : ''}`, W / 2, 149, { align: 'center' });
+      doc.text(`${filtered.length} producto${filtered.length !== 1 ? 's' : ''}`, W / 2, subtitleY + 27, { align: 'center' });
       doc.setFontSize(9);
       doc.setTextColor(115, 115, 138);
-      doc.text(today, W / 2, 157, { align: 'center' });
+      doc.text(today, W / 2, subtitleY + 35, { align: 'center' });
 
       // QR bottom-right
       if (qrDataUrl) {

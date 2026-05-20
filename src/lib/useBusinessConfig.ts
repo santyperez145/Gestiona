@@ -9,9 +9,11 @@ export type BusinessConfig = {
   secondaryColor: string;
 };
 
+const DEFAULT_LOGO = '/exentry-logo.png';
+
 const defaultConfig: BusinessConfig = {
   businessName: 'Gestiona',
-  logoUrl: null,
+  logoUrl: DEFAULT_LOGO,
   primaryColor: '#D4A843',
   secondaryColor: '#1A1A2E',
 };
@@ -45,7 +47,7 @@ export function useBusinessConfig() {
       const s = await getSettingsDB(user.id);
       setConfig({
         businessName: s.business_name || 'Gestiona',
-        logoUrl: s.logo_url || null,
+        logoUrl: s.logo_url || DEFAULT_LOGO,
         primaryColor: s.primary_color || '#D4A843',
         secondaryColor: s.secondary_color || '#1A1A2E',
       });

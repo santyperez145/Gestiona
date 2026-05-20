@@ -236,7 +236,7 @@ export default function PublicCatalogPage() {
 
   const primaryColor = settings?.primary_color || "#D4A843";
   const businessName = settings?.business_name || "EXENTRY IMPORTS";
-  const logoUrl = settings?.logo_url;
+  const logoUrl = settings?.logo_url || '/exentry-logo.png';
   const whatsappNumber = settings?.whatsapp_number;
 
   // Dynamic hero config based on top category
@@ -351,20 +351,12 @@ export default function PublicCatalogPage() {
       >
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={businessName}
-                className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10"
-              />
-            ) : (
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-black tracking-wider"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, color: "#0D0D1A" }}
-              >
-                {businessName.charAt(0)}
-              </div>
-            )}
+            <img
+              src={logoUrl}
+              alt={businessName}
+              className="h-10 w-auto max-w-[120px] object-contain shrink-0 rounded-lg bg-white/5 p-0.5"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
             <div className="min-w-0">
               <h1 className="font-black text-sm sm:text-base tracking-wide truncate" style={{ color: primaryColor }}>
                 {businessName}

@@ -73,11 +73,12 @@ function exportQRLabels(products: any[], businessName: string) {
   if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
 }
 
-function exportPriceLabels(products: any[], businessName: string) {
+function exportPriceLabels(products: any[], businessName: string, logoUrl?: string) {
   const inStock = products.filter(p => p.stock > 0).slice(0, 80);
   if (!inStock.length) { return; }
   const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const effectiveLogo = logoUrl || `${window.location.origin}/exentry-logo.png`;
   const rows = inStock.map(p => {
     const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
       ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
@@ -86,7 +87,7 @@ function exportPriceLabels(products: any[], businessName: string) {
     return `
       <div class="label">
         <div class="label-body">
-          <div class="biz">${businessName}</div>
+          <div class="biz"><img src="${effectiveLogo}" alt="${businessName}" class="biz-logo" /></div>
           <div class="name">${p.name.slice(0, 34)}${p.name.length > 34 ? '…' : ''}</div>
           ${p.brand ? `<div class="brand">${p.brand}</div>` : ''}
           <div class="price-row">
@@ -109,7 +110,8 @@ function exportPriceLabels(products: any[], businessName: string) {
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .label { display: flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; padding: 4mm 3mm; gap: 3mm; break-inside: avoid; min-height: 32mm; }
   .label-body { flex: 1; min-width: 0; }
-  .biz { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .biz { margin-bottom: 2px; }
+  .biz-logo { height: 14px; width: auto; max-width: 70px; object-fit: contain; display: block; }
   .name { font-size: 9px; font-weight: bold; color: #111; line-height: 1.25; word-break: break-word; }
   .brand { font-size: 8px; color: #555; margin-top: 1px; }
   .price-row { display: flex; align-items: baseline; gap: 4px; margin-top: 4px; }
@@ -152,7 +154,7 @@ function printAgingPDF(aged: { name: string; stock: number; daysSince: number; v
   if (w) { w.document.write(html); w.document.close(); w.print(); }
 }
 
-function exportPriceListPDF(products: any[], businessName: string) {
+function exportPriceListPDF(products: any[], businessName: string, logoUrl?: string) {
   const inStock = products.filter(p => p.stock > 0);
   const grouped: Record<string, typeof inStock> = {};
   inStock.forEach(p => {
@@ -161,6 +163,7 @@ function exportPriceListPDF(products: any[], businessName: string) {
     grouped[cat].push(p);
   });
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const effectiveLogo = logoUrl || `${window.location.origin}/exentry-logo.png`;
   let rows = '';
   Object.entries(grouped).forEach(([cat, items]) => {
     rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
@@ -175,7 +178,9 @@ function exportPriceListPDF(products: any[], businessName: string) {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lista de Precios</title>
 <style>
   body{font-family:Arial,sans-serif;margin:20px;font-size:12px;color:#222}
-  h1{font-size:20px;margin-bottom:2px}
+  .header{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+  .header img{height:44px;width:auto;max-width:180px;object-fit:contain}
+  h1{font-size:20px;margin:0}
   .sub{color:#666;font-size:11px;margin-bottom:16px}
   table{border-collapse:collapse;width:100%}
   th{background:#1a1a2e;color:#d4a843;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;text-align:left}
@@ -188,7 +193,10 @@ function exportPriceListPDF(products: any[], businessName: string) {
   .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
   @media print{.no-print{display:none}}
 </style></head><body>
-<h1>${businessName}</h1>
+<div class="header">
+  <img src="${effectiveLogo}" alt="${businessName}" onerror="this.style.display='none'" />
+  <h1>${businessName}</h1>
+</div>
 <div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
@@ -422,13 +430,13 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
+            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Exportar lista de precios para imprimir">
               <FileText className="w-4 h-4 mr-2" />Lista precios
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas QR por producto">
               <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas de precio para tienda">
+            <Button variant="outline" size="sm" onClick={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Imprimir etiquetas de precio para tienda">
               <Tag className="w-4 h-4 mr-2" />Etiquetas precio
             </Button>
             {canCreate && (
