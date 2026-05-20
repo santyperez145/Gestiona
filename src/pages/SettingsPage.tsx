@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -37,7 +37,16 @@ export default function SettingsPage() {
   const [receiptFooter, setReceiptFooter] = useState('¡Gracias por su compra!');
   const [primaryColor, setPrimaryColor] = useState('#D4A843');
   const [secondaryColor, setSecondaryColor] = useState('#1A1A2E');
+  // Catalog-specific colors
+  const [catalogBg, setCatalogBg] = useState('#0E0E1C');
+  const [catalogCard, setCatalogCard] = useState('#16163A');
+  const [catalogAccent, setCatalogAccent] = useState('#D4A843');
   const [uploading, setUploading] = useState(false);
+
+  // Brand palettes (stored in settings DB)
+  const [brandPalettes, setBrandPalettes] = useState<Array<{ id: string; name: string; primary: string; secondary: string; bg: string; card: string; accent: string }>>([]);
+  const [newPaletteName, setNewPaletteName] = useState('');
+  const [savingPalette, setSavingPalette] = useState(false);
 
   // Payment method discounts
   const [discountCash, setDiscountCash] = useState('10');
@@ -125,6 +134,55 @@ export default function SettingsPage() {
     localStorage.setItem(waTemplateKey, JSON.stringify(next));
   };
 
+  // Brand palettes helpers (defined after state, before useEffect)
+  // ── Predefined brand palettes ────────────────────────────────────────────
+  const PREDEFINED_PALETTES = [
+    { id: 'gold',    name: 'Exentry Gold',   primary: '#D4A843', secondary: '#1A1A2E', bg: '#0E0E1C', card: '#16163A', accent: '#C89A35' },
+    { id: 'blue',    name: 'Night Blue',      primary: '#3B82F6', secondary: '#0F172A', bg: '#06080F', card: '#0F1629', accent: '#60A5FA' },
+    { id: 'purple',  name: 'Violeta Premium', primary: '#A855F7', secondary: '#1E1B4B', bg: '#0D0B22', card: '#1A1538', accent: '#C084FC' },
+    { id: 'emerald', name: 'Esmeralda',       primary: '#10B981', secondary: '#0F2818', bg: '#071510', card: '#0D2218', accent: '#34D399' },
+    { id: 'crimson', name: 'Carmesí',         primary: '#EF4444', secondary: '#1C0A0A', bg: '#0F0505', card: '#200B0B', accent: '#F87171' },
+    { id: 'amber',   name: 'Ámbar Dark',      primary: '#F59E0B', secondary: '#1C1200', bg: '#100A00', card: '#1C1200', accent: '#FCD34D' },
+    { id: 'rose',    name: 'Rose Gold',       primary: '#EC4899', secondary: '#1F0D18', bg: '#130810', card: '#1F0D18', accent: '#F472B6' },
+    { id: 'slate',   name: 'Pizarra',         primary: '#94A3B8', secondary: '#0F172A', bg: '#080D14', card: '#111827', accent: '#CBD5E1' },
+  ];
+
+  const applyPalette = (p: typeof PREDEFINED_PALETTES[0]) => {
+    setPrimaryColor(p.primary);
+    setSecondaryColor(p.secondary);
+    setCatalogBg(p.bg);
+    setCatalogCard(p.card);
+    setCatalogAccent(p.accent);
+    applyColors(p.primary, p.secondary);
+  };
+
+  const saveCurrentAsPalette = async () => {
+    const name = newPaletteName.trim();
+    if (!name) return;
+    setSavingPalette(true);
+    const newPal = {
+      id: Date.now().toString(),
+      name,
+      primary: primaryColor,
+      secondary: secondaryColor,
+      bg: catalogBg,
+      card: catalogCard,
+      accent: catalogAccent,
+    };
+    const updated = [...brandPalettes, newPal];
+    setBrandPalettes(updated);
+    setNewPaletteName('');
+    if (user) await saveSettingsDB(user.id, { brand_palettes: updated }).catch(() => {});
+    setSavingPalette(false);
+    toast.success(`Paleta "${name}" guardada`);
+  };
+
+  const deletePalette = async (id: string) => {
+    const updated = brandPalettes.filter(p => p.id !== id);
+    setBrandPalettes(updated);
+    if (user) await saveSettingsDB(user.id, { brand_palettes: updated }).catch(() => {});
+  };
+
   // Track original values for auto-recalculate prompt
   const [origRate, setOrigRate] = useState('');
   const [origCustoms, setOrigCustoms] = useState('');
@@ -146,6 +204,10 @@ export default function SettingsPage() {
       setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
       setPrimaryColor(s.primary_color || '#D4A843');
       setSecondaryColor(s.secondary_color || '#1A1A2E');
+      setCatalogBg(s.catalog_bg_color || '#0E0E1C');
+      setCatalogCard(s.catalog_card_color || '#16163A');
+      setCatalogAccent(s.catalog_accent_color || s.primary_color || '#D4A843');
+      setBrandPalettes(Array.isArray(s.brand_palettes) ? s.brand_palettes : []);
       setDiscountCash(String(s.discount_cash_percent ?? 10));
       setDiscountTransfer(String(s.discount_transfer_percent ?? 5));
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
@@ -207,6 +269,10 @@ export default function SettingsPage() {
         receipt_footer: receiptFooter || null,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
+        catalog_bg_color: catalogBg,
+        catalog_card_color: catalogCard,
+        catalog_accent_color: catalogAccent,
+        brand_palettes: brandPalettes,
         discount_cash_percent: num(discountCash, 0),
         discount_transfer_percent: num(discountTransfer, 0),
         discount_debit_percent: num(discountDebit, 0),
@@ -324,6 +390,118 @@ export default function SettingsPage() {
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => { setPrimaryColor('#D4A843'); setSecondaryColor('#1A1A2E'); applyColors('#D4A843', '#1A1A2E'); }}>
               <RotateCcw className="w-3 h-3 mr-1" />Restaurar colores originales
             </Button>
+
+            {/* Catalog colors */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <h3 className="text-sm font-medium flex items-center gap-1.5">
+                <BookMarked className="w-3.5 h-3.5 text-primary" />
+                Colores del Catálogo (PDF y web)
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                <ColorPicker
+                  label="Fondo"
+                  value={catalogBg}
+                  onChange={(c) => setCatalogBg(c)}
+                />
+                <ColorPicker
+                  label="Cards"
+                  value={catalogCard}
+                  onChange={(c) => setCatalogCard(c)}
+                />
+                <ColorPicker
+                  label="Acento"
+                  value={catalogAccent}
+                  onChange={(c) => setCatalogAccent(c)}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Fondo: portada y páginas PDF. Cards: fondo de cada producto. Acento: precio destacado, pills y separadores.
+              </p>
+            </div>
+
+            {/* Brand palettes */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <h3 className="text-sm font-medium flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5 text-primary" />
+                Paletas de Marca
+              </h3>
+
+              {/* Predefined palettes */}
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Paletas predefinidas</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PREDEFINED_PALETTES.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => applyPalette(p)}
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted border border-border hover:border-primary/50 transition-colors text-left group"
+                  >
+                    <div className="flex gap-0.5 flex-shrink-0">
+                      {[p.primary, p.secondary, p.bg, p.accent].map((c, i) => (
+                        <div key={i} className="w-4 h-4 rounded-sm border border-border/30" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                    <span className="text-xs font-medium truncate group-hover:text-primary transition-colors">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom saved palettes */}
+              {brandPalettes.length > 0 && (
+                <>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Mis paletas</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {brandPalettes.map(p => (
+                      <div key={p.id} className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => applyPalette(p)}
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted border border-border hover:border-primary/50 transition-colors text-left flex-1 group"
+                        >
+                          <div className="flex gap-0.5 flex-shrink-0">
+                            {[p.primary, p.secondary, p.bg, p.accent].map((c, i) => (
+                              <div key={i} className="w-4 h-4 rounded-sm border border-border/30" style={{ backgroundColor: c }} />
+                            ))}
+                          </div>
+                          <span className="text-xs font-medium truncate group-hover:text-primary transition-colors">{p.name}</span>
+                        </button>
+                        <button
+                          onClick={() => deletePalette(p.id)}
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+                          title="Eliminar paleta"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Save current as palette */}
+              <div className="flex gap-2">
+                <Input
+                  value={newPaletteName}
+                  onChange={e => setNewPaletteName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveCurrentAsPalette()}
+                  placeholder="Nombre de la nueva paleta..."
+                  className="bg-muted border-border text-sm h-8 flex-1"
+                  maxLength={30}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2.5 gap-1.5 text-xs shrink-0"
+                  onClick={saveCurrentAsPalette}
+                  disabled={!newPaletteName.trim() || savingPalette}
+                >
+                  <Save className="w-3 h-3" />
+                  Guardar
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Guarda los 5 colores actuales (principal, secundario, fondo, cards, acento) como paleta reutilizable.
+              </p>
+            </div>
+
             <div>
               <label className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />WhatsApp (catálogo público)</label>
               <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />

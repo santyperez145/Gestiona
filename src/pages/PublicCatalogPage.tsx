@@ -234,9 +234,11 @@ export default function PublicCatalogPage() {
   );
   const vapers = useMemo(() => filtered.filter((p) => p.category === "vaper"), [filtered]);
 
-  const primaryColor = settings?.primary_color || "#D4A843";
-  const businessName = settings?.business_name || "EXENTRY IMPORTS";
-  const logoUrl = settings?.logo_url || '/exentry-logo.png';
+  const primaryColor   = settings?.primary_color        || "#D4A843";
+  const accentColor    = settings?.catalog_accent_color  || primaryColor;
+  const bgColor        = settings?.secondary_color       || "#1A1A2E";
+  const businessName   = settings?.business_name || "EXENTRY IMPORTS";
+  const logoUrl        = settings?.logo_url || '/exentry-logo.png';
   const whatsappNumber = settings?.whatsapp_number;
 
   // Dynamic hero config based on top category
@@ -401,7 +403,7 @@ export default function PublicCatalogPage() {
                 setFilterGender("all");
               }}
               className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${filterCat === "all" ? "text-black shadow-lg" : "bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06]"}`}
-              style={filterCat === "all" ? { background: primaryColor, boxShadow: `0 4px 15px ${primaryColor}40` } : {}}
+              style={filterCat === "all" ? { background: accentColor, boxShadow: `0 4px 15px ${accentColor}40` } : {}}
             >
               Todos ({products.length})
             </button>
@@ -414,7 +416,7 @@ export default function PublicCatalogPage() {
                 }}
                 className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${filterCat === cat.value ? "text-black shadow-lg" : "bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06]"}`}
                 style={
-                  filterCat === cat.value ? { background: primaryColor, boxShadow: `0 4px 15px ${primaryColor}40` } : {}
+                  filterCat === cat.value ? { background: accentColor, boxShadow: `0 4px 15px ${accentColor}40` } : {}
                 }
               >
                 {cat.label} ({cat.count})
@@ -462,7 +464,7 @@ export default function PublicCatalogPage() {
                 <button
                   onClick={() => setFilterCat(heroConfig.cat)}
                   className="px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all hover:scale-105 active:scale-95"
-                  style={{ background: primaryColor, boxShadow: `0 4px 20px ${primaryColor}50` }}
+                  style={{ background: accentColor, boxShadow: `0 4px 20px ${accentColor}50` }}
                 >
                   {heroConfig.cta}
                 </button>

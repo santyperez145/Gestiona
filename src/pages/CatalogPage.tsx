@@ -94,10 +94,24 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const W = doc.internal.pageSize.getWidth();
       const H = doc.internal.pageSize.getHeight();
       const bName = settings?.business_name || 'Exentry Imports';
-      const hex = settings?.primary_color || '#D4A843';
-      const pR = parseInt(hex.slice(1, 3), 16);
-      const pG = parseInt(hex.slice(3, 5), 16);
-      const pB = parseInt(hex.slice(5, 7), 16);
+
+      // ── Brand colors (primary = accent/prices, bg = cover/page bg, card = product cards)
+      const hexPrimary = settings?.primary_color || '#D4A843';
+      const hexBg      = settings?.catalog_bg_color   || '#0E0E1C';
+      const hexCard    = settings?.catalog_card_color  || '#16163A';
+      const hexAccent  = settings?.catalog_accent_color || hexPrimary;
+
+      const parseHex = (h: string): [number, number, number] => [
+        parseInt(h.slice(1, 3), 16),
+        parseInt(h.slice(3, 5), 16),
+        parseInt(h.slice(5, 7), 16),
+      ];
+      const [pR, pG, pB] = parseHex(hexPrimary);
+      const [bgR, bgG, bgB] = parseHex(hexBg);
+      const [cdR, cdG, cdB] = parseHex(hexCard);
+      const [acR, acG, acB] = parseHex(hexAccent);
+      // Legacy alias so existing PDF code keeps working
+      const hex = hexPrimary;
       const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
       const publicUrl = `${window.location.origin}/catalogo/${userId}`;
       const catLabel = filterCat !== 'all' ? getCategoryLabel(filterCat) : 'Todos los productos';
@@ -133,7 +147,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       }));
 
       // ── COVER PAGE ───────────────────────────────────────────────────────
-      doc.setFillColor(14, 14, 28);
+      doc.setFillColor(bgR, bgG, bgB);
       doc.rect(0, 0, W, H, 'F');
 
       // Top accent bar
@@ -141,9 +155,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       doc.rect(0, 0, W, 3, 'F');
 
       // Decorative circle top-right
-      doc.setFillColor(Math.round(pR * 0.08 + 14), Math.round(pG * 0.08 + 14), Math.round(pB * 0.08 + 28));
+      doc.setFillColor(Math.round(bgR * 1.4 + pR * 0.1), Math.round(bgG * 1.4 + pG * 0.1), Math.round(bgB * 1.4 + pB * 0.1));
       doc.circle(W + 28, -28, 88, 'F');
-      doc.setFillColor(14, 14, 28);
+      doc.setFillColor(bgR, bgG, bgB);
       doc.circle(W + 28, -28, 70, 'F');
 
       // Cover logo or text business name
@@ -224,7 +238,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       }
 
       // Footer bar
-      doc.setFillColor(20, 20, 36);
+      doc.setFillColor(Math.min(bgR + 10, 40), Math.min(bgG + 10, 40), Math.min(bgB + 20, 55));
       doc.rect(0, H - 14, W, 14, 'F');
       doc.setFillColor(pR, pG, pB);
       doc.rect(0, H - 14, W, 0.5, 'F');
@@ -254,8 +268,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         }));
 
         // ── Constants ─────────────────────────────────────────────────────────
-        // Background: very dark navy, matching reference
-        const bgR = 7, bgG = 9, bgB = 33;
+        // Background: use catalog_bg_color from settings (outer bgR/bgG/bgB from parseHex above)
+        // vaper mode aliases (no shadowing — same vars from outer scope)
 
         // Grid: 4 columns, ~44mm wide cells
         const gM    = 9;
@@ -541,7 +555,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         const footerH = 10;
 
         const drawPageHeader = () => {
-          doc.setFillColor(20, 20, 40);
+          doc.setFillColor(Math.min(bgR + 8, 40), Math.min(bgG + 8, 40), Math.min(bgB + 15, 60));
           doc.rect(0, 0, W, headerH, 'F');
           doc.setFillColor(pR, pG, pB);
           doc.rect(0, headerH, W, 1.2, 'F');
@@ -558,7 +572,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         };
 
         const drawPageFooter = (pageN: number, total: number) => {
-          doc.setFillColor(20, 20, 40);
+          doc.setFillColor(Math.min(bgR + 8, 40), Math.min(bgG + 8, 40), Math.min(bgB + 15, 60));
           doc.rect(0, H - footerH, W, footerH, 'F');
           doc.setFillColor(pR, pG, pB);
           doc.rect(0, H - footerH, W, 0.4, 'F');
@@ -604,18 +618,26 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             const x = margin + col * (cardW + gap);
 
             // Shadow
-            doc.setFillColor(10, 10, 20);
+            doc.setFillColor(Math.max(bgR - 6, 0), Math.max(bgG - 6, 0), Math.max(bgB - 6, 0));
             doc.roundedRect(x + 1.5, y + 1.5, cardW, cardH, 3, 3, 'F');
 
             // Card bg
-            doc.setFillColor(22, 22, 38);
+            doc.setFillColor(cdR, cdG, cdB);
             doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
-            doc.setDrawColor(45, 45, 70);
+            doc.setDrawColor(
+              Math.min(cdR + 25, 255),
+              Math.min(cdG + 25, 255),
+              Math.min(cdB + 30, 255)
+            );
             doc.setLineWidth(0.3);
             doc.roundedRect(x, y, cardW, cardH, 3, 3, 'S');
 
             // Image area
-            doc.setFillColor(18, 18, 32);
+            doc.setFillColor(
+              Math.max(cdR - 6, 0),
+              Math.max(cdG - 6, 0),
+              Math.max(cdB - 6, 0)
+            );
             doc.roundedRect(x + 0.5, y + 0.5, cardW - 1, imgH - 1, 3, 3, 'F');
 
             if (p.image_url && imageCache[p.image_url]) {
@@ -680,20 +702,22 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             }
 
             // Separator
-            doc.setDrawColor(45, 45, 70);
+            doc.setDrawColor(
+              Math.min(cdR + 30, 255), Math.min(cdG + 30, 255), Math.min(cdB + 35, 255)
+            );
             doc.setLineWidth(0.2);
             doc.line(x + 4, tY + nameH + 15, x + cardW - 4, tY + nameH + 15);
 
             // Prices
             const priceY = tY + nameH + 20.5;
             if (p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)) {
-              doc.setTextColor(pR, pG, pB);
+              doc.setTextColor(acR, acG, acB);
               doc.setFontSize(13);
               doc.setFont('helvetica', 'bold');
               doc.text(fmtARS(Number(p.discount_price_ars)), x + 4, priceY);
               doc.setFontSize(5.5);
               doc.setFont('helvetica', 'normal');
-              doc.setTextColor(Math.round(pR * 0.8), Math.round(pG * 0.8), Math.round(pB * 0.8));
+              doc.setTextColor(Math.round(acR * 0.8), Math.round(acG * 0.8), Math.round(acB * 0.8));
               doc.text('Efectivo / Transferencia', x + 4, priceY + 4.5);
               doc.setTextColor(145, 145, 168);
               doc.setFontSize(9.5);
@@ -702,7 +726,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
               doc.setFontSize(5.5);
               doc.text('Tarjeta 3 cuotas s/interés', x + 4, priceY + 14.5);
             } else {
-              doc.setTextColor(pR, pG, pB);
+              doc.setTextColor(acR, acG, acB);
               doc.setFontSize(13);
               doc.setFont('helvetica', 'bold');
               doc.text(fmtARS(Number(p.sale_price_ars)), x + 4, priceY);
@@ -731,7 +755,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
       // ── BACK COVER ───────────────────────────────────────────────────────
       doc.addPage();
-      doc.setFillColor(14, 14, 28);
+      doc.setFillColor(bgR, bgG, bgB);
       doc.rect(0, 0, W, H, 'F');
 
       // Concentric decorative rings
@@ -739,9 +763,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       for (let r = 115; r >= 25; r -= 14) {
         const t = (115 - r) / 90;
         doc.setDrawColor(
-          Math.round(14 + t * (pR - 14) * 0.25),
-          Math.round(14 + t * (pG - 14) * 0.25),
-          Math.round(28 + t * 18)
+          Math.round(bgR + t * (pR - bgR) * 0.3),
+          Math.round(bgG + t * (pG - bgG) * 0.3),
+          Math.round(bgB + t * (pB - bgB) * 0.3 + t * 12)
         );
         doc.setLineWidth(0.35);
         doc.circle(cx, cy, r, 'S');
@@ -771,7 +795,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       doc.setTextColor(115, 115, 138);
       doc.text(publicUrl, cx, cy + 55, { align: 'center' });
 
-      doc.setFillColor(20, 20, 36);
+      doc.setFillColor(Math.min(bgR + 10, 40), Math.min(bgG + 10, 40), Math.min(bgB + 20, 55));
       doc.rect(0, H - 18, W, 18, 'F');
       doc.setFillColor(pR, pG, pB);
       doc.rect(0, H - 18, W, 0.5, 'F');
