@@ -4,12 +4,14 @@ import { registerRoute } from "workbox-routing";
 import { NetworkFirst, CacheFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 
-declare const self: ServiceWorkerGlobalScope;
-declare const __WB_MANIFEST: { url: string; revision: string | null }[];
+declare const self: ServiceWorkerGlobalScope & {
+  __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
+};
 
 // ── Precaching ───────────────────────────────────────────────
 cleanupOutdatedCaches();
-precacheAndRoute(__WB_MANIFEST);
+// self.__WB_MANIFEST is replaced by workbox-build injectManifest at build time
+precacheAndRoute(self.__WB_MANIFEST);
 
 // ── Skip waiting on message ──────────────────────────────────
 self.addEventListener("message", (event) => {
