@@ -507,7 +507,7 @@ export default function SalesPipelinePage() {
                         {stage.probability > 0 && stage.probability < 100 && (
                           <span className="text-[10px] text-muted-foreground">{stage.probability}%</span>
                         )}
-                        <span className="text-xs bg-card border border-border rounded-full px-1.5 py-0.5 text-muted-foreground font-medium">
+                        <span className="text-xs bg-[hsl(228_24%_7%)] border border-border/60 rounded-full px-1.5 py-0.5 text-muted-foreground font-medium">
                           {stageDeals.length}
                         </span>
                       </div>

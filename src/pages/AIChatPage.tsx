@@ -1256,7 +1256,7 @@ export default function AIChatPage() {
     <div className="flex gap-4 h-[calc(100vh-5rem)] max-w-5xl mx-auto relative">
       {/* History sidebar */}
       {showHistory && (
-        <div className="w-72 shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden">
+        <div className="w-72 shrink-0 flex flex-col bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
           <div className="flex items-center justify-between px-3 py-3 border-b border-border">
             <h3 className="text-sm font-semibold flex items-center gap-1.5"><History className="w-4 h-4 text-primary" />Historial</h3>
             <button onClick={() => setShowHistory(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -1367,7 +1367,7 @@ export default function AIChatPage() {
 
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center pb-8">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-[10px] bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
             <h2 className="font-display font-bold text-lg mb-1">¿En qué puedo ayudarte?</h2>
@@ -1428,10 +1428,10 @@ export default function AIChatPage() {
                 ? <User className="w-4 h-4 text-primary" />
                 : <Bot className="w-4 h-4 text-primary" />}
             </div>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+            <div className={`max-w-[85%] rounded-[10px] px-4 py-3 text-sm leading-relaxed ${
               msg.role === "user"
                 ? "bg-primary/15 text-foreground rounded-tr-sm"
-                : "bg-card border border-border rounded-tl-sm"
+                : "bg-[hsl(228_24%_8%)] border border-border/50 rounded-[8px] rounded-tl-[2px]"
             }`}>
               {msg.role === "assistant"
                 ? <ul className="list-none space-y-0.5">{formatMessage(msg.content)}</ul>
@@ -1456,7 +1456,7 @@ export default function AIChatPage() {
             <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4 text-primary" />
             </div>
-            <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
+            <div className="bg-[hsl(228_24%_8%)] border border-border/50 rounded-[8px] rounded-tl-[2px] px-4 py-3">
               <div className="flex gap-1 items-center h-5">
                 {[0, 1, 2].map((i) => (
                   <span key={i} className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
@@ -1470,7 +1470,7 @@ export default function AIChatPage() {
 
       {/* Input */}
       <div className="pt-4 shrink-0">
-        <div className="flex gap-2 bg-card border border-border rounded-xl p-2">
+        <div className="flex gap-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-2">
           <Input
             ref={inputRef}
             value={input}

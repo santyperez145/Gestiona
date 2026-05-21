@@ -643,7 +643,7 @@ export default function InvoicesPage() {
 
       {/* AFIP not configured warning */}
       {!afipConfigured && canManage && (
-        <div className="p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2 text-sm text-yellow-400">
+        <div className="p-3 rounded-[8px] border border-yellow-500/20 bg-yellow-500/5 flex items-center gap-2 text-sm text-yellow-400">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>
             AFIP no configurado. Las facturas generadas <strong>no tienen validez fiscal</strong>.
@@ -665,7 +665,7 @@ export default function InvoicesPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-5 space-y-5">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-5">
           <h2 className="font-semibold flex items-center gap-2"><Plus className="w-4 h-4" />Nueva factura</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -804,7 +804,7 @@ export default function InvoicesPage() {
       )}
 
       {/* Invoice list */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
         <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-2">
           <h2 className="font-semibold text-sm shrink-0">Facturas ({filteredInvoices.length})</h2>
           <div className="flex gap-1 flex-wrap">
@@ -812,7 +812,7 @@ export default function InvoicesPage() {
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
+                className={`px-2.5 py-0.5 rounded-[5px] text-[10px] font-medium border transition-all ${
                   filterStatus === s
                     ? "bg-primary/15 text-primary border-primary/30"
                     : "text-muted-foreground border-border hover:border-primary/20"
@@ -948,17 +948,17 @@ export default function InvoicesPage() {
                               F{tipoCbte}
                             </span>
                           )}
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${sc.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium border ${sc.color}`}>
                             <Icon className="w-3 h-3" />{sc.label}
                           </span>
                           {/* AFIP status badge */}
                           {inv.afip_status === "authorized" && inv.cae && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-green-500/10 text-green-400 border border-green-500/20">
                               <ShieldCheck className="w-3 h-3" />CAE
                             </span>
                           )}
                           {(inv.afip_status === "rejected" || inv.afip_status === "error" || inv.afip_status === "config_error" || inv.afip_status === "network_error" || inv.afip_status === "validation_error") && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20" title={inv.afip_error || undefined}>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20" title={inv.afip_error || undefined}>
                               <ShieldAlert className="w-3 h-3" />
                               {inv.afip_status === "config_error" ? "Config AFIP" : inv.afip_status === "network_error" ? "Sin conexión AFIP" : "Error AFIP"}
                             </span>

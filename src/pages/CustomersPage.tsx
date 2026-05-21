@@ -184,7 +184,7 @@ function CustomerFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-in">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl animate-fade-in">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-display font-bold">{initial?.id ? "Editar cliente" : "Nuevo cliente"}</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -465,7 +465,7 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
       </div>
 
       {showForm && (
-        <div className="bg-muted/40 rounded-xl p-3 space-y-2">
+        <div className="bg-muted/40 rounded-[8px] p-3 space-y-2">
           <div className="grid grid-cols-3 gap-1">
             {COMM_TYPES.map(t => (
               <button
@@ -1123,7 +1123,7 @@ export default function CustomersPage() {
 
       {/* Top clientes del mes */}
       {topThisMonth.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Crown className="w-4 h-4 text-primary" />
@@ -1179,21 +1179,21 @@ export default function CustomersPage() {
 
       {/* Segmentation Chart */}
       {segmentCounts.length > 0 && (
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Segmentación Automática</h2>
           <div className="flex flex-wrap gap-2 mb-4">
             {segmentCounts.map(s => (
               <button
                 key={s.name}
                 onClick={() => setSegmentFilter(segmentFilter === s.name ? "all" : s.name)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${segmentFilter === s.name ? "ring-2 ring-primary" : ""}`}
+                className={`px-3 py-1.5 rounded-[5px] text-xs font-medium transition-all ${segmentFilter === s.name ? "ring-2 ring-primary" : ""}`}
                 style={{ background: `${SEGMENT_COLORS[s.name] || "hsl(220, 10%, 45%)"}22`, color: SEGMENT_COLORS[s.name] || "hsl(220, 10%, 45%)" }}
               >
                 {s.name} ({s.value})
               </button>
             ))}
             {segmentFilter !== "all" && (
-              <button onClick={() => setSegmentFilter("all")} className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+              <button onClick={() => setSegmentFilter("all")} className="px-3 py-1.5 rounded-[5px] text-xs font-medium bg-muted text-muted-foreground">
                 Todos
               </button>
             )}
@@ -1216,7 +1216,7 @@ export default function CustomersPage() {
         const atRisk = customers.filter(c => c.segment === "En riesgo" || c.segment === "Dormido");
         if (atRisk.length === 0) return null;
         return (
-          <div className="bg-orange-500/5 border border-orange-500/30 rounded-xl p-4 mb-6">
+          <div className="bg-orange-500/5 border border-orange-500/30 rounded-[10px] p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <AlertCircle className="w-4 h-4 text-orange-400 shrink-0" />
               <p className="text-sm font-semibold text-orange-400">{atRisk.length} cliente{atRisk.length !== 1 ? "s" : ""} que necesitan reactivación</p>
@@ -1228,7 +1228,7 @@ export default function CustomersPage() {
                   href={c.phone ? `https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${c.name.split(' ')[0]}! 👋 Hace ${c.daysSinceLastPurchase} días que no te vemos por acá. ¿Se te ofrece algo? Tenemos novedades para vos 🛍️`)}` : undefined}
                   target="_blank"
                   rel="noreferrer"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${c.phone ? "border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 cursor-pointer" : "border-border bg-muted text-muted-foreground cursor-default"}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-xs font-medium border transition-all ${c.phone ? "border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 cursor-pointer" : "border-border bg-muted text-muted-foreground cursor-default"}`}
                   title={c.phone ? "Enviar WhatsApp de reactivación" : "Sin teléfono registrado"}
                   onClick={e => { if (!c.phone) e.preventDefault(); }}
                 >
@@ -1237,7 +1237,7 @@ export default function CustomersPage() {
                 </a>
               ))}
               {atRisk.length > 6 && (
-                <button onClick={() => setSegmentFilter(segmentFilter === "En riesgo" ? "all" : "En riesgo")} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted/80">
+                <button onClick={() => setSegmentFilter(segmentFilter === "En riesgo" ? "all" : "En riesgo")} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[5px] text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted/80">
                   +{atRisk.length - 6} más →
                 </button>
               )}
@@ -1248,14 +1248,14 @@ export default function CustomersPage() {
 
       {/* RFM Analysis Panel */}
       {rfmData.length > 0 && (
-        <div className="bg-card border border-border rounded-xl mb-4">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] mb-4">
           <button
             className="w-full flex items-center justify-between px-4 py-3 text-left"
             onClick={() => setShowRFM(v => !v)}
           >
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold">Análisis RFM</span>
+              <span className="text-sm font-semibold font-display tracking-tight">Análisis RFM</span>
               <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{rfmData.length} clientes con compras</span>
             </div>
             {showRFM ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
@@ -1290,7 +1290,7 @@ export default function CustomersPage() {
                 <span className="text-xs text-muted-foreground">Ordenar por:</span>
                 {(["rfmScore", "rScore", "fScore", "mScore"] as const).map(k => (
                   <button key={k} onClick={() => setRfmSort(k)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all ${rfmSort === k ? "bg-primary/15 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/20"}`}
+                    className={`px-2.5 py-1 rounded-[5px] text-[10px] font-medium border transition-all ${rfmSort === k ? "bg-primary/15 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/20"}`}
                   >
                     {k === "rfmScore" ? "Total RFM" : k === "rScore" ? "Recency" : k === "fScore" ? "Frequency" : "Monetary"}
                   </button>
@@ -1364,7 +1364,7 @@ export default function CustomersPage() {
             <div key={s.id} className="flex items-center gap-1">
               <button
                 onClick={() => setSegmentFilter(s.segment)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                className={`px-3 py-1.5 rounded-[5px] text-xs font-medium border transition-all ${
                   segmentFilter === s.segment
                     ? "border-primary/60 bg-primary/10 text-primary"
                     : "border-border bg-muted text-muted-foreground hover:border-primary/30"
@@ -1398,7 +1398,7 @@ export default function CustomersPage() {
             ) : (
               <button
                 onClick={() => setShowSaveInput(true)}
-                className="px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all"
+                className="px-3 py-1.5 rounded-[5px] text-xs font-medium border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all"
                 title="Guardar filtro actual como segmento"
               >
                 + Guardar segmento
@@ -1448,7 +1448,7 @@ export default function CustomersPage() {
         {filterSeller !== "all" && (
           <button
             onClick={() => setFilterSeller("all")}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
           >
             <X className="w-3 h-3" />
             {filterSeller}
@@ -1459,7 +1459,7 @@ export default function CustomersPage() {
       {/* Customer List */}
       {/* Bulk email action bar */}
       {selectedCustomerNames.size > 0 && (
-        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-2xl px-4 py-3 animate-in slide-in-from-bottom-4">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-[10px] px-4 py-3 animate-in slide-in-from-bottom-4">
           <span className="text-sm font-semibold">{selectedCustomerNames.size} cliente{selectedCustomerNames.size !== 1 ? 's' : ''} seleccionado{selectedCustomerNames.size !== 1 ? 's' : ''}</span>
           <button
             onClick={() => {
@@ -1469,7 +1469,7 @@ export default function CustomersPage() {
               sessionStorage.setItem('gestiona.bulk_campaign', JSON.stringify({ emails, names, count: selected.length, segment: segmentFilter !== 'all' ? segmentFilter : 'custom' }));
               navigate('/email-campaigns');
             }}
-            className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2"
+            className="px-4 py-1.5 rounded-[5px] bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             Crear campaña de email
@@ -1493,14 +1493,14 @@ export default function CustomersPage() {
               toast.success(`${tasks.length} tarea${tasks.length !== 1 ? "s" : ""} de seguimiento creada${tasks.length !== 1 ? "s" : ""} para mañana`);
               setSelectedCustomerNames(new Set());
             }}
-            className="px-4 py-1.5 rounded-xl bg-muted border border-border text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
+            className="px-4 py-1.5 rounded-[5px] bg-muted border border-border text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
           >
             <CheckSquare className="w-4 h-4 text-primary" />
             Tarea seguimiento
           </button>
           <button
             onClick={() => { setBulkNoteText(""); setBulkNoteOpen(true); }}
-            className="px-4 py-1.5 rounded-xl bg-muted border border-border text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
+            className="px-4 py-1.5 rounded-[5px] bg-muted border border-border text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
           >
             <FileText className="w-4 h-4 text-primary" />
             Agregar nota
@@ -1512,7 +1512,7 @@ export default function CustomersPage() {
               if (!withPhone.length) { toast.error("Ningún cliente seleccionado tiene teléfono registrado"); return; }
               setBulkWaOpen(true);
             }}
-            className="px-4 py-1.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
+            className="px-4 py-1.5 rounded-[5px] bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
           >
             <MessageCircle className="w-4 h-4" />
             WhatsApp masivo
@@ -1520,7 +1520,7 @@ export default function CustomersPage() {
           {filtered.filter(c => selectedCustomerNames.has(c.name) && c.birthday && bdayInRange(c.birthday, 'this_month')).length > 0 && (
             <button
               onClick={() => setBulkBdayWaOpen(true)}
-              className="px-4 py-1.5 rounded-xl bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 transition-colors flex items-center gap-2"
+              className="px-4 py-1.5 rounded-[5px] bg-pink-600 text-white text-sm font-semibold hover:bg-pink-700 transition-colors flex items-center gap-2"
             >
               🎂 WhatsApp cumpleaños
             </button>
@@ -1898,7 +1898,7 @@ export default function CustomersPage() {
                   <div className="px-4 pb-4 pt-2 border-t border-border">
                     {/* Health Score gauge */}
                     {c.purchaseCount > 0 && (
-                      <div className="mb-3 bg-muted/40 rounded-xl px-4 py-3">
+                      <div className="mb-3 bg-muted/40 rounded-[8px] px-4 py-3">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs font-medium text-muted-foreground">Score de salud del cliente</span>
                           <HealthScoreBadge score={c.healthScore} />

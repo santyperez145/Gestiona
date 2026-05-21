@@ -108,7 +108,7 @@ function PayMethodGrid({
           <button
             key={m.value}
             onClick={() => onChange(m.value)}
-            className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border text-[10px] font-medium transition-all ${
+            className={`flex flex-col items-center gap-0.5 py-2 rounded-[8px] border text-[10px] font-medium transition-all ${
               active
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border bg-card text-muted-foreground hover:border-primary/30"
@@ -319,7 +319,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-2xl animate-fade-in">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
@@ -560,7 +560,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Undo2 className="w-5 h-5 text-orange-400" />
@@ -591,7 +591,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
                     <button
                       key={s.id}
                       onClick={() => { setSelected(s); setQty(1); }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-[10px] border border-border hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-left"
                     >
                       <Package className="w-4 h-4 text-muted-foreground shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -609,7 +609,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
             </>
           ) : (
             <div className="space-y-4">
-              <div className="bg-muted rounded-xl p-3 flex items-center gap-3">
+              <div className="bg-muted rounded-[10px] p-3 flex items-center gap-3">
                 <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground shrink-0">
                   <X className="w-4 h-4" />
                 </button>
@@ -646,7 +646,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
                     <button
                       key={m}
                       onClick={() => setRefundMethod(m)}
-                      className={`py-2 rounded-xl border text-xs font-medium capitalize transition-all ${
+                      className={`py-2 rounded-[8px] border text-xs font-medium capitalize transition-all ${
                         refundMethod === m
                           ? "border-orange-500/60 bg-orange-500/10 text-orange-400"
                           : "border-border bg-card text-muted-foreground"
@@ -1318,7 +1318,7 @@ export default function POSPage() {
             const costARS = it.costUSD * it.exchangeRate;
             const marginPct = unitP > 0 && costARS > 0 ? ((unitP - costARS) / unitP) * 100 : null;
             return (
-              <div key={it.productId} className={`rounded-xl p-3 space-y-2 transition-colors ${hasCustom ? "bg-primary/8 border border-primary/20" : "bg-muted/40"}`}>
+              <div key={it.productId} className={`rounded-[10px] p-3 space-y-2 transition-colors ${hasCustom ? "bg-primary/8 border border-primary/20" : "bg-muted/40"}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -1432,7 +1432,7 @@ export default function POSPage() {
             className="h-8 text-sm bg-muted"
           />
           {showRecentCustomers && recentCustomers.filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase())).length > 0 && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg shadow-lg overflow-hidden">
               {recentCustomers
                 .filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase()))
                 .slice(0, 5)
@@ -1515,7 +1515,7 @@ export default function POSPage() {
             /* Split payment mode */
             <div className="space-y-2">
               {/* Method 1 */}
-              <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+              <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 1</span>
                 <PayMethodGrid value={splitMethod1} onChange={setSplitMethod1} />
                 <Input
@@ -1527,7 +1527,7 @@ export default function POSPage() {
                 />
               </div>
               {/* Method 2 */}
-              <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+              <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 2</span>
                 <PayMethodGrid value={splitMethod2} onChange={setSplitMethod2} />
                 <div className={`h-8 flex items-center px-3 rounded-lg border text-sm font-mono ${
@@ -1585,7 +1585,7 @@ export default function POSPage() {
         <div className="space-y-1.5">
           <button
             onClick={() => { setShowDiscount(!showDiscount); setDiscountValue(""); }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-[8px] border text-xs font-medium transition-all ${
               showDiscount
                 ? "border-primary/40 bg-primary/5 text-primary"
                 : "border-border bg-card text-muted-foreground hover:border-primary/30"
@@ -1601,7 +1601,7 @@ export default function POSPage() {
           </button>
 
           {showDiscount && (
-            <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+            <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
               {/* Type toggle */}
               <div className="grid grid-cols-2 gap-1">
                 <button
@@ -1651,7 +1651,7 @@ export default function POSPage() {
             <div className="space-y-1.5">
               <button
                 onClick={() => setShowCatDiscount(!showCatDiscount)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-[8px] border text-xs font-medium transition-all ${
                   showCatDiscount || catDiscountARS > 0
                     ? 'border-primary/40 bg-primary/5 text-primary'
                     : 'border-border bg-card text-muted-foreground hover:border-primary/30'
@@ -1664,7 +1664,7 @@ export default function POSPage() {
                 {catDiscountARS > 0 && <span className="text-success font-mono">-{formatARS(catDiscountARS)}</span>}
               </button>
               {showCatDiscount && (
-                <div className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+                <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                   {cats.map(cat => (
                     <div key={cat} className="flex items-center gap-2">
                       <span className="text-xs flex-1 truncate capitalize">{cat.replace(/_/g, ' ')}</span>
@@ -1690,7 +1690,7 @@ export default function POSPage() {
         })()}
 
         {/* Total + confirm */}
-        <div className="bg-primary/10 rounded-xl px-4 py-3 border border-primary/20 space-y-1">
+        <div className="bg-primary/10 rounded-[10px] px-4 py-3 border border-primary/20 space-y-1">
           {cartSubtotal !== cartTotal && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
@@ -1735,7 +1735,7 @@ export default function POSPage() {
 
         {/* Historial del turno */}
         {turnoSales.length > 0 && (
-          <div className="border border-border rounded-xl overflow-hidden">
+          <div className="border border-border rounded-[10px] overflow-hidden">
             <button
               onClick={() => setShowTurnoHistory(!showTurnoHistory)}
               className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
@@ -1800,7 +1800,7 @@ export default function POSPage() {
       {/* Variant Picker modal */}
       {variantPickerProduct && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setVariantPickerProduct(null)}>
-          <div className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <div className="min-w-0 mr-3">
                 <p className="text-sm font-semibold truncate">{variantPickerProduct.name}</p>
@@ -1818,7 +1818,7 @@ export default function POSPage() {
                     key={v.id}
                     onClick={() => !outOfStock && addToCart(variantPickerProduct, { id: v.id, name: v.variant_name, stock: v.stock, price: v.price_override || undefined })}
                     disabled={outOfStock}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-[10px] border text-left transition-all ${
                       outOfStock ? 'opacity-40 cursor-not-allowed border-border' : 'border-border hover:border-primary/50 hover:bg-primary/5 active:scale-98'
                     }`}
                   >
@@ -1826,7 +1826,7 @@ export default function POSPage() {
                       <p className="text-sm font-medium">{v.variant_name}</p>
                       {v.price_override && <p className="text-xs text-muted-foreground">{formatARS(v.price_override)}</p>}
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    <span className={`text-xs px-2 py-0.5 rounded-[5px] ${
                       v.stock <= 0 ? 'bg-red-500/15 text-red-400' :
                       v.stock <= 3 ? 'bg-yellow-500/15 text-yellow-400' :
                       'bg-muted text-muted-foreground'
@@ -1840,7 +1840,7 @@ export default function POSPage() {
             <div className="px-4 pb-4">
               <button
                 onClick={() => addToCart(variantPickerProduct)}
-                className="w-full py-2.5 rounded-xl border border-dashed border-border hover:border-primary/40 hover:bg-muted/30 transition-colors text-xs text-muted-foreground"
+                className="w-full py-2.5 rounded-[10px] border border-dashed border-border hover:border-primary/40 hover:bg-muted/30 transition-colors text-xs text-muted-foreground"
               >
                 Sin variante específica (stock total: {variantPickerProduct.stock})
               </button>
@@ -1861,7 +1861,7 @@ export default function POSPage() {
       {/* Turno summary modal */}
       {showTurnoSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h2 className="font-display font-bold flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Resumen del turno</h2>
               <button onClick={() => setShowTurnoSummary(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -1874,7 +1874,7 @@ export default function POSPage() {
                   { label: 'Total', value: formatARS(turnoSales.reduce((s, v) => s + v.total, 0)) },
                   { label: 'Ticket prom.', value: formatARS(turnoSales.length > 0 ? turnoSales.reduce((s, v) => s + v.total, 0) / turnoSales.length : 0) },
                 ].map(k => (
-                  <div key={k.label} className="bg-muted/40 rounded-xl p-3 text-center">
+                  <div key={k.label} className="bg-muted/40 rounded-[10px] p-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{k.label}</p>
                     <p className="text-lg font-bold font-display text-primary mt-0.5">{k.value}</p>
                   </div>
@@ -1954,7 +1954,7 @@ export default function POSPage() {
       {scanning && (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4">
           <p className="text-white font-semibold">Apuntá la cámara al código de barras</p>
-          <div className="relative w-72 h-48 rounded-2xl overflow-hidden border-2 border-primary">
+          <div className="relative w-72 h-48 rounded-[10px] overflow-hidden border-2 border-primary">
             <video ref={videoRef} className="w-full h-full object-cover" />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-48 h-0.5 bg-primary animate-pulse" />
@@ -1967,7 +1967,7 @@ export default function POSPage() {
       {/* Seller prompt dialog */}
       {showSellerPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-2xl p-6 w-full max-w-sm mx-4">
             <h2 className="text-lg font-bold font-display mb-1">¿Quién atiende hoy?</h2>
             <p className="text-xs text-muted-foreground mb-4">El nombre del vendedor se registrará en cada venta del turno.</p>
             <input
@@ -2093,7 +2093,7 @@ export default function POSPage() {
             <button
               key={c.value}
               onClick={() => setCat(c.value)}
-              className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+              className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-[5px] border transition-all ${
                 cat === c.value
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-muted border-border text-muted-foreground hover:border-primary/40"
@@ -2140,7 +2140,7 @@ export default function POSPage() {
                         }
                       }}
                       disabled={outOfStock}
-                      className={`relative flex flex-col bg-card border rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 ${
+                      className={`relative flex flex-col bg-card border rounded-[10px] overflow-hidden text-left transition-all hover:shadow-md active:scale-95 ${
                         inCart ? "border-primary/60 ring-1 ring-primary/30" : "border-border hover:border-primary/30"
                       } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
@@ -2169,7 +2169,7 @@ export default function POSPage() {
                               <p className="text-[10px] line-through text-muted-foreground/50">{formatARS(price)}</p>
                             )}
                           </div>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] ${
                             prod.stock <= 0 ? "bg-red-500/15 text-red-400" :
                             prod.stock <= 3 ? "bg-yellow-500/15 text-yellow-400" :
                             "bg-muted text-muted-foreground"

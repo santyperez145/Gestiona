@@ -163,11 +163,11 @@ export default function TeamPage() {
       />
 
       {canManage && (
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold flex items-center gap-2"><Mail className="w-4 h-4" /> Invitar miembro</h2>
             {userLimit !== null && (
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${members.length >= userLimit ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-[5px] ${members.length >= userLimit ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
                 {members.length}/{userLimit} usuarios
               </span>
             )}
@@ -204,7 +204,7 @@ export default function TeamPage() {
         </div>
       )}
 
-      <div className="bg-card border border-border rounded-2xl p-5">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
         <h2 className="font-semibold mb-3">Miembros ({members.length})</h2>
         {loading ? <div className="text-sm text-muted-foreground">Cargando...</div> : (
           <div className="divide-y divide-border">
@@ -246,7 +246,7 @@ export default function TeamPage() {
       </div>
 
       {invites.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
           <h2 className="font-semibold mb-3">Invitaciones pendientes ({invites.length})</h2>
           <div className="divide-y divide-border">
             {invites.map(i => (

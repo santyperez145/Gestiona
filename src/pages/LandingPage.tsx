@@ -1,85 +1,221 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BarChart3, Boxes, Brain, ShieldCheck, Sparkles, Zap, Check } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Brain, ShieldCheck, Sparkles, Zap, Check, ChevronRight } from 'lucide-react';
+
+const FEATURES = [
+  { icon: Boxes,      title: 'Stock multi-variante',  desc: 'Controlá inventario en tiempo real con alertas automáticas de bajo stock.' },
+  { icon: BarChart3,  title: 'Reportes avanzados',    desc: 'Estado de resultados, rentabilidad por producto y proyección de caja.' },
+  { icon: Brain,      title: 'IA integrada',           desc: 'Predicciones de ventas, insights y descripciones automáticas.' },
+  { icon: Zap,        title: 'Catálogo público',       desc: 'Una URL para compartir con tus clientes, con carrito a WhatsApp.' },
+  { icon: ShieldCheck,title: 'Multi-usuario y roles',  desc: 'Invitá a tu equipo con permisos granulares por sección.' },
+  { icon: Sparkles,   title: 'Branding propio',        desc: 'Tu logo, tus colores y tu identidad en el catálogo público.' },
+];
+
+const CHECKS = ['Sin instalación', 'Multi-usuario', 'Soporte en español', 'Cancelás cuando quieras'];
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      <header className="border-b border-border/50 sticky top-0 backdrop-blur-md bg-background/70 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">G</div>
-            <span className="font-display font-bold text-lg">Gestiona</span>
+    <div className="min-h-screen text-foreground overflow-x-hidden" style={{ background: 'hsl(228 28% 4.5%)' }}>
+
+      {/* ── Nav ──────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-20 border-b border-border/30 backdrop-blur-md"
+        style={{ background: 'hsl(228 28% 4.5% / 0.85)' }}>
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-7 h-7 rounded-[5px] flex items-center justify-center shrink-0"
+              style={{ background: 'var(--gradient-gold)' }}
+            >
+              <span className="font-display font-black text-[12px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+            </div>
+            <span className="font-display font-semibold text-[15px] tracking-tight">Gestiona</span>
           </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#features" className="text-muted-foreground hover:text-foreground">Features</a>
-            <Link to="/pricing" className="text-muted-foreground hover:text-foreground">Precios</Link>
-            <Link to="/app" className="text-muted-foreground hover:text-foreground">Iniciar sesión</Link>
+
+          {/* Nav links */}
+          <nav className="hidden md:flex items-center gap-6">
+            {[
+              { href: '#features', label: 'Features' },
+              { to: '/pricing',    label: 'Precios' },
+            ].map(({ href, to, label }) =>
+              href ? (
+                <a key={label} href={href}
+                  className="text-[13px] text-muted-foreground/70 hover:text-foreground transition-colors">
+                  {label}
+                </a>
+              ) : (
+                <Link key={label} to={to!}
+                  className="text-[13px] text-muted-foreground/70 hover:text-foreground transition-colors">
+                  {label}
+                </Link>
+              )
+            )}
           </nav>
-          <Link to="/app"><Button size="sm">Empezar gratis</Button></Link>
+
+          <div className="flex items-center gap-2">
+            <Link to="/app">
+              <Button variant="ghost" size="sm" className="text-[13px]">Iniciar sesión</Button>
+            </Link>
+            <Link to="/app">
+              <Button size="sm" className="text-[12px]">
+                Empezar gratis <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative max-w-7xl mx-auto px-6 pt-24 pb-32 text-center">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_60%)]" />
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6 animate-fade-in-up">
-          <Sparkles className="w-3.5 h-3.5" /> Probá 14 días gratis · Sin tarjeta
-        </div>
-        <h1 className="text-5xl md:text-7xl font-display font-bold mb-6 leading-tight max-w-4xl mx-auto animate-fade-in-up">
-          El sistema de gestión que tu negocio<span className="text-primary"> realmente necesita</span>.
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up">
-          Stock, ventas, clientes, deudas, métricas y catálogo público — todo en un solo lugar, con IA y multi-usuario.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in-up">
-          <Link to="/app"><Button size="lg" className="px-8">Empezar gratis <ArrowRight className="w-4 h-4 ml-1" /></Button></Link>
-          <Link to="/pricing"><Button size="lg" variant="outline" className="px-8">Ver planes</Button></Link>
-        </div>
-      </section>
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <section className="relative max-w-6xl mx-auto px-6 pt-28 pb-36 text-center">
+        {/* Background glow */}
+        <div className="absolute inset-x-0 top-0 h-[500px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 80% 50% at 50% 0%, hsl(38 82% 52% / 0.07) 0%, transparent 70%)' }} />
 
-      {/* FEATURES */}
-      <section id="features" className="max-w-7xl mx-auto px-6 py-20">
-        <div className="text-center mb-14">
-          <h2 className="text-4xl font-display font-bold mb-3">Todo lo que necesitás para vender más</h2>
-          <p className="text-muted-foreground">Sin instalación. Funciona en cualquier dispositivo.</p>
+        {/* Eyebrow */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8"
+          style={{
+            background: 'hsl(38 82% 52% / 0.08)',
+            border: '1px solid hsl(38 82% 52% / 0.2)',
+            borderRadius: '5px',
+          }}>
+          <Sparkles className="w-3 h-3 text-primary" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-primary/80">
+            14 días gratis · Sin tarjeta
+          </span>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <h1 className="font-display text-[3.2rem] md:text-[5rem] font-bold leading-[1.05] tracking-tight max-w-4xl mx-auto mb-6">
+          El sistema de gestión que tu negocio
+          <span className="text-gradient-gold"> realmente necesita</span>.
+        </h1>
+
+        <p className="text-[1rem] text-muted-foreground/70 max-w-[560px] mx-auto mb-10 leading-relaxed">
+          Stock, ventas, clientes, deudas, métricas y catálogo público —
+          todo en un solo lugar, con IA y multi-usuario.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link to="/app">
+            <Button size="lg" className="px-8 h-11 text-[14px]">
+              Empezar gratis <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          </Link>
+          <Link to="/pricing">
+            <Button size="lg" variant="outline" className="px-8 h-11 text-[14px]">Ver planes</Button>
+          </Link>
+        </div>
+
+        {/* Social proof strip */}
+        <div className="flex items-center justify-center gap-6 mt-14">
           {[
-            { i: Boxes, t: 'Stock multi-variante', d: 'Controlá inventario en tiempo real con alertas de bajo stock.' },
-            { i: BarChart3, t: 'Reportes avanzados', d: 'Estado de resultados, rentabilidad por producto y proyección de caja.' },
-            { i: Brain, t: 'IA integrada', d: 'Predicciones de ventas y descripciones automáticas.' },
-            { i: Zap, t: 'Catálogo público', d: 'Una URL para compartir con tus clientes con carrito a WhatsApp.' },
-            { i: ShieldCheck, t: 'Multi-usuario y roles', d: 'Invita a tu equipo con permisos granulares.' },
-            { i: Sparkles, t: 'Branding propio', d: 'Tu logo, tus colores, tu identidad.' },
-          ].map(f => (
-            <div key={f.t} className="rounded-2xl border border-border bg-card p-6 hover:border-primary/50 transition">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                <f.i className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="font-display font-bold text-lg mb-1">{f.t}</h3>
-              <p className="text-sm text-muted-foreground">{f.d}</p>
+            { val: '500+', label: 'negocios activos' },
+            { val: '99.9%', label: 'uptime garantizado' },
+            { val: '$0', label: 'costo de instalación' },
+          ].map(({ val, label }) => (
+            <div key={label} className="text-center">
+              <div className="font-mono text-[1.4rem] font-bold text-foreground tracking-tight">{val}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/45 mt-0.5">{label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="max-w-4xl mx-auto px-6 py-24 text-center">
-        <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-12">
-          <h2 className="text-4xl font-display font-bold mb-4">Empezá hoy mismo</h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">14 días gratis con todas las features. Sin tarjeta de crédito.</p>
-          <ul className="flex flex-wrap justify-center gap-4 text-sm mb-8">
-            {['Sin instalación', 'Multi-usuario', 'Soporte en español', 'Cancelás cuando quieras'].map(x => (
-              <li key={x} className="flex items-center gap-1.5"><Check className="w-4 h-4 text-primary" />{x}</li>
-            ))}
-          </ul>
-          <Link to="/app"><Button size="lg" className="px-10">Probar Gestiona gratis <ArrowRight className="w-4 h-4 ml-1" /></Button></Link>
+      {/* ── Features ─────────────────────────────────────────────── */}
+      <section id="features" className="max-w-6xl mx-auto px-6 py-20">
+        {/* Section header */}
+        <div className="mb-14">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-primary/70 mb-2">Funcionalidades</p>
+          <h2 className="font-display text-[2.2rem] font-bold tracking-tight leading-tight max-w-xl">
+            Todo lo que necesitás para vender más
+          </h2>
+          <p className="text-[13px] text-muted-foreground/60 mt-2">
+            Sin instalación. Funciona en cualquier dispositivo.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border/30 rounded-[12px] overflow-hidden border border-border/30">
+          {FEATURES.map((f, i) => (
+            <div
+              key={f.title}
+              className="bg-[hsl(228_24%_6.5%)] p-6 hover:bg-[hsl(228_24%_8%)] transition-colors duration-200 group relative"
+            >
+              {/* Number */}
+              <div className="font-mono text-[9px] font-bold text-muted-foreground/25 mb-4 tracking-[0.1em]">
+                {String(i + 1).padStart(2, '0')}
+              </div>
+
+              {/* Icon */}
+              <div className="flex items-center gap-3 mb-3">
+                <f.icon className="w-4 h-4 text-primary/70 group-hover:text-primary transition-colors" />
+                <h3 className="font-display font-semibold text-[14px] tracking-tight">{f.title}</h3>
+              </div>
+
+              <p className="text-[12px] text-muted-foreground/60 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <footer className="border-t border-border/50 py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Gestiona · Todos los derechos reservados
+      {/* ── CTA ──────────────────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-6 py-24">
+        <div className="relative overflow-hidden rounded-[12px] border border-primary/20 p-12"
+          style={{ background: 'hsl(228 24% 7%)' }}>
+
+          {/* Inner top highlight */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, hsl(38 82% 52% / 0.3), transparent)' }} />
+
+          {/* Corner glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at 50% 0%, hsl(38 82% 52% / 0.08) 0%, transparent 70%)' }} />
+
+          <div className="relative z-10 text-center max-w-2xl mx-auto">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-primary/70 mb-3">Empezá ahora</p>
+            <h2 className="font-display text-[2.5rem] font-bold tracking-tight leading-tight mb-4">
+              Probalo gratis por 14 días
+            </h2>
+            <p className="text-[13px] text-muted-foreground/60 mb-8 leading-relaxed">
+              Todas las features disponibles desde el primer día. Sin tarjeta de crédito requerida.
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-8">
+              {CHECKS.map(x => (
+                <div key={x} className="flex items-center gap-1.5">
+                  <div className="w-[3px] h-[12px] rounded-full bg-primary/60" />
+                  <span className="text-[12px] text-foreground/70">{x}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link to="/app">
+              <Button size="lg" className="px-10 h-11">
+                Probar Gestiona gratis <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────────────── */}
+      <footer className="border-t border-border/30 py-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-5 h-5 rounded-[3px] flex items-center justify-center"
+              style={{ background: 'var(--gradient-gold)' }}
+            >
+              <span className="font-display font-black text-[9px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+            </div>
+            <span className="font-display font-semibold text-[13px] text-muted-foreground/60">Gestiona</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground/35">
+            © {new Date().getFullYear()} Gestiona · Todos los derechos reservados
+          </p>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors">Privacidad</Link>
+            <Link to="/terms" className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors">Términos</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -50,36 +50,69 @@ export default function InvitationAcceptPage() {
     window.location.href = '/';
   };
 
-  if (loading || authLoading) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'hsl(228 28% 4.5%)' }}>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 text-center animate-fade-in-up">
-        {error ? (
-          <>
-            <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-7 h-7 text-destructive" />
-            </div>
-            <h1 className="text-xl font-display font-bold mb-2">Algo salió mal</h1>
-            <p className="text-sm text-muted-foreground mb-6">{error}</p>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full">Ir al inicio</Button>
-          </>
-        ) : (
-          <>
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-7 h-7 text-primary" />
-            </div>
-            <h1 className="text-2xl font-display font-bold mb-2">Te invitaron a {org?.name}</h1>
-            <p className="text-sm text-muted-foreground mb-6">Vas a unirte como <strong className="text-foreground">{invite.role}</strong> con el email <strong className="text-foreground">{invite.email}</strong>.</p>
-            {!user ? (
-              <Button onClick={() => navigate(`/?invite=${token}`)} className="w-full">Iniciar sesión para aceptar</Button>
-            ) : (
-              <Button onClick={accept} disabled={accepting} className="w-full">
-                {accepting ? 'Aceptando...' : <><Check className="w-4 h-4 mr-1" /> Aceptar invitación</>}
-              </Button>
-            )}
-          </>
-        )}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ background: 'hsl(228 28% 4.5%)' }}>
+      <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(38 82% 52% / 0.05) 0%, transparent 70%)' }} />
+
+      <div className="w-full max-w-[420px] relative z-10">
+        {/* Brand */}
+        <div className="flex items-center justify-center gap-2.5 mb-8">
+          <div className="w-7 h-7 rounded-[5px] flex items-center justify-center"
+            style={{ background: 'var(--gradient-gold)' }}>
+            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+          </div>
+          <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/80">Gestiona</span>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-[10px] border border-border/60 p-8 text-center relative overflow-hidden"
+          style={{ background: 'hsl(228 24% 7%)' }}>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+
+          {error ? (
+            <>
+              <div className="w-12 h-12 rounded-[8px] bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-5">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <h1 className="font-display text-[1.2rem] font-bold tracking-tight mb-2">Algo salió mal</h1>
+              <p className="text-[12px] text-muted-foreground/60 mb-6 leading-relaxed">{error}</p>
+              <Button onClick={() => navigate('/')} variant="outline" className="w-full">Ir al inicio</Button>
+            </>
+          ) : (
+            <>
+              <div className="w-12 h-12 rounded-[8px] bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-5">
+                <Mail className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-2">Invitación recibida</p>
+              <h1 className="font-display text-[1.3rem] font-bold tracking-tight mb-3">
+                Te invitaron a {org?.name}
+              </h1>
+              <p className="text-[12px] text-muted-foreground/60 mb-6 leading-relaxed">
+                Vas a unirte como <strong className="text-foreground font-semibold">{invite.role}</strong> con el email{' '}
+                <span className="font-mono text-foreground/80">{invite.email}</span>.
+              </p>
+              {!user ? (
+                <Button onClick={() => navigate(`/?invite=${token}`)} className="w-full">
+                  Iniciar sesión para aceptar
+                </Button>
+              ) : (
+                <Button onClick={accept} disabled={accepting} className="w-full">
+                  {accepting ? 'Aceptando...' : <><Check className="w-4 h-4 mr-1.5" /> Aceptar invitación</>}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

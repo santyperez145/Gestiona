@@ -664,7 +664,7 @@ export function InstagramStoryGenerator() {
           Historia Instagram
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border max-w-5xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-primary" />
@@ -744,7 +744,7 @@ export function InstagramStoryGenerator() {
                         return (
                           <button key={v.id} type="button"
                             onClick={() => setSelectedFlavors((prev) => active ? prev.filter((f) => f !== v.variant_name) : [...prev, v.variant_name])}
-                            className={`text-xs px-2.5 py-1 rounded-full border transition-all ${active ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:border-primary/40"}`}>
+                            className={`text-xs px-2.5 py-1 rounded-[5px] border transition-all ${active ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:border-primary/40"}`}>
                             {v.variant_name}
                             {v.stock != null && <span className="ml-1 opacity-60 text-[10px]">({v.stock})</span>}
                           </button>

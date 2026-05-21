@@ -146,7 +146,7 @@ export default function AIProactiveWidget({ orgId, stats }: Props) {
             <ul className="space-y-2">
               {bullets.map((b, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm">
-                  <span className="mt-0.5 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <span className="mt-0.5 w-5 h-5 rounded-[4px] bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                     {i + 1}
                   </span>
                   <span className="text-foreground/85 leading-snug">{b}</span>

@@ -336,7 +336,7 @@ export default function TasksPage() {
             return (
               <div
                 key={status}
-                className={`flex-1 min-w-[230px] max-w-xs bg-muted/20 border rounded-xl p-3 ${colColors[status]}`}
+                className={`flex-1 min-w-[230px] max-w-xs bg-muted/20 border rounded-[8px] p-3 ${colColors[status]}`}
                 onDragOver={e => { e.preventDefault(); }}
                 onDrop={async () => {
                   if (!draggedTaskId) return;
@@ -360,7 +360,7 @@ export default function TasksPage() {
                         draggable
                         onDragStart={() => setDraggedTaskId(task.id)}
                         onDragEnd={() => setDraggedTaskId(null)}
-                        className={`p-2.5 rounded-lg border bg-card cursor-grab active:cursor-grabbing transition-opacity ${
+                        className={`p-2.5 rounded-[6px] border bg-card cursor-grab active:cursor-grabbing transition-opacity ${
                           draggedTaskId === task.id ? "opacity-40" : ""
                         } ${isOverdue ? "border-destructive/30" : "border-border"}`}
                       >
@@ -368,7 +368,7 @@ export default function TasksPage() {
                           {task.title}
                         </p>
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                          <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${pc?.color}`}>{pc?.label}</span>
+                          <span className={`text-[9px] rounded-[5px] px-1.5 py-0.5 font-semibold ${pc?.color}`}>{pc?.label}</span>
                           {task.due_date && (
                             <span className={`text-[9px] ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
                               {new Date(task.due_date + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
@@ -544,7 +544,7 @@ export default function TasksPage() {
 
       {/* Create dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Nueva tarea</DialogTitle>
           </DialogHeader>

@@ -415,12 +415,12 @@ export default function EmailCampaignsPage() {
           {campaigns.map(camp => {
             const aud = audienceFor(camp.segment);
             return (
-              <Card key={camp.id} className="border-border bg-card/60">
+              <Card key={camp.id} className="border-border/60 bg-[hsl(228_24%_7%)]">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold truncate">{camp.subject}</span>
-                      <Badge className={`text-xs px-1.5 py-0 rounded-full ${STATUS_COLORS[camp.status]}`}>
+                      <Badge className={`text-xs px-1.5 py-0 rounded-[3px] ${STATUS_COLORS[camp.status]}`}>
                         {STATUS_LABELS[camp.status]}
                       </Badge>
                     </div>
@@ -450,7 +450,7 @@ export default function EmailCampaignsPage() {
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(openRate, 100)}%` }} />
                             </div>
-                            <span className="text-xs font-semibold text-emerald-400 w-16 text-right">{openRate.toFixed(1)}% <span className="text-muted-foreground font-normal">({camp.open_count ?? 0})</span></span>
+                            <span className="text-xs font-semibold font-mono text-emerald-400 w-16 text-right">{openRate.toFixed(1)}% <span className="text-muted-foreground font-normal">({camp.open_count ?? 0})</span></span>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1.5 w-28 shrink-0">
@@ -528,7 +528,7 @@ export default function EmailCampaignsPage() {
                 {EMAIL_TEMPLATES.map(t => (
                   <button key={t.id} type="button"
                     onClick={() => { setSubject(t.subject); setBodyHtml(t.body); }}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-muted hover:border-primary/40 hover:bg-primary/5 transition-colors text-muted-foreground hover:text-foreground">
+                    className="px-2.5 py-1.5 text-xs rounded-[6px] border border-border bg-muted hover:border-primary/40 hover:bg-primary/5 transition-colors text-muted-foreground hover:text-foreground">
                     {t.label}
                   </button>
                 ))}
@@ -570,7 +570,7 @@ export default function EmailCampaignsPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Cuerpo del email (HTML o texto)</Label>
-                <div className="flex rounded-lg border border-border overflow-hidden h-7">
+                <div className="flex rounded-[6px] border border-border overflow-hidden h-7">
                   <button
                     type="button"
                     onClick={() => setShowBodyPreview(false)}
@@ -587,7 +587,7 @@ export default function EmailCampaignsPage() {
                 <iframe
                   sandbox=""
                   srcDoc={bodyHtml ? buildBrandedEmail(bodyHtml, orgSettings.logo_url, orgSettings.business_name) : '<p style="color:#aaa;padding:16px;font-family:sans-serif">El cuerpo del email aparecerá aquí...</p>'}
-                  className="min-h-[220px] w-full rounded-lg border border-border bg-gray-50"
+                  className="min-h-[220px] w-full rounded-[8px] border border-border bg-gray-50"
                   style={{ minHeight: 220 }}
                   title="Vista previa del email"
                 />
@@ -635,7 +635,7 @@ export default function EmailCampaignsPage() {
           <iframe
             sandbox=""
             srcDoc={preview?.body_html || "<p style='color:#aaa;font-family:sans-serif;padding:16px'>Sin contenido</p>"}
-            className="w-full rounded-lg border border-border bg-white"
+            className="w-full rounded-[8px] border border-border bg-white"
             style={{ minHeight: 400 }}
             title="Vista previa de la campaña"
           />

@@ -57,7 +57,7 @@ function CombosTab() {
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold"><Plus className="w-4 h-4 mr-2" />Nuevo combo</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+          <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editItem ? 'Editar combo' : 'Crear combo'}</DialogTitle></DialogHeader>
             <ComboForm products={products} editItem={editItem} userId={user?.id || ''} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>
@@ -68,7 +68,7 @@ function CombosTab() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {combos.map(c => (
-            <div key={c.id} className="bg-card border border-border rounded-lg p-4">
+            <div key={c.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-semibold">{c.name}</h3>
@@ -196,7 +196,7 @@ function BannersTab() {
           <DialogTrigger asChild>
             <Button className="gradient-gold text-primary-foreground font-semibold"><Plus className="w-4 h-4 mr-2" />Nuevo banner</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+          <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editItem ? 'Editar banner' : 'Crear banner'}</DialogTitle></DialogHeader>
             <BannerForm editItem={editItem} userId={user?.id || ''} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
           </DialogContent>

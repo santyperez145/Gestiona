@@ -626,7 +626,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                   <Plus className="w-4 h-4 mr-2" />Nueva Venta
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border max-w-2xl p-0">
+              <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-2xl p-0">
                 <DialogHeader className="p-6 pb-0"><DialogTitle className="font-display">{editItem ? 'Editar Venta' : 'Registrar Venta'}</DialogTitle></DialogHeader>
                 <ScrollArea className="max-h-[75vh] px-6 pb-6">
                   <SaleForm userId={user!.id} editItem={editItem} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
@@ -664,7 +664,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         });
         const sorted = Object.entries(byMethod).sort((a, b) => b[1].total - a[1].total);
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Desglose por método de pago</h3>
             <div className="space-y-2">
               {sorted.map(([method, data]) => {
@@ -710,7 +710,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         const maxVal = Math.max(...days.map(d => dailyMap[d]));
         const show = days.slice(-30);
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tendencia diaria ({show.length} días)</h3>
             <div className="flex items-end gap-0.5 h-14 overflow-x-auto">
               {show.map(d => {
@@ -745,7 +745,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           { key: "year", label: "Este año" },
         ].map(p => (
           <button key={p.key} onClick={() => applyPreset(p.key)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${datePreset === p.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}>
+            className={`px-3 py-1 rounded-[5px] text-xs font-medium transition-colors ${datePreset === p.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}>
             {p.label}
           </button>
         ))}
@@ -856,9 +856,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         <EmptyState icon={DollarSign} title="No hay ventas registradas" description="Registrá tu primera venta para comenzar a ver tus ganancias." actionLabel="Nueva Venta" onAction={() => setOpen(true)} />
       ) : viewMode === "by_customer" ? (
         /* ── By Customer view ── */
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <h3 className="text-sm font-semibold">{customerGroups.length} clientes</h3>
+            <h3 className="text-sm font-semibold font-display tracking-tight">{customerGroups.length} clientes</h3>
             <span className="text-xs text-muted-foreground">{formatARS(totalSales)} total</span>
           </div>
           <table className="w-full text-sm">
@@ -923,7 +923,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
               return next;
             });
             return (
-              <div key={sess.id} className="bg-card border border-border rounded-xl overflow-hidden">
+              <div key={sess.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
                 <button
                   className="w-full px-4 py-3 bg-muted/30 flex items-center justify-between hover:bg-muted/50 transition-colors"
                   onClick={toggleCollapse}
@@ -970,9 +970,9 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         </div>
       ) : viewMode === "by_product" ? (
         /* ── By Product view ── */
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <h3 className="text-sm font-semibold">{productGroups.length} productos</h3>
+            <h3 className="text-sm font-semibold font-display tracking-tight">{productGroups.length} productos</h3>
             <span className="text-xs text-muted-foreground">{formatARS(totalSales)} total · {filtered.length} ventas</span>
           </div>
           {productGroups.length === 0 ? (
@@ -1048,7 +1048,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                 const delta = prevData && prevData.total > 0 ? ((data.total - prevData.total) / prevData.total) * 100 : null;
                 const label = new Date(d + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" });
                 return (
-                  <div key={d} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-4">
+                  <div key={d} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] px-4 py-3 flex items-center gap-4">
                     <div className="w-28 shrink-0">
                       <p className="text-sm font-semibold capitalize">{label}</p>
                       <p className="text-[10px] text-muted-foreground">{data.count} venta{data.count !== 1 ? "s" : ""}</p>
@@ -1078,7 +1078,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         <>
           {/* Bulk action bar */}
           {selectedIds.size > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-2xl px-4 py-3">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-primary/40 shadow-xl rounded-[10px] px-4 py-3">
               <span className="text-sm font-medium">{selectedIds.size} seleccionada{selectedIds.size !== 1 ? 's' : ''}</span>
               <Button size="sm" className="gradient-gold text-primary-foreground font-semibold shadow-gold h-8" onClick={bulkMarkPaid} disabled={bulkLoading}>
                 <CheckCheck className="w-4 h-4 mr-1.5" />{bulkLoading ? "Procesando..." : "Marcar cobradas"}
@@ -1092,7 +1092,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </div>
           )}
 
-          <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
+          <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
             <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
@@ -1195,7 +1195,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
 
           <div className="md:hidden space-y-3">
             {paged.map(s => (
-              <div key={s.id} className="bg-card border border-border rounded-lg p-4">
+              <div key={s.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-medium text-sm">{s.product_name}</p>
@@ -1239,7 +1239,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
 
           {/* Period totals footer */}
           {filtered.length > 0 && (
-            <div className="mt-3 bg-card border border-border rounded-xl px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
+            <div className="mt-3 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
               <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Totales del período</span>
               <span className="font-bold text-primary">{formatARS(totalSales)}</span>
               <span className="text-success text-xs">{formatARS(totalProfit)} ganancia</span>
@@ -1573,7 +1573,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           className="bg-muted border-border"
         />
         {showCustomerList && filteredCustomers.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg shadow-lg max-h-40 overflow-y-auto">
             {filteredCustomers.map(c => (
               <button key={c} type="button"
                 className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg"

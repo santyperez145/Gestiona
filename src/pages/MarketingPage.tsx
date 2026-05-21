@@ -123,7 +123,7 @@ export default function MarketingPage() {
                   <Sparkles className="w-4 h-4 mr-2" />Generar con IA
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle className="font-display">Generar Contenido con IA</DialogTitle></DialogHeader>
                 <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} postTypes={postTypes} themes={themes} />
               </DialogContent>
@@ -132,7 +132,7 @@ export default function MarketingPage() {
               <DialogTrigger asChild>
                 <Button variant="outline"><Plus className="w-4 h-4 mr-2" />Manual</Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle className="font-display">Crear Publicación</DialogTitle></DialogHeader>
                 <ManualPostForm userId={user?.id || ''} onSave={reload} postTypes={postTypes} />
               </DialogContent>
@@ -142,7 +142,7 @@ export default function MarketingPage() {
       />
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 w-fit border border-border">
+      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border">
         {([
           { id: 'posts', label: 'Publicaciones', icon: Instagram },
           { id: 'images', label: 'Imágenes IA', icon: ImageIcon },
@@ -200,7 +200,7 @@ export default function MarketingPage() {
             </Button>
           </div>
 
-          <div className="mb-8 p-4 rounded-xl border border-border bg-card/50">
+          <div className="mb-8 p-4 rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)]">
             <OfferRecommenderPanel />
           </div>
 
@@ -215,16 +215,16 @@ export default function MarketingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filtered.map(post => (
-                <div key={post.id} className="bg-card border border-border rounded-xl p-5 shadow-card hover:border-primary/30 hover:shadow-md transition-all">
+                <div key={post.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card hover:border-primary/30 hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg shrink-0">
+                      <div className="w-9 h-9 rounded-[6px] bg-primary/10 flex items-center justify-center text-lg shrink-0">
                         {typeIcons[post.post_type] || '📸'}
                       </div>
                       <div>
                         <h3 className="font-medium text-sm">{post.title}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[post.status]}`}>
+                          <span className={`px-2 py-0.5 rounded-[5px] text-[10px] font-medium ${statusColors[post.status]}`}>
                             {statusLabels[post.status] || post.status}
                           </span>
                           {post.ai_generated && <span className="text-[10px] text-primary font-semibold flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" />IA</span>}
@@ -257,7 +257,7 @@ export default function MarketingPage() {
                   {post.hashtags && post.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {post.hashtags.slice(0, 8).map((h: string, i: number) => (
-                        <span key={i} className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full font-medium">{h}</span>
+                        <span key={i} className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-[5px] font-medium">{h}</span>
                       ))}
                       {post.hashtags.length > 8 && <span className="text-[10px] text-muted-foreground">+{post.hashtags.length - 8}</span>}
                     </div>
@@ -357,11 +357,11 @@ function AIImageGenerator({ products }: { products: any[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl p-5">
+      <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-[10px] p-5">
         <div className="flex items-center gap-2 mb-1">
           <ImageIcon className="w-5 h-5 text-primary" />
           <h2 className="font-bold text-base">Generador de Imágenes IA</h2>
-          <span className="text-[10px] bg-success/20 text-success border border-success/20 px-2 py-0.5 rounded-full font-semibold ml-1">GRATIS</span>
+          <span className="text-[10px] bg-success/20 text-success border border-success/20 px-2 py-0.5 rounded-[5px] font-semibold ml-1">GRATIS</span>
         </div>
         <p className="text-xs text-muted-foreground mb-5">Creá imágenes de marketing para tus productos en segundos con inteligencia artificial</p>
 
@@ -395,7 +395,7 @@ function AIImageGenerator({ products }: { products: any[] }) {
                   <button
                     key={s.id}
                     onClick={() => setStyleId(s.id)}
-                    className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-medium transition-all ${
+                    className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-[6px] border text-xs font-medium transition-all ${
                       styleId === s.id
                         ? 'bg-primary/10 border-primary text-primary'
                         : 'bg-muted/50 border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -444,7 +444,7 @@ function AIImageGenerator({ products }: { products: any[] }) {
           {/* Preview */}
           <div className="flex flex-col gap-3">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vista previa</label>
-            <div className="aspect-square rounded-2xl overflow-hidden bg-muted/50 border border-border flex items-center justify-center relative">
+            <div className="aspect-square rounded-[10px] overflow-hidden bg-muted/50 border border-border flex items-center justify-center relative">
               {imageUrl && !error ? (
                 <>
                   {loading && (
@@ -496,11 +496,11 @@ function AIImageGenerator({ products }: { products: any[] }) {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {history.map((item, i) => (
-              <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-muted border border-border cursor-pointer hover:border-primary/50 transition-all"
+              <div key={i} className="group relative aspect-square rounded-[10px] overflow-hidden bg-muted border border-border cursor-pointer hover:border-primary/50 transition-all"
                 onClick={() => setImageUrl(item.url)}>
                 <img src={item.url} alt={item.label} className="w-full h-full object-cover" loading="lazy" />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                  <button onClick={e => { e.stopPropagation(); downloadImage(item.url); }} className="p-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
+                  <button onClick={e => { e.stopPropagation(); downloadImage(item.url); }} className="p-1.5 bg-white/20 rounded-[6px] hover:bg-white/30 transition-colors">
                     <Download className="w-3.5 h-3.5 text-white" />
                   </button>
                 </div>
@@ -587,7 +587,7 @@ function CampaignCalendar({ onGeneratePost }: { onGeneratePost: (theme: string) 
           return (
             <div
               key={i}
-              className={`rounded-2xl border p-4 transition-all ${event.color} ${isPast ? 'opacity-50' : 'hover:shadow-md'}`}
+              className={`rounded-[10px] border p-4 transition-all ${event.color} ${isPast ? 'opacity-50' : 'hover:shadow-md'}`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -601,7 +601,7 @@ function CampaignCalendar({ onGeneratePost }: { onGeneratePost: (theme: string) 
                     </div>
                   </div>
                 </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-[5px] ${
                   isPast ? 'bg-muted text-muted-foreground' :
                   isUrgent ? 'bg-red-500/20 text-red-400 animate-pulse' :
                   isSoon ? 'bg-amber-500/20 text-amber-400' :
@@ -670,10 +670,10 @@ function UTMLinkBuilder() {
   const copy = () => { navigator.clipboard.writeText(generated); toast.success("Link UTM copiado"); };
 
   return (
-    <div className="mb-6 border border-border rounded-xl bg-card/50">
+    <div className="mb-6 border border-border/60 rounded-[10px] bg-[hsl(228_24%_7%)]">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors rounded-xl"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors rounded-[10px]"
       >
         <div className="flex items-center gap-2">
           <Link2 className="w-4 h-4 text-primary" />

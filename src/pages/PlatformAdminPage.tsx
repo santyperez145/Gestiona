@@ -570,7 +570,7 @@ export default function PlatformAdminPage() {
           { l: 'MRR', v: `$${stats.mrr.toLocaleString()}`, i: DollarSign, sub: `ARR: $${stats.arr.toLocaleString()}` },
           { l: 'Conversión trial', v: `${stats.trialConversion}%`, i: TrendingUp, sub: `${stats.active} pagos activos` },
         ].map(s => (
-          <div key={s.l} className="rounded-2xl border border-border bg-card p-4">
+          <div key={s.l} className="rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)] p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground uppercase tracking-wide">{s.l}</span>
               <s.i className="w-4 h-4 text-primary" />
@@ -641,7 +641,7 @@ export default function PlatformAdminPage() {
 
         {/* ── OVERVIEW TAB ── */}
         <TabsContent value="overview" className="mt-4 space-y-4">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
             <div className="px-4 py-3 border-b border-border">
               <h3 className="font-semibold text-sm">Organizaciones recientes</h3>
             </div>
@@ -669,7 +669,7 @@ export default function PlatformAdminPage() {
 
         {/* ── ORGS TAB ── */}
         <TabsContent value="orgs" className="mt-4">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
             <div className="p-4 border-b border-border flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <h2 className="font-semibold flex-1 text-sm">Organizaciones ({filteredOrgs.length})</h2>
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -826,7 +826,7 @@ export default function PlatformAdminPage() {
               <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loadingUsers ? 'animate-spin' : ''}`} /> Recargar
             </Button>
           </div>
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
             {/* Mobile: card list */}
             <div className="sm:hidden divide-y divide-border">
               {loadingUsers
@@ -968,7 +968,7 @@ export default function PlatformAdminPage() {
             {loadingPlans
               ? <div className="col-span-3 text-center p-8 text-muted-foreground">Cargando planes...</div>
               : plans.map(p => (
-                <div key={p.id} className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-display font-bold text-lg">{p.name}</h3>
@@ -1017,7 +1017,7 @@ export default function PlatformAdminPage() {
           <div className="grid gap-5 lg:grid-cols-2">
 
             {/* Org lookup */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
                 <h3 className="font-semibold text-sm flex-1">Buscar organización</h3>
@@ -1159,7 +1159,7 @@ export default function PlatformAdminPage() {
             </div>
 
             {/* Admin audit log */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4 text-primary" />

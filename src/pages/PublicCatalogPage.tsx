@@ -80,7 +80,7 @@ function CountdownTimer({ expiresAt, primaryColor }: { expiresAt: string; primar
   if (expired) return null;
   return (
     <span
-      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md animate-pulse"
+      className="flex items-center gap-1 px-2 py-1 rounded-[4px] text-[10px] font-bold backdrop-blur-md animate-pulse"
       style={{ background: `${primaryColor}30`, color: primaryColor, border: `1px solid ${primaryColor}40` }}
     >
       <Clock className="w-2.5 h-2.5" />⏱ {timeLeft}
@@ -90,7 +90,7 @@ function CountdownTimer({ expiresAt, primaryColor }: { expiresAt: string; primar
 
 function ProductCardSkeleton() {
   return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+    <div className="bg-white/[0.02] border border-white/[0.08] rounded-[10px] overflow-hidden">
       <Skeleton className="aspect-[4/5] bg-white/[0.04]" />
       <div className="p-3 space-y-2">
         <Skeleton className="h-3 w-3/4 bg-white/[0.06]" />
@@ -295,7 +295,7 @@ export default function PublicCatalogPage() {
         style={{ background: "linear-gradient(145deg, #0a0a14 0%, #111127 50%, #0a0a14 100%)" }}
       >
         <div className="text-center">
-          <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/10">
+          <div className="w-20 h-20 bg-white/5 rounded-[10px] flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/10">
             <Package className="w-10 h-10 text-white/20" />
           </div>
           <h1 className="text-xl font-bold mb-2">Catálogo no encontrado</h1>
@@ -371,11 +371,11 @@ export default function PublicCatalogPage() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className={`p-2.5 rounded-xl transition-all ${searchOpen ? "bg-white/10" : "hover:bg-white/5"}`}
+              className={`p-2.5 rounded-[7px] transition-all ${searchOpen ? "bg-white/10" : "hover:bg-white/5"}`}
             >
               {searchOpen ? <X className="w-4 h-4 text-white/70" /> : <Search className="w-4 h-4 text-white/50" />}
             </button>
-            <button onClick={handleShare} className="p-2.5 rounded-xl hover:bg-white/5 transition-colors">
+            <button onClick={handleShare} className="p-2.5 rounded-[7px] hover:bg-white/5 transition-colors">
               <Share2 className="w-4 h-4 text-white/50" />
             </button>
           </div>
@@ -389,7 +389,7 @@ export default function PublicCatalogPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus={searchOpen}
-              className="w-full bg-white/[0.06] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+              className="w-full bg-white/[0.06] border border-white/[0.08] rounded-[8px] px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
               style={{ ["--tw-ring-color" as string]: `${primaryColor}66` } as React.CSSProperties}
             />
           </div>
@@ -402,7 +402,7 @@ export default function PublicCatalogPage() {
                 setFilterCat("all");
                 setFilterGender("all");
               }}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${filterCat === "all" ? "text-black shadow-lg" : "bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06]"}`}
+              className={`shrink-0 px-3.5 py-1.5 rounded-[5px] font-semibold transition-all ${filterCat === "all" ? "text-black shadow-lg text-[10px] uppercase tracking-[0.05em]" : "bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06] text-[11px]"}`}
               style={filterCat === "all" ? { background: accentColor, boxShadow: `0 4px 15px ${accentColor}40` } : {}}
             >
               Todos ({products.length})
@@ -414,7 +414,7 @@ export default function PublicCatalogPage() {
                   setFilterCat(filterCat === cat.value ? "all" : cat.value);
                   if (filterCat !== cat.value) setFilterGender("all");
                 }}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${filterCat === cat.value ? "text-black shadow-lg" : "bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06]"}`}
+                className={`shrink-0 px-3.5 py-1.5 rounded-[5px] font-semibold transition-all ${filterCat === cat.value ? "text-black shadow-lg text-[10px] uppercase tracking-[0.05em]" : "bg-white/[0.04] text-white/50 hover:bg-white/[0.08] border border-white/[0.06] text-[11px]"}`}
                 style={
                   filterCat === cat.value ? { background: accentColor, boxShadow: `0 4px 15px ${accentColor}40` } : {}
                 }
@@ -429,7 +429,7 @@ export default function PublicCatalogPage() {
                 <button
                   key={g}
                   onClick={() => setFilterGender(filterGender === g ? "all" : g)}
-                  className={`shrink-0 px-3 py-1 rounded-full text-[10px] font-medium transition-all ${filterGender === g ? "bg-white/15 text-white border border-white/20" : "bg-white/[0.03] text-white/40 hover:bg-white/[0.06] border border-white/[0.04]"}`}
+                  className={`shrink-0 px-3 py-1 rounded-[5px] font-medium transition-all ${filterGender === g ? "bg-white/15 text-white border border-white/20 text-[10px] uppercase tracking-[0.05em]" : "bg-white/[0.03] text-white/40 hover:bg-white/[0.06] border border-white/[0.04] text-[10px]"}`}
                 >
                   {g === "all" ? "Todos" : `${GENDER_LABELS[g]?.icon} ${GENDER_LABELS[g]?.label}`}
                 </button>
@@ -443,7 +443,7 @@ export default function PublicCatalogPage() {
         {/* Hero Banner (only on "all" view) */}
         {showAllView && (
           <div
-            className="relative rounded-2xl overflow-hidden mb-8 p-6 sm:p-10"
+            className="relative rounded-[12px] overflow-hidden mb-8 p-6 sm:p-10"
             style={{
               background: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}05)`,
               border: `1px solid ${primaryColor}25`,
@@ -463,7 +463,7 @@ export default function PublicCatalogPage() {
               <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => setFilterCat(heroConfig.cat)}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all hover:scale-105 active:scale-95"
+                  className="px-5 py-2.5 rounded-[8px] font-bold text-sm text-black transition-all hover:scale-105 active:scale-95"
                   style={{ background: accentColor, boxShadow: `0 4px 20px ${accentColor}50` }}
                 >
                   {heroConfig.cta}
@@ -473,7 +473,7 @@ export default function PublicCatalogPage() {
                     href={buildWhatsAppUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2.5 rounded-xl font-bold text-sm text-white/70 border border-white/10 hover:bg-white/5 transition-all flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-[8px] font-bold text-sm text-white/70 border border-white/10 hover:bg-white/5 transition-all flex items-center gap-2"
                   >
                     <MessageCircle className="w-4 h-4" />Consultar
                   </a>
@@ -482,24 +482,24 @@ export default function PublicCatalogPage() {
               {/* Quick stats */}
               <div className="flex items-center gap-6 mt-6 flex-wrap">
                 <div className="text-center">
-                  <p className="text-2xl font-black" style={{ color: primaryColor }}>{products.length}</p>
+                  <p className="text-[1.8rem] font-mono font-bold tracking-tight" style={{ color: primaryColor }}>{products.length}</p>
                   <p className="text-[10px] text-white/35 uppercase tracking-wider">productos</p>
                 </div>
                 {categories.length > 1 && (
                   <div className="text-center">
-                    <p className="text-2xl font-black" style={{ color: primaryColor }}>{categories.length}</p>
+                    <p className="text-[1.8rem] font-mono font-bold tracking-tight" style={{ color: primaryColor }}>{categories.length}</p>
                     <p className="text-[10px] text-white/35 uppercase tracking-wider">categorías</p>
                   </div>
                 )}
                 {ofertasEspeciales.length > 0 && (
                   <div className="text-center">
-                    <p className="text-2xl font-black text-red-400">{ofertasEspeciales.length}</p>
+                    <p className="text-[1.8rem] font-mono font-bold tracking-tight text-red-400">{ofertasEspeciales.length}</p>
                     <p className="text-[10px] text-white/35 uppercase tracking-wider">en oferta</p>
                   </div>
                 )}
                 {whatsappNumber && (
                   <div className="text-center">
-                    <p className="text-2xl font-black text-green-400">✓</p>
+                    <p className="text-[1.8rem] font-mono font-bold tracking-tight text-green-400">✓</p>
                     <p className="text-[10px] text-white/35 uppercase tracking-wider">WhatsApp</p>
                   </div>
                 )}
@@ -514,9 +514,9 @@ export default function PublicCatalogPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Tag className="w-5 h-5 text-red-400" />
-                <h2 className="text-lg font-black tracking-wide text-red-300">Ofertas Especiales</h2>
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-red-300">Ofertas Especiales</h2>
               </div>
-              <span className="px-2.5 py-1 bg-red-500/15 text-red-300 text-[10px] font-bold rounded-full border border-red-500/20 uppercase tracking-wider">DESCUENTOS</span>
+              <span className="px-2.5 py-1 bg-red-500/15 text-red-300 text-[10px] font-bold rounded-[3px] border border-red-500/20 uppercase tracking-wider">DESCUENTOS</span>
             </div>
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {ofertasEspeciales.map((p) => (
@@ -540,7 +540,7 @@ export default function PublicCatalogPage() {
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-5 h-5" style={{ color: primaryColor }} fill={primaryColor} />
-              <h2 className="text-lg font-black tracking-wide" style={{ color: primaryColor }}>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: primaryColor }}>
                 Destacados
               </h2>
             </div>
@@ -566,7 +566,7 @@ export default function PublicCatalogPage() {
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <Flame className="w-5 h-5 text-orange-400" />
-              <h2 className="text-lg font-black tracking-wide text-orange-400">Más Vendidos</h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-orange-400">Más Vendidos</h2>
             </div>
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {topSellers.slice(0, 4).map((p) => (
@@ -591,7 +591,7 @@ export default function PublicCatalogPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-blue-400" />
-                <h2 className="text-lg font-black tracking-wide text-blue-300">Novedades</h2>
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-300">Novedades</h2>
               </div>
               <span className="text-xs text-white/30">{novedades.length} nuevos</span>
             </div>
@@ -615,7 +615,7 @@ export default function PublicCatalogPage() {
         {/* Cross-sell: If viewing vapers, show perfume suggestions */}
         {filterCat === "vaper" && perfumes.length > 0 && (
           <section
-            className="mb-8 rounded-2xl p-4 sm:p-6"
+            className="mb-8 rounded-[12px] p-4 sm:p-6"
             style={{
               background: `linear-gradient(135deg, ${primaryColor}12, transparent)`,
               border: `1px solid ${primaryColor}15`,
@@ -623,8 +623,8 @@ export default function PublicCatalogPage() {
           >
             <div className="flex items-center gap-2 mb-3">
               <Zap className="w-5 h-5" style={{ color: primaryColor }} />
-              <h3 className="font-black text-sm" style={{ color: primaryColor }}>
-                Si te gusta oler bien, esto es para vos 🔥
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: primaryColor }}>
+                Si te gusta oler bien, esto es para vos
               </h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -646,7 +646,7 @@ export default function PublicCatalogPage() {
         {/* Main Grid */}
         {!filtered.length ? (
           <div className="text-center py-24">
-            <div className="w-20 h-20 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
+            <div className="w-20 h-20 bg-white/[0.03] rounded-[10px] flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
               <Package className="w-10 h-10 text-white/10" />
             </div>
             <p className="text-white/30 text-sm font-medium">No se encontraron productos</p>
@@ -705,7 +705,7 @@ export default function PublicCatalogPage() {
       {fullSettings && Number(fullSettings.volume_discount_threshold) > 0 && Number(fullSettings.volume_discount_percent) > 0 && (
         <section className="max-w-7xl mx-auto px-3 sm:px-4 py-8">
           <div
-            className="rounded-2xl p-5 sm:p-8"
+            className="rounded-[12px] p-5 sm:p-8"
             style={{
               background: `linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.02))`,
               border: `1px solid rgba(167,139,250,0.15)`,
@@ -713,7 +713,7 @@ export default function PublicCatalogPage() {
           >
             <div className="flex items-center gap-2.5 mb-2">
               <Users className="w-6 h-6 text-purple-400" />
-              <h2 className="text-xl font-black tracking-wide text-purple-300">Precios Mayoristas</h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-purple-300">Precios Mayoristas</h2>
             </div>
             <p className="text-sm text-white/50 mb-5">
               Llevá <span className="font-bold text-purple-300">{fullSettings.volume_discount_threshold}+ unidades</span> del mismo producto y obtené{" "}
@@ -726,7 +726,7 @@ export default function PublicCatalogPage() {
                 const wholesalePrice = Math.round(basePrice * (1 - Number(fullSettings.volume_discount_percent) / 100));
                 const savingPerUnit = basePrice - wholesalePrice;
                 return (
-                  <div key={pr.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div key={pr.id} className="flex items-center gap-3 p-3 rounded-[8px] bg-white/[0.03] border border-white/[0.06]">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-white/80 truncate">{pr.name}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -747,7 +747,7 @@ export default function PublicCatalogPage() {
                 href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hola! Me interesa consultar precios mayoristas 📦")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-[10px] text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
                 style={{
                   background: "linear-gradient(135deg, #25D366, #128C7E)",
                   boxShadow: "0 6px 20px rgba(37,211,102,0.3)",
@@ -810,7 +810,7 @@ export default function PublicCatalogPage() {
       {whatsappNumber && cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold text-black shadow-2xl transition-all active:scale-95"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-[12px] text-sm font-bold text-black shadow-2xl transition-all active:scale-95"
           style={{ background: primaryColor, boxShadow: `0 8px 30px ${primaryColor}60` }}
         >
           <ShoppingCart className="w-5 h-5" />
@@ -834,23 +834,23 @@ export default function PublicCatalogPage() {
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
               {cart.map(item => (
-                <div key={item.id} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+                <div key={item.id} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-[8px] p-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{item.name}</p>
                     <p className="text-xs text-white/40">{fmtARS(item.price)} c/u</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, qty: Math.max(1, i.qty - 1) } : i))}
-                      className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.12] flex items-center justify-center">
+                      className="w-6 h-6 rounded-[5px] bg-white/[0.08] hover:bg-white/[0.12] flex items-center justify-center">
                       <Minus className="w-3 h-3" />
                     </button>
                     <span className="text-sm font-bold w-5 text-center">{item.qty}</span>
                     <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))}
-                      className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.12] flex items-center justify-center">
+                      className="w-6 h-6 rounded-[5px] bg-white/[0.08] hover:bg-white/[0.12] flex items-center justify-center">
                       <Plus className="w-3 h-3" />
                     </button>
                     <button onClick={() => setCart(prev => prev.filter(i => i.id !== item.id))}
-                      className="w-6 h-6 rounded-full hover:bg-red-500/20 flex items-center justify-center ml-1">
+                      className="w-6 h-6 rounded-[5px] hover:bg-red-500/20 flex items-center justify-center ml-1">
                       <Trash2 className="w-3 h-3 text-red-400" />
                     </button>
                   </div>
@@ -868,7 +868,7 @@ export default function PublicCatalogPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setCartOpen(false)}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[10px] text-sm font-bold text-white transition-all active:scale-95"
                 style={{ background: "linear-gradient(135deg,#25D366,#128C7E)", boxShadow: "0 4px 16px rgba(37,211,102,0.35)" }}
               >
                 <MessageCircle className="w-5 h-5" fill="white" />
@@ -919,7 +919,9 @@ function ProductCard({
 
   return (
     <div
-      className={`group relative bg-white/[0.02] border rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-all duration-400 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${featured ? "border-white/[0.12] ring-1 ring-white/10" : "border-white/[0.06] hover:border-white/[0.12]"}`}
+      className={`group relative bg-white/[0.02] border rounded-[10px] overflow-hidden hover:bg-white/[0.04] transition-all duration-400 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${featured ? "border-white/[0.12] ring-1 ring-white/10" : "border-white/[0.08] hover:border-white/[0.12]"}`}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 24px -4px ${primaryColor}30`; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}
       onClick={onClick}
     >
       <div
@@ -944,14 +946,14 @@ function ProductCard({
         <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
           <div className="flex flex-col gap-1">
             {badge && (
-              <span className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5 bg-orange-500/30 text-orange-300 border border-orange-500/40">
+              <span className="px-2 py-1 rounded-[4px] text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5 bg-orange-500/30 text-orange-300 border border-orange-500/40">
                 <Flame className="w-2.5 h-2.5" />
                 {badge}
               </span>
             )}
             {featured && !badge && (
               <span
-                className="px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5"
+                className="px-2 py-1 rounded-[4px] text-[10px] font-bold backdrop-blur-md flex items-center gap-0.5"
                 style={{ background: `${primaryColor}30`, color: primaryColor, border: `1px solid ${primaryColor}40` }}
               >
                 <Star className="w-2.5 h-2.5" fill={primaryColor} />
@@ -960,7 +962,7 @@ function ProductCard({
             )}
             {hasDiscount && (
               <span
-                className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-white flex items-center gap-0.5"
+                className="px-2 py-1 rounded-[4px] text-[10px] sm:text-[11px] font-bold text-white flex items-center gap-0.5"
                 style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
               >
                 <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />-{discountPct}%
@@ -970,7 +972,7 @@ function ProductCard({
           </div>
           {isPerfume && genderInfo && !compact && (
             <span
-              className="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold backdrop-blur-md border border-white/10"
+              className="px-2 py-1 rounded-[4px] text-[10px] sm:text-[11px] font-semibold backdrop-blur-md border border-white/10"
               style={{
                 background:
                   p.gender === "masculino"
@@ -1005,7 +1007,7 @@ function ProductCard({
           {hasDiscount ? (
             <>
               <div
-                className="rounded-lg p-2"
+                className="rounded-[6px] p-2.5"
                 style={{ background: `${primaryColor}10`, border: `1px solid ${primaryColor}20` }}
               >
                 <div className="flex items-center gap-1.5">
@@ -1059,7 +1061,7 @@ function ProductCard({
 
         {/* Vaper: ver sabores hint */}
         {p.category === "vaper" && !compact && (
-          <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+          <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-white/[0.03] border border-white/[0.05]">
             <Zap className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
             <span className="text-[10px] font-semibold" style={{ color: primaryColor }}>
               Ver sabores disponibles
@@ -1098,7 +1100,7 @@ function ProductCard({
         {onAddToCart && (
           <button
             onClick={e => { e.stopPropagation(); onAddToCart(p); }}
-            className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95"
+            className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-[8px] text-[11px] font-bold transition-all active:scale-95"
             style={{ background: primaryColor, color: "#000" }}
           >
             <Plus className="w-3 h-3" />Agregar al carrito
@@ -1194,7 +1196,7 @@ function ProductDetailModal({
 
   return (
     <div
-      className="rounded-2xl overflow-hidden text-white animate-in fade-in zoom-in-95 duration-300"
+      className="rounded-[12px] overflow-hidden text-white animate-in fade-in zoom-in-95 duration-300"
       style={{
         background: "linear-gradient(160deg, #13132a 0%, #0d0d1a 100%)",
         border: "1px solid rgba(255,255,255,0.08)",

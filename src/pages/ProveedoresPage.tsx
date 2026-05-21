@@ -283,7 +283,7 @@ export default function ProveedoresPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map(s => (
-            <div key={s.id} className="bg-card border border-border rounded-xl overflow-hidden shadow-card">
+            <div key={s.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
               <div className="px-4 py-3.5 flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                   <Building2 className="w-4 h-4 text-primary" />
@@ -421,15 +421,15 @@ export default function ProveedoresPage() {
           <div className="space-y-4">
             {/* KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="bg-card border border-border rounded-xl p-3">
+              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Pendiente total</p>
                 <p className="text-xl font-bold font-display text-destructive">{formatARS(totalPending)}</p>
               </div>
-              <div className="bg-card border border-border rounded-xl p-3">
+              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Deudas activas</p>
                 <p className="text-xl font-bold font-display">{pendingDebts.length}</p>
               </div>
-              <div className="bg-card border border-border rounded-xl p-3">
+              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Vencen esta semana</p>
                 <p className={`text-xl font-bold font-display ${debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length > 0 ? 'text-warning' : ''}`}>
                   {debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length}
@@ -460,7 +460,7 @@ export default function ProveedoresPage() {
               if (bucketed.length === 0) return null;
               const grandTotal = bucketed.reduce((s, b) => s + b.total, 0);
               return (
-                <div className="bg-card border border-border rounded-xl p-4">
+                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
                   <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aging de deudas pendientes</h3>
                   <div className="space-y-2">
                     {bucketed.map(b => {
@@ -583,7 +583,7 @@ export default function ProveedoresPage() {
 
       {/* ── Pagos Tab ── */}
       {activeTab === 'pagos' && (
-        <div className="bg-card border border-border rounded-xl p-8 text-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-8 text-center">
           <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">Historial de pagos a proveedores — próximamente</p>
         </div>

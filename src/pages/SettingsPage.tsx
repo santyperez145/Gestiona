@@ -359,8 +359,8 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-4 md:space-y-6">
           {/* Brand */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
-            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
             </h2>
             <div>
@@ -532,8 +532,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Financial params */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4 md:space-y-5">
-            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
             </h2>
             <div>
@@ -558,9 +558,9 @@ export default function SettingsPage() {
           </div>
 
           {/* WhatsApp message templates */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
-              <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-green-400" />Plantillas de WhatsApp
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Mensajes pre-armados usados en deudas, cumpleaños y seguimiento. Usá <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code> y <code className="bg-muted px-1 rounded">{"{{monto}}"}</code> como variables.</p>
@@ -591,9 +591,9 @@ export default function SettingsPage() {
           </div>
 
           {/* Notification preferences */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
-              <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />Notificaciones
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Activá o desactivá cada tipo de alerta. Los cambios aplican inmediatamente en este dispositivo.</p>
@@ -617,9 +617,9 @@ export default function SettingsPage() {
           </div>
 
           {/* Push notifications */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
-              <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-primary" />Notificaciones Push (PWA)
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Recibí alertas en tu dispositivo aunque la app esté cerrada. Requiere tener la app instalada como PWA.</p>
@@ -646,8 +646,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Payment method discounts */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
-            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
             </h2>
             <p className="text-xs text-muted-foreground">Estos descuentos se aplican sobre el precio de venta al registrar una venta. Efectivo y transferencia usan el precio c/descuento del producto.</p>
@@ -664,8 +664,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Volume / Wholesale discount */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
-            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-primary" />Descuento Mayorista
             </h2>
             <p className="text-xs text-muted-foreground">Se aplica sobre el precio efectivo/con descuento cuando el cliente lleva X+ unidades. Piso de rentabilidad: costo + 20%.</p>
@@ -678,8 +678,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Decant margins */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
-            <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Droplets className="w-4 h-4 text-primary" />Márgenes de Decants
             </h2>
             <p className="text-xs text-muted-foreground">Margen (%) sobre el costo proporcional por ml. El precio se calcula: (costo/ml × tamaño) × TC × (1 + margen%).</p>
@@ -699,9 +699,9 @@ export default function SettingsPage() {
           <SubscriptionPanel session={session} />
 
           {/* Taxes */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-semibold text-lg flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
+              <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
               <Switch checked={taxEnabled} onCheckedChange={setTaxEnabled} />
             </div>
             {taxEnabled ? (
@@ -717,8 +717,8 @@ export default function SettingsPage() {
           </div>
 
           {/* System info */}
-          <div className="bg-card border border-border rounded-lg p-4 md:p-6">
-            <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Negocio:</span><span className="font-medium">{businessName}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{productCount}</span></div>
@@ -731,8 +731,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-success/30 rounded-lg p-4 md:p-6">
-            <h2 className="font-display font-semibold text-lg mb-2 flex items-center gap-2">
+          <div className="bg-[hsl(228_24%_7%)] border border-success/30 rounded-[10px] p-4 md:p-6">
+            <h2 className="font-display font-semibold text-[14px] tracking-tight mb-2 flex items-center gap-2">
               <Shield className="w-4 h-4 text-success" />Seguridad
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -842,8 +842,8 @@ function SubscriptionPanel({ session }: { session: any }) {
     : XCircle;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
-      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+      <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <CreditCard className="w-4 h-4 text-primary" />Suscripción
       </h2>
 
@@ -874,7 +874,7 @@ function SubscriptionPanel({ session }: { session: any }) {
             </div>
             <div className="text-right">
               {plan && plan.price_usd_monthly > 0 && (
-                <p className="text-2xl font-bold">${plan.price_usd_monthly}<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                <p className="text-2xl font-bold font-mono tracking-tight">${plan.price_usd_monthly}<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
               )}
             </div>
           </div>
@@ -957,8 +957,8 @@ function USDQuoteSection({ userId, onApply }: { userId: string; onApply: (rate: 
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
-      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+      <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <DollarSign className="w-4 h-4 text-primary" />Cotización USD (tiempo real)
       </h2>
       <p className="text-xs text-muted-foreground">Datos públicos de mercado. Aplicá la cotización que usás operativamente.</p>
@@ -1014,8 +1014,8 @@ function ThresholdsSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
-      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+      <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <Bell className="w-4 h-4 text-primary" />Umbrales y Alertas
       </h2>
       <p className="text-xs text-muted-foreground">Configurables. Los triggers de notificaciones (stock bajo, ventas grandes, deudas vencidas) usan estos valores.</p>
@@ -1077,14 +1077,14 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
-      <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+      <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <Tags className="w-4 h-4 text-primary" />Categorías de Gastos
       </h2>
       <p className="text-xs text-muted-foreground">Personalizá las categorías disponibles al cargar gastos.</p>
       <div className="flex flex-wrap gap-2">
         {cats.map(c => (
-          <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted rounded-full text-xs">
+          <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted rounded-[5px] text-xs">
             {c}
             <button onClick={() => remove(c)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-3 h-3" /></button>
           </span>
@@ -1156,8 +1156,8 @@ function BackupExport({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6">
-      <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+      <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2">
         <Download className="w-4 h-4 text-primary" />Backup y Exportación
       </h2>
       <p className="text-xs text-muted-foreground mb-4">Descargá toda tu base de datos para análisis externo o respaldo.</p>
@@ -1218,16 +1218,16 @@ function CouponsManager({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <Ticket className="w-4 h-4 text-primary" />Cupones de Descuento
         </h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-gold text-primary-foreground"><Plus className="w-3.5 h-3.5 mr-1" />Nuevo</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+          <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Crear Cupón</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><label className="text-sm text-muted-foreground">Código</label>
@@ -1326,9 +1326,9 @@ function CloudBackupsSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <Cloud className="w-4 h-4 text-primary" />Backups en la Nube
         </h2>
         <Button size="sm" variant="outline" onClick={runManual} disabled={running}>
@@ -1469,13 +1469,13 @@ function AfipSection() {
   const isConfigured = !!(cuit && certificate && privateKey);
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <FileCheck className="w-4 h-4 text-primary" />AFIP — Facturación Electrónica
         </h2>
         {isConfigured && (
-          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${
+          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-[5px] font-medium ${
             taStatus === "valid" ? "bg-green-500/10 text-green-400" :
             taStatus === "expired" ? "bg-yellow-500/10 text-yellow-400" :
             "bg-muted text-muted-foreground"
@@ -1629,9 +1629,9 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
       <div>
-        <h2 className="font-display font-semibold text-lg flex items-center gap-2">
+        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <MapPin className="w-4 h-4 text-primary" />Gestión de Sucursales
         </h2>
         <p className="text-xs text-muted-foreground mt-1">Administrá tus puntos de venta o depósitos. El stock puede asignarse por ubicación en Inventario.</p>
@@ -1695,7 +1695,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
                   ><Edit2 className="w-3 h-3" /></button>
                   <button
                     onClick={() => handleToggle(loc)}
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors ${loc.is_active ? 'bg-success/15 text-success hover:bg-success/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-[5px] transition-colors ${loc.is_active ? 'bg-success/15 text-success hover:bg-success/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                     title={loc.is_active ? 'Desactivar' : 'Activar'}
                   >{loc.is_active ? 'Activa' : 'Inactiva'}</button>
                   <button

@@ -32,7 +32,7 @@ export default function UpgradePrompt({ title, description, currentPlan, inline 
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center max-w-sm mx-auto">
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
+      <div className="w-16 h-16 rounded-[10px] bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
         <Lock className="w-7 h-7 text-primary" />
       </div>
       <h3 className="text-xl font-display font-bold mb-2">{title}</h3>

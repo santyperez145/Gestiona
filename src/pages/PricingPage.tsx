@@ -17,11 +17,11 @@ const FALLBACK_FEATURES: Record<string, string[]> = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  active:   { label: 'Activo',           color: 'bg-green-500/15 text-green-400 border-green-500/20' },
-  trialing: { label: 'Trial activo',     color: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
-  past_due: { label: 'Pago pendiente',   color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20' },
-  canceled: { label: 'Cancelado',        color: 'bg-red-500/15 text-red-400 border-red-500/20' },
-  paused:   { label: 'Pausado',          color: 'bg-muted text-muted-foreground border-border' },
+  active:   { label: 'Activo',         color: 'bg-success/15 text-success border-success/20' },
+  trialing: { label: 'Trial activo',   color: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
+  past_due: { label: 'Pago pendiente', color: 'bg-warning/15 text-warning border-warning/20' },
+  canceled: { label: 'Cancelado',      color: 'bg-destructive/15 text-destructive border-destructive/20' },
+  paused:   { label: 'Pausado',        color: 'bg-muted text-muted-foreground border-border' },
 };
 
 const FAQ = [
@@ -31,6 +31,8 @@ const FAQ = [
   { q: '¿Los precios son en dólares?', a: 'Sí, en USD. El cobro se realiza a través de Stripe con tarjeta de crédito o débito internacional.' },
   { q: '¿Hay descuento por pago anual?', a: 'Sí, 17% de descuento al pagar el año completo por adelantado.' },
 ];
+
+const TRUST = ['Sin contrato', 'Datos 100% tuyos', 'Hosting en Argentina', 'Soporte en español', 'HTTPS incluido'];
 
 export default function PricingPage() {
   const { user, session } = useAuth();
@@ -54,11 +56,7 @@ export default function PricingPage() {
     if (!user) { navigate('/?signup=1'); return; }
     if (plan.code === 'trial') { navigate('/'); return; }
     if (!activeOrg) { toast.error('Necesitás tener una organización activa para suscribirte.'); return; }
-    if (currentPlan?.code === plan.code && subscription?.status === 'active') {
-      toast.info('Ya estás en este plan.');
-      return;
-    }
-
+    if (currentPlan?.code === plan.code && subscription?.status === 'active') { toast.info('Ya estás en este plan.'); return; }
     setCheckingOut(plan.code);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -95,72 +93,94 @@ export default function PricingPage() {
   const subStatus = subscription?.status;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b border-border/50 sticky top-0 backdrop-blur-md bg-background/70 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-sm font-display font-bold">
-            <ArrowLeft className="w-4 h-4" /> Gestiona
+    <div className="min-h-screen text-foreground" style={{ background: 'hsl(228 28% 4.5%)' }}>
+
+      {/* ── Nav ──────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-10 border-b border-border/30 backdrop-blur-md"
+        style={{ background: 'hsl(228 28% 4.5% / 0.85)' }}>
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 text-[13px] font-display font-semibold text-muted-foreground/70 hover:text-foreground transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" /> Gestiona
           </Link>
           {user && (
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">Volver al panel</Link>
+            <Link to="/" className="text-[12px] text-muted-foreground/50 hover:text-foreground transition-colors">
+              Volver al panel
+            </Link>
           )}
         </div>
       </header>
 
-      {/* Current subscription banner */}
+      {/* Subscription status banner */}
       {user && subStatus && subStatus !== 'canceled' && (
-        <div className={`border-b px-6 py-2 text-center text-sm ${
-          subStatus === 'past_due' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
-          subStatus === 'trialing' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
-          'bg-green-500/10 border-green-500/20 text-green-400'
+        <div className={`border-b px-6 py-2 text-center text-[12px] flex items-center justify-center gap-1.5 ${
+          subStatus === 'past_due' ? 'bg-warning/8 border-warning/20 text-warning' :
+          subStatus === 'trialing' ? 'bg-blue-500/8 border-blue-500/20 text-blue-400' :
+          'bg-success/8 border-success/20 text-success'
         }`}>
-          {subStatus === 'past_due' && <AlertTriangle className="inline w-3.5 h-3.5 mr-1.5" />}
-          {subStatus === 'trialing' && <Sparkles className="inline w-3.5 h-3.5 mr-1.5" />}
-          {subStatus === 'active' && <Crown className="inline w-3.5 h-3.5 mr-1.5" />}
-          {subStatus === 'trialing' && `Trial activo — te quedan ${trialDaysLeft} días`}
-          {subStatus === 'active' && `Plan ${currentPlan?.name || ''} activo`}
-          {subStatus === 'past_due' && 'Tu pago está pendiente. Actualizá tu método de pago para continuar.'}
+          {subStatus === 'past_due' && <AlertTriangle className="w-3.5 h-3.5" />}
+          {subStatus === 'trialing' && <Sparkles className="w-3.5 h-3.5" />}
+          {subStatus === 'active' && <Crown className="w-3.5 h-3.5" />}
+          <span>
+            {subStatus === 'trialing' && `Trial activo — te quedan ${trialDaysLeft} días`}
+            {subStatus === 'active' && `Plan ${currentPlan?.name || ''} activo`}
+            {subStatus === 'past_due' && 'Tu pago está pendiente. Actualizá tu método de pago para continuar.'}
+          </span>
         </div>
       )}
 
-      {/* Hero */}
-      <section className="max-w-7xl mx-auto px-6 pt-16 pb-10 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-5">
-          <Sparkles className="w-3.5 h-3.5" /> Planes simples, sin sorpresas
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <section className="relative max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
+        <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(38 82% 52% / 0.06) 0%, transparent 70%)' }} />
+
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-6"
+          style={{ background: 'hsl(38 82% 52% / 0.08)', border: '1px solid hsl(38 82% 52% / 0.2)', borderRadius: '5px' }}>
+          <Sparkles className="w-3 h-3 text-primary" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-primary/80">Planes simples, sin sorpresas</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
+
+        <h1 className="font-display text-[2.8rem] md:text-[3.5rem] font-bold tracking-tight leading-tight mb-4 max-w-3xl mx-auto">
           Elegí el plan que se ajuste a tu negocio
         </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-[13px] text-muted-foreground/60 max-w-xl mx-auto mb-8 leading-relaxed">
           Probá Gestiona 14 días gratis. Sin tarjeta. Cancelás cuando quieras.
         </p>
 
-        {/* Billing toggle */}
-        <div className="inline-flex items-center gap-2 mt-8 p-1 rounded-xl bg-muted border border-border">
-          <button
-            onClick={() => setYearly(false)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${!yearly ? 'bg-background shadow' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Mensual
-          </button>
-          <button
-            onClick={() => setYearly(true)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${yearly ? 'bg-background shadow' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Anual
-            <span className="px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-xs font-bold">-17%</span>
-          </button>
+        {/* Billing toggle — underline style */}
+        <div className="inline-flex border-b border-border/40">
+          {[
+            { val: false, label: 'Mensual' },
+            { val: true, label: 'Anual', badge: '-17%' },
+          ].map(({ val, label, badge }) => (
+            <button
+              key={label}
+              onClick={() => setYearly(val)}
+              className={[
+                'px-6 pb-3 text-[11px] font-semibold uppercase tracking-[0.1em] transition-all duration-200',
+                'relative after:absolute after:bottom-[-1px] after:inset-x-0 after:h-[2px] after:rounded-full after:transition-transform after:duration-200',
+                yearly === val
+                  ? 'text-foreground after:bg-primary after:scale-x-100'
+                  : 'text-muted-foreground/50 hover:text-muted-foreground after:bg-primary after:scale-x-0',
+              ].join(' ')}
+            >
+              {label}
+              {badge && yearly === val && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-[3px] bg-primary/15 text-primary text-[9px] font-bold">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </section>
 
-      {/* Plans grid */}
-      <section className="max-w-7xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-5">
+      {/* ── Plans grid ───────────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card p-6 h-96 animate-pulse" />
+              <div key={i} className="rounded-[10px] border border-border/50 bg-[hsl(228_24%_7%)] p-6 h-96 animate-pulse" />
             ))
-          : plans.map(p => {
+          : plans.map((p, idx) => {
               const price = yearly ? p.price_usd_yearly : p.price_usd_monthly;
               const isPro = p.code === 'pro';
               const isCurrent = currentPlan?.code === p.code;
@@ -172,64 +192,78 @@ export default function PricingPage() {
               return (
                 <div
                   key={p.id}
-                  className={`relative rounded-2xl border p-6 flex flex-col ${
+                  className={[
+                    'relative rounded-[10px] border p-6 flex flex-col overflow-hidden',
                     isCurrent
-                      ? 'border-primary bg-primary/5 shadow-lg ring-1 ring-primary/20'
+                      ? 'border-primary/40 bg-[hsl(228_24%_8%)]'
                       : isPro
-                      ? 'border-primary/40 bg-card shadow-md'
-                      : 'border-border bg-card'
-                  }`}
+                      ? 'border-primary/25 bg-[hsl(228_24%_7%)]'
+                      : 'border-border/50 bg-[hsl(228_24%_6.5%)]',
+                  ].join(' ')}
                 >
-                  {/* Badges */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {isPro && !isCurrent && (
-                        <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                          Más elegido
-                        </span>
-                      )}
-                      {isCurrent && subStatus && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_LABEL[subStatus]?.color || ''}`}>
-                          <Crown className="w-2.5 h-2.5" />
-                          {STATUS_LABEL[subStatus]?.label || 'Tu plan'}
-                        </span>
-                      )}
-                    </div>
+                  {/* Inner top highlight */}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+
+                  {/* Featured accent bar */}
+                  {isPro && (
+                    <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full"
+                      style={{ background: 'var(--gradient-gold)' }} />
+                  )}
+
+                  {/* Badges row */}
+                  <div className="flex items-center gap-2 mb-4 min-h-[22px]">
+                    {isPro && !isCurrent && (
+                      <span className="px-[5px] py-[2px] rounded-[3px] bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-[0.08em] font-mono">
+                        Más elegido
+                      </span>
+                    )}
+                    {isCurrent && subStatus && (
+                      <span className={`inline-flex items-center gap-1 px-[5px] py-[2px] rounded-[3px] text-[10px] font-bold uppercase tracking-[0.08em] border font-mono ${STATUS_LABEL[subStatus]?.color || ''}`}>
+                        <Crown className="w-2.5 h-2.5" />
+                        {STATUS_LABEL[subStatus]?.label || 'Tu plan'}
+                      </span>
+                    )}
                   </div>
 
-                  <h3 className="font-display text-xl font-bold">{p.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 min-h-[36px]">{p.description || ''}</p>
+                  {/* Plan name */}
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 mb-1">
+                    {String(idx + 1).padStart(2, '0')}
+                  </p>
+                  <h3 className="font-display text-[1.2rem] font-bold tracking-tight">{p.name}</h3>
+                  <p className="text-[12px] text-muted-foreground/55 mt-1 mb-5 min-h-[36px]">{p.description || ''}</p>
 
-                  <div className="my-5">
+                  {/* Price */}
+                  <div className="mb-5">
                     {p.price_usd_monthly === 0 ? (
-                      <span className="text-4xl font-bold">Gratis</span>
+                      <span className="font-mono text-[2.2rem] font-bold tracking-tight">Gratis</span>
                     ) : (
                       <div className="flex items-end gap-1">
-                        <span className="text-4xl font-bold">${price}</span>
-                        <span className="text-sm text-muted-foreground pb-1">/ {yearly ? 'año' : 'mes'} USD</span>
+                        <span className="font-mono text-[2.2rem] font-bold tracking-tight">${price}</span>
+                        <span className="text-[11px] text-muted-foreground/50 pb-1.5">/ {yearly ? 'año' : 'mes'} USD</span>
                       </div>
                     )}
                     {yearly && p.price_usd_monthly > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-[11px] text-muted-foreground/45 mt-0.5 font-mono">
                         <span className="line-through">${p.price_usd_monthly * 12}/año</span>
                         {' '}→ ahorrás ${Math.round(p.price_usd_monthly * 12 - p.price_usd_yearly)} USD
                       </p>
                     )}
                   </div>
 
-                  <ul className="space-y-2 text-sm mb-6 flex-1">
+                  {/* Features */}
+                  <ul className="space-y-2 mb-6 flex-1">
                     {features.map(f => (
                       <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-muted-foreground">{f}</span>
+                        <div className="mt-[3px] w-[3px] h-[12px] rounded-full bg-primary/50 shrink-0" />
+                        <span className="text-[12px] text-muted-foreground/70">{f}</span>
                       </li>
                     ))}
                   </ul>
 
                   <Button
                     onClick={() => handleSelect(p)}
-                    className={`w-full ${isCurrent && subscription?.status === 'active' ? 'opacity-60 pointer-events-none' : ''}`}
-                    variant={isCurrent || isPro ? 'default' : 'outline'}
+                    className={`w-full ${isCurrentActive ? 'opacity-50 pointer-events-none' : ''}`}
+                    variant={isPro || isCurrent ? 'default' : 'outline'}
                     disabled={!!checkingOut || isCurrentActive}
                   >
                     {isLoading ? (
@@ -241,35 +275,43 @@ export default function PricingPage() {
             })}
       </section>
 
-      {/* Social proof strip */}
-      <section className="border-y border-border bg-muted/30 py-8">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <p className="text-sm text-muted-foreground mb-4">Utilizado por negocios de perfumería, ropa, tecnología, gastronomía y más</p>
-          <div className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground/60 font-medium">
-            {['Sin contrato', 'Datos 100% tuyos', 'Hosting en Argentina', 'Soporte en español', 'HTTPS incluido'].map(f => (
-              <span key={f} className="flex items-center gap-1.5">
-                <Check className="w-3 h-3 text-primary" /> {f}
-              </span>
+      {/* ── Trust strip ──────────────────────────────────────────── */}
+      <section className="border-y border-border/30 py-8"
+        style={{ background: 'hsl(228 24% 6%)' }}>
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/35 mb-5">
+            Utilizado por negocios de perfumería, ropa, tecnología, gastronomía y más
+          </p>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
+            {TRUST.map(f => (
+              <div key={f} className="flex items-center gap-1.5">
+                <div className="w-[3px] h-[10px] rounded-full bg-primary/50" />
+                <span className="text-[12px] text-muted-foreground/55 font-medium">{f}</span>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* ── FAQ ──────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-display font-bold text-center mb-8">Preguntas frecuentes</h2>
-        <div className="space-y-2">
+        <div className="mb-10">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-2">FAQ</p>
+          <h2 className="font-display text-[1.8rem] font-bold tracking-tight">Preguntas frecuentes</h2>
+        </div>
+        <div className="space-y-1">
           {FAQ.map((item, i) => (
-            <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
+            <div key={i} className="rounded-[8px] border border-border/40 overflow-hidden"
+              style={{ background: 'hsl(228 24% 7%)' }}>
               <button
-                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
                 onClick={() => setFaqOpen(faqOpen === i ? null : i)}
               >
-                <span className="font-medium text-sm">{item.q}</span>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${faqOpen === i ? 'rotate-180' : ''}`} />
+                <span className="font-display font-medium text-[13px]">{item.q}</span>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground/50 shrink-0 transition-transform duration-200 ${faqOpen === i ? 'rotate-180' : ''}`} />
               </button>
               {faqOpen === i && (
-                <div className="px-5 pb-4 text-sm text-muted-foreground border-t border-border/50 pt-3">
+                <div className="px-5 pb-4 text-[12px] text-muted-foreground/60 border-t border-border/30 pt-3 leading-relaxed">
                   {item.a}
                 </div>
               )}
@@ -278,21 +320,25 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Footer CTA */}
-      <section className="border-t border-border bg-muted/20 py-12 text-center">
-        <h2 className="text-2xl font-display font-bold mb-3">¿Tenés dudas?</h2>
-        <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-          Escribinos por WhatsApp o email y te respondemos en menos de 24 horas.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          {!user && (
-            <Button onClick={() => navigate('/?signup=1')} className="gradient-gold text-primary-foreground">
-              Empezar gratis — 14 días
+      {/* ── Footer CTA ───────────────────────────────────────────── */}
+      <section className="border-t border-border/30 py-16 text-center"
+        style={{ background: 'hsl(228 24% 6%)' }}>
+        <div className="max-w-md mx-auto px-6">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-3">¿Tenés dudas?</p>
+          <h2 className="font-display text-[1.6rem] font-bold tracking-tight mb-3">Estamos para ayudarte</h2>
+          <p className="text-[12px] text-muted-foreground/55 mb-7 leading-relaxed">
+            Escribinos por WhatsApp o email y te respondemos en menos de 24 horas.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {!user && (
+              <Button onClick={() => navigate('/?signup=1')}>
+                Empezar gratis — 14 días
+              </Button>
+            )}
+            <Button variant="outline" asChild>
+              <Link to="/">Volver al panel</Link>
             </Button>
-          )}
-          <Button variant="outline" asChild>
-            <Link to="/">Volver al panel</Link>
-          </Button>
+          </div>
         </div>
       </section>
     </div>

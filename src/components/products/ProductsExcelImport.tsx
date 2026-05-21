@@ -554,19 +554,19 @@ export default function ProductsExcelImport({
 
           {/* Summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="bg-card border border-border rounded-lg p-2.5">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-2.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Válidos</p>
               <p className="text-lg font-bold text-green-400">{stats.valid}</p>
             </div>
-            <div className="bg-card border border-border rounded-lg p-2.5">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-2.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Con alertas</p>
               <p className="text-lg font-bold text-yellow-400">{stats.warnings}</p>
             </div>
-            <div className="bg-card border border-border rounded-lg p-2.5">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-2.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Inv. (USD)</p>
               <p className="text-sm font-mono font-bold">${Math.round(stats.totalCostUSD).toLocaleString("en")}</p>
             </div>
-            <div className="bg-card border border-border rounded-lg p-2.5">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-2.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Ventas pot.</p>
               <p className="text-sm font-mono font-bold">${Math.round(stats.totalRevenueARS).toLocaleString("es-AR")}</p>
             </div>

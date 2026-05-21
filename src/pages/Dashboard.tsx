@@ -59,7 +59,7 @@ function FinancialSection({ stats }: { stats: any }) {
   const losers = simProducts.filter((p: any) => p.profit < 0).length;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
-      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Banknote className="w-4 h-4 text-success" />Flujo de Caja Proyectado</h3>
         <div className="space-y-2.5">
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Ventas/mes (proy.)</span><span className="text-success font-bold">{formatARS(stats.projectedMonthlySalesARS)}</span></div>
@@ -68,7 +68,7 @@ function FinancialSection({ stats }: { stats: any }) {
           <div className="flex justify-between text-xs"><span className="text-muted-foreground">Ganancia/mes (proy.)</span><span className="text-success">{formatARS(stats.projectedMonthlyProfitARS)}</span></div>
         </div>
       </div>
-      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Target className="w-4 h-4 text-primary" />Punto de Equilibrio</h3>
         <div className="text-center py-3"><p className="text-3xl font-black font-display text-primary">{stats.breakEvenUnits}</p><p className="text-xs text-muted-foreground mt-1">unidades/mes para cubrir gastos</p></div>
         <div className="space-y-1.5 text-xs">
@@ -76,7 +76,7 @@ function FinancialSection({ stats }: { stats: any }) {
           <div className="flex justify-between"><span className="text-muted-foreground">Margen prom./unidad</span><span className="text-success">{formatARS(stats.avgMarginPerUnit)}</span></div>
         </div>
       </div>
-      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4 text-warning" />Simulador Tipo de Cambio</h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TC Simulado:</span><span className="font-bold">${simRate[0].toLocaleString('es-AR')}</span></div>
@@ -1108,7 +1108,7 @@ export default function Dashboard() {
 
       {/* Weekly comparison widget */}
       {weeklyComparison && weeklyComparison.thisTotal > 0 && (
-        <div className="mb-4 bg-card border border-border rounded-xl p-4 shadow-card">
+        <div className="mb-4 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4" />Comparativa semanal automática
@@ -1551,7 +1551,7 @@ export default function Dashboard() {
 
       {/* Weekly cash flow widget */}
       {(stats.weekIncome > 0 || stats.weekExpensesAmt > 0 || stats.weekPurchasesAmt > 0) && (
-        <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+        <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-primary" />Flujo de caja (últimos 7 días)
@@ -1785,7 +1785,7 @@ export default function Dashboard() {
         const remaining = target > 0 ? Math.max(0, target - current) : 0;
         const monthName = new Date().toLocaleString('es-AR', { month: 'long' });
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-primary" />Objetivo del mes — {monthName}
@@ -1941,7 +1941,7 @@ export default function Dashboard() {
         const weekRemaining = weeklyTarget > 0 ? Math.max(0, weeklyTarget - weekCurrent) : 0;
         const dayOfWeek = new Date().toLocaleString('es-AR', { weekday: 'long' });
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-success" />Meta semanal — {dayOfWeek}
@@ -2026,7 +2026,7 @@ export default function Dashboard() {
           localStorage.setItem(sellerGoalsKey, JSON.stringify(next));
         };
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-primary" />Objetivos por vendedor — esta semana
@@ -2098,7 +2098,7 @@ export default function Dashboard() {
       {stats.bestWeekdayData.some(d => d.count > 0) && (() => {
         const maxAvg = Math.max(...stats.bestWeekdayData.map(d => d.avg));
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <BarChart3 className="w-4 h-4 text-primary" />Mejor día de la semana
@@ -2130,7 +2130,7 @@ export default function Dashboard() {
 
       {/* Best hour of day widget */}
       {stats.bestHour && stats.hourData.length >= 3 && (
-        <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+        <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-primary" />Mejor horario de ventas
@@ -2176,7 +2176,7 @@ export default function Dashboard() {
         const maxForecast = Math.max(...nextDays.map(d => d.forecast));
         const totalForecast = nextDays.reduce((a, d) => a + d.forecast, 0);
         return (
-          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <TrendingUp className="w-4 h-4 text-success" />Forecast próximos 7 días
@@ -2244,13 +2244,13 @@ export default function Dashboard() {
 
       {/* ROI & Margin Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card flex items-center justify-center">
           <GaugeChart value={stats.profitMargin} max={100} label="Margen Bruto" color="hsl(152, 58%, 42%)" />
         </div>
-        <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card flex items-center justify-center">
           <GaugeChart value={stats.roi} max={200} label="ROI" color="hsl(40, 72%, 52%)" />
         </div>
-        <div className="bg-card border border-border rounded-xl p-5 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card">
           <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-4">Cobranza</h3>
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
@@ -2270,7 +2270,7 @@ export default function Dashboard() {
 
       {/* Monthly Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Ventas y Ganancia por Mes</h2>
           {stats.salesByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -2287,7 +2287,7 @@ export default function Dashboard() {
           ) : <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sin datos de ventas aún</div>}
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Ventas por Categoría</h2>
           {stats.salesByCategory.length > 0 ? (
             <div>
@@ -2317,7 +2317,7 @@ export default function Dashboard() {
 
       {/* Daily Trend + Margin Evolution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia Diaria (30 días)</h2>
           {stats.dailySales.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
@@ -2333,7 +2333,7 @@ export default function Dashboard() {
           ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos recientes</div>}
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Margen por Mes (%)</h2>
           {stats.salesByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
@@ -2351,7 +2351,7 @@ export default function Dashboard() {
 
       {/* Pipeline Conversion Widget */}
       {pipelineStats && pipelineStats.total > 0 && (
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />Pipeline de Ventas
@@ -2419,7 +2419,7 @@ export default function Dashboard() {
 
       {/* P&L by Month */}
       {stats.salesByMonth.length > 0 && stats.salesByMonth.some((m: any) => m.expenses > 0) && (
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card mb-6">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Resultado Neto por Mes (Ganancia − Gastos)</h2>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={stats.salesByMonth}>
@@ -2438,7 +2438,7 @@ export default function Dashboard() {
 
       {/* Top Products This Week */}
       {stats.topWeekProducts?.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 mb-6 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-primary" />Ranking de la semana
@@ -2479,7 +2479,7 @@ export default function Dashboard() {
 
       {/* Top 5 Products This Month */}
       {stats.topMonthProducts?.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 mb-6 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-success" />Top productos este mes
@@ -2522,7 +2522,7 @@ export default function Dashboard() {
       {(stats.topMarginProducts?.length > 0 || stats.lowMarginProducts?.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
           {stats.topMarginProducts?.length > 0 && (
-            <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
               <h2 className="text-sm font-display font-semibold mb-3 text-success uppercase tracking-wider flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" /> Top 5 Margen Más Alto
               </h2>
@@ -2689,7 +2689,7 @@ export default function Dashboard() {
 
       {/* MoM Growth + Top Customers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Crecimiento Mes a Mes</h2>
           <div className="space-y-3">
             <div>
@@ -2715,7 +2715,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <Crown className="w-4 h-4 text-primary" />Top 5 Clientes del Mes
           </h2>
@@ -2764,7 +2764,7 @@ export default function Dashboard() {
 
       {/* Top Products + Recent Sales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Productos Más Vendidos</h2>
           {stats.topProducts.length > 0 ? (
             <div className="space-y-3">
@@ -2786,7 +2786,7 @@ export default function Dashboard() {
           ) : <p className="text-muted-foreground text-sm py-8 text-center">Sin ventas registradas</p>}
         </div>
 
-        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden shadow-card">
           <h2 className="text-sm font-display font-semibold p-4 md:p-5 pb-3 text-muted-foreground uppercase tracking-wider">Últimas Ventas</h2>
           {stats.recentSales.length > 0 ? (
             <>

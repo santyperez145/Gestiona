@@ -152,7 +152,7 @@ export default function ReferralsPage() {
       />
 
       {/* Settings panel */}
-      <div className="mb-6 bg-card border border-border rounded-xl p-5">
+      <div className="mb-6 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold flex items-center gap-2"><Settings2 className="w-4 h-4 text-primary" />Configuración del programa</h2>
           <button
@@ -206,7 +206,7 @@ export default function ReferralsPage() {
           { label: "Pendientes", value: stats.pending, icon: Gift, color: "text-warning" },
           { label: "Bonos entregados", value: formatARS(stats.totalBonusARS), icon: TrendingUp, color: "text-primary" },
         ].map((kpi) => (
-          <div key={kpi.label} className="bg-card border border-border rounded-xl p-4">
+          <div key={kpi.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1.5">
               <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
@@ -219,7 +219,7 @@ export default function ReferralsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top referrers */}
         {topReferrers.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-5">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Top referidores</h3>
             <div className="space-y-2">
               {topReferrers.map(([name, count], i) => (
@@ -238,7 +238,7 @@ export default function ReferralsPage() {
         )}
 
         {/* Referrals list */}
-        <div className={`bg-card border border-border rounded-xl overflow-hidden ${topReferrers.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
+        <div className={`bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden ${topReferrers.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
             <span className="text-xs text-muted-foreground">{referrals.length} referidos</span>
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
@@ -322,7 +322,7 @@ export default function ReferralsPage() {
 
       {/* Create Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-card border-border max-w-sm">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar referido</DialogTitle>
           </DialogHeader>

@@ -277,7 +277,7 @@ export default function ChequesPage() {
 
       {/* Create dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar cheque</DialogTitle>
           </DialogHeader>

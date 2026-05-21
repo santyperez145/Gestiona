@@ -131,7 +131,7 @@ export default function PublicPaymentPage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 mb-3">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-[10px] bg-amber-400/10 border border-amber-400/20 mb-3">
             <CreditCard className="w-7 h-7 text-amber-400" />
           </div>
           <h1 className="text-xl font-bold text-white">{org?.name}</h1>
@@ -182,7 +182,7 @@ export default function PublicPaymentPage() {
         )}
 
         {/* Customer + total */}
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 mb-4">
+        <div className="bg-slate-800/60 border border-slate-700 rounded-[10px] p-5 mb-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-slate-400 text-xs uppercase tracking-wider mb-0.5">Para</p>
@@ -219,7 +219,7 @@ export default function PublicPaymentPage() {
           <div className="space-y-3">
             {/* MercadoPago */}
             {link.mp_link && (
-              <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
+              <div className="bg-slate-800/60 border border-slate-700 rounded-[10px] p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-7 h-7 rounded-lg bg-[#009ee3]/10 flex items-center justify-center">
                     <CreditCard className="w-4 h-4 text-[#009ee3]" />
@@ -240,7 +240,7 @@ export default function PublicPaymentPage() {
 
             {/* Bank transfer */}
             {(org?.bank_cbu || org?.bank_alias) && (
-              <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
+              <div className="bg-slate-800/60 border border-slate-700 rounded-[10px] p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                     <Banknote className="w-4 h-4 text-emerald-400" />
@@ -309,7 +309,7 @@ export default function PublicPaymentPage() {
 
             {/* WhatsApp contact */}
             {org?.whatsapp_number && (
-              <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
+              <div className="bg-slate-800/60 border border-slate-700 rounded-[10px] p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
                     <MessageCircle className="w-4 h-4 text-green-400" />

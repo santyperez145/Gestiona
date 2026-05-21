@@ -3,8 +3,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { KeyRound, CheckCircle } from 'lucide-react';
+import { KeyRound, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+function AuthShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      style={{ background: 'hsl(228 28% 4.5%)' }}>
+      <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(38 82% 52% / 0.05) 0%, transparent 70%)' }} />
+      <div className="w-full max-w-[380px] relative z-10">
+        <div className="flex items-center justify-center gap-2.5 mb-10">
+          <div className="w-7 h-7 rounded-[5px] flex items-center justify-center"
+            style={{ background: 'var(--gradient-gold)' }}>
+            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+          </div>
+          <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/80">Gestiona</span>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -15,7 +35,6 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have a recovery token in the URL hash
     const hash = window.location.hash;
     if (hash.includes('type=recovery')) {
       setIsRecovery(true);
@@ -42,52 +61,86 @@ export default function ResetPasswordPage() {
 
   if (!isRecovery) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <AuthShell>
         <div className="text-center">
-          <KeyRound className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-xl font-display font-bold mb-2">Enlace inválido</h1>
-          <p className="text-muted-foreground text-sm mb-4">Este enlace de recuperación no es válido o expiró.</p>
-          <Button onClick={() => navigate('/')} variant="outline">Volver al inicio</Button>
+          <div className="flex items-center justify-center w-12 h-12 rounded-[8px] bg-muted/50 border border-border/40 mx-auto mb-5">
+            <KeyRound className="w-5 h-5 text-muted-foreground/60" />
+          </div>
+          <h1 className="font-display text-[1.25rem] font-bold tracking-tight mb-2">Enlace inválido</h1>
+          <p className="text-[12px] text-muted-foreground/55 mb-6 leading-relaxed">
+            Este enlace de recuperación no es válido o expiró.
+          </p>
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver al inicio
+          </Button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <AuthShell>
         <div className="text-center">
-          <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success" />
-          <h1 className="text-xl font-display font-bold mb-2">¡Contraseña actualizada!</h1>
-          <p className="text-muted-foreground text-sm">Redirigiendo al sistema...</p>
+          <div className="flex items-center justify-center w-12 h-12 rounded-[8px] bg-success/10 border border-success/20 mx-auto mb-5">
+            <CheckCircle className="w-5 h-5 text-success" />
+          </div>
+          <h1 className="font-display text-[1.25rem] font-bold tracking-tight mb-2">¡Contraseña actualizada!</h1>
+          <p className="text-[12px] text-muted-foreground/55">Redirigiendo al sistema...</p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="font-display text-2xl font-bold text-primary mb-2">Restablecer Contraseña</h1>
-          <p className="text-muted-foreground text-sm">Ingresá tu nueva contraseña</p>
+    <AuthShell>
+      <div>
+        <div className="mb-7">
+          <div className="flex items-center justify-center w-10 h-10 rounded-[8px] bg-primary/10 border border-primary/20 mb-4">
+            <KeyRound className="w-4 h-4 text-primary" />
+          </div>
+          <h1 className="font-display text-[1.5rem] font-bold tracking-tight leading-tight">
+            Nueva contraseña
+          </h1>
+          <p className="text-[12px] text-muted-foreground/55 mt-1">
+            Ingresá y confirmá tu nueva contraseña.
+          </p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-6">
+
+        <div className="rounded-[10px] border border-border/60 p-6 relative overflow-hidden"
+          style={{ background: 'hsl(228 24% 7%)' }}>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm text-muted-foreground">Nueva contraseña</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-muted border-border mt-1" />
+              <label className="kv-key mb-1.5 block">Nueva contraseña</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
             </div>
             <div>
-              <label className="text-sm text-muted-foreground">Confirmar contraseña</label>
-              <Input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-muted border-border mt-1" />
+              <label className="kv-key mb-1.5 block">Confirmar contraseña</label>
+              <Input
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
             </div>
-            <Button type="submit" disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
-              {loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Actualizando...' : 'Actualizar contraseña'}
             </Button>
           </form>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

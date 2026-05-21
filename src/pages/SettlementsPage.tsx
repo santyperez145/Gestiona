@@ -172,7 +172,7 @@ export default function SettlementsPage() {
           {grouped.map(g => {
             const inf = influencers.find(i => i.id === g.influencer_id);
             return (
-              <div key={g.influencer_id} className="bg-card border border-border rounded-lg p-4">
+              <div key={g.influencer_id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <p className="font-medium">{inf?.name || 'Influencer'}</p>
@@ -200,7 +200,7 @@ export default function SettlementsPage() {
       {payouts.length > 0 && (
         <div className="mt-10">
           <h2 className="font-display text-lg mb-3">Historial de pagos</h2>
-          <div className="bg-card border border-border rounded-lg overflow-x-auto">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
@@ -246,7 +246,7 @@ function PayDialog({ group, onPay }: { group: any; onPay: (method: string, notes
       <DialogTrigger asChild>
         <Button size="sm" className="gradient-gold text-primary-foreground"><CheckCircle className="w-3 h-3 mr-1" />Liquidar</Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60">
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">Vas a registrar el pago de <strong>{formatARS(group.total_commission)}</strong> por {group.count} ventas. Las ventas quedarán marcadas como pagadas.</p>

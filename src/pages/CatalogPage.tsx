@@ -895,7 +895,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             { label: "Marcas", value: [...new Set(products.map(p => p.brand).filter(Boolean))].length, color: "text-foreground" },
             { label: "En oferta", value: products.filter(p => p.discount_price_ars && p.discount_price_ars < p.sale_price_ars).length, color: "text-primary" },
           ].map(stat => (
-            <div key={stat.label} className="bg-card border border-border rounded-xl px-4 py-3 text-center">
+            <div key={stat.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl px-4 py-3 text-center">
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
             </div>
@@ -941,7 +941,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
             const discountPct = hasDiscount ? Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100) : 0;
             return (
-            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
+            <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
               <div className="aspect-square bg-muted/60 flex items-center justify-center relative overflow-hidden">
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />

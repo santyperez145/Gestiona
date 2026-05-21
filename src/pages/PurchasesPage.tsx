@@ -201,7 +201,7 @@ export default function PurchasesPage() {
                 <DialogTrigger asChild>
                   <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
                 </DialogTrigger>
-                <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+                <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
                   <PurchaseForm userId={user!.id} editItem={editItem} prefilledProductName={!editItem ? prefilledProduct : ""} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
                 </DialogContent>
@@ -233,10 +233,10 @@ export default function PurchasesPage() {
         return (
           <div className="grid grid-cols-3 gap-3 mb-4">
             {stages.map(s => (
-              <div key={s.label} className={`rounded-xl border p-3 ${s.color}`}>
+              <div key={s.label} className={`rounded-[10px] border p-3 ${s.color}`}>
                 <div className="text-lg mb-1">{s.icon}</div>
                 <p className="text-xs font-medium opacity-80">{s.label}</p>
-                <p className="text-xl font-bold">{s.count}</p>
+                <p className="text-xl font-bold font-mono tracking-tight">{s.count}</p>
                 {s.value > 0 && <p className="text-[10px] opacity-70">{formatUSD(s.value)}</p>}
               </div>
             ))}
@@ -248,7 +248,7 @@ export default function PurchasesPage() {
       {scannerOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center gap-4">
           <p className="text-white text-sm font-medium">Apuntá la cámara al código de barras</p>
-          <div className="relative w-72 h-48 rounded-xl overflow-hidden border-2 border-primary">
+          <div className="relative w-72 h-48 rounded-[10px] overflow-hidden border-2 border-primary">
             <video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-48 h-1 bg-primary/70 animate-pulse rounded" />
@@ -281,7 +281,7 @@ export default function PurchasesPage() {
         )}
       </div>
 
-      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit mb-5">
+      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 border border-border w-fit mb-5">
         {([
           { id: 'all' as const, label: 'Realizadas', icon: ShoppingCart },
           { id: 'scheduled' as const, label: 'Programadas', icon: CalendarClock, count: scheduledCount },
@@ -292,7 +292,7 @@ export default function PurchasesPage() {
             <t.icon className="w-4 h-4" />
             <span className="hidden sm:inline">{t.label}</span>
             {'count' in t && t.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === t.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>{t.count}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] font-semibold ${tab === t.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>{t.count}</span>
             )}
           </button>
         ))}
@@ -300,7 +300,7 @@ export default function PurchasesPage() {
 
       {/* Purchase Order Generator Dialog */}
       <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-        <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Generar Orden de Compra</DialogTitle></DialogHeader>
           <PurchaseOrderGenerator userId={user!.id} onDone={() => setOrderOpen(false)} />
         </DialogContent>
@@ -310,7 +310,7 @@ export default function PurchasesPage() {
         supplierStats.length === 0 ? (
           <EmptyState icon={ShoppingCart} title="Sin compras registradas" description="Registrá compras con proveedor para ver el análisis aquí." />
         ) : (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -330,7 +330,7 @@ export default function PurchasesPage() {
                     <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{i + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <div className="w-7 h-7 rounded-[6px] bg-primary/10 flex items-center justify-center shrink-0">
                           <span className="text-[10px] font-bold text-primary">{s.name.slice(0, 2).toUpperCase()}</span>
                         </div>
                         <span className="font-medium text-sm">{s.name}</span>
@@ -360,7 +360,7 @@ export default function PurchasesPage() {
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>
-          <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden">
+          <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -381,7 +381,7 @@ export default function PurchasesPage() {
                     <td className="px-4 py-3 font-medium">
                       <span>{p.product_name}</span>
                       {p.is_scheduled && p.travel_status === 'en_camino' && (
-                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">
+                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-[5px] font-semibold">
                           <Truck className="w-3 h-3" />En camino
                         </span>
                       )}
@@ -427,7 +427,7 @@ export default function PurchasesPage() {
 
           <div className="md:hidden space-y-3">
             {paged.map(p => (
-              <div key={p.id} className="bg-card border border-border rounded-lg p-4">
+              <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{p.product_name}</p>
@@ -466,7 +466,7 @@ export default function PurchasesPage() {
 
       {/* Invoice AI import modal */}
       <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
-        <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-3xl max-h-[90vh] overflow-y-auto">
           <InvoiceImportDialog
             mode="purchases"
             onClose={() => setInvoiceImportOpen(false)}
@@ -477,7 +477,7 @@ export default function PurchasesPage() {
 
       {/* Partial receipt dialog */}
       <Dialog open={!!receivingOrder} onOpenChange={v => { if (!v) setReceivingOrder(null); }}>
-        <DialogContent className="bg-card border-border max-w-sm">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar recepción</DialogTitle>
           </DialogHeader>

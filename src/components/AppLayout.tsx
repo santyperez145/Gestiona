@@ -277,27 +277,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main className={`flex-1 overflow-auto w-full transition-all duration-300 ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
         {/* Mobile header */}
-        <div className="lg:hidden sticky top-0 z-30 glass border-b border-border/50 px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="h-8 w-8 p-0">
-            <Menu className="w-5 h-5" />
-          </Button>
-          {config.logoUrl ? (
-            <img src={config.logoUrl} alt="Logo" className="w-6 h-6 rounded-lg object-cover" />
-          ) : (
-            <div className="w-6 h-6 rounded-lg gradient-gold flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-[10px]">E</span>
-            </div>
-          )}
-          <span className="font-display font-bold text-primary truncate flex-1 text-sm">{config.businessName}</span>
+        <div className="lg:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
+          style={{ background: 'hsl(228 32% 3% / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
           <button
-            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors touch-target"
-            aria-label="Buscar"
+            onClick={() => setMobileOpen(true)}
+            className="flex items-center justify-center w-7 h-7 rounded-[6px] border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border/70 transition-all"
           >
-            <Search className="w-4 h-4 text-muted-foreground" />
+            <Menu className="w-4 h-4" />
           </button>
-          <div className="lg:hidden">
-            <NotificationBell />
+
+          {/* Brand */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {config.logoUrl ? (
+              <img src={config.logoUrl} alt="Logo" className="w-5 h-5 rounded-[4px] object-cover ring-1 ring-primary/20" />
+            ) : (
+              <div className="w-5 h-5 rounded-[4px] gradient-gold flex items-center justify-center shrink-0">
+                <span className="text-primary-foreground font-black text-[9px]">E</span>
+              </div>
+            )}
+            <span className="font-display font-semibold text-[13px] text-foreground/80 truncate tracking-tight">
+              {config.businessName}
+            </span>
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+              className="flex items-center justify-center w-7 h-7 rounded-[6px] text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all"
+              aria-label="Buscar"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+            <div className="lg:hidden">
+              <NotificationBell />
+            </div>
           </div>
         </div>
         {/* Trial / subscription status banners */}

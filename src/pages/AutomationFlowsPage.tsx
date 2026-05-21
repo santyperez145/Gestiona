@@ -610,15 +610,15 @@ export default function AutomationFlowsPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold font-display text-primary">{flows.length}</p>
           <p className="text-xs text-muted-foreground mt-1">Flujos totales</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold font-display text-success">{activeCount}</p>
           <p className="text-xs text-muted-foreground mt-1">Activos</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold font-display text-blue-400">{totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0}%</p>
           <p className="text-xs text-muted-foreground mt-1">Éxito ({successRuns}/{totalRuns})</p>
         </div>
@@ -648,7 +648,7 @@ export default function AutomationFlowsPage() {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Plantillas sugeridas</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {FLOW_TEMPLATES.map((tpl) => (
-            <div key={tpl.name} className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors group">
+            <div key={tpl.name} className="flex items-center gap-3 p-3 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl hover:border-primary/30 transition-colors group">
               <span className="text-2xl shrink-0">{tpl.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold leading-tight">{tpl.name}</p>
@@ -803,7 +803,7 @@ export default function AutomationFlowsPage() {
                   run.status === "success" ? "text-success" :
                   run.status === "error" ? "text-destructive" : "text-muted-foreground";
                 return (
-                  <div key={run.id} className="flex items-start gap-3 bg-card border border-border rounded-xl px-4 py-3">
+                  <div key={run.id} className="flex items-start gap-3 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl px-4 py-3">
                     <StatusIcon className={`w-4 h-4 mt-0.5 shrink-0 ${statusColor}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -834,7 +834,7 @@ export default function AutomationFlowsPage() {
 
       {/* Form dialog */}
       <Dialog open={showForm} onOpenChange={(v) => { setShowForm(v); if (!v) setEditingFlow(null); }}>
-        <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Zap className="w-5 h-5 text-primary" />

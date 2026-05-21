@@ -504,7 +504,7 @@ export default function ProductsPage() {
                 <DialogTrigger asChild>
                   <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
                 </DialogTrigger>
-                <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
                   <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
                 </DialogContent>
@@ -528,7 +528,7 @@ export default function ProductsPage() {
 
       {/* Bulk price adjustment modal */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
           <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
         </DialogContent>
@@ -536,14 +536,14 @@ export default function ProductsPage() {
 
       {/* Excel import modal */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="bg-card border-border max-w-5xl">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-5xl">
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
         </DialogContent>
       </Dialog>
 
       {/* Invoice AI import modal */}
       <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
-        <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-3xl max-h-[90vh] overflow-y-auto">
           <InvoiceImportDialog
             mode="products"
             onClose={() => setInvoiceImportOpen(false)}
@@ -596,7 +596,7 @@ export default function ProductsPage() {
         })).filter(b => b.items.length > 0);
         const totalAtRisk = aged.reduce((s, p) => s + p.valueARS, 0);
         return (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
             <div className="flex items-center w-full gap-2 pr-2">
               <button
                 onClick={() => setShowAging(!showAging)}
@@ -788,7 +788,7 @@ export default function ProductsPage() {
               <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
               </h2>
-              <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
+              <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
@@ -978,7 +978,7 @@ export default function ProductsPage() {
               </div>
                <div className="md:hidden space-y-2">
                 {items.map((p: any) => (
-                  <div key={p.id} className="bg-card border border-border rounded-lg p-3">
+                  <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-3">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />}
@@ -1725,7 +1725,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="bg-card border-border max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-sm">Historial de precios — {productName}</DialogTitle>
         </DialogHeader>

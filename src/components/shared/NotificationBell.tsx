@@ -117,7 +117,7 @@ export default function NotificationBell({ collapsed }: { collapsed?: boolean })
       {open && (
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full left-0 mb-2 w-80 max-h-[420px] bg-card border border-border rounded-xl shadow-2xl z-[70] overflow-hidden flex flex-col animate-in slide-in-from-bottom-2 duration-200">
+          <div className="absolute bottom-full left-0 mb-2 w-80 max-h-[420px] bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl shadow-2xl z-[70] overflow-hidden flex flex-col animate-in slide-in-from-bottom-2 duration-200">
             {/* Header */}
             <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
               <h3 className="font-display font-semibold text-sm">Notificaciones</h3>

@@ -289,7 +289,7 @@ export default function ExpensesPage() {
                     <Plus className="w-4 h-4 mr-2" /> Nuevo Gasto
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-card border-border max-w-md p-0">
+                <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md p-0">
                   <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="font-display">{editItem ? 'Editar Gasto' : 'Registrar Gasto'}</DialogTitle>
                   </DialogHeader>
@@ -313,7 +313,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Tab nav */}
-      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit mb-5">
+      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 border border-border w-fit mb-5">
         {([
           { id: 'gastos', label: 'Gastos', icon: Receipt },
           { id: 'presupuesto', label: 'Presupuesto', icon: Target },
@@ -366,7 +366,7 @@ export default function ExpensesPage() {
       {activeTab === 'gastos' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Chart */}
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Por Categoría</h2>
           {totals.chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -425,7 +425,7 @@ export default function ExpensesPage() {
         </div>
 
         {/* Table */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl shadow-card overflow-hidden">
+        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-card overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Listado</h2>
             <span className="text-xs text-muted-foreground">{filtered.length} resultado{filtered.length !== 1 ? "s" : ""}</span>
@@ -452,7 +452,7 @@ export default function ExpensesPage() {
                         <tr key={e.id} className="hover:bg-muted/20 transition-colors group">
                           <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateAR(e.date)}</td>
                           <td className="px-4 py-3">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] text-[11px] font-semibold" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
                               {getExpenseCategoryLabel(e.category, settings)}
                               {e.recurring && <Repeat className="w-2.5 h-2.5" />}
                             </span>
@@ -503,11 +503,11 @@ export default function ExpensesPage() {
                 {filtered.map(e => {
                   const catCfg = categories.find(c => c.value === e.category);
                   return (
-                    <div key={e.id} className="bg-muted/30 border border-border rounded-lg p-3">
+                    <div key={e.id} className="bg-muted/30 border border-border rounded-[10px] p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-[5px] font-medium" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
                               {getExpenseCategoryLabel(e.category, settings)}
                             </span>
                             {e.recurring && <Repeat className="w-3 h-3 text-warning" />}
@@ -556,7 +556,7 @@ export default function ExpensesPage() {
 
       {/* Presupuesto tab */}
       {activeTab === 'presupuesto' && (
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Presupuesto por Categoría</h2>
           {totals.chartData.length === 0 ? (
             <p className="text-muted-foreground text-sm py-12 text-center">Sin datos para el período seleccionado</p>
@@ -614,7 +614,7 @@ export default function ExpensesPage() {
 
       {/* Recurrentes tab */}
       {activeTab === 'recurrentes' && (
-        <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-card overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Gastos Recurrentes</h2>
             <span className="text-xs text-muted-foreground">{filtered.filter(e => e.recurring).length} recurrente{filtered.filter(e => e.recurring).length !== 1 ? "s" : ""}</span>
@@ -627,7 +627,7 @@ export default function ExpensesPage() {
                 const catCfg = categories.find(c => c.value === e.category);
                 return (
                   <div key={e.id} className="flex items-center gap-3 p-4">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] text-[11px] font-semibold shrink-0" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
                       <Repeat className="w-3 h-3" />
                       {getExpenseCategoryLabel(e.category, settings)}
                     </span>
@@ -650,7 +650,7 @@ export default function ExpensesPage() {
       {/* Monthly trend chart */}
       {activeTab === 'tendencia' && monthlyTrend.length > 1 && (
         <div className="space-y-4 mb-6">
-          <div className="bg-card border border-border rounded-xl shadow-card p-4">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
             <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -679,7 +679,7 @@ export default function ExpensesPage() {
               return row;
             });
             return (
-              <div className="bg-card border border-border rounded-xl shadow-card p-4">
+              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
                 <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Distribución por categoría</h2>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -704,7 +704,7 @@ export default function ExpensesPage() {
 
           {/* Month-over-month comparison table */}
           {monthlyTrendByCat.length > 1 && (
-            <div className="bg-card border border-border rounded-xl shadow-card p-4">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
               <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Comparativa mensual por categoría</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">

@@ -174,7 +174,7 @@ export default function AdminPage() {
           { label: 'Facturación', value: formatARS(totals.revenue), icon: DollarSign, sub: 'Total' },
           { label: 'Ganancia', value: formatARS(totals.profit), icon: TrendingUp, sub: 'Neta' },
         ].map(kpi => (
-          <div key={kpi.label} className="bg-card border border-border rounded-lg p-4">
+          <div key={kpi.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground uppercase tracking-wide">{kpi.label}</span>
               <kpi.icon className="w-4 h-4 text-primary" />
@@ -187,7 +187,7 @@ export default function AdminPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4">
+        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
           <h3 className="font-display font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-4">Rendimiento por Vendedor</h3>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
@@ -203,7 +203,7 @@ export default function AdminPage() {
             <p className="text-muted-foreground text-center py-10">Sin datos aún</p>
           )}
         </div>
-        <div className="bg-card border border-border rounded-lg p-4">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
           <h3 className="font-display font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-4">Distribución de Roles</h3>
           {roleDistribution.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
@@ -221,7 +221,7 @@ export default function AdminPage() {
       </div>
 
       {/* Vendors table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg overflow-hidden">
         <div className="p-4 border-b border-border">
           <h3 className="font-display font-semibold">Vendedores ({vendors.length})</h3>
         </div>
@@ -300,7 +300,7 @@ export default function AdminPage() {
 
       {/* Audit Log Tab */}
       {activeTab === 'audit' && (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="font-display font-semibold flex items-center gap-2"><ClipboardList className="w-4 h-4 text-primary" />Actividad Reciente ({auditLogs.length})</h3>
           </div>
@@ -372,7 +372,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm"><UserPlus className="w-4 h-4 mr-2" />Asignar Rol</Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-display">Asignar Rol a Usuario</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div>
@@ -456,7 +456,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: { vendors: Vendor
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-gold text-primary-foreground"><Target className="w-3.5 h-3.5 mr-1" />Asignar Meta</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+          <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Asignar Meta Mensual</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div>
@@ -483,7 +483,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: { vendors: Vendor
       </div>
 
       {goalsWithVendor.length === 0 ? (
-        <div className="bg-card border border-border rounded-lg p-8 text-center">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-8 text-center">
           <Target className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">No hay metas asignadas para este mes</p>
         </div>
@@ -493,7 +493,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: { vendors: Vendor
             const progress = g.target_ars > 0 ? Math.min((g.total_sales_ars / g.target_ars) * 100, 100) : 0;
             const commission = g.total_sales_ars * (g.commission_percent / 100);
             return (
-              <div key={g.id} className="bg-card border border-border rounded-lg p-4 shadow-card">
+              <div key={g.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="font-medium text-sm">{g.vendor?.displayName || 'Vendedor'}</p>

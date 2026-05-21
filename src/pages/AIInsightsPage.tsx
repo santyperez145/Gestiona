@@ -136,7 +136,7 @@ function HistoryItem({ entry, onExpand }: { entry: HistoryEntry; onExpand: () =>
   const Icon = cfg.icon;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
       <button
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
         onClick={() => setExpanded(!expanded)}
@@ -265,7 +265,7 @@ export default function AIInsightsPage() {
               key={type}
               onClick={() => runAnalysis(type)}
               disabled={!!loadingType}
-              className={`bg-card border rounded-2xl p-5 text-left transition-all hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${
+              className={`bg-[hsl(228_24%_7%)] border rounded-[10px] p-5 text-left transition-all hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${
                 isActive ? "border-primary/50 ring-1 ring-primary/30 shadow-md" : "border-border hover:border-primary/30"
               }`}
             >
@@ -296,7 +296,7 @@ export default function AIInsightsPage() {
 
       {/* Active result */}
       {activeResult && (
-        <div className="bg-card border border-primary/30 rounded-2xl overflow-hidden shadow-md">
+        <div className="bg-[hsl(228_24%_7%)] border border-primary/30 rounded-[10px] overflow-hidden shadow-md">
           <div className="px-5 py-3.5 border-b border-border flex items-center gap-2 bg-primary/5">
             {(() => {
               const cfg = ANALYSIS_CONFIG[activeResult.type];

@@ -224,7 +224,7 @@ export default function LoyaltyPage() {
       />
 
       {/* Tab nav */}
-      <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
+      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 border border-border w-fit">
         {([
           { id: 'puntos', label: 'Puntos', icon: Gift },
           { id: 'canjes', label: 'Canjes', icon: ShoppingBag },
@@ -241,7 +241,7 @@ export default function LoyaltyPage() {
 
       {/* Settings */}
       {activeTab === 'configuracion' && (
-      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold flex items-center gap-2 text-sm"><Settings2 className="w-4 h-4" />Configuración</h2>
           <div className="flex items-center gap-2 text-sm">
@@ -281,7 +281,7 @@ export default function LoyaltyPage() {
 
       {/* Manual adjustment */}
       {activeTab === 'puntos' && (
-      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-3">
         <h2 className="font-semibold text-sm flex items-center gap-2"><Gift className="w-4 h-4" />Ajuste manual de puntos</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
@@ -306,11 +306,11 @@ export default function LoyaltyPage() {
 
       {/* Product Redemption — cost-price based */}
       {activeTab === 'canjes' && (
-      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Tag className="w-4 h-4 text-yellow-400" />
           <h2 className="font-semibold text-sm">Canjear producto por puntos</h2>
-          <span className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">puntos calculados al precio de costo</span>
+          <span className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-[5px]">puntos calculados al precio de costo</span>
         </div>
         <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -397,7 +397,7 @@ export default function LoyaltyPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {TIERS.map(tier => (
-              <div key={tier.name} className={`bg-card border border-border rounded-xl p-5 ${tier.bg}`}>
+              <div key={tier.name} className={`bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 ${tier.bg}`}>
                 <div className="flex items-center gap-2 mb-3">
                   <Medal className={`w-5 h-5 ${tier.color}`} />
                   <h3 className={`font-semibold text-base ${tier.color}`}>{tier.name}</h3>
@@ -422,7 +422,7 @@ export default function LoyaltyPage() {
               </div>
             ))}
           </div>
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
             <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Distribución de clientes por tier</h3>
             <div className="space-y-2">
               {TIERS.map(tier => {
@@ -495,10 +495,10 @@ export default function LoyaltyPage() {
                 <button
                   key={b.customer_name}
                   onClick={() => setSelected(selected === b.customer_name ? null : b.customer_name)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                  className={`w-full flex items-center gap-3 p-3 rounded-[10px] border transition-all text-left ${
                     selected === b.customer_name
                       ? "border-primary/60 bg-primary/5"
-                      : "border-border bg-card hover:border-primary/30"
+                      : "border-border/60 bg-[hsl(228_24%_7%)] hover:border-primary/30"
                   }`}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -512,7 +512,7 @@ export default function LoyaltyPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-medium truncate">{b.customer_name}</p>
-                      {(() => { const t = getTier(b.balance); return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${t.bg} ${t.color}`}>{t.name}</span>; })()}
+                      {(() => { const t = getTier(b.balance); return <span className={`text-[10px] px-1.5 py-0.5 rounded-[5px] font-semibold ${t.bg} ${t.color}`}>{t.name}</span>; })()}
                     </div>
                     <p className="text-[10px] text-muted-foreground">{b.totalEarned} ganados · {b.totalRedeemed} canjeados</p>
                   </div>
@@ -531,7 +531,7 @@ export default function LoyaltyPage() {
         {/* History detail */}
         <div className="lg:col-span-2">
           {selected && selectedBalance ? (
-            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold">{selected}</h3>
@@ -541,7 +541,7 @@ export default function LoyaltyPage() {
                 </div>
                 {(() => {
                   const t = getTier(selectedBalance.balance);
-                  return <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${t.bg} ${t.color}`}>{t.name}</span>;
+                  return <span className={`text-xs px-2.5 py-1 rounded-[5px] font-semibold ${t.bg} ${t.color}`}>{t.name}</span>;
                 })()}
               </div>
               {/* Tier progress */}

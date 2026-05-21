@@ -215,7 +215,7 @@ export default function SystemHealthTab() {
           const meta = CATEGORY_META[cat as SecretStatus["category"]];
           const Icon = meta.icon;
           return (
-            <div key={cat} className="bg-card border border-border rounded-xl overflow-hidden">
+            <div key={cat} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
               <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
                 <Icon className={`w-4 h-4 ${meta.color}`} />
                 <span className="text-sm font-semibold">{meta.label}</span>
@@ -254,7 +254,7 @@ export default function SystemHealthTab() {
 
       {/* Function activity */}
       {functionStats.length > 0 && (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold">Actividad de servicios (24h)</span>

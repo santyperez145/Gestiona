@@ -126,18 +126,20 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-          <User className="w-5 h-5" /> Mi Perfil
+      <div className="mb-2">
+        <h1 className="font-display text-[1.7rem] font-bold tracking-tight flex items-center gap-2.5">
+          <User className="w-5 h-5 text-primary/70" /> Mi Perfil
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Administrá tu información personal y seguridad.</p>
+        <p className="text-[12px] text-muted-foreground/55 mt-1">Administrá tu información personal y seguridad.</p>
       </div>
 
       {/* Avatar + Name */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-        <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Información personal</h2>
+      <div className="rounded-[10px] border border-border/60 p-5 space-y-5 relative overflow-hidden"
+        style={{ background: 'hsl(228 24% 7%)' }}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información personal</p>
 
         {/* Avatar */}
         <div className="flex items-center gap-5">
@@ -226,10 +228,12 @@ export default function ProfilePage() {
       </div>
 
       {/* Password change */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-        <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <Lock className="w-3.5 h-3.5" /> Cambiar contraseña
-        </h2>
+      <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
+        style={{ background: 'hsl(228 24% 7%)' }}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+          <Lock className="w-3 h-3" /> Cambiar contraseña
+        </p>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label>Nueva contraseña</Label>
@@ -265,19 +269,21 @@ export default function ProfilePage() {
       </div>
 
       {/* Memberships */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-        <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <Building2 className="w-3.5 h-3.5" /> Mis organizaciones
-        </h2>
+      <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
+        style={{ background: 'hsl(228 24% 7%)' }}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+          <Building2 className="w-3 h-3" /> Mis organizaciones
+        </p>
         {memberships.length === 0
-          ? <p className="text-sm text-muted-foreground">No pertenecés a ninguna organización.</p>
+          ? <p className="text-[12px] text-muted-foreground/55">No pertenecés a ninguna organización.</p>
           : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {memberships.map(m => (
-                <div key={m.org_id} className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                <div key={m.org_id} className="flex items-center justify-between rounded-[8px] border border-border/40 bg-muted/10 px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Building2 className="w-4 h-4 text-primary" />
+                    <div className="w-7 h-7 rounded-[5px] bg-primary/10 flex items-center justify-center">
+                      <Building2 className="w-3.5 h-3.5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{m.organization.name}</p>
@@ -294,22 +300,24 @@ export default function ProfilePage() {
       </div>
 
       {/* Account info */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
-        <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Información de cuenta</h2>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">ID de usuario</span>
-            <span className="font-mono text-xs text-muted-foreground truncate max-w-[200px]">{user?.id}</span>
+      <div className="rounded-[10px] border border-border/60 p-5 space-y-3 relative overflow-hidden"
+        style={{ background: 'hsl(228 24% 7%)' }}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
+        <div className="space-y-0">
+          <div className="info-row">
+            <span>ID de usuario</span>
+            <span className="font-mono text-[11px] text-muted-foreground/60 truncate max-w-[200px]">{user?.id}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Cuenta creada</span>
-            <span className="text-muted-foreground text-xs">
+          <div className="info-row">
+            <span>Cuenta creada</span>
+            <span className="font-mono text-[11px] text-muted-foreground/60">
               {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-AR', { dateStyle: 'long' }) : '—'}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Último acceso</span>
-            <span className="text-muted-foreground text-xs">
+          <div className="info-row">
+            <span>Último acceso</span>
+            <span className="font-mono text-[11px] text-muted-foreground/60">
               {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
             </span>
           </div>

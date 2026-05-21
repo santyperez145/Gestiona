@@ -96,7 +96,7 @@ export default function SetupChecklist({
   if (allDone) return null;
 
   return (
-    <div className="mb-5 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card shadow-card overflow-hidden">
+    <div className="mb-5 rounded-[10px] border border-primary/20 bg-[hsl(228_24%_7%)] shadow-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60">
         <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -105,7 +105,7 @@ export default function SetupChecklist({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">Configuración inicial</h3>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-primary/15 text-primary">
               {doneCount}/{total}
             </span>
           </div>
