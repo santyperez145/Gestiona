@@ -684,7 +684,7 @@ export default function PublicCatalogPage() {
           if (!open) setDetailProduct(null);
         }}
       >
-        <DialogContent className="p-0 border-0 bg-transparent shadow-none max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+        <DialogContent className="p-0 border-0 bg-transparent shadow-none rounded-none max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto overflow-x-visible [&>button]:hidden">
           <DialogTitle className="sr-only">
             {detailProduct?.name ?? "Detalle del producto"}
           </DialogTitle>
@@ -1199,7 +1199,7 @@ function ProductDetailModal({
 
   return (
     <div
-      className="rounded-[12px] overflow-hidden text-white animate-in fade-in zoom-in-95 duration-300"
+      className="relative rounded-[12px] overflow-hidden text-white"
       style={{
         background: "linear-gradient(160deg, #13132a 0%, #0d0d1a 100%)",
         border: "1px solid rgba(255,255,255,0.08)",
