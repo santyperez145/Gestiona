@@ -41,6 +41,8 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      aria-describedby={undefined}
+      {...props}
       className={cn(
         // Layout
         "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
@@ -62,7 +64,6 @@ const DialogContent = React.forwardRef<
         "data-[state=closed]:slide-out-to-top-[2%] data-[state=open]:slide-in-from-top-[2%]",
         className,
       )}
-      {...props}
     >
       {/* Inner top highlight layer */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/5 via-white/9 to-transparent" />

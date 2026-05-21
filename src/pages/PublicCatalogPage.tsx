@@ -25,7 +25,7 @@ import {
   ShoppingCart,
   Trash2,
 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -685,6 +685,9 @@ export default function PublicCatalogPage() {
         }}
       >
         <DialogContent className="p-0 border-0 bg-transparent shadow-none max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+          <DialogTitle className="sr-only">
+            {detailProduct?.name ?? "Detalle del producto"}
+          </DialogTitle>
           {detailProduct && (
             <ProductDetailModal
               product={detailProduct}
