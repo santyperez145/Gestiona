@@ -53,7 +53,6 @@ const DialogContent = React.forwardRef<
         "shadow-[0_0_0_1px_hsl(228_30%_16%/0.4)_inset,0_24px_64px_-8px_hsl(0_0%_0%/0.7),0_8px_24px_-4px_hsl(0_0%_0%/0.5)]",
         // Inner top highlight
         "before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-white/6 before:via-white/10 before:to-transparent",
-        "relative",
         // Spacing
         "p-5 sm:p-6",
         // Animation
