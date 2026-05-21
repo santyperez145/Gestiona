@@ -112,6 +112,10 @@
     line-height: 1.2;
   }
 
+  /* h2 and h3 — subtler size, used in cards/sections */
+  h2 { font-size: 1.15rem; }
+  h3 { font-size: 1rem; }
+
   /* All numbers use JetBrains Mono tabular nums */
   .tabular, [data-number], .font-mono {
     font-family: var(--font-mono);

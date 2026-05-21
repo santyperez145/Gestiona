@@ -338,7 +338,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           return null;
         })()}
 
-        <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
+        <div className="p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in">
           {children}
         </div>
         {/* Floating page guide — rendered per-route, no-op if no guide exists */}

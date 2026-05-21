@@ -912,18 +912,35 @@ export default function Dashboard() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+      {/* ── Header — editorial, not generic ──────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-4 gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">{greeting} 👋</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
+          {/* Date label above title */}
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/45 font-display mb-1.5">
+            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
+          <div className="flex items-end gap-3 flex-wrap">
+            <h1 className="text-[1.9rem] md:text-[2.3rem] font-display font-bold tracking-[-0.03em] leading-none text-foreground">
+              {greeting}
+            </h1>
+            {/* live today number — hero stat */}
+            <div className="flex items-baseline gap-2 mb-[2px]">
+              <span className="text-[11px] text-muted-foreground/50 font-display uppercase tracking-wide">hoy</span>
+              <span className="text-[1.5rem] font-mono font-bold tracking-tight text-success leading-none">
+                {formatARS(liveTodaySales?.total ?? 0)}
+              </span>
+              <span className="text-[11px] text-muted-foreground/50 font-mono">
+                {liveTodaySales?.count ?? 0}v
+              </span>
+            </div>
+          </div>
+          {/* Gold accent underline */}
+          <div className="mt-2 h-[2px] w-8 rounded-full bg-primary/50" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
-              <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+            <SelectTrigger className="w-[180px] h-8 text-[12px]">
+              <Filter className="w-3 h-3 mr-1 opacity-50" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -932,108 +949,115 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-success transition-colors">
-            <Share2 className="w-3.5 h-3.5" />Compartir
+          <button
+            onClick={shareDailyResume}
+            title="Compartir resumen por WhatsApp"
+            className="hidden sm:flex items-center gap-1 h-8 px-2.5 rounded-[7px] border border-border/50 text-[11px] text-muted-foreground/60 hover:text-success hover:border-success/30 transition-all duration-150"
+          >
+            <Share2 className="w-3 h-3" />
           </button>
-          <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
 
-      {/* Open Cash Session Banner */}
-      {openCashSession && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-success/10 border border-success/30 rounded-xl">
-          <Banknote className="w-4 h-4 text-success shrink-0" />
-          <span className="text-sm font-medium text-success">Caja abierta</span>
-          <span className="text-xs text-muted-foreground">
-            desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-          <Link to="/caja" className="ml-auto text-xs text-primary hover:underline font-medium">Ver caja →</Link>
-        </div>
-      )}
-
-      {/* Sin ventas hoy — alert after 14hs */}
-      {new Date().getHours() >= 14 && (liveTodaySales?.count ?? 0) === 0 && !noSalesDismissed && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-warning/10 border border-warning/30 rounded-xl">
-          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
-          <span className="text-sm font-medium text-warning">Sin ventas hoy</span>
-          <span className="text-xs text-muted-foreground hidden sm:block">Son las {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} y no hay ventas registradas.</span>
-          <div className="ml-auto flex items-center gap-2">
-            <Link to="/ventas" className="text-xs text-primary hover:underline font-medium">Registrar →</Link>
-            <button
-              onClick={() => {
-                sessionStorage.setItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, '1');
-                setNoSalesDismissed(true);
-              }}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
-            >✕</button>
+      {/* ── Status banners — left-bar style, not generic rounded box ────── */}
+      <div className="space-y-1.5 mb-4">
+        {openCashSession && (
+          <div className="relative flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-[7px] bg-success/5 border border-success/15 overflow-hidden">
+            <div className="absolute left-0 inset-y-0 w-[3px] bg-success rounded-r-full" />
+            <Banknote className="w-[14px] h-[14px] text-success shrink-0" />
+            <span className="text-[12px] font-semibold text-success">Caja abierta</span>
+            <span className="text-[11px] text-muted-foreground/60">
+              desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <Link to="/caja" className="ml-auto text-[11px] text-success/80 hover:text-success font-mono transition-colors">ir →</Link>
           </div>
-        </div>
-      )}
+        )}
+        {new Date().getHours() >= 14 && (liveTodaySales?.count ?? 0) === 0 && !noSalesDismissed && (
+          <div className="relative flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-[7px] bg-warning/5 border border-warning/15 overflow-hidden">
+            <div className="absolute left-0 inset-y-0 w-[3px] bg-warning rounded-r-full" />
+            <AlertTriangle className="w-[14px] h-[14px] text-warning shrink-0" />
+            <span className="text-[12px] font-semibold text-warning">Sin ventas hoy</span>
+            <span className="text-[11px] text-muted-foreground/55 hidden sm:block">
+              Son las {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} y no hay ventas.
+            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <Link to="/ventas" className="text-[11px] text-warning/80 hover:text-warning font-mono transition-colors">registrar →</Link>
+              <button onClick={() => { sessionStorage.setItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, '1'); setNoSalesDismissed(true); }} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors text-[10px]">✕</button>
+            </div>
+          </div>
+        )}
+        {stats && (stats.outOfStockProducts?.length > 0 || stats.lowStockProducts?.length > 0) && (
+          <div className="relative flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-[7px] bg-destructive/5 border border-destructive/15 overflow-hidden">
+            <div className="absolute left-0 inset-y-0 w-[3px] bg-destructive rounded-r-full" />
+            <AlertTriangle className="w-[14px] h-[14px] text-destructive shrink-0" />
+            <span className="text-[12px] font-semibold text-destructive">Stock crítico</span>
+            <span className="text-[11px] text-muted-foreground/55 hidden sm:block">
+              {stats.outOfStockProducts?.length > 0 && `${stats.outOfStockProducts.length} sin stock`}
+              {stats.outOfStockProducts?.length > 0 && stats.lowStockProducts?.length > 0 && ' · '}
+              {stats.lowStockProducts?.length > 0 && `${stats.lowStockProducts.length} bajo mínimo`}
+            </span>
+            <Link to="/productos?filter=lowstock" className="ml-auto text-[11px] text-destructive/80 hover:text-destructive font-mono transition-colors shrink-0">ver →</Link>
+          </div>
+        )}
+      </div>
 
-      {/* Stock crítico banner — proactivo */}
-      {stats && (stats.outOfStockProducts?.length > 0 || stats.lowStockProducts?.length > 0) && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-destructive/10 border border-destructive/30 rounded-xl">
-          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-          <span className="text-sm font-medium text-destructive">Stock crítico</span>
-          <span className="text-xs text-muted-foreground hidden sm:block">
-            {stats.outOfStockProducts?.length > 0 && `${stats.outOfStockProducts.length} sin stock`}
-            {stats.outOfStockProducts?.length > 0 && stats.lowStockProducts?.length > 0 && ' · '}
-            {stats.lowStockProducts?.length > 0 && `${stats.lowStockProducts.length} con stock bajo`}
-          </span>
-          <Link to="/productos?filter=lowstock" className="ml-auto text-xs text-destructive hover:underline font-medium shrink-0">Ver productos →</Link>
-        </div>
-      )}
-
-      {/* USD Rates Banner */}
+      {/* ── USD Ticker — market data strip ──────────────────────────────── */}
       {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
-        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-2.5 bg-card border border-border rounded-xl">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Dólar hoy</span>
+        <div className="flex flex-wrap items-center gap-0 mb-4 rounded-[8px] border border-border/40 bg-[hsl(228_26%_5%)] overflow-hidden">
+          {/* Label */}
+          <div className="flex items-center gap-1.5 px-3 py-2 border-r border-border/30">
+            <span className="w-[5px] h-[5px] rounded-full bg-success animate-pulse inline-block" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/45 font-display">USD</span>
+          </div>
+          {/* Rates */}
           {dolarRates.oficial > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Oficial</span>
-              <span className="text-sm font-bold font-mono">${dolarRates.oficial.toLocaleString('es-AR')}</span>
+            <div className="flex items-center gap-1.5 px-4 py-2 border-r border-border/25">
+              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 font-display">Oficial</span>
+              <span className="text-[13px] font-bold font-mono text-foreground/80">${dolarRates.oficial.toLocaleString('es-AR')}</span>
             </div>
           )}
           {dolarRates.blue > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Blue</span>
-              <span className="text-sm font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
+            <div className="flex items-center gap-1.5 px-4 py-2 border-r border-border/25">
+              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 font-display">Blue</span>
+              <span className="text-[13px] font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
             </div>
           )}
           {dolarRates.mep > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">MEP</span>
-              <span className="text-sm font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
+            <div className="flex items-center gap-1.5 px-4 py-2 border-r border-border/25">
+              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 font-display">MEP</span>
+              <span className="text-[13px] font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
             </div>
           )}
+          {/* Your configured TC */}
           {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
-            <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Tu TC configurado:</span>
-              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
+            <div className="ml-auto flex items-center gap-1.5 px-3 py-2">
+              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/35 font-display">tu TC</span>
+              <span className={`text-[13px] font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
                 ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
               </span>
               {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && (
-                <Link to="/ajustes" className="text-[10px] text-primary hover:underline">Actualizar →</Link>
+                <Link to="/ajustes" className="text-[9px] text-primary/70 hover:text-primary uppercase tracking-wide transition-colors">actualizar</Link>
               )}
             </div>
           )}
         </div>
       )}
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2 mb-4 mt-3">
+      {/* ── Quick Actions — command-style chips ──────────────────────────── */}
+      <div className="flex flex-wrap gap-1.5 mb-5">
         {[
-          { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
-          { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-success" },
-          { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
-          { label: "Inventario", icon: Package, path: "/productos", color: "text-warning" },
-          { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },
-          { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-purple-400" },
+          { label: "Nueva Venta", icon: DollarSign, path: "/ventas", accent: "hsl(38 82% 52%)" },
+          { label: "POS", icon: ShoppingBag, path: "/caja", accent: "hsl(155 55% 40%)" },
+          { label: "Clientes", icon: Users, path: "/clientes", accent: "hsl(210 90% 60%)" },
+          { label: "Inventario", icon: Package, path: "/productos", accent: "hsl(38 90% 55%)" },
+          { label: "Gastos", icon: Wallet, path: "/gastos", accent: "hsl(0 68% 50%)" },
+          { label: "Reportes", icon: BarChart3, path: "/reportes", accent: "hsl(265 85% 65%)" },
         ].map(a => (
           <Link key={a.path} to={a.path}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">
-            <a.icon className={`w-3.5 h-3.5 ${a.color}`} />
-            {a.label}
+            className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-[6px] bg-[hsl(228_24%_7%)] border border-border/50 hover:border-border/80 transition-all duration-150 hover:-translate-y-[1px]"
+          >
+            <a.icon className="w-3 h-3 transition-colors duration-150" style={{ color: a.accent, opacity: 0.75 }} />
+            <span className="text-[11px] font-medium text-muted-foreground/70 group-hover:text-foreground/90 transition-colors duration-150">{a.label}</span>
           </Link>
         ))}
         <button
