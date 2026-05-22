@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 45)**
+Última actualización: **2026-05-22 (sesión 46)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -816,6 +816,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **Build limpio** — 4363 módulos, 18.7s, 0 warnings de importación | ✅ Hecho |
 | 4 | **Cron `send-scheduled-campaigns`** — migration agrega cron cada 15 min y función `expire_payment_links()` | ✅ Hecho |
 | 5 | **Integraciones nav** — WhatsApp Masivo en sección marketing, Links de Pago en sección finanzas del sidebar | ✅ Hecho |
+
+## Sesión 46 ✅ COMPLETA — Evolution API (WhatsApp propio, sin Twilio)
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **`send-whatsapp` reescrito para Evolution API** — reemplaza Twilio por Evolution API open-source self-hosted; endpoint `/message/sendText/{instance}`; normalización de teléfono sin "+"; batch de 3 con delay 1s; personalización `{{nombre}}`/`{{name}}`; credenciales desde env vars o tabla `settings` | ✅ Hecho |
+| 2 | **Edge function `evolution-qr`** — proxy seguro para gestión de instancia: actions `status`, `qr`, `create`, `logout`; solo owners/admins; lee credenciales de `settings`; devuelve QR en base64 | ✅ Hecho |
+| 3 | **`EvolutionSection` en IntegrationsPage** — reemplaza `TwilioSection`; guarda URL/apiKey/instance en DB; check de estado vía edge function; QR scan con polling cada 4s hasta conexión; guía de setup con links a Railway/Render | ✅ Hecho |
+| 4 | **Migration `evolution_api_settings`** — `ALTER TABLE settings ADD COLUMN evolution_api_url, evolution_api_key, evolution_instance DEFAULT 'gestiona'` | ✅ Hecho |
+| 5 | **`WhatsAppCampaignsPage` actualizada** — config check lee de Supabase DB (no localStorage); warning "Evolution API no configurada" con link a /integraciones; estado renombrado de `twilioConfigured` a `evolutionConfigured` | ✅ Hecho |
+| 6 | **TypeScript clean** — 0 errores tras todos los cambios | ✅ Hecho |
 
 ---
 

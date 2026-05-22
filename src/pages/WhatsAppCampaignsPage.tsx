@@ -105,7 +105,7 @@ export default function WhatsAppCampaignsPage() {
   const [salesData, setSalesData] = useState<any[]>([]);
   const [debtsData, setDebtsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [twilioConfigured, setTwilioConfigured] = useState<boolean | null>(null);
+  const [evolutionConfigured, setEvolutionConfigured] = useState<boolean | null>(null);
 
   // Form
   const [open, setOpen] = useState(false);
@@ -134,10 +134,13 @@ export default function WhatsAppCampaignsPage() {
       setSalesData(sales || []);
       setDebtsData(debts || []);
 
-      // Check Twilio config from localStorage (per org)
-      const smtpKey = `gestiona.twilio_config.${activeOrg.id}`;
-      const cfg = (() => { try { return JSON.parse(localStorage.getItem(smtpKey) || "{}"); } catch { return {}; } })();
-      setTwilioConfigured(!!(cfg.accountSid && cfg.authToken && cfg.fromNumber));
+      // Check Evolution API config from settings DB
+      const { data: evoCfg } = await supabase
+        .from("settings")
+        .select("evolution_api_url, evolution_api_key")
+        .eq("org_id", activeOrg.id)
+        .maybeSingle();
+      setEvolutionConfigured(!!(evoCfg?.evolution_api_url && evoCfg?.evolution_api_key));
     } catch (err) {
       console.error(err);
     } finally {
@@ -285,14 +288,14 @@ export default function WhatsAppCampaignsPage() {
         }
       />
 
-      {/* Twilio warning */}
-      {twilioConfigured === false && (
+      {/* Evolution API warning */}
+      {evolutionConfigured === false && (
         <div className="mb-5 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-4">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-amber-300">Twilio no configurado</p>
+            <p className="text-sm font-medium text-amber-300">Evolution API no configurada</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Podés crear campañas en borrador ahora, pero para enviarlas necesitás configurar Twilio en{" "}
+              Podés crear campañas en borrador ahora, pero para enviarlas necesitás configurar Evolution API y conectar tu WhatsApp en{" "}
               <a href="/integraciones" className="underline text-amber-400">Integraciones</a>.
             </p>
           </div>

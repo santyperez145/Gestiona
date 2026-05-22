@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
+import { useAuth } from "@/lib/auth";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,7 @@ import {
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
   Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
   History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
-  AlertTriangle, Send, MessageCircle,
+  AlertTriangle, Send, MessageCircle, QrCode as QrCodeIcon,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -1045,29 +1046,190 @@ export default function IntegrationsPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Twilio WhatsApp config section (localStorage per org — no DB column needed)
+// Evolution API — WhatsApp propio, gratis, QR scan
 // ═══════════════════════════════════════════════════════════════════════════════
 function TwilioSection({ orgId }: { orgId: string | undefined }) {
-  const key = `gestiona.twilio_config.${orgId || 'default'}`;
-  const DEFAULT = { accountSid: '', authToken: '', fromNumber: '' };
-  const [cfg, setCfg] = useState<typeof DEFAULT>(() => {
-    try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem(key) || '{}') }; } catch { return DEFAULT; }
-  });
-  const [tokenVisible, setTokenVisible] = useState(false);
+  return <EvolutionSection orgId={orgId} />;
+}
+
+type ConnectionState = "open" | "connecting" | "close" | "unknown";
+
+function EvolutionSection({ orgId }: { orgId: string | undefined }) {
+  const { session } = useAuth();
+
+  // Config fields
+  const [apiUrl,   setApiUrl]   = useState("");
+  const [apiKey,   setApiKey]   = useState("");
+  const [instance, setInstance] = useState("gestiona");
+  const [keyVisible, setKeyVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const set = (field: string, value: string) => setCfg(prev => ({ ...prev, [field]: value }));
+  // Connection state
+  const [connState,    setConnState]    = useState<ConnectionState>("unknown");
+  const [qrBase64,     setQrBase64]     = useState<string | null>(null);
+  const [loadingQR,    setLoadingQR]    = useState(false);
+  const [loadingState, setLoadingState] = useState(false);
+  const [polling,      setPolling]      = useState(false);
 
-  const handleSave = () => {
+  // Load saved config from DB settings via a direct supabase query
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("settings")
+      .select("evolution_api_url, evolution_api_key, evolution_instance")
+      .eq("org_id", orgId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setApiUrl(data.evolution_api_url   || "");
+          setApiKey(data.evolution_api_key   || "");
+          setInstance(data.evolution_instance || "gestiona");
+        }
+      });
+  }, [orgId]);
+
+  // Save config to settings DB
+  const handleSave = async () => {
+    if (!orgId) return;
     setSaving(true);
-    localStorage.setItem(key, JSON.stringify(cfg));
-    setTimeout(() => { setSaving(false); toast.success('Configuración Twilio guardada localmente'); }, 400);
+    try {
+      const { error } = await supabase
+        .from("settings")
+        .upsert({
+          org_id: orgId,
+          evolution_api_url:  apiUrl.trim(),
+          evolution_api_key:  apiKey.trim(),
+          evolution_instance: instance.trim() || "gestiona",
+        }, { onConflict: "org_id" });
+      if (error) throw error;
+      toast.success("Configuración Evolution API guardada ✓");
+    } catch (err: any) {
+      toast.error("Error al guardar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const isConfigured = !!(cfg.accountSid && cfg.authToken && cfg.fromNumber);
+  // Invoke edge function proxy
+  const callEvolution = async (action: string) => {
+    if (!orgId || !session) return null;
+    const { data, error } = await supabase.functions.invoke("evolution-qr", {
+      body: { orgId, action },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  };
+
+  // Check connection state
+  const checkState = async () => {
+    if (!apiUrl || !apiKey) return;
+    setLoadingState(true);
+    try {
+      const data = await callEvolution("status");
+      const state: ConnectionState = data?.instance?.state || data?.state || "unknown";
+      setConnState(state);
+      if (state === "open") setQrBase64(null); // connected, no need for QR
+    } catch {
+      setConnState("unknown");
+    } finally {
+      setLoadingState(false);
+    }
+  };
+
+  // Get QR code
+  const getQR = async () => {
+    if (!apiUrl || !apiKey) {
+      toast.error("Primero guardá la URL y API Key de Evolution API");
+      return;
+    }
+    setLoadingQR(true);
+    setQrBase64(null);
+    try {
+      // Try connecting directly
+      const data = await callEvolution("qr");
+      const qr = data?.qrcode?.base64 || data?.base64 || data?.qr;
+      if (qr) {
+        setQrBase64(qr);
+        setConnState("connecting");
+        // Start polling for state change
+        setPolling(true);
+      } else if (data?.instance?.state === "open") {
+        setConnState("open");
+        toast.success("¡WhatsApp ya está conectado!");
+      } else {
+        // Maybe instance doesn't exist yet — create it first
+        await callEvolution("create");
+        const data2 = await callEvolution("qr");
+        const qr2 = data2?.qrcode?.base64 || data2?.base64 || data2?.qr;
+        if (qr2) {
+          setQrBase64(qr2);
+          setConnState("connecting");
+          setPolling(true);
+        } else {
+          toast.error("No se pudo obtener el código QR. Verificá la URL y API Key.");
+        }
+      }
+    } catch (err: any) {
+      toast.error("Error: " + (err.message || "No se pudo conectar con Evolution API"));
+    } finally {
+      setLoadingQR(false);
+    }
+  };
+
+  // Disconnect
+  const handleLogout = async () => {
+    if (!confirm("¿Desconectar WhatsApp? Tendrás que escanear el QR de nuevo.")) return;
+    try {
+      await callEvolution("logout");
+      setConnState("close");
+      setQrBase64(null);
+      toast.success("WhatsApp desconectado");
+    } catch {
+      toast.error("Error al desconectar");
+    }
+  };
+
+  // Poll state while QR is visible
+  useEffect(() => {
+    if (!polling) return;
+    const id = setInterval(async () => {
+      try {
+        const data = await callEvolution("status");
+        const state: ConnectionState = data?.instance?.state || data?.state || "unknown";
+        setConnState(state);
+        if (state === "open") {
+          setQrBase64(null);
+          setPolling(false);
+          toast.success("¡WhatsApp conectado exitosamente! 🎉");
+        }
+      } catch { /* silent */ }
+    }, 4000);
+    return () => clearInterval(id);
+  }, [polling]);
+
+  // Check state on mount if config present
+  useEffect(() => {
+    if (apiUrl && apiKey) checkState();
+  }, [apiUrl, apiKey]);
+
+  const isConfigured = !!(apiUrl && apiKey);
+  const stateColor = {
+    open: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+    connecting: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+    close: "bg-red-500/20 text-red-400 border-red-500/40",
+    unknown: "bg-muted/30 text-muted-foreground border-border",
+  }[connState];
+  const stateLabel = {
+    open: "✓ Conectado",
+    connecting: "⏳ Conectando…",
+    close: "✗ Desconectado",
+    unknown: "— Sin verificar",
+  }[connState];
 
   return (
-    <div className="rounded-xl border border-green-500/20 bg-card p-5 space-y-4">
+    <div className="rounded-xl border border-green-500/20 bg-card p-5 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-green-500/10">
@@ -1075,54 +1237,157 @@ function TwilioSection({ orgId }: { orgId: string | undefined }) {
           </div>
           <div>
             <h3 className="font-semibold flex items-center gap-2">
-              WhatsApp Masivo (Twilio)
-              {isConfigured && <span className="text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full font-semibold">Configurado</span>}
+              WhatsApp Masivo · Evolution API
+              {isConfigured && (
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${stateColor}`}>
+                  {stateLabel}
+                </span>
+              )}
             </h3>
-            <p className="text-sm text-muted-foreground">Enviá WhatsApp a tus clientes desde tu número propio vía Twilio</p>
+            <p className="text-sm text-muted-foreground">
+              Gratis, tu propio número, sin aprobación de Meta
+            </p>
           </div>
         </div>
+
+        {isConfigured && (
+          <Button size="sm" variant="ghost" onClick={checkState} disabled={loadingState} className="gap-1.5 text-xs text-muted-foreground">
+            {loadingState ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Estado
+          </Button>
+        )}
       </div>
 
+      {/* Setup guide */}
+      <div className="bg-muted/20 border border-border/40 rounded-[8px] p-3 text-xs text-muted-foreground space-y-1.5">
+        <p className="font-medium text-foreground text-[11px] uppercase tracking-wider">Cómo configurar</p>
+        <p>1. Desplegá Evolution API gratis en{" "}
+          <a href="https://railway.app/template/4AkQxo" target="_blank" rel="noreferrer" className="text-primary underline">Railway</a>{" "}
+          o{" "}
+          <a href="https://render.com" target="_blank" rel="noreferrer" className="text-primary underline">Render</a>.
+        </p>
+        <p>2. Copiá la URL pública (ej: <code className="bg-muted px-1 rounded">https://mi-evolution.up.railway.app</code>).</p>
+        <p>3. La API Key la seteás como variable de entorno <code className="bg-muted px-1 rounded">AUTHENTICATION_API_KEY</code> en el deploy.</p>
+        <p>4. Pegá ambas acá, guardá, y hacé clic en <strong className="text-foreground">Conectar WhatsApp</strong> para escanear el QR.</p>
+      </div>
+
+      {/* Config fields */}
       <div className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Account SID</label>
-            <Input value={cfg.accountSid} onChange={e => set('accountSid', e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className="bg-muted border-border font-mono text-xs" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Auth Token</label>
-            <div className="relative">
-              <Input
-                type={tokenVisible ? 'text' : 'password'}
-                value={cfg.authToken}
-                onChange={e => set('authToken', e.target.value)}
-                placeholder="••••••••••••••••••••••••••••••••"
-                className="bg-muted border-border font-mono text-xs pr-9"
-              />
-              <button
-                type="button"
-                onClick={() => setTokenVisible(v => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {tokenVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
-            </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">URL de Evolution API</label>
+          <Input
+            value={apiUrl}
+            onChange={e => setApiUrl(e.target.value)}
+            placeholder="https://mi-evolution.up.railway.app"
+            className="bg-muted border-border font-mono text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">API Key (AUTHENTICATION_API_KEY)</label>
+          <div className="relative">
+            <Input
+              type={keyVisible ? "text" : "password"}
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder="••••••••••••••••••••••••••••••••"
+              className="bg-muted border-border font-mono text-sm pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setKeyVisible(v => !v)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {keyVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
+
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Número WhatsApp (con prefijo "whatsapp:")</label>
-          <Input value={cfg.fromNumber} onChange={e => set('fromNumber', e.target.value)} placeholder="whatsapp:+14155238886" className="bg-muted border-border font-mono text-xs" />
+          <label className="text-xs text-muted-foreground mb-1 block">Nombre de instancia</label>
+          <Input
+            value={instance}
+            onChange={e => setInstance(e.target.value)}
+            placeholder="gestiona"
+            className="bg-muted border-border font-mono text-sm"
+          />
           <p className="text-[10px] text-muted-foreground mt-1">
-            Usá <code className="bg-muted px-1 rounded">whatsapp:+14155238886</code> para el Sandbox de Twilio, o tu número aprobado de WhatsApp Business.
-            Obtené credenciales en <a href="https://console.twilio.com" target="_blank" rel="noreferrer" className="underline text-primary">console.twilio.com</a>.
+            Nombre identificador de tu conexión WhatsApp. Sin espacios.
           </p>
         </div>
 
-        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold gap-1.5">
+        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold gap-1.5 w-full sm:w-auto">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Guardar configuración Twilio
+          Guardar configuración
         </Button>
       </div>
+
+      {/* Connection section */}
+      {isConfigured && (
+        <div className="border-t border-border/50 pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Conexión WhatsApp</p>
+              <p className="text-xs text-muted-foreground">
+                {connState === "open"
+                  ? "Tu número está conectado y listo para enviar mensajes."
+                  : connState === "connecting"
+                  ? "Escaneá el QR con WhatsApp de tu teléfono."
+                  : "Conectá tu número escaneando el código QR."}
+              </p>
+            </div>
+
+            {connState === "open" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleLogout}
+                className="gap-1.5 text-red-400 border-red-500/30 hover:bg-red-500/10 text-xs"
+              >
+                <XCircle className="w-3.5 h-3.5" />Desconectar
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={getQR}
+                disabled={loadingQR}
+                className="gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs"
+              >
+                {loadingQR ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCodeIcon className="w-3.5 h-3.5" />}
+                {loadingQR ? "Generando…" : connState === "connecting" ? "Actualizar QR" : "Conectar WhatsApp"}
+              </Button>
+            )}
+          </div>
+
+          {/* QR Code display */}
+          {qrBase64 && (
+            <div className="flex flex-col items-center gap-3 bg-white rounded-[12px] p-4">
+              <img
+                src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`}
+                alt="WhatsApp QR Code"
+                className="w-52 h-52 object-contain"
+              />
+              <p className="text-xs text-slate-600 text-center max-w-[200px]">
+                Abrí WhatsApp → Dispositivos vinculados → Vincular dispositivo → escaneá este QR
+              </p>
+              <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                Esperando escaneo…
+              </p>
+            </div>
+          )}
+
+          {connState === "open" && (
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-[8px] px-3 py-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-emerald-300">WhatsApp listo para enviar</p>
+                <p className="text-xs text-muted-foreground">Instancia: <span className="font-mono">{instance}</span></p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

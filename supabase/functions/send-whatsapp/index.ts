@@ -1,15 +1,23 @@
 /**
- * send-whatsapp — Sends WhatsApp messages via Twilio Messages API.
+ * send-whatsapp — Envía mensajes de WhatsApp via Evolution API.
  *
- * Required Supabase secrets:
- *   TWILIO_ACCOUNT_SID  — Twilio Account SID (AC...)
- *   TWILIO_AUTH_TOKEN   — Twilio Auth Token
- *   TWILIO_WHATSAPP_FROM — Sender number with "whatsapp:" prefix, e.g. "whatsapp:+14155238886"
+ * Evolution API es open-source y self-hosted.
+ * Deploy gratuito en Railway / Render / VPS.
+ * Repositorio: https://github.com/EvolutionAPI/evolution-api
+ *
+ * Variables de entorno (configuradas en Supabase secrets o en settings):
+ *   EVOLUTION_API_URL      — URL base, ej: https://mi-evolution.railway.app
+ *   EVOLUTION_API_KEY      — Global API key (o instance key)
+ *   EVOLUTION_INSTANCE     — Nombre de la instancia conectada (ej: "gestiona")
+ *
+ * Si no hay env vars globales, se leen de la tabla settings de la org
+ * (columnas: evolution_api_url, evolution_api_key, evolution_instance).
  *
  * Request body:
  *   { orgId, recipients: [{ phone, name }], message, campaignId? }
  *
- * Phone numbers must be in E.164 format: +54911xxxxxxxx
+ * Formato de teléfono esperado: +54911xxxxxxxx  o  54911xxxxxxxx
+ * Evolution API acepta: "5491112345678" (sin + ni espacios)
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -20,11 +28,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface Recipient {
-  phone: string;
-  name: string;
-}
-
+interface Recipient { phone: string; name: string; }
 interface SendRequest {
   orgId: string;
   recipients: Recipient[];
@@ -32,9 +36,48 @@ interface SendRequest {
   campaignId?: string;
 }
 
+/** Normaliza teléfono al formato de Evolution API: solo dígitos, sin + */
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, "");
+}
+
+/** Envía un único mensaje via Evolution API */
+async function sendViaEvolution(
+  baseUrl: string,
+  apiKey: string,
+  instance: string,
+  phone: string,
+  text: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const url = `${baseUrl.replace(/\/$/, "")}/message/sendText/${encodeURIComponent(instance)}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        number: normalizePhone(phone),
+        text,
+        // delay opcional (ms) para parecer más humano
+        delay: Math.floor(Math.random() * 1000) + 500,
+      }),
+    });
+
+    if (res.ok) return { ok: true };
+
+    const errBody = await res.json().catch(() => ({}));
+    const msg = (errBody as any)?.message || (errBody as any)?.error || `HTTP ${res.status}`;
+    return { ok: false, error: msg };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error de red" };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (checkRateLimit(req, "send-whatsapp", { max: 3, windowMs: 60_000 })) return rateLimitResponse();
+  if (checkRateLimit(req, "send-whatsapp", { max: 5, windowMs: 60_000 })) return rateLimitResponse();
 
   // ── Auth check ───────────────────────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization");
@@ -56,17 +99,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ── Twilio credentials ───────────────────────────────────────────────────────
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const authToken  = Deno.env.get("TWILIO_AUTH_TOKEN");
-  const fromNumber = Deno.env.get("TWILIO_WHATSAPP_FROM"); // e.g. "whatsapp:+14155238886"
-
-  if (!accountSid || !authToken || !fromNumber) {
-    return new Response(JSON.stringify({
-      error: "Twilio no configurado. Ingresá tus credenciales en Ajustes → Integraciones.",
-    }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -81,13 +113,13 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (recipients.length > 200) {
-      return new Response(JSON.stringify({ error: "Máximo 200 destinatarios por llamada" }), {
+    if (recipients.length > 500) {
+      return new Response(JSON.stringify({ error: "Máximo 500 destinatarios por llamada" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify the user belongs to this org
+    // Verify membership
     const { data: membership } = await admin
       .from("memberships")
       .select("role")
@@ -101,76 +133,81 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Twilio Messages API — batch send ─────────────────────────────────────
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-    const basicAuth = btoa(`${accountSid}:${authToken}`);
+    // ── Resolver credenciales Evolution API ─────────────────────────────────────
+    // 1) Env vars globales (Supabase secrets)
+    // 2) Columnas en settings de la org (guardadas desde Integraciones)
+    let evolutionUrl  = Deno.env.get("EVOLUTION_API_URL") || "";
+    let evolutionKey  = Deno.env.get("EVOLUTION_API_KEY") || "";
+    let evolutionInst = Deno.env.get("EVOLUTION_INSTANCE") || "";
 
+    if (!evolutionUrl || !evolutionKey || !evolutionInst) {
+      const { data: settings } = await admin
+        .from("settings")
+        .select("evolution_api_url, evolution_api_key, evolution_instance")
+        .eq("org_id", orgId)
+        .maybeSingle();
+
+      if (settings) {
+        evolutionUrl  = evolutionUrl  || settings.evolution_api_url  || "";
+        evolutionKey  = evolutionKey  || settings.evolution_api_key  || "";
+        evolutionInst = evolutionInst || settings.evolution_instance || "";
+      }
+    }
+
+    if (!evolutionUrl || !evolutionKey || !evolutionInst) {
+      return new Response(JSON.stringify({
+        error: "Evolution API no configurada. Ingresá las credenciales en Ajustes → Integraciones.",
+      }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── Envío en batches ──────────────────────────────────────────────────────────
     let sent = 0;
     let failed = 0;
     const errors: string[] = [];
 
-    const BATCH = 5; // Twilio WhatsApp rate limit is ~10/s; 5 concurrent is safe
+    // Evolution API recomienda no más de 3-5 mensajes simultáneos para no ser bloqueado
+    const BATCH = 3;
+    const DELAY_MS = 1000; // 1s entre batches (comportamiento humano)
+
     for (let i = 0; i < recipients.length; i += BATCH) {
       const batch = recipients.slice(i, i + BATCH);
-      await Promise.all(batch.map(async (r) => {
-        // Normalize phone to E.164
-        let phone = r.phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-        if (!phone.startsWith("+")) phone = "+" + phone;
 
-        // Personalize message
+      await Promise.all(batch.map(async (r) => {
         const personalizedMsg = message
           .replace(/\{\{nombre\}\}/gi, r.name.split(" ")[0])
-          .replace(/\{\{name\}\}/gi, r.name.split(" ")[0]);
+          .replace(/\{\{name\}\}/gi,   r.name.split(" ")[0]);
 
-        try {
-          const res = await fetch(twilioUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Basic ${basicAuth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              From: fromNumber,
-              To: `whatsapp:${phone}`,
-              Body: personalizedMsg,
-            }),
-          });
+        const result = await sendViaEvolution(
+          evolutionUrl, evolutionKey, evolutionInst,
+          r.phone, personalizedMsg,
+        );
 
-          const data = await res.json();
-          if (res.ok && data.sid) {
-            sent++;
-          } else {
-            failed++;
-            const errMsg = data.message || data.error_message || `HTTP ${res.status}`;
-            errors.push(`${phone}: ${errMsg}`);
-            console.warn(`Twilio send failed for ${phone}:`, errMsg);
-          }
-        } catch (e) {
+        if (result.ok) {
+          sent++;
+        } else {
           failed++;
-          errors.push(`${phone}: ${e instanceof Error ? e.message : "error"}`);
+          const phone = normalizePhone(r.phone);
+          errors.push(`${phone}: ${result.error}`);
+          console.warn(`Evolution API failed for ${phone}:`, result.error);
         }
       }));
 
-      // Small delay between batches to respect rate limits
       if (i + BATCH < recipients.length) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
       }
     }
 
-    // ── Update campaign stats if campaignId provided ──────────────────────────
+    // ── Actualizar stats de campaña ───────────────────────────────────────────────
     if (campaignId) {
-      await admin
-        .from("whatsapp_campaigns")
-        .update({
-          status: failed === recipients.length ? "failed" : "sent",
-          sent_count: sent,
-          failed_count: failed,
-          sent_at: new Date().toISOString(),
-        })
-        .eq("id", campaignId);
+      await admin.from("whatsapp_campaigns").update({
+        status: failed === recipients.length ? "failed" : "sent",
+        sent_count: sent,
+        failed_count: failed,
+        sent_at: new Date().toISOString(),
+      }).eq("id", campaignId);
     }
 
-    console.log(`send-whatsapp: org=${orgId} sent=${sent} failed=${failed}`);
+    console.log(`send-whatsapp (Evolution): org=${orgId} sent=${sent} failed=${failed}`);
 
     return new Response(JSON.stringify({ sent, failed, errors: errors.slice(0, 10) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
