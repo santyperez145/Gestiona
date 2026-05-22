@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -34,6 +34,7 @@ type AIAction =
   | { type: "query_sales_summary"; period?: "today" | "week" | "month" }
   | { type: "send_wa_segment"; segment?: string }
   | { type: "query_debts_summary" }
+  | { type: "query_top_products"; sortBy?: "revenue" | "profit" | "units" }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -177,6 +178,14 @@ function detectIntent(msg: string): AIAction | null {
     const segMatch = lower.match(/\b(vip|dormidos?|en\s+riesgo|perdidos?|frecuentes?|activos?|nuevos?|premium)\b/);
     const seg = segMatch ? segMatch[1].charAt(0).toUpperCase() + segMatch[1].slice(1).replace(/s$/, "") : undefined;
     return { type: "send_wa_segment", segment: seg };
+  }
+
+  // Top products
+  if (/\b(cu[aá]les?\s+(son\s+)?(mis\s+)?(mejores?|top|principales?)\s+productos?|productos?\s+(m[aá]s\s+)?(vendidos?|rentables?|populares?)|ranking\s+(de\s+)?productos?|mejores?\s+productos?)\b/.test(lower)) {
+    const sortBy: "revenue" | "profit" | "units" =
+      /\b(rentab|ganancia|margen|profit)\b/.test(lower) ? "profit" :
+      /\b(unidades?|cantidad|más\s+vendidos?)\b/.test(lower) ? "units" : "revenue";
+    return { type: "query_top_products", sortBy };
   }
 
   // Create quote / presupuesto
@@ -382,6 +391,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_debts_summary") {
     return <DebtsSummaryCard userId={userId} onDone={onDone} />;
+  }
+
+  if (action.type === "query_top_products") {
+    return <TopProductsCard userId={userId} initialSort={action.sortBy} onDone={onDone} />;
   }
 
   if (action.type === "send_wa_segment") {
@@ -1764,6 +1777,98 @@ function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmoun
   );
 }
 
+// ─── TopProductsCard ──────────────────────────────────────────────────────────
+function TopProductsCard({ userId, initialSort, onDone }: {
+  userId: string; initialSort?: "revenue" | "profit" | "units"; onDone: () => void;
+}) {
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [sortBy, setSortBy] = useState<"revenue" | "profit" | "units">(initialSort || "revenue");
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    setLoading(true);
+    (async () => {
+      const { data } = await supabase
+        .from("sales")
+        .select("product_name, total_ars, profit_ars, quantity")
+        .eq("org_id", activeOrg.id);
+
+      const sales = data || [];
+      const map: Record<string, { name: string; revenue: number; profit: number; units: number }> = {};
+      for (const s of sales) {
+        const key = s.product_name || "Sin nombre";
+        if (!map[key]) map[key] = { name: key, revenue: 0, profit: 0, units: 0 };
+        map[key].revenue += Number(s.total_ars || 0);
+        map[key].profit += Number(s.profit_ars || 0);
+        map[key].units += Number(s.quantity || 1);
+      }
+      const list = Object.values(map).sort((a, b) => b[sortBy] - a[sortBy]).slice(0, 8);
+      setProducts(list);
+      setLoading(false);
+    })();
+  }, [activeOrg, sortBy]);
+
+  const maxVal = products[0]?.[sortBy] || 1;
+  const SORT_LABELS: Record<string, string> = { revenue: "Ingresos", profit: "Ganancia", units: "Unidades" };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+          <Package className="w-3.5 h-3.5" />Top productos
+        </p>
+        <div className="flex gap-1">
+          {(["revenue", "profit", "units"] as const).map(s => (
+            <button key={s}
+              onClick={() => setSortBy(s)}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${sortBy === s ? "bg-primary/20 text-primary border-primary/40" : "border-border text-muted-foreground hover:border-primary/30"}`}
+            >{SORT_LABELS[s]}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />Cargando productos…
+        </div>
+      ) : products.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Sin datos de ventas aún.</p>
+      ) : (
+        <div className="space-y-2">
+          {products.map((p, i) => {
+            const val = p[sortBy];
+            const barW = Math.round((val / maxVal) * 100);
+            const formatted = sortBy === "units" ? `${p.units} u.` : formatARS(val);
+            return (
+              <div key={p.name} className="space-y-0.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground font-mono w-4">{i + 1}.</span>
+                    <span className="font-medium truncate max-w-[140px]">{p.name}</span>
+                  </span>
+                  <span className="font-bold text-primary shrink-0">{formatted}</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary/70 rounded-full transition-all" style={{ width: `${barW}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { navigate("/analytics"); onDone(); }}>
+          Ver analytics →
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+      </div>
+    </div>
+  );
+}
+
 const ACTION_STARTERS = [
   { label: "Registrar venta", icon: ShoppingCart, msg: "Registrar una venta" },
   { label: "Registrar compra", icon: Package, msg: "Registrar una compra" },
@@ -1781,6 +1886,7 @@ const ACTION_STARTERS = [
   { label: "Ventas de hoy", icon: BarChart2, msg: "Cómo me fue hoy con las ventas?" },
   { label: "WA por segmento", icon: MessageSquare, msg: "Mandá un WhatsApp a los clientes VIP" },
   { label: "Total deudas", icon: DollarSign, msg: "Resumen total de deudas pendientes" },
+  { label: "Top productos", icon: Package, msg: "Cuáles son mis mejores productos?" },
 ];
 
 const QUICK_ACTIONS = [

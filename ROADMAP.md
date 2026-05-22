@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 52)**
+Última actualización: **2026-05-22 (sesión 53)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -910,6 +910,16 @@ Ver tabla de sesión 29 arriba.
 | 4 | **DebtsPage: sort por columnas** — click en encabezados Fecha, Cliente, Resta para ordenar ASC/DESC; íconos ChevronUp/Down/ArrowUpDown para indicar estado | ✅ Hecho |
 | 5 | **ProductsPage: filtro "Con oferta"** — chip toggle que filtra solo productos con `discount_price_ars` activo; se combina con todos los otros filtros | ✅ Hecho |
 | 6 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+## Sesión 53 ✅ COMPLETA — Vendedor analytics + Top productos IA + Gastos por método
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: columna "Vendedor"** — `<td>` en filas del desktop table (hidden xl:table-cell) con `seller_name`; faltaba la celda de datos aunque el `<th>` ya estaba | ✅ Hecho |
+| 2 | **AnalyticsPage: tab "🧑‍💼 Vendedores"** — tabla de ranking con ingresos, ganancia, ventas count, ticket promedio, margen; mini barra de progreso visual por seller; bar chart horizontal de ingresos; KPIs: vendedores activos, top vendedor, ticket promedio general; badge 🏆 Top | ✅ Hecho |
+| 3 | **AIChatPage: `query_top_products`** — detecta "mejores productos / más vendidos / ranking de productos"; `TopProductsCard` con toggle de ordenamiento Ingresos/Ganancia/Unidades; top 8 productos con barra relativa y valores; chip "Top productos" en ACTION_STARTERS | ✅ Hecho |
+| 4 | **ExpensesPage: resumen por método de pago** — footer sticky bajo la lista de gastos con chips por cada método (Efectivo/Transferencia/Débito/Crédito/MercadoPago/Cheque) con monto + porcentaje + total; `totals.methodData` en el useMemo | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

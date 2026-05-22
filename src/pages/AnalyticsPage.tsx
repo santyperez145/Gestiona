@@ -406,6 +406,24 @@ export default function AnalyticsPage() {
       return row;
     });
 
+    // ===== Seller performance =====
+    const sellerMap: Record<string, { name: string; revenue: number; profit: number; count: number; units: number }> = {};
+    sales.forEach((s: any) => {
+      const name = s.seller_name?.trim() || "Sin vendedor";
+      if (!sellerMap[name]) sellerMap[name] = { name, revenue: 0, profit: 0, count: 0, units: 0 };
+      sellerMap[name].revenue += Number(s.total_ars || 0);
+      sellerMap[name].profit += Number(s.profit_ars || 0);
+      sellerMap[name].count += 1;
+      sellerMap[name].units += Number(s.quantity || 1);
+    });
+    const sellerStats = Object.values(sellerMap)
+      .map(v => ({
+        ...v,
+        avgTicket: v.count > 0 ? v.revenue / v.count : 0,
+        margin: v.revenue > 0 ? (v.profit / v.revenue) * 100 : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
@@ -415,6 +433,7 @@ export default function AnalyticsPage() {
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
       abcProducts, catTrend, catKeys, weeklyComparison, weekTotalThis, weekTotalPrev,
       rentabilidad, paymentChannels, channelTrendData, channelKeys: Object.keys(channelMonthly),
+      sellerStats,
     };
   }, [rawData, year]);
 
@@ -523,6 +542,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
           <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
           <TabsTrigger value="canales" className="text-xs">📊 Canales</TabsTrigger>
+          <TabsTrigger value="vendedores" className="text-xs">🧑‍💼 Vendedores</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1572,6 +1592,109 @@ export default function AnalyticsPage() {
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        {/* VENDEDORES TAB */}
+        <TabsContent value="vendedores" className="mt-4 space-y-4">
+          {derived.sellerStats.length === 0 ? (
+            <div className="bg-card border border-border rounded-2xl p-10 text-center text-muted-foreground text-sm">
+              No hay datos de vendedores. Asegurate de cargar el campo "Vendedor" al registrar ventas.
+            </div>
+          ) : (
+            <>
+              {/* KPI bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-card border border-border rounded-2xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Vendedores activos</p>
+                  <p className="text-2xl font-display font-bold">{derived.sellerStats.filter(s => s.name !== "Sin vendedor").length}</p>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Top vendedor</p>
+                  <p className="text-lg font-display font-bold truncate">{derived.sellerStats.find(s => s.name !== "Sin vendedor")?.name || "—"}</p>
+                  <p className="text-xs text-muted-foreground">{formatARS(derived.sellerStats.find(s => s.name !== "Sin vendedor")?.revenue || 0)}</p>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ticket prom. general</p>
+                  <p className="text-2xl font-display font-bold">{formatARS(derived.avgTicket)}</p>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total ventas con vendedor</p>
+                  <p className="text-2xl font-display font-bold">{derived.sellerStats.filter(s => s.name !== "Sin vendedor").reduce((s, v) => s + v.count, 0)}</p>
+                </div>
+              </div>
+
+              {/* Seller table */}
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-border">
+                  <h3 className="text-sm font-semibold">Ranking de vendedores</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/40">
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ventas</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ingresos</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ganancia</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ticket prom.</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Margen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {derived.sellerStats.map((seller, idx) => {
+                        const maxRev = derived.sellerStats[0]?.revenue || 1;
+                        const barW = Math.round((seller.revenue / maxRev) * 100);
+                        return (
+                          <tr key={seller.name} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
+                            <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{idx + 1}</td>
+                            <td className="px-4 py-3 font-medium">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                  {seller.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span>{seller.name}</span>
+                                {idx === 0 && seller.name !== "Sin vendedor" && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full font-semibold">🏆 Top</span>}
+                              </div>
+                              <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden w-32">
+                                <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${barW}%` }} />
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right text-muted-foreground">{seller.count}</td>
+                            <td className="px-4 py-3 text-right font-bold">{formatARS(seller.revenue)}</td>
+                            <td className="px-4 py-3 text-right text-success font-medium">{formatARS(seller.profit)}</td>
+                            <td className="px-4 py-3 text-right">{formatARS(seller.avgTicket)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`font-semibold ${seller.margin >= 30 ? "text-green-400" : seller.margin >= 15 ? "text-yellow-400" : "text-red-400"}`}>
+                                {seller.margin.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Bar chart: revenue by seller */}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="text-sm font-semibold mb-4">Ingresos por vendedor</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={derived.sellerStats.filter(s => s.name !== "Sin vendedor").slice(0, 10)} layout="vertical" margin={{ left: 80, right: 20 }}>
+                    <XAxis type="number" tickFormatter={(v: number) => formatARS(v)} tick={{ fontSize: 10 }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                    <Tooltip formatter={(v: number) => formatARS(v)} />
+                    <Bar dataKey="revenue" name="Ingresos" radius={[0, 4, 4, 0]}>
+                      {derived.sellerStats.filter(s => s.name !== "Sin vendedor").slice(0, 10).map((_: any, i: number) => (
+                        <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </>
           )}

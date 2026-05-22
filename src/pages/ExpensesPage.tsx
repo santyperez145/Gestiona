@@ -159,8 +159,11 @@ export default function ExpensesPage() {
   const totals = useMemo(() => {
     const total = filtered.reduce((s, e) => s + Number(e.amount_ars), 0);
     const byCat: Record<string, number> = {};
+    const byMethod: Record<string, number> = {};
     filtered.forEach(e => {
       byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount_ars);
+      const method = e.payment_method || "efectivo";
+      byMethod[method] = (byMethod[method] || 0) + Number(e.amount_ars);
     });
     const chartData = Object.entries(byCat).map(([cat, value]) => ({
       cat,
@@ -168,7 +171,10 @@ export default function ExpensesPage() {
       value,
       color: categories.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
     }));
-    return { total, chartData, recurring: filtered.filter(e => e.recurring).length };
+    const methodData = Object.entries(byMethod)
+      .map(([method, value]) => ({ method, value, pct: total > 0 ? Math.round((value / total) * 100) : 0 }))
+      .sort((a, b) => b.value - a.value);
+    return { total, chartData, methodData, recurring: filtered.filter(e => e.recurring).length };
   }, [filtered, settings, categories]);
 
   // Budget alerts: warn once per session when a category hits 80%+
@@ -574,6 +580,40 @@ export default function ExpensesPage() {
                   );
                 })}
               </div>
+
+              {/* Payment method summary footer */}
+              {filtered.length > 0 && totals.methodData.length > 0 && (
+                <div className="border-t border-border/60 px-4 py-3 bg-muted/20">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total por método de pago</p>
+                  <div className="flex flex-wrap gap-2">
+                    {totals.methodData.map(({ method, value, pct }) => {
+                      const METHOD_LABELS: Record<string, string> = {
+                        efectivo: "Efectivo", transferencia: "Transferencia",
+                        tarjeta_debito: "Débito", tarjeta_credito: "Crédito",
+                        mercadopago: "MercadoPago", cheque: "Cheque", otro: "Otro",
+                      };
+                      const METHOD_COLORS: Record<string, string> = {
+                        efectivo: "text-green-400", transferencia: "text-blue-400",
+                        tarjeta_debito: "text-purple-400", tarjeta_credito: "text-yellow-400",
+                        mercadopago: "text-cyan-400", cheque: "text-orange-400", otro: "text-muted-foreground",
+                      };
+                      return (
+                        <div key={method} className="flex items-center gap-1.5 bg-muted/50 border border-border/60 rounded-lg px-2.5 py-1.5">
+                          <span className={`text-[11px] font-semibold ${METHOD_COLORS[method] || "text-muted-foreground"}`}>
+                            {METHOD_LABELS[method] || method}
+                          </span>
+                          <span className="text-xs font-bold text-foreground">{formatARS(value)}</span>
+                          <span className="text-[10px] text-muted-foreground">({pct}%)</span>
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center gap-1.5 bg-destructive/10 border border-destructive/30 rounded-lg px-2.5 py-1.5 ml-auto">
+                      <span className="text-[11px] font-semibold text-destructive">Total</span>
+                      <span className="text-xs font-bold text-destructive">{formatARS(totals.total)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
