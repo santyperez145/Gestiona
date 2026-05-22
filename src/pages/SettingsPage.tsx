@@ -55,6 +55,7 @@ export default function SettingsPage() {
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [whatsappDigestEnabled, setWhatsappDigestEnabled] = useState(false);
+  const [whatsappBirthdayEnabled, setWhatsappBirthdayEnabled] = useState(true);
   const [bankCbu, setBankCbu] = useState('');
   const [bankAlias, setBankAlias] = useState('');
   const [bankName, setBankName] = useState('');
@@ -269,6 +270,7 @@ export default function SettingsPage() {
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
       setWhatsappDigestEnabled(!!s.whatsapp_digest_enabled);
+      setWhatsappBirthdayEnabled(s.whatsapp_birthday_enabled !== false);
       setBankCbu(s.bank_cbu || '');
       setBankAlias(s.bank_alias || '');
       setBankName(s.bank_name || '');
@@ -347,6 +349,7 @@ export default function SettingsPage() {
         discount_credit_percent: num(discountCredit, 0),
         whatsapp_number: whatsappNumber || null,
         whatsapp_digest_enabled: whatsappDigestEnabled,
+        whatsapp_birthday_enabled: whatsappBirthdayEnabled,
         bank_cbu: bankCbu || null,
         bank_alias: bankAlias || null,
         bank_name: bankName || null,
@@ -586,6 +589,17 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Switch checked={whatsappDigestEnabled} onCheckedChange={setWhatsappDigestEnabled} />
+            </div>
+            <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+              <div>
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-pink-400" />🎂 Felicitación de cumpleaños
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Enviá un WA automático a tus clientes el día de su cumpleaños. Requiere Evolution API y birthday cargado en el CRM.
+                </p>
+              </div>
+              <Switch checked={whatsappBirthdayEnabled} onCheckedChange={setWhatsappBirthdayEnabled} />
             </div>
             <div className="border-t border-border pt-4">
               <label className="text-sm font-medium flex items-center gap-1.5 mb-3"><CreditCard className="w-3.5 h-3.5 text-primary" />Cuenta bancaria (para links de pago)</label>

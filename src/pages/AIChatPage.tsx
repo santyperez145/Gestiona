@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -31,6 +31,8 @@ type AIAction =
   | { type: "create_task" }
   | { type: "create_quote"; customerName?: string; productName?: string; amount?: string }
   | { type: "query_customer"; customerName?: string }
+  | { type: "query_sales_summary"; period?: "today" | "week" | "month" }
+  | { type: "send_wa_segment"; segment?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -153,6 +155,22 @@ function detectIntent(msg: string): AIAction | null {
       /\b(cliente|perfil|ficha)\b.{0,20}\b(info|datos|detalle|resumen|historial|análisis)\b/.test(lower)) {
     const nameMatch = msg.match(/(?:de|del?\s+cliente|cliente|perfil\s+de|ver\s+a|anali[zs][ae]r?\s+a(?:l?\s+cliente)?\s+)([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
     return { type: "query_customer", customerName: nameMatch?.[1]?.trim() };
+  }
+
+  // Query sales summary
+  if (/\b(cómo\s+(me\s+)?(fue|va|voy|estoy)|resumen\s+(de\s+)?ventas|cuánto\s+vendí|vendí\s+(hoy|ayer|esta\s+semana|este\s+mes)|ventas\s+(de\s+)?(hoy|ayer|esta\s+semana|este\s+mes)|cuánto\s+(gané|facturé|ingresé))\b/.test(lower)) {
+    const period: "today" | "week" | "month" =
+      /\b(semana|semanal)\b/.test(lower) ? "week" :
+      /\b(mes|mensual)\b/.test(lower) ? "month" : "today";
+    return { type: "query_sales_summary", period };
+  }
+
+  // Send WhatsApp to segment
+  if (/\b(manda(r)?|envia(r)?|enviar|notifica(r)?)\b.{0,30}\b(whatsapp|mensaje|wa|wpp)\b/.test(lower) ||
+      /\b(whatsapp|mensaje|wa|wpp)\b.{0,30}\b(clientes?|segmento|vip|dormidos?|en\s+riesgo|perdidos?|frecuentes?)\b/.test(lower)) {
+    const segMatch = lower.match(/\b(vip|dormidos?|en\s+riesgo|perdidos?|frecuentes?|activos?|nuevos?|premium)\b/);
+    const seg = segMatch ? segMatch[1].charAt(0).toUpperCase() + segMatch[1].slice(1).replace(/s$/, "") : undefined;
+    return { type: "send_wa_segment", segment: seg };
   }
 
   // Create quote / presupuesto
@@ -350,6 +368,14 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_customer") {
     return <CustomerAnalysisCard userId={userId} initialName={action.customerName} onDone={onDone} />;
+  }
+
+  if (action.type === "query_sales_summary") {
+    return <SalesSummaryCard userId={userId} initialPeriod={action.period} onDone={onDone} />;
+  }
+
+  if (action.type === "send_wa_segment") {
+    return <SendWaSegmentCard userId={userId} initialSegment={action.segment} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -1122,6 +1148,303 @@ function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string;
   );
 }
 
+// ─── SalesSummaryCard ─────────────────────────────────────────────────────────
+function SalesSummaryCard({ userId, initialPeriod, onDone }: {
+  userId: string; initialPeriod?: "today" | "week" | "month"; onDone: () => void;
+}) {
+  const { activeOrg } = useOrg();
+  const [period, setPeriod] = useState<"today" | "week" | "month">(initialPeriod || "today");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async (p: "today" | "week" | "month") => {
+    if (!activeOrg) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      let dateFrom: string;
+      let prevFrom: string;
+      let prevTo: string;
+      if (p === "today") {
+        dateFrom = now.toISOString().slice(0, 10);
+        const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+        prevFrom = yesterday.toISOString().slice(0, 10);
+        prevTo = yesterday.toISOString().slice(0, 10);
+      } else if (p === "week") {
+        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+        dateFrom = startOfWeek.toISOString().slice(0, 10);
+        const prevWeekStart = new Date(startOfWeek); prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+        const prevWeekEnd = new Date(startOfWeek); prevWeekEnd.setDate(prevWeekEnd.getDate() - 1);
+        prevFrom = prevWeekStart.toISOString().slice(0, 10);
+        prevTo = prevWeekEnd.toISOString().slice(0, 10);
+      } else {
+        dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+        const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        prevFrom = prevMonth.toISOString().slice(0, 10);
+        const lastDayPrev = new Date(now.getFullYear(), now.getMonth(), 0);
+        prevTo = lastDayPrev.toISOString().slice(0, 10);
+      }
+
+      const [{ data: curr }, { data: prev }] = await Promise.all([
+        supabase.from("sales").select("total_ars, profit_ars, product_name, quantity, payment_method")
+          .eq("org_id", activeOrg.id).gte("date", dateFrom),
+        supabase.from("sales").select("total_ars, profit_ars")
+          .eq("org_id", activeOrg.id).gte("date", prevFrom).lte("date", prevTo),
+      ]);
+
+      const sales = curr || [];
+      const revenue = sales.reduce((s: number, x: any) => s + Number(x.total_ars), 0);
+      const profit = sales.reduce((s: number, x: any) => s + Number(x.profit_ars), 0);
+      const count = sales.length;
+      const avgTicket = count > 0 ? revenue / count : 0;
+      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+      // Top product by revenue
+      const prodMap: Record<string, number> = {};
+      for (const s of sales) prodMap[s.product_name || "—"] = (prodMap[s.product_name || "—"] || 0) + Number(s.total_ars);
+      const topProduct = Object.entries(prodMap).sort((a, b) => b[1] - a[1])[0];
+
+      // Payment method breakdown
+      const methodMap: Record<string, number> = {};
+      for (const s of sales) methodMap[s.payment_method || "efectivo"] = (methodMap[s.payment_method || "efectivo"] || 0) + Number(s.total_ars);
+
+      const prevRevenue = (prev || []).reduce((s: number, x: any) => s + Number(x.total_ars), 0);
+      const delta = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
+
+      setResult({ revenue, profit, count, avgTicket, margin, topProduct, methodMap, delta });
+    } catch { setResult(null); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(period); }, [period, activeOrg]);
+
+  const periodLabel = { today: "Hoy", week: "Esta semana", month: "Este mes" };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+          <BarChart2 className="w-3.5 h-3.5" />Resumen de ventas
+        </p>
+        <div className="flex gap-1">
+          {(["today", "week", "month"] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {periodLabel[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />Consultando ventas…
+        </div>
+      ) : !result ? (
+        <p className="text-xs text-muted-foreground">No se pudieron cargar los datos.</p>
+      ) : (
+        <div className="space-y-2.5">
+          {/* Main KPIs */}
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { label: "Facturado", value: formatARS(result.revenue) },
+              { label: "Ganancia", value: formatARS(result.profit) },
+              { label: "Ventas", value: `${result.count} ticket${result.count !== 1 ? "s" : ""}` },
+              { label: "Ticket promedio", value: formatARS(result.avgTicket) },
+            ].map(k => (
+              <div key={k.label} className="bg-muted/40 rounded-lg px-2.5 py-2">
+                <p className="text-[10px] text-muted-foreground">{k.label}</p>
+                <p className="font-bold text-sm">{k.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Margin + trend */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+            <span>📊 Margen: <span className={`font-semibold ${result.margin >= 30 ? "text-green-400" : result.margin >= 15 ? "text-amber-400" : "text-red-400"}`}>{result.margin.toFixed(1)}%</span></span>
+            {result.delta !== null && (
+              <span>vs anterior: <span className={`font-semibold ${result.delta >= 0 ? "text-green-400" : "text-red-400"}`}>{result.delta >= 0 ? "▲" : "▼"} {Math.abs(result.delta).toFixed(0)}%</span></span>
+            )}
+          </div>
+
+          {/* Top product */}
+          {result.topProduct && (
+            <p className="text-xs">🏆 Más vendido: <span className="font-semibold text-foreground">{result.topProduct[0]}</span> <span className="text-muted-foreground">({formatARS(result.topProduct[1])})</span></p>
+          )}
+
+          {/* Payment methods */}
+          {Object.keys(result.methodMap).length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Por método de pago</p>
+              {Object.entries(result.methodMap as Record<string, number>)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 4)
+                .map(([method, total]) => (
+                  <div key={method} className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${(total / result.revenue) * 100}%` }} />
+                    </div>
+                    <span className="text-[10px] capitalize text-muted-foreground w-20 text-right">{method}</span>
+                    <span className="text-[10px] font-medium w-16 text-right">{formatARS(total)}</span>
+                  </div>
+                ))
+              }
+            </div>
+          )}
+        </div>
+      )}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
+// ─── SendWaSegmentCard ────────────────────────────────────────────────────────
+function SendWaSegmentCard({ userId, initialSegment, onDone }: {
+  userId: string; initialSegment?: string; onDone: () => void;
+}) {
+  const { activeOrg } = useOrg();
+  const SEGMENTS = ["VIP", "Premium", "Frecuente", "Activo", "Nuevo", "En riesgo", "Dormido", "Perdido"];
+  const [segment, setSegment] = useState(initialSegment || "VIP");
+  const [customers, setCustomers] = useState<{ name: string; phone: string }[]>([]);
+  const [message, setMessage] = useState("Hola {nombre}, te contactamos desde el negocio. ¡Tenemos novedades para vos! 🎉");
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(0);
+  const [done, setDone] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      const { data } = await supabase.from("settings")
+        .select("evolution_api_url, evolution_api_key, evolution_instance")
+        .eq("org_id", activeOrg.id).maybeSingle();
+      setSettings(data);
+    })();
+  }, [activeOrg]);
+
+  const loadCustomers = async () => {
+    if (!activeOrg) return;
+    setLoading(true);
+    const { data } = await supabase.from("customers")
+      .select("name, phone").eq("org_id", activeOrg.id)
+      .eq("segment", segment).not("phone", "is", null);
+    setCustomers((data || []).filter((c: any) => c.phone) as { name: string; phone: string }[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadCustomers(); }, [segment, activeOrg]);
+
+  const hasEvolution = settings?.evolution_api_url && settings?.evolution_api_key && settings?.evolution_instance;
+  const withPhone = customers.filter(c => c.phone);
+
+  const handleSend = async () => {
+    if (!hasEvolution || !withPhone.length) return;
+    setSending(true);
+    let sentCount = 0;
+    const baseUrl = settings.evolution_api_url.replace(/\/$/, "");
+    for (const c of withPhone.slice(0, 30)) {
+      const number = c.phone.replace(/\D/g, "");
+      const text = message.replace(/\{nombre\}/gi, c.name);
+      try {
+        const res = await fetch(`${baseUrl}/message/sendText/${settings.evolution_instance}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: settings.evolution_api_key },
+          body: JSON.stringify({ number, text }),
+        });
+        if (res.ok) sentCount++;
+      } catch { /* skip */ }
+    }
+    setSent(sentCount);
+    setDone(true);
+    setSending(false);
+    toast.success(`${sentCount} mensaje${sentCount !== 1 ? "s" : ""} enviado${sentCount !== 1 ? "s" : ""} vía WhatsApp`);
+  };
+
+  if (done) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+        <CheckCircle2 className="w-4 h-4" />{sent} mensajes enviados a clientes {segment}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1.5">
+        <MessageSquare className="w-3.5 h-3.5" />Campaña WhatsApp por segmento
+      </p>
+
+      {!hasEvolution && (
+        <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-2.5 py-2">
+          ⚠️ Configurá Evolution API en Ajustes para enviar WhatsApp.
+        </p>
+      )}
+
+      <div className="space-y-1.5">
+        <p className="text-[10px] text-muted-foreground font-medium">Segmento de clientes</p>
+        <div className="flex flex-wrap gap-1">
+          {SEGMENTS.map(s => (
+            <button
+              key={s}
+              onClick={() => setSegment(s)}
+              className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${segment === s ? "bg-green-500/30 text-green-300 border border-green-500/40" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-xs">
+        {loading ? (
+          <span className="text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Buscando…</span>
+        ) : (
+          <span className={withPhone.length > 0 ? "text-green-400 font-medium" : "text-muted-foreground"}>
+            {withPhone.length > 0
+              ? `${withPhone.length} cliente${withPhone.length !== 1 ? "s" : ""} con teléfono en segmento ${segment}`
+              : `No hay clientes ${segment} con teléfono registrado`}
+          </span>
+        )}
+      </div>
+
+      {withPhone.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-muted-foreground font-medium">Mensaje <span className="opacity-60">(usá {"{nombre"}} para personalizar)</span></p>
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={3}
+            maxLength={500}
+            className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2 resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-green-500/50"
+          />
+          {withPhone.length > 0 && (
+            <p className="text-[10px] text-muted-foreground italic">
+              Preview: {message.replace(/\{nombre\}/gi, withPhone[0].name).slice(0, 80)}{message.length > 80 ? "…" : ""}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          className="h-7 text-xs bg-green-600 hover:bg-green-500 text-white flex-1 gap-1"
+          disabled={!hasEvolution || !withPhone.length || !message.trim() || sending}
+          onClick={handleSend}
+        >
+          {sending ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
+          {sending ? "Enviando…" : `Enviar a ${withPhone.length} cliente${withPhone.length !== 1 ? "s" : ""}`}
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
@@ -1364,6 +1687,8 @@ const ACTION_STARTERS = [
   { label: "Qué reponer", icon: TrendingDown, msg: "Qué productos debería reponer o comprar?" },
   { label: "Crear tarea", icon: ClipboardList, msg: "Crear una tarea o recordatorio" },
   { label: "Crear presupuesto", icon: DollarSign, msg: "Crear un presupuesto para un cliente" },
+  { label: "Ventas de hoy", icon: BarChart2, msg: "Cómo me fue hoy con las ventas?" },
+  { label: "WA por segmento", icon: MessageSquare, msg: "Mandá un WhatsApp a los clientes VIP" },
 ];
 
 const QUICK_ACTIONS = [

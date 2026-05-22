@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 50)**
+Última actualización: **2026-05-22 (sesión 51)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -881,6 +881,22 @@ Ver tabla de sesión 29 arriba.
 | 3 | **`check-overdue-debts`: alerta WhatsApp vía Evolution API** — además de notificaciones in-app, envía mensaje WA al número de la org si tiene Evolution API configurado; formato con listado de hasta 5 deudores, total pendiente; deduplicado por día con tipo `deuda_vencida_wa` | ✅ Hecho |
 | 4 | **ProductsPage: historial de precios** — `PriceHistoryModal` ya existía con botón Clock funcional; confirmado integrado | ✅ Ya existía |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 51 ✅ COMPLETA — Quick actions + IA ventas + WA birthday + descuento rápido
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: botón "Cobrar" inline por venta** — botón verde `CheckCircle2 + Cobrar` en cada fila unpaid (desktop y mobile); `markSinglePaid()` llama `updateSaleDB` + reload + toast | ✅ Hecho |
+| 2 | **AIChatPage: `query_sales_summary`** — detecta "cómo me fue hoy/esta semana/este mes"; `SalesSummaryCard` con selector Hoy/Semana/Mes, 4 KPIs, margen %, delta vs período anterior, top producto, breakdown por método de pago con barras | ✅ Hecho |
+| 3 | **AIChatPage: `send_wa_segment`** — detecta "mandá WA a clientes VIP/dormidos"; `SendWaSegmentCard` con selector de segmento, count de clientes con teléfono, textarea de mensaje con `{nombre}`, preview, envío via Evolution API directo desde frontend; chip "WA por segmento" | ✅ Hecho |
+| 4 | **ExpensesPage: botón "Duplicar"** — ícono `Copy` en cada fila; crea el mismo gasto con fecha de hoy; disponible en desktop y mobile | ✅ Hecho |
+| 5 | **Edge function `send-birthday-whatsapp`** — diaria a las 08:00 UTC; busca clientes cuyo `birthday` coincide con el día de hoy; envía WA personalizado con nombre de negocio via Evolution API; deduplicado por día; opt-out con `whatsapp_birthday_enabled = false` | ✅ Hecho |
+| 6 | **SettingsPage: toggle "Felicitación de cumpleaños"** — activo por defecto; guarda `whatsapp_birthday_enabled` en DB | ✅ Hecho |
+| 7 | **Migration `birthday_whatsapp`** — `ALTER TABLE settings ADD COLUMN whatsapp_birthday_enabled boolean DEFAULT true`; cron `0 8 * * *` | ✅ Hecho |
+| 8 | **ProductsPage: descuento rápido inline** — botón `Tag` por producto; aplica `default_discount_percent` o 20% off al precio de venta; si ya tiene descuento lo quita; funciona en desktop y mobile | ✅ Hecho |
+| 9 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

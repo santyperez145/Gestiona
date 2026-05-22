@@ -3502,6 +3502,7 @@ export type Database = {
           webhook_events: string[] | null
           webhook_secret: string | null
           webhook_url: string | null
+          whatsapp_birthday_enabled: boolean
           whatsapp_digest_enabled: boolean
           whatsapp_number: string | null
         }
@@ -3583,6 +3584,7 @@ export type Database = {
           webhook_events?: string[] | null
           webhook_secret?: string | null
           webhook_url?: string | null
+          whatsapp_birthday_enabled?: boolean
           whatsapp_digest_enabled?: boolean
           whatsapp_number?: string | null
         }
@@ -3664,6 +3666,7 @@ export type Database = {
           webhook_events?: string[] | null
           webhook_secret?: string | null
           webhook_url?: string | null
+          whatsapp_birthday_enabled?: boolean
           whatsapp_digest_enabled?: boolean
           whatsapp_number?: string | null
         }

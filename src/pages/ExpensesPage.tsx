@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -261,6 +261,22 @@ export default function ExpensesPage() {
     reload();
   };
 
+  const handleDuplicate = async (e: any) => {
+    if (!user) return;
+    await addExpenseDB({
+      user_id: user.id,
+      org_id: e.org_id,
+      description: e.description,
+      amount_ars: Number(e.amount_ars),
+      category: e.category,
+      date: new Date().toISOString().slice(0, 10),
+      payment_method: e.payment_method || "efectivo",
+      recurring: false,
+    });
+    toast.success(`Gasto duplicado para hoy`);
+    reload();
+  };
+
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
   return (
@@ -479,6 +495,11 @@ export default function ExpensesPage() {
                           {(canEdit || canDelete) && (
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {canEdit && (
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Duplicar para hoy" onClick={() => handleDuplicate(e)}>
+                                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </Button>
+                                )}
                                 {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>}
                                 {canDelete && (
                                   <ConfirmDialog
@@ -533,6 +554,11 @@ export default function ExpensesPage() {
                       </div>
                       {(canEdit || canDelete) && (
                         <div className="flex justify-end gap-1 mt-2">
+                          {canEdit && (
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Duplicar para hoy" onClick={() => handleDuplicate(e)}>
+                              <Copy className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                          )}
                           {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(e); setOpen(true); }}><Edit className="w-3 h-3" /></Button>}
                           {canDelete && (
                             <ConfirmDialog

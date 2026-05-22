@@ -383,6 +383,20 @@ export default function ProductsPage() {
     toast.success("Producto eliminado");
   };
 
+  const toggleQuickDiscount = async (p: any) => {
+    const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
+    if (hasDiscount) {
+      await updateProductDB(p.id, { discount_price_ars: null });
+      toast.success(`Descuento removido de "${p.name}"`);
+    } else {
+      const pct = Number(settings?.default_discount_percent || 20);
+      const discounted = Math.round(Number(p.sale_price_ars) * (1 - pct / 100));
+      await updateProductDB(p.id, { discount_price_ars: discounted });
+      toast.success(`Descuento de ${pct}% aplicado a "${p.name}" → ${formatARS(discounted)}`);
+    }
+    reload();
+  };
+
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 3).length;
@@ -788,6 +802,16 @@ export default function ProductsPage() {
                          </td>
                          <td className="p-3 text-center space-x-1">
                            {canEdit && <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>}
+                           {canEdit && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               title={p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "Quitar descuento" : "Aplicar descuento rápido"}
+                               onClick={() => toggleQuickDiscount(p)}
+                             >
+                               <Tag className={`w-3.5 h-3.5 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-warning" : "text-muted-foreground"}`} />
+                             </Button>
+                           )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                            {canDelete && (
                              <ConfirmDialog
@@ -820,6 +844,17 @@ export default function ProductsPage() {
                       </div>
                       <div className="flex gap-1 shrink-0">
                         {canEdit && <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3 h-3" /></Button>}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            title={p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "Quitar descuento" : "Aplicar descuento rápido"}
+                            onClick={() => toggleQuickDiscount(p)}
+                          >
+                            <Tag className={`w-3 h-3 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-warning" : "text-muted-foreground"}`} />
+                          </Button>
+                        )}
                         {canDelete && (
                           <ConfirmDialog
                             trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3 h-3 text-destructive" /></Button>}

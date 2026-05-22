@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -558,6 +558,12 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
     reload();
     setBulkLoading(false);
     toast.success(`${toMark.length} venta${toMark.length !== 1 ? 's' : ''} marcada${toMark.length !== 1 ? 's' : ''} como cobrada${toMark.length !== 1 ? 's' : ''}`);
+  };
+
+  const markSinglePaid = async (s: any) => {
+    await updateSaleDB(s.id, { paid: true }, s);
+    reload();
+    toast.success(`Venta de ${s.product_name} marcada como cobrada ✓`);
   };
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
@@ -1163,6 +1169,17 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {!s.paid && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[11px] text-success hover:text-success hover:bg-success/10 gap-1"
+                            title="Marcar como cobrado"
+                            onClick={() => markSinglePaid(s)}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />Cobrar
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Imprimir recibo" onClick={() => printReceipt(s)}>
                           <Printer className="w-3.5 h-3.5 text-muted-foreground" />
                         </Button>
@@ -1221,17 +1238,27 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
                     <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                   </div>
-                  {isAdmin && (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
-                    <ConfirmDialog
-                      trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
-                      title="¿Eliminar venta?"
-                      confirmText="Eliminar"
-                      onConfirm={() => handleDelete(s)}
-                    />
+                    {!s.paid && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[11px] text-success hover:bg-success/10 gap-1"
+                        onClick={() => markSinglePaid(s)}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />Cobrar
+                      </Button>
+                    )}
+                    {isAdmin && <>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(s); setOpen(true); }}><Edit className="w-3 h-3" /></Button>
+                      <ConfirmDialog
+                        trigger={<Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
+                        title="¿Eliminar venta?"
+                        confirmText="Eliminar"
+                        onConfirm={() => handleDelete(s)}
+                      />
+                    </>}
                   </div>
-                  )}
                 </div>
               </div>
             ))}
