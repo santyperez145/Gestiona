@@ -214,6 +214,7 @@ export default function AnalyticsPage() {
     const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10);
   });
   const [trendTo, setTrendTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [sellerPeriod, setSellerPeriod] = useState<"thisMonth" | "last30" | "thisWeek" | "thisYear">("thisMonth");
 
   useEffect(() => {
     if (!user) return;
@@ -556,6 +557,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
           <TabsTrigger value="canales" className="text-xs">📊 Canales</TabsTrigger>
           <TabsTrigger value="vendedores" className="text-xs">🧑‍💼 Vendedores</TabsTrigger>
+          <TabsTrigger value="gastos" className="text-xs">💸 Gastos</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
@@ -1676,105 +1678,362 @@ export default function AnalyticsPage() {
 
         {/* VENDEDORES TAB */}
         <TabsContent value="vendedores" className="mt-4 space-y-4">
-          {derived.sellerStats.length === 0 ? (
-            <div className="bg-card border border-border rounded-2xl p-10 text-center text-muted-foreground text-sm">
-              No hay datos de vendedores. Asegurate de cargar el campo "Vendedor" al registrar ventas.
-            </div>
-          ) : (
-            <>
-              {/* KPI bar */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Vendedores activos</p>
-                  <p className="text-2xl font-display font-bold">{derived.sellerStats.filter(s => s.name !== "Sin vendedor").length}</p>
-                </div>
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Top vendedor</p>
-                  <p className="text-lg font-display font-bold truncate">{derived.sellerStats.find(s => s.name !== "Sin vendedor")?.name || "—"}</p>
-                  <p className="text-xs text-muted-foreground">{formatARS(derived.sellerStats.find(s => s.name !== "Sin vendedor")?.revenue || 0)}</p>
-                </div>
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ticket prom. general</p>
-                  <p className="text-2xl font-display font-bold">{formatARS(derived.avgTicket)}</p>
-                </div>
-                <div className="bg-card border border-border rounded-2xl p-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total ventas con vendedor</p>
-                  <p className="text-2xl font-display font-bold">{derived.sellerStats.filter(s => s.name !== "Sin vendedor").reduce((s, v) => s + v.count, 0)}</p>
-                </div>
-              </div>
+          {(() => {
+            // Period filter logic
+            const now = new Date();
+            let periodFrom: Date;
+            let periodLabel = "";
+            if (sellerPeriod === "thisWeek") {
+              const dow = now.getDay();
+              periodFrom = new Date(now);
+              periodFrom.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+              periodFrom.setHours(0, 0, 0, 0);
+              periodLabel = "Esta semana";
+            } else if (sellerPeriod === "last30") {
+              periodFrom = new Date(now);
+              periodFrom.setDate(now.getDate() - 29);
+              periodFrom.setHours(0, 0, 0, 0);
+              periodLabel = "Últimos 30 días";
+            } else if (sellerPeriod === "thisYear") {
+              periodFrom = new Date(now.getFullYear(), 0, 1);
+              periodLabel = String(now.getFullYear());
+            } else {
+              periodFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+              periodLabel = MONTHS_ES[now.getMonth()];
+            }
+            const filteredSales = rawData?.sales.filter((s: any) => {
+              const d = new Date(s.date + "T12:00:00");
+              return d >= periodFrom && d <= now;
+            }) || [];
+            const sMap: Record<string, { name: string; revenue: number; profit: number; count: number; units: number }> = {};
+            filteredSales.forEach((s: any) => {
+              const nm = (s as any).seller_name?.trim() || "Sin vendedor";
+              if (!sMap[nm]) sMap[nm] = { name: nm, revenue: 0, profit: 0, count: 0, units: 0 };
+              sMap[nm].revenue += Number(s.total_ars || 0);
+              sMap[nm].profit += Number(s.profit_ars || 0);
+              sMap[nm].count += 1;
+              sMap[nm].units += Number(s.quantity || 1);
+            });
+            const sellerStats = Object.values(sMap).map(v => ({
+              ...v,
+              avgTicket: v.count > 0 ? v.revenue / v.count : 0,
+              margin: v.revenue > 0 ? (v.profit / v.revenue) * 100 : 0,
+            })).sort((a, b) => b.revenue - a.revenue);
 
-              {/* Seller table */}
-              <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-border">
-                  <h3 className="text-sm font-semibold">Ranking de vendedores</h3>
+            function exportSellerCSV() {
+              const BOM = "﻿";
+              const headers = ["Vendedor", "Ventas", "Ingresos (ARS)", "Ganancia (ARS)", "Ticket prom. (ARS)", "Margen %"];
+              const rows = sellerStats.map(s => [
+                s.name, s.count, s.revenue.toFixed(2), s.profit.toFixed(2),
+                s.avgTicket.toFixed(2), s.margin.toFixed(2),
+              ]);
+              const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+              a.download = `vendedores-${sellerPeriod}-${currentYear}.csv`;
+              a.click();
+            }
+
+            if (sellerStats.length === 0) return (
+              <div className="bg-card border border-border rounded-2xl p-10 text-center text-muted-foreground text-sm">
+                No hay datos de vendedores para el período seleccionado. Asegurate de cargar el campo "Vendedor" al registrar ventas.
+              </div>
+            );
+            return (
+              <>
+                {/* Period selector */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Período:</span>
+                  {(["thisWeek", "thisMonth", "last30", "thisYear"] as const).map(p => {
+                    const labels: Record<string, string> = { thisWeek: "Esta semana", thisMonth: "Este mes", last30: "Últimos 30d", thisYear: "Este año" };
+                    return (
+                      <button key={p} onClick={() => setSellerPeriod(p)}
+                        className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${sellerPeriod === p ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:text-foreground"}`}>
+                        {labels[p]}
+                      </button>
+                    );
+                  })}
+                  <span className="ml-auto text-[10px] text-muted-foreground">{periodLabel} · {filteredSales.length} ventas</span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/40">
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ventas</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ingresos</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ganancia</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ticket prom.</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Margen</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {derived.sellerStats.map((seller, idx) => {
-                        const maxRev = derived.sellerStats[0]?.revenue || 1;
-                        const barW = Math.round((seller.revenue / maxRev) * 100);
-                        return (
-                          <tr key={seller.name} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
-                            <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{idx + 1}</td>
-                            <td className="px-4 py-3 font-medium">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-                                  {seller.name.charAt(0).toUpperCase()}
+
+                {/* KPI bar */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Vendedores activos</p>
+                    <p className="text-2xl font-display font-bold">{sellerStats.filter(s => s.name !== "Sin vendedor").length}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Top vendedor</p>
+                    <p className="text-lg font-display font-bold truncate">{sellerStats.find(s => s.name !== "Sin vendedor")?.name || "—"}</p>
+                    <p className="text-xs text-muted-foreground">{formatARS(sellerStats.find(s => s.name !== "Sin vendedor")?.revenue || 0)}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total ingresos</p>
+                    <p className="text-2xl font-display font-bold">{formatARS(sellerStats.reduce((s, v) => s + v.revenue, 0))}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total ventas con vendedor</p>
+                    <p className="text-2xl font-display font-bold">{sellerStats.filter(s => s.name !== "Sin vendedor").reduce((s, v) => s + v.count, 0)}</p>
+                  </div>
+                </div>
+
+                {/* Seller table */}
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Ranking de vendedores — {periodLabel}</h3>
+                    <button onClick={exportSellerCSV} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted">
+                      <Download className="w-3.5 h-3.5" />CSV
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40">
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</th>
+                          <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ventas</th>
+                          <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ingresos</th>
+                          <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ganancia</th>
+                          <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ticket prom.</th>
+                          <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Margen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sellerStats.map((seller, idx) => {
+                          const maxRev = sellerStats[0]?.revenue || 1;
+                          const barW = Math.round((seller.revenue / maxRev) * 100);
+                          return (
+                            <tr key={seller.name} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
+                              <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{idx + 1}</td>
+                              <td className="px-4 py-3 font-medium">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                    {seller.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <span>{seller.name}</span>
+                                  {idx === 0 && seller.name !== "Sin vendedor" && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full font-semibold">🏆 Top</span>}
                                 </div>
-                                <span>{seller.name}</span>
-                                {idx === 0 && seller.name !== "Sin vendedor" && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full font-semibold">🏆 Top</span>}
-                              </div>
-                              <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden w-32">
-                                <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${barW}%` }} />
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">{seller.count}</td>
-                            <td className="px-4 py-3 text-right font-bold">{formatARS(seller.revenue)}</td>
-                            <td className="px-4 py-3 text-right text-success font-medium">{formatARS(seller.profit)}</td>
-                            <td className="px-4 py-3 text-right">{formatARS(seller.avgTicket)}</td>
-                            <td className="px-4 py-3 text-right">
-                              <span className={`font-semibold ${seller.margin >= 30 ? "text-green-400" : seller.margin >= 15 ? "text-yellow-400" : "text-red-400"}`}>
-                                {seller.margin.toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                                <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden w-32">
+                                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${barW}%` }} />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-right text-muted-foreground">{seller.count}</td>
+                              <td className="px-4 py-3 text-right font-bold">{formatARS(seller.revenue)}</td>
+                              <td className="px-4 py-3 text-right text-success font-medium">{formatARS(seller.profit)}</td>
+                              <td className="px-4 py-3 text-right">{formatARS(seller.avgTicket)}</td>
+                              <td className="px-4 py-3 text-right">
+                                <span className={`font-semibold ${seller.margin >= 30 ? "text-green-400" : seller.margin >= 15 ? "text-yellow-400" : "text-red-400"}`}>
+                                  {seller.margin.toFixed(1)}%
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
 
-              {/* Bar chart: revenue by seller */}
-              <div className="bg-card border border-border rounded-2xl p-5">
-                <h3 className="text-sm font-semibold mb-4">Ingresos por vendedor</h3>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={derived.sellerStats.filter(s => s.name !== "Sin vendedor").slice(0, 10)} layout="vertical" margin={{ left: 80, right: 20 }}>
-                    <XAxis type="number" tickFormatter={(v: number) => formatARS(v)} tick={{ fontSize: 10 }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
-                    <Tooltip formatter={(v: number) => formatARS(v)} />
-                    <Bar dataKey="revenue" name="Ingresos" radius={[0, 4, 4, 0]}>
-                      {derived.sellerStats.filter(s => s.name !== "Sin vendedor").slice(0, 10).map((_: any, i: number) => (
-                        <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                {/* Bar chart: revenue by seller */}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <h3 className="text-sm font-semibold mb-4">Ingresos por vendedor — {periodLabel}</h3>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={sellerStats.filter(s => s.name !== "Sin vendedor").slice(0, 10)} layout="vertical" margin={{ left: 80, right: 20 }}>
+                      <XAxis type="number" tickFormatter={(v: number) => formatARS(v)} tick={{ fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                      <Tooltip formatter={(v: number) => formatARS(v)} />
+                      <Bar dataKey="revenue" name="Ingresos" radius={[0, 4, 4, 0]}>
+                        {sellerStats.filter(s => s.name !== "Sin vendedor").slice(0, 10).map((_: any, i: number) => (
+                          <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            );
+          })()}
+        </TabsContent>
+
+        {/* GASTOS TAB */}
+        <TabsContent value="gastos" className="mt-4 space-y-4">
+          {(() => {
+            if (!rawData) return null;
+            const expenses: any[] = rawData.expenses || [];
+            if (expenses.length === 0) return (
+              <div className="bg-card border border-border rounded-2xl p-10 text-center text-muted-foreground text-sm">
+                Sin datos de gastos registrados para este año.
               </div>
-            </>
-          )}
+            );
+            // Year filter (same as global year selector)
+            const yr = new Date().getFullYear() - Number(year);
+            const yearExp = expenses.filter((e: any) => new Date(e.date).getFullYear() === yr);
+            const totalExp = yearExp.reduce((s: number, e: any) => s + Number(e.amount_ars || 0), 0);
+
+            // By category
+            const catMap: Record<string, number> = {};
+            yearExp.forEach((e: any) => { catMap[e.category || "otros"] = (catMap[e.category || "otros"] || 0) + Number(e.amount_ars || 0); });
+            const catData = Object.entries(catMap).map(([cat, val]) => ({ cat, val })).sort((a, b) => b.val - a.val);
+
+            // By vendor
+            const vendorMap: Record<string, number> = {};
+            yearExp.filter((e: any) => e.vendor).forEach((e: any) => { vendorMap[e.vendor] = (vendorMap[e.vendor] || 0) + Number(e.amount_ars || 0); });
+            const topVendors = Object.entries(vendorMap).map(([v, t]) => ({ vendor: v, total: t })).sort((a, b) => b.total - a.total).slice(0, 8);
+
+            // Monthly
+            const monthlyExp = MONTHS_ES.map((name, i) => {
+              const val = yearExp.filter((e: any) => new Date(e.date).getMonth() === i).reduce((s: number, e: any) => s + Number(e.amount_ars || 0), 0);
+              return { name, val };
+            });
+            const maxMonth = Math.max(...monthlyExp.map(m => m.val), 1);
+
+            // This month vs last month
+            const now = new Date();
+            const thisMonthExp = yearExp.filter((e: any) => new Date(e.date).getMonth() === now.getMonth() && new Date(e.date).getFullYear() === yr).reduce((s: number, e: any) => s + Number(e.amount_ars || 0), 0);
+            const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+            const lastMonthYr = now.getMonth() === 0 ? yr - 1 : yr;
+            const lastMonthExp = expenses.filter((e: any) => new Date(e.date).getMonth() === lastMonth && new Date(e.date).getFullYear() === lastMonthYr).reduce((s: number, e: any) => s + Number(e.amount_ars || 0), 0);
+            const expDelta = lastMonthExp > 0 ? ((thisMonthExp - lastMonthExp) / lastMonthExp) * 100 : 0;
+
+            function exportGastosCSV() {
+              const BOM = "﻿";
+              const headers = ["Categoría", "Total ARS", "% del total"];
+              const rows = catData.map(r => [r.cat, r.val.toFixed(2), totalExp > 0 ? ((r.val / totalExp) * 100).toFixed(2) : "0"]);
+              const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+              a.download = `gastos-categorias-${yr}.csv`;
+              a.click();
+            }
+
+            return (
+              <>
+                {/* KPIs */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total {yr}</p>
+                    <p className="text-2xl font-display font-bold">{formatARS(totalExp)}</p>
+                    <p className="text-xs text-muted-foreground">{yearExp.length} registros</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Este mes</p>
+                    <p className="text-2xl font-display font-bold">{formatARS(thisMonthExp)}</p>
+                    <p className={`text-xs flex items-center gap-1 mt-0.5 ${expDelta >= 0 ? "text-red-400" : "text-green-400"}`}>
+                      {expDelta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {expDelta >= 0 ? "+" : ""}{expDelta.toFixed(1)}% vs mes ant.
+                    </p>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Promedio mensual</p>
+                    <p className="text-2xl font-display font-bold">{formatARS(totalExp / 12)}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Categoría top</p>
+                    <p className="text-lg font-display font-bold truncate">{catData[0]?.cat || "—"}</p>
+                    <p className="text-xs text-muted-foreground">{formatARS(catData[0]?.val || 0)}</p>
+                  </div>
+                </div>
+
+                {/* Monthly bar chart */}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <h3 className="text-sm font-semibold mb-4">Gastos mensuales — {yr}</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={monthlyExp} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={(v: number) => [formatARS(v), "Gastos"]} />
+                      <Bar dataKey="val" name="Gastos" radius={[4, 4, 0, 0]} fill="hsl(0,65%,55%)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  {/* Mini progress bars per month */}
+                  <div className="mt-3 grid grid-cols-6 md:grid-cols-12 gap-1">
+                    {monthlyExp.map(m => (
+                      <div key={m.name} className="text-center">
+                        <div className="h-1 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-red-500/60 rounded-full" style={{ width: `${Math.round((m.val / maxMonth) * 100)}%` }} />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-0.5">{m.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Category breakdown */}
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Gastos por categoría</h3>
+                    <button onClick={exportGastosCSV} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted">
+                      <Download className="w-3.5 h-3.5" />CSV
+                    </button>
+                  </div>
+                  <div className="divide-y divide-border/60">
+                    {catData.map((row, idx) => {
+                      const pct = totalExp > 0 ? (row.val / totalExp) * 100 : 0;
+                      return (
+                        <div key={row.cat} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                          <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium capitalize">{row.cat}</span>
+                              <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: PALETTE[idx % PALETTE.length] }} />
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold shrink-0">{formatARS(row.val)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Top vendors */}
+                {topVendors.length > 0 && (
+                  <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border">
+                      <h3 className="text-sm font-semibold">Top proveedores / pagados a</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40">
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Proveedor</th>
+                            <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total pagado</th>
+                            <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">% del gasto</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topVendors.map((v, idx) => {
+                            const maxT = topVendors[0].total;
+                            const barW = Math.round((v.total / maxT) * 100);
+                            const pct = totalExp > 0 ? (v.total / totalExp) * 100 : 0;
+                            return (
+                              <tr key={v.vendor} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
+                                <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{idx + 1}</td>
+                                <td className="px-4 py-3 font-medium">
+                                  <div className="flex flex-col gap-1">
+                                    <span>{v.vendor}</span>
+                                    <div className="h-1 bg-muted rounded-full overflow-hidden w-24">
+                                      <div className="h-full rounded-full bg-primary" style={{ width: `${barW}%` }} />
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-right font-bold">{formatARS(v.total)}</td>
+                                <td className="px-4 py-3 text-right text-muted-foreground">{pct.toFixed(1)}%</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
       </Tabs>
     </div>

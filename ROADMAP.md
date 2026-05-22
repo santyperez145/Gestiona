@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 61)**
+Última actualización: **2026-05-22 (sesión 62)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -941,6 +941,18 @@ Ver tabla de sesión 29 arriba.
 | 2 | **AIChatPage: `query_expense_summary`** — detecta "cuánto gasté / resumen gastos / en qué gasté"; `ExpenseSummaryCard` con toggle Mes/Semana; 4 KPIs + barras por categoría + método principal; chip "Gastos del mes" | ✅ Hecho |
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 62 ✅ COMPLETA — Analytics tab Gastos + Vendedores filtro período + Presupuestos sort + fix filterVendor
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AnalyticsPage: nueva tab "💸 Gastos"** — KPI cards (total año/este mes/promedio mensual/categoría top); BarChart mensual de gastos; tabla de gastos por categoría con barra de share y % + CSV export; top 8 proveedores con tabla y barra visual | ✅ Hecho |
+| 2 | **AnalyticsPage: filtro de período en tab Vendedores** — 4 chips (Esta semana / Este mes / Últimos 30d / Este año); recalcula sellerStats inline para el período; botón CSV export; KPI de total ingresos en el período | ✅ Hecho |
+| 3 | **PresupuestosPage: sort por fecha/monto/cliente** — `quoteSort` state; botones Fecha/Monto/Cliente en barra de filtros con ChevronUp/Down; sorted copy de filtered con `[...base].sort()` | ✅ Hecho |
+| 4 | **fix(ExpensesPage): filterVendor faltaba en dep array** — useMemo filtered no reaccionaba al cambiar proveedor; agregado `filterVendor` a las dependencias | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---

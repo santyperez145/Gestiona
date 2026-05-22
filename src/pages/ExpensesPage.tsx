@@ -158,7 +158,7 @@ export default function ExpensesPage() {
       }
       return true;
     });
-  }, [expenses, filterCat, filterMonth, search]);
+  }, [expenses, filterCat, filterMonth, search, filterVendor]);
 
   const totals = useMemo(() => {
     const total = filtered.reduce((s, e) => s + Number(e.amount_ars), 0);

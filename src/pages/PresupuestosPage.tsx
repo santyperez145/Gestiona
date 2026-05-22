@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Search, FileText, Download, Send,
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
-  DollarSign, Mail, CopyPlus, Bookmark, BookOpen, Sparkles, User, Package, Zap,
+  DollarSign, Mail, CopyPlus, Bookmark, BookOpen, Sparkles, User, Package, Zap, ArrowUpDown,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -380,6 +380,7 @@ export default function PresupuestosPage() {
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [viewByCustomer, setViewByCustomer] = useState(false);
+  const [quoteSort, setQuoteSort] = useState<{ col: "date" | "total" | "customer"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
 
   // Form state
   const [custName, setCustName] = useState("");
@@ -706,15 +707,24 @@ export default function PresupuestosPage() {
     new Date(q.created_at) < now30
   );
 
-  const filtered = quotes.filter(q => {
-    let matchStatus: boolean;
-    if (filterStatus === "all") matchStatus = true;
-    else if (filterStatus === "expired_pending") matchStatus = expiredQuotes.some(e => e.id === q.id);
-    else matchStatus = q.status === filterStatus;
-    const matchSearch = q.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-      q.quote_number.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
-  });
+  const filtered = (() => {
+    const base = quotes.filter(q => {
+      let matchStatus: boolean;
+      if (filterStatus === "all") matchStatus = true;
+      else if (filterStatus === "expired_pending") matchStatus = expiredQuotes.some(e => e.id === q.id);
+      else matchStatus = q.status === filterStatus;
+      const matchSearch = q.customer_name.toLowerCase().includes(search.toLowerCase()) ||
+        q.quote_number.toLowerCase().includes(search.toLowerCase());
+      return matchStatus && matchSearch;
+    });
+    return [...base].sort((a, b) => {
+      let cmp = 0;
+      if (quoteSort.col === "date") cmp = a.created_at.localeCompare(b.created_at);
+      else if (quoteSort.col === "total") cmp = a.total - b.total;
+      else if (quoteSort.col === "customer") cmp = a.customer_name.localeCompare(b.customer_name);
+      return quoteSort.dir === "asc" ? cmp : -cmp;
+    });
+  })();
 
   const stats = {
     total: quotes.length,
@@ -863,6 +873,21 @@ export default function PresupuestosPage() {
         >
           👤 Por cliente
         </button>
+        {/* Sort buttons */}
+        <div className="flex items-center gap-1 shrink-0">
+          <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+          {(["date", "total", "customer"] as const).map(col => {
+            const labels: Record<string, string> = { date: "Fecha", total: "Monto", customer: "Cliente" };
+            const active = quoteSort.col === col;
+            return (
+              <button key={col} onClick={() => setQuoteSort(s => s.col === col ? { col, dir: s.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "date" ? "desc" : "asc" })}
+                className={`text-xs px-2 py-1.5 rounded-md border transition-colors flex items-center gap-0.5 ${active ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted border-border text-muted-foreground hover:text-foreground"}`}>
+                {labels[col]}
+                {active && (quoteSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+              </button>
+            );
+          })}
+        </div>
         <Button variant="outline" size="sm" className="h-9" onClick={() => {
           const bom = '﻿';
           const headers = ['Número', 'Cliente', 'Email', 'Teléfono', 'Total ARS', 'Estado', 'Válido hasta', 'Fecha creación', 'Notas'];
