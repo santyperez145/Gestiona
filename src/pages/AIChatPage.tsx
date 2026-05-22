@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products" | "query_expense_summary";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -35,6 +35,7 @@ type AIAction =
   | { type: "send_wa_segment"; segment?: string }
   | { type: "query_debts_summary" }
   | { type: "query_top_products"; sortBy?: "revenue" | "profit" | "units" }
+  | { type: "query_expense_summary"; period?: "month" | "week" }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -178,6 +179,12 @@ function detectIntent(msg: string): AIAction | null {
     const segMatch = lower.match(/\b(vip|dormidos?|en\s+riesgo|perdidos?|frecuentes?|activos?|nuevos?|premium)\b/);
     const seg = segMatch ? segMatch[1].charAt(0).toUpperCase() + segMatch[1].slice(1).replace(/s$/, "") : undefined;
     return { type: "send_wa_segment", segment: seg };
+  }
+
+  // Expense summary
+  if (/\b(cu[aá]nto\s+(gast[eé]|sali[oó])|resumen\s+(de\s+)?gastos?|mis\s+gastos?|gastos?\s+(de\s+)?(este\s+mes|esta\s+semana|del\s+mes|total)|en\s+qu[eé]\s+(gast[eé])|an[aá]lisis\s+(de\s+)?gastos?)\b/.test(lower)) {
+    const period: "month" | "week" = /\b(semana|semanal)\b/.test(lower) ? "week" : "month";
+    return { type: "query_expense_summary", period };
   }
 
   // Top products
@@ -395,6 +402,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_top_products") {
     return <TopProductsCard userId={userId} initialSort={action.sortBy} onDone={onDone} />;
+  }
+
+  if (action.type === "query_expense_summary") {
+    return <ExpenseSummaryCard userId={userId} initialPeriod={action.period} onDone={onDone} />;
   }
 
   if (action.type === "send_wa_segment") {
@@ -1777,6 +1788,130 @@ function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmoun
   );
 }
 
+// ─── ExpenseSummaryCard ───────────────────────────────────────────────────────
+function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
+  userId: string; initialPeriod?: "month" | "week"; onDone: () => void;
+}) {
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [period, setPeriod] = useState<"month" | "week">(initialPeriod || "month");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async (p: "month" | "week") => {
+    if (!activeOrg) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      let dateFrom: string;
+      if (p === "week") {
+        const d = new Date(now); d.setDate(now.getDate() - 6);
+        dateFrom = d.toISOString().slice(0, 10);
+      } else {
+        dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      }
+
+      const { data } = await supabase.from("expenses")
+        .select("amount_ars, category, payment_method, description")
+        .eq("org_id", activeOrg.id)
+        .gte("date", dateFrom);
+
+      const expenses = data || [];
+      const total = expenses.reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
+      const byCat: Record<string, number> = {};
+      const byMethod: Record<string, number> = {};
+      expenses.forEach((e: any) => {
+        byCat[e.category || "otros"] = (byCat[e.category || "otros"] || 0) + Number(e.amount_ars);
+        byMethod[e.payment_method || "efectivo"] = (byMethod[e.payment_method || "efectivo"] || 0) + Number(e.amount_ars);
+      });
+      const topCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const topMethod = Object.entries(byMethod).sort((a, b) => b[1] - a[1])[0];
+
+      setResult({ total, count: expenses.length, topCats, topMethod, byCat });
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(period); }, [activeOrg, period]);
+
+  const PERIOD_LABELS = { month: "Este mes", week: "Últimos 7 días" };
+  const CAT_LABELS: Record<string, string> = {
+    alquiler: "Alquiler", servicios: "Servicios", sueldos: "Sueldos",
+    marketing: "Marketing", logistica: "Logística", impuestos: "Impuestos",
+    mantenimiento: "Mantenimiento", otros: "Otros",
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-warning uppercase tracking-wider flex items-center gap-1.5">
+          <TrendingDown className="w-3.5 h-3.5" />Resumen de gastos
+        </p>
+        <div className="flex gap-1">
+          {(["month", "week"] as const).map(p => (
+            <button key={p}
+              onClick={() => { setPeriod(p); load(p); }}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${period === p ? "bg-warning/20 text-warning border-warning/40" : "border-border text-muted-foreground hover:border-warning/30"}`}
+            >{PERIOD_LABELS[p]}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />Cargando gastos…
+        </div>
+      ) : !result || result.count === 0 ? (
+        <p className="text-xs text-muted-foreground">Sin gastos en este período.</p>
+      ) : (
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Total</p>
+              <p className="font-bold text-sm text-warning">{formatARS(result.total)}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Gastos</p>
+              <p className="font-bold text-sm">{result.count}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Promedio</p>
+              <p className="font-bold text-sm">{formatARS(result.total / result.count)}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Método principal</p>
+              <p className="font-bold text-sm capitalize">{result.topMethod?.[0] || "—"}</p>
+            </div>
+          </div>
+
+          {result.topCats.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Por categoría</p>
+              {result.topCats.map(([cat, val]: [string, number]) => {
+                const pct = result.total > 0 ? Math.round((val / result.total) * 100) : 0;
+                return (
+                  <div key={cat} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{CAT_LABELS[cat] || cat}</span>
+                      <span className="font-semibold">{formatARS(val)} <span className="text-muted-foreground text-[10px]">({pct}%)</span></span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-warning/60 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <Button size="sm" variant="outline" className="h-7 text-xs w-full gap-1" onClick={() => { navigate("/expenses"); onDone(); }}>
+            Ver todos los gastos →
+          </Button>
+        </div>
+      )}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
 // ─── TopProductsCard ──────────────────────────────────────────────────────────
 function TopProductsCard({ userId, initialSort, onDone }: {
   userId: string; initialSort?: "revenue" | "profit" | "units"; onDone: () => void;
@@ -1887,6 +2022,7 @@ const ACTION_STARTERS = [
   { label: "WA por segmento", icon: MessageSquare, msg: "Mandá un WhatsApp a los clientes VIP" },
   { label: "Total deudas", icon: DollarSign, msg: "Resumen total de deudas pendientes" },
   { label: "Top productos", icon: Package, msg: "Cuáles son mis mejores productos?" },
+  { label: "Gastos del mes", icon: TrendingDown, msg: "Cuánto gasté este mes? Resumen de gastos" },
 ];
 
 const QUICK_ACTIONS = [

@@ -440,6 +440,46 @@ export default function DebtsPage() {
       </div>
       )}
 
+      {/* Grouped by debtor — "Cobrar todo" per customer */}
+      {tab === "pending" && pending.length > 0 && (() => {
+        const byCustomer: Record<string, { debts: any[]; total: number }> = {};
+        for (const d of pending) {
+          const k = d.customer_name || "Sin nombre";
+          if (!byCustomer[k]) byCustomer[k] = { debts: [], total: 0 };
+          byCustomer[k].debts.push(d);
+          byCustomer[k].total += Number(d.remaining_ars);
+        }
+        const debtors = Object.entries(byCustomer).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
+        if (debtors.length < 2) return null; // Only show when multiple debtors
+        return (
+          <div className="mb-4 bg-card border border-border/60 rounded-xl p-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Resumen por deudor — cobrar todo</p>
+            <div className="flex flex-wrap gap-2">
+              {debtors.map(([customer, { debts: cDebts, total }]) => (
+                <div key={customer} className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-3 py-1.5">
+                  <span className="text-xs font-medium max-w-[100px] truncate">{customer}</span>
+                  <span className="text-xs font-bold text-destructive">{formatARS(total)}</span>
+                  <Button size="sm" variant="ghost"
+                    className="h-6 px-2 text-[10px] text-success hover:text-success hover:bg-success/10 gap-0.5"
+                    title={`Cobrar todo a ${customer}`}
+                    onClick={async () => {
+                      setBulkLoading(true);
+                      try {
+                        await Promise.all(cDebts.map(d => updateDebtDB(d.id, { status: "paid", paid_ars: Number(d.amount_ars), remaining_ars: 0 })));
+                        toast.success(`${cDebts.length} deuda${cDebts.length !== 1 ? "s" : ""} de ${customer} marcada${cDebts.length !== 1 ? "s" : ""} como pagada${cDebts.length !== 1 ? "s" : ""} ✓`);
+                        reload();
+                      } catch { toast.error("Error al cobrar"); }
+                      finally { setBulkLoading(false); }
+                    }}>
+                    <CheckCircle2 className="w-3 h-3" />Cobrar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Bulk action bar */}
       {selectedIds.size > 0 && tab === "pending" && (
         <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5 mb-4">

@@ -267,6 +267,7 @@ export default function ProductsPage() {
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
+  const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
 
   const reload = async () => {
@@ -310,6 +311,15 @@ export default function ProductsPage() {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: parsed } : p));
     setEditingStock(null);
     toast.success("Stock actualizado");
+  };
+
+  const saveInlineThreshold = async (productId: string, val: string) => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 0) { setEditingThreshold(null); return; }
+    await updateProductDB(productId, { low_stock_threshold: parsed } as any);
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, low_stock_threshold: parsed } : p));
+    setEditingThreshold(null);
+    toast.success("Alerta de stock actualizada");
   };
 
   const today = new Date();
@@ -695,6 +705,7 @@ export default function ProductsPage() {
                        <th className="text-right p-3 font-medium">Oferta</th>
                        <th className="text-right p-3 font-medium">Ganancia</th>
                        <th className="text-right p-3 font-medium">Stock</th>
+                       <th className="text-right p-3 font-medium hidden xl:table-cell" title="Umbral de alerta de stock bajo — click para editar">Alerta</th>
                        <th className="text-right p-3 font-medium" title="Días de stock restante según velocidad de ventas (últimos 60 días)">Días ⚡</th>
                        <th className="text-right p-3 font-medium" title="Días desde la última venta registrada (últimos 60 días)">Sin mvto</th>
                        <th className="text-center p-3 font-medium">Mod.</th>
@@ -776,6 +787,29 @@ export default function ProductsPage() {
                                ) : (
                                  <span className="text-success font-medium group-hover:text-primary transition-colors">{p.stock}</span>
                                )}
+                             </button>
+                           )}
+                         </td>
+                         <td className="p-3 text-right hidden xl:table-cell">
+                           {editingThreshold?.id === p.id ? (
+                             <input
+                               type="number" min="0" autoFocus
+                               value={editingThreshold.value}
+                               onChange={e => setEditingThreshold({ id: p.id, value: e.target.value })}
+                               onBlur={() => saveInlineThreshold(p.id, editingThreshold.value)}
+                               onKeyDown={e => {
+                                 if (e.key === "Enter") saveInlineThreshold(p.id, editingThreshold.value);
+                                 if (e.key === "Escape") setEditingThreshold(null);
+                               }}
+                               className="w-14 text-right text-xs border border-warning/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-warning/60"
+                             />
+                           ) : (
+                             <button
+                               onClick={() => setEditingThreshold({ id: p.id, value: String((p as any).low_stock_threshold ?? 3) })}
+                               className="text-xs text-muted-foreground hover:text-warning transition-colors"
+                               title="Click para editar umbral de alerta"
+                             >
+                               {(p as any).low_stock_threshold ?? 3}
                              </button>
                            )}
                          </td>

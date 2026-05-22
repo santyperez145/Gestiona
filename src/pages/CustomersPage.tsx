@@ -2234,6 +2234,13 @@ export default function CustomersPage() {
                       {c.birthday && !bdayInRange(c.birthday, 'this_week') && bdayInRange(c.birthday, 'this_month') && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/10 text-pink-300 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Este mes</span>
                       )}
+                      {c.purchaseCount > 0 && (() => {
+                        const firstPurchaseDate = new Date(c.firstPurchase);
+                        const daysSince = Math.floor((Date.now() - firstPurchaseDate.getTime()) / 86400000);
+                        return daysSince <= 30 ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 hidden sm:inline-flex items-center gap-0.5" title={`Primera compra: ${firstPurchaseDate.toLocaleDateString('es-AR')}`}>✨ Nuevo</span>
+                        ) : null;
+                      })()}
                       {c.pendingDebt > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive hidden sm:block">
                           Debe {formatARS(c.pendingDebt)}

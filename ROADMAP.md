@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 53)**
+Última actualización: **2026-05-22 (sesión 54)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -910,6 +910,18 @@ Ver tabla de sesión 29 arriba.
 | 4 | **DebtsPage: sort por columnas** — click en encabezados Fecha, Cliente, Resta para ordenar ASC/DESC; íconos ChevronUp/Down/ArrowUpDown para indicar estado | ✅ Hecho |
 | 5 | **ProductsPage: filtro "Con oferta"** — chip toggle que filtra solo productos con `discount_price_ars` activo; se combina con todos los otros filtros | ✅ Hecho |
 | 6 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+## Sesión 54 ✅ COMPLETA — UX cobros + IA gastos + threshold inline + badge nuevo cliente
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **DebtsPage: "Cobrar todo" por deudor** — panel agrupado por cliente en tab Pendientes; muestra hasta 6 mayores deudores con chip nombre/total/botón; mark-all-paid en un click sin modal | ✅ Hecho |
+| 2 | **AIChatPage: `query_expense_summary`** — detecta "cuánto gasté / resumen gastos / en qué gasté"; `ExpenseSummaryCard` con toggle Mes/Semana; 4 KPIs + barras por categoría + método principal; chip "Gastos del mes" | ✅ Hecho |
+| 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
+| 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
 
 ## Sesión 53 ✅ COMPLETA — Vendedor analytics + Top productos IA + Gastos por método
 
