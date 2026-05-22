@@ -269,6 +269,7 @@ export default function ProductsPage() {
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
+  const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
 
   const reload = async () => {
     if (!user) return;
@@ -368,8 +369,26 @@ export default function ProductsPage() {
   // Collect all unique tags from products for the filter dropdown
   const allTags = Array.from(new Set(products.flatMap((p: any) => p.tags || []))).sort();
 
+  // Apply sort to filtered
+  const filteredSorted = [...filtered].sort((a, b) => {
+    const { col, dir } = productSort;
+    let va: number | string = 0;
+    let vb: number | string = 0;
+    if (col === "name") { va = (a.name || "").toLowerCase(); vb = (b.name || "").toLowerCase(); }
+    else if (col === "sale_price_ars") { va = Number(a.sale_price_ars) || 0; vb = Number(b.sale_price_ars) || 0; }
+    else if (col === "stock") { va = Number(a.stock) || 0; vb = Number(b.stock) || 0; }
+    else if (col === "margin") {
+      const saleA = Number(a.sale_price_ars) || 0; const costA = (Number(a.total_cost_usd) || 0) * (Number(settings?.exchange_rate) || 1695);
+      const saleB = Number(b.sale_price_ars) || 0; const costB = (Number(b.total_cost_usd) || 0) * (Number(settings?.exchange_rate) || 1695);
+      va = saleA > 0 ? (saleA - costA) / saleA : 0;
+      vb = saleB > 0 ? (saleB - costB) / saleB : 0;
+    }
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return dir === "asc" ? cmp : -cmp;
+  });
+
   // Group first, then paginate by brand groups to avoid splitting a brand across pages
-  const allGrouped = filtered.reduce<Record<string, any[]>>((acc, p) => {
+  const allGrouped = filteredSorted.reduce<Record<string, any[]>>((acc, p) => {
     const rawKey = p.brand || 'Sin marca';
     const existingKey = Object.keys(acc).find(k => k.toLowerCase() === rawKey.toLowerCase());
     const key = existingKey || rawKey;
@@ -697,14 +716,42 @@ export default function ProductsPage() {
                 <table className="w-full text-sm">
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
-                       <th className="text-left p-3 font-medium">Nombre</th>
+                       {([
+                         { col: "name" as const, label: "Nombre", align: "left" },
+                       ]).map(h => (
+                         <th key={h.col} className={`text-${h.align} p-3 font-medium cursor-pointer hover:text-foreground select-none`}
+                           onClick={() => setProductSort(s => ({ col: h.col, dir: s.col === h.col && s.dir === "asc" ? "desc" : "asc" }))}>
+                           <span className="inline-flex items-center gap-1">{h.label}
+                             {productSort.col === h.col ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
+                           </span>
+                         </th>
+                       ))}
                        <th className="text-center p-3 font-medium">Gen.</th>
                        <th className="text-left p-3 font-medium">Cat.</th>
                        <th className="text-right p-3 font-medium">Costo</th>
-                       <th className="text-right p-3 font-medium">Venta</th>
+                       {([
+                         { col: "sale_price_ars" as const, label: "Venta" },
+                       ]).map(h => (
+                         <th key={h.col} className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
+                           onClick={() => setProductSort(s => ({ col: h.col, dir: s.col === h.col && s.dir === "desc" ? "asc" : "desc" }))}>
+                           <span className="inline-flex items-center gap-1 justify-end">{h.label}
+                             {productSort.col === h.col ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
+                           </span>
+                         </th>
+                       ))}
                        <th className="text-right p-3 font-medium">Oferta</th>
-                       <th className="text-right p-3 font-medium">Ganancia</th>
-                       <th className="text-right p-3 font-medium">Stock</th>
+                       <th className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
+                         onClick={() => setProductSort(s => ({ col: "margin", dir: s.col === "margin" && s.dir === "desc" ? "asc" : "desc" }))}>
+                         <span className="inline-flex items-center gap-1 justify-end">Ganancia
+                           {productSort.col === "margin" ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
+                         </span>
+                       </th>
+                       <th className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
+                         onClick={() => setProductSort(s => ({ col: "stock", dir: s.col === "stock" && s.dir === "desc" ? "asc" : "desc" }))}>
+                         <span className="inline-flex items-center gap-1 justify-end">Stock
+                           {productSort.col === "stock" ? (productSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
+                         </span>
+                       </th>
                        <th className="text-right p-3 font-medium hidden xl:table-cell" title="Umbral de alerta de stock bajo — click para editar">Alerta</th>
                        <th className="text-right p-3 font-medium" title="Días de stock restante según velocidad de ventas (últimos 60 días)">Días ⚡</th>
                        <th className="text-right p-3 font-medium" title="Días desde la última venta registrada (últimos 60 días)">Sin mvto</th>

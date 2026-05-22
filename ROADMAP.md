@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 56)**
+Última actualización: **2026-05-22 (sesión 57)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 57 ✅ COMPLETA — Products sort + Expense search categorías + Export CSV 18 cols
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: columnas ordenables** — estado `productSort { col, dir }` con `filteredSorted` inmutable; headers clickeables (Nombre/Venta/Ganancia/Stock) con ChevronUp/Down; cicla ASC→DESC→ASC; agrupación usa `filteredSorted` | ✅ Hecho |
+| 2 | **ExpensesPage: búsqueda por categoría** — search input coincide también con label de categoría (`getExpenseCategoryLabel(e.category, settings).toLowerCase()`); permite buscar "alquiler", "impuestos", "logística", etc. | ✅ Hecho |
+| 3 | **CustomersPage: exportCSV mejorado** — exporta 18 columnas: Nombre, Empresa, Segmento, Score Salud, Total Gastado (ARS), Ganancia (ARS), Compras, Ticket Promedio (ARS), Primera Compra, Última Compra, Días sin Comprar, Frecuencia (días), Deuda Pendiente (ARS), Email, Teléfono, Dirección, Cumpleaños, Etiquetas | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

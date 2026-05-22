@@ -1205,7 +1205,7 @@ export default function CustomersPage() {
 
   const exportCSV = () => {
     const rows = [
-      ["Nombre", "Empresa", "Segmento", "Score Salud", "Total Gastado (ARS)", "Ganancia (ARS)", "Compras", "Ticket Promedio (ARS)", "Última Compra", "Días sin Comprar", "Frecuencia (días)", "Deuda Pendiente (ARS)", "Email", "Teléfono"],
+      ["Nombre", "Empresa", "Segmento", "Score Salud", "Total Gastado (ARS)", "Ganancia (ARS)", "Compras", "Ticket Promedio (ARS)", "Primera Compra", "Última Compra", "Días sin Comprar", "Frecuencia (días)", "Deuda Pendiente (ARS)", "Email", "Teléfono", "Dirección", "Cumpleaños", "Etiquetas"],
       ...filtered.map(c => [
         c.name,
         c.company || "",
@@ -1215,12 +1215,16 @@ export default function CustomersPage() {
         c.totalProfit.toFixed(2),
         c.purchaseCount,
         c.avgTicket.toFixed(2),
+        c.firstPurchase || "",
         c.lastPurchase || "",
         c.daysSinceLastPurchase === 9999 ? "" : c.daysSinceLastPurchase,
         c.frequency === 999 ? "" : c.frequency,
         c.pendingDebt.toFixed(2),
         c.email || "",
         c.phone || "",
+        c.address || "",
+        c.birthday || "",
+        (c.tags || []).join(", "),
       ]),
     ];
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");

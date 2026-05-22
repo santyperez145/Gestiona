@@ -146,7 +146,11 @@ export default function ExpensesPage() {
     return expenses.filter(e => {
       if (filterCat !== 'all' && e.category !== filterCat) return false;
       if (filterVendor !== 'all' && e.vendor !== filterVendor) return false;
-      if (search && !e.description?.toLowerCase().includes(search.toLowerCase()) && !e.vendor?.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        const catLabel = getExpenseCategoryLabel(e.category, settings).toLowerCase();
+        if (!e.description?.toLowerCase().includes(q) && !e.vendor?.toLowerCase().includes(q) && !catLabel.includes(q)) return false;
+      }
       if (filterMonth !== 'all') {
         const d = new Date(e.date);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
