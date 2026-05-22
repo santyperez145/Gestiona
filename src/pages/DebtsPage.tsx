@@ -67,16 +67,23 @@ export default function DebtsPage() {
   };
   useEffect(() => { reload(); }, [user]);
 
+  const [filterOverdue, setFilterOverdue] = useState<'all' | 'overdue' | 'upcoming'>('all');
+
   const filtered = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const next7 = new Date(); next7.setDate(next7.getDate() + 7);
+    const next7Str = next7.toISOString().slice(0, 10);
     return debts.filter(d => {
       if (search && !d.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterOverdue === 'overdue' && !(d.status !== 'paid' && d.due_date && d.due_date < today)) return false;
+      if (filterOverdue === 'upcoming' && !(d.status !== 'paid' && d.due_date && d.due_date >= today && d.due_date <= next7Str)) return false;
       if (!dateFrom) return true;
       const dt = new Date(d.date);
       if (dt < dateFrom) return false;
       if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59, 999); if (dt > end) return false; }
       return true;
     });
-  }, [debts, search, dateFrom, dateTo]);
+  }, [debts, search, dateFrom, dateTo, filterOverdue]);
 
   const pending = filtered.filter(d => d.status !== "paid");
   const paid = filtered.filter(d => d.status === "paid");
@@ -438,6 +445,26 @@ export default function DebtsPage() {
           <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />CSV
         </Button>
       </div>
+      )}
+
+      {/* Overdue filter chips */}
+      {tab === "pending" && (
+        <div className="flex gap-1.5 mb-4 flex-wrap">
+          {([
+            { id: 'all' as const, label: 'Todas' },
+            { id: 'overdue' as const, label: '🔴 Vencidas' },
+            { id: 'upcoming' as const, label: '🟡 Vence en 7d' },
+          ] as const).map(f => (
+            <button key={f.id}
+              onClick={() => setFilterOverdue(f.id)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${filterOverdue === f.id ? 'bg-destructive/20 text-destructive border-destructive/40' : 'border-border text-muted-foreground hover:border-destructive/30'}`}>
+              {f.label}
+            </button>
+          ))}
+          {filterOverdue !== 'all' && (
+            <span className="text-xs text-muted-foreground self-center ml-1">{shown.length} resultado{shown.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
       )}
 
       {/* Grouped by debtor — "Cobrar todo" per customer */}

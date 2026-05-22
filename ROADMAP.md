@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 55)**
+Última actualización: **2026-05-22 (sesión 56)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -910,6 +910,17 @@ Ver tabla de sesión 29 arriba.
 | 4 | **DebtsPage: sort por columnas** — click en encabezados Fecha, Cliente, Resta para ordenar ASC/DESC; íconos ChevronUp/Down/ArrowUpDown para indicar estado | ✅ Hecho |
 | 5 | **ProductsPage: filtro "Con oferta"** — chip toggle que filtra solo productos con `discount_price_ars` activo; se combina con todos los otros filtros | ✅ Hecho |
 | 6 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+## Sesión 56 ✅ COMPLETA — POS alerta deuda + filtros vendedor/vencimiento
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POSPage: alerta deuda del cliente** — al tipear un cliente en POS, consulta `debts` con ILIKE; muestra banner rojo "tiene $X pendiente" si hay deuda; no bloquea la venta; debounced 600ms | ✅ Hecho |
+| 2 | **SalesPage: filtro por vendedor** — Select dropdown (admin only) con todos los `seller_name` únicos; se combina con método/categoría/período; filtra `filterSellerName` sobre la lista | ✅ Hecho |
+| 3 | **DebtsPage: filtro vencimiento** — chips "Todas / 🔴 Vencidas / 🟡 Vence en 7d" en tab Pendientes; filtra por `due_date` vs today; contador de resultados | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
 
 ## Sesión 55 ✅ COMPLETA — Dashboard 8h + compras filtro viaje + CSV mejorado
 

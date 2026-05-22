@@ -130,6 +130,7 @@ export default function SalesPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterMethod, setFilterMethod] = useState('all');
+  const [filterSellerName, setFilterSellerName] = useState('all');
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
 
@@ -140,6 +141,7 @@ export default function SalesPage() {
     if (filterPaid === 'paid' && !s.paid) return false;
     if (filterPaid === 'pending' && s.paid) return false;
     if (filterMethod !== 'all' && s.payment_method !== filterMethod) return false;
+    if (filterSellerName !== 'all' && (s as any).seller_name !== filterSellerName) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -784,6 +786,21 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        {isAdmin && (() => {
+          const sellerNames = Array.from(new Set(sales.map((s: any) => s.seller_name).filter(Boolean))).sort() as string[];
+          if (sellerNames.length === 0) return null;
+          return (
+            <Select value={filterSellerName} onValueChange={v => { setFilterSellerName(v); setPage(0); }}>
+              <SelectTrigger className="bg-card border-border w-full sm:w-[140px] h-9 text-sm">
+                <SelectValue placeholder="Vendedor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los vendedores</SelectItem>
+                {sellerNames.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          );
+        })()}
         <div className="flex rounded-lg border border-border overflow-hidden h-9 shrink-0">
           {([
             { key: 'all', label: 'Todas' },

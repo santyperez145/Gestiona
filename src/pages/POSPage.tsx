@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -816,6 +816,24 @@ export default function POSPage() {
     if (synced > 0) toast.success(`${synced} venta${synced !== 1 ? "s" : ""} sincronizada${synced !== 1 ? "s" : ""} correctamente`);
   };
 
+  // Pending debt alert for selected customer
+  const [customerDebt, setCustomerDebt] = useState<number | null>(null);
+  useEffect(() => {
+    setCustomerDebt(null);
+    if (!activeOrg || !customer.trim() || customer.trim().length < 3) return;
+    const timeout = setTimeout(async () => {
+      const { data } = await supabase
+        .from("debts")
+        .select("remaining_ars")
+        .eq("org_id", activeOrg.id)
+        .ilike("customer_name", `%${customer.trim()}%`)
+        .neq("status", "paid");
+      const total = (data || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
+      setCustomerDebt(total > 0 ? total : null);
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [customer, activeOrg]);
+
   // VIP loyalty tier lookup — fires when customer name settles (debounced)
   useEffect(() => {
     if (!activeOrg || !customer.trim() || customer.trim().length < 3) {
@@ -1487,6 +1505,14 @@ export default function POSPage() {
           }`}>
             <span>⭐ {customer.trim()} · {vipTier.name} · {vipTier.points.toLocaleString("es-AR")} pts</span>
             <span className="font-bold">{vipTier.pct}% desc. aplicado</span>
+          </div>
+        )}
+
+        {/* Customer debt alert */}
+        {customerDebt !== null && (
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-destructive/15 border border-destructive/30 text-destructive">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>{customer.trim()} tiene <strong>{formatARS(customerDebt)}</strong> pendiente de cobro</span>
           </div>
         )}
 
