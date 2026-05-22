@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 49)**
+Última actualización: **2026-05-22 (sesión 50)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -869,6 +869,18 @@ Ver tabla de sesión 29 arriba.
 | 7 | **SettingsPage: toggle "Resumen diario por WhatsApp"** — opt-in para el digest; guarda `whatsapp_digest_enabled` en DB | ✅ Hecho |
 | 8 | **Migration `whatsapp_digest`** — `ALTER TABLE settings ADD COLUMN whatsapp_digest_enabled boolean DEFAULT false`; cron `daily-whatsapp-digest` a las 20:00 UTC | ✅ Hecho |
 | 9 | **TypeScript: 0 errores** — tipos actualizados para `whatsapp_digest_enabled` en Row/Insert/Update | ✅ Hecho |
+
+---
+
+## Sesión 50 ✅ COMPLETA — IA CRM + WhatsApp alertas + AIChatPage inteligencia
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AIChatPage: `query_customer` intent** — detección por regex de consultas sobre perfiles de cliente (`cómo va`, `info de`, `perfil de`, `analizar cliente`); extrae nombre propio del mensaje; chip "Ver cliente" en ACTION_STARTERS | ✅ Hecho |
+| 2 | **AIChatPage: `CustomerAnalysisCard`** — card completa con perfil del cliente: segmento + health score + 4 KPIs (facturado/ganancia/tickets/ticket promedio) + actividad 30d + deuda pendiente + últimas 5 compras + link WhatsApp + "Ver en CRM" | ✅ Hecho |
+| 3 | **`check-overdue-debts`: alerta WhatsApp vía Evolution API** — además de notificaciones in-app, envía mensaje WA al número de la org si tiene Evolution API configurado; formato con listado de hasta 5 deudores, total pendiente; deduplicado por día con tipo `deuda_vencida_wa` | ✅ Hecho |
+| 4 | **ProductsPage: historial de precios** — `PriceHistoryModal` ya existía con botón Clock funcional; confirmado integrado | ✅ Ya existía |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

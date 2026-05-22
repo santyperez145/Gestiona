@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -30,6 +30,7 @@ type AIAction =
   | { type: "query_restock" }
   | { type: "create_task" }
   | { type: "create_quote"; customerName?: string; productName?: string; amount?: string }
+  | { type: "query_customer"; customerName?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -145,6 +146,13 @@ function detectIntent(msg: string): AIAction | null {
   if (/\b(crea(r)?|agrega(r)?|nueva?|añadi(r)?)\s+(una?\s+)?(tarea|recordatorio|pendiente|actividad|to[-\s]?do)\b/.test(lower) ||
       /\b(recordarme?|recordá(me)?|anotá|apuntá)\s+(que|esto|una tarea)?\b/.test(lower)) {
     return { type: "create_task" };
+  }
+
+  // Query customer profile / analysis
+  if (/\b(cómo\s+(va|está|anda)|info\s+de|datos\s+de|perfil\s+de|ver\s+(?:al?\s+)?cliente|anali[zs]a(r)?\s+(?:al?\s+)?cliente)\b/.test(lower) ||
+      /\b(cliente|perfil|ficha)\b.{0,20}\b(info|datos|detalle|resumen|historial|análisis)\b/.test(lower)) {
+    const nameMatch = msg.match(/(?:de|del?\s+cliente|cliente|perfil\s+de|ver\s+a|anali[zs][ae]r?\s+a(?:l?\s+cliente)?\s+)([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
+    return { type: "query_customer", customerName: nameMatch?.[1]?.trim() };
   }
 
   // Create quote / presupuesto
@@ -338,6 +346,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_product_analysis") {
     return <QueryProductAnalysisCard userId={userId} initialName={action.productName} onDone={onDone} />;
+  }
+
+  if (action.type === "query_customer") {
+    return <CustomerAnalysisCard userId={userId} initialName={action.customerName} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -954,6 +966,162 @@ function QueryProductAnalysisCard({ userId, initialName, onDone }: { userId: str
   );
 }
 
+// ─── CustomerAnalysisCard ─────────────────────────────────────────────────────
+function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string; initialName?: string; onDone: () => void }) {
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [name, setName] = useState(initialName || "");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const analyze = async () => {
+    if (!name.trim() || !activeOrg) return;
+    setLoading(true);
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+
+      const [
+        { data: customer },
+        { data: allSales },
+        { data: recentSales },
+        { data: debts },
+      ] = await Promise.all([
+        supabase.from("customers").select("name, email, phone, company, segment, health_score, created_at")
+          .eq("org_id", activeOrg.id).ilike("name", `%${name.trim()}%`).limit(1).maybeSingle(),
+        supabase.from("sales").select("total_ars, profit_ars, date, product_name, quantity")
+          .eq("org_id", activeOrg.id).ilike("customer_name", `%${name.trim()}%`)
+          .order("date", { ascending: false }).limit(100),
+        supabase.from("sales").select("total_ars, product_name, quantity, date")
+          .eq("org_id", activeOrg.id).ilike("customer_name", `%${name.trim()}%`)
+          .gte("date", thirtyDaysAgo).order("date", { ascending: false }),
+        supabase.from("debts").select("remaining_ars, status, due_date")
+          .eq("org_id", activeOrg.id).ilike("customer_name", `%${name.trim()}%`)
+          .eq("status", "pending"),
+      ]);
+
+      if (!allSales?.length && !customer) { setResult(null); setSearched(true); setLoading(false); return; }
+
+      const totalSpent = (allSales || []).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+      const totalProfit = (allSales || []).reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+      const purchaseCount = (allSales || []).length;
+      const avgTicket = purchaseCount > 0 ? totalSpent / purchaseCount : 0;
+      const pendingDebt = (debts || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
+      const lastPurchaseDate = allSales?.[0]?.date;
+      const daysSinceLast = lastPurchaseDate
+        ? Math.floor((Date.now() - new Date(lastPurchaseDate).getTime()) / 86400000)
+        : null;
+
+      const rev30 = (recentSales || []).reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+      const units30 = (recentSales || []).reduce((s: number, v: any) => s + Number(v.quantity), 0);
+
+      const displayName = customer?.name || name.trim();
+      setResult({ customer, displayName, totalSpent, totalProfit, purchaseCount, avgTicket, pendingDebt, daysSinceLast, rev30, units30, recentSales: (allSales || []).slice(0, 5) });
+    } catch { setResult(null); }
+    setSearched(true);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (initialName) analyze(); }, []);
+
+  const segColors: Record<string, string> = { VIP: 'text-yellow-400', Premium: 'text-purple-400', Frecuente: 'text-blue-400', Activo: 'text-green-400', 'En riesgo': 'text-orange-400', Dormido: 'text-orange-500', Perdido: 'text-red-400', Nuevo: 'text-cyan-400' };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+        <Users className="w-3.5 h-3.5" />Perfil de cliente
+      </p>
+      <div className="flex gap-2">
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del cliente" className="h-8 text-sm bg-muted border-border flex-1"
+          onKeyDown={e => e.key === "Enter" && analyze()} autoFocus={!initialName} />
+        <Button size="sm" className="h-8" onClick={analyze} disabled={loading || !name.trim()}>
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Buscar"}
+        </Button>
+      </div>
+      {searched && !result && <p className="text-xs text-muted-foreground">No encontré ningún cliente con ese nombre.</p>}
+      {searched && result && (() => {
+        const { customer, displayName, totalSpent, totalProfit, purchaseCount, avgTicket, pendingDebt, daysSinceLast, rev30, units30, recentSales } = result;
+        const seg = customer?.segment || "—";
+        const segColor = segColors[seg] || "text-muted-foreground";
+        const healthScore = customer?.health_score ?? null;
+        return (
+          <div className="space-y-2.5">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-bold text-base">{displayName}</p>
+                {customer?.company && <p className="text-[11px] text-muted-foreground">🏢 {customer.company}</p>}
+                {customer?.phone && <p className="text-[11px] text-muted-foreground">📞 {customer.phone}</p>}
+              </div>
+              <div className="text-right">
+                <span className={`text-xs font-semibold ${segColor}`}>{seg}</span>
+                {healthScore !== null && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Score: {healthScore}/100</p>
+                )}
+              </div>
+            </div>
+
+            {/* KPIs */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: "Total facturado", value: formatARS(totalSpent), highlight: false },
+                { label: "Ganancia generada", value: formatARS(totalProfit), highlight: false },
+                { label: "Ticket promedio", value: formatARS(avgTicket), highlight: false },
+                { label: "Deuda pendiente", value: formatARS(pendingDebt), highlight: pendingDebt > 0 },
+              ].map(k => (
+                <div key={k.label} className="bg-muted/40 rounded-lg px-2.5 py-2">
+                  <p className="text-[10px] text-muted-foreground">{k.label}</p>
+                  <p className={`font-bold text-sm ${k.highlight ? 'text-red-400' : ''}`}>{k.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Activity */}
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              <p>🛒 <span className="font-medium">{purchaseCount}</span> compras totales</p>
+              {rev30 > 0 && <p>📅 Últimos 30d: <span className="font-medium text-foreground">{formatARS(rev30)}</span> ({units30} u.)</p>}
+              {daysSinceLast !== null && (
+                <p>⏱ Última compra: hace <span className={`font-medium ${daysSinceLast > 30 ? 'text-orange-400' : 'text-foreground'}`}>{daysSinceLast}d</span>
+                  {daysSinceLast === 0 && " 🔥 (¡hoy!)"}
+                  {daysSinceLast > 60 && " ⚠️ en riesgo"}
+                </p>
+              )}
+            </div>
+
+            {/* Recent purchases */}
+            {recentSales.length > 0 && (
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Últimas compras</p>
+                {recentSales.map((s: any, i: number) => (
+                  <div key={i} className="flex justify-between text-xs border-t border-border/40 pt-1">
+                    <span className="text-muted-foreground truncate max-w-[60%]">{s.product_name || "Venta"}</span>
+                    <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              {customer?.phone && (
+                <a href={`https://wa.me/${customer.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-green-500/30 text-green-400">
+                    💬 WhatsApp
+                  </Button>
+                </a>
+              )}
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate("/clientes")}>
+                Ver en CRM →
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={onDone}><X className="w-3 h-3" /></Button>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STARTER_QUESTIONS = [
   "¿Cuánto gané este mes?",
@@ -1189,6 +1357,7 @@ const ACTION_STARTERS = [
   { label: "Registrar gasto", icon: TrendingDown, msg: "Registrar un gasto" },
   { label: "Agregar cliente", icon: Users, msg: "Crear un cliente nuevo" },
   { label: "Ajustar stock", icon: Package, msg: "Ajustar stock de un producto" },
+  { label: "Ver cliente", icon: Users, msg: "Perfil de cliente" },
   { label: "Consultar deuda", icon: DollarSign, msg: "¿Cuánto debe un cliente?" },
   { label: "Ver stock", icon: Package, msg: "¿Cuánto stock tengo de un producto?" },
   { label: "Analizar producto", icon: BarChart2, msg: "Analizá el producto" },
