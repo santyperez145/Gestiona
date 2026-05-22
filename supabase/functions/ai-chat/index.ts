@@ -1,8 +1,14 @@
-// Edge function: ai-chat
-// Conversational AI assistant that answers questions about the user's business data.
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
+/**
+ * ai-chat — Conversational AI assistant with streaming support (SSE).
+ *
+ * Returns text/event-stream so the client can display tokens as they arrive.
+ * Events:
+ *   data: {"delta":"text"}\n\n  — a chunk of text
+ *   data: [DONE]\n\n           — stream finished
+ *   data: {"error":"..."}\n\n  — fatal error
+ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
@@ -26,7 +32,7 @@ REGLAS:
 - Emojis solo para secciones, no en exceso.
 - Si no hay datos suficientes para responder, decí "No tengo suficientes datos para responder esto todavía — seguí registrando ventas y volvé a consultar en unos días."`;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (checkRateLimit(req, "ai-chat", { max: 30, windowMs: 60_000 })) return rateLimitResponse();
 
@@ -52,7 +58,7 @@ serve(async (req) => {
       });
     }
 
-    // Verify the authenticated user belongs to the requested org (prevents org_id spoofing)
+    // Verify membership
     const { data: membership } = await sb.from("memberships")
       .select("role")
       .eq("org_id", orgId)
@@ -64,7 +70,7 @@ serve(async (req) => {
       });
     }
 
-    // Load business context from Supabase using service role
+    // Load business context
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const [
@@ -87,13 +93,11 @@ serve(async (req) => {
     const totalSalesARS = recentSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
     const totalProfitARS = recentSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
     const margin = totalSalesARS > 0 ? ((totalProfitARS / totalSalesARS) * 100).toFixed(1) : "0";
-
     const lowStock = (products || []).filter((p: any) => Number(p.stock) <= 3);
     const outOfStock = (products || []).filter((p: any) => Number(p.stock) <= 0);
     const totalDebt = (debts || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
     const totalExpenses = (expenses || []).filter((e: any) => e.date >= thirtyDaysAgo).reduce((s: number, e: any) => s + Number(e.amount_ars), 0);
 
-    // Month comparison
     const now = new Date();
     const curY = now.getFullYear(), curM = now.getMonth();
     const prevMonthStart = new Date(curY, curM - 1, 1).toISOString().slice(0, 10);
@@ -107,7 +111,6 @@ serve(async (req) => {
     const thisMonthProfit = thisMonthSales.reduce((a: number, s: any) => a + Number(s.profit_ars), 0);
     const growthPct = prevMonthRev > 0 ? (((thisMonthRev - prevMonthRev) / prevMonthRev) * 100).toFixed(1) : "N/A";
 
-    // Top products by revenue this month
     const topProdMap: Record<string, { rev: number; qty: number; profit: number }> = {};
     thisMonthSales.forEach((s: any) => {
       const k = s.product_name || "?";
@@ -118,7 +121,6 @@ serve(async (req) => {
     });
     const topProds = Object.entries(topProdMap).sort((a, b) => b[1].rev - a[1].rev).slice(0, 5);
 
-    // Top products by margin
     const highMarginProds = (products || [])
       .filter((p: any) => Number(p.sale_price_ars) > 0)
       .map((p: any) => ({ name: p.name, margin: (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 }))
@@ -129,7 +131,7 @@ CONTEXTO DEL NEGOCIO — ${(settings as any)?.business_name || "Tu negocio"}
 TC actual: $${(settings as any)?.exchange_rate || "N/A"} ARS/USD
 
 MES ACTUAL vs MES ANTERIOR:
-- Mes anterior: $${Math.round(prevMonthRev).toLocaleString("es-AR")} ARS facturado / $${Math.round(prevMonthProfit).toLocaleString("es-AR")} ganancia
+- Mes anterior: $${Math.round(prevMonthRev).toLocaleString("es-AR")} ARS / $${Math.round(prevMonthProfit).toLocaleString("es-AR")} ganancia
 - Mes actual (hasta hoy): $${Math.round(thisMonthRev).toLocaleString("es-AR")} ARS / $${Math.round(thisMonthProfit).toLocaleString("es-AR")} ganancia
 - Variación: ${growthPct}%
 
@@ -137,7 +139,7 @@ MES ACTUAL vs MES ANTERIOR:
 - Facturado: $${Math.round(totalSalesARS).toLocaleString("es-AR")} ARS
 - Ganancia bruta: $${Math.round(totalProfitARS).toLocaleString("es-AR")} ARS (margen ${margin}%)
 
-TOP PRODUCTOS este mes (por revenue):
+TOP PRODUCTOS este mes:
 ${topProds.map(([name, d]) => `• ${name}: ${d.qty} u. / $${Math.round(d.rev).toLocaleString("es-AR")} / margen ${d.rev > 0 ? ((d.profit / d.rev) * 100).toFixed(0) : 0}%`).join("\n") || "Sin ventas este mes"}
 
 PRODUCTOS CON MAYOR MARGEN:
@@ -148,8 +150,7 @@ STOCK (${(products || []).length} productos):
 - Sin stock: ${outOfStock.length} productos
 ${lowStock.slice(0, 5).map((p: any) => `• ${p.name}: ${p.stock} u.`).join("\n")}
 
-DEUDAS DE CLIENTES: $${Math.round(totalDebt).toLocaleString("es-AR")} ARS pendientes (${(debts || []).length} clientes)
-
+DEUDAS: $${Math.round(totalDebt).toLocaleString("es-AR")} ARS (${(debts || []).length} clientes)
 GASTOS ÚLTIMOS 30D: $${Math.round(totalExpenses).toLocaleString("es-AR")} ARS
 
 TOP CLIENTES (últimos 30d):
@@ -162,7 +163,6 @@ ${(() => {
 })()}
 `;
 
-    // Build message history for Claude
     const messages: Anthropic.MessageParam[] = [
       ...((history || []) as Array<{ role: "user" | "assistant"; content: string }>).slice(-10).map((h) => ({
         role: h.role,
@@ -174,17 +174,47 @@ ${(() => {
       },
     ];
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 800,
-      system: SYSTEM_PROMPT,
-      messages,
+    // ── Streaming response (SSE) ─────────────────────────────────────────────
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const claudeStream = anthropic.messages.stream({
+            model: "claude-sonnet-4-6",
+            max_tokens: 1024,
+            system: SYSTEM_PROMPT,
+            messages,
+          });
+
+          for await (const event of claudeStream) {
+            if (
+              event.type === "content_block_delta" &&
+              (event.delta as any).type === "text_delta"
+            ) {
+              const chunk = `data: ${JSON.stringify({ delta: (event.delta as any).text })}\n\n`;
+              controller.enqueue(encoder.encode(chunk));
+            }
+          }
+
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        } catch (err) {
+          const errChunk = `data: ${JSON.stringify({ error: err instanceof Error ? err.message : "Error" })}\n\n`;
+          controller.enqueue(encoder.encode(errChunk));
+        } finally {
+          controller.close();
+        }
+      },
     });
 
-    const reply = (response.content[0] as any).text || "";
-
-    return new Response(JSON.stringify({ reply }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
     });
   } catch (e: any) {
     console.error("ai-chat error:", e);

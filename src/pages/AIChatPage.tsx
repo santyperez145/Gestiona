@@ -38,6 +38,7 @@ type ChatMessage = {
   content: string;
   ts: number;
   action?: AIAction;
+  streaming?: boolean; // true while SSE stream is in progress
 };
 
 // ─── Intent detection ─────────────────────────────────────────────────────────
@@ -1362,29 +1363,83 @@ export default function AIChatPage() {
     const detectedAction = detectIntent(msg);
 
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: msg, ts: Date.now() };
+    const aiMsgId = crypto.randomUUID();
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
+    // Add empty streaming placeholder
+    setMessages((prev) => [
+      ...prev,
+      { id: aiMsgId, role: "assistant", content: "", ts: Date.now(), streaming: true, action: detectedAction ?? undefined },
+    ]);
+
     try {
       const history = messages.slice(-10).map((m) => ({ role: m.role, content: m.content }));
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: { message: msg, history, orgId: activeOrg.id },
+
+      // ── SSE streaming via raw fetch ───────────────────────────────────────
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${session?.access_token || anonKey}`,
+          "apikey": anonKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: msg, history, orgId: activeOrg.id }),
       });
 
-      if (error || !data?.reply) throw new Error(data?.error || error?.message || "Error al consultar IA");
+      if (!res.ok || !res.body) {
+        const errText = await res.text().catch(() => "Error desconocido");
+        throw new Error(errText);
+      }
 
-      const aiMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.reply,
-        ts: Date.now(),
-        action: detectedAction ?? undefined,
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? ""; // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (raw === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(raw) as { delta?: string; error?: string };
+            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.delta) {
+              accumulated += parsed.delta;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === aiMsgId ? { ...m, content: accumulated } : m
+                )
+              );
+            }
+          } catch {
+            // ignore malformed lines
+          }
+        }
+      }
+
+      // Finalize — mark streaming done
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiMsgId ? { ...m, streaming: false } : m
+        )
+      );
     } catch (e: any) {
       toast.error(e.message || "No se pudo consultar el asistente");
-      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
+      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id && m.id !== aiMsgId));
       setInput(msg);
     } finally {
       setLoading(false);
@@ -1582,7 +1637,15 @@ export default function AIChatPage() {
                 : "bg-[hsl(228_24%_8%)] border border-border/50 rounded-[8px] rounded-tl-[2px]"
             }`}>
               {msg.role === "assistant"
-                ? <ul className="list-none space-y-0.5">{formatMessage(msg.content)}</ul>
+                ? (
+                  <>
+                    <ul className="list-none space-y-0.5">{formatMessage(msg.content)}</ul>
+                    {/* Blinking cursor while streaming */}
+                    {msg.streaming && (
+                      <span className="inline-block w-0.5 h-4 bg-primary/70 ml-0.5 animate-pulse align-middle" />
+                    )}
+                  </>
+                )
                 : msg.content}
               <span className="block mt-1.5 text-[10px] text-muted-foreground/60">
                 {new Date(msg.ts).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
@@ -1599,7 +1662,8 @@ export default function AIChatPage() {
           </div>
         ))}
 
-        {loading && (
+        {/* Show bouncing dots only when loading but no streaming message exists yet */}
+        {loading && !messages.some(m => m.streaming) && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4 text-primary" />

@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { label: "Email Marketing", path: "/email-campaigns", icon: Mail },
   { label: "WhatsApp Masivo", path: "/whatsapp-campaigns", icon: MessageCircle },
   { label: "Links de Pago", path: "/links-de-pago", icon: CreditCard },
+  { label: "Chat de Equipo", path: "/chat-equipo", icon: MessageCircle },
   { label: "Canjes & Influencers", path: "/canjes", icon: Gift },
   { label: "IA Insights", path: "/ia", icon: Brain },
   { label: "Ajustes", path: "/ajustes", icon: Settings },

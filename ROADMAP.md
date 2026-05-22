@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 47)**
+Última actualización: **2026-05-22 (sesión 48)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -816,6 +816,19 @@ Ver tabla de sesión 29 arriba.
 | 3 | **Build limpio** — 4363 módulos, 18.7s, 0 warnings de importación | ✅ Hecho |
 | 4 | **Cron `send-scheduled-campaigns`** — migration agrega cron cada 15 min y función `expire_payment_links()` | ✅ Hecho |
 | 5 | **Integraciones nav** — WhatsApp Masivo en sección marketing, Links de Pago en sección finanzas del sidebar | ✅ Hecho |
+
+## Sesión 48 ✅ COMPLETA — Real-time & Streaming (WebSocket + SSE)
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AI Chat Streaming (SSE)** — `ai-chat` edge function usa `anthropic.messages.stream()` + Deno `ReadableStream` → `text/event-stream`; cliente usa `fetch` + `ReadableStream` reader; cursor parpadeante mientras llegan tokens; respuestas aparecen en tiempo real | ✅ Hecho |
+| 2 | **`useOrgPresence` hook** — Supabase Realtime Presence channel (WebSocket); track user_id, name, email, avatar; eventos `sync/join/leave`; separa `others` (excluye self) | ✅ Hecho |
+| 3 | **`PresenceAvatars` component** — avatars apilados con iniciales/foto, punto verde online, tooltip de nombre, "+N más" si hay overflow | ✅ Hecho |
+| 4 | **`useRealtimeKPIs` hook** — Supabase Postgres Changes para `sales`, `stock_movements`, `debts`; toast de nueva venta en tiempo real; alerta de stock bajo automática | ✅ Hecho |
+| 5 | **`TeamChatPage`** — chat de equipo en tiempo real con Postgres Changes en `team_messages`; burbujas de mensajes agrupadas por sender; indicador online "leyendo ahora"; borrar propio mensaje; Enter para enviar | ✅ Hecho |
+| 6 | **Migration `team_messages`** — tabla con RLS (miembros de la org); publicada en `supabase_realtime` | ✅ Hecho |
+| 7 | **AppLayout wired** — `useRealtimeKPIs` activo globalmente (toasts en cualquier página); `PresenceAvatars` en header mobile | ✅ Hecho |
+| 8 | **TypeScript: 0 errores** | ✅ Hecho |
 
 ## Sesión 47 ✅ COMPLETA — Email 100% propio via SMTP
 

@@ -8,10 +8,12 @@ import { useUserRole } from "@/lib/useUserRole";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { useEntitlements } from "@/lib/useEntitlements";
+import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 import PageGuide from "@/components/shared/PageGuide";
+import PresenceAvatars from "@/components/shared/PresenceAvatars";
 
 const allNavItems = [
   // ── Principal ───────────────────────────────────────────────────────────────
@@ -50,6 +52,7 @@ const allNavItems = [
   { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
   // ── IA ──────────────────────────────────────────────────────────────────────
   { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'ia' },
+  { to: "/chat-equipo", label: "Chat Equipo", icon: MessageCircle, roles: ['admin', 'vendedor'], section: 'ia' },
   { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'ia' },
   // ── Sistema ─────────────────────────────────────────────────────────────────
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
@@ -74,12 +77,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const { role } = useUserRole();
-  const { isPlatformAdmin } = useOrg();
+  const { isPlatformAdmin, activeOrg } = useOrg();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const config = useBusinessConfig();
   const { subscription, isTrialing, trialDaysLeft } = useEntitlements();
+
+  // ── Global real-time KPI subscriptions ──────────────────────────────────
+  // Toasts for new sales and stock alerts fire automatically from this hook.
+  useRealtimeKPIs(activeOrg?.id);
 
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
@@ -303,7 +310,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Right actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {/* Presence avatars — who's online in the org */}
+            <PresenceAvatars maxVisible={3} size={22} className="hidden sm:flex" />
+
             <button
               onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
               className="flex items-center justify-center w-7 h-7 rounded-[6px] text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-all"
