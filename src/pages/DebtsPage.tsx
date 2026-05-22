@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -56,6 +56,7 @@ export default function DebtsPage() {
   const [planStart, setPlanStart] = useState(() => new Date().toISOString().slice(0, 10));
   const [planFreq, setPlanFreq] = useState<"weekly" | "biweekly" | "monthly">("monthly");
   const plansKey = `gestiona.debt_plans.${activeOrg?.id || 'default'}`;
+  const [debtSort, setDebtSort] = useState<{ col: "date" | "remaining_ars" | "due_date" | "customer_name"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
   const [savedPlans, setSavedPlans] = useState<Record<string, { installments: { date: string; amount: number; paid: boolean }[] }>>(() => {
     try { return JSON.parse(localStorage.getItem(`gestiona.debt_plans.${localStorage.getItem('gestiona.activeOrgId') || 'default'}`) || '{}'); }
     catch { return {}; }
@@ -125,7 +126,15 @@ export default function DebtsPage() {
 
   if (loading) return <TableSkeleton rows={5} cols={7} />;
 
-  const shown = tab === "paid" ? paid : pending;
+  const shownRaw = tab === "paid" ? paid : pending;
+  const shown = [...shownRaw].sort((a, b) => {
+    const { col, dir } = debtSort;
+    let va: any = a[col] ?? "";
+    let vb: any = b[col] ?? "";
+    if (col === "remaining_ars") { va = Number(va); vb = Number(vb); }
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return dir === "asc" ? cmp : -cmp;
+  });
 
   return (
     <div>
@@ -612,13 +621,29 @@ export default function DebtsPage() {
                       </button>
                     </th>
                   )}
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cliente</th>
+                  {([
+                    { col: "date", label: "Fecha", align: "left" },
+                    { col: "customer_name", label: "Cliente", align: "left" },
+                  ] as const).map(h => (
+                    <th key={h.col} className={`text-${h.align} px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground select-none`}
+                      onClick={() => setDebtSort(s => ({ col: h.col, dir: s.col === h.col && s.dir === "asc" ? "desc" : "asc" }))}>
+                      <span className="inline-flex items-center gap-1">{h.label}
+                        {debtSort.col === h.col ? (debtSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-30" />}
+                      </span>
+                    </th>
+                  ))}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Descripción</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
                   {tab === "pending" && <>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pagado</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resta</th>
+                    <th
+                      className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
+                      onClick={() => setDebtSort(s => ({ col: "remaining_ars", dir: s.col === "remaining_ars" && s.dir === "desc" ? "asc" : "desc" }))}
+                    >
+                      <span className="inline-flex items-center gap-1 justify-end">Resta
+                        {debtSort.col === "remaining_ars" ? (debtSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-30" />}
+                      </span>
+                    </th>
                   </>}
                   <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
                   {tab === "pending" && <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acc.</th>}

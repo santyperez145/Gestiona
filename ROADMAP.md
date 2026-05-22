@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 51)**
+Última actualización: **2026-05-22 (sesión 52)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -897,6 +897,19 @@ Ver tabla de sesión 29 arriba.
 | 7 | **Migration `birthday_whatsapp`** — `ALTER TABLE settings ADD COLUMN whatsapp_birthday_enabled boolean DEFAULT true`; cron `0 8 * * *` | ✅ Hecho |
 | 8 | **ProductsPage: descuento rápido inline** — botón `Tag` por producto; aplica `default_discount_percent` o 20% off al precio de venta; si ya tiene descuento lo quita; funciona en desktop y mobile | ✅ Hecho |
 | 9 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 52 ✅ COMPLETA — UX CRM + IA deudas + sort tabla + filtro descuento
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **fix(build): JSX error SendWaSegmentCard** — `{"{nombre"}}` → `{'{nombre}'}` | ✅ Hecho |
+| 2 | **CustomersPage: nota rápida inline** — botón "Nota rápida" en ficha expandida; textarea inline con Ctrl+Enter para guardar; append con timestamp a `customer_notes`; sin abrir ningún modal | ✅ Hecho |
+| 3 | **AIChatPage: `query_debts_summary`** — detecta "total deudas / cuánto me deben / cartera de cobros"; `DebtsSummaryCard` con 4 KPIs (total, count, vencidas total, vencidas count) + top 5 deudores + botón "Ver todas" | ✅ Hecho |
+| 4 | **DebtsPage: sort por columnas** — click en encabezados Fecha, Cliente, Resta para ordenar ASC/DESC; íconos ChevronUp/Down/ArrowUpDown para indicar estado | ✅ Hecho |
+| 5 | **ProductsPage: filtro "Con oferta"** — chip toggle que filtra solo productos con `discount_price_ars` activo; se combina con todos los otros filtros | ✅ Hecho |
+| 6 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

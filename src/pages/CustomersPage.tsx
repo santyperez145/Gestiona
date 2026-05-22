@@ -903,6 +903,9 @@ export default function CustomersPage() {
   const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
   const [bulkNoteText, setBulkNoteText] = useState("");
   const [bulkNoteSaving, setBulkNoteSaving] = useState(false);
+  const [quickNoteCustomer, setQuickNoteCustomer] = useState<string | null>(null);
+  const [quickNoteText, setQuickNoteText] = useState("");
+  const [quickNoteSaving, setQuickNoteSaving] = useState(false);
   const [filterBirthday, setFilterBirthday] = useState("all");
   const [filterSeller, setFilterSeller] = useState("all");
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
@@ -1337,6 +1340,29 @@ export default function CustomersPage() {
     setCsvPreview(null);
     await loadData();
     setImporting(false);
+  };
+
+  const saveQuickNote = async (customerName: string) => {
+    if (!quickNoteText.trim() || !user || !activeOrg) return;
+    setQuickNoteSaving(true);
+    try {
+      const timestamp = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const newEntry = `[${timestamp}] ${quickNoteText.trim()}`;
+      const existing = customers.find(c => c.name === customerName)?.profileNotes || "";
+      const updated = existing ? `${existing}\n${newEntry}` : newEntry;
+      await supabase.from('customer_notes').upsert(
+        { org_id: activeOrg.id, user_id: user.id, customer_name: customerName, notes: updated },
+        { onConflict: 'org_id,customer_name' }
+      );
+      toast.success("Nota guardada");
+      setQuickNoteCustomer(null);
+      setQuickNoteText("");
+      await loadData();
+    } catch {
+      toast.error("Error al guardar la nota");
+    } finally {
+      setQuickNoteSaving(false);
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -2284,6 +2310,19 @@ export default function CustomersPage() {
                           {c.profileId ? "Editar perfil" : "Crear perfil"}
                         </Button>
                       )}
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10"
+                          onClick={() => {
+                            setQuickNoteCustomer(quickNoteCustomer === c.name ? null : c.name);
+                            setQuickNoteText("");
+                          }}
+                        >
+                          <FileText className="w-3.5 h-3.5" />Nota rápida
+                        </Button>
+                      )}
                       {canDelete && c.profileId && (
                         <Button
                           size="sm"
@@ -2333,6 +2372,34 @@ export default function CustomersPage() {
                         <Merge className="w-3.5 h-3.5" />Fusionar
                       </Button>
                     </div>
+
+                    {/* Inline quick note */}
+                    {quickNoteCustomer === c.name && (
+                      <div className="mb-3 p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+                        <p className="text-xs font-medium text-primary flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5" />Agregar nota rápida a {c.name}
+                        </p>
+                        <textarea
+                          autoFocus
+                          value={quickNoteText}
+                          onChange={e => setQuickNoteText(e.target.value)}
+                          placeholder="Escribí la nota aquí… (se guarda con fecha y hora)"
+                          rows={2}
+                          maxLength={500}
+                          className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2 resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveQuickNote(c.name); }}
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" className="h-7 text-xs gap-1 flex-1" disabled={!quickNoteText.trim() || quickNoteSaving} onClick={() => saveQuickNote(c.name)}>
+                            {quickNoteSaving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3 h-3" />}
+                            Guardar nota
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setQuickNoteCustomer(null); setQuickNoteText(""); }}>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Inline merge form */}
                     {mergingCustomer === c.name && (

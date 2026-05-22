@@ -260,6 +260,7 @@ export default function ProductsPage() {
   const [filterTag, setFilterTag] = useState('');
   const [filterMovement, setFilterMovement] = useState('all');
   const [filterMargin, setFilterMargin] = useState('all');
+  const [filterDiscount, setFilterDiscount] = useState(false);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -350,6 +351,7 @@ export default function ProductsPage() {
       if (filterMargin === 'high' && margin < 40) return false;
       if (filterMargin === 'negative' && margin >= 0) return false;
     }
+    if (filterDiscount && !(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars))) return false;
     return true;
   });
 
@@ -663,6 +665,12 @@ export default function ProductsPage() {
               <SelectItem value="negative">Negativo</SelectItem>
             </SelectContent>
           </Select>
+          <button
+            onClick={() => { setFilterDiscount(v => !v); setPage(0); }}
+            className={`h-9 px-3 text-xs rounded-lg border transition-colors font-medium shrink-0 ${filterDiscount ? 'bg-warning/20 text-warning border-warning/40' : 'bg-muted text-muted-foreground border-border hover:text-foreground'}`}
+          >
+            <Tag className="w-3.5 h-3.5 inline mr-1" />Con oferta
+          </button>
         </div>
       </div>
 

@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -33,6 +33,7 @@ type AIAction =
   | { type: "query_customer"; customerName?: string }
   | { type: "query_sales_summary"; period?: "today" | "week" | "month" }
   | { type: "send_wa_segment"; segment?: string }
+  | { type: "query_debts_summary" }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -155,6 +156,11 @@ function detectIntent(msg: string): AIAction | null {
       /\b(cliente|perfil|ficha)\b.{0,20}\b(info|datos|detalle|resumen|historial|análisis)\b/.test(lower)) {
     const nameMatch = msg.match(/(?:de|del?\s+cliente|cliente|perfil\s+de|ver\s+a|anali[zs][ae]r?\s+a(?:l?\s+cliente)?\s+)([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
     return { type: "query_customer", customerName: nameMatch?.[1]?.trim() };
+  }
+
+  // Total debts summary
+  if (/\b(resumen\s+(de\s+)?(deudas?|cobros?)|total\s+(de\s+)?(deudas?|pendientes?|cobros?)|cuánto\s+(me\s+)?deben\s+en\s+total|deudas?\s+total(es)?|cartera\s+(de\s+)?cobros?)\b/.test(lower)) {
+    return { type: "query_debts_summary" };
   }
 
   // Query sales summary
@@ -372,6 +378,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "query_sales_summary") {
     return <SalesSummaryCard userId={userId} initialPeriod={action.period} onDone={onDone} />;
+  }
+
+  if (action.type === "query_debts_summary") {
+    return <DebtsSummaryCard userId={userId} onDone={onDone} />;
   }
 
   if (action.type === "send_wa_segment") {
@@ -1148,6 +1158,87 @@ function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string;
   );
 }
 
+// ─── DebtsSummaryCard ────────────────────────────────────────────────────────
+function DebtsSummaryCard({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("debts")
+        .select("customer_name, remaining_ars, due_date, status")
+        .eq("org_id", activeOrg.id)
+        .eq("status", "pending");
+
+      const debts = data || [];
+      const total = debts.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
+      const overdue = debts.filter((d: any) => d.due_date && d.due_date < today);
+      const overdueTotal = overdue.reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
+
+      // Top debtors
+      const byCustomer: Record<string, number> = {};
+      for (const d of debts) byCustomer[d.customer_name] = (byCustomer[d.customer_name] || 0) + Number(d.remaining_ars);
+      const topDebtors = Object.entries(byCustomer).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+      setResult({ total, count: debts.length, overdueCount: overdue.length, overdueTotal, topDebtors });
+      setLoading(false);
+    })();
+  }, [activeOrg]);
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+        <DollarSign className="w-3.5 h-3.5" />Cartera de cobros
+      </p>
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />Consultando deudas…
+        </div>
+      ) : !result ? (
+        <p className="text-xs text-muted-foreground">No se pudieron cargar los datos.</p>
+      ) : result.count === 0 ? (
+        <p className="text-xs text-green-400">✅ ¡Sin deudas pendientes! Todos los clientes al día.</p>
+      ) : (
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { label: "Total pendiente", value: formatARS(result.total), danger: false },
+              { label: "Deudores", value: `${result.count} cliente${result.count !== 1 ? "s" : ""}`, danger: false },
+              { label: "Vencidas", value: formatARS(result.overdueTotal), danger: result.overdueTotal > 0 },
+              { label: "Cantidad vencidas", value: `${result.overdueCount} deuda${result.overdueCount !== 1 ? "s" : ""}`, danger: result.overdueCount > 0 },
+            ].map(k => (
+              <div key={k.label} className="bg-muted/40 rounded-lg px-2.5 py-2">
+                <p className="text-[10px] text-muted-foreground">{k.label}</p>
+                <p className={`font-bold text-sm ${k.danger ? "text-red-400" : ""}`}>{k.value}</p>
+              </div>
+            ))}
+          </div>
+          {result.topDebtors.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Top deudores</p>
+              {result.topDebtors.map(([name, amount]: [string, number], i: number) => (
+                <div key={i} className="flex items-center justify-between text-xs border-t border-border/40 pt-1">
+                  <span className="text-muted-foreground truncate max-w-[60%]">{name}</span>
+                  <span className="font-semibold text-red-400">{formatARS(amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button size="sm" variant="outline" className="h-7 text-xs w-full gap-1" onClick={() => { navigate("/deudas"); onDone(); }}>
+            Ver todas las deudas →
+          </Button>
+        </div>
+      )}
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>
+    </div>
+  );
+}
+
 // ─── SalesSummaryCard ─────────────────────────────────────────────────────────
 function SalesSummaryCard({ userId, initialPeriod, onDone }: {
   userId: string; initialPeriod?: "today" | "week" | "month"; onDone: () => void;
@@ -1689,6 +1780,7 @@ const ACTION_STARTERS = [
   { label: "Crear presupuesto", icon: DollarSign, msg: "Crear un presupuesto para un cliente" },
   { label: "Ventas de hoy", icon: BarChart2, msg: "Cómo me fue hoy con las ventas?" },
   { label: "WA por segmento", icon: MessageSquare, msg: "Mandá un WhatsApp a los clientes VIP" },
+  { label: "Total deudas", icon: DollarSign, msg: "Resumen total de deudas pendientes" },
 ];
 
 const QUICK_ACTIONS = [
