@@ -908,6 +908,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [variantType, setVariantType] = useState(product?.variant_type || 'sabor');
   const [newVariantName, setNewVariantName] = useState('');
   const [newVariantStock, setNewVariantStock] = useState('0');
+  const [newVariantPrice, setNewVariantPrice] = useState('');
   const [bulkVariants, setBulkVariants] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
@@ -1079,9 +1080,9 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         }
         for (const v of variants) {
           if (v.id && existingIds.has(v.id)) {
-            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
+            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false, price_override: v.price_override ?? null });
           } else if (v._new || !v.id) {
-            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
+            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType, price_override: v.price_override ?? null });
           }
         }
       }
@@ -1508,7 +1509,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 const names = bulkVariants.split(',').map(n => n.trim()).filter(Boolean);
                 const existing = new Set(variants.map(v => v.variant_name.toLowerCase()));
                 const newVars = names.filter(n => !existing.has(n.toLowerCase())).map(n => ({
-                  variant_name: n, stock: 0, active: true, _new: true,
+                  variant_name: n, stock: 0, active: true, _new: true, price_override: null,
                 }));
                 setVariants([...variants, ...newVars]);
                 setBulkVariants('');
@@ -1517,30 +1518,41 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               }}>Agregar todos</Button>
             </div>
           )}
-          <div className="flex gap-2">
-            <Input value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre del sabor" className="bg-muted border-border text-xs flex-1" />
-            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-20" placeholder="Stock" />
+          <div className="flex gap-2 flex-wrap">
+            <Input value={newVariantName} onChange={e => setNewVariantName(e.target.value)} placeholder="Nombre del sabor" className="bg-muted border-border text-xs flex-1 min-w-[120px]" />
+            <Input type="number" min="0" value={newVariantStock} onChange={e => setNewVariantStock(e.target.value)} className="bg-muted border-border text-xs w-16" placeholder="Stock" />
+            <Input type="number" min="0" step="0.01" value={newVariantPrice} onChange={e => setNewVariantPrice(e.target.value)} className="bg-muted border-border text-xs w-24" placeholder="Precio (opc)" />
             <Button type="button" variant="outline" size="sm" onClick={() => {
               if (!newVariantName.trim()) return;
               if (variants.some(v => v.variant_name.toLowerCase() === newVariantName.trim().toLowerCase())) {
                 toast.error('Ese sabor ya existe'); return;
               }
-              setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true }]);
-              setNewVariantName(''); setNewVariantStock('0');
+              setVariants([...variants, { variant_name: newVariantName.trim(), stock: parseInt(newVariantStock) || 0, active: true, _new: true, price_override: parseFloat(newVariantPrice) || null }]);
+              setNewVariantName(''); setNewVariantStock('0'); setNewVariantPrice('');
             }}><Plus className="w-3 h-3" /></Button>
           </div>
           {variants.length > 0 && (
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
               {variants.map((v, i) => (
-                <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border">
-                  <span className="text-xs font-medium flex-1 truncate">{v.variant_name}</span>
-                  <Input type="number" min="0" value={String(v.stock)} onChange={e => {
-                    const updated = [...variants];
-                    updated[i] = { ...updated[i], stock: parseInt(e.target.value) || 0 };
-                    setVariants(updated);
-                  }} className="bg-muted border-border text-xs w-16 h-7" />
-                  <span className="text-[10px] text-muted-foreground">uds</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => {
+                <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border flex-wrap">
+                  <span className="text-xs font-medium flex-1 truncate min-w-[80px]">{v.variant_name}</span>
+                  <div className="flex items-center gap-1">
+                    <Input type="number" min="0" value={String(v.stock)} onChange={e => {
+                      const updated = [...variants];
+                      updated[i] = { ...updated[i], stock: parseInt(e.target.value) || 0 };
+                      setVariants(updated);
+                    }} className="bg-muted border-border text-xs w-14 h-7" />
+                    <span className="text-[10px] text-muted-foreground">uds</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">$</span>
+                    <Input type="number" min="0" step="0.01" value={v.price_override != null ? String(v.price_override) : ''} placeholder="Precio propio" onChange={e => {
+                      const updated = [...variants];
+                      updated[i] = { ...updated[i], price_override: parseFloat(e.target.value) || null };
+                      setVariants(updated);
+                    }} className="bg-muted border-border text-xs w-24 h-7" title="Precio propio de esta variante (sobreescribe el precio del producto)" />
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => {
                     setVariants(variants.filter((_, j) => j !== i));
                   }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                 </div>

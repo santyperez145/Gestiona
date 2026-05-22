@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer, Sparkles } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -256,6 +256,170 @@ export default function ReportsPage() {
     toast.success('PDF generado');
   };
 
+  // ===== PDF Reporte Mensual automático =====
+  const handleMonthlyReportPDF = async () => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const biz = (settings.business_name || 'Negocio').toUpperCase();
+    const fmt = (n: number) => formatARS(Math.round(n));
+    const fmtPct = (n: number) => `${n.toFixed(1)}%`;
+
+    // ── Header ──────────────────────────────────────────────────────────────
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, pageW, 72, 'F');
+    doc.setTextColor(212, 168, 67);
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+    doc.text(biz, 40, 36);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+    doc.text('Reporte Mensual de Gestión', 40, 56);
+    doc.setFontSize(9); doc.setTextColor(180, 180, 210);
+    doc.text(`Período: ${filtered.label}  ·  Generado: ${new Date().toLocaleDateString('es-AR')}`, 40, 92);
+
+    // Logo
+    if (settings.logo_url) {
+      try {
+        const res = await fetch(settings.logo_url);
+        const blob = await res.blob();
+        const dataUrl: string = await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result as string); rd.readAsDataURL(blob); });
+        doc.addImage(dataUrl, 'PNG', pageW - 82, 14, 42, 42);
+      } catch { /* ignore */ }
+    }
+
+    // ── KPI Cards row ────────────────────────────────────────────────────────
+    const prevRev = prevFiltered ? prevFiltered.sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0) : null;
+    const prevProfit = prevFiltered ? prevFiltered.sales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0) : null;
+
+    const kpis = [
+      { label: 'Facturado', value: fmt(periodRevenue), delta: prevRev != null ? periodRevenue - prevRev : null, color: [26, 26, 46] as [number,number,number] },
+      { label: 'Ganancia Bruta', value: fmt(periodGrossProfit), delta: prevProfit != null ? periodGrossProfit - prevProfit : null, color: [22, 101, 52] as [number,number,number] },
+      { label: 'Margen', value: fmtPct(grossMarginPct), color: [30, 60, 114] as [number,number,number] },
+      { label: 'Ganancia Neta', value: fmt(netIncome), color: netIncome > 0 ? [22, 101, 52] as [number,number,number] : [153, 27, 27] as [number,number,number] },
+    ];
+    const kpiW = (pageW - 80) / 4;
+    kpis.forEach((k, i) => {
+      const x = 40 + i * (kpiW + 6.67);
+      doc.setFillColor(...k.color);
+      doc.roundedRect(x, 108, kpiW, 52, 4, 4, 'F');
+      doc.setTextColor(180, 200, 255);
+      doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+      doc.text(k.label.toUpperCase(), x + 8, 122);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(k.value, x + 8, 140);
+      if (k.delta != null) {
+        const sign = k.delta >= 0 ? '+' : '';
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+        doc.setTextColor(k.delta >= 0 ? 134 : 252, k.delta >= 0 ? 239 : 165, k.delta >= 0 ? 172 : 165);
+        doc.text(`${sign}${fmt(k.delta)} vs período ant.`, x + 8, 153);
+      }
+    });
+
+    // ── Gastos y unidades ────────────────────────────────────────────────────
+    const unitsSold = filtered.sales.reduce((s: number, v: any) => s + Number(v.quantity || 1), 0);
+    autoTable(doc, {
+      startY: 175,
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Unidades vendidas', String(unitsSold)],
+        ['Gastos operativos', fmt(totalOpex)],
+        ['Ticket promedio', fmt(filtered.sales.length > 0 ? periodRevenue / filtered.sales.length : 0)],
+        ['Ventas realizadas', String(filtered.sales.length)],
+        ['Resultado operativo', fmt(periodGrossProfit - totalOpex)],
+      ],
+      headStyles: { fillColor: [26, 26, 46], textColor: [212, 168, 67] },
+      styles: { fontSize: 9 },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+      tableWidth: (pageW - 80) / 2,
+      margin: { left: 40 },
+    });
+
+    // ── Top 5 Productos ──────────────────────────────────────────────────────
+    const productMap: Record<string, { revenue: number; profit: number; qty: number }> = {};
+    filtered.sales.forEach((s: any) => {
+      const k = s.product_name || '(sin nombre)';
+      if (!productMap[k]) productMap[k] = { revenue: 0, profit: 0, qty: 0 };
+      productMap[k].revenue += Number(s.total_ars);
+      productMap[k].profit += Number(s.profit_ars);
+      productMap[k].qty += Number(s.quantity || 1);
+    });
+    const topProducts = Object.entries(productMap)
+      .sort(([, a], [, b]) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    const afterFirstTable = (doc as any).lastAutoTable?.finalY ?? 230;
+    autoTable(doc, {
+      startY: afterFirstTable + 16,
+      head: [['#', 'Producto', 'Ingresos', 'Ganancia', 'Uds.']],
+      body: topProducts.map(([name, v], i) => [
+        String(i + 1), name, fmt(v.revenue), fmt(v.profit), String(v.qty),
+      ]),
+      headStyles: { fillColor: [26, 26, 46], textColor: [212, 168, 67] },
+      styles: { fontSize: 9 },
+      columnStyles: { 0: { cellWidth: 20 }, 2: { halign: 'right' }, 3: { halign: 'right', textColor: [22, 101, 52] }, 4: { halign: 'right' } },
+      didDrawPage: (_: any) => {
+        doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 26, 46);
+        doc.text('Top 5 Productos', 40, afterFirstTable + 8);
+      },
+    });
+
+    // ── Top 5 Clientes ───────────────────────────────────────────────────────
+    const clientMap: Record<string, { revenue: number; count: number }> = {};
+    filtered.sales.forEach((s: any) => {
+      const k = s.customer_name || '(sin nombre)';
+      if (!clientMap[k]) clientMap[k] = { revenue: 0, count: 0 };
+      clientMap[k].revenue += Number(s.total_ars);
+      clientMap[k].count += 1;
+    });
+    const topClients = Object.entries(clientMap)
+      .sort(([, a], [, b]) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    const afterProducts = (doc as any).lastAutoTable?.finalY ?? 370;
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 26, 46);
+    doc.text('Top 5 Clientes', 40, afterProducts + 16);
+    autoTable(doc, {
+      startY: afterProducts + 24,
+      head: [['#', 'Cliente', 'Total ARS', 'Compras']],
+      body: topClients.map(([name, v], i) => [String(i + 1), name, fmt(v.revenue), String(v.count)]),
+      headStyles: { fillColor: [26, 26, 46], textColor: [212, 168, 67] },
+      styles: { fontSize: 9 },
+      columnStyles: { 0: { cellWidth: 20 }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+    });
+
+    // ── Métodos de pago ──────────────────────────────────────────────────────
+    const payMap: Record<string, number> = {};
+    filtered.sales.forEach((s: any) => {
+      const k = s.payment_method || 'efectivo';
+      payMap[k] = (payMap[k] || 0) + Number(s.total_ars);
+    });
+    const afterClients = (doc as any).lastAutoTable?.finalY ?? 500;
+    if (afterClients < 650) {
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 26, 46);
+      doc.text('Métodos de Pago', 40, afterClients + 16);
+      autoTable(doc, {
+        startY: afterClients + 24,
+        head: [['Método', 'Total ARS', 'Share %']],
+        body: Object.entries(payMap).sort(([, a], [, b]) => b - a).map(([m, v]) => [
+          m.charAt(0).toUpperCase() + m.slice(1),
+          fmt(v),
+          `${periodRevenue > 0 ? ((v / periodRevenue) * 100).toFixed(1) : '0'}%`,
+        ]),
+        headStyles: { fillColor: [26, 26, 46], textColor: [212, 168, 67] },
+        styles: { fontSize: 9 },
+        columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
+      });
+    }
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setFontSize(7.5); doc.setTextColor(160, 160, 180); doc.setFont('helvetica', 'normal');
+    doc.text('Documento generado automáticamente — uso interno / informativo.', 40, pageH - 20);
+
+    doc.save(`reporte-mensual-${filtered.label.replace(/\s/g, '-').toLowerCase()}.pdf`);
+    toast.success('Reporte mensual generado ✓');
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -264,6 +428,7 @@ export default function ReportsPage() {
         description="Métricas avanzadas, estado de resultados y exportación"
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={handleMonthlyReportPDF} className="gradient-gold text-primary-foreground gap-1.5 font-semibold"><Sparkles className="w-3.5 h-3.5" />Reporte del mes PDF</Button>
             <Button variant="outline" size="sm" onClick={handleExportProducts}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Productos CSV</Button>
             <Button variant="outline" size="sm" onClick={handleExportSales}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Ventas CSV</Button>
             <Button variant="outline" size="sm" onClick={handleExportPurchases}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Compras CSV</Button>

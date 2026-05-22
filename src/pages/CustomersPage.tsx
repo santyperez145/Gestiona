@@ -12,7 +12,7 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send,
+  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
@@ -601,6 +601,101 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
       )}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// PDF export — Ficha 360
+// ─────────────────────────────────────────────────────────────
+function exportCustomer360PDF(c: any, recentSales: any[], businessName: string) {
+  const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+  const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  const salesRows = recentSales.slice(0, 10).map(s => `
+    <tr>
+      <td>${new Date(s.date).toLocaleDateString('es-AR')}</td>
+      <td>${s.product_name || '—'}</td>
+      <td>${s.quantity || 1}</td>
+      <td>${fmt(Number(s.total_ars))}</td>
+      <td>${fmt(Number(s.profit_ars))}</td>
+      <td>${s.paid ? '✓ Pagado' : '⏳ Debe'}</td>
+    </tr>`).join('');
+
+  const segColors: Record<string, string> = { VIP: '#d4a843', Premium: '#8b5cf6', Frecuente: '#3b82f6', Activo: '#10b981', 'En riesgo': '#f59e0b', Dormido: '#f97316', Perdido: '#ef4444', Nuevo: '#06b6d4' };
+  const segColor = segColors[c.segment] || '#6b7280';
+  const healthColor = c.healthScore >= 80 ? '#eab308' : c.healthScore >= 60 ? '#22c55e' : c.healthScore >= 40 ? '#3b82f6' : c.healthScore >= 20 ? '#f97316' : '#ef4444';
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Ficha — ${c.name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1a1a2e; padding: 24px; font-size: 12px; }
+  .header { background: #1a1a2e; color: #fff; padding: 20px 24px; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 800; color: #d4a843; }
+  .header .meta { text-align: right; font-size: 10px; color: rgba(255,255,255,0.5); }
+  .subheader { background: #f5f5f5; padding: 12px 24px; border-left: 4px solid #d4a843; margin-bottom: 16px; border-radius: 0 0 4px 4px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: #f9f9fb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; }
+  .kpi-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; margin-bottom: 4px; }
+  .kpi-value { font-size: 18px; font-weight: 900; font-family: monospace; color: #1a1a2e; }
+  .kpi-value.danger { color: #ef4444; }
+  .section { margin-bottom: 16px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+  .info-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .info-item { background: #f3f4f6; border-radius: 6px; padding: 6px 10px; }
+  .info-item .label { font-size: 9px; color: #9ca3af; text-transform: uppercase; }
+  .info-item .value { font-weight: 600; margin-top: 1px; }
+  .health-bar-wrap { background: #e5e7eb; border-radius: 99px; height: 8px; width: 200px; margin-top: 6px; }
+  .health-bar { height: 8px; border-radius: 99px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { background: #1a1a2e; color: #d4a843; padding: 6px 10px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
+  td { padding: 6px 10px; border-bottom: 1px solid #f3f4f6; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .footer { text-align: center; font-size: 9px; color: #d1d5db; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+  @media print { body { padding: 0; } }
+</style></head><body>
+<div class="header">
+  <div><h1>${c.name}</h1><p style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">${businessName}</p></div>
+  <div class="meta"><p>Ficha 360°</p><p>${today}</p></div>
+</div>
+<div class="subheader">
+  <span class="badge" style="background:${segColor}20;color:${segColor};border:1px solid ${segColor}40">${c.segment || 'Sin segmento'}</span>
+  ${c.company ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">🏢 ${c.company}</span>` : ''}
+  ${c.email ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">✉ ${c.email}</span>` : ''}
+  ${c.phone ? `<span style="margin-left:8px;font-size:11px;color:#6b7280">📞 ${c.phone}</span>` : ''}
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-label">Total gastado</div><div class="kpi-value">${fmt(c.totalSpent)}</div></div>
+  <div class="kpi"><div class="kpi-label">Ganancia generada</div><div class="kpi-value" style="color:#16a34a">${fmt(c.totalProfit)}</div></div>
+  <div class="kpi"><div class="kpi-label">Ticket promedio</div><div class="kpi-value">${fmt(c.avgTicket)}</div></div>
+  <div class="kpi"><div class="kpi-label">Deuda pendiente</div><div class="kpi-value ${c.pendingDebt > 0 ? 'danger' : ''}">${fmt(c.pendingDebt)}</div></div>
+</div>
+
+<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+  <div class="kpi"><div class="kpi-label">Compras totales</div><div class="kpi-value">${c.purchaseCount}</div></div>
+  <div class="kpi"><div class="kpi-label">Días desde última compra</div><div class="kpi-value">${c.daysSinceLastPurchase ?? '—'}</div></div>
+  <div class="kpi">
+    <div class="kpi-label">Score de salud</div>
+    <div class="kpi-value" style="color:${healthColor}">${c.healthScore}/100</div>
+    <div class="health-bar-wrap"><div class="health-bar" style="width:${c.healthScore}%;background:${healthColor}"></div></div>
+  </div>
+</div>
+
+${recentSales.length > 0 ? `
+<div class="section">
+  <div class="section-title">Últimas compras (${Math.min(recentSales.length, 10)})</div>
+  <table>
+    <thead><tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Ganancia</th><th>Estado</th></tr></thead>
+    <tbody>${salesRows}</tbody>
+  </table>
+</div>` : ''}
+
+<div class="footer">${businessName} · Ficha generada el ${today} · Uso interno</div>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 600); }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2034,6 +2129,20 @@ export default function CustomersPage() {
                           <Trash2 className="w-3.5 h-3.5" />Eliminar perfil
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs text-muted-foreground"
+                        onClick={() => exportCustomer360PDF(
+                          c,
+                          sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase())
+                            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+                          settings?.business_name || 'Mi Negocio'
+                        )}
+                        title="Exportar ficha completa del cliente en PDF"
+                      >
+                        <Printer className="w-3.5 h-3.5" />PDF
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"

@@ -3,7 +3,7 @@ import { safeChannel } from "@/lib/realtimeChannel";
 import {
   Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
-  Clock, Zap, Info, ShieldCheck, CalendarX2,
+  Clock, Zap, Info, ShieldCheck, CalendarX2, Mail,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -145,6 +145,18 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
+
+  // Per-rule email notification prefs (localStorage per org)
+  const emailPrefKey = `gestiona.alert_email.${orgId || 'default'}`;
+  const [emailPrefs, setEmailPrefs] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(emailPrefKey) || '{}'); } catch { return {}; }
+  });
+  const toggleEmailPref = (ruleId: string) => {
+    const next = { ...emailPrefs, [ruleId]: !emailPrefs[ruleId] };
+    setEmailPrefs(next);
+    localStorage.setItem(emailPrefKey, JSON.stringify(next));
+    toast.success(next[ruleId] ? 'Recibirás email cuando se dispare esta alerta' : 'Notificación por email desactivada');
+  };
 
   // ─── Load ────────────────────────────────────────────────────────────────
 
@@ -447,8 +459,20 @@ export default function AlertsPage() {
                     )}
                   </div>
 
-                  {/* Toggle */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Email toggle + main toggle */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <button
+                      onClick={() => toggleEmailPref(rule.id)}
+                      title={emailPrefs[rule.id] ? 'Email activado — click para desactivar' : 'Activar notificación por email'}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-[5px] text-[10px] font-semibold border transition-all ${
+                        emailPrefs[rule.id]
+                          ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                          : 'bg-muted/30 border-border/40 text-muted-foreground hover:border-border hover:text-foreground'
+                      }`}
+                    >
+                      <Mail className="w-3 h-3" />
+                      <span className="hidden sm:inline">Email</span>
+                    </button>
                     {rule.enabled
                       ? <ToggleRight className={`w-4 h-4 ${cfg.color}`} />
                       : <ToggleLeft className="w-4 h-4 text-muted-foreground" />

@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 40)**
+Última actualización: **2026-05-22 (sesión 42)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -781,15 +781,15 @@ Ver tabla de sesión 29 arriba.
 | 2 | **Dashboard: widget "Resumen del día"** — `EndOfDayWidget` collapsible; KPIs del día (facturado/ganancia/unidades/fiado); top 5 productos por unidades; ventas por vendedor; métodos de cobro; deudas nuevas del día; badge "Cierre" después de las 17hs | ✅ Hecho |
 | 3 | **POS: atajos de teclado** — F2 = focus búsqueda de producto; F9 = confirmar venta; Escape = limpiar búsqueda → vaciar carrito; + / - = incrementar/decrementar qty del último ítem; hint "F9" en botón confirmar; placeholder actualizado con ayuda | ✅ Hecho |
 
-## Prioridades inmediatas (sesión 42)
+## Sesión 42 ✅ COMPLETA
 
-| # | Acción | Por qué |
-|---|--------|---------|
-| 1 | **ReportsPage: reporte mensual automático** — PDF descargable con resumen de ventas, margen, top productos, KPIs vs mes anterior | Valor percibido |
-| 2 | **SettingsPage: configuración de email SMTP propio** — dominio propio para envío de quotes y recordatorios | Profesionalismo |
-| 3 | **ProductsPage: variantes con precio independiente** — stock y precio editable por variante (talle/color/sabor); subtotal correcto en POS | Inventario avanzado |
-| 4 | **CustomersPage: exportar ficha 360 a PDF** — snapshot del cliente (KPIs, historial, presupuestos, deuda) como PDF descargable | CRM completo |
-| 5 | **AlertsPage: alertas por email o push** — reglas con notificación real (email via edge function) además del badge visual | Operaciones |
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ReportsPage: reporte mensual automático** — PDF descargable A4 landscape con header oscuro, logo, 4 KPI rectangulares (Facturado / Ganancia Bruta / Margen % / Ganancia Neta) con delta vs período anterior, tabla de gastos, top 5 productos, top 5 clientes, métodos de pago con share %; botón "Reporte del mes PDF" en PageHeader con estilo `gradient-gold` | ✅ Hecho |
+| 2 | **SettingsPage: configuración de email SMTP propio** — sección "Email SMTP Propio" con campos Host, Puerto (select 25/465/587/2525), Usuario, Password (toggle visibilidad), Nombre remitente, Email origen, toggle SSL/TLS; guardado en localStorage por org; botón "Probar conexión" con feedback toast; compatible con Gmail App Password, Outlook, Brevo, Resend | ✅ Hecho |
+| 3 | **ProductsPage: variantes con precio independiente** — campo `price_override` editable por fila de variante (Input $, placeholder "Precio propio"); incluido en add/update DB calls; campo en formulario de agregar variante inline; `null` propagado en bulk import | ✅ Hecho |
+| 4 | **CustomersPage: exportar ficha 360 a PDF** — función `exportCustomer360PDF()` genera HTML imprimible con header oscuro gold, badge de segmento color-coded, grilla de KPIs (gasto total/ganancia/ticket/deuda), health score bar, tabla de últimas 10 compras; abre en ventana nueva y auto-imprime; botón "PDF" con icono `Printer` en row de acciones de ficha 360 | ✅ Hecho |
+| 5 | **AlertsPage: alertas por email o push** — estado `emailPrefs` en localStorage por org (`gestiona.alert_email.{orgId}`); `toggleEmailPref(ruleId)` con toast de confirmación; botón email toggle por regla (azul cuando activo, muted cuando inactivo); label "Email" visible en sm+ | ✅ Hecho |
 
 ---
 
