@@ -134,22 +134,34 @@ export default function SettingsPage() {
     localStorage.setItem(waTemplateKey, JSON.stringify(next));
   };
 
-  // SMTP config (localStorage per org — no DB column required)
-  const smtpKey = `gestiona.smtp_config.${orgForTemplates?.id || 'default'}`;
+  // SMTP config — stored in DB settings table (server-side accessible for edge functions)
   const DEFAULT_SMTP = { host: '', port: '587', user: '', pass: '', fromName: '', fromEmail: '', secure: false };
-  const [smtpConfig, setSmtpConfig] = useState<{ host: string; port: string; user: string; pass: string; fromName: string; fromEmail: string; secure: boolean }>(() => {
-    try { return { ...DEFAULT_SMTP, ...JSON.parse(localStorage.getItem(smtpKey) || '{}') }; } catch { return DEFAULT_SMTP; }
-  });
+  const [smtpConfig, setSmtpConfig] = useState<{ host: string; port: string; user: string; pass: string; fromName: string; fromEmail: string; secure: boolean }>(DEFAULT_SMTP);
+  const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpPassVisible, setSmtpPassVisible] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
   const setSmtp = (field: string, value: string | boolean) => {
-    const next = { ...smtpConfig, [field]: value };
-    setSmtpConfig(next);
-    localStorage.setItem(smtpKey, JSON.stringify(next));
+    setSmtpConfig(prev => ({ ...prev, [field]: value }));
   };
-  const handleSmtpSave = () => {
-    localStorage.setItem(smtpKey, JSON.stringify(smtpConfig));
-    toast.success('Configuración SMTP guardada localmente');
+  const handleSmtpSave = async () => {
+    if (!user) return;
+    setSmtpSaving(true);
+    try {
+      await saveSettingsDB(user.id, {
+        smtp_host: smtpConfig.host || null,
+        smtp_port: parseInt(smtpConfig.port) || 587,
+        smtp_user: smtpConfig.user || null,
+        smtp_pass: smtpConfig.pass || null,
+        smtp_secure: smtpConfig.secure,
+        smtp_from_name: smtpConfig.fromName || null,
+        smtp_from_email: smtpConfig.fromEmail || null,
+      });
+      toast.success('Configuración SMTP guardada', { description: 'Las edge functions de email ya pueden usarla.' });
+    } catch (err: any) {
+      toast.error('Error al guardar SMTP: ' + err.message);
+    } finally {
+      setSmtpSaving(false);
+    }
   };
   const handleSmtpTest = async () => {
     if (!smtpConfig.host || !smtpConfig.user) {
@@ -157,10 +169,23 @@ export default function SettingsPage() {
       return;
     }
     setSmtpTesting(true);
-    // Simulate a test connection (real implementation would call a Supabase edge function)
-    await new Promise(r => setTimeout(r, 1500));
-    setSmtpTesting(false);
-    toast.success('Conexión SMTP verificada ✓', { description: `${smtpConfig.host}:${smtpConfig.port}` });
+    try {
+      const { data, error } = await supabase.functions.invoke('test-smtp', {
+        body: {
+          host: smtpConfig.host,
+          port: parseInt(smtpConfig.port) || 587,
+          user: smtpConfig.user,
+          pass: smtpConfig.pass,
+          secure: smtpConfig.secure,
+        },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success('Conexión SMTP verificada ✓', { description: `${smtpConfig.host}:${smtpConfig.port}` });
+    } catch (err: any) {
+      toast.error('Error SMTP: ' + err.message);
+    } finally {
+      setSmtpTesting(false);
+    }
   };
 
   // Brand palettes helpers (defined after state, before useEffect)
@@ -251,6 +276,18 @@ export default function SettingsPage() {
       setDecantMargin10(String(s.decant_margin_10ml ?? 250));
       setDecantMargin5(String(s.decant_margin_5ml ?? 350));
       setDecantMargin2_5(String(s.decant_margin_2_5ml ?? 500));
+      // SMTP — loaded from DB (accessible by edge functions)
+      if (s.smtp_host) {
+        setSmtpConfig({
+          host: s.smtp_host || '',
+          port: String(s.smtp_port || 587),
+          user: s.smtp_user || '',
+          pass: s.smtp_pass || '',
+          fromName: s.smtp_from_name || '',
+          fromEmail: s.smtp_from_email || '',
+          secure: !!s.smtp_secure,
+        });
+      }
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
@@ -784,9 +821,11 @@ export default function SettingsPage() {
               <Button
                 onClick={handleSmtpSave}
                 size="sm"
+                disabled={smtpSaving}
                 className="gradient-gold text-primary-foreground font-semibold flex-1"
               >
-                <Save className="w-3.5 h-3.5 mr-1.5" />Guardar SMTP
+                {smtpSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                Guardar SMTP
               </Button>
               <Button
                 onClick={handleSmtpTest}

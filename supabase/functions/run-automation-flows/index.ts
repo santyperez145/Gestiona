@@ -7,6 +7,7 @@
 // Supported actions:  notification, email, whatsapp_message,
 //                     create_task, create_purchase_order, webhook
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -348,7 +349,7 @@ async function actionNotification(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Action: email via Resend
+// Action: email via own SMTP or Resend fallback
 // ─────────────────────────────────────────────────────────────
 async function actionEmail(
   orgId: string,
@@ -358,12 +359,6 @@ async function actionEmail(
   customMsg: string,
   config: any,
 ): Promise<number> {
-  const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendKey) {
-    console.warn("RESEND_API_KEY not set — skipping email action");
-    return 0;
-  }
-
   // Determine recipients: org admins, or specific email in config
   let recipients: string[] = [];
   if (config?.recipient_email) {
@@ -386,6 +381,20 @@ async function actionEmail(
 
   if (!recipients.length) return 0;
 
+  // Load SMTP config for org
+  const { data: orgSettings } = await supabase
+    .from("settings")
+    .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
+    .eq("org_id", orgId)
+    .maybeSingle();
+  const smtpCfg = parseSmtpConfig(orgSettings as Record<string, unknown> | null);
+  const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
+
+  if (!smtpCfg && !resendKey) {
+    console.warn(`run-automation-flows: no email provider for org=${orgId} — skipping email action`);
+    return 0;
+  }
+
   const body = customMsg || summary.message;
   const listHtml = subjects.slice(0, 10)
     .map((s) => `<li><strong>${s.label}</strong>${s.detail ? ` — ${s.detail}` : ""}</li>`)
@@ -404,18 +413,14 @@ async function actionEmail(
 
   let sent = 0;
   for (const to of recipients) {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Gestiona <automatizaciones@gestiona.app>",
-        to,
-        subject: summary.title,
-        html,
-      }),
-    });
-    if (res.ok) sent++;
-    else console.error("Resend error:", await res.text());
+    const result = await sendEmail(
+      smtpCfg,
+      resendKey,
+      "Gestiona <automatizaciones@gestiona.app>",
+      { to, subject: summary.title, html },
+    );
+    if (result.ok) sent++;
+    else console.error(`actionEmail failed for ${to}:`, result.error);
   }
   return sent;
 }

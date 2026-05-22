@@ -4,6 +4,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
 serve(async (_req) => {
   const supabase = createClient(
@@ -97,12 +98,20 @@ serve(async (_req) => {
         read: false,
       });
 
-      // Send Resend email if the user has an email
-      const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
-      if (RESEND_KEY) {
-        const { data: profile } = await supabase.auth.admin.getUserById(mb.user_id);
-        const email = profile?.user?.email;
-        if (email) {
+      // Send digest email using own SMTP or Resend fallback
+      const { data: profile } = await supabase.auth.admin.getUserById(mb.user_id);
+      const email = profile?.user?.email;
+      if (email) {
+        // Load SMTP config for this org
+        const { data: orgSettings } = await supabase
+          .from("settings")
+          .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
+          .eq("org_id", org.id)
+          .maybeSingle();
+        const smtpCfg = parseSmtpConfig(orgSettings as Record<string, unknown> | null);
+        const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
+
+        if (smtpCfg || resendKey) {
           const growthLine = growthPct
             ? `<span style="color:${Number(growthPct) >= 0 ? '#22c55e' : '#ef4444'}">${Number(growthPct) >= 0 ? "▲" : "▼"} ${Math.abs(Number(growthPct))}%</span>`
             : "";
@@ -130,16 +139,13 @@ serve(async (_req) => {
   <a href="https://exentryimports.vercel.app" style="display:block;margin-top:24px;text-align:center;padding:14px;border-radius:12px;background:#D4A843;color:#000;font-weight:700;font-size:14px;text-decoration:none">Ver dashboard →</a>
   <p style="margin-top:20px;text-align:center;font-size:10px;color:#ffffff30">Gestiona — sistema de gestión para pymes argentinas</p>
 </div></body></html>`;
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              from: "Gestiona <digest@gestiona.app>",
-              to: email,
-              subject: `📊 ${org.name} — Resumen ${wStartStr} al ${wEndStr}`,
-              html,
-            }),
-          });
+
+          await sendEmail(
+            smtpCfg,
+            resendKey,
+            "Gestiona <digest@gestiona.app>",
+            { to: email, subject: `📊 ${org.name} — Resumen ${wStartStr} al ${wEndStr}`, html },
+          );
         }
       }
     }

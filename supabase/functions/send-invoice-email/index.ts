@@ -1,16 +1,23 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+/**
+ * send-invoice-email — Sends an invoice by email with optional PDF attachment.
+ *
+ * Email provider priority:
+ *   1. Own SMTP  — if smtp_host + smtp_user configured in org settings
+ *   2. Resend    — if RESEND_API_KEY env var is set
+ *   3. Error     — no provider configured
+ */
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (checkRateLimit(req, "send-invoice-email", { max: 30, windowMs: 60_000 })) return rateLimitResponse();
 
   // — JWT auth check —
@@ -30,23 +37,33 @@ serve(async (req) => {
     });
   }
 
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
   try {
-    const { to, subject, invoiceNumber, customerName, orgName, totalARS, dueDate, pdfBase64, notes } = await req.json();
+    const { to, subject, invoiceNumber, customerName, orgName, orgId, totalARS, dueDate, pdfBase64, notes } = await req.json();
 
     if (!to || !subject || !invoiceNumber) {
       return new Response(JSON.stringify({ error: "Faltan parámetros requeridos: to, subject, invoiceNumber" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      return new Response(JSON.stringify({ error: "RESEND_API_KEY no configurada" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Load SMTP config from org settings if orgId provided
+    let smtpCfg = null;
+    if (orgId) {
+      const { data: settings } = await admin
+        .from("settings")
+        .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
+        .eq("org_id", orgId)
+        .maybeSingle();
+      smtpCfg = parseSmtpConfig(settings as Record<string, unknown> | null);
     }
+
+    const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
+    const resendFrom = `${orgName || "Gestiona"} <facturas@gestiona.app>`;
 
     const dueDateStr = dueDate
       ? new Date(dueDate).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })
@@ -73,7 +90,6 @@ serve(async (req) => {
   .total-row .value { font-size: 18px; color: #d4a843; }
   .notes-box { background: #f9f9f9; border-left: 3px solid #d4a843; padding: 12px 16px; margin: 20px 0; font-size: 13px; color: #555; border-radius: 0 6px 6px 0; }
   .footer { background: #f9f9f9; padding: 20px 40px; text-align: center; font-size: 12px; color: #999; }
-  .btn { display: inline-block; background: #d4a843; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0; }
 </style>
 </head>
 <body>
@@ -103,45 +119,31 @@ serve(async (req) => {
 </html>`;
 
     const attachments = pdfBase64
-      ? [{ filename: `factura-${invoiceNumber}.pdf`, content: pdfBase64, type: "application/pdf", disposition: "attachment" }]
-      : [];
+      ? [{ filename: `factura-${invoiceNumber}.pdf`, content: pdfBase64, mimeType: "application/pdf" }]
+      : undefined;
 
-    const payload: any = {
-      from: "facturas@gestiona.app",
-      to: [to],
-      subject,
-      html,
-    };
-    if (attachments.length > 0) payload.attachments = attachments;
+    const result = await sendEmail(
+      smtpCfg,
+      resendKey,
+      resendFrom,
+      { to, subject, html, attachments },
+    );
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("Resend error:", data);
-      return new Response(JSON.stringify({ error: data.message || "Error al enviar email" }), {
-        status: res.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!result.ok) {
+      console.error("send-invoice-email error:", result.error);
+      return new Response(JSON.stringify({ error: result.error || "Error al enviar email" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ success: true, id: data.id }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.log(`send-invoice-email: to=${to} provider=${result.provider}`);
+    return new Response(JSON.stringify({ success: true, provider: result.provider }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("send-invoice-email error:", err);
     return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

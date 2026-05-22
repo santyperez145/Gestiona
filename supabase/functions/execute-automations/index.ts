@@ -14,17 +14,18 @@
  *   notification       → creates notification for org admins
  *   create_task        → creates a task record
  *   webhook            → calls the org's configured webhook URL
- *   email              → sends email via Resend (if configured)
+ *   email              → sends email via own SMTP or Resend fallback
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail, parseSmtpConfig } from "../_shared/smtpSender.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "noreply@gestiona.app";
 
 Deno.serve(async (req) => {
@@ -219,27 +220,32 @@ Deno.serve(async (req) => {
               }
             }
 
-          } else if (flow.action_type === "email" && RESEND_API_KEY) {
+          } else if (flow.action_type === "email") {
             // Get admin emails
             const { data: users } = await supabase.auth.admin.listUsers();
             const adminEmails = (users?.users ?? [])
               .filter((u: any) => adminIds.includes(u.id) && u.email)
               .map((u: any) => u.email as string);
 
+            // Load SMTP config for this org
+            const { data: orgSettings } = await supabase
+              .from("settings")
+              .select("smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_name, smtp_from_email")
+              .eq("org_id", orgId)
+              .maybeSingle();
+            const smtpCfg = parseSmtpConfig(orgSettings as Record<string, unknown> | null);
+
             for (const email of adminEmails) {
-              await fetch("https://api.resend.com/emails", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${RESEND_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  from: FROM_EMAIL,
+              await sendEmail(
+                smtpCfg,
+                RESEND_API_KEY,
+                FROM_EMAIL,
+                {
                   to: email,
                   subject: ac.subject || flow.name,
                   html: `<p>${msgText}</p>`,
-                }),
-              });
+                },
+              );
               actionsTaken++;
             }
 

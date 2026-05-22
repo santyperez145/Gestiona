@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 46)**
+Última actualización: **2026-05-22 (sesión 47)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -816,6 +816,21 @@ Ver tabla de sesión 29 arriba.
 | 3 | **Build limpio** — 4363 módulos, 18.7s, 0 warnings de importación | ✅ Hecho |
 | 4 | **Cron `send-scheduled-campaigns`** — migration agrega cron cada 15 min y función `expire_payment_links()` | ✅ Hecho |
 | 5 | **Integraciones nav** — WhatsApp Masivo en sección marketing, Links de Pago en sección finanzas del sidebar | ✅ Hecho |
+
+## Sesión 47 ✅ COMPLETA — Email 100% propio via SMTP
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **`_shared/smtpSender.ts`** — helper unificado: SMTP primero (denomailer, Deno nativo), Resend como fallback; `sendEmail()`, `parseSmtpConfig()` | ✅ Hecho |
+| 2 | **`test-smtp` edge function** — prueba conexión SMTP real y envía email de test; llamada desde SettingsPage "Probar SMTP" | ✅ Hecho |
+| 3 | **SettingsPage SMTP → DB** — migrado de localStorage a `settings` table (servidor puede leerlo); guarda `smtp_host/port/user/pass/secure/from_name/from_email` vía `saveSettingsDB`; carga en `useEffect` | ✅ Hecho |
+| 4 | **Migration `smtp_settings`** — 7 columnas SMTP en `settings` table | ✅ Hecho |
+| 5 | **`send-email-campaign` actualizado** — SMTP > Resend > error | ✅ Hecho |
+| 6 | **`send-invoice-email` actualizado** — SMTP > Resend > error; acepta `orgId` para cargar config | ✅ Hecho |
+| 7 | **`execute-automations` actualizado** — email action usa SMTP > Resend | ✅ Hecho |
+| 8 | **`run-automation-flows` actualizado** — `actionEmail()` usa SMTP > Resend | ✅ Hecho |
+| 9 | **`weekly-performance-digest` actualizado** — digest semanal usa SMTP > Resend | ✅ Hecho |
+| 10 | **TypeScript: 0 errores** — build limpio | ✅ Hecho |
 
 ## Sesión 46 ✅ COMPLETA — Evolution API (WhatsApp propio, sin Twilio)
 
