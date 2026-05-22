@@ -379,6 +379,7 @@ export default function PresupuestosPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewByCustomer, setViewByCustomer] = useState(false);
 
   // Form state
   const [custName, setCustName] = useState("");
@@ -855,6 +856,13 @@ export default function PresupuestosPage() {
             <SelectItem value="expired_pending">⚠ Sin respuesta +30d</SelectItem>
           </SelectContent>
         </Select>
+        <button
+          onClick={() => setViewByCustomer(v => !v)}
+          className={`flex items-center gap-1.5 px-3 h-9 rounded-lg border text-xs font-medium transition-all shrink-0 ${viewByCustomer ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-muted border-border text-muted-foreground hover:text-foreground'}`}
+          title="Agrupar por cliente"
+        >
+          👤 Por cliente
+        </button>
         <Button variant="outline" size="sm" className="h-9" onClick={() => {
           const bom = '﻿';
           const headers = ['Número', 'Cliente', 'Email', 'Teléfono', 'Total ARS', 'Estado', 'Válido hasta', 'Fecha creación', 'Notas'];
@@ -886,6 +894,50 @@ export default function PresupuestosPage() {
         <div className="text-center py-16">
           <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground">{search || filterStatus !== "all" ? "Sin resultados." : "Aún no hay presupuestos."}</p>
+        </div>
+      ) : viewByCustomer ? (
+        <div className="space-y-3">
+          {(() => {
+            const byCustomer: Record<string, { total: number; accepted: number; pending: number; quotes: typeof filtered }> = {};
+            filtered.forEach(q => {
+              const key = q.customer_name || '(Sin cliente)';
+              if (!byCustomer[key]) byCustomer[key] = { total: 0, accepted: 0, pending: 0, quotes: [] };
+              byCustomer[key].total += Number(q.total);
+              if (q.status === 'accepted') byCustomer[key].accepted++;
+              else if (q.status === 'sent' || q.status === 'draft') byCustomer[key].pending++;
+              byCustomer[key].quotes.push(q);
+            });
+            return Object.entries(byCustomer)
+              .sort(([, a], [, b]) => b.total - a.total)
+              .map(([customer, data]) => (
+                <div key={customer} className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
+                    <div>
+                      <span className="font-semibold text-sm">{customer}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{data.quotes.length} presupuesto{data.quotes.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {data.accepted > 0 && <span className="text-[10px] font-semibold text-success bg-success/10 px-1.5 py-0.5 rounded">{data.accepted} aceptado{data.accepted !== 1 ? 's' : ''}</span>}
+                      {data.pending > 0 && <span className="text-[10px] font-semibold text-warning bg-warning/10 px-1.5 py-0.5 rounded">{data.pending} pendiente{data.pending !== 1 ? 's' : ''}</span>}
+                      <span className="font-bold text-sm text-primary">{formatARS(data.total)}</span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {data.quotes.map(q => {
+                      const cfg = STATUS_CONFIG[q.status] || { label: q.status, color: 'bg-muted text-muted-foreground' };
+                      return (
+                        <div key={q.id} className="flex items-center gap-3 px-4 py-2.5">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
+                          <span className="text-xs text-muted-foreground">#{q.quote_number}</span>
+                          <span className="text-xs text-muted-foreground flex-1">{q.valid_until ? `Válido hasta ${new Date(q.valid_until).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}` : ''}</span>
+                          <span className="font-semibold text-sm">{formatARS(Number(q.total))}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+          })()}
         </div>
       ) : (
         <div className="space-y-2">

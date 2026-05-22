@@ -684,6 +684,41 @@ export default function ExpensesPage() {
 
       {/* Recurrentes tab */}
       {activeTab === 'recurrentes' && (
+        <>
+        {/* Upcoming recurring expenses */}
+        {(() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const next30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+          const upcoming = expenses
+            .filter(e => e.recurring && e.recurring_next_date && e.recurring_next_date >= today && e.recurring_next_date <= next30)
+            .sort((a, b) => (a.recurring_next_date || '').localeCompare(b.recurring_next_date || ''));
+          const totalUpcoming = upcoming.reduce((s, e) => s + Number(e.amount_ars), 0);
+          if (upcoming.length === 0) return null;
+          return (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-amber-400">📅 Próximos vencimientos (30 días)</h3>
+                <span className="text-xs font-bold text-amber-400">{formatARS(totalUpcoming)}</span>
+              </div>
+              <div className="space-y-2">
+                {upcoming.slice(0, 6).map(e => {
+                  const daysUntil = Math.ceil((new Date(e.recurring_next_date!).getTime() - Date.now()) / 86400000);
+                  return (
+                    <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-foreground/80 truncate">{e.description || getExpenseCategoryLabel(e.category, settings)}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${daysUntil <= 3 ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                          {daysUntil === 0 ? 'Hoy' : daysUntil === 1 ? 'Mañana' : `en ${daysUntil}d`}
+                        </span>
+                        <span className="font-medium text-destructive">{formatARS(Number(e.amount_ars))}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
         <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-card overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Gastos Recurrentes</h2>
@@ -715,6 +750,7 @@ export default function ExpensesPage() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Monthly trend chart */}

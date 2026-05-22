@@ -649,6 +649,25 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         }
       />
 
+      {/* Today's quick stats */}
+      {(() => {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todaySales = sales.filter((s: any) => s.date === todayStr);
+        if (todaySales.length === 0) return null;
+        const todayTotal = todaySales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
+        const todayProfit = todaySales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
+        const todayPaid = todaySales.filter((s: any) => s.paid).length;
+        return (
+          <div className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
+            <span className="text-primary font-semibold text-xs uppercase tracking-wide">Hoy</span>
+            <span className="font-bold text-primary">{formatARS(todayTotal)}</span>
+            <span className="text-success text-xs">{formatARS(todayProfit)} ganancia</span>
+            <span className="text-muted-foreground text-xs">{todaySales.length} venta{todaySales.length !== 1 ? 's' : ''}</span>
+            <span className="text-muted-foreground text-xs">{todayPaid} cobrada{todayPaid !== 1 ? 's' : ''}</span>
+          </div>
+        );
+      })()}
+
       {/* Seller mode banner */}
       {sellerFilter && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-2.5 text-sm text-blue-300">

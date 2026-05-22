@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 59)**
+Última actualización: **2026-05-22 (sesión 60)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 60 ✅ COMPLETA — Expenses vencimientos recurrentes + Sales strip "Hoy" + Presupuestos por cliente
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ExpensesPage: panel "Próximos vencimientos"** — en tab Recurrentes, banner ámbar con gastos recurrentes con next_date en los próximos 30 días; días restantes color-coded (rojo ≤3d); total estimado | ✅ Hecho |
+| 2 | **SalesPage: strip "Hoy"** — banner azul debajo del header mostrando ventas/ganancia/count/cobradas del día actual (solo cuando hay ventas hoy) | ✅ Hecho |
+| 3 | **PresupuestosPage: vista "Por cliente"** — toggle "👤 Por cliente" en filtros; agrupa quotes por customer_name con total, aceptados y pendientes por cliente; tabla de detalle con estado/número/validez/monto | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 
