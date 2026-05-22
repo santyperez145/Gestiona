@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, DollarSign, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Edit, Filter, Ticket, ShoppingCart, X, FileText, TrendingUp, Search, Percent, Users, LayoutList, Square, CheckSquare, CheckCheck, Printer, FileSpreadsheet, Calendar, FileDown, Share2, MessageCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -131,6 +131,7 @@ export default function SalesPage() {
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterMethod, setFilterMethod] = useState('all');
   const [filterSellerName, setFilterSellerName] = useState('all');
+  const [saleSort, setSaleSort] = useState<{ col: "date" | "total_ars" | "customer_name" | "product_name"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
   const [filterHasNote, setFilterHasNote] = useState(false);
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
@@ -154,8 +155,16 @@ export default function SalesPage() {
   const totalSales = filtered.reduce((s, v) => s + Number(v.total_ars), 0);
   const totalProfit = filtered.reduce((s, v) => s + Number(v.profit_ars), 0);
   const totalProfitUSD = filtered.reduce((s, v) => s + Number(v.profit_usd), 0);
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filteredSorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    if (saleSort.col === "date") cmp = String(a.date).localeCompare(String(b.date));
+    else if (saleSort.col === "total_ars") cmp = Number(a.total_ars) - Number(b.total_ars);
+    else if (saleSort.col === "customer_name") cmp = (a.customer_name || "").localeCompare(b.customer_name || "");
+    else if (saleSort.col === "product_name") cmp = (a.product_name || "").localeCompare(b.product_name || "");
+    return saleSort.dir === "asc" ? cmp : -cmp;
+  });
+  const totalPages = Math.ceil(filteredSorted.length / PAGE_SIZE);
+  const paged = filteredSorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const customerGroups = useMemo(() => {
     const map: Record<string, { name: string; count: number; total: number; profit: number; lastDate: string; products: Record<string, number> }> = {};
@@ -1173,13 +1182,26 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                       {selectedIds.size > 0 && selectedIds.size === paged.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                     </button>
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Cliente</th>
+                  {(["date", "product_name", "customer_name", "total_ars"] as const).map((col, i) => {
+                    const labels: Record<string, string> = { date: "Fecha", product_name: "Producto", customer_name: "Cliente", total_ars: "Total" };
+                    const hidden = col === "customer_name" ? "hidden lg:table-cell" : "";
+                    const align = col === "total_ars" ? "text-right" : "text-left";
+                    const active = saleSort.col === col;
+                    return (
+                      <th key={col} className={`px-4 py-3 ${align} ${hidden}`}>
+                        <button
+                          onClick={() => setSaleSort(prev => prev.col === col ? { col, dir: prev.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "date" ? "desc" : "asc" })}
+                          className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"} ${align === "text-right" ? "ml-auto" : ""}`}
+                        >
+                          {labels[col]}
+                          {active ? (saleSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ChevronDown className="w-3 h-3 opacity-30" />}
+                        </button>
+                      </th>
+                    );
+                  })}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Vendedor</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Medio</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Ganancia</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
                   {isAdmin && <th className="px-4 py-3"></th>}

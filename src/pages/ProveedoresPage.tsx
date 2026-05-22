@@ -12,7 +12,7 @@ import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
   AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare, Store,
-  ArrowUpDown, StickyNote, Check, X,
+  ArrowUpDown, StickyNote, Check, X, FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -244,6 +244,27 @@ export default function ProveedoresPage() {
     });
   }, [suppliers, search, supplierSort, pendingBySupplier]);
 
+  function exportSuppliersCSV() {
+    const bom = '﻿';
+    const header = ['Nombre', 'Contacto', 'Teléfono', 'Email', 'Dirección', 'Deuda pendiente (ARS)', 'Activo'];
+    const rows = filteredSuppliers.map(s => [
+      s.name,
+      s.contact || '',
+      s.phone || '',
+      s.email || '',
+      s.address || '',
+      String(pendingBySupplier[s.id] || 0),
+      s.active ? 'Sí' : 'No',
+    ]);
+    const csv = bom + [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `proveedores_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    toast.success('CSV exportado');
+  }
+
   function toggleSupplierSort(col: "name" | "pending" | "created_at") {
     setSupplierSort(prev => prev.col === col ? { col, dir: prev.dir === "asc" ? "desc" : "asc" } : { col, dir: "asc" });
   }
@@ -264,6 +285,11 @@ export default function ProveedoresPage() {
         }
         actions={
           <div className="flex gap-2">
+            {filteredSuppliers.length > 0 && (
+              <Button variant="outline" className="h-9 gap-2" onClick={exportSuppliersCSV} title="Exportar lista de proveedores a CSV">
+                <FileSpreadsheet className="w-4 h-4" />CSV
+              </Button>
+            )}
             <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
               <Plus className="w-4 h-4" />Nueva deuda
             </Button>

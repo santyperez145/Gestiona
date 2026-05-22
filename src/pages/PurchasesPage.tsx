@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -79,6 +79,7 @@ export default function PurchasesPage() {
   const [tab, setTab] = useState<'all' | 'scheduled' | 'suppliers'>('all');
   const [search, setSearch] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('all');
+  const [purchaseSort, setPurchaseSort] = useState<{ col: "date" | "total_usd" | "total_ars" | "supplier"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
   const [filterTravel, setFilterTravel] = useState<'all' | 'en_camino' | 'pendiente'>('all');
 
   const handleBarcode = useCallback((code: string) => {
@@ -124,8 +125,16 @@ export default function PurchasesPage() {
   const scheduledCount = purchases.filter(p => p.is_scheduled).length;
   const totalUSD = filtered.reduce((s, p) => s + Number(p.total_usd), 0);
   const totalARS = filtered.reduce((s, p) => s + Number(p.total_ars), 0);
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filteredSorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    if (purchaseSort.col === "date") cmp = String(a.date).localeCompare(String(b.date));
+    else if (purchaseSort.col === "total_usd") cmp = Number(a.total_usd) - Number(b.total_usd);
+    else if (purchaseSort.col === "total_ars") cmp = Number(a.total_ars) - Number(b.total_ars);
+    else if (purchaseSort.col === "supplier") cmp = (a.supplier || "").localeCompare(b.supplier || "");
+    return purchaseSort.dir === "asc" ? cmp : -cmp;
+  });
+  const totalPages = Math.ceil(filteredSorted.length / PAGE_SIZE);
+  const paged = filteredSorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const monthlySpend = useMemo(() => {
     const now = new Date();
@@ -425,13 +434,26 @@ export default function PurchasesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                  {(["date", "supplier", "total_usd", "total_ars"] as const).map(col => {
+                    const labels: Record<string, string> = { date: "Fecha", supplier: "Proveedor", total_usd: "Total USD", total_ars: "Total ARS" };
+                    const align = col === "date" || col === "supplier" ? "text-left" : "text-right";
+                    const hidden = col === "supplier" ? "hidden lg:table-cell" : col === "total_ars" ? "hidden sm:table-cell" : "";
+                    const active = purchaseSort.col === col;
+                    return (
+                      <th key={col} className={`px-4 py-3 ${hidden}`}>
+                        <button
+                          onClick={() => setPurchaseSort(prev => prev.col === col ? { col, dir: prev.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "date" ? "desc" : "asc" })}
+                          className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"} ${align === "text-right" ? "ml-auto" : ""}`}
+                        >
+                          {labels[col]}
+                          {active ? (purchaseSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ChevronDown className="w-3 h-3 opacity-30" />}
+                        </button>
+                      </th>
+                    );
+                  })}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Producto</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Proveedor</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cant.</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Unit.</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total USD</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total ARS</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>

@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 65)**
+Última actualización: **2026-05-22 (sesión 66)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 66 ✅ COMPLETA — SalesPage sort + PurchasesPage sort + ProveedoresPage CSV export
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPage: columnas ordenables** — `saleSort` state `{ col: "date" \| "total_ars" \| "customer_name" \| "product_name"; dir }`, `filteredSorted` inmutable; headers Fecha/Producto/Cliente/Total con ChevronUp/Down en la vista lista desktop; activo resaltado en color primary | ✅ Hecho |
+| 2 | **PurchasesPage: columnas ordenables** — `purchaseSort` state; headers Fecha/Proveedor/Total USD/Total ARS clickeables con ChevronUp/Down; `filteredSorted` inmutable con `[...filtered].sort()` | ✅ Hecho |
+| 3 | **ProveedoresPage: CSV export** — botón "CSV" en PageHeader actions; exporta Nombre/Contacto/Teléfono/Email/Dirección/Deuda pendiente/Activo con BOM UTF-8; filename `proveedores_YYYY-MM-DD.csv`; se oculta si lista vacía | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 
