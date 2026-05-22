@@ -78,6 +78,7 @@ export default function PurchasesPage() {
   const [tab, setTab] = useState<'all' | 'scheduled' | 'suppliers'>('all');
   const [search, setSearch] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('all');
+  const [filterTravel, setFilterTravel] = useState<'all' | 'en_camino' | 'pendiente'>('all');
 
   const handleBarcode = useCallback((code: string) => {
     setSearch(code);
@@ -109,6 +110,10 @@ export default function PurchasesPage() {
     if (tab === 'all' && p.is_scheduled) return false;
     if (search && !p.product_name?.toLowerCase().includes(search.toLowerCase()) && !p.supplier?.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterSupplier !== 'all' && p.supplier !== filterSupplier) return false;
+    if (filterTravel !== 'all') {
+      if (filterTravel === 'en_camino' && p.travel_status !== 'en_camino') return false;
+      if (filterTravel === 'pendiente' && p.travel_status === 'en_camino') return false;
+    }
     if (!dateFrom) return true;
     const d = new Date(p.date);
     if (d < dateFrom) return false;
@@ -280,6 +285,25 @@ export default function PurchasesPage() {
           </Select>
         )}
       </div>
+
+      {tab === 'scheduled' && (
+        <div className="flex gap-1.5 mb-4 flex-wrap">
+          {([
+            { id: 'all' as const, label: 'Todos', color: '' },
+            { id: 'en_camino' as const, label: '🚚 En camino', color: 'text-blue-400 border-blue-500/40 bg-blue-500/10' },
+            { id: 'pendiente' as const, label: '⏳ Pendiente', color: 'text-orange-400 border-orange-500/40 bg-orange-500/10' },
+          ] as const).map(f => (
+            <button key={f.id}
+              onClick={() => { setFilterTravel(f.id); setPage(0); }}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${filterTravel === f.id ? (f.color || 'bg-primary/20 text-primary border-primary/40') : 'border-border text-muted-foreground hover:border-primary/30'}`}>
+              {f.label}
+            </button>
+          ))}
+          {filterTravel !== 'all' && (
+            <span className="text-xs text-muted-foreground self-center ml-1">{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 border border-border w-fit mb-5">
         {([

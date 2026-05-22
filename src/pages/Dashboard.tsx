@@ -2053,6 +2053,52 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Last 8 hours sales mini chart */}
+      {rawData && (() => {
+        const now = new Date();
+        const hours = Array.from({ length: 8 }, (_, i) => {
+          const h = new Date(now);
+          h.setHours(now.getHours() - (7 - i), 0, 0, 0);
+          return { hour: h.getHours(), label: `${String(h.getHours()).padStart(2, '0')}h`, revenue: 0, count: 0 };
+        });
+        rawData.sales.forEach((s: any) => {
+          const d = new Date(s.created_at || s.date);
+          if (d >= new Date(now.getTime() - 8 * 3600000)) {
+            const h = d.getHours();
+            const slot = hours.find(x => x.hour === h);
+            if (slot) { slot.revenue += Number(s.total_ars || 0); slot.count += 1; }
+          }
+        });
+        const totalLast8 = hours.reduce((s, h) => s + h.revenue, 0);
+        if (totalLast8 === 0) return null;
+        const maxRev = Math.max(...hours.map(h => h.revenue), 1);
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-primary" />Ventas — últimas 8 horas
+              </h3>
+              <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                {formatARS(totalLast8)} total
+              </span>
+            </div>
+            <div className="flex items-end gap-1 h-16">
+              {hours.map(h => {
+                const pct = h.revenue > 0 ? Math.max(8, (h.revenue / maxRev) * 100) : 4;
+                const isCurrent = h.hour === now.getHours();
+                return (
+                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-0.5 group" title={`${h.label}: ${formatARS(h.revenue)} (${h.count} venta${h.count !== 1 ? 's' : ''})`}>
+                    <div className={`w-full rounded-sm transition-all ${isCurrent ? 'bg-primary' : h.revenue > 0 ? 'bg-primary/40' : 'bg-muted/30'}`} style={{ height: `${pct}%` }} />
+                    <span className="text-[9px] text-muted-foreground">{h.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Hora actual resaltada · basado en hora de registro</p>
+          </div>
+        );
+      })()}
+
       {/* 7-day forecast widget */}
       {stats.bestWeekdayData.some(d => d.count > 0) && (() => {
         const today = new Date();

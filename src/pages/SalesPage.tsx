@@ -452,11 +452,12 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
   };
 
   const exportSalesCSV = () => {
-    const header = ['Fecha', 'Producto', 'Cliente', 'Cantidad', 'P.Unit (ARS)', 'Total (ARS)', 'Ganancia (ARS)', 'Ganancia (USD)', 'Método', 'Cobrado', 'Descuento'];
+    const header = ['Fecha', 'Producto', 'Cliente', 'Vendedor', 'Cantidad', 'P.Unit (ARS)', 'Total (ARS)', 'Ganancia (ARS)', 'Ganancia (USD)', 'Método', 'Cobrado', 'Descuento', 'Facturado'];
     const rows = filtered.map(s => [
       s.date,
       `"${(s.product_name || '').replace(/"/g, '""')}"`,
       `"${(s.customer_name || '').replace(/"/g, '""')}"`,
+      `"${((s as any).seller_name || '').replace(/"/g, '""')}"`,
       s.quantity,
       Number(s.unit_price_ars).toFixed(2),
       Number(s.total_ars).toFixed(2),
@@ -465,6 +466,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
       s.payment_method || 'efectivo',
       s.paid ? 'Sí' : 'No',
       s.discount_applied ? 'Sí' : 'No',
+      s.invoice_id ? 'Sí' : 'No',
     ]);
     const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });

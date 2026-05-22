@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 54)**
+Última actualización: **2026-05-22 (sesión 55)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -910,6 +910,17 @@ Ver tabla de sesión 29 arriba.
 | 4 | **DebtsPage: sort por columnas** — click en encabezados Fecha, Cliente, Resta para ordenar ASC/DESC; íconos ChevronUp/Down/ArrowUpDown para indicar estado | ✅ Hecho |
 | 5 | **ProductsPage: filtro "Con oferta"** — chip toggle que filtra solo productos con `discount_price_ars` activo; se combina con todos los otros filtros | ✅ Hecho |
 | 6 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+## Sesión 55 ✅ COMPLETA — Dashboard 8h + compras filtro viaje + CSV mejorado
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **Dashboard: widget "Ventas últimas 8 horas"** — mini bar chart con la hora actual resaltada; 8 slots de 1h usando `created_at`; total del período en chip; se oculta si sin ventas | ✅ Hecho |
+| 2 | **SalesPage: CSV mejorado** — agrega columnas Vendedor e Invoicing; header actualizado a 13 columnas con `seller_name` y `invoice_id` | ✅ Hecho |
+| 3 | **PurchasesPage: filtro travel_status** — chips "Todos / 🚚 En camino / ⏳ Pendiente" visibles en tab Programadas; filtra `travel_status` field; contador de resultados | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
 
 ## Sesión 54 ✅ COMPLETA — UX cobros + IA gastos + threshold inline + badge nuevo cliente
 
