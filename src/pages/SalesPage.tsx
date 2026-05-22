@@ -131,6 +131,7 @@ export default function SalesPage() {
   const [filterPaid, setFilterPaid] = useState<'all' | 'paid' | 'pending'>('all');
   const [filterMethod, setFilterMethod] = useState('all');
   const [filterSellerName, setFilterSellerName] = useState('all');
+  const [filterHasNote, setFilterHasNote] = useState(false);
   const [commPct, setCommPct] = useState(5);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
 
@@ -142,6 +143,7 @@ export default function SalesPage() {
     if (filterPaid === 'pending' && s.paid) return false;
     if (filterMethod !== 'all' && s.payment_method !== filterMethod) return false;
     if (filterSellerName !== 'all' && (s as any).seller_name !== filterSellerName) return false;
+    if (filterHasNote && !s.notes) return false;
     if (search && !s.product_name?.toLowerCase().includes(search.toLowerCase()) && !s.customer_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (!dateFrom) return true;
     const d = new Date(s.date);
@@ -813,6 +815,15 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             </button>
           ))}
         </div>
+        {sales.some(s => s.notes) && (
+          <button
+            onClick={() => { setFilterHasNote(f => !f); setPage(0); }}
+            className={`flex items-center gap-1.5 px-3 h-9 rounded-lg border text-xs font-medium transition-all shrink-0 ${filterHasNote ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-muted border-border text-muted-foreground hover:text-foreground'}`}
+            title="Mostrar solo ventas con notas internas"
+          >
+            📝 Con nota
+          </button>
+        )}
         {/* Commission summary (only in by_customer / by_product) */}
         {(viewMode === "by_customer" || viewMode === "by_product") && (() => {
           const sellerMap: Record<string, { total: number; count: number }> = {};

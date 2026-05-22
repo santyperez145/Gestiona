@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 58)**
+Última actualización: **2026-05-22 (sesión 59)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 59 ✅ COMPLETA — Purchases gráfico mensual + Sales filtro nota + Products vista grilla
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **PurchasesPage: gráfico mensual de inversión** — mini BarChart (recharts) de compras USD por mes (últimos 12); se oculta si sin datos; `monthlySpend` useMemo desde purchases no programadas | ✅ Hecho |
+| 2 | **SalesPage: toggle "📝 Con nota"** — botón en barra de filtros (visible solo si hay ventas con notes); filtra `filterHasNote` para mostrar solo ventas con notas internas | ✅ Hecho |
+| 3 | **ProductsPage: vista grilla con imágenes** — toggle Lista/Grilla (List/LayoutGrid icons) en actions; grid responsive 2–6 cols; tarjetas con imagen, nombre, precio, stock; badge OFERTA/SIN STOCK; hover con botón editar | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

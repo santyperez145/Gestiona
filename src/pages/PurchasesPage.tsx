@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 function useBarcodeScanner(onDetected: (code: string) => void) {
@@ -126,6 +127,20 @@ export default function PurchasesPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  const monthlySpend = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()], usd: 0, ars: 0, count: 0 };
+    });
+    purchases.filter(p => !p.is_scheduled).forEach(p => {
+      const key = p.date?.slice(0, 7);
+      const slot = months.find(m => m.key === key);
+      if (slot) { slot.usd += Number(p.total_usd || 0); slot.ars += Number(p.total_ars || 0); slot.count++; }
+    });
+    return months;
+  }, [purchases]);
+
   const exportPurchasesCSV = () => {
     const header = ['Fecha', 'Producto', 'Proveedor', 'Cantidad', 'Costo USD', 'Total USD', 'Total ARS', 'Tipo'];
     const rows = filtered.map(p => [
@@ -223,6 +238,28 @@ export default function PurchasesPage() {
         <KPICard label="Prom. por compra" value={filtered.length > 0 ? formatUSD(totalUSD / filtered.length) : "$0"} icon={Package} color="blue" />
         <KPICard label="Programadas" value={scheduledCount} icon={CalendarClock} color="warning" sub="pendientes de concretar" />
       </div>
+
+      {/* Monthly spend chart */}
+      {monthlySpend.some(m => m.usd > 0) && (
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold">Inversión mensual (últimos 12 meses)</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={monthlySpend} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={38} />
+              <Tooltip
+                contentStyle={{ background: "hsl(220,18%,12%)", border: "1px solid hsl(220,15%,18%)", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: number, name: string) => [name === 'usd' ? formatUSD(v) : formatARS(v), name === 'usd' ? 'USD' : 'ARS']}
+              />
+              <Bar dataKey="usd" fill="hsl(40,70%,50%)" radius={[3, 3, 0, 0]} name="usd" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Order status pipeline */}
       {(() => {

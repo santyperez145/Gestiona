@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -270,6 +270,7 @@ export default function ProductsPage() {
   const [editingThreshold, setEditingThreshold] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
   const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
+  const [productView, setProductView] = useState<'list' | 'grid'>('list');
 
   const reload = async () => {
     if (!user) return;
@@ -450,6 +451,14 @@ export default function ProductsPage() {
         }
         actions={
           <div className="flex gap-2">
+            <div className="flex rounded-lg border border-border overflow-hidden h-9">
+              <button onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
+                <List className="w-4 h-4" />
+              </button>
+              <button onClick={() => setProductView('grid')} className={`px-2.5 transition-colors ${productView === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista grilla">
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
             </Button>
@@ -705,6 +714,37 @@ export default function ProductsPage() {
 
       {!filtered.length ? (
         <EmptyState icon={Package} title={products.length ? 'Sin resultados' : 'No hay productos aún'} description="Agregá tu primer producto para empezar." actionLabel="Nuevo Producto" onAction={() => setOpen(true)} />
+      ) : productView === 'grid' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          {filteredSorted.map((p: any) => (
+            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden group hover:border-primary/40 transition-colors">
+              <div className="relative aspect-square bg-muted/30">
+                {p.image_url
+                  ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8 text-muted-foreground/30" /></div>
+                }
+                {p.stock <= 0 && <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive text-white">SIN STOCK</span>}
+                {p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) && (
+                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white">OFERTA</span>
+                )}
+                {canEdit && (
+                  <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button onClick={() => { setEditing(p); setOpen(true); }} className="p-1 rounded bg-card/90 hover:bg-card border border-border">
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="p-2">
+                <p className="text-xs font-medium leading-tight line-clamp-2 mb-1">{p.name}</p>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-bold text-primary">{formatARS(Number(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? p.discount_price_ars : p.sale_price_ars))}</span>
+                  <span className={`text-[10px] font-medium ${p.stock > 0 ? 'text-success' : 'text-destructive'}`}>×{p.stock}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <>
           {Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([brand, items]) => (
