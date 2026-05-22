@@ -5,7 +5,6 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock } from "lucide-react";
-import SetupChecklist from "@/components/dashboard/SetupChecklist";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -21,6 +20,89 @@ import AIPrediction from "@/components/dashboard/AIPrediction";
 import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
+
+function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; orgId: string }) {
+  const goalsKey = `gestiona.seller_goals.${orgId}`;
+  const [sellerGoals, setSellerGoals] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem(goalsKey) || '{}'); } catch { return {}; }
+  });
+  const [editingSeller, setEditingSeller] = useState<string | null>(null);
+  const [goalInput, setGoalInput] = useState("");
+
+  const saveGoal = (name: string) => {
+    const v = Number(goalInput);
+    if (v > 0) {
+      const next = { ...sellerGoals, [name]: v };
+      localStorage.setItem(goalsKey, JSON.stringify(next));
+      setSellerGoals(next);
+    }
+    setEditingSeller(null);
+  };
+
+  return (
+    <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+          <Users className="w-4 h-4 text-primary" />Objetivos por vendedor — esta semana
+        </h3>
+        <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">
+          {sellers.length} vendedores
+        </span>
+      </div>
+      <div className="space-y-3">
+        {sellers.map(([name, total]) => {
+          const goal = sellerGoals[name] || 0;
+          const pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
+          const barColor = pct >= 100 ? "bg-success" : pct >= 60 ? "bg-primary" : pct >= 30 ? "bg-warning" : "bg-destructive/60";
+          return (
+            <div key={name}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium">{name}</span>
+                  {pct >= 100 && <span className="text-[10px] text-success font-bold">🎉 Meta</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold">{formatARS(total)}</span>
+                  {editingSeller === name ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        className="w-24 h-5 text-[10px] bg-background border border-border rounded px-1"
+                        type="number"
+                        placeholder="Meta semanal…"
+                        value={goalInput}
+                        onChange={e => setGoalInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") saveGoal(name); if (e.key === "Escape") setEditingSeller(null); }}
+                      />
+                      <button className="text-[10px] text-success font-bold px-1" onClick={() => saveGoal(name)}>✓</button>
+                      <button className="text-[10px] text-muted-foreground px-1" onClick={() => setEditingSeller(null)}>✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                      onClick={() => { setEditingSeller(name); setGoalInput(goal > 0 ? String(goal) : ""); }}
+                    >
+                      {goal > 0 ? `/ ${formatARS(goal)} ✏` : "Fijar →"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                  style={{ width: `${goal > 0 ? pct : 100}%`, opacity: goal > 0 ? 1 : 0.15 }}
+                />
+              </div>
+              {goal > 0 && pct < 100 && (
+                <p className="text-[9px] text-muted-foreground mt-0.5">{pct}% · falta {formatARS(goal - total)}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function GaugeChart({ value, max, label, color }: { value: number; max: number; label: string; color: string }) {
   const pct = Math.min(Math.max(value / (max || 1), 0), 1);
@@ -59,7 +141,7 @@ function FinancialSection({ stats }: { stats: any }) {
   const losers = simProducts.filter((p: any) => p.profit < 0).length;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Banknote className="w-4 h-4 text-success" />Flujo de Caja Proyectado</h3>
         <div className="space-y-2.5">
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Ventas/mes (proy.)</span><span className="text-success font-bold">{formatARS(stats.projectedMonthlySalesARS)}</span></div>
@@ -68,7 +150,7 @@ function FinancialSection({ stats }: { stats: any }) {
           <div className="flex justify-between text-xs"><span className="text-muted-foreground">Ganancia/mes (proy.)</span><span className="text-success">{formatARS(stats.projectedMonthlyProfitARS)}</span></div>
         </div>
       </div>
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Target className="w-4 h-4 text-primary" />Punto de Equilibrio</h3>
         <div className="text-center py-3"><p className="text-3xl font-black font-display text-primary">{stats.breakEvenUnits}</p><p className="text-xs text-muted-foreground mt-1">unidades/mes para cubrir gastos</p></div>
         <div className="space-y-1.5 text-xs">
@@ -76,7 +158,7 @@ function FinancialSection({ stats }: { stats: any }) {
           <div className="flex justify-between"><span className="text-muted-foreground">Margen prom./unidad</span><span className="text-success">{formatARS(stats.avgMarginPerUnit)}</span></div>
         </div>
       </div>
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4 text-warning" />Simulador Tipo de Cambio</h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TC Simulado:</span><span className="font-bold">${simRate[0].toLocaleString('es-AR')}</span></div>
@@ -124,14 +206,6 @@ export default function Dashboard() {
   const [weeklyTarget, setWeeklyTarget] = useState<number>(() => Number(localStorage.getItem(`gestiona.dashboard.weekly_target.${typeof localStorage !== 'undefined' ? (localStorage.getItem('gestiona.activeOrgId') || 'default') : 'default'}`) || 0));
   const [editingWeeklyTarget, setEditingWeeklyTarget] = useState(false);
   const [weeklyTargetInput, setWeeklyTargetInput] = useState("");
-  // Seller goals
-  const sellerGoalsKey = `gestiona.seller_goals.${orgForWeekly?.id || 'default'}`;
-  const [sellerGoals, setSellerGoals] = useState<Record<string, number>>(() => {
-    try { return JSON.parse(localStorage.getItem(`gestiona.seller_goals.${localStorage.getItem('gestiona.activeOrgId') || 'default'}`) || '{}'); }
-    catch { return {}; }
-  });
-  const [editingSellerGoal, setEditingSellerGoal] = useState<string | null>(null);
-  const [sellerGoalInput, setSellerGoalInput] = useState("");
 
   // Monthly AI summary (cached in localStorage, refreshed once per month)
   const monthlySummaryKey = `gestiona.monthly_summary.${orgForWeekly?.id || 'default'}.${new Date().getFullYear()}.${new Date().getMonth()}`;
@@ -314,63 +388,6 @@ export default function Dashboard() {
   }, [orgForTasks]);
 
   const [showTodayDetail, setShowTodayDetail] = useState(false);
-  const [endOfDayDismissed, setEndOfDayDismissed] = useState<boolean>(
-    () => sessionStorage.getItem('gestiona.eod_dismissed') === new Date().toISOString().slice(0, 10)
-  );
-
-  // End-of-day summary: computed once from rawData (after 20h)
-  const endOfDaySummary = useMemo(() => {
-    if (!rawData?.sales) return null;
-    const now = new Date();
-    if (now.getHours() < 20) return null; // Only show after 20:00
-    const today = now.toISOString().slice(0, 10);
-    const todaySales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === today);
-    if (!todaySales.length) return null;
-
-    const totalARS = todaySales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0);
-    const totalProfit = todaySales.reduce((s: number, sale: any) => s + Number(sale.profit_ars || 0), 0);
-    const count = todaySales.length;
-    const avgTicket = totalARS / count;
-
-    // Yesterday comparison
-    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
-    const yesterStr = yesterday.toISOString().slice(0, 10);
-    const yesterSales = rawData.sales.filter((s: any) => String(s.date).slice(0, 10) === yesterStr);
-    const yesterTotal = yesterSales.reduce((s: number, sale: any) => s + Number(sale.total_ars), 0);
-    const vsYesterday = yesterTotal > 0 ? ((totalARS - yesterTotal) / yesterTotal) * 100 : null;
-
-    // Payment method breakdown
-    const methodMap: Record<string, { count: number; total: number }> = {};
-    todaySales.forEach((s: any) => {
-      const m = s.payment_method || "otro";
-      if (!methodMap[m]) methodMap[m] = { count: 0, total: 0 };
-      methodMap[m].count += 1;
-      methodMap[m].total += Number(s.total_ars);
-    });
-    const methods = Object.entries(methodMap).sort((a, b) => b[1].total - a[1].total);
-
-    // Top 3 products by qty
-    const prodMap: Record<string, { qty: number; total: number }> = {};
-    todaySales.forEach((s: any) => {
-      const n = s.product_name || "Sin nombre";
-      if (!prodMap[n]) prodMap[n] = { qty: 0, total: 0 };
-      prodMap[n].qty += Number(s.quantity || 1);
-      prodMap[n].total += Number(s.total_ars);
-    });
-    const topProducts = Object.entries(prodMap).sort((a, b) => b[1].qty - a[1].qty).slice(0, 3);
-
-    // Top seller
-    const sellerMap: Record<string, number> = {};
-    todaySales.forEach((s: any) => { const n = s.seller_name?.trim() || null; if (n) sellerMap[n] = (sellerMap[n] || 0) + Number(s.total_ars); });
-    const topSeller = Object.entries(sellerMap).sort((a, b) => b[1] - a[1])[0] || null;
-
-    // Today's expenses (deduct from profit)
-    const todayExpenses = (rawData.expenses || []).filter((e: any) => String(e.date).slice(0, 10) === today);
-    const totalExpensesARS = todayExpenses.reduce((s: number, e: any) => s + Number(e.amount_ars || 0), 0);
-    const netProfit = totalProfit - totalExpensesARS;
-
-    return { totalARS, totalProfit, count, avgTicket, vsYesterday, methods, topProducts, topSeller, netProfit, totalExpensesARS };
-  }, [rawData]);
 
   // Seed liveTodaySales + last-week same-day comparison from initial data load
   useEffect(() => {
@@ -399,20 +416,7 @@ export default function Dashboard() {
     const productCount: Record<string, number> = {};
     todaySales.forEach((s: any) => { const n = s.product_name || "Sin nombre"; productCount[n] = (productCount[n] || 0) + (s.quantity || 1); });
     const topProduct = Object.entries(productCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-    // Hourly breakdown using created_at (falls back to noon if not available)
-    const hourMap: Record<number, number> = {};
-    todaySales.forEach((s: any) => {
-      const h = s.created_at ? new Date(s.created_at).getHours() : 12;
-      hourMap[h] = (hourMap[h] || 0) + Number(s.total_ars);
-    });
-    const maxHour = Object.keys(hourMap).length ? Math.max(...Object.keys(hourMap).map(Number)) : 23;
-    const minHour = Object.keys(hourMap).length ? Math.min(...Object.keys(hourMap).map(Number)) : 8;
-    const hourlyData = Array.from({ length: maxHour - minHour + 1 }, (_, i) => {
-      const h = minHour + i;
-      return { hour: `${String(h).padStart(2, '0')}h`, total: hourMap[h] || 0 };
-    });
-    const peakHour = Object.entries(hourMap).sort((a, b) => b[1] - a[1])[0];
-    return { avgTicket, dominantMethod, topProduct, count: todaySales.length, hourlyData, peakHour: peakHour ? `${String(Number(peakHour[0])).padStart(2, '0')}h` : null };
+    return { avgTicket, dominantMethod, topProduct, count: todaySales.length };
   }, [rawData]);
 
   // Weekly comparison: this week Mon–today vs same period last week
@@ -635,26 +639,8 @@ export default function Dashboard() {
     // Net profit: gross - expenses - taxes (if enabled)
     // ===== This week sales =====
     const weekNow = new Date();
-    const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - (weekNow.getDay() === 0 ? 6 : weekNow.getDay() - 1)); weekStart.setHours(0, 0, 0, 0);
-    const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(weekStart.getDate() - 7);
-    const weekSales = sales.filter((s: any) => new Date(s.date) >= weekStart);
-    const weekSalesARS = weekSales.reduce((a: number, s: any) => a + Number(s.total_ars), 0);
-    const prevWeekSales = sales.filter((s: any) => { const d = new Date(s.date); return d >= prevWeekStart && d < weekStart; });
-
-    // Top products this week (by units + revenue) vs last week
-    const weekProdMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-    weekSales.forEach((s: any) => {
-      const k = s.product_name || "?";
-      if (!weekProdMap[k]) weekProdMap[k] = { name: k, qty: 0, revenue: 0 };
-      weekProdMap[k].qty += Number(s.quantity);
-      weekProdMap[k].revenue += Number(s.total_ars);
-    });
-    const prevWeekProdMap: Record<string, number> = {};
-    prevWeekSales.forEach((s: any) => { const k = s.product_name || "?"; prevWeekProdMap[k] = (prevWeekProdMap[k] || 0) + Number(s.quantity); });
-    const topWeekProducts = Object.values(weekProdMap)
-      .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
-      .slice(0, 5)
-      .map(p => ({ ...p, prevQty: prevWeekProdMap[p.name] || 0 }));
+    const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - weekNow.getDay()); weekStart.setHours(0, 0, 0, 0);
+    const weekSalesARS = sales.filter((s: any) => new Date(s.date) >= weekStart).reduce((a: number, s: any) => a + Number(s.total_ars), 0);
 
     const monthSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === curY && d.getMonth() === curM; });
     const monthGrossProfit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
@@ -846,7 +832,7 @@ export default function Dashboard() {
       // New
       monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData, prevTotalMonthExpenses,
       yoySalesARS, yoyGrowth,
-      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts, topWeekProducts,
+      salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
       bestWeekdayData, bestWeekday,
@@ -912,35 +898,18 @@ export default function Dashboard() {
 
   return (
     <div>
-      {/* ── Header — editorial, not generic ──────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-4 gap-3">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
         <div>
-          {/* Date label above title */}
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/45 font-display mb-1.5">
-            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          <h1 className="text-2xl md:text-3xl font-display font-bold">{greeting} 👋</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
           </p>
-          <div className="flex items-end gap-3 flex-wrap">
-            <h1 className="text-[1.9rem] md:text-[2.3rem] font-display font-bold tracking-[-0.03em] leading-none text-foreground">
-              {greeting}
-            </h1>
-            {/* live today number — hero stat */}
-            <div className="flex items-baseline gap-2 mb-[2px]">
-              <span className="text-[11px] text-muted-foreground/50 font-display uppercase tracking-wide">hoy</span>
-              <span className="text-[1.5rem] font-mono font-bold tracking-tight text-success leading-none">
-                {formatARS(liveTodaySales?.total ?? 0)}
-              </span>
-              <span className="text-[11px] text-muted-foreground/50 font-mono">
-                {liveTodaySales?.count ?? 0}v
-              </span>
-            </div>
-          </div>
-          {/* Gold accent underline */}
-          <div className="mt-2 h-[2px] w-8 rounded-full bg-primary/50" />
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
           <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="w-[180px] h-8 text-[12px]">
-              <Filter className="w-3 h-3 mr-1 opacity-50" />
+            <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
+              <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -949,115 +918,94 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          <button
-            onClick={shareDailyResume}
-            title="Compartir resumen por WhatsApp"
-            className="hidden sm:flex items-center gap-1 h-8 px-2.5 rounded-[7px] border border-border/50 text-[11px] text-muted-foreground/60 hover:text-success hover:border-success/30 transition-all duration-150"
-          >
-            <Share2 className="w-3 h-3" />
+          <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-success transition-colors">
+            <Share2 className="w-3.5 h-3.5" />Compartir
           </button>
+          <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
 
-      {/* ── Status banners — left-bar style, not generic rounded box ────── */}
-      <div className="space-y-1.5 mb-4">
-        {openCashSession && (
-          <div className="relative flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-[7px] bg-success/5 border border-success/15 overflow-hidden">
-            <div className="absolute left-0 inset-y-0 w-[3px] bg-success rounded-r-full" />
-            <Banknote className="w-[14px] h-[14px] text-success shrink-0" />
-            <span className="text-[12px] font-semibold text-success">Caja abierta</span>
-            <span className="text-[11px] text-muted-foreground/60">
-              desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-            <Link to="/caja" className="ml-auto text-[11px] text-success/80 hover:text-success font-mono transition-colors">ir →</Link>
-          </div>
-        )}
-        {new Date().getHours() >= 14 && (liveTodaySales?.count ?? 0) === 0 && !noSalesDismissed && (
-          <div className="relative flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-[7px] bg-warning/5 border border-warning/15 overflow-hidden">
-            <div className="absolute left-0 inset-y-0 w-[3px] bg-warning rounded-r-full" />
-            <AlertTriangle className="w-[14px] h-[14px] text-warning shrink-0" />
-            <span className="text-[12px] font-semibold text-warning">Sin ventas hoy</span>
-            <span className="text-[11px] text-muted-foreground/55 hidden sm:block">
-              Son las {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} y no hay ventas.
-            </span>
-            <div className="ml-auto flex items-center gap-3">
-              <Link to="/ventas" className="text-[11px] text-warning/80 hover:text-warning font-mono transition-colors">registrar →</Link>
-              <button onClick={() => { sessionStorage.setItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, '1'); setNoSalesDismissed(true); }} className="text-muted-foreground/40 hover:text-muted-foreground transition-colors text-[10px]">✕</button>
-            </div>
-          </div>
-        )}
-        {stats && (stats.outOfStockProducts?.length > 0 || stats.lowStockProducts?.length > 0) && (
-          <div className="relative flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-[7px] bg-destructive/5 border border-destructive/15 overflow-hidden">
-            <div className="absolute left-0 inset-y-0 w-[3px] bg-destructive rounded-r-full" />
-            <AlertTriangle className="w-[14px] h-[14px] text-destructive shrink-0" />
-            <span className="text-[12px] font-semibold text-destructive">Stock crítico</span>
-            <span className="text-[11px] text-muted-foreground/55 hidden sm:block">
-              {stats.outOfStockProducts?.length > 0 && `${stats.outOfStockProducts.length} sin stock`}
-              {stats.outOfStockProducts?.length > 0 && stats.lowStockProducts?.length > 0 && ' · '}
-              {stats.lowStockProducts?.length > 0 && `${stats.lowStockProducts.length} bajo mínimo`}
-            </span>
-            <Link to="/productos?filter=lowstock" className="ml-auto text-[11px] text-destructive/80 hover:text-destructive font-mono transition-colors shrink-0">ver →</Link>
-          </div>
-        )}
-      </div>
+      {/* Open Cash Session Banner */}
+      {openCashSession && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-success/10 border border-success/30 rounded-xl">
+          <Banknote className="w-4 h-4 text-success shrink-0" />
+          <span className="text-sm font-medium text-success">Caja abierta</span>
+          <span className="text-xs text-muted-foreground">
+            desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <Link to="/caja" className="ml-auto text-xs text-primary hover:underline font-medium">Ver caja →</Link>
+        </div>
+      )}
 
-      {/* ── USD Ticker — market data strip ──────────────────────────────── */}
-      {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
-        <div className="flex flex-wrap items-center gap-0 mb-4 rounded-[8px] border border-border/40 bg-[hsl(228_26%_5%)] overflow-hidden">
-          {/* Label */}
-          <div className="flex items-center gap-1.5 px-3 py-2 border-r border-border/30">
-            <span className="w-[5px] h-[5px] rounded-full bg-success animate-pulse inline-block" />
-            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/45 font-display">USD</span>
+      {/* Sin ventas hoy — alert after 14hs */}
+      {new Date().getHours() >= 14 && (liveTodaySales?.count ?? 0) === 0 && !noSalesDismissed && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-warning/10 border border-warning/30 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <span className="text-sm font-medium text-warning">Sin ventas hoy</span>
+          <span className="text-xs text-muted-foreground hidden sm:block">Son las {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} y no hay ventas registradas.</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Link to="/ventas" className="text-xs text-primary hover:underline font-medium">Registrar →</Link>
+            <button
+              onClick={() => {
+                sessionStorage.setItem(`gestiona.no_sales_alert.${new Date().toISOString().slice(0, 10)}`, '1');
+                setNoSalesDismissed(true);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+            >✕</button>
           </div>
-          {/* Rates */}
+        </div>
+      )}
+
+      {/* USD Rates Banner */}
+      {dolarRates && (dolarRates.blue > 0 || dolarRates.oficial > 0) && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-2.5 bg-card border border-border rounded-xl">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Dólar hoy</span>
           {dolarRates.oficial > 0 && (
-            <div className="flex items-center gap-1.5 px-4 py-2 border-r border-border/25">
-              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 font-display">Oficial</span>
-              <span className="text-[13px] font-bold font-mono text-foreground/80">${dolarRates.oficial.toLocaleString('es-AR')}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Oficial</span>
+              <span className="text-sm font-bold font-mono">${dolarRates.oficial.toLocaleString('es-AR')}</span>
             </div>
           )}
           {dolarRates.blue > 0 && (
-            <div className="flex items-center gap-1.5 px-4 py-2 border-r border-border/25">
-              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 font-display">Blue</span>
-              <span className="text-[13px] font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Blue</span>
+              <span className="text-sm font-bold font-mono text-primary">${dolarRates.blue.toLocaleString('es-AR')}</span>
             </div>
           )}
           {dolarRates.mep > 0 && (
-            <div className="flex items-center gap-1.5 px-4 py-2 border-r border-border/25">
-              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/40 font-display">MEP</span>
-              <span className="text-[13px] font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">MEP</span>
+              <span className="text-sm font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
             </div>
           )}
-          {/* Your configured TC */}
           {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 px-3 py-2">
-              <span className="text-[9px] uppercase tracking-[0.1em] text-muted-foreground/35 font-display">tu TC</span>
-              <span className={`text-[13px] font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Tu TC configurado:</span>
+              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
                 ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
               </span>
               {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && (
-                <Link to="/ajustes" className="text-[9px] text-primary/70 hover:text-primary uppercase tracking-wide transition-colors">actualizar</Link>
+                <Link to="/ajustes" className="text-[10px] text-primary hover:underline">Actualizar →</Link>
               )}
             </div>
           )}
         </div>
       )}
 
-      {/* ── Quick Actions — command-style chips ──────────────────────────── */}
-      <div className="flex flex-wrap gap-1.5 mb-5">
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2 mb-4 mt-3">
         {[
-          { label: "Nueva Venta", icon: DollarSign, path: "/ventas", accent: "hsl(38 82% 52%)" },
-          { label: "POS", icon: ShoppingBag, path: "/caja", accent: "hsl(155 55% 40%)" },
-          { label: "Clientes", icon: Users, path: "/clientes", accent: "hsl(210 90% 60%)" },
-          { label: "Inventario", icon: Package, path: "/productos", accent: "hsl(38 90% 55%)" },
-          { label: "Gastos", icon: Wallet, path: "/gastos", accent: "hsl(0 68% 50%)" },
-          { label: "Reportes", icon: BarChart3, path: "/reportes", accent: "hsl(265 85% 65%)" },
+          { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
+          { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-success" },
+          { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
+          { label: "Inventario", icon: Package, path: "/productos", color: "text-warning" },
+          { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },
+          { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-purple-400" },
         ].map(a => (
           <Link key={a.path} to={a.path}
-            className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-[6px] bg-[hsl(228_24%_7%)] border border-border/50 hover:border-border/80 transition-all duration-150 hover:-translate-y-[1px]"
-          >
-            <a.icon className="w-3 h-3 transition-colors duration-150" style={{ color: a.accent, opacity: 0.75 }} />
-            <span className="text-[11px] font-medium text-muted-foreground/70 group-hover:text-foreground/90 transition-colors duration-150">{a.label}</span>
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs text-muted-foreground hover:text-foreground">
+            <a.icon className={`w-3.5 h-3.5 ${a.color}`} />
+            {a.label}
           </Link>
         ))}
         <button
@@ -1080,16 +1028,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Setup checklist — only shown to new users */}
-      <SetupChecklist
-        businessName={stats.rawSettings?.business_name || ""}
-        hasLogo={!!stats.rawSettings?.logo_url}
-        hasExchangeRate={Number(stats.rawSettings?.exchange_rate) > 0}
-        hasProducts={stats.products?.length > 0}
-        hasSales={stats.rawSales?.length > 0}
-        hasPurchases={stats.rawPurchases?.length > 0}
-      />
-
       {/* Monthly summary card */}
       {monthlySummary && !monthlySummaryDismissed && (
         <div className="mb-4 bg-card border border-primary/20 rounded-xl p-3 flex items-start gap-3">
@@ -1108,7 +1046,7 @@ export default function Dashboard() {
 
       {/* Weekly comparison widget */}
       {weeklyComparison && weeklyComparison.thisTotal > 0 && (
-        <div className="mb-4 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="mb-4 bg-card border border-border rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4" />Comparativa semanal automática
@@ -1250,124 +1188,6 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* ── End-of-Day Summary (after 20h) ──────────────────────────── */}
-      {endOfDaySummary && !endOfDayDismissed && (
-        <div className="mb-5 bg-gradient-to-br from-primary/10 via-card to-card border border-primary/25 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
-                <span className="text-base">🌙</span>
-              </div>
-              <div>
-                <h3 className="font-display font-semibold text-sm">Resumen del día</h3>
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const text = `🌙 Cierre del día — ${new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long" })}\n💰 Total: ${formatARS(endOfDaySummary.totalARS)} (${endOfDaySummary.count} venta${endOfDaySummary.count !== 1 ? "s" : ""})\n📦 Ticket prom: ${formatARS(endOfDaySummary.avgTicket)}${endOfDaySummary.topProducts[0] ? `\n🏆 Más vendido: ${endOfDaySummary.topProducts[0][0]}` : ""}\n\nVía Gestiona`;
-                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-                }}
-                className="flex items-center gap-1 text-[10px] text-success hover:text-success/80 transition-colors"
-                title="Compartir resumen por WhatsApp"
-              >
-                <Share2 className="w-3.5 h-3.5" />WhatsApp
-              </button>
-              <button
-                onClick={() => { sessionStorage.setItem('gestiona.eod_dismissed', new Date().toISOString().slice(0, 10)); setEndOfDayDismissed(true); }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Cerrar"
-              >
-                <span className="text-sm">×</span>
-              </button>
-            </div>
-          </div>
-
-          {/* KPIs row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Total vendido</p>
-              <p className="text-lg font-bold font-display text-primary">{formatARS(endOfDaySummary.totalARS)}</p>
-              {endOfDaySummary.vsYesterday !== null && (
-                <p className={`text-[10px] mt-0.5 font-medium ${endOfDaySummary.vsYesterday >= 0 ? "text-success" : "text-destructive"}`}>
-                  {endOfDaySummary.vsYesterday >= 0 ? "▲" : "▼"}{Math.abs(endOfDaySummary.vsYesterday).toFixed(1)}% vs ayer
-                </p>
-              )}
-            </div>
-            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Transacciones</p>
-              <p className="text-lg font-bold font-display">{endOfDaySummary.count}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">prom {formatARS(endOfDaySummary.avgTicket)}</p>
-            </div>
-            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Ganancia bruta</p>
-              <p className={`text-lg font-bold font-display ${endOfDaySummary.totalProfit >= 0 ? "text-success" : "text-destructive"}`}>
-                {formatARS(endOfDaySummary.totalProfit)}
-              </p>
-              {endOfDaySummary.totalExpensesARS > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-0.5">gastos {formatARS(endOfDaySummary.totalExpensesARS)}</p>
-              )}
-            </div>
-            <div className="bg-card/80 rounded-xl border border-border/50 p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Ganancia neta</p>
-              <p className={`text-lg font-bold font-display ${endOfDaySummary.netProfit >= 0 ? "text-success" : "text-destructive"}`}>
-                {formatARS(endOfDaySummary.netProfit)}
-              </p>
-              {endOfDaySummary.topSeller && (
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">🏅 {endOfDaySummary.topSeller[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom: methods + top products */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Payment methods */}
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Por método de pago</p>
-              <div className="space-y-1.5">
-                {endOfDaySummary.methods.slice(0, 4).map(([method, data]) => {
-                  const pct = endOfDaySummary.totalARS > 0 ? (data.total / endOfDaySummary.totalARS) * 100 : 0;
-                  return (
-                    <div key={method}>
-                      <div className="flex items-center justify-between text-xs mb-0.5">
-                        <span className="capitalize text-muted-foreground">{method} <span className="text-[10px]">({data.count})</span></span>
-                        <span className="font-medium font-mono">{formatARS(data.total)}</span>
-                      </div>
-                      <div className="h-1 bg-muted/40 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {/* Top products */}
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Productos más vendidos</p>
-              <div className="space-y-1.5">
-                {endOfDaySummary.topProducts.map(([name, data], i) => (
-                  <div key={name} className="flex items-center gap-2 text-xs">
-                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${i === 0 ? "bg-yellow-500/20 text-yellow-400" : i === 1 ? "bg-slate-500/20 text-slate-400" : "bg-orange-800/20 text-orange-700"}`}>
-                      {i + 1}
-                    </span>
-                    <span className="truncate flex-1">{name}</span>
-                    <span className="text-muted-foreground shrink-0">×{data.qty}</span>
-                    <span className="font-medium font-mono shrink-0">{formatARS(data.total)}</span>
-                  </div>
-                ))}
-                {endOfDaySummary.topProducts.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">Sin datos de productos</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Today detail panel */}
       {showTodayDetail && todayDetail && (
         <div className="mb-5 bg-card border border-success/30 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
@@ -1395,29 +1215,6 @@ export default function Dashboard() {
               <p className="text-sm font-semibold mt-0.5 truncate" title={todayDetail.topProduct}>{todayDetail.topProduct || "—"}</p>
             </div>
           </div>
-          {/* Hourly bar chart */}
-          {todayDetail.hourlyData && todayDetail.hourlyData.length > 1 && (
-            <div className="mt-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Clock className="w-3 h-3" />Ventas por hora
-                {todayDetail.peakHour && <span className="ml-auto text-primary font-semibold">Pico: {todayDetail.peakHour}</span>}
-              </p>
-              <ResponsiveContainer width="100%" height={64}>
-                <BarChart data={todayDetail.hourlyData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="hour" tick={{ fontSize: 8, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'hsl(220,15%,12%)', border: '1px solid hsl(220,15%,20%)', borderRadius: 6, fontSize: 11 }}
-                    formatter={(v: number) => [formatARS(v), 'Ventas']}
-                  />
-                  <Bar dataKey="total" radius={[2, 2, 0, 0]}>
-                    {todayDetail.hourlyData.map((d: any, i: number) => (
-                      <Cell key={i} fill={d.hour === todayDetail.peakHour ? 'hsl(43,89%,55%)' : 'hsl(220,15%,30%)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
         </div>
       )}
 
@@ -1551,7 +1348,7 @@ export default function Dashboard() {
 
       {/* Weekly cash flow widget */}
       {(stats.weekIncome > 0 || stats.weekExpensesAmt > 0 || stats.weekPurchasesAmt > 0) && (
-        <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-primary" />Flujo de caja (últimos 7 días)
@@ -1785,7 +1582,7 @@ export default function Dashboard() {
         const remaining = target > 0 ? Math.max(0, target - current) : 0;
         const monthName = new Date().toLocaleString('es-AR', { month: 'long' });
         return (
-          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-primary" />Objetivo del mes — {monthName}
@@ -1941,7 +1738,7 @@ export default function Dashboard() {
         const weekRemaining = weeklyTarget > 0 ? Math.max(0, weeklyTarget - weekCurrent) : 0;
         const dayOfWeek = new Date().toLocaleString('es-AR', { weekday: 'long' });
         return (
-          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-success" />Meta semanal — {dayOfWeek}
@@ -2006,91 +1803,27 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Seller weekly goals widget */}
+      {/* Objetivos por vendedor */}
       {(() => {
-        const weekNow = new Date();
-        const weekStart = new Date(weekNow); weekStart.setDate(weekNow.getDate() - weekNow.getDay()); weekStart.setHours(0,0,0,0);
-        const weekSales = (stats.rawSales || []).filter((s: any) => new Date(s.date) >= weekStart);
-        // Build per-seller totals
-        const sellerMap: Record<string, number> = {};
-        weekSales.forEach((s: any) => {
-          const name = s.seller_name?.trim() || '';
-          if (!name) return;
-          sellerMap[name] = (sellerMap[name] || 0) + Number(s.total_ars || 0);
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        const dow = now.getDay();
+        startOfWeek.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+        startOfWeek.setHours(0, 0, 0, 0);
+        const sellerWeekMap: Record<string, number> = {};
+        (stats.rawSales || []).forEach((s: any) => {
+          if (!s.seller_name) return;
+          const d = new Date(s.date + "T12:00:00");
+          if (d < startOfWeek) return;
+          sellerWeekMap[s.seller_name] = (sellerWeekMap[s.seller_name] || 0) + Number(s.total_ars || 0);
         });
-        const sellers = Object.entries(sellerMap).sort((a, b) => b[1] - a[1]);
-        if (sellers.length === 0) return null;
-        const saveGoal = (name: string, val: number) => {
-          const next = { ...sellerGoals, [name]: val };
-          setSellerGoals(next);
-          localStorage.setItem(sellerGoalsKey, JSON.stringify(next));
-        };
+        const sellers = Object.entries(sellerWeekMap).sort((a, b) => b[1] - a[1]);
+        if (sellers.length < 2) return null;
         return (
-          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-primary" />Objetivos por vendedor — esta semana
-              </h3>
-              <span className="text-[10px] text-muted-foreground">{sellers.length} vendedor{sellers.length !== 1 ? 'es' : ''}</span>
-            </div>
-            <div className="space-y-3">
-              {sellers.map(([name, total]) => {
-                const goal = sellerGoals[name] || 0;
-                const pct = goal > 0 ? Math.min(100, (total / goal) * 100) : 0;
-                const isEditing = editingSellerGoal === name;
-                return (
-                  <div key={name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium truncate max-w-[140px]">{name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold">{formatARS(total)}</span>
-                        {goal > 0 && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${pct >= 100 ? 'bg-success/20 text-success' : pct >= 75 ? 'bg-blue-500/20 text-blue-400' : 'bg-muted text-muted-foreground'}`}>
-                            {pct.toFixed(0)}%
-                          </span>
-                        )}
-                        <button
-                          onClick={() => { setEditingSellerGoal(isEditing ? null : name); setSellerGoalInput(goal > 0 ? String(goal) : ''); }}
-                          className="text-[10px] text-primary hover:underline shrink-0"
-                        >
-                          {goal > 0 ? 'Meta' : '+ Meta'}
-                        </button>
-                      </div>
-                    </div>
-                    {goal > 0 && (
-                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? 'bg-success' : pct >= 75 ? 'bg-blue-400' : 'bg-primary/60'}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    )}
-                    {isEditing && (
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <input
-                          type="number"
-                          value={sellerGoalInput}
-                          onChange={e => setSellerGoalInput(e.target.value)}
-                          placeholder="Meta semanal ARS"
-                          className="flex-1 h-7 px-2.5 rounded-lg border border-border bg-muted text-xs"
-                          autoFocus
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') { const v = Number(sellerGoalInput); if (v > 0) saveGoal(name, v); setEditingSellerGoal(null); }
-                            if (e.key === 'Escape') setEditingSellerGoal(null);
-                          }}
-                        />
-                        <button
-                          className="px-2.5 h-7 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold"
-                          onClick={() => { const v = Number(sellerGoalInput); if (v > 0) saveGoal(name, v); setEditingSellerGoal(null); }}
-                        >OK</button>
-                        <button onClick={() => setEditingSellerGoal(null)} className="text-muted-foreground text-xs">✕</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <SellerGoalsWidget
+            sellers={sellers}
+            orgId={orgForTasks?.id || "default"}
+          />
         );
       })()}
 
@@ -2098,7 +1831,7 @@ export default function Dashboard() {
       {stats.bestWeekdayData.some(d => d.count > 0) && (() => {
         const maxAvg = Math.max(...stats.bestWeekdayData.map(d => d.avg));
         return (
-          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <BarChart3 className="w-4 h-4 text-primary" />Mejor día de la semana
@@ -2130,7 +1863,7 @@ export default function Dashboard() {
 
       {/* Best hour of day widget */}
       {stats.bestHour && stats.hourData.length >= 3 && (
-        <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-primary" />Mejor horario de ventas
@@ -2176,7 +1909,7 @@ export default function Dashboard() {
         const maxForecast = Math.max(...nextDays.map(d => d.forecast));
         const totalForecast = nextDays.reduce((a, d) => a + d.forecast, 0);
         return (
-          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
                 <TrendingUp className="w-4 h-4 text-success" />Forecast próximos 7 días
@@ -2244,13 +1977,13 @@ export default function Dashboard() {
 
       {/* ROI & Margin Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card flex items-center justify-center">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
           <GaugeChart value={stats.profitMargin} max={100} label="Margen Bruto" color="hsl(152, 58%, 42%)" />
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card flex items-center justify-center">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card flex items-center justify-center">
           <GaugeChart value={stats.roi} max={200} label="ROI" color="hsl(40, 72%, 52%)" />
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card">
           <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-4">Cobranza</h3>
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
@@ -2270,7 +2003,7 @@ export default function Dashboard() {
 
       {/* Monthly Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
-        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Ventas y Ganancia por Mes</h2>
           {stats.salesByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -2287,7 +2020,7 @@ export default function Dashboard() {
           ) : <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sin datos de ventas aún</div>}
         </div>
 
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Ventas por Categoría</h2>
           {stats.salesByCategory.length > 0 ? (
             <div>
@@ -2317,7 +2050,7 @@ export default function Dashboard() {
 
       {/* Daily Trend + Margin Evolution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia Diaria (30 días)</h2>
           {stats.dailySales.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
@@ -2333,7 +2066,7 @@ export default function Dashboard() {
           ) : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">Sin datos recientes</div>}
         </div>
 
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Margen por Mes (%)</h2>
           {stats.salesByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
@@ -2351,7 +2084,7 @@ export default function Dashboard() {
 
       {/* Pipeline Conversion Widget */}
       {pipelineStats && pipelineStats.total > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card mb-6">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Target className="w-4 h-4 text-primary" />Pipeline de Ventas
@@ -2419,7 +2152,7 @@ export default function Dashboard() {
 
       {/* P&L by Month */}
       {stats.salesByMonth.length > 0 && stats.salesByMonth.some((m: any) => m.expenses > 0) && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card mb-6">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Resultado Neto por Mes (Ganancia − Gastos)</h2>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={stats.salesByMonth}>
@@ -2436,50 +2169,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Top Products This Week */}
-      {stats.topWeekProducts?.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 mb-6 shadow-card">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-primary" />Ranking de la semana
-            </h2>
-            <span className="text-[10px] text-muted-foreground">Lun → hoy · unidades</span>
-          </div>
-          <div className="space-y-2">
-            {stats.topWeekProducts.map((p: any, i: number) => {
-              const maxQty = stats.topWeekProducts[0]?.qty || 1;
-              const pct = (p.qty / maxQty) * 100;
-              const qtyDelta = p.prevQty > 0 ? p.qty - p.prevQty : null;
-              return (
-                <div key={p.name}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-bold text-muted-foreground/60 w-4 shrink-0">{i + 1}</span>
-                      <span className="truncate font-medium">{p.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-semibold font-mono text-primary">{p.qty} u</span>
-                      <span className="text-muted-foreground text-[10px]">{formatARS(p.revenue)}</span>
-                      {qtyDelta !== null && (
-                        <span className={`text-[10px] font-medium ${qtyDelta >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {qtyDelta >= 0 ? '▲' : '▼'}{Math.abs(qtyDelta)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: i === 0 ? 'hsl(43,89%,55%)' : 'hsl(var(--primary)/.5)' }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Top 5 Products This Month */}
       {stats.topMonthProducts?.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 mb-6 shadow-card">
+        <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-success" />Top productos este mes
@@ -2522,7 +2214,7 @@ export default function Dashboard() {
       {(stats.topMarginProducts?.length > 0 || stats.lowMarginProducts?.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
           {stats.topMarginProducts?.length > 0 && (
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+            <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
               <h2 className="text-sm font-display font-semibold mb-3 text-success uppercase tracking-wider flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" /> Top 5 Margen Más Alto
               </h2>
@@ -2689,7 +2381,7 @@ export default function Dashboard() {
 
       {/* MoM Growth + Top Customers */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Crecimiento Mes a Mes</h2>
           <div className="space-y-3">
             <div>
@@ -2715,7 +2407,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <Crown className="w-4 h-4 text-primary" />Top 5 Clientes del Mes
           </h2>
@@ -2764,7 +2456,7 @@ export default function Dashboard() {
 
       {/* Top Products + Recent Sales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 shadow-card">
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Productos Más Vendidos</h2>
           {stats.topProducts.length > 0 ? (
             <div className="space-y-3">
@@ -2786,7 +2478,7 @@ export default function Dashboard() {
           ) : <p className="text-muted-foreground text-sm py-8 text-center">Sin ventas registradas</p>}
         </div>
 
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden shadow-card">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
           <h2 className="text-sm font-display font-semibold p-4 md:p-5 pb-3 text-muted-foreground uppercase tracking-wider">Últimas Ventas</h2>
           {stats.recentSales.length > 0 ? (
             <>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Search, FileText, Download, Send,
   CheckCircle2, XCircle, Clock, Eye, Copy, X, ChevronDown, ChevronUp, Link2, Loader2,
-  DollarSign, Mail, CopyPlus,
+  DollarSign, Mail, CopyPlus, Bookmark, BookOpen, Sparkles, User, Package, Zap,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -35,6 +35,9 @@ type Quote = {
   notes: string;
   created_at: string;
 };
+type CustomerSuggestion = { id: string; name: string; email: string | null; phone: string | null; company: string | null };
+type ProductSuggestion = { id: string; name: string; sale_price_ars: number; stock: number; category: string };
+type QuoteTemplate = { name: string; items: QuoteItem[]; notes?: string };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:    { label: "Borrador",  color: "text-muted-foreground bg-muted/30 border-border" },
@@ -61,6 +64,171 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// ─── Customer autocomplete ────────────────────────────────────────────────────
+function CustomerSearch({
+  value, onChange, onSelect, orgId,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (c: CustomerSuggestion) => void;
+  orgId: string;
+}) {
+  const [suggestions, setSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const search = useCallback((q: string) => {
+    if (!q.trim() || q.length < 2) { setSuggestions([]); setOpen(false); return; }
+    clearTimeout(timer.current!);
+    timer.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("id, name, email, phone, company")
+        .eq("org_id", orgId)
+        .ilike("name", `%${q}%`)
+        .limit(6);
+      if (data && data.length > 0) {
+        setSuggestions(data as CustomerSuggestion[]);
+        setOpen(true);
+      } else {
+        setSuggestions([]);
+        setOpen(false);
+      }
+    }, 200);
+  }, [orgId]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <Input
+          placeholder="Nombre del cliente…"
+          value={value}
+          className="pl-8"
+          onChange={e => { onChange(e.target.value); search(e.target.value); }}
+          onFocus={() => value.length >= 2 && suggestions.length > 0 && setOpen(true)}
+        />
+      </div>
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+          {suggestions.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+              onClick={() => { onSelect(c); setOpen(false); setSuggestions([]); }}
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-3 h-3 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">{c.name}</span>
+                {c.company && <span className="text-xs text-muted-foreground">· {c.company}</span>}
+              </div>
+              <div className="flex gap-3 mt-0.5 pl-5">
+                {c.email && <span className="text-[10px] text-muted-foreground">{c.email}</span>}
+                {c.phone && <span className="text-[10px] text-muted-foreground">{c.phone}</span>}
+              </div>
+            </button>
+          ))}
+          <div className="px-3 py-1.5 bg-muted/20 text-[10px] text-muted-foreground">
+            ↑↓ navegar · Enter seleccionar · Esc cerrar
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Product search for item rows ─────────────────────────────────────────────
+function ProductSearch({
+  value, onChange, onSelect, orgId,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (p: ProductSuggestion) => void;
+  orgId: string;
+}) {
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const search = useCallback((q: string) => {
+    if (!q.trim() || q.length < 2) { setSuggestions([]); setOpen(false); return; }
+    clearTimeout(timer.current!);
+    timer.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sale_price_ars, stock, category")
+        .eq("org_id", orgId)
+        .ilike("name", `%${q}%`)
+        .limit(6);
+      if (data && data.length > 0) {
+        setSuggestions(data as ProductSuggestion[]);
+        setOpen(true);
+      } else {
+        setSuggestions([]);
+        setOpen(false);
+      }
+    }, 200);
+  }, [orgId]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative flex-1">
+      <Input
+        className="h-8 text-xs w-full"
+        placeholder="Producto o descripción…"
+        value={value}
+        onChange={e => { onChange(e.target.value); search(e.target.value); }}
+        onFocus={() => value.length >= 2 && suggestions.length > 0 && setOpen(true)}
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-50 top-full mt-1 left-0 w-64 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+          {suggestions.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+              onClick={() => { onSelect(p); setOpen(false); setSuggestions([]); }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Package className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="text-xs font-medium truncate">{p.name}</span>
+                </div>
+                <span className="text-xs font-bold text-primary shrink-0">{formatARS(p.sale_price_ars)}</span>
+              </div>
+              <div className="flex gap-3 mt-0.5 pl-4">
+                <span className="text-[10px] text-muted-foreground">{p.category}</span>
+                <span className={`text-[10px] font-medium ${p.stock <= 0 ? "text-destructive" : p.stock <= 3 ? "text-orange-400" : "text-success"}`}>
+                  stock: {p.stock}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PDF helpers ──────────────────────────────────────────────────────────────
 async function generatePDF(quote: Quote, orgName: string) {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
@@ -68,7 +236,6 @@ async function generatePDF(quote: Quote, orgName: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const PW = 210, PH = 297;
 
-  // Header band
   doc.setFillColor(26, 26, 46);
   doc.rect(0, 0, PW, 35, "F");
   doc.setTextColor(212, 168, 67);
@@ -84,7 +251,6 @@ async function generatePDF(quote: Quote, orgName: string) {
   doc.text(`Fecha: ${new Date(quote.created_at).toLocaleDateString("es-AR")}`, PW - 15, 22, { align: "right" });
   if (quote.valid_until) doc.text(`Válido hasta: ${new Date(quote.valid_until).toLocaleDateString("es-AR")}`, PW - 15, 29, { align: "right" });
 
-  // Customer info
   doc.setTextColor(30, 30, 30);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -94,7 +260,6 @@ async function generatePDF(quote: Quote, orgName: string) {
   if (quote.customer_email) doc.text(quote.customer_email, 15, 63);
   if (quote.customer_phone) doc.text(quote.customer_phone, 15, 69);
 
-  // Items table
   const rows = quote.items.map(item => [
     item.description,
     item.qty.toString(),
@@ -150,7 +315,6 @@ async function generateRemito(quote: Quote, orgName: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const PW = 210;
 
-  // Header band — green for delivery
   doc.setFillColor(20, 83, 45);
   doc.rect(0, 0, PW, 35, "F");
   doc.setTextColor(134, 239, 172);
@@ -165,7 +329,6 @@ async function generateRemito(quote: Quote, orgName: string) {
   doc.setFontSize(9);
   doc.text(`Fecha: ${new Date().toLocaleDateString("es-AR")}`, PW - 15, 22, { align: "right" });
 
-  // Recipient
   doc.setTextColor(30, 30, 30);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -174,7 +337,6 @@ async function generateRemito(quote: Quote, orgName: string) {
   doc.text(quote.customer_name, 15, 57);
   if (quote.customer_phone) doc.text(quote.customer_phone, 15, 63);
 
-  // Items table — quantity and description only (no prices)
   const rows = quote.items.map(item => [
     item.qty.toString(),
     item.description,
@@ -201,6 +363,13 @@ async function generateRemito(quote: Quote, orgName: string) {
   doc.save(`remito_${quote.quote_number}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
+// ─── Default valid_until (+15 days) ──────────────────────────────────────────
+function defaultValidUntil() {
+  const d = new Date();
+  d.setDate(d.getDate() + 15);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function PresupuestosPage() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
@@ -217,15 +386,61 @@ export default function PresupuestosPage() {
   const [custPhone, setCustPhone] = useState("");
   const [items, setItems] = useState<QuoteItem[]>([{ description: "", qty: 1, unitPrice: 0, total: 0 }]);
   const [discountAmount, setDiscountAmount] = useState("0");
-  const [validUntil, setValidUntil] = useState("");
+  const [validUntil, setValidUntil] = useState(defaultValidUntil());
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [autoSend, setAutoSend] = useState(false);
   const [orgName, setOrgName] = useState("Mi Negocio");
   const [mpLinks, setMpLinks] = useState<Record<string, string>>({});
   const [mpLoading, setMpLoading] = useState<string | null>(null);
   const [payLinks, setPayLinks] = useState<Record<string, string>>({});
   const [payLinkLoading, setPayLinkLoading] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState<string | null>(null);
+
+  // Templates
+  const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const loadTemplates = useCallback(() => {
+    if (!activeOrg) return;
+    const raw = localStorage.getItem(`gestiona_quote_templates_${activeOrg.id}`);
+    setTemplates(raw ? JSON.parse(raw) : []);
+  }, [activeOrg]);
+
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
+
+  const saveTemplate = () => {
+    if (!templateName.trim() || !activeOrg) return;
+    setSavingTemplate(true);
+    const tpl: QuoteTemplate = {
+      name: templateName.trim(),
+      items: items.filter(it => it.description.trim()),
+      notes,
+    };
+    const next = [...templates.filter(t => t.name !== tpl.name), tpl];
+    localStorage.setItem(`gestiona_quote_templates_${activeOrg.id}`, JSON.stringify(next));
+    setTemplates(next);
+    setTemplateName("");
+    setSavingTemplate(false);
+    toast.success(`Plantilla "${tpl.name}" guardada`);
+  };
+
+  const loadTemplate = (tpl: QuoteTemplate) => {
+    setItems(tpl.items.length > 0 ? tpl.items : [{ description: "", qty: 1, unitPrice: 0, total: 0 }]);
+    if (tpl.notes) setNotes(tpl.notes);
+    setShowTemplates(false);
+    toast.success(`Plantilla "${tpl.name}" cargada`);
+  };
+
+  const deleteTemplate = (name: string) => {
+    if (!activeOrg) return;
+    const next = templates.filter(t => t.name !== name);
+    localStorage.setItem(`gestiona_quote_templates_${activeOrg.id}`, JSON.stringify(next));
+    setTemplates(next);
+    toast.success("Plantilla eliminada");
+  };
 
   const generatePayLink = async (q: Quote) => {
     if (payLinks[q.id]) { navigator.clipboard.writeText(payLinks[q.id]); toast.success("Link copiado"); return; }
@@ -336,7 +551,8 @@ export default function PresupuestosPage() {
   const resetForm = () => {
     setCustName(""); setCustEmail(""); setCustPhone("");
     setItems([{ description: "", qty: 1, unitPrice: 0, total: 0 }]);
-    setDiscountAmount("0"); setValidUntil(""); setNotes("");
+    setDiscountAmount("0"); setValidUntil(defaultValidUntil()); setNotes("");
+    setAutoSend(false); setShowTemplates(false); setTemplateName("");
   };
 
   const handleSave = async () => {
@@ -350,7 +566,7 @@ export default function PresupuestosPage() {
       const { data: numData } = await supabase.rpc("next_quote_number", { p_org_id: activeOrg.id });
       const quoteNumber = numData || `PRE-${Date.now()}`;
 
-      const { error } = await supabase.from("quotes").insert({
+      const { data: newQuote, error } = await supabase.from("quotes").insert({
         org_id: activeOrg.id,
         quote_number: quoteNumber,
         customer_name: custName,
@@ -364,12 +580,19 @@ export default function PresupuestosPage() {
         valid_until: validUntil || null,
         notes: notes || null,
         created_by: user.id,
-      });
+      }).select().single();
       if (error) throw error;
+
       toast.success(`Presupuesto ${quoteNumber} creado`);
       setOpen(false);
       resetForm();
       load();
+
+      // Auto-send por email si está activado y hay email
+      if (autoSend && custEmail && newQuote) {
+        const q = newQuote as Quote;
+        await sendQuoteEmail(q);
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -402,7 +625,7 @@ export default function PresupuestosPage() {
         discount_amount: q.discount_amount || 0,
         total: q.total,
         status: "draft",
-        valid_until: null,
+        valid_until: defaultValidUntil(),
         notes: q.notes || null,
         created_by: user.id,
       });
@@ -474,6 +697,12 @@ export default function PresupuestosPage() {
     toast.success("Copiado para WhatsApp");
   };
 
+  const now30 = new Date(); now30.setDate(now30.getDate() - 30);
+  const expiredQuotes = quotes.filter(q =>
+    (q.status === "draft" || q.status === "sent") &&
+    new Date(q.created_at) < now30
+  );
+
   const filtered = quotes.filter(q => {
     let matchStatus: boolean;
     if (filterStatus === "all") matchStatus = true;
@@ -484,19 +713,15 @@ export default function PresupuestosPage() {
     return matchStatus && matchSearch;
   });
 
-  const now30 = new Date(); now30.setDate(now30.getDate() - 30);
-  // Quotes that are draft/sent and were created >30d ago without conversion are considered "expired"
-  const expiredQuotes = quotes.filter(q =>
-    (q.status === "draft" || q.status === "sent") &&
-    new Date(q.created_at) < now30
-  );
-
   const stats = {
     total: quotes.length,
     accepted: quotes.filter(q => q.status === "accepted").length,
     totalValue: quotes.filter(q => q.status === "accepted").reduce((s, q) => s + q.total, 0),
     pending: quotes.filter(q => q.status === "sent").length,
     expired: expiredQuotes.length,
+    conversionRate: quotes.length > 0
+      ? Math.round(quotes.filter(q => q.status === "accepted").length / quotes.length * 100)
+      : 0,
   };
 
   return (
@@ -504,7 +729,7 @@ export default function PresupuestosPage() {
       <PageHeader
         icon={FileText}
         title="Presupuestos"
-        description={`${quotes.length} presupuestos · ${stats.accepted} aceptados`}
+        description={`${quotes.length} presupuestos · ${stats.accepted} aceptados · ${stats.conversionRate}% conversión`}
         badge={
           stats.pending > 0
             ? { label: `${stats.pending} en espera`, variant: "warning" }
@@ -513,7 +738,7 @@ export default function PresupuestosPage() {
             : undefined
         }
         actions={
-          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => setOpen(true)}>
+          <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={() => { resetForm(); setOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" /> Nuevo presupuesto
           </Button>
         }
@@ -523,13 +748,13 @@ export default function PresupuestosPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Total generados" value={stats.total} icon={FileText} color="primary" />
         <KPICard label="Aceptados" value={stats.accepted} icon={CheckCircle2} color="success"
-          sub={stats.total > 0 ? `${Math.round(stats.accepted / stats.total * 100)}% conversión` : undefined} />
+          sub={stats.total > 0 ? `${stats.conversionRate}% conversión` : undefined} />
         <KPICard label="En espera" value={stats.pending} icon={Clock}
           color={stats.pending > 0 ? "warning" : "primary"} sub="enviados al cliente" />
         <KPICard label="Valor ganado" value={formatARS(stats.totalValue)} icon={DollarSign} color="success" sub="de presupuestos aceptados" />
       </div>
 
-      {/* Expired quotes banner */}
+      {/* Expired banner */}
       {stats.expired > 0 && (
         <div className="bg-orange-500/5 border border-orange-500/30 rounded-xl p-3 flex items-center gap-3">
           <Clock className="w-4 h-4 text-orange-400 shrink-0" />
@@ -672,7 +897,6 @@ export default function PresupuestosPage() {
 
               {expandedId === q.id && (
                 <div className="border-t border-border bg-muted/10 px-4 py-3 space-y-3">
-                  {/* Items */}
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Ítems</p>
                     <div className="space-y-1">
@@ -696,7 +920,6 @@ export default function PresupuestosPage() {
                     </div>
                   </div>
                   {q.notes && <p className="text-xs text-muted-foreground italic">{q.notes}</p>}
-                  {/* Status actions */}
                   <div className="flex flex-wrap gap-2">
                     {q.status === "draft" && (
                       <Button size="sm" className="h-7 text-xs" onClick={() => updateStatus(q.id, "sent")}>
@@ -720,7 +943,6 @@ export default function PresupuestosPage() {
                         className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
                         onClick={() => setConvertModal({ quote: q, method: "transferencia" })}
                         disabled={converting === q.id}
-                        title="Convertir en venta registrada"
                       >
                         {converting === q.id
                           ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -735,12 +957,8 @@ export default function PresupuestosPage() {
                       className="h-7 text-xs border-blue-500/40 text-blue-400 hover:bg-blue-500/10 gap-1"
                       onClick={() => generateMpLink(q)}
                       disabled={mpLoading === q.id}
-                      title={mpLinks[q.id] ? "Link generado — click para copiar" : "Generar link de pago MercadoPago"}
                     >
-                      {mpLoading === q.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <Link2 className="w-3 h-3" />
-                      }
+                      {mpLoading === q.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
                       {mpLinks[q.id] ? "Copiar link MP" : "Link MP"}
                     </Button>
                     {q.customer_phone && mpLinks[q.id] && (
@@ -759,12 +977,8 @@ export default function PresupuestosPage() {
                       className="h-7 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1"
                       onClick={() => generatePayLink(q)}
                       disabled={payLinkLoading === q.id}
-                      title={payLinks[q.id] ? "Link generado — click para copiar" : "Generar link de pago universal (MP + transferencia + efectivo)"}
                     >
-                      {payLinkLoading === q.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <Link2 className="w-3 h-3" />
-                      }
+                      {payLinkLoading === q.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
                       {payLinks[q.id] ? "Copiar link pago" : "Link pago"}
                     </Button>
                     {q.customer_phone && payLinks[q.id] && (
@@ -829,32 +1043,118 @@ export default function PresupuestosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create dialog */}
+      {/* ─── Create dialog ────────────────────────────────────────────────────── */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nuevo presupuesto</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              Nuevo presupuesto
+            </DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-1">
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente *</label>
-                <Input placeholder="Nombre del cliente" value={custName} onChange={e => setCustName(e.target.value)} />
+
+            {/* ── Plantillas ── */}
+            {activeOrg && (
+              <div className="bg-muted/20 border border-border/50 rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowTemplates(v => !v)}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Plantillas guardadas {templates.length > 0 && <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">{templates.length}</span>}
+                  </span>
+                  {showTemplates ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+                {showTemplates && (
+                  <div className="px-3 pb-3 space-y-2 border-t border-border/50">
+                    {templates.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2 text-center">
+                        No hay plantillas. Completá los ítems y guardá una.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {templates.map(tpl => (
+                          <div key={tpl.name} className="flex items-center gap-1 bg-card border border-border rounded-lg overflow-hidden">
+                            <button
+                              type="button"
+                              className="px-2.5 py-1 text-xs hover:bg-muted transition-colors"
+                              onClick={() => loadTemplate(tpl)}
+                            >
+                              <span className="font-medium">{tpl.name}</span>
+                              <span className="text-muted-foreground ml-1">({tpl.items.length} ítems)</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="px-1.5 py-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              onClick={() => deleteTemplate(tpl.name)}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <Input
+                        className="h-7 text-xs flex-1"
+                        placeholder="Nombre de la nueva plantilla…"
+                        value={templateName}
+                        onChange={e => setTemplateName(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveTemplate(); } }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        disabled={!templateName.trim() || savingTemplate}
+                        onClick={saveTemplate}
+                      >
+                        <Bookmark className="w-3 h-3" /> Guardar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
-                <Input type="email" placeholder="cliente@email.com" value={custEmail} onChange={e => setCustEmail(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono</label>
-                <Input placeholder="+54 9 11…" value={custPhone} onChange={e => setCustPhone(e.target.value)} />
+            )}
+
+            {/* ── Cliente ── */}
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block uppercase tracking-wider">Cliente</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  {activeOrg ? (
+                    <CustomerSearch
+                      value={custName}
+                      onChange={setCustName}
+                      onSelect={c => {
+                        setCustName(c.name);
+                        setCustEmail(c.email || "");
+                        setCustPhone(c.phone || "");
+                      }}
+                      orgId={activeOrg.id}
+                    />
+                  ) : (
+                    <Input placeholder="Nombre del cliente" value={custName} onChange={e => setCustName(e.target.value)} />
+                  )}
+                </div>
+                <div>
+                  <Input type="email" placeholder="cliente@email.com" value={custEmail} onChange={e => setCustEmail(e.target.value)} />
+                </div>
+                <div>
+                  <Input placeholder="+54 9 11…" value={custPhone} onChange={e => setCustPhone(e.target.value)} />
+                </div>
               </div>
             </div>
 
-            {/* Items */}
+            {/* ── Ítems ── */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-muted-foreground">Ítems</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ítems</label>
                 <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setItems(p => [...p, { description: "", qty: 1, unitPrice: 0, total: 0 }])}>
                   <Plus className="w-3 h-3 mr-1" /> Ítem
                 </Button>
@@ -862,12 +1162,27 @@ export default function PresupuestosPage() {
               <div className="space-y-2">
                 {items.map((it, i) => (
                   <div key={i} className="flex gap-2 items-start">
-                    <Input
-                      className="flex-1 h-8 text-xs"
-                      placeholder="Descripción del ítem…"
-                      value={it.description}
-                      onChange={e => updateItem(i, "description", e.target.value)}
-                    />
+                    {activeOrg ? (
+                      <ProductSearch
+                        value={it.description}
+                        onChange={v => updateItem(i, "description", v)}
+                        onSelect={p => {
+                          setItems(prev => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], description: p.name, unitPrice: p.sale_price_ars, total: Number(next[i].qty) * p.sale_price_ars };
+                            return next;
+                          });
+                        }}
+                        orgId={activeOrg.id}
+                      />
+                    ) : (
+                      <Input
+                        className="flex-1 h-8 text-xs"
+                        placeholder="Descripción del ítem…"
+                        value={it.description}
+                        onChange={e => updateItem(i, "description", e.target.value)}
+                      />
+                    )}
                     <Input
                       className="w-14 h-8 text-xs text-center"
                       type="number"
@@ -895,36 +1210,62 @@ export default function PresupuestosPage() {
               </div>
             </div>
 
-            {/* Totals */}
+            {/* ── Totales ── */}
             <div className="flex justify-end gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Descuento:</span>
+                <span className="text-muted-foreground text-xs">Descuento:</span>
                 <Input className="w-28 h-7 text-xs text-right" type="number" min="0" value={discountAmount} onChange={e => setDiscountAmount(e.target.value)} />
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">Total:</span>
+                <span className="font-semibold text-xs">Total:</span>
                 <span className="font-bold text-primary text-base">{formatARS(Math.max(0, total))}</span>
               </div>
             </div>
 
+            {/* ── Vencimiento + Notas ── */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Válido hasta</label>
                 <Input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} className="h-8 text-xs" />
+                <p className="text-[10px] text-muted-foreground mt-0.5">Por defecto +15 días</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas</label>
+                <Textarea placeholder="Condiciones, aclaraciones…" value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none text-xs" />
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas</label>
-              <Textarea placeholder="Condiciones, aclaraciones…" value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none text-xs" />
+            {/* ── Guardar plantilla + Auto-send ── */}
+            <div className="bg-muted/20 border border-border/40 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                <label className="text-xs font-medium">Automatización</label>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer group select-none">
+                <input
+                  type="checkbox"
+                  className="w-3.5 h-3.5 rounded accent-primary"
+                  checked={autoSend}
+                  onChange={e => setAutoSend(e.target.checked)}
+                  disabled={!custEmail}
+                />
+                <span className={`text-xs ${custEmail ? "text-foreground" : "text-muted-foreground"}`}>
+                  {custEmail ? `Enviar por email a ${custEmail}` : "Ingresá un email para auto-enviar"}
+                </span>
+              </label>
             </div>
 
+            {/* ── Submit ── */}
             <Button
               className="w-full gradient-gold text-primary-foreground"
               disabled={!custName.trim() || saving}
               onClick={handleSave}
             >
-              {saving ? "Guardando…" : "Crear presupuesto"}
+              {saving ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando…</>
+              ) : (
+                <>{autoSend && custEmail ? <><Send className="w-4 h-4 mr-2" />Crear y enviar</> : "Crear presupuesto"}</>
+              )}
             </Button>
           </div>
         </DialogContent>

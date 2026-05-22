@@ -29,12 +29,12 @@ function KPI({ label, value, sub, icon: Icon, trend, color = "text-foreground" }
   icon: typeof TrendingUp; trend?: number; color?: string;
 }) {
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+    <div className="bg-card border border-border rounded-2xl p-4">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
         <Icon className="w-4 h-4 text-primary" />
       </div>
-      <div className={`text-2xl font-display font-bold font-mono tracking-tight ${color}`}>{value}</div>
+      <div className={`text-2xl font-display font-bold ${color}`}>{value}</div>
       {(sub || trend !== undefined) && (
         <div className="flex items-center gap-1 mt-0.5">
           {trend !== undefined && (
@@ -364,6 +364,48 @@ export default function AnalyticsPage() {
 
     const rentabilidad = buildRentabilidadData(sales, products);
 
+    // Payment channels (canales de venta)
+    const METHOD_LABELS: Record<string, string> = {
+      efectivo: "Efectivo", transferencia: "Transferencia",
+      tarjeta_debito: "Débito", tarjeta_credito: "Crédito",
+      mercadopago: "MercadoPago", fiado: "Fiado",
+      mp: "MercadoPago", cash: "Efectivo",
+    };
+    const channelMap: Record<string, { total: number; count: number; profit: number }> = {};
+    const channelMonthly: Record<string, number[]> = {}; // method -> 12 months
+    sales.forEach((s: any) => {
+      const m = (s.payment_method || "otro").toLowerCase().replace(/\s+/g, "_");
+      const label = METHOD_LABELS[m] || m;
+      if (!channelMap[label]) channelMap[label] = { total: 0, count: 0, profit: 0 };
+      channelMap[label].total += Number(s.total_ars || 0);
+      channelMap[label].count++;
+      channelMap[label].profit += Number(s.profit_ars || 0);
+      // monthly
+      const d = new Date(s.date);
+      if (d.getFullYear() === currentYear) {
+        if (!channelMonthly[label]) channelMonthly[label] = new Array(12).fill(0);
+        channelMonthly[label][d.getMonth()] += Number(s.total_ars || 0);
+      }
+    });
+    const channelTotal = Object.values(channelMap).reduce((s, v) => s + v.total, 0);
+    const CHANNEL_COLORS: Record<string, string> = {
+      "Efectivo": "#22c55e", "Transferencia": "#3b82f6", "Débito": "#a855f7",
+      "Crédito": "#f59e0b", "MercadoPago": "#06b6d4", "Fiado": "#ef4444", "otro": "#6b7280",
+    };
+    const paymentChannels = Object.entries(channelMap)
+      .map(([name, v]) => ({
+        name, total: v.total, count: v.count, profit: v.profit,
+        share: channelTotal > 0 ? Math.round(v.total / channelTotal * 100) : 0,
+        avgTicket: v.count > 0 ? v.total / v.count : 0,
+        color: CHANNEL_COLORS[name] || "#6b7280",
+      }))
+      .sort((a, b) => b.total - a.total);
+    const channelTrendData = MONTHS_ES.map((month, mi) => {
+      const row: Record<string, number | string> = { month };
+      Object.keys(channelMonthly).forEach(ch => { row[ch] = Math.round(channelMonthly[ch]?.[mi] || 0); });
+      return row;
+    });
+
     return {
       monthly, yoyData, productPerf, customerData, categoryMix,
       heatmap, hourlyBars, dailyBars,
@@ -372,7 +414,7 @@ export default function AnalyticsPage() {
       returningCustomers, retentionRate, newCustomersLast30, customersLast30Size: customersLast30.size,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
       abcProducts, catTrend, catKeys, weeklyComparison, weekTotalThis, weekTotalPrev,
-      rentabilidad,
+      rentabilidad, paymentChannels, channelTrendData, channelKeys: Object.keys(channelMonthly),
     };
   }, [rawData, year]);
 
@@ -480,13 +522,12 @@ export default function AnalyticsPage() {
           <TabsTrigger value="cohorts" className="text-xs">👥 Cohorts</TabsTrigger>
           <TabsTrigger value="dormant" className="text-xs">⚠️ Sin movimiento</TabsTrigger>
           <TabsTrigger value="rentabilidad" className="text-xs">💰 Rentabilidad</TabsTrigger>
-          <TabsTrigger value="canales" className="text-xs">💳 Canales</TabsTrigger>
-          <TabsTrigger value="vendedores" className="text-xs">👤 Vendedores</TabsTrigger>
+          <TabsTrigger value="canales" className="text-xs">📊 Canales</TabsTrigger>
         </TabsList>
 
         {/* TREND TAB */}
         <TabsContent value="trend" className="mt-4 space-y-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Ingresos & Ganancia — {currentYear}</h3>
               <button
@@ -522,7 +563,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Custom date range daily chart */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <h3 className="text-sm font-semibold flex-1">Detalle por día — rango personalizado</h3>
               <div className="flex items-center gap-2 text-xs">
@@ -552,7 +593,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Resultado neto mensual (ganancia − gastos)</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={derived.monthly} barSize={16} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -569,7 +610,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Unidades vendidas por mes</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={derived.monthly} barSize={16} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -586,7 +627,7 @@ export default function AnalyticsPage() {
 
         {/* YoY TAB */}
         <TabsContent value="yoy" className="mt-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold mb-4">
               Ingresos: {currentYear} vs {currentYear - 1}
             </h3>
@@ -606,7 +647,7 @@ export default function AnalyticsPage() {
 
         {/* PRODUCTS TAB */}
         <TabsContent value="products" className="mt-4 space-y-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold mb-4">Top 15 productos por ganancia acumulada</h3>
             <ResponsiveContainer width="100%" height={340}>
               <BarChart
@@ -628,9 +669,9 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
-            <div className="px-5 py-3 border-b border-border/60 bg-muted/40">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50 font-display">Detalle de rendimiento</h3>
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-border bg-muted/40">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Detalle de rendimiento</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm table-compact-mobile">
@@ -667,82 +708,23 @@ export default function AnalyticsPage() {
         <TabsContent value="customers" className="mt-4 space-y-4">
           {/* Retention KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
-              <div className="text-2xl font-bold font-mono tracking-tight text-primary">{derived.customersLast30Size}</div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-primary">{derived.customersLast30Size}</div>
               <div className="text-xs text-muted-foreground mt-1">Activos últimos 30d</div>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
-              <div className={`text-2xl font-bold font-mono tracking-tight ${derived.retentionRate >= 50 ? 'text-success' : derived.retentionRate >= 25 ? 'text-warning' : 'text-destructive'}`}>{derived.retentionRate}%</div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className={`text-2xl font-bold ${derived.retentionRate >= 50 ? 'text-success' : derived.retentionRate >= 25 ? 'text-warning' : 'text-destructive'}`}>{derived.retentionRate}%</div>
               <div className="text-xs text-muted-foreground mt-1">Retención 30d</div>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
-              <div className="text-2xl font-bold font-mono tracking-tight text-blue-400">{derived.returningCustomers}</div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">{derived.returningCustomers}</div>
               <div className="text-xs text-muted-foreground mt-1">Clientes que regresaron</div>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
-              <div className="text-2xl font-bold font-mono tracking-tight text-success">{derived.newCustomersLast30}</div>
+            <div className="bg-card border border-border rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-success">{derived.newCustomersLast30}</div>
               <div className="text-xs text-muted-foreground mt-1">Nuevos últimos 30d</div>
             </div>
           </div>
-          {/* Nuevos vs Recurrentes por mes */}
-          {(() => {
-            const allSales: any[] = rawData?.sales || [];
-            const today = new Date();
-            const months: { key: string; label: string; newC: Set<string>; returnC: Set<string> }[] = [];
-            for (let m = 5; m >= 0; m--) {
-              const d = new Date(today.getFullYear(), today.getMonth() - m, 1);
-              months.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }), newC: new Set(), returnC: new Set() });
-            }
-            // First purchase date per customer (across all sales)
-            const firstPurchase: Record<string, string> = {};
-            const allSortedSales = [...allSales].sort((a: any, b: any) => a.date.localeCompare(b.date));
-            allSortedSales.forEach((s: any) => {
-              const name = s.customer_name || '';
-              if (name && !firstPurchase[name]) firstPurchase[name] = s.date.slice(0, 7);
-            });
-            // Classify each month's buyers
-            allSortedSales.forEach((s: any) => {
-              const name = s.customer_name || '';
-              if (!name) return;
-              const sMonth = s.date.slice(0, 7);
-              const mb = months.find(m => m.key === sMonth);
-              if (!mb) return;
-              if (firstPurchase[name] === sMonth) mb.newC.add(name);
-              else mb.returnC.add(name);
-            });
-            const chartData = months.map(m => ({
-              month: m.label,
-              nuevos: m.newC.size,
-              recurrentes: m.returnC.size,
-            }));
-            const totalNew = months.reduce((s, m) => s + m.newC.size, 0);
-            const totalRet = months.reduce((s, m) => s + m.returnC.size, 0);
-            if (totalNew + totalRet === 0) return null;
-            const newPct = totalNew + totalRet > 0 ? Math.round((totalNew / (totalNew + totalRet)) * 100) : 0;
-            return (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Users className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-semibold flex-1">Nuevos vs Recurrentes</h3>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" />Nuevos {newPct}%</span>
-                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />Recurrentes {100 - newPct}%</span>
-                  </div>
-                </div>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                    <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                    <Tooltip formatter={(v: number, name: string) => [v, name === 'nuevos' ? 'Nuevos' : 'Recurrentes']} />
-                    <Bar dataKey="nuevos" name="nuevos" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="recurrentes" name="recurrentes" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <p className="text-[10px] text-muted-foreground">Un "nuevo" cliente es quien compra por primera vez en ese mes. Un "recurrente" ya había comprado antes.</p>
-              </div>
-            );
-          })()}
-
           {/* Pareto / concentration widget */}
           {derived.customerData.length >= 3 && (() => {
             const sorted = [...derived.customerData].sort((a: any, b: any) => b.total - a.total);
@@ -754,19 +736,19 @@ export default function AnalyticsPage() {
             const top50rev = sorted.slice(0, top50idx).reduce((s: number, c: any) => s + c.total, 0);
             const top50pct = totalRev > 0 ? Math.round((top50rev / totalRev) * 100) : 0;
             return (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+              <div className="bg-card border border-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <TrendingUp className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-semibold">Concentración de ingresos (Pareto)</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-muted/40 rounded-lg p-3 text-center">
-                    <div className={`text-2xl font-bold font-mono tracking-tight ${top20pct >= 80 ? "text-yellow-400" : top20pct >= 60 ? "text-orange-400" : "text-green-400"}`}>{top20pct}%</div>
+                    <div className={`text-2xl font-bold ${top20pct >= 80 ? "text-yellow-400" : top20pct >= 60 ? "text-orange-400" : "text-green-400"}`}>{top20pct}%</div>
                     <div className="text-xs text-muted-foreground mt-1">del revenue viene del top 20% de clientes</div>
                     <div className="text-[10px] text-muted-foreground">({top20idx} de {sorted.length} clientes)</div>
                   </div>
                   <div className="bg-muted/40 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold font-mono tracking-tight text-blue-400">{top50pct}%</div>
+                    <div className="text-2xl font-bold text-blue-400">{top50pct}%</div>
                     <div className="text-xs text-muted-foreground mt-1">del revenue viene del top 50% de clientes</div>
                     <div className="text-[10px] text-muted-foreground">({top50idx} de {sorted.length} clientes)</div>
                   </div>
@@ -798,8 +780,8 @@ export default function AnalyticsPage() {
             );
           })()}
 
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
-            <div className="px-5 py-3 border-b border-border/60 bg-muted/40 flex items-center gap-2">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold flex-1">Top clientes por gasto total</h3>
               <span className="text-xs text-muted-foreground">{derived.uniqueCustomers} únicos</span>
@@ -825,7 +807,7 @@ export default function AnalyticsPage() {
                         <td className="px-4 py-2.5 text-muted-foreground text-xs">{i + 1}</td>
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-[6px] bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
                               {c.name.slice(0, 1).toUpperCase()}
                             </div>
                             <span className="font-medium truncate max-w-[140px]">{c.name}</span>
@@ -852,7 +834,7 @@ export default function AnalyticsPage() {
         {/* MIX TAB */}
         <TabsContent value="mix" className="mt-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Mix de ganancia por categoría</h3>
               {derived.categoryMix.length === 0 ? (
                 <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Sin datos</div>
@@ -870,7 +852,7 @@ export default function AnalyticsPage() {
               )}
             </div>
 
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Detalle de categorías</h3>
               <div className="space-y-3">
                 {derived.categoryMix.map((cat: any, i: number) => {
@@ -902,7 +884,7 @@ export default function AnalyticsPage() {
         </TabsContent>
         {/* HORARIOS TAB */}
         <TabsContent value="horarios" className="mt-4 space-y-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold">Ventas por hora del día</h3>
@@ -928,7 +910,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Calendar className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold">Ventas por día de la semana</h3>
@@ -950,7 +932,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-3">Pico de actividad</h3>
               {(() => {
                 const topHour = derived.hourlyBars.reduce((a: any, b: any) => b.count > a.count ? b : a, derived.hourlyBars[0]);
@@ -959,7 +941,7 @@ export default function AnalyticsPage() {
                 const totalWithTime = derived.hourlyBars.reduce((s: number, h: any) => s + h.count, 0);
                 return (
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 rounded-[10px] bg-primary/10 border border-primary/20">
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-primary/10 border border-primary/20">
                       <div>
                         <div className="text-xs text-muted-foreground">Hora pico</div>
                         <div className="text-lg font-bold">{topHour?.label}</div>
@@ -969,7 +951,7 @@ export default function AnalyticsPage() {
                         <div className="text-lg font-bold text-primary">{topHour?.count}</div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 rounded-[10px] bg-blue-500/10 border border-blue-500/20">
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
                       <div>
                         <div className="text-xs text-muted-foreground">Día más activo</div>
                         <div className="text-lg font-bold">{topDay?.name}</div>
@@ -979,7 +961,7 @@ export default function AnalyticsPage() {
                         <div className="text-lg font-bold text-blue-400">{topDay?.count}</div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 rounded-[10px] bg-muted/40">
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-muted/40">
                       <div>
                         <div className="text-xs text-muted-foreground">Registros con horario</div>
                         <div className="text-sm font-semibold">{totalWithTime} ventas</div>
@@ -1008,26 +990,26 @@ export default function AnalyticsPage() {
         {/* FUNNEL TAB */}
         <TabsContent value="funnel" className="mt-4 space-y-4">
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Presupuestos</div>
-              <div className="text-3xl font-bold font-mono tracking-tight">{derived.totalQuotes}</div>
+              <div className="text-3xl font-bold">{derived.totalQuotes}</div>
               <div className="text-xs text-muted-foreground mt-1">este año</div>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Conversión</div>
-              <div className={`text-3xl font-bold font-mono tracking-tight ${derived.conversionRate >= 50 ? "text-green-400" : derived.conversionRate >= 25 ? "text-yellow-400" : "text-red-400"}`}>
+              <div className={`text-3xl font-bold ${derived.conversionRate >= 50 ? "text-green-400" : derived.conversionRate >= 25 ? "text-yellow-400" : "text-red-400"}`}>
                 {derived.conversionRate}%
               </div>
               <div className="text-xs text-muted-foreground mt-1">{derived.wonQuotes} aprobados</div>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Valor total</div>
-              <div className="text-2xl font-bold font-mono tracking-tight">{formatARS(derived.quotesValue)}</div>
+              <div className="text-2xl font-bold">{formatARS(derived.quotesValue)}</div>
               <div className="text-xs text-muted-foreground mt-1">presupuestado</div>
             </div>
           </div>
 
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-6">
               <Filter className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold">Embudo de conversión — {currentYear}</h3>
@@ -1073,7 +1055,7 @@ export default function AnalyticsPage() {
             )}
           </div>
 
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold mb-3">Cómo mejorar la conversión</h3>
             <div className="space-y-2">
               {[
@@ -1099,7 +1081,7 @@ export default function AnalyticsPage() {
               const colors: Record<string, string> = { A: "border-success/30 bg-success/5 text-success", B: "border-warning/30 bg-warning/5 text-warning", C: "border-muted border-border bg-muted/10 text-muted-foreground" };
               const descriptions: Record<string, string> = { A: "Alta rotación → mantener stock", B: "Rotación media → optimizar", C: "Baja rotación → revisar o eliminar" };
               return (
-                <div key={cls} className={`rounded-[10px] border p-4 ${colors[cls]}`}>
+                <div key={cls} className={`rounded-xl border p-4 ${colors[cls]}`}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-2xl font-black font-display">{cls}</span>
                     <span className="text-xs opacity-60">{items.length} productos</span>
@@ -1117,8 +1099,8 @@ export default function AnalyticsPage() {
               <p>Sin datos de ventas para analizar</p>
             </div>
           ) : (
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
-              <div className="px-4 py-3 border-b border-border/60">
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
                 <h3 className="text-sm font-semibold">Clasificación ABC por ingreso</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">A=80% del ingreso · B=siguiente 15% · C=último 5%</p>
               </div>
@@ -1138,7 +1120,7 @@ export default function AnalyticsPage() {
                     {derived.abcProducts.slice(0, 50).map((p: any, i: number) => (
                       <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
                         <td className="p-3">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-[5px] ${
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                             p.cls === "A" ? "bg-success/15 text-success" :
                             p.cls === "B" ? "bg-warning/15 text-warning" :
                             "bg-muted text-muted-foreground"
@@ -1166,15 +1148,15 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          <div className="bg-muted/20 border border-border/60 rounded-[10px] p-4 space-y-2">
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50 font-display">¿Cómo usar el análisis ABC?</h4>
+          <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">¿Cómo usar el análisis ABC?</h4>
             {[
               { cls: "A", tip: "Productos clase A: asegurate de tener siempre stock. Negociá volumen con tus proveedores." },
               { cls: "B", tip: "Productos clase B: monitoreá la rotación. Pueden subir a A con mejor posicionamiento o bajar a C." },
               { cls: "C", tip: "Productos clase C: evaluá si vale la pena mantenerlos. Considerá liquidar stock o descontinuar." },
             ].map(item => (
               <div key={item.cls} className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded-[4px] text-[10px] ${
+                <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[10px] ${
                   item.cls === "A" ? "bg-success/15 text-success" :
                   item.cls === "B" ? "bg-warning/15 text-warning" :
                   "bg-muted text-muted-foreground"
@@ -1191,7 +1173,7 @@ export default function AnalyticsPage() {
             <p className="text-muted-foreground text-sm text-center py-12">Sin ventas en el período seleccionado.</p>
           ) : (
             <>
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+              <div className="bg-card border border-border rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Ingresos por categoría — mes a mes</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={derived.catTrend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -1208,7 +1190,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Summary table */}
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
@@ -1259,14 +1241,14 @@ export default function AnalyticsPage() {
                 color: derived.weekTotalThis >= derived.weekTotalPrev ? 'text-success' : 'text-destructive',
               },
             ].map(k => (
-              <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3">
+              <div key={k.label} className="bg-card border border-border rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
                 <p className={`text-lg font-bold font-display ${k.color}`}>{k.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Ventas por día — semana actual vs anterior</h3>
               <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -1290,10 +1272,10 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Day-by-day table */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
+                <tr className="border-b border-border bg-muted/30">
                   <th className="text-left px-4 py-2.5 text-xs text-muted-foreground uppercase">Día</th>
                   <th className="text-right px-4 py-2.5 text-xs text-muted-foreground uppercase">Esta semana</th>
                   <th className="text-right px-4 py-2.5 text-xs text-muted-foreground uppercase">Semana ant.</th>
@@ -1335,7 +1317,7 @@ export default function AnalyticsPage() {
         {/* RENTABILIDAD TAB */}
         <TabsContent value="rentabilidad" className="mt-4 space-y-4">
           {derived.rentabilidad.totalProducts === 0 ? (
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-8 text-center text-muted-foreground text-sm">
+            <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground text-sm">
               Sin datos de ventas para calcular rentabilidad.
             </div>
           ) : (
@@ -1343,7 +1325,7 @@ export default function AnalyticsPage() {
               {/* Top 5 / Bottom 5 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Top 5 por margen */}
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+                <div className="bg-card border border-border rounded-2xl p-5">
                   <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                     <span className="text-green-400">▲</span> Top 5 — Mayor margen bruto
                   </h3>
@@ -1352,7 +1334,7 @@ export default function AnalyticsPage() {
                       <div key={p.name} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-[6px] bg-green-500/20 text-green-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                             <span className="font-medium truncate max-w-[140px]" title={p.name}>{p.name}</span>
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
@@ -1369,7 +1351,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Bottom 5 por margen */}
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+                <div className="bg-card border border-border rounded-2xl p-5">
                   <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                     <span className="text-red-400">▼</span> Bottom 5 — Menor margen bruto
                   </h3>
@@ -1378,7 +1360,7 @@ export default function AnalyticsPage() {
                       <div key={p.name} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-[6px] bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
                             <span className="font-medium truncate max-w-[140px]" title={p.name}>{p.name}</span>
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
@@ -1396,7 +1378,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Category margin breakdown */}
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+              <div className="bg-card border border-border rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Margen por categoría</h3>
                 <div className="space-y-3">
                   {derived.rentabilidad.byCategory.map((c, i) => (
@@ -1432,7 +1414,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Margin distribution chart */}
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+              <div className="bg-card border border-border rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Distribución de margen por producto (Top 15)</h3>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={[...derived.rentabilidad.top5, ...derived.rentabilidad.bottom5.filter(p => !derived.rentabilidad.top5.find(t => t.name === p.name))].slice(0, 15).sort((a, b) => b.margin - a.margin)} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
@@ -1457,275 +1439,142 @@ export default function AnalyticsPage() {
           )}
         </TabsContent>
 
-        {/* ── CANALES DE VENTA TAB ── */}
+        {/* ── Canales de venta ── */}
         <TabsContent value="canales" className="mt-4 space-y-4">
-          {(() => {
-            const sales: any[] = rawData?.sales || [];
-            const yearOffset = Number(year);
-            const yearSales = sales.filter((s: any) => {
-              const d = new Date(s.date);
-              return d.getFullYear() === new Date().getFullYear() - yearOffset;
-            });
-
-            // Method labels
-            const METHOD_LABELS: Record<string, string> = {
-              efectivo: "Efectivo",
-              tarjeta: "Tarjeta",
-              debito: "Débito",
-              credito: "Crédito",
-              transferencia: "Transferencia",
-              mercado_pago: "Mercado Pago",
-              mp: "Mercado Pago",
-              fiado: "Fiado",
-              otro: "Otro",
-            };
-            const METHOD_COLORS: Record<string, string> = {
-              "Efectivo": "hsl(150,60%,40%)",
-              "Tarjeta": "hsl(200,70%,55%)",
-              "Débito": "hsl(220,65%,60%)",
-              "Crédito": "hsl(280,60%,55%)",
-              "Transferencia": "hsl(40,70%,50%)",
-              "Mercado Pago": "hsl(195,80%,45%)",
-              "Fiado": "hsl(0,65%,55%)",
-              "Otro": "hsl(60,60%,50%)",
-            };
-
-            // Channel totals
-            const channelMap: Record<string, { total: number; count: number; profit: number }> = {};
-            yearSales.forEach((s: any) => {
-              const raw = (s.payment_method || "efectivo").toLowerCase();
-              const label = METHOD_LABELS[raw] || raw;
-              if (!channelMap[label]) channelMap[label] = { total: 0, count: 0, profit: 0 };
-              channelMap[label].total += Number(s.total_ars || 0);
-              channelMap[label].count += 1;
-              channelMap[label].profit += Number(s.profit_ars || 0);
-            });
-            const totalRev = Object.values(channelMap).reduce((s, c) => s + c.total, 0);
-            const channels = Object.entries(channelMap)
-              .map(([name, d]) => ({ name, ...d, share: totalRev > 0 ? (d.total / totalRev) * 100 : 0 }))
-              .sort((a, b) => b.total - a.total);
-
-            // Monthly trend by channel (stacked bar)
-            const MONTHS_SHORT2 = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-            const monthlyByChannel: Record<string, Record<string, number>> = {};
-            MONTHS_SHORT2.forEach((m) => { monthlyByChannel[m] = {}; });
-            yearSales.forEach((s: any) => {
-              const mon = MONTHS_SHORT2[new Date(s.date).getMonth()];
-              const raw = (s.payment_method || "efectivo").toLowerCase();
-              const label = METHOD_LABELS[raw] || raw;
-              if (!monthlyByChannel[mon][label]) monthlyByChannel[mon][label] = 0;
-              monthlyByChannel[mon][label] += Number(s.total_ars || 0);
-            });
-            const trendData = MONTHS_SHORT2.map((month) => ({ month, ...monthlyByChannel[month] }));
-
-            // Pie data
-            const pieData = channels.map(c => ({ name: c.name, value: Math.round(c.total) }));
-
-            if (channels.length === 0) {
-              return (
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-10 text-center text-muted-foreground text-sm">
-                  Sin datos de ventas para este año.
-                </div>
-              );
-            }
-
-            return (
-              <>
-                {/* KPI chips */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {channels.slice(0, 4).map(c => (
-                    <div key={c.name} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground">{c.name}</span>
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-[5px]" style={{ background: (METHOD_COLORS[c.name] || '#888') + '30', color: METHOD_COLORS[c.name] || '#888' }}>
-                          {c.share.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="text-xl font-bold font-display">{formatARS(c.total)}</div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{c.count} transacciones</p>
+          {derived.paymentChannels.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground text-sm">Sin datos de ventas con método de pago.</p>
+          ) : (
+            <>
+              {/* KPI cards por canal */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {derived.paymentChannels.map(ch => (
+                  <div key={ch.name} className="bg-card border border-border rounded-xl p-3 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: ch.color }} />
+                      <span className="text-xs font-medium truncate">{ch.name}</span>
                     </div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Pie / Donut chart */}
-                  <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
-                    <h3 className="text-sm font-semibold mb-4">Distribución por canal</h3>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <PieChart>
-                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">
-                          {pieData.map((entry, i) => (
-                            <Cell key={entry.name} fill={METHOD_COLORS[entry.name] || PALETTE[i % PALETTE.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
-                        <Legend formatter={(v) => <span className="text-xs">{v}</span>} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <p className="text-lg font-bold text-primary">{ch.share}%</p>
+                    <p className="text-xs text-muted-foreground">{formatARS(ch.total)}</p>
+                    <p className="text-[10px] text-muted-foreground">{ch.count} ventas · ticket {formatARS(ch.avgTicket)}</p>
                   </div>
-
-                  {/* Table share breakdown */}
-                  <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
-                    <h3 className="text-sm font-semibold mb-4">Share por método de pago</h3>
-                    <div className="space-y-3">
-                      {channels.map(c => (
-                        <div key={c.name}>
-                          <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="font-medium">{c.name}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-muted-foreground">{c.count} txns</span>
-                              <span className="font-bold">{formatARS(c.total)}</span>
-                              <span className="text-xs" style={{ color: METHOD_COLORS[c.name] || '#888' }}>{c.share.toFixed(1)}%</span>
-                            </div>
-                          </div>
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${c.share}%`, background: METHOD_COLORS[c.name] || '#888' }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stacked monthly trend */}
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
-                  <h3 className="text-sm font-semibold mb-4">Tendencia mensual por canal — {new Date().getFullYear() - yearOffset}</h3>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={trendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barSize={18}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,22%)" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(220,15%,60%)" }} />
-                      <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10, fill: "hsl(220,15%,60%)" }} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
-                      <Legend formatter={(v) => <span className="text-xs">{v}</span>} />
-                      {channels.map((c, i) => (
-                        <Bar key={c.name} dataKey={c.name} stackId="a" fill={METHOD_COLORS[c.name] || PALETTE[i % PALETTE.length]} radius={i === channels.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]} />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </>
-            );
-          })()}
-        </TabsContent>
-
-        {/* ── Tab Vendedores ── */}
-        <TabsContent value="vendedores" className="mt-4 space-y-4">
-          {(() => {
-            const sales: any[] = rawData?.sales || [];
-            if (!sales.length) return <p className="text-center text-muted-foreground text-sm py-10">Sin datos de ventas</p>;
-
-            // Build seller stats from last 30 days
-            const today = new Date();
-            const d30 = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
-            const thisWeekStart = new Date(today); thisWeekStart.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1)); thisWeekStart.setHours(0,0,0,0);
-            const weekStr = thisWeekStart.toISOString().slice(0, 10);
-
-            const sellerMap: Record<string, { name: string; total: number; profit: number; count: number; weekTotal: number; weekCount: number; tickets: Set<string> }> = {};
-            sales.filter((s: any) => s.seller_name).forEach((s: any) => {
-              const n: string = s.seller_name;
-              if (!sellerMap[n]) sellerMap[n] = { name: n, total: 0, profit: 0, count: 0, weekTotal: 0, weekCount: 0, tickets: new Set() };
-              if (String(s.date).slice(0, 10) >= d30) {
-                sellerMap[n].total += Number(s.total_ars);
-                sellerMap[n].profit += Number(s.profit_ars);
-                sellerMap[n].count++;
-                // Group by created_at minute as "ticket" proxy
-                const ticketKey = String(s.date).slice(0, 16) + '_' + (s.customer_name || '');
-                sellerMap[n].tickets.add(ticketKey);
-              }
-              if (String(s.date).slice(0, 10) >= weekStr) {
-                sellerMap[n].weekTotal += Number(s.total_ars);
-                sellerMap[n].weekCount++;
-              }
-            });
-
-            const sellers = Object.values(sellerMap).sort((a, b) => b.total - a.total);
-            if (!sellers.length) return (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-6 text-center">
-                <p className="text-muted-foreground text-sm">No hay ventas con vendedor asignado en los últimos 30 días.</p>
-                <p className="text-xs text-muted-foreground mt-1">Configurá el vendedor de turno en el POS para ver métricas aquí.</p>
+                ))}
               </div>
-            );
 
-            const maxTotal = sellers[0]?.total || 1;
-            const commissionPct = 5; // default
-
-            return (
-              <>
-                {/* KPI cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Vendedores activos', value: String(sellers.length), sub: 'últimos 30d' },
-                    { label: 'Top vendedor', value: sellers[0]?.name || '—', sub: formatARS(sellers[0]?.total || 0) },
-                    { label: 'Ticket promedio', value: formatARS(sellers.reduce((s, v) => s + (v.count > 0 ? v.total / v.count : 0), 0) / sellers.length), sub: 'promedio de todos' },
-                    { label: 'Ganancia total 30d', value: formatARS(sellers.reduce((s, v) => s + v.profit, 0)), sub: 'suma de vendedores' },
-                  ].map(k => (
-                    <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p>
-                      <p className="text-lg font-bold font-display mt-0.5 truncate">{k.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{k.sub}</p>
-                    </div>
+              {/* Barra de share visual */}
+              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold">Distribución por canal</h3>
+                <div className="flex h-5 rounded-full overflow-hidden gap-0.5">
+                  {derived.paymentChannels.map(ch => (
+                    <div
+                      key={ch.name}
+                      title={`${ch.name}: ${ch.share}%`}
+                      style={{ width: `${ch.share}%`, background: ch.color }}
+                      className="transition-all"
+                    />
                   ))}
                 </div>
-
-                {/* Ranking table */}
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
-                    <h3 className="text-sm font-semibold">Rendimiento por vendedor — últimos 30 días</h3>
-                  </div>
-                  <div className="divide-y divide-border">
-                    {sellers.map((s, i) => {
-                      const ticketAvg = s.count > 0 ? s.total / s.count : 0;
-                      const margin = s.total > 0 ? (s.profit / s.total) * 100 : 0;
-                      const commission = s.total * (commissionPct / 100);
-                      const barPct = (s.total / maxTotal) * 100;
-                      return (
-                        <div key={s.name} className="px-4 py-3">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-muted-foreground/60 w-4">{i + 1}</span>
-                              <span className="font-semibold text-sm">{s.name}</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs">
-                              <span className="text-muted-foreground">{s.count} ventas</span>
-                              <span className="text-muted-foreground hidden sm:inline">Ticket: {formatARS(ticketAvg)}</span>
-                              <span className="text-success hidden md:inline">Margen: {margin.toFixed(1)}%</span>
-                              <span className="text-primary hidden lg:inline">Comisión: {formatARS(commission)}</span>
-                              <span className="font-bold font-mono">{formatARS(s.total)}</span>
-                            </div>
-                          </div>
-                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: i === 0 ? 'hsl(43,89%,55%)' : 'hsl(var(--primary)/.5)' }} />
-                          </div>
-                          {/* Weekly mini stats */}
-                          <div className="flex gap-4 mt-1.5 text-[10px] text-muted-foreground">
-                            <span>Esta semana: {formatARS(s.weekTotal)} ({s.weekCount} ventas)</span>
-                            <span>Comisión semana: {formatARS(s.weekTotal * commissionPct / 100)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                  {derived.paymentChannels.map(ch => (
+                    <span key={ch.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ch.color }} />
+                      {ch.name} <span className="font-semibold text-foreground">{ch.share}%</span>
+                    </span>
+                  ))}
                 </div>
+              </div>
 
-                {/* Bar chart weekly */}
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
-                  <h3 className="text-sm font-semibold mb-3">Ventas esta semana por vendedor</h3>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <BarChart data={sellers.filter(s => s.weekTotal > 0)} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis hide />
-                      <Tooltip formatter={(v: any) => formatARS(Number(v))} />
-                      <Bar dataKey="weekTotal" name="Ventas semana" radius={[4,4,0,0]}>
-                        {sellers.filter(s => s.weekTotal > 0).map((_s, idx) => (
-                          <Cell key={idx} fill={idx === 0 ? 'hsl(43,89%,55%)' : 'hsl(var(--primary)/.6)'} />
-                        ))}
-                      </Bar>
+              {/* Tendencia mensual por canal */}
+              {derived.channelKeys.length > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Evolución mensual por canal</h3>
+                    <button
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                      onClick={() => {
+                        const headers = ["Mes", ...derived.channelKeys];
+                        const rows = derived.channelTrendData.map((r: any) =>
+                          headers.map(h => r[h] ?? 0)
+                        );
+                        const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                        a.download = `canales-venta-${new Date().getFullYear()}.csv`;
+                        a.click();
+                      }}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      CSV
+                    </button>
+                  </div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={derived.channelTrendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip formatter={(v: number) => formatARS(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      {derived.channelKeys.map((ch: string) => {
+                        const chData = derived.paymentChannels.find((c: any) => c.name === ch);
+                        return (
+                          <Bar key={ch} dataKey={ch} stackId="a" fill={chData?.color || "#6b7280"} radius={0} />
+                        );
+                      })}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </>
-            );
-          })()}
+              )}
+
+              {/* Tabla detalle */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Canal</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ventas</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Total</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden sm:table-cell">Ticket prom.</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">Ganancia</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {derived.paymentChannels.map((ch: any) => (
+                      <tr key={ch.name} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ch.color }} />
+                            <span className="font-medium text-sm">{ch.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-sm">{ch.count}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-sm">{formatARS(ch.total)}</td>
+                        <td className="px-4 py-2.5 text-right text-sm text-muted-foreground hidden sm:table-cell">{formatARS(ch.avgTicket)}</td>
+                        <td className="px-4 py-2.5 text-right text-sm text-success hidden md:table-cell">{formatARS(ch.profit)}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 bg-muted rounded-full h-1.5 hidden sm:block">
+                              <div className="h-1.5 rounded-full" style={{ width: `${ch.share}%`, background: ch.color }} />
+                            </div>
+                            <span className="text-xs font-bold">{ch.share}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/30 border-t-2 border-border font-bold">
+                      <td className="px-4 py-2.5 text-sm">Total</td>
+                      <td className="px-4 py-2.5 text-right text-sm">{derived.paymentChannels.reduce((s: number, c: any) => s + c.count, 0)}</td>
+                      <td className="px-4 py-2.5 text-right text-sm text-primary">{formatARS(derived.paymentChannels.reduce((s: number, c: any) => s + c.total, 0))}</td>
+                      <td className="px-4 py-2.5 hidden sm:table-cell" />
+                      <td className="px-4 py-2.5 text-right text-sm text-success hidden md:table-cell">{formatARS(derived.paymentChannels.reduce((s: number, c: any) => s + c.profit, 0))}</td>
+                      <td className="px-4 py-2.5 text-right text-xs font-bold">100%</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -1784,7 +1633,7 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-[10px] p-4">
+      <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
         <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="text-sm">
           <p className="font-medium">Forecast basado en regresión lineal</p>
@@ -1797,19 +1646,19 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Ventas acumuladas {currentYear}</p>
           <p className="text-lg font-bold text-primary">{formatARS(pastRevenue)}</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Promedio mensual</p>
           <p className="text-lg font-bold">{formatARS(avgMonthly)}</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Próximo mes proyectado</p>
           <p className="text-lg font-bold text-success">{formatARS(nextMonthProjected)}</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tendencia vs promedio</p>
           <p className={`text-lg font-bold flex items-center justify-center gap-1 ${trendPct >= 0 ? "text-success" : "text-destructive"}`}>
             {trendPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -1819,7 +1668,7 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
       </div>
 
       {/* Chart: Actual vs Projected */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5">
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5">
         <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
           Ventas reales vs proyección {currentYear}
@@ -1845,7 +1694,7 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
 
       {/* Projection table */}
       {futureMonths.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3">Proyección mensual restante</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {futureMonths.map(m => (
@@ -1895,7 +1744,7 @@ function ProductDemandTab({ products, sales }: { products: any[]; sales: any[] }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-[10px] p-4">
+      <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
         <Package className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="text-sm">
           <p className="font-medium">Proyección de demanda por producto — próximos 30 días</p>
@@ -1930,10 +1779,10 @@ function ProductDemandTab({ products, sales }: { products: any[]; sales: any[] }
           <p>No hay ventas registradas en los últimos 60 días con producto asignado.</p>
         </div>
       ) : (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-x-auto">
+        <div className="bg-card border border-border rounded-xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-muted-foreground text-[11px]">
+              <tr className="border-b border-border text-muted-foreground text-[11px]">
                 <th className="text-left p-3 font-medium">Producto</th>
                 <th className="text-right p-3 font-medium">Stock actual</th>
                 <th className="text-right p-3 font-medium">Uds./día</th>
@@ -2037,7 +1886,7 @@ function CohortTab({ sales }: { sales: any[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border rounded-xl p-4">
         <h3 className="text-sm font-semibold mb-1">Retención por cohorte mensual</h3>
         <p className="text-xs text-muted-foreground mb-4">% de clientes de cada cohorte que volvieron a comprar en los meses siguientes. Mes 0 = mes de primera compra.</p>
         <div className="overflow-x-auto">
@@ -2133,7 +1982,7 @@ function DormantProductsTab({ products, sales }: { products: any[]; sales: any[]
       {dormantData.length === 0 ? (
         <p className="text-center py-12 text-muted-foreground text-sm">No hay productos sin movimiento en este período</p>
       ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-border/60">
+        <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
@@ -2164,7 +2013,7 @@ function DormantProductsTab({ products, sales }: { products: any[]; sales: any[]
                     }
                   </td>
                   <td className="p-3 text-center">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-[5px] font-medium ${p.daysSince === null || p.daysSince >= 90 ? "bg-red-500/10 text-red-400" : "bg-orange-500/10 text-orange-400"}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${p.daysSince === null || p.daysSince >= 90 ? "bg-red-500/10 text-red-400" : "bg-orange-500/10 text-orange-400"}`}>
                       {p.daysSince === null || p.daysSince >= 90 ? "Liquidar" : "Promover"}
                     </span>
                   </td>

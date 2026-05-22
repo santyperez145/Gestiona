@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
@@ -10,14 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, ImagePlus, ScanLine, Copy } from "lucide-react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
-import InvoiceImportDialog from "@/components/products/InvoiceImportDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -31,6 +29,60 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
+
+function exportPriceLabels(products: any[], businessName: string) {
+  const items = products.filter(p => p.stock > 0 || true).slice(0, 80);
+  if (!items.length) return;
+  const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+  const rows = items.map(p => {
+    const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
+    const price = hasDiscount ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+    const originalPrice = Number(p.sale_price_ars);
+    return `
+      <div class="label">
+        <div class="biz">${businessName}</div>
+        <div class="name">${p.name.slice(0, 32)}${p.name.length > 32 ? '…' : ''}</div>
+        ${p.brand && p.brand !== p.name ? `<div class="brand">${p.brand}</div>` : ''}
+        ${hasDiscount ? `
+          <div class="old-price">${fmtARS(originalPrice)}</div>
+          <div class="price discount">${fmtARS(price)}</div>
+          <div class="badge-oferta">OFERTA</div>
+        ` : `
+          <div class="price">${fmtARS(price)}</div>
+        `}
+        ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
+      </div>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas de precio — ${businessName}</title>
+<style>
+  @page { margin: 8mm; }
+  body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
+  h2 { font-size: 11px; color: #666; text-align: center; margin: 0 0 6px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 3mm; justify-content: flex-start; }
+  .label {
+    width: 55mm; min-height: 32mm; border: 0.5px solid #ccc; border-radius: 3px;
+    padding: 3mm 3.5mm; display: flex; flex-direction: column; justify-content: center;
+    break-inside: avoid; box-sizing: border-box; position: relative; background: #fff;
+  }
+  .biz { font-size: 6px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1.5mm; }
+  .name { font-size: 9px; font-weight: bold; color: #111; word-break: break-word; line-height: 1.3; }
+  .brand { font-size: 7px; color: #777; margin-top: 0.5mm; }
+  .price { font-size: 16px; font-weight: bold; color: #1a1a2e; margin-top: 2mm; }
+  .price.discount { color: #c00; }
+  .old-price { font-size: 9px; color: #aaa; text-decoration: line-through; margin-top: 1.5mm; }
+  .badge-oferta {
+    position: absolute; top: 2mm; right: 2mm;
+    background: #c00; color: #fff; font-size: 6px; font-weight: bold;
+    padding: 1px 3px; border-radius: 2px; letter-spacing: 0.5px;
+  }
+  .sku { font-size: 6px; color: #bbb; font-family: monospace; margin-top: 1.5mm; }
+</style></head><body>
+<h2>${businessName} — Etiquetas de precio (${items.length} productos)</h2>
+<div class="grid">${rows}</div>
+</body></html>`;
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
+}
 
 function exportQRLabels(products: any[], businessName: string) {
   const inStock = products.filter(p => p.stock > 0).slice(0, 60);
@@ -74,61 +126,6 @@ function exportQRLabels(products: any[], businessName: string) {
   if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
 }
 
-function exportPriceLabels(products: any[], businessName: string, logoUrl?: string) {
-  const inStock = products.filter(p => p.stock > 0).slice(0, 80);
-  if (!inStock.length) { return; }
-  const fmtARS = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
-  const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const effectiveLogo = logoUrl || `${window.location.origin}/exentry-logo.png`;
-  const rows = inStock.map(p => {
-    const price = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
-      ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
-    const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
-    const qrData = encodeURIComponent(`${p.name}|${fmtARS(price)}`);
-    return `
-      <div class="label">
-        <div class="label-body">
-          <div class="biz"><img src="${effectiveLogo}" alt="${businessName}" class="biz-logo" /></div>
-          <div class="name">${p.name.slice(0, 34)}${p.name.length > 34 ? '…' : ''}</div>
-          ${p.brand ? `<div class="brand">${p.brand}</div>` : ''}
-          <div class="price-row">
-            ${hasDiscount ? `<span class="original">${fmtARS(Number(p.sale_price_ars))}</span>` : ''}
-            <span class="price">${fmtARS(price)}</span>
-          </div>
-          ${p.sku || p.barcode ? `<div class="sku">${p.sku || p.barcode}</div>` : ''}
-        </div>
-        <div class="qr-col">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${qrData}" width="70" height="70" alt="QR" />
-        </div>
-      </div>`;
-  }).join('');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Etiquetas de precio — ${businessName}</title>
-<style>
-  @page { size: A4; margin: 8mm; }
-  body { font-family: Arial, sans-serif; margin: 0; background: #fff; color: #111; }
-  h2 { font-size: 11px; color: #555; text-align: center; margin: 0 0 6px; }
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; }
-  .label { display: flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; padding: 4mm 3mm; gap: 3mm; break-inside: avoid; min-height: 32mm; }
-  .label-body { flex: 1; min-width: 0; }
-  .biz { margin-bottom: 2px; }
-  .biz-logo { height: 14px; width: auto; max-width: 70px; object-fit: contain; display: block; }
-  .name { font-size: 9px; font-weight: bold; color: #111; line-height: 1.25; word-break: break-word; }
-  .brand { font-size: 8px; color: #555; margin-top: 1px; }
-  .price-row { display: flex; align-items: baseline; gap: 4px; margin-top: 4px; }
-  .original { font-size: 9px; color: #aaa; text-decoration: line-through; }
-  .price { font-size: 18px; font-weight: 900; color: #b8860b; line-height: 1; }
-  .sku { font-size: 7px; color: #bbb; font-family: monospace; margin-top: 3px; }
-  .qr-col { flex-shrink: 0; }
-  .qr-col img { display: block; }
-</style></head><body>
-<h2>${businessName} — Etiquetas de precio · ${date} · ${inStock.length} productos</h2>
-<div class="grid">${rows}</div>
-</body></html>`;
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 800); }
-}
-
 function printAgingPDF(aged: { name: string; stock: number; daysSince: number; valueARS: number }[], businessName: string, exchangeRate: number) {
   const totalValue = aged.reduce((s, p) => s + p.valueARS, 0);
   const rows = aged.map(p => `
@@ -155,7 +152,7 @@ function printAgingPDF(aged: { name: string; stock: number; daysSince: number; v
   if (w) { w.document.write(html); w.document.close(); w.print(); }
 }
 
-function exportPriceListPDF(products: any[], businessName: string, logoUrl?: string) {
+function exportPriceListPDF(products: any[], businessName: string) {
   const inStock = products.filter(p => p.stock > 0);
   const grouped: Record<string, typeof inStock> = {};
   inStock.forEach(p => {
@@ -164,7 +161,6 @@ function exportPriceListPDF(products: any[], businessName: string, logoUrl?: str
     grouped[cat].push(p);
   });
   const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const effectiveLogo = logoUrl || `${window.location.origin}/exentry-logo.png`;
   let rows = '';
   Object.entries(grouped).forEach(([cat, items]) => {
     rows += `<tr class="cat-row"><td colspan="3">${cat}</td></tr>`;
@@ -179,9 +175,7 @@ function exportPriceListPDF(products: any[], businessName: string, logoUrl?: str
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lista de Precios</title>
 <style>
   body{font-family:Arial,sans-serif;margin:20px;font-size:12px;color:#222}
-  .header{display:flex;align-items:center;gap:14px;margin-bottom:4px}
-  .header img{height:44px;width:auto;max-width:180px;object-fit:contain}
-  h1{font-size:20px;margin:0}
+  h1{font-size:20px;margin-bottom:2px}
   .sub{color:#666;font-size:11px;margin-bottom:16px}
   table{border-collapse:collapse;width:100%}
   th{background:#1a1a2e;color:#d4a843;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;text-align:left}
@@ -194,10 +188,7 @@ function exportPriceListPDF(products: any[], businessName: string, logoUrl?: str
   .footer{margin-top:16px;font-size:10px;color:#999;text-align:center}
   @media print{.no-print{display:none}}
 </style></head><body>
-<div class="header">
-  <img src="${effectiveLogo}" alt="${businessName}" onerror="this.style.display='none'" />
-  <h1>${businessName}</h1>
-</div>
+<h1>${businessName}</h1>
 <div class="sub">Lista de precios — ${date} · ${inStock.length} productos disponibles</div>
 <table>
   <thead><tr><th>Producto</th><th class="price">Precio</th><th class="price">Oferta</th></tr></thead>
@@ -249,38 +240,8 @@ async function exportProductsXLSX(products: any[], settings: any) {
   toast.success('Excel exportado con hojas por categoría');
 }
 
-// ─────────────────────────────────────────────────────────────
-// Barcode scanner hook (reused from POS)
-// ─────────────────────────────────────────────────────────────
-function useBarcodeScanner(onDetect: (code: string) => void) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
-  const [scanning, setScanning] = useState(false);
-
-  const stop = useCallback(() => {
-    readerRef.current?.reset();
-    setScanning(false);
-  }, []);
-
-  const start = useCallback(async () => {
-    try {
-      readerRef.current = new BrowserMultiFormatReader();
-      setScanning(true);
-      await readerRef.current.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
-        if (result) { onDetect(result.getText()); stop(); }
-      });
-    } catch {
-      import("sonner").then(({ toast }) => toast.error("No se pudo acceder a la cámara"));
-      setScanning(false);
-    }
-  }, [onDetect, stop]);
-
-  return { videoRef, scanning, start, stop };
-}
-
 export default function ProductsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
@@ -292,21 +253,9 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [invoiceImportOpen, setInvoiceImportOpen] = useState(false);
   const [search, setSearch] = useState('');
-
-  // Barcode scanner
-  const handleBarcode = useCallback((code: string) => {
-    setSearch(code);
-    setPage(0);
-    import("sonner").then(({ toast }) => toast.success(`Código escaneado: ${code}`));
-  }, []);
-  const { videoRef: scanVideoRef, scanning: scannerOpen, start: startScan, stop: stopScan } = useBarcodeScanner(handleBarcode);
   const [filterCat, setFilterCat] = useState('all');
-  const [filterStock, setFilterStock] = useState(() => {
-    const p = new URLSearchParams(window.location.search).get('filter');
-    return p === 'lowstock' ? 'low' : 'all';
-  });
+  const [filterStock, setFilterStock] = useState('all');
   const [filterExpiry, setFilterExpiry] = useState('all');
   const [filterTag, setFilterTag] = useState('');
   const [filterMovement, setFilterMovement] = useState('all');
@@ -315,8 +264,6 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [variantCounts, setVariantCounts] = useState<Record<string, number>>({});
-  const [variantsByProduct, setVariantsByProduct] = useState<Record<string, any[]>>({});
-  const [expandedVariants, setExpandedVariants] = useState<Set<string>>(new Set());
   const [priceHistoryProduct, setPriceHistoryProduct] = useState<{ id: string; name: string } | null>(null);
   const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
   const [showAging, setShowAging] = useState(false);
@@ -336,14 +283,8 @@ export default function ProductsPage() {
     ]);
     setProducts(p); setSettings(s); setLoading(false);
     const counts: Record<string, number> = {};
-    const byProd: Record<string, any[]> = {};
-    allVariants.forEach((v: any) => {
-      counts[v.product_id] = (counts[v.product_id] || 0) + 1;
-      if (!byProd[v.product_id]) byProd[v.product_id] = [];
-      byProd[v.product_id].push(v);
-    });
+    allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
     setVariantCounts(counts);
-    setVariantsByProduct(byProd);
     // Calculate daily sales velocity per product (units/day over last 60 days)
     const velocity: Record<string, number> = {};
     const lastSale: Record<string, string> = {};
@@ -373,7 +314,6 @@ export default function ProductsPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const in30Days = new Date(today); in30Days.setDate(today.getDate() + 30);
-  const in60Days = new Date(today); in60Days.setDate(today.getDate() + 60);
   const in90Days = new Date(today); in90Days.setDate(today.getDate() + 90);
 
   const expiringSoon = products.filter(p => {
@@ -468,23 +408,18 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => exportProductsXLSX(filtered, settings)}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Exportar lista de precios para imprimir">
+            <Button variant="outline" size="sm" onClick={() => exportPriceListPDF(filtered, settings?.business_name || "Mi Negocio")} title="Exportar lista de precios para imprimir">
               <FileText className="w-4 h-4 mr-2" />Lista precios
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas de precio (55×32mm) para cada producto">
+              <Tag className="w-4 h-4 mr-2" />Etiquetas precio
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas QR por producto">
               <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportPriceLabels(filtered, settings?.business_name || "Mi Negocio", settings?.logo_url)} title="Imprimir etiquetas de precio para tienda">
-              <Tag className="w-4 h-4 mr-2" />Etiquetas precio
-            </Button>
             {canCreate && (
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" />Importar Excel
-              </Button>
-            )}
-            {canCreate && (
-              <Button variant="outline" size="sm" onClick={() => setInvoiceImportOpen(true)} title="Importar productos desde una foto o PDF de factura usando IA">
-                <Sparkles className="w-4 h-4 mr-2 text-primary" />Factura IA
               </Button>
             )}
             {canEdit && (
@@ -504,7 +439,7 @@ export default function ProductsPage() {
                 <DialogTrigger asChild>
                   <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo</Button>
                 </DialogTrigger>
-                <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editing ? 'Editar' : 'Nuevo'} Producto</DialogTitle></DialogHeader>
                   <ProductForm product={editing} settings={settings} userId={user!.id} orgId={activeOrg?.id} onSave={() => { setOpen(false); setEditing(null); reload(); }} />
                 </DialogContent>
@@ -528,7 +463,7 @@ export default function ProductsPage() {
 
       {/* Bulk price adjustment modal */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>
           <BulkPriceAdjust userId={user!.id} settings={settings} onDone={() => { setBulkOpen(false); reload(); }} />
         </DialogContent>
@@ -536,19 +471,8 @@ export default function ProductsPage() {
 
       {/* Excel import modal */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-5xl">
+        <DialogContent className="bg-card border-border max-w-5xl">
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
-        </DialogContent>
-      </Dialog>
-
-      {/* Invoice AI import modal */}
-      <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-3xl max-h-[90vh] overflow-y-auto">
-          <InvoiceImportDialog
-            mode="products"
-            onClose={() => setInvoiceImportOpen(false)}
-            onImported={reload}
-          />
         </DialogContent>
       </Dialog>
 
@@ -596,7 +520,7 @@ export default function ProductsPage() {
         })).filter(b => b.items.length > 0);
         const totalAtRisk = aged.reduce((s, p) => s + p.valueARS, 0);
         return (
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="flex items-center w-full gap-2 pr-2">
               <button
                 onClick={() => setShowAging(!showAging)}
@@ -664,29 +588,10 @@ export default function ProductsPage() {
         );
       })()}
 
-      {/* Barcode scanner overlay */}
-      {scannerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4">
-          <p className="text-white font-semibold">Apuntá la cámara al código de barras</p>
-          <div className="relative w-72 h-48 rounded-2xl overflow-hidden border-2 border-primary">
-            <video ref={scanVideoRef} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-48 h-0.5 bg-primary animate-pulse" />
-            </div>
-          </div>
-          <Button variant="outline" onClick={stopScan} className="border-primary/40 text-primary">Cancelar</Button>
-        </div>
-      )}
-
       <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
-          </div>
-          <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Escanear código de barras" onClick={() => scannerOpen ? stopScan() : startScan()}>
-            <ScanLine className="w-4 h-4" />
-          </Button>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9 bg-muted border-border h-9 text-sm" />
         </div>
         <div className="flex gap-2 flex-wrap">
           <Select value={filterCat} onValueChange={v => { setFilterCat(v); setPage(0); }}>
@@ -747,38 +652,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Active filters badge row */}
-      {(() => {
-        const activeFilters: { label: string; clear: () => void }[] = [];
-        if (filterCat !== 'all') activeFilters.push({ label: `Cat: ${filterCat.replace('_', ' ')}`, clear: () => setFilterCat('all') });
-        if (filterStock !== 'all') activeFilters.push({ label: filterStock === 'low' ? 'Stock bajo' : filterStock === 'out' ? 'Sin stock' : 'En stock', clear: () => setFilterStock('all') });
-        if (filterExpiry !== 'all') activeFilters.push({ label: filterExpiry === 'expired' ? 'Vencidos' : filterExpiry === 'soon30' ? 'Vence 30d' : filterExpiry === 'soon90' ? 'Vence 90d' : 'Con vencim.', clear: () => setFilterExpiry('all') });
-        if (filterTag) activeFilters.push({ label: `#${filterTag}`, clear: () => setFilterTag('') });
-        if (filterMovement !== 'all') activeFilters.push({ label: 'Sin venta 30d', clear: () => setFilterMovement('all') });
-        if (filterMargin !== 'all') activeFilters.push({ label: filterMargin === 'high' ? 'Margen >40%' : filterMargin === 'mid' ? 'Margen 20–40%' : filterMargin === 'low' ? 'Margen <20%' : 'Margen negativo', clear: () => setFilterMargin('all') });
-        if (search) activeFilters.push({ label: `"${search}"`, clear: () => setSearch('') });
-        if (!activeFilters.length) return null;
-        return (
-          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            <span className="text-[11px] text-muted-foreground font-medium">Filtros activos:</span>
-            {activeFilters.map((f, i) => (
-              <button key={i} onClick={() => { f.clear(); setPage(0); }}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
-                {f.label}
-                <span className="opacity-60 hover:opacity-100 text-xs">×</span>
-              </button>
-            ))}
-            {activeFilters.length > 1 && (
-              <button onClick={() => { setFilterCat('all'); setFilterStock('all'); setFilterExpiry('all'); setFilterTag(''); setFilterMovement('all'); setFilterMargin('all'); setSearch(''); setPage(0); }}
-                className="text-[11px] text-muted-foreground underline hover:text-foreground transition-colors ml-1">
-                Limpiar todo
-              </button>
-            )}
-            <span className="ml-auto text-[11px] text-muted-foreground">{filtered.length} producto{filtered.length !== 1 ? 's' : ''}</span>
-          </div>
-        );
-      })()}
-
       {!filtered.length ? (
         <EmptyState icon={Package} title={products.length ? 'Sin resultados' : 'No hay productos aún'} description="Agregá tu primer producto para empezar." actionLabel="Nuevo Producto" onAction={() => setOpen(true)} />
       ) : (
@@ -788,7 +661,7 @@ export default function ProductsPage() {
               <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 {brand} <span className="text-xs font-normal">({items.length} · {items.reduce((s: number, p: any) => s + p.stock, 0)} uds)</span>
               </h2>
-              <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg overflow-x-auto">
+              <div className="hidden md:block bg-card border border-border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
@@ -808,40 +681,25 @@ export default function ProductsPage() {
                   </thead>
                   <tbody>
                      {items.map((p: any) => (
-                       <React.Fragment key={p.id}>
-                       <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="p-3 font-medium max-w-[200px] truncate">
                             <div className="flex items-center gap-2">
                               {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
                               <span className="truncate">{p.name}</span>
                               {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                               {variantCounts[p.id] > 0 && (
-                                <button
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    setExpandedVariants(prev => {
-                                      const next = new Set(prev);
-                                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
-                                      return next;
-                                    });
-                                  }}
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 flex items-center gap-0.5 transition-colors ${expandedVariants.has(p.id) ? 'bg-success/30 text-success' : 'bg-success/15 text-success hover:bg-success/25'}`}
-                                  title={`${variantCounts[p.id]} sabores/variantes — click para ver stock`}
-                                >
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
                                   <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
-                                </button>
+                                </span>
                               )}
                               {p.expiry_date && (() => {
                                 const exp = new Date(p.expiry_date);
                                 const isExpired = exp < today;
-                                const isVeryS = !isExpired && exp <= in30Days;
-                                const isMedS = !isExpired && !isVeryS && exp <= in60Days;
-                                if (!isExpired && !isVeryS && !isMedS) return null;
-                                const cls = isExpired ? 'bg-destructive/20 text-destructive' : isVeryS ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/15 text-yellow-400';
-                                const label = isExpired ? 'VENC.' : isVeryS ? '< 30d' : '< 60d';
+                                const isSoon = exp <= in30Days;
+                                if (!isExpired && !isSoon) return null;
                                 return (
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${cls}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
-                                    {label}
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${isExpired ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/20 text-orange-400'}`} title={`Vence: ${exp.toLocaleDateString('es-AR')}`}>
+                                    {isExpired ? 'VENC.' : 'PROX.'}
                                   </span>
                                 );
                               })()}
@@ -930,15 +788,6 @@ export default function ProductsPage() {
                          </td>
                          <td className="p-3 text-center space-x-1">
                            {canEdit && <Button variant="ghost" size="sm" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>}
-                           {canCreate && (
-                             <Button variant="ghost" size="sm" title="Duplicar producto"
-                               onClick={() => {
-                                 const { id: _id, created_at: _ca, ...rest } = p;
-                                 setEditing({ ...rest, id: undefined, name: `Copia de ${p.name}`, stock: 0 });
-                                 setOpen(true);
-                               }}
-                             ><Copy className="w-3.5 h-3.5 text-muted-foreground" /></Button>
-                           )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                            {canDelete && (
                              <ConfirmDialog
@@ -951,34 +800,13 @@ export default function ProductsPage() {
                            )}
                          </td>
                        </tr>
-                       {/* Variant stock expand row */}
-                       {variantCounts[p.id] > 0 && expandedVariants.has(p.id) && (
-                         <tr className="bg-muted/20">
-                           <td colSpan={12} className="px-4 py-2">
-                             <div className="flex flex-wrap gap-2">
-                               {(variantsByProduct[p.id] || []).filter((v: any) => v.active !== false).map((v: any) => (
-                                 <span key={v.id} className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-                                   v.stock <= 0 ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                                   v.stock <= 2 ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
-                                   'bg-success/10 text-success border-success/20'
-                                 }`}>
-                                   {v.image_url && <img src={v.image_url} alt={v.variant_name} className="w-4 h-4 rounded object-cover shrink-0" />}
-                                   {v.variant_name} · <span className="font-bold">{v.stock}</span>
-                                 </span>
-                               ))}
-                               <span className="text-[10px] text-muted-foreground self-center">Stock por variante</span>
-                             </div>
-                           </td>
-                         </tr>
-                       )}
-                       </React.Fragment>
                      ))}
                   </tbody>
                 </table>
               </div>
                <div className="md:hidden space-y-2">
                 {items.map((p: any) => (
-                  <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-3">
+                  <div key={p.id} className="bg-card border border-border rounded-lg p-3">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0" />}
@@ -1083,8 +911,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [bulkVariants, setBulkVariants] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
-  const [activeVariantImgIdx, setActiveVariantImgIdx] = useState<number | null>(null);
-  const variantImgInputRef = useRef<HTMLInputElement>(null);
 
   const isVaper = category === 'vaper';
   const VARIANT_TYPE_LABELS: Record<string, string> = {
@@ -1200,16 +1026,6 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     }
   };
 
-  const handleVariantImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (activeVariantImgIdx === null) return;
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    const previewUrl = URL.createObjectURL(file);
-    setVariants(prev => prev.map((v, i) => i === activeVariantImgIdx ? { ...v, image_url: previewUrl, _imgFile: file } : v));
-    if (variantImgInputRef.current) variantImgInputRef.current.value = '';
-    setActiveVariantImgIdx(null);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("El nombre es obligatorio"); return; }
@@ -1250,25 +1066,10 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           if (!currentIds.has(ev.id)) await deleteVariantDB(ev.id);
         }
         for (const v of variants) {
-          // Upload pending variant image file
-          let variantImgUrl: string | null = v.image_url && !v._imgFile ? v.image_url : null;
-          if (v._imgFile) {
-            try {
-              const ext = (v._imgFile.name.split('.').pop() || 'jpg').toLowerCase();
-              const path = `${userId}/variant-${crypto.randomUUID()}.${ext}`;
-              const { error: upErr } = await supabase.storage.from('product-images').upload(path, v._imgFile, {
-                cacheControl: '31536000', contentType: v._imgFile.type || `image/${ext}`, upsert: false,
-              });
-              if (!upErr) {
-                const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-                variantImgUrl = urlData.publicUrl;
-              }
-            } catch { /* keep old url */ }
-          }
           if (v.id && existingIds.has(v.id)) {
-            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false, image_url: variantImgUrl });
+            await updateVariantDB(v.id, { variant_name: v.variant_name, stock: v.stock, active: v.active !== false });
           } else if (v._new || !v.id) {
-            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType, image_url: variantImgUrl });
+            await addVariantDB({ product_id: productId, user_id: userId, variant_name: v.variant_name, stock: v.stock, active: true, variant_type: variantType });
           }
         }
       }
@@ -1522,30 +1323,10 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               setNewVariantName(''); setNewVariantStock('0');
             }}><Plus className="w-3 h-3" /></Button>
           </div>
-          <input
-            ref={variantImgInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleVariantImageChange}
-          />
           {variants.length > 0 && (
-            <div className="space-y-1.5 max-h-52 overflow-y-auto">
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
               {variants.map((v, i) => (
                 <div key={v.id || `new-${i}`} className="flex items-center gap-2 bg-card rounded p-2 border border-border">
-                  {/* Per-variant image thumbnail / upload button */}
-                  <button
-                    type="button"
-                    title="Cargar foto de este sabor"
-                    onClick={() => { setActiveVariantImgIdx(i); variantImgInputRef.current?.click(); }}
-                    className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border border-border flex items-center justify-center bg-muted hover:border-primary/50 transition-colors"
-                  >
-                    {v.image_url ? (
-                      <img src={v.image_url} alt={v.variant_name} className="w-full h-full object-cover" />
-                    ) : (
-                      <ImagePlus className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                  </button>
                   <span className="text-xs font-medium flex-1 truncate">{v.variant_name}</span>
                   <Input type="number" min="0" value={String(v.stock)} onChange={e => {
                     const updated = [...variants];
@@ -1725,7 +1506,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-sm">Historial de precios — {productName}</DialogTitle>
         </DialogHeader>

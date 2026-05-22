@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-20 (sesión 50)**
+Última actualización: **2026-05-21 (sesión 39)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -221,38 +221,10 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **Dashboard: widget "Mejor horario de ventas"** — mini bar chart de 24h; calcula hora con más ventas desde `created_at`; badge con hora exacta y total de transacciones. _(sesión 38)_
 - **SalesPage: resumen de comisiones del período** — widget con % editable (default 5%); totales por vendedor y comisión estimada en vistas by_customer y by_product. _(sesión 38)_
 - **AlertsPage: historial de reglas disparadas** — tabla "Última vez disparadas" con `last_triggered_at` por regla; badges "Hoy" / "Anterior"; ordenado por recencia. _(sesión 38)_
-- **ProductsPage: etiquetas de precio imprimibles** — HTML A4 2 columnas; precio grande en gold; QR de producto; descuento tachado. _(sesión 39)_
-- **DebtsPage: plan de pago en cuotas** — N cuotas con frecuencia semanal/quincenal/mensual; cronograma interactivo; progress bar en mobile; localStorage. _(sesión 39)_
-- **Dashboard: widget "Objetivos por vendedor"** — sellers activos esta semana; meta configurable por vendedor; progress bars color-coded. _(sesión 39)_
-- **AnalyticsPage: tab "Canales de venta"** — distribución y share por método de pago; donut chart; stacked bar trend mensual. _(sesión 39)_
-- **InstagramStoryGenerator: sabores disponibles para vapers** — chips seleccionables pre-cargados desde `product_variants`; pills renderizadas en canvas con border gold. _(sesión 39)_
-- **InstagramStoryGenerator: eliminación de fondo blanco del logo** — pixel-by-pixel brightness+saturation removal; smooth alpha falloff; PNG sin fondo en canvas. _(sesión 39–40)_
-- **CustomersPage: filtro de cumpleaños** — Select 'Esta semana' / 'Este mes'; badge 🎂 pink en fila del cliente; botón 'WhatsApp cumpleaños' en barra bulk con dialog wa.me por cliente. _(sesión 40)_
-- **SalesPage: descarga PDF individual** — downloadSalePDF() con jsPDF A4, logo, nombre del negocio, cliente, items, total, método de pago; botón FileDown por fila. _(sesión 40)_
-- **Dashboard: banner proactivo "Stock crítico"** — aparece cuando hay productos sin stock o stock bajo; link directo a /productos?filter=lowstock. _(sesión 40)_
-- **ProductsPage: URL param ?filter=lowstock** — inicializa filterStock='low' automáticamente; badge de vencimiento en 3 niveles (VENC. / <30d / <60d). _(sesión 40)_
-- **ProductsPage: variante stock inline expand** — badge clickeable con ícono Layers; toggle expandedVariants; fila adicional con pills color-coded (rojo=0, naranja≤2, verde) por variante activa. _(sesión 41)_
-- **ReportsPage: tab "📅 Por día"** — WeeklyTrendTab con selector 4/8/12 semanas; bar chart lun–dom con cell dorada en mejor día; tabla de participación con progress bars; heatmap semanal con intensidad gold. _(sesión 41)_
-- **AnalyticsPage: "Nuevos vs Recurrentes"** — stacked BarChart en tab Clientes; últimos 6 meses; clasifica compradores como nuevo (primera compra en ese mes) o recurrente; verde/azul. _(sesión 41)_
-- **POSPage: descuento por categoría** — categoryDiscounts persistido en localStorage por org; panel toggle con % por categoría; cadena total: subtotal → catDiscount → coupon → globalDiscount; display en sección totales. _(sesión 41)_
-- **fix(sw.ts): self.__WB_MANIFEST** — fix de build Vercel: workbox injectManifest requiere la literal `self.__WB_MANIFEST` en el JS compilado. _(sesión 48)_
-- **ColorPicker RGB/HSV completo** — selector de gradiente (saturación×brillo) + barra de tono, inputs HEX y R/G/B con validación, 32 swatches, copy hex, preview antes/después. _(sesión 48)_
-- **SettingsPage: paletas de marca + colores del catálogo** — 8 paletas predefinidas aplicables con un click; guardar/eliminar paletas propias con nombre; 3 ColorPickers para fondo/cards/acento del catálogo; todo en DB (catalog_bg_color, catalog_card_color, catalog_accent_color, brand_palettes JSONB). _(sesión 48)_
-- **CatalogPage PDF: colores dinámicos** — portada, headers, cards, precios, decorativos usan los colores de catálogo configurados en Settings. _(sesión 48)_
-- **PublicCatalogPage: acento dinámico** — pills de categorías y CTA button usan `catalog_accent_color`. _(sesión 48)_
-- **StockCountPage: escáner de barras** — useBarcodeScanner con overlay, botón con badge conteo, scroll+focus en fila, highlight dorado, badge "sin código" en productos sin barcode/SKU. _(sesión 48)_
-- **POSPage: precio personalizado por ítem** — `customPrice` override con lápiz inline, Enter/Esc, fondo dorado, badge "personalizado", botón restaurar. _(sesión 48)_
-- **POSPage: margen por ítem** — badge verde/amarillo/rojo con % de margen calculado live desde costUSD×TC vs precio efectivo. _(sesión 48)_
-- **Sistema de guías por página (PageGuide)** — botón flotante `?` en todas las pantallas; Sheet lateral con hasta 7 tips por página; 28 páginas cubiertas con tips y tags Nuevo/Pro/IA/Tip; `?` key como atajo; badge "New" + pulse dot en nav para páginas con novedades no vistas; estado persistido en localStorage. _(sesión 49)_
-- **Dashboard: checklist de configuración inicial** — widget `SetupChecklist` con 6 pasos (nombre, logo, TC, primer producto, primera venta, primera compra); barra de progreso; auto-oculta al completar todos; dismissible. _(sesión 49)_
-- **Rediseño visual completo del frontend (sesión 50)** — nuevo sistema de diseño propietario, diferenciado de apps genéricas de IA:
-  - `index.css`: paleta noir profunda (228 28% 4.5%), tipografía dual Space Grotesk + JetBrains Mono, sombras con inner highlight, utilidades `.data-num` `.dot-grid` `.texture-noise` `.nav-section-label`, ambient page glow.
-  - `tailwind.config.ts`: fontFamily display/mono, keyframes `number-up` `glow-pulse` `slide-in-right`, spring easing `cubic-bezier(0.16,1,0.3,1)`.
-  - `KPICard.tsx`: barra lateral de acento de 3px, número grande JetBrains Mono, glow de hover por color, sin caja de icono, tendencia con fuente mono.
-  - `PageHeader.tsx`: icono inline sutil, título editorial Space Grotesk con underline dorada de 2px, descripción muted.
-  - `Button.tsx`: primario con gradiente dorado + shadow glow, outline con hover dorado, variante `xs`, active scale.
-  - `Card.tsx`: highlight top-edge interno (gradiente blanco sutil), `shadow-card`, `rounded-[10px]`, CardTitle con font-display.
-  - `AppLayout.tsx` sidebar: 240px, active item con gradiente `from-primary/14 to-transparent` + barra izquierda con glow, sección labels con `nav-section-label`, collapse button nativo.
+- **PresupuestosPage: automatización completa** — CustomerSearch con autocomplete desde tabla customers (auto-rellena email/teléfono); ProductSearch por ítem (busca products, rellena precio); sistema de plantillas (guardar/cargar/eliminar en localStorage); validUntil auto +15 días; checkbox auto-send por email post-creación. _(sesión 39)_
+- **ProductsPage: etiquetas de precio** — `exportPriceLabels()` genera HTML 55×32mm imprimible: nombre, marca, precio, badge OFERTA + tachado si hay descuento, SKU/barcode; botón "Etiquetas precio" en barra de acciones. _(sesión 39)_
+- **Dashboard: widget "Objetivos por vendedor"** — `SellerGoalsWidget` component; ventas de la semana por `seller_name`; progress bars color-coded; meta editable inline por vendedor; localStorage por org; visible con ≥2 vendedores. _(sesión 39)_
+- **AnalyticsPage: tab "Canales de venta"** — distribución por `payment_method`: KPI cards con share %, barra stacked visual, BarChart apilado mensual, tabla detalle ganancia/ticket, CSV export. _(sesión 39)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -788,136 +760,20 @@ Ver tabla de sesión 29 arriba.
 
 | # | Acción | Estado |
 |---|--------|--------|
-| 1 | **ProductsPage: etiquetas de precio** — HTML A4 imprimible, 2 col, precio grande gold, QR de 70px, SKU/barcode, marca, precios tachados si hay descuento | ✅ Hecho |
-| 2 | **DebtsPage: plan de pago en cuotas** — dialog con N cuotas, frecuencia semanal/quincenal/mensual, cronograma interactivo (marcar cuotas pagadas), mini progress bar en tarjeta móvil, localStorage | ✅ Hecho |
-| 3 | **SalesPage: agrupación por sesión de caja** | ✅ Ya existía (by_session view) |
-| 4 | **Dashboard: widget "Objetivos por vendedor"** — sellers activos esta semana, meta semanal configurable por vendedor, progress bar color-coded, localStorage por org | ✅ Hecho |
-| 5 | **AnalyticsPage: tab "Canales de venta"** — donut de distribución, share % por método de pago, stacked bar chart mensual, KPI cards por canal | ✅ Hecho |
-| + | **InstagramStoryGenerator: sabores de vapers** — chips seleccionables, render en canvas como pills con border gold, multi-row, pre-selección automática | ✅ Hecho |
+| 1 | **PresupuestosPage: automatización completa** — CustomerSearch (autocomplete desde tabla customers con email/teléfono auto-fill), ProductSearch por ítem (busca products, auto-rellena precio), sistema de plantillas (guardar/cargar/eliminar sets de ítems en localStorage), fecha válida auto +15 días, checkbox "Enviar por email al crear" (auto-send post-save) | ✅ Hecho |
+| 2 | **ProductsPage: exportar etiquetas de precio** — `exportPriceLabels()` genera HTML imprimible 55×32mm con nombre, marca, precio (tachado + rojo si hay descuento), badge "OFERTA", SKU/barcode; botón "Etiquetas precio" en barra de acciones | ✅ Hecho |
+| 3 | **Dashboard: widget "Objetivos por vendedor"** — `SellerGoalsWidget` component: computa ventas de la semana actual por `seller_name`, progress bar por vendedor (verde ≥100%/dorado ≥60%/warning/rojo), meta editable inline con Enter/Escape, persistida en localStorage por org; visible solo si hay ≥2 vendedores esta semana | ✅ Hecho |
+| 4 | **AnalyticsPage: tab "Canales de venta"** — distribución por `payment_method`: KPI cards por canal con share %, barra visual de distribución stacked, BarChart apilado mensual por canal con colores por método, tabla detalle (ventas/total/ticket/ganancia/share), CSV export | ✅ Hecho |
 
----
+## Prioridades inmediatas (sesión 40)
 
-## Sesión 40 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **ProductsPage: alerta de vencimiento por producto** — badge 3 niveles (VENC./&lt;30d/&lt;60d); URL param ?filter=lowstock | ✅ Hecho |
-| 2 | **CustomersPage: filtro cumpleaños** — 'Esta semana'/'Este mes'; badge 🎂 en fila; bulk WhatsApp cumpleaños con dialog wa.me | ✅ Hecho |
-| 3 | **SalesPage: descarga PDF individual** — jsPDF A4, logo, cliente, items, total, método de pago; botón FileDown por fila | ✅ Hecho |
-| 4 | **PresupuestosPage: PDF de presupuesto** — ya existía con generatePDF() + botón Download | ✅ Ya existía |
-| 5 | **Dashboard: banner proactivo "Stock crítico"** — count, link a /productos?filter=lowstock | ✅ Hecho |
-
----
-
-## Sesión 41 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **POSPage: descuento por categoría** — panel toggle, % por categoría, localStorage, cadena total subtotal→catDiscount→coupon→globalDiscount | ✅ Hecho |
-| 2 | **ProductsPage: variante con stock inline expand** — badge Layers clickeable, expandedVariants Set, fila extra con pills color-coded | ✅ Hecho |
-| 3 | **ReportsPage: tab "📅 Por día"** — WeeklyTrendTab, selector semanas, bar chart lun–dom, heatmap gold | ✅ Hecho |
-| 4 | **AnalyticsPage: "Nuevos vs Recurrentes"** — stacked BarChart 6 meses, classifica first purchase, verde/azul | ✅ Hecho |
-| 5 | **EmailCampaignsPage: tracking abiertos/clicks** — ya existía (open_count/click_count progress bars vía Resend webhooks) | ✅ Ya existía |
-
----
-
-## Sesión 42 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **Imágenes por variante de vaper** — upload por variante en ProductForm; catálogo público muestra cards 72×56px; PDF usa imagen de variante como celdas | ✅ Hecho |
-| 2 | **SalesPage: QR en recibos** — QR api.qrserver con `VTA-{sale.id}`; recibo individual y multi-venta; referencia corta (8 chars) debajo del QR | ✅ Hecho |
-| 3 | **CustomersPage: widget "Top clientes del mes"** — top-5 por ARS en el mes actual; medallas 🥇🥈🥉; progress bars; badge VIP; count de compras; formatARS total | ✅ Hecho |
-| 4 | **Dashboard: ventas de hoy por hora** — BarChart Recharts en card expandible "Hoy"; Cell gold en hora pico; badge "Pico: Xh" | ✅ Hecho |
-| 5 | **SalesPage: preset "Este año"** — chip + applyPreset("year") Jan 1 → hoy | ✅ Hecho |
-| 6 | **ProductsPage: thumbnail de variante en expand row** — img 16×16 rounded en cada pill del expand inline | ✅ Hecho |
-| + | **Migration**: `product_variants.image_url TEXT` aplicada en producción | ✅ Hecho |
-
----
-
-## Sesión 43 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **POSPage: descuento en importe fijo (ARS)** — ya existía con toggle % / Monto fijo funcional | ✅ Ya existía |
-| 2 | **SalesPage: sticky header en tabla desktop** — `<thead className="sticky top-0 z-10">` + wrapper `overflow-y-auto max-h-[calc(100vh-340px)]` | ✅ Hecho |
-| 3 | **ProductsPage: badge de filtros activos** — chips coloreados debajo de la barra de filtros con ×, "Limpiar todo" y contador de resultados | ✅ Hecho |
-| 4 | **Dashboard: widget "Ranking de productos de la semana"** — top-5 por unidades de lun a hoy; barra gold para el #1; delta ▲/▼ vs semana anterior | ✅ Hecho |
-| 5 | **CustomersPage: CSV export del widget top clientes del mes** — botón Download en el header del widget; columnas: posición, nombre, total ARS, compras, VIP | ✅ Hecho |
-| + | **Seguridad (sesión 43b)**: 10 vulnerabilidades parcheadas — JWT auth en edge functions, XSS iframe sandbox, HMAC obligatorio en webhooks, CORS restrictivo en admin, membership check en ai-chat, security headers HTTP | ✅ Hecho |
-
----
-
-## Sesión 44 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **SalesPage: tickets POS colapsables** — vista "Sesiones" mejorada: cada ticket es un acordeón con header resumen, "Colapsar/Expandir todo", método por línea, botón Recibo por ticket | ✅ Hecho |
-| 2 | **ProductsPage: importar factura IA** — requiere Claude Vision + procesamiento de PDF/imagen | ⏳ Próxima sesión |
-| 3 | **Dashboard: alerta "sin ventas hoy"** — ya existía desde sesión 32 (banner a las 14h+) | ✅ Ya existía |
-| 4 | **AnalyticsPage: tab "👤 Vendedores"** — KPIs, tabla ranking 30d con barras, comisión estimada, stats semanales, bar chart | ✅ Hecho |
-| 5 | **POSPage: historial del turno con anular** — panel colapsable, lista últimas ventas, botón × llama deleteSaleDB y restaura stock | ✅ Hecho |
-
----
-
-## Sesión 45 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **Edge function `extract-invoice`** — nueva función Deno/Claude Vision con JWT auth + rate limit 10/min; acepta imagen (JPEG/PNG/WebP/GIF) o PDF; modelo `claude-opus-4-5`; retorna `{ supplier, invoice_date, items[{ name, brand, qty, unit_price, currency, notes }] }` | ✅ Hecho |
-| 2 | **`InvoiceImportDialog` component** — modal React reutilizable; drag-and-drop zona; conversión a base64; preview editable con tabla (nombre, marca, cant., precio, moneda, notas); "Guardar N productos/compras"; integrado en ProductsPage (modo `products`) y PurchasesPage (modo `purchases`) con botón "✨ Factura IA" | ✅ Hecho |
-| 3 | **SalesPage: badge "Ticket" en vista lista** — ventas que pertenecen a un ticket multi-ítem (≥2 ventas dentro de 3min del mismo cliente) muestran un chip `🎫 Ticket` junto al nombre de producto; click cambia a vista Sesiones; fondo sutil diferenciador | ✅ Hecho |
-| 4 | **Dashboard: widget "Resumen del día"** — aparece automáticamente después de las 20h; 4 KPIs (total vendido con Δ% vs ayer, transacciones, ganancia bruta, ganancia neta); barras de método de pago; top-3 productos del día; botón compartir WhatsApp; se puede descartar hasta el día siguiente | ✅ Hecho |
-| 5 | **CustomersPage: filtro por vendedor** — cuando hay `seller_name` en ventas: Select "👤 Vendedor: todos / Juan / María / …"; chip activo con × para limpiar; `sellers[]` trackeado por customer en el useMemo de aggregación | ✅ Hecho |
-
----
-
-## Sesión 46 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **Email tracking via Resend webhooks** — ya estaba completo: `resend-webhook` edge function con Svix HMAC, `email_events` insert, incremento de `open_count`/`click_count`/`unsubscribe_count`, barras de progreso en EmailCampaignsPage, realtime via Supabase channel | ✅ Ya existía |
-| 2 | **Lector de código de barras en ProductsPage** — botón ScanLine junto al buscador; `useBarcodeScanner` hook (misma lógica que POS) con ZXing; overlay de cámara con línea animada; al detectar código setea el filtro de búsqueda automáticamente; POS ya tenía el scanner completo | ✅ Hecho |
-| 3 | **Notas de Crédito → Devoluciones** — `createCreditNote` mejorado: Dialog de confirmación con checkboxes "Marcar venta como devuelta" y "Revertir stock"; cuando `inv.sale_id` existe, actualiza la venta a `payment_method='devolucion'` y devuelve stock de cada producto de la venta; vincula `sale_id` en la NC creada; banner informativo cuando la factura no tiene venta vinculada | ✅ Hecho |
-| 4 | **Permisos granulares — vendedor ve sus ventas** — `SalesPage`: si `!isAdmin`, filtra `filtered` por `seller_name === localStorage('gestiona.pos.seller')`; banner informativo azul mostrando el nombre del vendedor activo; degradación graceful si el vendedor no tiene nombre configurado | ✅ Hecho |
-| 5 | **Push Notifications PWA** — `src/sw.ts` custom con workbox-precaching, runtime caching, handler `push` y `notificationclick`; `vite.config.ts` migrado a `strategies: 'injectManifest'`; `src/lib/pushNotifications.ts` con `subscribeToPush`, `unsubscribeFromPush`, `getCurrentSubscription`, `isPushSupported`; edge function `push-subscribe` (guarda subscription en DB con JWT auth); edge function `send-push` (Web Push Protocol con VAPID JWT ES256, limpia subs expiradas); migration `push_subscriptions` con RLS; `check-alerts` dispara push automáticamente al crear notificaciones; panel toggle en SettingsPage con estado live | ✅ Hecho |
-
----
-
-## Sesión 47 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **POSPage — pantalla completa** — botón `Maximize2`/`Minimize2` en la barra del POS; usa `document.documentElement.requestFullscreen()` / `exitFullscreen()`; oculto en mobile (hidden sm:flex); ícono cambia dinámicamente según estado fullscreen | ✅ Hecho |
-| 2 | **ProductsPage — duplicar producto** — botón `Copy` en la columna de acciones (solo si `canCreate`); copia todos los campos del producto excepto `id` y `created_at`; pre-rellena el form con nombre "Copia de X" y stock 0; abre el dialog de edición listo para guardar | ✅ Hecho |
-| 3 | **SalesPage — compartir resumen por WhatsApp** — botón `MessageCircle` verde en PageHeader; genera resumen del período filtrado (rango de fechas, total, ganancia, margen, cantidad de ventas, clientes únicos, top 3 productos); abre `wa.me/?text=...` con el mensaje codificado | ✅ Hecho |
-| 4 | **PurchasesPage — escáner de código de barras** — mismo patrón `useBarcodeScanner` con ZXing que ProductsPage; botón `ScanLine` junto al buscador; overlay fullscreen con cámara y línea animada; al detectar, setea `search` y muestra toast de confirmación | ✅ Hecho |
-
----
-
-## Sesión 48 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **fix(sw.ts): self.__WB_MANIFEST para workbox injectManifest** — cambiado `declare const __WB_MANIFEST` por extensión de tipo en `self` para que la cadena literal `self.__WB_MANIFEST` aparezca en el JS compilado; fix de build Vercel | ✅ Hecho |
-| 2 | **Sistema de colores RGB completo** — `ColorPicker` component: selector HSV (gradiente de saturación×brillo + barra de tono), inputs HEX y R/G/B, 32 swatches predefinidos, copy hex, preview; `supabase/migrations/20260520000003_catalog_colors.sql`: columnas `catalog_bg_color`, `catalog_card_color`, `catalog_accent_color`, `brand_palettes` JSONB | ✅ Hecho |
-| 3 | **SettingsPage — paletas de marca y colores del catálogo** — 8 paletas predefinidas (Gold, Night Blue, Purple, Emerald, Crimson, Amber, Rose, Slate); aplicar paleta pone los 5 colores de un click; guardar paleta propia con nombre personalizado; eliminar; 3 `ColorPicker` para fondo/cards/acento del catálogo; todo persistido en DB | ✅ Hecho |
-| 4 | **CatalogPage PDF — colores dinámicos** — portada, encabezados, cards, precios, decorativos usan `parseHex(hexBg/hexCard/hexAccent/hexPrimary)` en lugar de valores hardcodeados | ✅ Hecho |
-| 5 | **PublicCatalogPage — colores de acento dinámicos** — pills de categorías y botón CTA usan `catalog_accent_color` del settings | ✅ Hecho |
-| 6 | **StockCountPage — escáner de código de barras** — `useBarcodeScanner` hook + `handleBarcodeScan` que busca por barcode/sku/nombre y hace +1 al contado; overlay fullscreen con brackets y línea animada; botón "Escanear" con badge de conteo; `rowRefs` para scroll+focus; highlight dorado en fila escaneada; badge "sin código" en productos sin barcode ni SKU | ✅ Hecho |
-| 7 | **POSPage — precio personalizado por ítem del carrito** — `customPrice` en `CartItem`; `priceFor()` respeta precio override; botón lápiz junto al precio abre input inline (Enter=confirmar, Esc=cancelar); fondo dorado en ítem con precio personalizado; badge "personalizado"; botón "× restaurar" para volver al precio original | ✅ Hecho |
-| 8 | **POSPage — margen estimado por ítem del carrito** — badge color-coded (verde ≥40%, amarillo ≥20%, rojo <20%) junto al nombre del producto calculado desde `costUSD × exchangeRate` vs `unitPrice` | ✅ Hecho |
-
----
-
-## Sesión 49 ✅ COMPLETA
-
-| # | Acción | Estado |
-|---|--------|--------|
-| 1 | **Sistema de guías por pantalla (PageGuide)** — `src/data/pageGuides.tsx` con 28 rutas cubiertas (Dashboard, POS, Productos, Compras, Ventas, Clientes, Pipeline, Presupuestos, Deudas, Gastos, Proveedores, Toma Física, Reportes, Analytics, Facturas, Fidelidad, Alertas, Marketing, Email Marketing, Catálogo, Chat IA, Automatizaciones, Integraciones, Ajustes, Tareas, Caja/Turno, Banco, Restock, Kardex, Comisiones, Devoluciones, Cuotas, Cheques) | ✅ Hecho |
-| 2 | **PageGuide component** — botón flotante `?` (bottom-right) con pulse dot cuando la página es nueva; Sheet lateral con hasta 7 tips por guía; tags color-coded (Nuevo/Pro/IA/Tip); atajo de teclado `?` para abrir/cerrar; estado persistido en localStorage por ruta | ✅ Hecho |
-| 3 | **"New" badge en nav** — íconos del sidebar muestran pulse dot dorado + chip "new" cuando la ruta tiene tips con tag "Nuevo" y no fue vista; se limpia al abrir la guía | ✅ Hecho |
-| 4 | **Dashboard: SetupChecklist** — widget de 6 pasos de configuración inicial (nombre del negocio, logo, tipo de cambio, primer producto, primera venta, primera compra); barra de progreso % con color; links directos a cada sección; auto-oculta cuando todo está completo; dismissible con X | ✅ Hecho |
+| # | Acción | Por qué |
+|---|--------|---------|
+| 1 | **DebtsPage: plan de pago en cuotas** — desde una deuda pendiente, crear cuotas con fechas y montos parciales; progreso de cada plan visible en la ficha | Cobranzas |
+| 2 | **SalesPage: agrupación por sesión de caja** — nueva vista `by_session` que agrupa ventas por `cash_session_id` con totales de turno | Gestión caja |
+| 3 | **AIChatPage: generar presupuesto desde chat** — intent "crear presupuesto para X por Y productos"; QuoteBuilderCard con cliente + ítems, escribe en DB y abre PresupuestosPage | IA accionable |
+| 4 | **PresupuestosPage: seguimiento automático** — cron o edge function que envía reminder WhatsApp/email a presupuestos "sent" sin respuesta luego de N días configurables | Conversión |
+| 5 | **CustomersPage: historial de presupuestos en ficha** — tab "Presupuestos" en la ficha 360 del cliente con todos sus presupuestos, estado y total | CRM completo |
 
 ---
 
