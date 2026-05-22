@@ -66,6 +66,8 @@ const AutoRestockPage        = lazy(() => import("@/pages/AutoRestockPage"));
 const StockCountPage         = lazy(() => import("@/pages/StockCountPage"));
 const KardexPage             = lazy(() => import("@/pages/KardexPage"));
 const EmailCampaignsPage     = lazy(() => import("@/pages/EmailCampaignsPage"));
+const WhatsAppCampaignsPage  = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
+const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
 const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
 const LoyaltyPage            = lazy(() => import("@/pages/LoyaltyPage"));
@@ -199,6 +201,8 @@ function ProtectedRoutes() {
               <Route path="/toma-fisica" element={<StockCountPage />} />
               <Route path="/kardex" element={<KardexPage />} />
               <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
+              <Route path="/whatsapp-campaigns" element={<WhatsAppCampaignsPage />} />
+              <Route path="/links-de-pago" element={<PaymentLinksPage />} />
               <Route path="/banco" element={<BankReconciliationPage />} />
               <Route path="/pipeline" element={<SalesPipelinePage />} />
               <Route path="/fidelidad" element={<LoyaltyPage />} />

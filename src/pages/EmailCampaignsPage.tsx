@@ -175,6 +175,8 @@ export default function EmailCampaignsPage() {
   const [saving, setSaving] = useState(false);
   const [showBodyPreview, setShowBodyPreview] = useState(false);
   const [bulkCampaign, setBulkCampaign] = useState<{ emails: string[]; names: string[]; count: number; segment: string } | null>(null);
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
 
   // Read bulk selection from CRM sessionStorage on mount
   useEffect(() => {
@@ -614,6 +616,49 @@ export default function EmailCampaignsPage() {
                 className="text-sm"
               />
               <p className="text-xs text-muted-foreground">Dejá vacío para enviar manualmente cuando quieras.</p>
+            </div>
+          </div>
+          {/* Test send */}
+          <div className="border-t border-border pt-4 mt-2 space-y-2">
+            <Label className="text-xs text-muted-foreground">Envío de prueba (solo a vos)</Label>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                placeholder="tu@email.com"
+                className="text-sm"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={sendingTest || !testEmail || !subject || !bodyHtml}
+                onClick={async () => {
+                  if (!activeOrg || !subject || !bodyHtml) return;
+                  setSendingTest(true);
+                  try {
+                    // Insert a temp draft and send to test email
+                    const brandedHtml = buildBrandedEmail(bodyHtml.trim(), orgSettings.logo_url, orgSettings.business_name);
+                    const { data: draft } = await supabase.from("email_campaigns").insert({
+                      org_id: activeOrg.id, subject: `[PRUEBA] ${subject.trim()}`,
+                      body_html: brandedHtml, segment: "all", status: "draft",
+                      sent_count: 0, failed_count: 0,
+                    }).select().single();
+                    if (draft) {
+                      await supabase.functions.invoke("send-email-campaign", {
+                        body: { campaignId: draft.id, subject: `[PRUEBA] ${subject.trim()}`, bodyHtml: brandedHtml,
+                          recipients: [{ email: testEmail, name: "Prueba" }], orgName: orgSettings.business_name },
+                      });
+                      await supabase.from("email_campaigns").delete().eq("id", draft.id);
+                    }
+                    toast.success(`Email de prueba enviado a ${testEmail}`);
+                  } catch { toast.error("Error al enviar prueba"); }
+                  finally { setSendingTest(false); }
+                }}
+              >
+                {sendingTest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                Probar
+              </Button>
             </div>
           </div>
           <DialogFooter>

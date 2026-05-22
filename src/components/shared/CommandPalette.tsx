@@ -4,7 +4,7 @@ import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Megaphone, Brain, Users, Crown, Gift, Wallet, Keyboard } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Megaphone, Brain, Users, Crown, Gift, Wallet, Keyboard, Mail, MessageCircle, CreditCard } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB } from "@/lib/supabaseStore";
 
@@ -18,6 +18,9 @@ const NAV_ITEMS = [
   { label: "Gastos", path: "/gastos", icon: Wallet, shortcut: "Ctrl+G" },
   { label: "Reportes", path: "/reportes", icon: TrendingUp },
   { label: "Marketing", path: "/marketing", icon: Megaphone },
+  { label: "Email Marketing", path: "/email-campaigns", icon: Mail },
+  { label: "WhatsApp Masivo", path: "/whatsapp-campaigns", icon: MessageCircle },
+  { label: "Links de Pago", path: "/links-de-pago", icon: CreditCard },
   { label: "Canjes & Influencers", path: "/canjes", icon: Gift },
   { label: "IA Insights", path: "/ia", icon: Brain },
   { label: "Ajustes", path: "/ajustes", icon: Settings },

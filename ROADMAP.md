@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 42)**
+Última actualización: **2026-05-22 (sesión 45)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -790,6 +790,32 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: variantes con precio independiente** — campo `price_override` editable por fila de variante (Input $, placeholder "Precio propio"); incluido en add/update DB calls; campo en formulario de agregar variante inline; `null` propagado en bulk import | ✅ Hecho |
 | 4 | **CustomersPage: exportar ficha 360 a PDF** — función `exportCustomer360PDF()` genera HTML imprimible con header oscuro gold, badge de segmento color-coded, grilla de KPIs (gasto total/ganancia/ticket/deuda), health score bar, tabla de últimas 10 compras; abre en ventana nueva y auto-imprime; botón "PDF" con icono `Printer` en row de acciones de ficha 360 | ✅ Hecho |
 | 5 | **AlertsPage: alertas por email o push** — estado `emailPrefs` en localStorage por org (`gestiona.alert_email.{orgId}`); `toggleEmailPref(ruleId)` con toast de confirmación; botón email toggle por regla (azul cuando activo, muted cuando inactivo); label "Email" visible en sm+ | ✅ Hecho |
+
+## Sesión 43 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **WhatsApp Masivo real (Twilio)** — edge function `send-whatsapp` con Twilio Messages API; normalización E.164; personalización `{{nombre}}`; batch de 5 paralelos con rate limit; `WhatsAppCampaignsPage.tsx` con 7 plantillas, segmentación por comportamiento de compra/deuda/cumpleaños, preview tipo burbuja WhatsApp, estado de campañas con sentcount/failcount; `TwilioSection` en IntegrationsPage con Account SID / Auth Token / FromNumber; `whatsapp_campaigns` tabla con RLS y migration | ✅ Hecho |
+| 2 | **PaymentLinksPage completo** — CRUD de links de pago con cliente, ítems multi-línea, total calculado, vencimiento configurable, MP auto-generado al crear (si MP habilitado), botones: Copiar / Ver / WhatsApp / MP / Marcar pagado / Cancelar / Eliminar; función `expire_payment_links` en DB; columnas `customer_email`, `mp_preference_id`, `external_ref` agregadas a `payment_links`; ruta `/links-de-pago` y nav en sección Finanzas | ✅ Hecho |
+| 3 | **PublicPaymentPage rediseñado** — countdown timer para vencimiento (solo si <6h); polling automático de estado cada 15s; método selector con radio visual (MP azul / Transferencia verde); CopyField con feedback checkmark; badges de seguridad (Shield + Lock); logo del negocio; auto-refresh sin flicker; compatibilidad con links sin MP | ✅ Hecho |
+
+## Sesión 44 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **EmailCampaignsPage: test-send** — campo "Envío de prueba" en el formulario de creación; crea draft temporal, invoca `send-email-campaign` con un solo destinatario, elimina el draft; no afecta métricas de campañas reales | ✅ Hecho |
+| 2 | **Email branding** — `buildBrandedEmail()` ya incluye header oscuro con logo + nombre del negocio + footer con link de baja configurable; preview en iframe con `sandbox=""`; campañas programadas via `send-scheduled-campaigns` edge function | ✅ Hecho |
+| 3 | **CommandPalette ampliada** — Email Marketing, WhatsApp Masivo y Links de Pago disponibles en Ctrl+K | ✅ Hecho |
+
+## Sesión 45 ✅ COMPLETA — Auditoría del sistema
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **KPICard props fix** — `WhatsAppCampaignsPage` y `PaymentLinksPage` corregidas para usar `label` en lugar de `title`, e icono como `LucideIcon` en lugar de JSX element | ✅ Hecho |
+| 2 | **TypeScript clean** — 0 errores en toda la base de código (npx tsc --noEmit) | ✅ Hecho |
+| 3 | **Build limpio** — 4363 módulos, 18.7s, 0 warnings de importación | ✅ Hecho |
+| 4 | **Cron `send-scheduled-campaigns`** — migration agrega cron cada 15 min y función `expire_payment_links()` | ✅ Hecho |
+| 5 | **Integraciones nav** — WhatsApp Masivo en sección marketing, Links de Pago en sección finanzas del sidebar | ✅ Hecho |
 
 ---
 

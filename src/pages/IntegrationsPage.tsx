@@ -15,7 +15,7 @@ import {
   ExternalLink, Package, ShoppingCart, Loader2, Link2, Zap,
   Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
   History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
-  AlertTriangle, Send,
+  AlertTriangle, Send, MessageCircle,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -796,6 +796,9 @@ export default function IntegrationsPage() {
         )}
       </div>
 
+      {/* Twilio WhatsApp */}
+      <TwilioSection orgId={activeOrg?.id} />
+
       {/* API REST pública */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center gap-3">
@@ -1036,6 +1039,89 @@ export default function IntegrationsPage() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Twilio WhatsApp config section (localStorage per org — no DB column needed)
+// ═══════════════════════════════════════════════════════════════════════════════
+function TwilioSection({ orgId }: { orgId: string | undefined }) {
+  const key = `gestiona.twilio_config.${orgId || 'default'}`;
+  const DEFAULT = { accountSid: '', authToken: '', fromNumber: '' };
+  const [cfg, setCfg] = useState<typeof DEFAULT>(() => {
+    try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem(key) || '{}') }; } catch { return DEFAULT; }
+  });
+  const [tokenVisible, setTokenVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const set = (field: string, value: string) => setCfg(prev => ({ ...prev, [field]: value }));
+
+  const handleSave = () => {
+    setSaving(true);
+    localStorage.setItem(key, JSON.stringify(cfg));
+    setTimeout(() => { setSaving(false); toast.success('Configuración Twilio guardada localmente'); }, 400);
+  };
+
+  const isConfigured = !!(cfg.accountSid && cfg.authToken && cfg.fromNumber);
+
+  return (
+    <div className="rounded-xl border border-green-500/20 bg-card p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-green-500/10">
+            <MessageCircle className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold flex items-center gap-2">
+              WhatsApp Masivo (Twilio)
+              {isConfigured && <span className="text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full font-semibold">Configurado</span>}
+            </h3>
+            <p className="text-sm text-muted-foreground">Enviá WhatsApp a tus clientes desde tu número propio vía Twilio</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Account SID</label>
+            <Input value={cfg.accountSid} onChange={e => set('accountSid', e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className="bg-muted border-border font-mono text-xs" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Auth Token</label>
+            <div className="relative">
+              <Input
+                type={tokenVisible ? 'text' : 'password'}
+                value={cfg.authToken}
+                onChange={e => set('authToken', e.target.value)}
+                placeholder="••••••••••••••••••••••••••••••••"
+                className="bg-muted border-border font-mono text-xs pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setTokenVisible(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {tokenVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Número WhatsApp (con prefijo "whatsapp:")</label>
+          <Input value={cfg.fromNumber} onChange={e => set('fromNumber', e.target.value)} placeholder="whatsapp:+14155238886" className="bg-muted border-border font-mono text-xs" />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Usá <code className="bg-muted px-1 rounded">whatsapp:+14155238886</code> para el Sandbox de Twilio, o tu número aprobado de WhatsApp Business.
+            Obtené credenciales en <a href="https://console.twilio.com" target="_blank" rel="noreferrer" className="underline text-primary">console.twilio.com</a>.
+          </p>
+        </div>
+
+        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold gap-1.5">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Guardar configuración Twilio
+        </Button>
       </div>
     </div>
   );
