@@ -414,6 +414,90 @@ function CustomerSalesTimeline({
   );
 }
 
+const QUOTE_STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  draft:    { label: "Borrador", color: "text-muted-foreground bg-muted/40" },
+  sent:     { label: "Enviado",  color: "text-blue-400 bg-blue-500/10" },
+  accepted: { label: "Aceptado", color: "text-success bg-success/10" },
+  rejected: { label: "Rechazado",color: "text-destructive bg-destructive/10" },
+  expired:  { label: "Vencido",  color: "text-amber-400 bg-amber-500/10" },
+};
+
+function CustomerQuotesTab({ customerName, orgId }: { customerName: string; orgId: string }) {
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    supabase
+      .from("quotes")
+      .select("id,quote_number,valid_until,status,total_ars,created_at,notes")
+      .eq("org_id", orgId)
+      .ilike("customer_name", customerName)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => { setQuotes(data || []); setLoading(false); });
+  }, [customerName, orgId]);
+
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-6">Cargando...</p>;
+  if (quotes.length === 0) return (
+    <div className="text-center py-6 space-y-2">
+      <p className="text-xs text-muted-foreground">Sin presupuestos para este cliente.</p>
+      <a href="/presupuestos" className="text-xs text-primary hover:underline">Crear presupuesto →</a>
+    </div>
+  );
+
+  const totalAccepted = quotes.filter(q => q.status === "accepted").reduce((s, q) => s + Number(q.total_ars || 0), 0);
+  const totalSent     = quotes.filter(q => q.status === "sent").reduce((s, q) => s + Number(q.total_ars || 0), 0);
+
+  return (
+    <div className="space-y-3">
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { l: "Total presupuestos", v: quotes.length },
+          { l: "Aceptados", v: formatARS(totalAccepted), sub: `${quotes.filter(q => q.status === "accepted").length} presup.` },
+          { l: "Pendientes", v: formatARS(totalSent), sub: `${quotes.filter(q => q.status === "sent").length} presup.` },
+        ].map(k => (
+          <div key={k.l} className="bg-muted/30 rounded-lg p-2.5 text-xs">
+            <p className="text-muted-foreground mb-1">{k.l}</p>
+            <p className="font-mono font-semibold">{k.v}</p>
+            {k.sub && <p className="text-[10px] text-muted-foreground mt-0.5">{k.sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* List */}
+      <div className="space-y-1.5">
+        {quotes.map(q => {
+          const s = QUOTE_STATUS_LABEL[q.status] || QUOTE_STATUS_LABEL.draft;
+          const expired = q.valid_until && new Date(q.valid_until) < new Date() && q.status === "sent";
+          return (
+            <div key={q.id} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 border border-border/40 hover:bg-muted/50 transition-colors">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">#{q.quote_number}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${expired ? "text-amber-400 bg-amber-500/10" : s.color}`}>
+                    {expired ? "Vencido" : s.label}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(q.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                  {q.valid_until && ` · válido hasta ${new Date(q.valid_until + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}`}
+                </p>
+                {q.notes && <p className="text-[10px] text-muted-foreground truncate max-w-[200px] mt-0.5">{q.notes}</p>}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-mono font-semibold">{formatARS(Number(q.total_ars || 0))}</p>
+                <a href="/presupuestos" className="text-[10px] text-primary hover:underline">Ver →</a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; userId: string; customerName: string }) {
   const [entries, setEntries] = useState<CommEntry[]>([]);
   const [type, setType] = useState("note");
@@ -2001,6 +2085,7 @@ export default function CustomersPage() {
                         <TabsTrigger value="resumen" className="text-xs h-7 gap-1"><TrendingUp className="w-3 h-3" />Resumen</TabsTrigger>
                         <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase()).length})</TabsTrigger>
                         <TabsTrigger value="deudas" className="text-xs h-7 gap-1"><CreditCard className="w-3 h-3" />Cuotas/Deudas</TabsTrigger>
+                        <TabsTrigger value="presupuestos" className="text-xs h-7 gap-1"><FileText className="w-3 h-3" />Presupuestos</TabsTrigger>
                         <TabsTrigger value="contacto" className="text-xs h-7 gap-1"><MessageCircle className="w-3 h-3" />Contacto</TabsTrigger>
                       </TabsList>
 
@@ -2163,6 +2248,13 @@ export default function CustomersPage() {
                                 ))}
                             </div>
                           </div>
+                        )}
+                      </TabsContent>
+
+                      {/* ── Tab: Presupuestos ── */}
+                      <TabsContent value="presupuestos" className="mt-0">
+                        {activeOrg && (
+                          <CustomerQuotesTab customerName={c.name} orgId={activeOrg.id} />
                         )}
                       </TabsContent>
 

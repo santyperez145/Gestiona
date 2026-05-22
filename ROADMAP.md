@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-21 (sesión 39)**
+Última actualización: **2026-05-22 (sesión 40)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -765,15 +765,23 @@ Ver tabla de sesión 29 arriba.
 | 3 | **Dashboard: widget "Objetivos por vendedor"** — `SellerGoalsWidget` component: computa ventas de la semana actual por `seller_name`, progress bar por vendedor (verde ≥100%/dorado ≥60%/warning/rojo), meta editable inline con Enter/Escape, persistida en localStorage por org; visible solo si hay ≥2 vendedores esta semana | ✅ Hecho |
 | 4 | **AnalyticsPage: tab "Canales de venta"** — distribución por `payment_method`: KPI cards por canal con share %, barra visual de distribución stacked, BarChart apilado mensual por canal con colores por método, tabla detalle (ventas/total/ticket/ganancia/share), CSV export | ✅ Hecho |
 
-## Prioridades inmediatas (sesión 40)
+## Sesión 40 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AIChatPage: generar presupuesto desde chat** — intent detector para "crear presupuesto para X"; `CreateQuoteCard` con cliente + ítems dinámicos + email + notas; llama `next_quote_number` RPC e inserta en `quotes`; chip "Crear presupuesto" en ACTION_STARTERS; dispatch en `ActionCard` | ✅ Hecho |
+| 2 | **CustomersPage: historial de presupuestos en ficha** — `CustomerQuotesTab` component que fetchea `quotes` filtrado por `customer_name ILIKE`; tab "Presupuestos" en ficha 360 con KPIs (total / valor aceptado / valor pendiente), lista con estado + fecha + monto + link | ✅ Hecho |
+| 3 | **PresupuestosPage: recordatorio masivo WhatsApp** — panel expandible "Recordatorio masivo" en banner de alerta; muestra todas las quotes con status `sent`; por cada una genera link `wa.me` con mensaje personalizado (nombre, número de presupuesto, total, días transcurridos); sin teléfono muestra aviso | ✅ Hecho |
+
+## Prioridades inmediatas (sesión 41)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **DebtsPage: plan de pago en cuotas** — desde una deuda pendiente, crear cuotas con fechas y montos parciales; progreso de cada plan visible en la ficha | Cobranzas |
-| 2 | **SalesPage: agrupación por sesión de caja** — nueva vista `by_session` que agrupa ventas por `cash_session_id` con totales de turno | Gestión caja |
-| 3 | **AIChatPage: generar presupuesto desde chat** — intent "crear presupuesto para X por Y productos"; QuoteBuilderCard con cliente + ítems, escribe en DB y abre PresupuestosPage | IA accionable |
-| 4 | **PresupuestosPage: seguimiento automático** — cron o edge function que envía reminder WhatsApp/email a presupuestos "sent" sin respuesta luego de N días configurables | Conversión |
-| 5 | **CustomersPage: historial de presupuestos en ficha** — tab "Presupuestos" en la ficha 360 del cliente con todos sus presupuestos, estado y total | CRM completo |
+| 1 | **ReportsPage: reporte mensual automático** — PDF/email con resumen de ventas, margen, top productos, KPIs vs mes anterior; programable desde Settings | Valor percibido |
+| 2 | **SettingsPage: configuración de email SMTP propio** — permitir usar dominio propio para envío de quotes y recordatorios | Profesionalismo |
+| 3 | **POS: modo pantalla completa con teclado numérico** — atajos de teclado (F1=nueva venta, ESC=cancelar, Enter=confirmar), acceso rápido a productos favoritos | UX POS |
+| 4 | **ProductsPage: variantes por talle/color con stock independiente** — tabla de variantes en modal de producto; stock y precio por variante | Inventario avanzado |
+| 5 | **Dashboard: resumen fin de día** — widget nocturno con cierre de caja, top productos del día, ventas por vendedor, deudas nuevas | Cierre operativo |
 
 ---
 

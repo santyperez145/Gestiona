@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -29,6 +29,7 @@ type AIAction =
   | { type: "query_product_analysis"; productName?: string }
   | { type: "query_restock" }
   | { type: "create_task" }
+  | { type: "create_quote"; customerName?: string; productName?: string; amount?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -143,6 +144,20 @@ function detectIntent(msg: string): AIAction | null {
   if (/\b(crea(r)?|agrega(r)?|nueva?|añadi(r)?)\s+(una?\s+)?(tarea|recordatorio|pendiente|actividad|to[-\s]?do)\b/.test(lower) ||
       /\b(recordarme?|recordá(me)?|anotá|apuntá)\s+(que|esto|una tarea)?\b/.test(lower)) {
     return { type: "create_task" };
+  }
+
+  // Create quote / presupuesto
+  if (/\b(crea(r)?|hace(r)?|arma(r)?|genera(r)?|prepara(r)?|manda(r)?)\b.{0,30}\b(presupuesto|cotización|propuesta)\b/.test(lower) ||
+      /\bpresupuesto\b.{0,20}\b(para|a|cliente)\b/.test(lower)) {
+    const customerMatch = msg.match(/(?:para|a)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
+    const productMatch = msg.match(/(?:de|por|incluye?|con)\s+([a-záéíóúüñA-ZÁÉÍÓÚÜÑ][^\d\n]{2,30}?)(?:\s+por|\s+a\s*\$|,|$)/i);
+    const amountMatch = msg.match(/\$?\s*(\d[\d.,]*)/);
+    return {
+      type: "create_quote",
+      customerName: customerMatch?.[1]?.trim(),
+      productName: productMatch?.[1]?.trim(),
+      amount: amountMatch?.[1]?.replace(/\./g, "").replace(",", "."),
+    };
   }
 
   return null;
@@ -314,6 +329,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "create_task") {
     return <CreateTaskCard userId={userId} onDone={onDone} />;
+  }
+
+  if (action.type === "create_quote") {
+    return <CreateQuoteCard userId={userId} initialCustomer={action.customerName} initialProduct={action.productName} initialAmount={action.amount} onDone={onDone} />;
   }
 
   if (action.type === "query_product_analysis") {
@@ -1034,6 +1053,134 @@ function CreateTaskCard({ userId, onDone }: { userId: string; onDone: () => void
   );
 }
 
+// ─── CreateQuoteCard ──────────────────────────────────────────────────────────
+function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmount, onDone }: {
+  userId: string;
+  initialCustomer?: string;
+  initialProduct?: string;
+  initialAmount?: string;
+  onDone: () => void;
+}) {
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [custName, setCustName] = useState(initialCustomer || "");
+  const [custEmail, setCustEmail] = useState("");
+  const [items, setItems] = useState([{
+    description: initialProduct || "",
+    qty: 1,
+    unitPrice: initialAmount ? Number(initialAmount) : 0,
+    total: initialAmount ? Number(initialAmount) : 0,
+  }]);
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [createdNumber, setCreatedNumber] = useState("");
+
+  const updateItem = (i: number, field: string, val: string | number) => {
+    setItems(prev => {
+      const next = [...prev];
+      (next[i] as Record<string, unknown>)[field] = val;
+      next[i].total = Number(next[i].qty) * Number(next[i].unitPrice);
+      return next;
+    });
+  };
+  const total = items.reduce((s, it) => s + it.total, 0);
+
+  if (done) {
+    return (
+      <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+        <div className="flex items-center gap-2 text-xs text-success">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>Presupuesto <span className="font-bold">{createdNumber}</span> creado</span>
+        </div>
+        <Button size="sm" className="h-7 text-xs" onClick={() => navigate("/presupuestos")}>
+          Ver presupuestos →
+        </Button>
+      </div>
+    );
+  }
+
+  const handleCreate = async () => {
+    if (!custName.trim() || !activeOrg) return;
+    if (items.every(it => !it.description.trim())) { toast.error("Agregá al menos un ítem"); return; }
+    setLoading(true);
+    try {
+      const { data: numData } = await supabase.rpc("next_quote_number", { p_org_id: activeOrg.id });
+      const quoteNumber = numData || `PRE-${Date.now()}`;
+      const filteredItems = items.filter(it => it.description.trim());
+      const subtotal = filteredItems.reduce((s, it) => s + it.total, 0);
+      const { error } = await supabase.from("quotes").insert({
+        org_id: activeOrg.id,
+        quote_number: quoteNumber,
+        customer_name: custName.trim(),
+        customer_email: custEmail || null,
+        items: filteredItems,
+        subtotal,
+        discount_amount: 0,
+        total: subtotal,
+        status: "draft",
+        valid_until: (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().slice(0, 10); })(),
+        notes: notes || null,
+        created_by: userId,
+      });
+      if (error) throw error;
+      toast.success(`Presupuesto ${quoteNumber} creado`);
+      setCreatedNumber(quoteNumber);
+      setDone(true);
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message || "Error creando presupuesto");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+      <p className="text-xs font-medium text-primary flex items-center gap-1.5">
+        <DollarSign className="w-3.5 h-3.5" />Nuevo presupuesto
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <Input value={custName} onChange={e => setCustName(e.target.value)} placeholder="Cliente *" className="h-7 text-xs" autoFocus />
+        <Input value={custEmail} onChange={e => setCustEmail(e.target.value)} placeholder="Email (opcional)" className="h-7 text-xs" type="email" />
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] text-muted-foreground font-medium">Ítems</p>
+        {items.map((it, i) => (
+          <div key={i} className="flex gap-1.5 items-center">
+            <Input value={it.description} onChange={e => updateItem(i, "description", e.target.value)} placeholder="Producto / descripción…" className="flex-1 h-7 text-xs" />
+            <Input type="number" value={it.qty} onChange={e => updateItem(i, "qty", Number(e.target.value))} className="w-10 h-7 text-xs text-center" min={1} />
+            <Input type="number" value={it.unitPrice || ""} onChange={e => updateItem(i, "unitPrice", Number(e.target.value))} placeholder="Precio" className="w-20 h-7 text-xs" />
+            {items.length > 1 && (
+              <button className="text-muted-foreground hover:text-destructive" onClick={() => setItems(p => p.filter((_, j) => j !== i))}>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          className="text-[10px] text-primary hover:underline flex items-center gap-1 mt-0.5"
+          onClick={() => setItems(p => [...p, { description: "", qty: 1, unitPrice: 0, total: 0 }])}
+        >
+          <Plus className="w-3 h-3" />Agregar ítem
+        </button>
+      </div>
+      {total > 0 && (
+        <div className="text-right text-xs font-bold text-primary">
+          Total: {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(total)}
+        </div>
+      )}
+      <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas / condiciones (opcional)" className="h-7 text-xs" />
+      <div className="flex gap-2">
+        <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground flex-1" disabled={!custName.trim() || loading} onClick={handleCreate}>
+          {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear presupuesto
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
 const ACTION_STARTERS = [
   { label: "Registrar venta", icon: ShoppingCart, msg: "Registrar una venta" },
   { label: "Registrar compra", icon: Package, msg: "Registrar una compra" },
@@ -1046,6 +1193,7 @@ const ACTION_STARTERS = [
   { label: "Analizar producto", icon: BarChart2, msg: "Analizá el producto" },
   { label: "Qué reponer", icon: TrendingDown, msg: "Qué productos debería reponer o comprar?" },
   { label: "Crear tarea", icon: ClipboardList, msg: "Crear una tarea o recordatorio" },
+  { label: "Crear presupuesto", icon: DollarSign, msg: "Crear un presupuesto para un cliente" },
 ];
 
 const QUICK_ACTIONS = [

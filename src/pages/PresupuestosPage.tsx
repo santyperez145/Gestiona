@@ -397,6 +397,8 @@ export default function PresupuestosPage() {
   const [payLinkLoading, setPayLinkLoading] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState<string | null>(null);
 
+  const [showBulkReminder, setShowBulkReminder] = useState(false);
+
   // Templates
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -754,21 +756,86 @@ export default function PresupuestosPage() {
         <KPICard label="Valor ganado" value={formatARS(stats.totalValue)} icon={DollarSign} color="success" sub="de presupuestos aceptados" />
       </div>
 
-      {/* Expired banner */}
-      {stats.expired > 0 && (
+      {/* Expired / pending sent banner */}
+      {(stats.expired > 0 || stats.pending > 0) && (
         <div className="bg-orange-500/5 border border-orange-500/30 rounded-xl p-3 flex items-center gap-3">
           <Clock className="w-4 h-4 text-orange-400 shrink-0" />
           <p className="text-sm text-orange-400 flex-1">
-            <span className="font-semibold">{stats.expired} presupuesto{stats.expired !== 1 ? "s" : ""}</span> sin respuesta hace más de 30 días — considerá hacer seguimiento o marcarlos como expirados.
+            {stats.expired > 0 && (
+              <><span className="font-semibold">{stats.expired} presupuesto{stats.expired !== 1 ? "s" : ""}</span> sin respuesta +30 días. </>
+            )}
+            {stats.pending > 0 && (
+              <><span className="font-semibold">{stats.pending} enviado{stats.pending !== 1 ? "s" : ""}</span> esperando respuesta.</>
+            )}
           </p>
-          <button
-            className="text-xs px-3 py-1.5 rounded-lg border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 transition-colors shrink-0"
-            onClick={() => setFilterStatus("expired_pending")}
-          >
-            Ver ({stats.expired})
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {stats.expired > 0 && (
+              <button
+                className="text-xs px-3 py-1.5 rounded-lg border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 transition-colors"
+                onClick={() => setFilterStatus("expired_pending")}
+              >
+                Ver +30d ({stats.expired})
+              </button>
+            )}
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg border border-green-500/40 text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-1"
+              onClick={() => setShowBulkReminder(v => !v)}
+            >
+              <Send className="w-3 h-3" />Recordatorio masivo
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Bulk WhatsApp reminder panel */}
+      {showBulkReminder && (() => {
+        const sentQuotes = quotes.filter(q => q.status === "sent");
+        const daysAgo = (dateStr: string) => Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+        return (
+          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-green-400 flex items-center gap-2">
+                <Send className="w-4 h-4" />Recordatorio masivo por WhatsApp
+                <span className="text-xs font-normal text-muted-foreground">({sentQuotes.length} presupuestos enviados)</span>
+              </h3>
+              <button onClick={() => setShowBulkReminder(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            {sentQuotes.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No hay presupuestos en estado "Enviado".</p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                {sentQuotes.map(q => {
+                  const days = daysAgo(q.created_at);
+                  const phone = (q.customer_phone || "").replace(/[^0-9]/g, "");
+                  const msg = encodeURIComponent(
+                    `Hola ${q.customer_name.split(" ")[0]}! Te escribo para hacer seguimiento del presupuesto *${q.quote_number}* que te enviamos hace ${days} día${days !== 1 ? "s" : ""} por *${formatARS(q.total)}*.\n¿Tuviste oportunidad de revisarlo? Quedamos a disposición para cualquier consulta. 😊`
+                  );
+                  return (
+                    <div key={q.id} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 border border-border/40">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{q.customer_name} · #{q.quote_number}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatARS(q.total)} · hace {days} días</p>
+                      </div>
+                      {phone ? (
+                        <a
+                          href={`https://wa.me/${phone}?text=${msg}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] px-2.5 py-1 rounded-lg bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 transition-colors shrink-0 font-medium"
+                        >
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground shrink-0">Sin teléfono</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
