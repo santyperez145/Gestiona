@@ -1413,7 +1413,7 @@ function SendWaSegmentCard({ userId, initialSegment, onDone }: {
 
       {withPhone.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] text-muted-foreground font-medium">Mensaje <span className="opacity-60">(usá {"{nombre"}} para personalizar)</span></p>
+          <p className="text-[10px] text-muted-foreground font-medium">Mensaje <span className="opacity-60">(usá {'{nombre}'} para personalizar)</span></p>
           <textarea
             value={message}
             onChange={e => setMessage(e.target.value)}
