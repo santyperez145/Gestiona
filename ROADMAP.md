@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 60)**
+Última actualización: **2026-05-22 (sesión 61)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,16 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 61 ✅ COMPLETA — Analytics CSV categorías + Dashboard top clientes semana
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AnalyticsPage: CSV export tabla rentabilidad por categoría** — botón "CSV" en header de tabla "Rentabilidad por categoría" (tab "Por Categoría"); exporta Categoría/Ingresos/Ganancia/Margen%/Unidades con BOM UTF-8; filename `rentabilidad-categorias-{año}.csv` | ✅ Hecho |
+| 2 | **Dashboard: widget "Top clientes esta semana"** — entre `SellerGoalsWidget` y `EndOfDayWidget`; computa ventas desde lunes 00:00hs usando `rawSales`; ranking top-5 con barras de progreso relativas al líder; badge 🏆 con nombre del primero; count de ventas por cliente; se oculta si sin datos | ✅ Hecho |
+| 3 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

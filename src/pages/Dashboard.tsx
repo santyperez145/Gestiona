@@ -1982,6 +1982,56 @@ export default function Dashboard() {
         );
       })()}
 
+      {/* Top cliente de la semana */}
+      {stats.rawSales && (() => {
+        const now = new Date();
+        const dow = now.getDay();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+        startOfWeek.setHours(0, 0, 0, 0);
+        const customerMap: Record<string, { total: number; count: number; profit: number }> = {};
+        (stats.rawSales as any[]).forEach((s: any) => {
+          if (!s.customer_name) return;
+          const d = new Date(s.date + "T12:00:00");
+          if (d < startOfWeek) return;
+          const k = s.customer_name.trim();
+          if (!customerMap[k]) customerMap[k] = { total: 0, count: 0, profit: 0 };
+          customerMap[k].total += Number(s.total_ars || 0);
+          customerMap[k].count++;
+          customerMap[k].profit += Number(s.profit_ars || 0);
+        });
+        const topClients = Object.entries(customerMap).sort((a, b) => b[1].total - a[1].total).slice(0, 5);
+        if (topClients.length === 0) return null;
+        const maxTotal = topClients[0][1].total;
+        return (
+          <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-primary" />Top clientes esta semana
+              </h3>
+              <span className="text-[10px] text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
+                🏆 {topClients[0][0]}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {topClients.map(([name, data], idx) => (
+                <div key={name} className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-4 shrink-0">{idx + 1}</span>
+                  <span className="text-xs font-medium flex-1 truncate">{name}</span>
+                  <div className="flex-1 hidden sm:block">
+                    <div className="bg-muted rounded-full h-1.5">
+                      <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.round((data.total / maxTotal) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-primary shrink-0">{formatARS(data.total)}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{data.count}v</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* End of day widget */}
       {stats.rawSales && (
         <EndOfDayWidget

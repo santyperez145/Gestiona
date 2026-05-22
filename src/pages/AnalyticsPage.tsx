@@ -1260,8 +1260,25 @@ export default function AnalyticsPage() {
 
               {/* Profitability by category */}
               <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-border">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                   <h3 className="text-sm font-semibold">Rentabilidad por categoría — {currentYear}</h3>
+                  <button
+                    onClick={() => {
+                      const BOM = "﻿";
+                      const headers = ["Categoría", "Ingresos (ARS)", "Ganancia (ARS)", "Margen %", "Unidades"];
+                      const rows = (derived.catSummary as Array<{ cat: string; revenue: number; profit: number; units: number; margin: number }>).map(r => [
+                        r.cat, r.revenue.toFixed(2), r.profit.toFixed(2), r.margin.toFixed(2), r.units,
+                      ]);
+                      const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+                      a.download = `rentabilidad-categorias-${currentYear}.csv`;
+                      a.click();
+                    }}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted"
+                  >
+                    <Download className="w-3.5 h-3.5" />CSV
+                  </button>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
