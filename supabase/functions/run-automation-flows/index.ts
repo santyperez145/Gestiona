@@ -286,7 +286,7 @@ async function executeAction(ctx: ActionContext): Promise<number> {
       return await actionEmail(org_id, subjects, trigger_type, summary, customMsg, action_config);
 
     case "whatsapp_message":
-      return await actionWhatsApp(subjects, customMsg, trigger_type);
+      return await actionWhatsApp(org_id, subjects, customMsg, trigger_type);
 
     case "create_task":
       return await actionCreateTask(org_id, subjects, summary, customMsg, action_config);
@@ -426,49 +426,60 @@ async function actionEmail(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Action: WhatsApp via Twilio
+// Action: WhatsApp via Evolution API (self-hosted, no Twilio)
 // ─────────────────────────────────────────────────────────────
 async function actionWhatsApp(
+  orgId: string,
   subjects: Subject[],
   customMsg: string,
   triggerType: string,
 ): Promise<number> {
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-  const fromNumber = Deno.env.get("TWILIO_WHATSAPP_FROM"); // e.g. whatsapp:+14155238886
+  // Load Evolution API credentials from org settings
+  const { data: settings } = await supabase
+    .from("settings")
+    .select("evolution_api_url, evolution_api_key, evolution_instance")
+    .eq("org_id", orgId)
+    .maybeSingle();
 
-  if (!accountSid || !authToken || !fromNumber) {
-    console.warn("Twilio credentials not set — skipping WhatsApp action");
+  const baseUrl = settings?.evolution_api_url?.replace(/\/$/, "");
+  const apiKey = settings?.evolution_api_key;
+  const instance = settings?.evolution_instance;
+
+  if (!baseUrl || !apiKey || !instance) {
+    console.warn(`run-automation-flows: Evolution API not configured for org=${orgId} — skipping WhatsApp action`);
     return 0;
   }
 
   const withPhone = subjects.filter((s) => s.phone);
   if (!withPhone.length) return 0;
 
-  const auth = btoa(`${accountSid}:${authToken}`);
   let sent = 0;
 
   for (const subject of withPhone) {
-    const phone = subject.phone!.startsWith("+") ? subject.phone! : `+${subject.phone}`;
-    const body = interpolate(customMsg || defaultWhatsAppMsg(triggerType), subject);
+    // Normalize: digits only, no + (Evolution API expects E.164 without +)
+    const number = subject.phone!.replace(/\D/g, "");
+    const text = interpolate(customMsg || defaultWhatsAppMsg(triggerType), subject);
 
-    const params = new URLSearchParams({
-      From: fromNumber,
-      To: `whatsapp:${phone}`,
-      Body: body,
-    });
-
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
+    try {
+      const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
         method: "POST",
-        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-        signal: AbortSignal.timeout(10_000),
-      },
-    );
-    if (res.ok) sent++;
-    else console.error("Twilio error:", await res.text());
+        headers: {
+          "Content-Type": "application/json",
+          apikey: apiKey,
+        },
+        body: JSON.stringify({ number, text }),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (res.ok) {
+        sent++;
+      } else {
+        const errText = await res.text().catch(() => res.status.toString());
+        console.error(`Evolution API error for ${number}:`, errText);
+      }
+    } catch (e) {
+      console.error(`Evolution API fetch failed for ${number}:`, e);
+    }
   }
   return sent;
 }

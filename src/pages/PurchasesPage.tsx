@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 function useBarcodeScanner(onDetected: (code: string) => void) {
@@ -522,6 +522,7 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [sendPoEmail, setSendPoEmail] = useState(false);
   const [productId, setProductId] = useState(editItem?.product_id || '');
   const [quantity, setQuantity] = useState(String(editItem?.quantity || '1'));
   const [exchangeRate, setExchangeRate] = useState(editItem ? String(editItem.exchange_rate) : '');
@@ -544,7 +545,7 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
         if (match) setProductId(match.id);
       }
       if (orgId) {
-        const { data } = await supabase.from("suppliers").select("id,name").eq("org_id", orgId).order("name");
+        const { data } = await supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name");
         if (data) setSuppliers(data);
 
         if (editItem?.id) {
@@ -596,6 +597,37 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
       await logAudit(userId, 'create', 'purchase', undefined, { product: product!.name, totalUSD, qty, scheduled: isScheduled });
       toast.success(isScheduled ? "Compra programada registrada (no descuenta stock)" : "Compra registrada");
     }
+
+    // Send PO email to supplier if requested
+    if (sendPoEmail && isScheduled) {
+      const selectedSupplier = suppliers.find(s => s.id === supplierId);
+      const supplierEmail = selectedSupplier?.email;
+      if (supplierEmail && orgId) {
+        try {
+          const { error: emailErr } = await supabase.functions.invoke('send-supplier-po', {
+            body: {
+              orgId,
+              supplierEmail,
+              supplierName: selectedSupplier?.name || supplier,
+              businessName: settings?.business_name || 'Mi Negocio',
+              productName: product!.name,
+              quantity: qty,
+              unitCostUSD: unitCost,
+              totalUSD,
+              scheduledDate,
+              exchangeRate: rate,
+            },
+          });
+          if (emailErr) toast.warning(`Compra guardada, pero el email al proveedor falló: ${emailErr.message}`);
+          else toast.success('Email enviado al proveedor ✓');
+        } catch {
+          toast.warning('Compra guardada, pero no se pudo enviar el email al proveedor.');
+        }
+      } else {
+        toast.warning('El proveedor no tiene email configurado. Añadilo en Proveedores.');
+      }
+    }
+
     onSave();
   };
 
@@ -680,6 +712,27 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
           <div className="flex justify-between text-xs border-t border-border pt-1"><span className="text-muted-foreground">Costo/u con pasero:</span><span>{formatUSD(qty > 0 ? totalUSD / qty : 0)}</span></div>
         </div>
       )}
+      {/* Send PO email to supplier — only for new scheduled purchases with a supplier */}
+      {isScheduled && !editItem && supplierId && (
+        <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+          <div>
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Mail className="w-4 h-4 text-primary" />Enviar pedido al proveedor
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {suppliers.find(s => s.id === supplierId)?.email
+                ? `Se enviará a ${suppliers.find(s => s.id === supplierId)?.email}`
+                : 'El proveedor no tiene email configurado'}
+            </p>
+          </div>
+          <Switch
+            checked={sendPoEmail}
+            onCheckedChange={setSendPoEmail}
+            disabled={!suppliers.find(s => s.id === supplierId)?.email}
+          />
+        </div>
+      )}
+
       <Button type="submit" className="w-full gradient-gold text-primary-foreground font-semibold">{editItem ? 'Actualizar Compra' : 'Registrar Compra'}</Button>
     </form>
   );

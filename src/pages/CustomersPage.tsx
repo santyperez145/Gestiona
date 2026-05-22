@@ -699,6 +699,172 @@ ${recentSales.length > 0 ? `
 }
 
 // ─────────────────────────────────────────────────────────────
+// PDF — Estado de Cuenta (formal B2B account statement)
+// ─────────────────────────────────────────────────────────────
+function exportAccountStatementPDF(
+  c: any,
+  customerSales: any[],
+  customerDebts: any[],
+  businessName: string,
+) {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
+  const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  // Build unified transaction list sorted by date asc
+  interface Transaction {
+    date: string;
+    desc: string;
+    debit: number;   // amount the customer owes (purchase/debt)
+    credit: number;  // amount already paid
+    ref: string;
+  }
+  const transactions: Transaction[] = [];
+
+  // Sales
+  for (const s of customerSales) {
+    const amount = Number(s.total_ars || 0);
+    transactions.push({
+      date: s.date ? new Date(s.date).toLocaleDateString('es-AR') : '—',
+      desc: s.product_name || 'Venta',
+      debit: amount,
+      credit: s.paid ? amount : 0,
+      ref: 'Venta',
+    });
+  }
+
+  // Debts (not-yet-paid)
+  for (const d of customerDebts) {
+    if (!d.paid) {
+      transactions.push({
+        date: d.created_at ? new Date(d.created_at).toLocaleDateString('es-AR') : '—',
+        desc: d.concept || d.note || 'Deuda pendiente',
+        debit: Number(d.amount || d.remaining_ars || 0),
+        credit: 0,
+        ref: 'Deuda',
+      });
+    }
+  }
+
+  // Sort by date ascending
+  transactions.sort((a, b) => {
+    const da = a.date.split('/').reverse().join('-');
+    const db = b.date.split('/').reverse().join('-');
+    return da.localeCompare(db);
+  });
+
+  // Running balance
+  let runningBalance = 0;
+  const rows = transactions.map(t => {
+    runningBalance += t.debit - t.credit;
+    const balanceClass = runningBalance > 0 ? 'color:#ef4444' : runningBalance < 0 ? 'color:#16a34a' : '';
+    return `<tr>
+      <td>${t.date}</td>
+      <td>${t.ref}</td>
+      <td>${t.desc}</td>
+      <td style="text-align:right">${t.debit > 0 ? fmt(t.debit) : '—'}</td>
+      <td style="text-align:right;color:#16a34a">${t.credit > 0 ? fmt(t.credit) : '—'}</td>
+      <td style="text-align:right;font-weight:600;${balanceClass}">${fmt(runningBalance)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalPurchased = transactions.reduce((s, t) => s + t.debit, 0);
+  const totalPaid = transactions.reduce((s, t) => s + t.credit, 0);
+  const totalBalance = totalPurchased - totalPaid;
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Estado de Cuenta — ${c.name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1a1a2e; padding: 24px; font-size: 12px; }
+  .header { background: #1a1a2e; color: #fff; padding: 24px 28px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: flex-start; }
+  .header-left h1 { color: #d4a843; font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .header-left p { color: rgba(255,255,255,0.55); font-size: 11px; }
+  .header-right { text-align: right; }
+  .header-right .doc-title { font-size: 14px; font-weight: 700; color: #d4a843; margin-bottom: 4px; }
+  .header-right .doc-date { font-size: 10px; color: rgba(255,255,255,0.5); }
+  .subheader { background: #f9f9fb; border: 1px solid #e5e7eb; border-top: none; padding: 14px 28px; margin-bottom: 20px; border-radius: 0 0 4px 4px; display: flex; gap: 32px; }
+  .sub-item .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; margin-bottom: 3px; }
+  .sub-item .value { font-size: 13px; font-weight: 600; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .summary-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }
+  .summary-card .s-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; margin-bottom: 4px; }
+  .summary-card .s-value { font-size: 18px; font-weight: 900; font-family: monospace; }
+  .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { background: #1a1a2e; color: #d4a843; padding: 7px 10px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f3f4f6; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .total-row td { border-top: 2px solid #d4a843; font-weight: 700; font-size: 12px; background: #fffbeb !important; }
+  .footer { text-align: center; font-size: 9px; color: #d1d5db; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+  @media print { body { padding: 0; } }
+</style></head><body>
+<div class="header">
+  <div class="header-left">
+    <h1>${businessName}</h1>
+    <p>Sistema de Gestión · Generado el ${today}</p>
+  </div>
+  <div class="header-right">
+    <div class="doc-title">ESTADO DE CUENTA</div>
+    <div class="doc-date">${today}</div>
+  </div>
+</div>
+<div class="subheader">
+  <div class="sub-item"><div class="label">Cliente</div><div class="value">${c.name}</div></div>
+  ${c.company ? `<div class="sub-item"><div class="label">Empresa</div><div class="value">${c.company}</div></div>` : ''}
+  ${c.email ? `<div class="sub-item"><div class="label">Email</div><div class="value">${c.email}</div></div>` : ''}
+  ${c.phone ? `<div class="sub-item"><div class="label">Teléfono</div><div class="value">${c.phone}</div></div>` : ''}
+</div>
+
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="s-label">Total facturado</div>
+    <div class="s-value">${fmt(totalPurchased)}</div>
+  </div>
+  <div class="summary-card">
+    <div class="s-label">Total pagado</div>
+    <div class="s-value" style="color:#16a34a">${fmt(totalPaid)}</div>
+  </div>
+  <div class="summary-card">
+    <div class="s-label">Saldo pendiente</div>
+    <div class="s-value" style="color:${totalBalance > 0 ? '#ef4444' : '#16a34a'}">${fmt(totalBalance)}</div>
+  </div>
+</div>
+
+${transactions.length > 0 ? `
+<div class="section-title">Movimientos (${transactions.length})</div>
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Tipo</th>
+      <th>Descripción</th>
+      <th style="text-align:right">Cargo</th>
+      <th style="text-align:right">Abono</th>
+      <th style="text-align:right">Saldo</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rows}
+    <tr class="total-row">
+      <td colspan="3">TOTALES</td>
+      <td style="text-align:right">${fmt(totalPurchased)}</td>
+      <td style="text-align:right;color:#16a34a">${fmt(totalPaid)}</td>
+      <td style="text-align:right;color:${totalBalance > 0 ? '#ef4444' : '#16a34a'}">${fmt(totalBalance)}</td>
+    </tr>
+  </tbody>
+</table>` : '<p style="color:#9ca3af;font-size:12px">Sin movimientos registrados.</p>'}
+
+<div class="footer">
+  ${businessName} · Estado de cuenta al ${today} · Documento generado automáticamente · No requiere firma
+</div>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=960,height=720');
+  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 600); }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────────────────────
 export default function CustomersPage() {
@@ -2142,6 +2308,20 @@ export default function CustomersPage() {
                         title="Exportar ficha completa del cliente en PDF"
                       >
                         <Printer className="w-3.5 h-3.5" />PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs text-muted-foreground"
+                        onClick={() => exportAccountStatementPDF(
+                          c,
+                          sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase()),
+                          debts.filter((d: any) => d.customer_name?.toLowerCase() === c.name.toLowerCase()),
+                          settings?.business_name || 'Mi Negocio'
+                        )}
+                        title="Estado de cuenta formal para enviar al cliente"
+                      >
+                        <FileText className="w-3.5 h-3.5" />Cta. Cte.
                       </Button>
                       <Button
                         size="sm"

@@ -54,6 +54,7 @@ export default function SettingsPage() {
   const [discountDebit, setDiscountDebit] = useState('0');
   const [discountCredit, setDiscountCredit] = useState('0');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [whatsappDigestEnabled, setWhatsappDigestEnabled] = useState(false);
   const [bankCbu, setBankCbu] = useState('');
   const [bankAlias, setBankAlias] = useState('');
   const [bankName, setBankName] = useState('');
@@ -267,6 +268,7 @@ export default function SettingsPage() {
       setDiscountDebit(String(s.discount_debit_percent ?? 0));
       setDiscountCredit(String(s.discount_credit_percent ?? 0));
       setWhatsappNumber(s.whatsapp_number || '');
+      setWhatsappDigestEnabled(!!s.whatsapp_digest_enabled);
       setBankCbu(s.bank_cbu || '');
       setBankAlias(s.bank_alias || '');
       setBankName(s.bank_name || '');
@@ -344,6 +346,7 @@ export default function SettingsPage() {
         discount_debit_percent: num(discountDebit, 0),
         discount_credit_percent: num(discountCredit, 0),
         whatsapp_number: whatsappNumber || null,
+        whatsapp_digest_enabled: whatsappDigestEnabled,
         bank_cbu: bankCbu || null,
         bank_alias: bankAlias || null,
         bank_name: bankName || null,
@@ -572,6 +575,17 @@ export default function SettingsPage() {
               <label className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />WhatsApp (catálogo público)</label>
               <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+5491112345678" className="bg-muted border-border mt-1" />
               <p className="text-[10px] text-muted-foreground mt-1">Número con código de país. Aparecerá como botón flotante en tu catálogo público.</p>
+            </div>
+            <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
+              <div>
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-green-400" />Resumen diario por WhatsApp
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Recibí un mensaje con las ventas del día a las 17hs. Requiere Evolution API configurada y número de WhatsApp arriba.
+                </p>
+              </div>
+              <Switch checked={whatsappDigestEnabled} onCheckedChange={setWhatsappDigestEnabled} />
             </div>
             <div className="border-t border-border pt-4">
               <label className="text-sm font-medium flex items-center gap-1.5 mb-3"><CreditCard className="w-3.5 h-3.5 text-primary" />Cuenta bancaria (para links de pago)</label>

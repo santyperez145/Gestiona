@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 48)**
+Última actualización: **2026-05-22 (sesión 49)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -855,6 +855,20 @@ Ver tabla de sesión 29 arriba.
 | 4 | **Migration `evolution_api_settings`** — `ALTER TABLE settings ADD COLUMN evolution_api_url, evolution_api_key, evolution_instance DEFAULT 'gestiona'` | ✅ Hecho |
 | 5 | **`WhatsAppCampaignsPage` actualizada** — config check lee de Supabase DB (no localStorage); warning "Evolution API no configurada" con link a /integraciones; estado renombrado de `twilioConfigured` a `evolutionConfigured` | ✅ Hecho |
 | 6 | **TypeScript clean** — 0 errores tras todos los cambios | ✅ Hecho |
+
+## Sesión 49 ✅ COMPLETA — Evolution API completa + APIs propias continuadas
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **`run-automation-flows`: Twilio → Evolution API** — `actionWhatsApp()` ahora acepta `orgId`, carga credenciales desde `settings.evolution_api_url/key/instance`, llama `POST /message/sendText/{instance}`; actualizado call site para pasar `org_id` | ✅ Hecho |
+| 2 | **`execute-automations`: acción `whatsapp_message`** — bloque nuevo en el switch de acciones; carga Evolution API por org, busca teléfonos de clientes por nombre, envía mensajes personalizados con `{nombre}/{detalle}` | ✅ Hecho |
+| 3 | **Edge function `send-supplier-po`** — email profesional de pedido de compra al proveedor: número de PO auto-generado, tabla de producto/cantidad/precio/total, fechas de emisión y entrega, pie con TC; usa SMTP propio > Resend | ✅ Hecho |
+| 4 | **PurchasesPage: "Enviar pedido al proveedor"** — toggle Switch visible solo en compras programadas nuevas con proveedor con email; invoca `send-supplier-po` post-save; toast de resultado | ✅ Hecho |
+| 5 | **CustomersPage: "Estado de Cuenta" PDF** — función `exportAccountStatementPDF()`: lista unificada de compras + deudas por fecha, saldo corriente, totales facturado/pagado/pendiente; documento formal para clientes B2B; botón "Cta. Cte." junto al PDF 360 | ✅ Hecho |
+| 6 | **Edge function `daily-whatsapp-digest`** — resumen diario de ventas por WhatsApp vía Evolution API a las 17hs; KPIs: total ARS, tickets, clientes, ticket promedio, margen %, top producto; log de notificación post-envío | ✅ Hecho |
+| 7 | **SettingsPage: toggle "Resumen diario por WhatsApp"** — opt-in para el digest; guarda `whatsapp_digest_enabled` en DB | ✅ Hecho |
+| 8 | **Migration `whatsapp_digest`** — `ALTER TABLE settings ADD COLUMN whatsapp_digest_enabled boolean DEFAULT false`; cron `daily-whatsapp-digest` a las 20:00 UTC | ✅ Hecho |
+| 9 | **TypeScript: 0 errores** — tipos actualizados para `whatsapp_digest_enabled` en Row/Insert/Update | ✅ Hecho |
 
 ---
 

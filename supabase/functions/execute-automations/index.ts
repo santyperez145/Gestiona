@@ -13,8 +13,9 @@
  * Action types handled:
  *   notification       → creates notification for org admins
  *   create_task        → creates a task record
- *   webhook            → calls the org's configured webhook URL
  *   email              → sends email via own SMTP or Resend fallback
+ *   whatsapp_message   → sends WhatsApp via Evolution API (self-hosted)
+ *   webhook            → calls the org's configured webhook URL
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -247,6 +248,58 @@ Deno.serve(async (req) => {
                 },
               );
               actionsTaken++;
+            }
+
+          } else if (flow.action_type === "whatsapp_message") {
+            // Load Evolution API credentials for this org
+            const { data: evolSettings } = await supabase
+              .from("settings")
+              .select("evolution_api_url, evolution_api_key, evolution_instance")
+              .eq("org_id", orgId)
+              .maybeSingle();
+
+            const baseUrl = evolSettings?.evolution_api_url?.replace(/\/$/, "");
+            const apiKey = evolSettings?.evolution_api_key;
+            const instance = evolSettings?.evolution_instance;
+
+            if (!baseUrl || !apiKey || !instance) {
+              console.warn(`execute-automations: Evolution API not configured for org=${orgId}`);
+              status = "skipped";
+            } else {
+              // Get customer phones for matched entities
+              const names = matchedEntities.map(e => e.name);
+              const { data: contacts } = await supabase
+                .from("customers")
+                .select("name, phone")
+                .eq("org_id", orgId)
+                .in("name", names);
+              const phoneMap: Record<string, string> = {};
+              for (const c of contacts ?? []) {
+                if (c.phone) phoneMap[c.name] = c.phone;
+              }
+
+              const msgTemplate = ac.message || flow.name;
+              for (const entity of matchedEntities.slice(0, 50)) {
+                const phone = phoneMap[entity.name];
+                if (!phone) continue;
+                const number = phone.replace(/\D/g, "");
+                const text = msgTemplate
+                  .replace(/\{nombre\}/gi, entity.name)
+                  .replace(/\{detalle\}/gi, entity.extra ?? "")
+                  .replace(/\{monto\}/gi, entity.extra ?? "");
+                try {
+                  const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", apikey: apiKey },
+                    body: JSON.stringify({ number, text }),
+                    signal: AbortSignal.timeout(15_000),
+                  });
+                  if (res.ok) actionsTaken++;
+                  else console.error("Evolution API error:", await res.text().catch(() => res.status));
+                } catch (e) {
+                  console.error("Evolution API fetch failed:", e);
+                }
+              }
             }
 
           } else if (flow.action_type === "webhook" && ac.webhook_url) {
