@@ -657,6 +657,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         const todayTotal = todaySales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
         const todayProfit = todaySales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
         const todayPaid = todaySales.filter((s: any) => s.paid).length;
+        const maxTicket = todaySales.reduce((max: any, v: any) => !max || Number(v.total_ars) > Number(max.total_ars) ? v : max, null);
+        // Top product by count
+        const prodCount: Record<string, number> = {};
+        todaySales.forEach((s: any) => { if (s.product_name) prodCount[s.product_name] = (prodCount[s.product_name] || 0) + Number(s.quantity || 1); });
+        const topProd = Object.entries(prodCount).sort((a, b) => b[1] - a[1])[0];
         return (
           <div className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
             <span className="text-primary font-semibold text-xs uppercase tracking-wide">Hoy</span>
@@ -664,6 +669,17 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             <span className="text-success text-xs">{formatARS(todayProfit)} ganancia</span>
             <span className="text-muted-foreground text-xs">{todaySales.length} venta{todaySales.length !== 1 ? 's' : ''}</span>
             <span className="text-muted-foreground text-xs">{todayPaid} cobrada{todayPaid !== 1 ? 's' : ''}</span>
+            {maxTicket && (
+              <span className="text-muted-foreground text-xs border-l border-border/60 pl-3 hidden sm:inline">
+                🏆 Mayor: <span className="font-semibold text-foreground">{formatARS(Number(maxTicket.total_ars))}</span>
+                {maxTicket.customer_name && <span className="text-muted-foreground"> · {maxTicket.customer_name}</span>}
+              </span>
+            )}
+            {topProd && (
+              <span className="text-muted-foreground text-xs hidden sm:inline">
+                📦 Top: <span className="font-semibold text-foreground">{topProd[0].length > 20 ? topProd[0].slice(0, 18) + '…' : topProd[0]}</span> ×{topProd[1]}
+              </span>
+            )}
           </div>
         );
       })()}

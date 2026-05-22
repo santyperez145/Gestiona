@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 63)**
+Última actualización: **2026-05-22 (sesión 64)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -941,6 +941,18 @@ Ver tabla de sesión 29 arriba.
 | 2 | **AIChatPage: `query_expense_summary`** — detecta "cuánto gasté / resumen gastos / en qué gasté"; `ExpenseSummaryCard` con toggle Mes/Semana; 4 KPIs + barras por categoría + método principal; chip "Gastos del mes" | ✅ Hecho |
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 64 ✅ COMPLETA — ExpensesPage sort + SalesPage strip Hoy mejorado + DebtsPage PDF + CustomersPage badge inactividad
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ExpensesPage: columnas ordenables** — `expenseSort` state; headers Fecha/Categoría/Monto clickeables con ChevronUp/Down; `[...base].sort()` inmutable en el useMemo de `filtered`; depende de `expenseSort` | ✅ Hecho |
+| 2 | **SalesPage: strip "Hoy" enriquecido** — agrega 🏆 ticket más alto del día (monto + cliente si existe) y 📦 top producto por unidades; ambos ocultos en sm:hidden para no romper mobile | ✅ Hecho |
+| 3 | **DebtsPage: PDF export de deudas pendientes** — `printDebtsPDF()` genera HTML imprimible A4 con 4 KPI cards (total/count/vencidas/promedio), tabla completa con color rojo para vencidas, días de demora, fila total; botón "PDF" con ícono Printer en PageHeader (visible solo con deudas) | ✅ Hecho |
+| 4 | **CustomersPage: badge "X días sin comprar"** — badge naranja (60–89d) / rojo (≥90d) junto al segmento; muestra días exactos; tooltip con fecha de última compra; solo visible en sm+; no se muestra si daysSince ≥ 999 (sin compras) | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---

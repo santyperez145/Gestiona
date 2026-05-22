@@ -2273,6 +2273,12 @@ export default function CustomersPage() {
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 hidden sm:inline-flex items-center gap-0.5" title={`Primera compra: ${firstPurchaseDate.toLocaleDateString('es-AR')}`}>✨ Nuevo</span>
                         ) : null;
                       })()}
+                      {c.purchaseCount > 0 && c.daysSinceLastPurchase >= 60 && c.daysSinceLastPurchase < 999 && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold hidden sm:inline-flex items-center gap-0.5 ${c.daysSinceLastPurchase >= 90 ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}
+                          title={`Última compra hace ${c.daysSinceLastPurchase} días`}>
+                          🕐 {c.daysSinceLastPurchase}d sin comprar
+                        </span>
+                      )}
                       {c.pendingDebt > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive hidden sm:block">
                           Debe {formatARS(c.pendingDebt)}

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -86,6 +86,7 @@ export default function ExpensesPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [activeTab, setActiveTab] = useState<'gastos' | 'presupuesto' | 'recurrentes' | 'tendencia'>('gastos');
+  const [expenseSort, setExpenseSort] = useState<{ col: "date" | "amount_ars" | "category"; dir: "asc" | "desc" }>({ col: "date", dir: "desc" });
 
   const [budgets, setBudgets] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem("gestiona.expense_budgets") || "{}"); } catch { return {}; }
@@ -143,7 +144,7 @@ export default function ExpensesPage() {
   }, [expenses]);
 
   const filtered = useMemo(() => {
-    return expenses.filter(e => {
+    const base = expenses.filter(e => {
       if (filterCat !== 'all' && e.category !== filterCat) return false;
       if (filterVendor !== 'all' && e.vendor !== filterVendor) return false;
       if (search) {
@@ -158,7 +159,14 @@ export default function ExpensesPage() {
       }
       return true;
     });
-  }, [expenses, filterCat, filterMonth, search, filterVendor]);
+    return [...base].sort((a, b) => {
+      let cmp = 0;
+      if (expenseSort.col === "date") cmp = a.date.localeCompare(b.date);
+      else if (expenseSort.col === "amount_ars") cmp = Number(a.amount_ars) - Number(b.amount_ars);
+      else if (expenseSort.col === "category") cmp = (a.category || "").localeCompare(b.category || "");
+      return expenseSort.dir === "asc" ? cmp : -cmp;
+    });
+  }, [expenses, filterCat, filterMonth, search, filterVendor, expenseSort]);
 
   const totals = useMemo(() => {
     const total = filtered.reduce((s, e) => s + Number(e.amount_ars), 0);
@@ -464,10 +472,24 @@ export default function ExpensesPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoría</th>
+                      {([
+                        { col: "date" as const, label: "Fecha", align: "left" },
+                        { col: "category" as const, label: "Categoría", align: "left" },
+                      ]).map(h => (
+                        <th key={h.col} className={`text-${h.align} px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground select-none`}
+                          onClick={() => setExpenseSort(s => ({ col: h.col, dir: s.col === h.col && s.dir === "asc" ? "desc" : "asc" }))}>
+                          <span className="inline-flex items-center gap-1">{h.label}
+                            {expenseSort.col === h.col ? (expenseSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
+                          </span>
+                        </th>
+                      ))}
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Descripción</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Monto</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
+                        onClick={() => setExpenseSort(s => ({ col: "amount_ars", dir: s.col === "amount_ars" && s.dir === "desc" ? "asc" : "desc" }))}>
+                        <span className="inline-flex items-center gap-1 justify-end">Monto
+                          {expenseSort.col === "amount_ars" ? (expenseSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : null}
+                        </span>
+                      </th>
                       <th className="px-4 py-3"></th>
                     </tr>
                   </thead>

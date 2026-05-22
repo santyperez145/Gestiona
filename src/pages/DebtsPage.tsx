@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, TrendingDown, TrendingUp, Users, Search, MessageCircle, FileSpreadsheet, Square, CheckSquare, Calendar, BarChart2, CalendarDays, ListChecks, ArrowUpDown, ChevronUp, ChevronDown, Printer } from "lucide-react";
 import { updateDebtDB } from "@/lib/supabaseStore";
 import { DateRangePicker } from "@/components/shared/DateRangePicker";
 import { toast } from "sonner";
@@ -134,6 +134,61 @@ export default function DebtsPage() {
   if (loading) return <TableSkeleton rows={5} cols={7} />;
 
   const shownRaw = tab === "paid" ? paid : pending;
+
+  function printDebtsPDF() {
+    const total = pending.reduce((s, d) => s + Number(d.remaining_ars), 0);
+    const totalOriginal = pending.reduce((s, d) => s + Number(d.amount_ars), 0);
+    const today = new Date().toLocaleDateString("es-AR");
+    const overdue = pending.filter(d => d.due_date && new Date(d.due_date + "T12:00:00") < new Date());
+    const rows = [...pending].sort((a, b) => Number(b.remaining_ars) - Number(a.remaining_ars))
+      .map(d => {
+        const isOver = d.due_date && new Date(d.due_date + "T12:00:00") < new Date();
+        const daysOver = d.due_date ? Math.ceil((new Date().getTime() - new Date(d.due_date + "T12:00:00").getTime()) / 86400000) : 0;
+        return `<tr style="${isOver ? 'color:#ef4444;' : ''}">
+          <td>${d.customer_name || '—'}</td>
+          <td>${d.product_name || '—'}</td>
+          <td style="text-align:right">$${Number(d.amount_ars).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:right;font-weight:bold">$${Number(d.remaining_ars).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
+          <td>${d.date ? new Date(d.date).toLocaleDateString("es-AR") : "—"}</td>
+          <td>${d.due_date ? new Date(d.due_date + "T12:00:00").toLocaleDateString("es-AR") : "—"}</td>
+          <td style="text-align:center">${isOver && daysOver > 0 ? `<span style="color:#ef4444;font-weight:bold">+${daysOver}d</span>` : isOver ? "Vencida" : "—"}</td>
+        </tr>`;
+      }).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Deudas Pendientes — ${today}</title><style>
+      body{font-family:Arial,sans-serif;font-size:11px;margin:20px;color:#111}
+      h1{font-size:16px;margin:0 0 2px}
+      .sub{color:#666;font-size:11px;margin-bottom:16px}
+      .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+      .kpi{border:1px solid #ddd;border-radius:8px;padding:10px;text-align:center}
+      .kpi .val{font-size:15px;font-weight:bold}
+      .kpi .lbl{font-size:10px;color:#666;margin-top:2px}
+      table{width:100%;border-collapse:collapse}
+      th{background:#f1f5f9;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #ddd}
+      td{padding:6px 8px;border-bottom:1px solid #eee}
+      tfoot td{font-weight:bold;border-top:2px solid #111;background:#f8fafc}
+      @media print{body{margin:10px}}
+    </style></head><body>
+    <h1>Deudas Pendientes</h1>
+    <p class="sub">Generado el ${today} · ${pending.length} deudas pendientes · ${overdue.length} vencidas</p>
+    <div class="kpis">
+      <div class="kpi"><div class="val">$${total.toLocaleString("es-AR", { minimumFractionDigits: 0 })}</div><div class="lbl">Total pendiente</div></div>
+      <div class="kpi"><div class="val">${pending.length}</div><div class="lbl">Deudas activas</div></div>
+      <div class="kpi"><div class="val" style="color:#ef4444">${overdue.length}</div><div class="lbl">Vencidas</div></div>
+      <div class="kpi"><div class="val">$${(total / (pending.length || 1)).toLocaleString("es-AR", { minimumFractionDigits: 0 })}</div><div class="lbl">Promedio por deuda</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Cliente</th><th>Producto</th><th style="text-align:right">Monto orig.</th><th style="text-align:right">Resta</th><th>Fecha</th><th>Vence</th><th style="text-align:center">Demora</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="2">TOTAL (${pending.length} deudas)</td><td style="text-align:right">$${totalOriginal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td><td style="text-align:right;color:#ef4444">$${total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td><td colspan="3"></td></tr></tfoot>
+    </table>
+    </body></html>`;
+    const w = window.open("", "_blank", "width=900,height=700");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+  }
   const shown = [...shownRaw].sort((a, b) => {
     const { col, dir } = debtSort;
     let va: any = a[col] ?? "";
@@ -151,7 +206,15 @@ export default function DebtsPage() {
         description="Control de cuentas corrientes de clientes"
         badge={pending.length > 0 ? { label: `${pending.length} pendientes`, variant: "destructive" } : { label: "Al día ✓", variant: "success" }}
         actions={
-          <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+          <div className="flex items-center gap-2">
+            <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+            {pending.length > 0 && (
+              <button onClick={printDebtsPDF} className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-border bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors" title="Imprimir PDF de deudas pendientes">
+                <Printer className="w-4 h-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </button>
+            )}
+          </div>
         }
       />
 
