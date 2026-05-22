@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -911,8 +911,20 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [bulkVariants, setBulkVariants] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
+  const [vaperSubtype, setVaperSubtype] = useState(''); // desechable | pod | liquido | mod
 
   const isVaper = category === 'vaper';
+
+  // Reset subtype and content_ml defaults when category changes
+  useEffect(() => {
+    if (!product) {
+      setVaperSubtype('');
+      if (category === 'vaper') setContentMl('');
+      else if (category === 'electronico') setContentMl('');
+      else setContentMl('100');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
   const VARIANT_TYPE_LABELS: Record<string, string> = {
     sabor: 'Sabores', talle: 'Talles', color: 'Colores',
     medida: 'Medidas', otro: 'Variantes',
@@ -1130,6 +1142,195 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </Select>
         </div>
       </div>
+      {/* ── Smart suggestions panel ── */}
+      {category === 'vaper' && (
+        <div className="rounded-xl border border-success/30 bg-success/5 p-3 space-y-2.5">
+          <p className="text-xs font-semibold text-success flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" />Creación inteligente — Vaper
+          </p>
+          {/* Subtype */}
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Tipo de producto</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(['Desechable', 'Pod / Cartucho', 'Líquido', 'Mod Box'] as const).map(t => {
+                const key = t === 'Desechable' ? 'desechable' : t === 'Pod / Cartucho' ? 'pod' : t === 'Líquido' ? 'liquido' : 'mod';
+                return (
+                  <button key={t} type="button"
+                    className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${vaperSubtype === key ? 'bg-success/30 border-success text-success' : 'border-border/60 text-muted-foreground hover:border-success/40 hover:text-success'}`}
+                    onClick={() => {
+                      setVaperSubtype(key);
+                      if (key === 'desechable') { setContentMl(''); setVariantType('sabor'); }
+                      else if (key === 'pod') { setContentMl('2'); setVariantType('sabor'); }
+                      else if (key === 'liquido') { setContentMl('30'); setVariantType('sabor'); }
+                      else { setContentMl(''); setVariantType('otro'); }
+                    }}
+                  >{t}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desechable: puffs + nic */}
+          {vaperSubtype === 'desechable' && (
+            <>
+              <div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">Puffs</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[600, 1000, 1500, 2000, 4000, 5000, 6000, 10000].map(p => (
+                    <button key={p} type="button"
+                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                      onClick={() => {
+                        const suffix = `${p} PUFFS`;
+                        setName(prev => {
+                          const base = prev.replace(/\d+ PUFFS/g, '').trim();
+                          return base ? `${base} ${suffix}` : suffix;
+                        });
+                      }}
+                    >{p.toLocaleString()} puffs</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">Nicotina</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Sin nicotina', '20mg Salt', '50mg Salt', '3mg', '6mg'].map(nic => (
+                    <button key={nic} type="button"
+                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                      onClick={() => setDescription(prev => prev ? `${prev} · ${nic}` : nic)}
+                    >{nic}</button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Pod: capacidad */}
+          {vaperSubtype === 'pod' && (
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Capacidad del cartucho</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['1.8', '2', '2.5', '3', '5', '8', '10'].map(ml => (
+                  <button key={ml} type="button"
+                    className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                    onClick={() => setContentMl(ml)}
+                  >{ml}ml</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Líquido: volumen + nic */}
+          {vaperSubtype === 'liquido' && (
+            <>
+              <div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">Volumen</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['10', '30', '60', '100', '120'].map(ml => (
+                    <button key={ml} type="button"
+                      className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-success/30 border-success text-success' : 'border-border/60 text-muted-foreground hover:border-success/40 hover:text-success'}`}
+                      onClick={() => {
+                        setContentMl(ml);
+                        setName(prev => {
+                          const base = prev.replace(/\d+ML/g, '').trim();
+                          return base ? `${base} ${ml}ML` : `${ml}ML`;
+                        });
+                      }}
+                    >{ml}ml</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">Nicotina</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['0mg', '3mg', '6mg', '12mg', '18mg', '20mg Sal', '25mg Sal', '50mg Sal'].map(nic => (
+                    <button key={nic} type="button"
+                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                      onClick={() => setDescription(prev => prev ? `${prev} · ${nic}` : nic)}
+                    >{nic}</button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Mod Box: wattage */}
+          {vaperSubtype === 'mod' && (
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Potencia máxima</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['40W', '60W', '80W', '100W', '160W', '220W'].map(w => (
+                  <button key={w} type="button"
+                    className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                    onClick={() => setName(prev => prev ? `${prev} ${w}` : w)}
+                  >{w}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(category === 'perfume_arabe' || category === 'perfume_diseñador') && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2.5">
+          <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" />Creación inteligente — Perfume
+          </p>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Contenido</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(category === 'perfume_arabe'
+                ? ['25', '50', '80', '100']
+                : ['30', '50', '100', '150', '200']
+              ).map(ml => (
+                <button key={ml} type="button"
+                  className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}
+                  onClick={() => {
+                    setContentMl(ml);
+                    setName(prev => {
+                      const base = prev.replace(/\d+ML/g, '').trim();
+                      return base ? `${base} ${ml}ML` : `${ml}ML`;
+                    });
+                  }}
+                >{ml}ml</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Género</p>
+            <div className="flex gap-1.5">
+              {(['masculino', 'femenino', 'unisex'] as const).map(g => (
+                <button key={g} type="button"
+                  className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all capitalize ${gender === g ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}
+                  onClick={() => setGender(g)}
+                >{g}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {category === 'electronico' && (
+        <div className="rounded-xl border border-warning/20 bg-warning/5 p-3 space-y-2.5">
+          <p className="text-xs font-semibold text-warning flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" />Creación inteligente — Electrónico
+          </p>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Tipo de producto</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['Auricular', 'Cargador', 'Cable', 'Smartwatch', 'Powerbank', 'Teclado', 'Mouse', 'Parlante', 'Cámara'].map(t => (
+                <button key={t} type="button"
+                  className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-warning/40 hover:text-warning transition-all"
+                  onClick={() => {
+                    setName(prev => prev ? prev : t.toUpperCase());
+                    setVariantType('color');
+                  }}
+                >{t}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Género</label>
           <Select value={gender} onValueChange={setGender}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
@@ -1190,10 +1391,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <label className="text-sm text-muted-foreground">Descripción</label>
           <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Notas sobre el producto" className="bg-muted border-border" />
         </div>
-        <div>
-          <label className="text-sm text-muted-foreground">Contenido (ml)</label>
-          <Input type="number" min="1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border" />
-        </div>
+        {category !== 'electronico' && !(category === 'vaper' && vaperSubtype === 'desechable') && (
+          <div>
+            <label className="text-sm text-muted-foreground">
+              {category === 'vaper' ? 'Capacidad (ml)' : 'Contenido (ml)'}
+            </label>
+            <Input type="number" min="0.1" step="0.1" value={contentMl} onChange={e => setContentMl(e.target.value)} className="bg-muted border-border"
+              placeholder={category === 'vaper' ? 'Ej: 2, 5, 10...' : 'Ej: 100'} />
+          </div>
+        )}
       </div>
       {/* Barcode & SKU */}
       <div className="grid grid-cols-2 gap-3">

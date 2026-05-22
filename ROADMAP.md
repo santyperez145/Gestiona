@@ -773,15 +773,23 @@ Ver tabla de sesión 29 arriba.
 | 2 | **CustomersPage: historial de presupuestos en ficha** — `CustomerQuotesTab` component que fetchea `quotes` filtrado por `customer_name ILIKE`; tab "Presupuestos" en ficha 360 con KPIs (total / valor aceptado / valor pendiente), lista con estado + fecha + monto + link | ✅ Hecho |
 | 3 | **PresupuestosPage: recordatorio masivo WhatsApp** — panel expandible "Recordatorio masivo" en banner de alerta; muestra todas las quotes con status `sent`; por cada una genera link `wa.me` con mensaje personalizado (nombre, número de presupuesto, total, días transcurridos); sin teléfono muestra aviso | ✅ Hecho |
 
-## Prioridades inmediatas (sesión 41)
+## Sesión 41 ✅ COMPLETA
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: creación inteligente por categoría** — panel "Sugerencias inteligentes" contextual por categoría: Vaper (subtipo desechable/pod/líquido/mod con chips de puffs, ml, nicotina, wattage; auto-rellena nombre y descripción); Perfume (chips de ml + género quick-set); Electrónico (chips de tipo de producto); `useEffect` que resetea `content_ml` y `vaperSubtype` al cambiar categoría; campo `content_ml` oculto para electrónicos y desechables | ✅ Hecho |
+| 2 | **Dashboard: widget "Resumen del día"** — `EndOfDayWidget` collapsible; KPIs del día (facturado/ganancia/unidades/fiado); top 5 productos por unidades; ventas por vendedor; métodos de cobro; deudas nuevas del día; badge "Cierre" después de las 17hs | ✅ Hecho |
+| 3 | **POS: atajos de teclado** — F2 = focus búsqueda de producto; F9 = confirmar venta; Escape = limpiar búsqueda → vaciar carrito; + / - = incrementar/decrementar qty del último ítem; hint "F9" en botón confirmar; placeholder actualizado con ayuda | ✅ Hecho |
+
+## Prioridades inmediatas (sesión 42)
 
 | # | Acción | Por qué |
 |---|--------|---------|
-| 1 | **ReportsPage: reporte mensual automático** — PDF/email con resumen de ventas, margen, top productos, KPIs vs mes anterior; programable desde Settings | Valor percibido |
-| 2 | **SettingsPage: configuración de email SMTP propio** — permitir usar dominio propio para envío de quotes y recordatorios | Profesionalismo |
-| 3 | **POS: modo pantalla completa con teclado numérico** — atajos de teclado (F1=nueva venta, ESC=cancelar, Enter=confirmar), acceso rápido a productos favoritos | UX POS |
-| 4 | **ProductsPage: variantes por talle/color con stock independiente** — tabla de variantes en modal de producto; stock y precio por variante | Inventario avanzado |
-| 5 | **Dashboard: resumen fin de día** — widget nocturno con cierre de caja, top productos del día, ventas por vendedor, deudas nuevas | Cierre operativo |
+| 1 | **ReportsPage: reporte mensual automático** — PDF descargable con resumen de ventas, margen, top productos, KPIs vs mes anterior | Valor percibido |
+| 2 | **SettingsPage: configuración de email SMTP propio** — dominio propio para envío de quotes y recordatorios | Profesionalismo |
+| 3 | **ProductsPage: variantes con precio independiente** — stock y precio editable por variante (talle/color/sabor); subtotal correcto en POS | Inventario avanzado |
+| 4 | **CustomersPage: exportar ficha 360 a PDF** — snapshot del cliente (KPIs, historial, presupuestos, deuda) como PDF descargable | CRM completo |
+| 5 | **AlertsPage: alertas por email o push** — reglas con notificación real (email via edge function) además del badge visual | Operaciones |
 
 ---
 

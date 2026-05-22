@@ -104,6 +104,161 @@ function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; or
   );
 }
 
+function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; orgId: string }) {
+  const [open, setOpen] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const todaySales = sales.filter((s: any) => String(s.date).slice(0, 10) === today);
+
+  if (todaySales.length === 0) return null;
+
+  const totalRevenue = todaySales.reduce((s: number, v: any) => s + Number(v.total_ars || 0), 0);
+  const totalProfit = todaySales.reduce((s: number, v: any) => s + Number(v.profit_ars || 0), 0);
+  const totalUnits = todaySales.reduce((s: number, v: any) => s + Number(v.quantity || 1), 0);
+
+  // By seller
+  const bySeller: Record<string, { rev: number; count: number }> = {};
+  todaySales.forEach((s: any) => {
+    const k = s.seller_name || 'Sin asignar';
+    if (!bySeller[k]) bySeller[k] = { rev: 0, count: 0 };
+    bySeller[k].rev += Number(s.total_ars || 0);
+    bySeller[k].count += 1;
+  });
+
+  // Top products
+  const byProduct: Record<string, { qty: number; rev: number }> = {};
+  todaySales.forEach((s: any) => {
+    const k = s.product_name || 'Sin nombre';
+    if (!byProduct[k]) byProduct[k] = { qty: 0, rev: 0 };
+    byProduct[k].qty += Number(s.quantity || 1);
+    byProduct[k].rev += Number(s.total_ars || 0);
+  });
+  const topProducts = Object.entries(byProduct).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+
+  // Payment methods
+  const byMethod: Record<string, number> = {};
+  todaySales.forEach((s: any) => { const m = s.payment_method || 'otro'; byMethod[m] = (byMethod[m] || 0) + Number(s.total_ars || 0); });
+
+  // New debts today
+  const newDebts = debts.filter((d: any) => String(d.date || d.created_at).slice(0, 10) === today && d.status !== 'paid');
+  const newDebtTotal = newDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars || d.amount_ars || 0), 0);
+
+  // Paid sales vs fiado
+  const fiadoTotal = todaySales.filter((s: any) => !s.paid || s.payment_method === 'fiado').reduce((s: number, v: any) => s + Number(v.total_ars || 0), 0);
+  const paidTotal = totalRevenue - fiadoTotal;
+
+  const hour = new Date().getHours();
+  const isEvening = hour >= 17;
+
+  return (
+    <div className={`mb-5 bg-card border rounded-xl shadow-card ${isEvening ? 'border-primary/30' : 'border-border'}`}>
+      <button
+        className="w-full flex items-center justify-between p-4 text-left"
+        onClick={() => setOpen(v => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <Clock className={`w-4 h-4 ${isEvening ? 'text-primary' : 'text-muted-foreground'}`} />
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Resumen del día · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long' })}
+          </span>
+          {isEvening && <span className="text-[9px] bg-primary/15 text-primary rounded-full px-2 py-0.5 font-bold">Cierre</span>}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold font-display text-success">{formatARS(totalRevenue)}</span>
+          <span className="text-muted-foreground text-xs">{open ? '▲' : '▼'}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-border px-4 pb-4 space-y-4">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
+            {[
+              { l: 'Facturado', v: formatARS(totalRevenue), color: 'text-success' },
+              { l: 'Ganancia', v: formatARS(totalProfit), color: totalProfit > 0 ? 'text-success' : 'text-muted-foreground' },
+              { l: 'Unidades vendidas', v: totalUnits, color: 'text-foreground' },
+              { l: 'Fiado del día', v: formatARS(fiadoTotal), color: fiadoTotal > 0 ? 'text-destructive' : 'text-muted-foreground' },
+            ].map(k => (
+              <div key={k.l} className="bg-muted/30 rounded-lg p-3">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{k.l}</p>
+                <p className={`text-sm font-bold font-display ${k.color}`}>{k.v}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Top productos */}
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Top productos hoy</p>
+              <div className="space-y-1.5">
+                {topProducts.map(([name, data], i) => (
+                  <div key={name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>
+                      <span className="truncate font-medium">{name}</span>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <span className="text-muted-foreground">{data.qty} u · </span>
+                      <span className="font-mono font-semibold text-success">{formatARS(data.rev)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Por vendedor / método de pago */}
+            <div className="space-y-3">
+              {Object.keys(bySeller).length > 1 && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Por vendedor</p>
+                  <div className="space-y-1.5">
+                    {Object.entries(bySeller).sort((a, b) => b[1].rev - a[1].rev).map(([name, data]) => (
+                      <div key={name} className="flex items-center justify-between text-xs">
+                        <span className="truncate font-medium">{name}</span>
+                        <span className="font-mono font-semibold ml-2 shrink-0">{data.count} v · {formatARS(data.rev)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Métodos de cobro</p>
+                <div className="space-y-1">
+                  {Object.entries(byMethod).sort((a, b) => b[1] - a[1]).map(([method, amount]) => (
+                    <div key={method} className="flex items-center justify-between text-xs">
+                      <span className="capitalize text-muted-foreground">{method}</span>
+                      <span className="font-mono font-semibold">{formatARS(amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Deudas nuevas */}
+          {newDebts.length > 0 && (
+            <div className="bg-destructive/8 border border-destructive/20 rounded-lg px-3 py-2.5">
+              <p className="text-xs font-medium text-destructive flex items-center gap-1.5 mb-1">
+                <AlertCircle className="w-3 h-3" />{newDebts.length} deuda{newDebts.length !== 1 ? 's' : ''} nueva{newDebts.length !== 1 ? 's' : ''} hoy — {formatARS(newDebtTotal)} pendiente
+              </p>
+              <div className="space-y-0.5">
+                {newDebts.slice(0, 3).map((d: any) => (
+                  <p key={d.id} className="text-[10px] text-muted-foreground">• {d.customer_name || 'Sin nombre'} — {formatARS(Number(d.remaining_ars || d.amount_ars))}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary line */}
+          <div className="text-[10px] text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
+            <span>Cobrado efectivo + transf.: {formatARS(paidTotal)}</span>
+            <a href="/sales" className="text-primary hover:underline">Ver todas las ventas →</a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GaugeChart({ value, max, label, color }: { value: number; max: number; label: string; color: string }) {
   const pct = Math.min(Math.max(value / (max || 1), 0), 1);
   const angle = pct * 180;
@@ -1826,6 +1981,15 @@ export default function Dashboard() {
           />
         );
       })()}
+
+      {/* End of day widget */}
+      {stats.rawSales && (
+        <EndOfDayWidget
+          sales={stats.rawSales}
+          debts={stats.rawDebts || []}
+          orgId={orgForTasks?.id || "default"}
+        />
+      )}
 
       {/* Best day of the week widget */}
       {stats.bestWeekdayData.some(d => d.count > 0) && (() => {

@@ -857,6 +857,36 @@ export default function POSPage() {
     return () => clearTimeout(timeout);
   }, [customer, activeOrg]);
 
+  // Keyboard shortcuts
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      // F2 → focus product search
+      if (e.key === 'F2') { e.preventDefault(); searchInputRef.current?.focus(); searchInputRef.current?.select(); return; }
+      // Escape → clear search first, then clear cart if search already empty
+      if (e.key === 'Escape' && !inInput) { if (search) setSearch(''); else if (cart.length > 0) setCart([]); return; }
+      // F9 → confirm sale (if cart has items and sale not disabled)
+      if (e.key === 'F9') { e.preventDefault(); if (cart.length > 0 && !confirmDisabled) confirmSale(); return; }
+      // + key → increment qty of last cart item
+      if (e.key === '+' && !inInput && cart.length > 0) {
+        e.preventDefault();
+        setCart(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, quantity: it.quantity + 1 } : it));
+        return;
+      }
+      // - key → decrement qty of last cart item
+      if (e.key === '-' && !inInput && cart.length > 0) {
+        e.preventDefault();
+        setCart(prev => prev.map((it, i) => i === prev.length - 1 ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it));
+        return;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, search, confirmDisabled]);
+
   // Saved orders (hold carts)
   type SavedOrder = { id: string; label: string; cart: CartItem[]; customer: string; savedAt: string };
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
@@ -1788,7 +1818,7 @@ export default function POSPage() {
           {submitting ? (
             <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Registrando...</>
           ) : (
-            <><CheckCircle2 className="w-5 h-5" />Confirmar venta</>
+            <><CheckCircle2 className="w-5 h-5" />Confirmar venta <span className="ml-auto text-[10px] opacity-60 font-normal">F9</span></>
           )}
         </Button>
       </div>
@@ -2048,9 +2078,10 @@ export default function POSPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
+              ref={searchInputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar producto o marca…"
+              placeholder="Buscar producto o marca… (F2)"
               className="pl-9 h-9 bg-muted/60 border-border text-sm"
               autoFocus
             />
