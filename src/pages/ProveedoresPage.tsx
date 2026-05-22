@@ -12,6 +12,7 @@ import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
   AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare, Store,
+  ArrowUpDown,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -65,6 +66,7 @@ export default function ProveedoresPage() {
   const [form, setForm] = useState<Partial<Supplier>>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [supplierSort, setSupplierSort] = useState<{ col: "name" | "pending" | "created_at"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
   const [purchases, setPurchases] = useState<Record<string, PurchaseSummary[]>>({});
   const [loadingPurchases, setLoadingPurchases] = useState(false);
 
@@ -210,11 +212,33 @@ export default function ProveedoresPage() {
     else { toast.success("Proveedor eliminado"); load(); }
   };
 
-  const filtered = suppliers.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.contact || "").toLowerCase().includes(search.toLowerCase()) ||
-    (s.email || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const pendingBySupplier = useMemo(() => {
+    const map: Record<string, number> = {};
+    pendingDebts.forEach(d => {
+      if (d.supplier_id) map[d.supplier_id] = (map[d.supplier_id] || 0) + Number(d.remaining_ars);
+    });
+    return map;
+  }, [pendingDebts]);
+
+  const filtered = useMemo(() => {
+    const base = suppliers.filter(s =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.contact || "").toLowerCase().includes(search.toLowerCase()) ||
+      (s.email || "").toLowerCase().includes(search.toLowerCase())
+    );
+    return [...base].sort((a, b) => {
+      const { col, dir } = supplierSort;
+      let cmp = 0;
+      if (col === "name") cmp = a.name.localeCompare(b.name);
+      else if (col === "pending") cmp = (pendingBySupplier[a.id] || 0) - (pendingBySupplier[b.id] || 0);
+      else if (col === "created_at") cmp = a.created_at.localeCompare(b.created_at);
+      return dir === "asc" ? cmp : -cmp;
+    });
+  }, [suppliers, search, supplierSort, pendingBySupplier]);
+
+  function toggleSupplierSort(col: "name" | "pending" | "created_at") {
+    setSupplierSort(prev => prev.col === col ? { col, dir: prev.dir === "asc" ? "desc" : "asc" } : { col, dir: "asc" });
+  }
 
   const f = (k: keyof Supplier) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -259,14 +283,34 @@ export default function ProveedoresPage() {
 
         {activeTab === 'proveedores' && (<>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nombre, contacto o email…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 h-9"
-        />
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre, contacto o email…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <div className="flex gap-1.5 shrink-0">
+          {([
+            { col: "name" as const, label: "Nombre" },
+            { col: "pending" as const, label: "Deuda" },
+            { col: "created_at" as const, label: "Alta" },
+          ]).map(({ col, label }) => (
+            <button
+              key={col}
+              onClick={() => toggleSupplierSort(col)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${supplierSort.col === col ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted border-border text-muted-foreground hover:text-foreground"}`}
+            >
+              {label}
+              {supplierSort.col === col
+                ? supplierSort.dir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -292,6 +336,11 @@ export default function ProveedoresPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm">{s.name}</span>
                     {!s.active && <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Inactivo</Badge>}
+                    {pendingBySupplier[s.id] > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/20 text-destructive border border-destructive/30">
+                        Debe {formatARS(pendingBySupplier[s.id])}
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
                     {s.contact && <span className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" />{s.contact}</span>}

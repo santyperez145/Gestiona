@@ -1160,6 +1160,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                             <Ticket className="w-3 h-3" />Ticket
                           </span>
                         )}
+                        {s.discount_applied && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Precio con descuento aplicado">
+                            🏷️ Desc.
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{s.customer_name || '—'}</td>
@@ -1249,6 +1254,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     {s.invoice_id && (
                       <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         Facturado
+                      </span>
+                    )}
+                    {s.discount_applied && (
+                      <span className="px-1.5 py-0 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        🏷️ Desc.
                       </span>
                     )}
                   </div>

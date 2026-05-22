@@ -908,6 +908,7 @@ export default function CustomersPage() {
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
   const [filterBirthday, setFilterBirthday] = useState("all");
   const [filterSeller, setFilterSeller] = useState("all");
+  const [filterCompany, setFilterCompany] = useState("all");
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -1138,6 +1139,12 @@ export default function CustomersPage() {
     return Array.from(names).sort();
   }, [sales]);
 
+  const companyOptions = useMemo(() => {
+    const names = new Set<string>();
+    customers.forEach(c => { if (c.company?.trim()) names.add(c.company.trim()); });
+    return Array.from(names).sort();
+  }, [customers]);
+
   const filtered = useMemo(() => {
     let list = customers;
     if (search) {
@@ -1152,12 +1159,13 @@ export default function CustomersPage() {
     if (segmentFilter !== "all") list = list.filter(c => c.segment === segmentFilter);
     if (filterBirthday !== "all") list = list.filter(c => bdayInRange(c.birthday, filterBirthday));
     if (filterSeller !== "all") list = list.filter(c => c.sellers.includes(filterSeller));
+    if (filterCompany !== "all") list = list.filter(c => c.company === filterCompany);
     list.sort((a, b) => {
       if (sortBy === "lastPurchase") return new Date(b.lastPurchase).getTime() - new Date(a.lastPurchase).getTime();
       return b[sortBy as keyof typeof b] as number - (a[sortBy as keyof typeof a] as number);
     });
     return list;
-  }, [customers, search, segmentFilter, sortBy, filterBirthday, filterSeller]);
+  }, [customers, search, segmentFilter, sortBy, filterBirthday, filterSeller, filterCompany]);
 
   const segmentCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -1827,6 +1835,26 @@ export default function CustomersPage() {
           >
             <X className="w-3 h-3" />
             {filterSeller}
+          </button>
+        )}
+        {companyOptions.length > 0 && (
+          <Select value={filterCompany} onValueChange={v => setFilterCompany(v)}>
+            <SelectTrigger className="bg-muted border-border w-full sm:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">🏢 Empresa: todas</SelectItem>
+              {companyOptions.map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {filterCompany !== "all" && (
+          <button
+            onClick={() => setFilterCompany("all")}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+          >
+            <X className="w-3 h-3" />
+            {filterCompany}
           </button>
         )}
       </div>

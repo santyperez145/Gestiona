@@ -322,6 +322,9 @@ export default function AnalyticsPage() {
     const currentYear = new Date().getFullYear() - Number(year);
     const catSet = new Set<string>();
     const catMonthly: Record<string, number[]> = {}; // cat -> [jan..dec]
+    const catProfit: Record<string, number> = {}; // cat -> total profit year
+    const catUnits: Record<string, number> = {}; // cat -> total units year
+    const catRevenue: Record<string, number> = {}; // cat -> total revenue year
     sales.forEach((s: any) => {
       const d = new Date(s.date);
       if (d.getFullYear() !== currentYear) return;
@@ -330,6 +333,9 @@ export default function AnalyticsPage() {
       catSet.add(cat);
       if (!catMonthly[cat]) catMonthly[cat] = new Array(12).fill(0);
       catMonthly[cat][d.getMonth()] += Number(s.total_ars || 0);
+      catProfit[cat] = (catProfit[cat] || 0) + Number(s.profit_ars || 0);
+      catRevenue[cat] = (catRevenue[cat] || 0) + Number(s.total_ars || 0);
+      catUnits[cat] = (catUnits[cat] || 0) + Number(s.quantity || 1);
     });
     const catTrend = MONTHS_ES.map((month, mi) => {
       const row: Record<string, number | string> = { month };
@@ -337,6 +343,13 @@ export default function AnalyticsPage() {
       return row;
     });
     const catKeys = Array.from(catSet).sort();
+    const catSummary = catKeys.map(cat => ({
+      cat,
+      revenue: catRevenue[cat] || 0,
+      profit: catProfit[cat] || 0,
+      units: catUnits[cat] || 0,
+      margin: (catRevenue[cat] || 0) > 0 ? ((catProfit[cat] || 0) / (catRevenue[cat] || 0)) * 100 : 0,
+    })).sort((a, b) => b.revenue - a.revenue);
 
     // ===== Weekly comparison (current week vs prev week) =====
     const now = new Date();
@@ -431,7 +444,7 @@ export default function AnalyticsPage() {
       uniqueCustomers, avgTicket, avgMargin,
       returningCustomers, retentionRate, newCustomersLast30, customersLast30Size: customersLast30.size,
       funnel, conversionRate, quotesValue, totalQuotes, wonQuotes,
-      abcProducts, catTrend, catKeys, weeklyComparison, weekTotalThis, weekTotalPrev,
+      abcProducts, catTrend, catKeys, catSummary, weeklyComparison, weekTotalThis, weekTotalPrev,
       rentabilidad, paymentChannels, channelTrendData, channelKeys: Object.keys(channelMonthly),
       sellerStats,
     };
@@ -1209,7 +1222,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Summary table */}
+              {/* Summary table — monthly breakdown */}
               <div className="bg-card border border-border rounded-2xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -1238,6 +1251,53 @@ export default function AnalyticsPage() {
                             </td>
                           ))}
                           <td className="px-4 py-2.5 text-right font-bold text-sm">{formatARS(yearTotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Profitability by category */}
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-border">
+                  <h3 className="text-sm font-semibold">Rentabilidad por categoría — {currentYear}</h3>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoría</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ingresos</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Ganancia</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Margen</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Unidades</th>
+                      <th className="px-4 py-3 hidden sm:table-cell"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {(derived.catSummary as Array<{ cat: string; revenue: number; profit: number; units: number; margin: number }>).map((item, i) => {
+                      const maxRev = (derived.catSummary as Array<{ revenue: number }>)[0]?.revenue || 1;
+                      return (
+                        <tr key={item.cat} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: PALETTE[i % PALETTE.length] }} />
+                              <span className="font-medium capitalize text-sm">{item.cat.replace(/_/g, ' ')}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-sm">{formatARS(item.revenue)}</td>
+                          <td className="px-4 py-3 text-right text-success hidden sm:table-cell">{formatARS(item.profit)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`font-semibold text-sm ${item.margin >= 30 ? 'text-green-400' : item.margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {item.margin.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground text-xs hidden md:table-cell">{item.units}</td>
+                          <td className="px-4 py-3 hidden sm:table-cell">
+                            <div className="w-24 bg-muted rounded-full h-1.5 ml-auto">
+                              <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(100, (item.revenue / maxRev) * 100).toFixed(0)}%` }} />
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}

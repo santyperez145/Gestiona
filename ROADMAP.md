@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 57)**
+Última actualización: **2026-05-22 (sesión 58)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -941,6 +941,18 @@ Ver tabla de sesión 29 arriba.
 | 2 | **AIChatPage: `query_expense_summary`** — detecta "cuánto gasté / resumen gastos / en qué gasté"; `ExpenseSummaryCard` con toggle Mes/Semana; 4 KPIs + barras por categoría + método principal; chip "Gastos del mes" | ✅ Hecho |
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 58 ✅ COMPLETA — Proveedores sort + Customers filtro empresa + Sales badge desc + Analytics catSummary
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProveedoresPage: sort por columna** — botones Nombre/Deuda/Alta en barra de búsqueda; `supplierSort` state; `filtered` como useMemo con sorted copy; `pendingBySupplier` map computado desde debts; badge rojo "Debe $X" en cada tarjeta de proveedor con deuda | ✅ Hecho |
+| 2 | **CustomersPage: filtro por empresa** — `filterCompany` state; `companyOptions` useMemo con empresas únicas de perfiles; Select dropdown "🏢 Empresa: todas"; badge de active filter con X para limpiar | ✅ Hecho |
+| 3 | **SalesPage: badge "🏷️ Desc." en ventas con descuento** — badge naranja inline en la columna producto (tabla desktop y mobile card) cuando `discount_applied === true` | ✅ Hecho |
+| 4 | **AnalyticsPage: tabla de rentabilidad por categoría** — en tab "Por Categoría": nueva tabla "Rentabilidad por categoría" con columnas Ingresos/Ganancia/Margen/Unidades y barra de share visual; `catSummary` computed en derived useMemo; margen color-coded (verde ≥30%, amarillo ≥15%, rojo) | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
