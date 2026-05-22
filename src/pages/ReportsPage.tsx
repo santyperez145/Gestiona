@@ -456,6 +456,7 @@ export default function ReportsPage() {
           <TabsTrigger value="margin_trend">📈 Tendencia</TabsTrigger>
           <TabsTrigger value="customers">Clientes</TabsTrigger>
           <TabsTrigger value="weekly_trend">📅 Por día</TabsTrigger>
+          <TabsTrigger value="by_week">📊 Semanas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -674,6 +675,10 @@ export default function ReportsPage() {
 
         <TabsContent value="weekly_trend">
           <WeeklyTrendTab sales={data.sales} />
+        </TabsContent>
+
+        <TabsContent value="by_week">
+          <ByWeekTab sales={data.sales} />
         </TabsContent>
       </Tabs>
     </div>
@@ -3517,6 +3522,164 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// By Week Tab — week-over-week comparison (last 12 weeks)
+// ─────────────────────────────────────────────────────────────
+function ByWeekTab({ sales }: { sales: any[] }) {
+  const [weeksCount, setWeeksCount] = useState(8);
+
+  const weekData = useMemo(() => {
+    const now = new Date();
+    // Start from Monday of (weeksCount) weeks ago
+    const dow = now.getDay();
+    const thisMon = new Date(now);
+    thisMon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+    thisMon.setHours(0, 0, 0, 0);
+
+    const weeks = Array.from({ length: weeksCount }, (_, i) => {
+      const mon = new Date(thisMon);
+      mon.setDate(thisMon.getDate() - (weeksCount - 1 - i) * 7);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      sun.setHours(23, 59, 59, 999);
+      const label = `${String(mon.getDate()).padStart(2, '0')}/${String(mon.getMonth() + 1).padStart(2, '0')}`;
+      return { label, mon, sun, revenue: 0, profit: 0, count: 0 };
+    });
+
+    sales.forEach((s: any) => {
+      const d = new Date(s.date + "T12:00:00");
+      const slot = weeks.find(w => d >= w.mon && d <= w.sun);
+      if (slot) {
+        slot.revenue += Number(s.total_ars || 0);
+        slot.profit += Number(s.profit_ars || 0);
+        slot.count++;
+      }
+    });
+
+    return weeks;
+  }, [sales, weeksCount]);
+
+  const maxRevenue = Math.max(...weekData.map(w => w.revenue), 1);
+  const currentWeek = weekData[weekData.length - 1];
+  const prevWeek = weekData[weekData.length - 2];
+  const deltaRev = prevWeek && prevWeek.revenue > 0 ? ((currentWeek.revenue - prevWeek.revenue) / prevWeek.revenue) * 100 : 0;
+
+  function exportWeeksCSV() {
+    const BOM = "﻿";
+    const headers = ["Semana (inicio)", "Ingresos (ARS)", "Ganancia (ARS)", "Margen %", "Ventas"];
+    const rows = weekData.map(w => [
+      w.label,
+      w.revenue.toFixed(2),
+      w.profit.toFixed(2),
+      w.revenue > 0 ? ((w.profit / w.revenue) * 100).toFixed(2) : "0",
+      w.count,
+    ]);
+    const csv = BOM + [headers, ...rows].map(r => r.join(";")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    a.download = `ventas-semanas-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  }
+
+  return (
+    <div className="space-y-4 mt-4">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="text-sm font-semibold">Ventas semana a semana</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Semana actual: <span className={`font-semibold ${deltaRev >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {deltaRev >= 0 ? '▲' : '▼'} {Math.abs(deltaRev).toFixed(1)}%
+            </span> vs semana anterior
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select value={weeksCount} onChange={e => setWeeksCount(Number(e.target.value))}
+            className="text-xs bg-muted border border-border rounded px-2 py-1">
+            <option value={4}>4 semanas</option>
+            <option value={8}>8 semanas</option>
+            <option value={12}>12 semanas</option>
+          </select>
+          <button onClick={exportWeeksCSV} className="text-xs text-primary hover:underline flex items-center gap-1">
+            <FileSpreadsheet className="w-3.5 h-3.5" />CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Bar chart */}
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ingresos por semana</p>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={weekData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(v: number) => [formatARS(v), "Ingresos"]} />
+            <Bar dataKey="revenue" name="Ingresos" radius={[4, 4, 0, 0]}>
+              {weekData.map((w, i) => (
+                <Cell key={i} fill={i === weekData.length - 1 ? 'hsl(40,70%,50%)' : 'hsl(200,60%,40%)'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Table */}
+      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Semana</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ingresos</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Ganancia</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Margen</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ventas</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Δ vs ant.</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {weekData.map((w, i) => {
+              const prev = weekData[i - 1];
+              const delta = prev && prev.revenue > 0 ? ((w.revenue - prev.revenue) / prev.revenue) * 100 : null;
+              const margin = w.revenue > 0 ? (w.profit / w.revenue) * 100 : 0;
+              const barW = Math.round((w.revenue / maxRevenue) * 100);
+              const isCurrent = i === weekData.length - 1;
+              return (
+                <tr key={w.label} className={`hover:bg-muted/20 transition-colors ${isCurrent ? 'bg-primary/5' : ''}`}>
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{w.label}</span>
+                      {isCurrent && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-semibold">Esta semana</span>}
+                    </div>
+                    <div className="mt-1 h-1 bg-muted rounded-full overflow-hidden w-24">
+                      <div className="h-full rounded-full bg-primary/60" style={{ width: `${barW}%` }} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold">{w.revenue > 0 ? formatARS(w.revenue) : <span className="text-muted-foreground text-xs">—</span>}</td>
+                  <td className="px-4 py-3 text-right text-success hidden md:table-cell">{w.profit > 0 ? formatARS(w.profit) : <span className="text-muted-foreground text-xs">—</span>}</td>
+                  <td className="px-4 py-3 text-right hidden md:table-cell">
+                    <span className={`font-semibold ${margin >= 30 ? 'text-green-400' : margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {w.revenue > 0 ? `${margin.toFixed(1)}%` : '—'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">{w.count}</td>
+                  <td className="px-4 py-3 text-right hidden sm:table-cell">
+                    {delta !== null ? (
+                      <span className={`text-xs font-semibold ${delta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
+                      </span>
+                    ) : <span className="text-muted-foreground text-xs">—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

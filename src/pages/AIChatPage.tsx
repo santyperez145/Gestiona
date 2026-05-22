@@ -15,7 +15,7 @@ import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProd
 import { requireActiveOrgId } from "@/lib/orgContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products" | "query_expense_summary";
+type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products" | "query_expense_summary" | "query_supplier";
 
 type AIAction =
   | { type: "create_product"; name?: string; price?: string; category?: string }
@@ -36,6 +36,7 @@ type AIAction =
   | { type: "query_debts_summary" }
   | { type: "query_top_products"; sortBy?: "revenue" | "profit" | "units" }
   | { type: "query_expense_summary"; period?: "month" | "week" }
+  | { type: "query_supplier"; supplierName?: string }
   | { type: "navigate"; path: string; label: string };
 
 type ChatMessage = {
@@ -193,6 +194,12 @@ function detectIntent(msg: string): AIAction | null {
       /\b(rentab|ganancia|margen|profit)\b/.test(lower) ? "profit" :
       /\b(unidades?|cantidad|más\s+vendidos?)\b/.test(lower) ? "units" : "revenue";
     return { type: "query_top_products", sortBy };
+  }
+
+  // Query supplier analysis
+  if (/\b(proveedor|analiz[ae](r)?\s+proveedor|cuánto\s+compr[eé]\s+(?:a|de)|info\s+(de\s+)?proveedor|datos\s+(de\s+)?proveedor|ver\s+proveedor|ficha\s+(de\s+)?proveedor|historial\s+(de\s+)?proveedor)\b/.test(lower)) {
+    const nameMatch = msg.match(/(?:proveedor|de|a|analiz[ae]r?\s+(?:al?\s+)?proveedor\s+)([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
+    return { type: "query_supplier", supplierName: nameMatch?.[1]?.trim() };
   }
 
   // Create quote / presupuesto
@@ -410,6 +417,10 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (action.type === "send_wa_segment") {
     return <SendWaSegmentCard userId={userId} initialSegment={action.segment} onDone={onDone} />;
+  }
+
+  if (action.type === "query_supplier") {
+    return <SupplierAnalysisCard userId={userId} initialName={action.supplierName} onDone={onDone} />;
   }
 
   if (action.type === "create_customer") {
@@ -2004,6 +2015,203 @@ function TopProductsCard({ userId, initialSort, onDone }: {
   );
 }
 
+// ─── SupplierAnalysisCard ─────────────────────────────────────────────────────
+function SupplierAnalysisCard({ userId, initialName, onDone }: {
+  userId: string; initialName?: string; onDone: () => void;
+}) {
+  const { activeOrg } = useOrg();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState(initialName || "");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    supabase.from("suppliers").select("id, name, phone, email, notes").eq("org_id", activeOrg.id)
+      .then(({ data }) => setSuppliers(data || []));
+  }, [activeOrg]);
+
+  useEffect(() => {
+    if (initialName && suppliers.length > 0) {
+      const match = suppliers.find(s => s.name.toLowerCase().includes(initialName.toLowerCase()));
+      if (match) analyzeSupplier(match);
+    }
+  }, [suppliers]);
+
+  const analyzeSupplier = async (supplier: any) => {
+    if (!activeOrg) return;
+    setLoading(true);
+    try {
+      const { data: purchases } = await supabase
+        .from("purchases")
+        .select("id, created_at, total_usd, total_ars, quantity, product_name, notes")
+        .eq("org_id", activeOrg.id)
+        .eq("supplier_name", supplier.name)
+        .order("created_at", { ascending: false });
+
+      const { data: debts } = await supabase
+        .from("debts")
+        .select("amount_ars, status")
+        .eq("org_id", activeOrg.id)
+        .eq("customer_name", supplier.name);
+
+      const rows = purchases || [];
+      const totalARS = rows.reduce((s: number, p: any) => s + Number(p.total_ars || 0), 0);
+      const totalUSD = rows.reduce((s: number, p: any) => s + Number(p.total_usd || 0), 0);
+      const count = rows.length;
+      const lastPurchase = rows[0];
+      const pending = (debts || []).filter((d: any) => d.status === "pendiente")
+        .reduce((s: number, d: any) => s + Number(d.amount_ars || 0), 0);
+
+      // top products by units
+      const prodMap: Record<string, number> = {};
+      rows.forEach((p: any) => {
+        if (p.product_name) prodMap[p.product_name] = (prodMap[p.product_name] || 0) + Number(p.quantity || 1);
+      });
+      const topProds = Object.entries(prodMap).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+      // monthly timeline (last 6 months)
+      const monthly: Record<string, number> = {};
+      rows.forEach((p: any) => {
+        const key = (p.created_at || "").slice(0, 7);
+        if (key) monthly[key] = (monthly[key] || 0) + Number(p.total_ars || 0);
+      });
+      const monthKeys = Object.keys(monthly).sort().slice(-6);
+
+      setResult({ supplier, count, totalARS, totalUSD, pending, lastPurchase, topProds, monthly, monthKeys });
+    } finally { setLoading(false); }
+  };
+
+  const filtered = suppliers.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
+      <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+        <Package className="w-3.5 h-3.5" />Análisis de proveedor
+      </p>
+
+      {!result ? (
+        <div className="space-y-2">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar proveedor…"
+            className="w-full h-7 text-xs bg-muted border border-border rounded-md px-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          />
+          {filtered.length > 0 && (
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {filtered.slice(0, 8).map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { setSearch(s.name); analyzeSupplier(s); }}
+                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2"
+                >
+                  <Package className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="font-medium">{s.name}</span>
+                  {s.phone && <span className="text-muted-foreground text-[10px]">{s.phone}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {loading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />Analizando proveedor…
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="font-bold text-base leading-tight">{result.supplier.name}</p>
+              {result.supplier.phone && <p className="text-[10px] text-muted-foreground">{result.supplier.phone}</p>}
+              {result.supplier.email && <p className="text-[10px] text-muted-foreground">{result.supplier.email}</p>}
+            </div>
+            <button onClick={() => setResult(null)} className="text-[10px] text-muted-foreground hover:text-foreground">cambiar</button>
+          </div>
+
+          {/* KPIs */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Total comprado</p>
+              <p className="font-bold text-sm text-primary">{formatARS(result.totalARS)}</p>
+              {result.totalUSD > 0 && <p className="text-[10px] text-muted-foreground">USD {result.totalUSD.toLocaleString("es-AR")}</p>}
+            </div>
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Órdenes de compra</p>
+              <p className="font-bold text-sm">{result.count}</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-muted-foreground">Última compra</p>
+              <p className="font-bold text-sm">{result.lastPurchase ? new Date(result.lastPurchase.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : "—"}</p>
+            </div>
+            <div className={`rounded-lg px-2.5 py-2 ${result.pending > 0 ? "bg-red-500/10" : "bg-muted/40"}`}>
+              <p className="text-[10px] text-muted-foreground">Deuda pendiente</p>
+              <p className={`font-bold text-sm ${result.pending > 0 ? "text-red-400" : "text-success"}`}>
+                {result.pending > 0 ? formatARS(result.pending) : "Sin deuda"}
+              </p>
+            </div>
+          </div>
+
+          {/* Top products */}
+          {result.topProds.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Productos más comprados</p>
+              {result.topProds.map(([name, qty]: [string, number]) => (
+                <div key={name} className="flex items-center justify-between text-xs gap-2">
+                  <span className="truncate text-muted-foreground max-w-[160px]">{name}</span>
+                  <span className="font-medium shrink-0">{qty} u.</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Monthly timeline */}
+          {result.monthKeys.length > 1 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Compras por mes</p>
+              {result.monthKeys.map((k: string) => {
+                const val = result.monthly[k] || 0;
+                const max = Math.max(...result.monthKeys.map((mk: string) => result.monthly[mk] || 0));
+                const pct = max > 0 ? Math.round((val / max) * 100) : 0;
+                const label = new Date(k + "-01").toLocaleDateString("es-AR", { month: "short", year: "2-digit" });
+                return (
+                  <div key={k} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground capitalize">{label}</span>
+                      <span className="font-medium">{formatARS(val)}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {result.supplier.notes && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-2">
+              <p className="text-[10px] text-amber-400 font-medium mb-0.5">Notas</p>
+              <p className="text-xs text-foreground/80">{result.supplier.notes}</p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 flex-1" onClick={() => { navigate("/proveedores"); onDone(); }}>
+              Ver proveedores →
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
+          </div>
+        </div>
+      )}
+      {!result && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3 mr-1" />Cerrar</Button>}
+    </div>
+  );
+}
+
 const ACTION_STARTERS = [
   { label: "Registrar venta", icon: ShoppingCart, msg: "Registrar una venta" },
   { label: "Registrar compra", icon: Package, msg: "Registrar una compra" },
@@ -2023,6 +2231,7 @@ const ACTION_STARTERS = [
   { label: "Total deudas", icon: DollarSign, msg: "Resumen total de deudas pendientes" },
   { label: "Top productos", icon: Package, msg: "Cuáles son mis mejores productos?" },
   { label: "Gastos del mes", icon: TrendingDown, msg: "Cuánto gasté este mes? Resumen de gastos" },
+  { label: "Ver proveedor", icon: Package, msg: "Info del proveedor" },
 ];
 
 const QUICK_ACTIONS = [

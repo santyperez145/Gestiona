@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 64)**
+Última actualización: **2026-05-22 (sesión 65)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,16 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 65 ✅ COMPLETA — ReportsPage tab Semanas + AIChatPage query_supplier
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ReportsPage: tab "📊 Semanas"** — `ByWeekTab` component; selector 4/8/12 semanas; `weekData` useMemo que computa ventanas lunes–domingo; BarChart con Cell dorado para semana actual; tabla con ingresos/ganancia/margen%/transacciones/delta vs semana anterior; delta color-coded (verde/rojo); CSV export | ✅ Hecho |
+| 2 | **AIChatPage: `query_supplier` intent** — nueva `AIAction { type: "query_supplier"; supplierName? }` en el union; regex detectIntent que captura "proveedor / analizar proveedor / cuánto compré a / info de proveedor"; `SupplierAnalysisCard` con buscador de proveedor, KPIs (total comprado ARS+USD, órdenes, última compra, deuda pendiente), top productos por unidades, timeline mensual últimos 6 meses, nota del proveedor; chip "Ver proveedor" en ACTION_STARTERS | ✅ Hecho |
+| 3 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 
