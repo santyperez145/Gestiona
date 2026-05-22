@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 62)**
+Última actualización: **2026-05-22 (sesión 63)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -942,6 +942,17 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 63 ✅ COMPLETA — ProductsPage bulk delete + ProveedoresPage nota inline + Dashboard productos por vencer
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ProductsPage: bulk select + bulk delete** — checkbox en cada fila de la tabla desktop (con highlight de fila al seleccionar); checkbox "select all" en el `<th>` que alterna entre todos/ninguno; barra flotante animada con count seleccionados + ConfirmDialog para eliminar en lote; `handleBulkDelete` con loop + audit log + toast | ✅ Hecho |
+| 2 | **ProveedoresPage: nota rápida inline por proveedor** — `editingNote` state; click en ícono StickyNote aparece en hover de cada card; Textarea inline con Guardar (Enter) / Cancelar (Escape); `saveNote()` hace `supabase.update({ notes })` y actualiza state local sin reload | ✅ Hecho |
+| 3 | **Dashboard: widget "Productos por vencer"** — computa `stats.products` filtrado por `expiry_date ≤ +30d && stock > 0`; lista ordenada por fecha con badge de días restantes (rojo=vencido, naranja ≤7d, amarillo); se oculta si sin datos; badge "N vencidos" en header | ✅ Hecho |
+| 4 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 

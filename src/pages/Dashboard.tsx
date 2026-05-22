@@ -2032,6 +2032,54 @@ export default function Dashboard() {
         );
       })()}
 
+      {/* Productos por vencer */}
+      {(stats.products || []).length > 0 && (() => {
+        const today = new Date();
+        const in30 = new Date(today); in30.setDate(today.getDate() + 30);
+        const expiring = (stats.products as any[])
+          .filter(p => p.expiry_date && p.stock > 0)
+          .map(p => ({ ...p, exp: new Date(p.expiry_date + "T12:00:00") }))
+          .filter(p => p.exp <= in30)
+          .sort((a, b) => a.exp.getTime() - b.exp.getTime());
+        if (expiring.length === 0) return null;
+        const expired = expiring.filter(p => p.exp < today);
+        return (
+          <div className="mb-5 bg-card border border-orange-500/30 rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-orange-400" />
+                Productos por vencer
+              </h3>
+              {expired.length > 0 && (
+                <span className="text-[10px] font-semibold bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
+                  {expired.length} vencido{expired.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {expiring.slice(0, 5).map((p: any) => {
+                const daysLeft = Math.ceil((p.exp.getTime() - today.getTime()) / 86400000);
+                const isExpired = daysLeft < 0;
+                const isUrgent = daysLeft <= 7;
+                return (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isExpired ? 'bg-destructive' : isUrgent ? 'bg-orange-400' : 'bg-yellow-400'}`} />
+                    <span className="text-xs flex-1 truncate">{p.name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{p.stock} uds</span>
+                    <span className={`text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded ${isExpired ? 'bg-destructive/20 text-destructive' : isUrgent ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {isExpired ? `Vencido` : `${daysLeft}d`}
+                    </span>
+                  </div>
+                );
+              })}
+              {expiring.length > 5 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">+{expiring.length - 5} más</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* End of day widget */}
       {stats.rawSales && (
         <EndOfDayWidget

@@ -12,7 +12,7 @@ import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
   AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare, Store,
-  ArrowUpDown,
+  ArrowUpDown, StickyNote, Check, X,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -81,6 +81,7 @@ export default function ProveedoresPage() {
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'proveedores' | 'aging' | 'pagos'>('proveedores');
+  const [editingNote, setEditingNote] = useState<{ id: string; value: string } | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -171,6 +172,13 @@ export default function ProveedoresPage() {
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
   const openEdit = (s: Supplier) => { setEditing(s); setForm({ ...s }); setOpen(true); };
+
+  const saveNote = async (id: string, note: string) => {
+    await supabase.from("suppliers").update({ notes: note }).eq("id", id);
+    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, notes: note } : s));
+    setEditingNote(null);
+    toast.success("Nota guardada");
+  };
 
   const handleSave = async () => {
     if (!form.name?.trim() || !activeOrg) return;
@@ -358,7 +366,39 @@ export default function ProveedoresPage() {
                     )}
                     {s.address && <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{s.address}</span>}
                   </div>
-                  {s.notes && <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">{s.notes}</p>}
+                  {/* Inline note display / edit */}
+                  {editingNote?.id === s.id ? (
+                    <div className="mt-2 space-y-1.5">
+                      <Textarea
+                        value={editingNote.value}
+                        onChange={e => setEditingNote({ id: s.id, value: e.target.value })}
+                        placeholder="Nota interna sobre el proveedor…"
+                        className="text-xs h-16 resize-none bg-muted/40"
+                        autoFocus
+                        onKeyDown={e => { if (e.key === 'Escape') setEditingNote(null); }}
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => saveNote(s.id, editingNote.value)} className="flex items-center gap-1 text-xs text-success hover:text-success/80 px-2 py-1 rounded bg-success/10 transition-colors">
+                          <Check className="w-3 h-3" />Guardar
+                        </button>
+                        <button onClick={() => setEditingNote(null)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors">
+                          <X className="w-3 h-3" />Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex items-start gap-1.5 group/note">
+                      {s.notes
+                        ? <p className="text-xs text-muted-foreground/70 line-clamp-1 flex-1">{s.notes}</p>
+                        : <p className="text-xs text-muted-foreground/40 italic flex-1 hidden group-hover/note:block">Sin nota</p>
+                      }
+                      <button onClick={() => setEditingNote({ id: s.id, value: s.notes || "" })}
+                        className="p-0.5 rounded text-muted-foreground/40 hover:text-primary opacity-0 group-hover/note:opacity-100 transition-all shrink-0"
+                        title="Editar nota">
+                        <StickyNote className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button

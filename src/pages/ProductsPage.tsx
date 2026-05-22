@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -271,6 +271,8 @@ export default function ProductsPage() {
   const [showAging, setShowAging] = useState(false);
   const [productSort, setProductSort] = useState<{ col: "name" | "sale_price_ars" | "stock" | "margin"; dir: "asc" | "desc" }>({ col: "name", dir: "asc" });
   const [productView, setProductView] = useState<'list' | 'grid'>('list');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -413,6 +415,30 @@ export default function ProductsPage() {
     if (user) await logAudit(user.id, 'delete', 'product', p.id, { name: p.name });
     reload();
     toast.success("Producto eliminado");
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    let deleted = 0;
+    for (const id of selectedIds) {
+      const p = products.find((x: any) => x.id === id);
+      await deleteProductDB(id);
+      if (user && p) await logAudit(user.id, 'delete', 'product', id, { name: p.name, bulk: true });
+      deleted++;
+    }
+    setSelectedIds(new Set());
+    setBulkDeleting(false);
+    reload();
+    toast.success(`${deleted} producto${deleted !== 1 ? 's' : ''} eliminado${deleted !== 1 ? 's' : ''}`);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredSorted.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredSorted.map((p: any) => p.id)));
+    }
   };
 
   const toggleQuickDiscount = async (p: any) => {
@@ -756,6 +782,11 @@ export default function ProductsPage() {
                 <table className="w-full text-sm">
                   <thead>
                      <tr className="border-b border-border text-muted-foreground">
+                       <th className="p-3 w-8">
+                         <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors">
+                           {selectedIds.size > 0 && selectedIds.size === filteredSorted.length ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                         </button>
+                       </th>
                        {([
                          { col: "name" as const, label: "Nombre", align: "left" },
                        ]).map(h => (
@@ -801,7 +832,12 @@ export default function ProductsPage() {
                   </thead>
                   <tbody>
                      {items.map((p: any) => (
-                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                       <tr key={p.id} className={`border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${selectedIds.has(p.id) ? 'bg-primary/5' : ''}`}>
+                          <td className="p-3 w-8">
+                            <button onClick={() => setSelectedIds(prev => { const s = new Set(prev); s.has(p.id) ? s.delete(p.id) : s.add(p.id); return s; })} className="text-muted-foreground hover:text-primary transition-colors">
+                              {selectedIds.has(p.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                            </button>
+                          </td>
                           <td className="p-3 font-medium max-w-[200px] truncate">
                             <div className="flex items-center gap-2">
                               {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
@@ -1030,6 +1066,29 @@ export default function ProductsPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Floating bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-border rounded-2xl shadow-xl px-4 py-3 animate-in slide-in-from-bottom-4 duration-200">
+          <CheckCheck className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">{selectedIds.size} producto{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}</span>
+          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+          <div className="w-px h-5 bg-border" />
+          <ConfirmDialog
+            title={`Eliminar ${selectedIds.size} producto${selectedIds.size !== 1 ? 's' : ''}`}
+            description={`¿Eliminar ${selectedIds.size} producto${selectedIds.size !== 1 ? 's' : ''} seleccionado${selectedIds.size !== 1 ? 's' : ''}? Esta acción no se puede deshacer.`}
+            onConfirm={handleBulkDelete}
+            trigger={
+              <button disabled={bulkDeleting} className="flex items-center gap-1.5 text-sm font-medium text-destructive hover:text-destructive/80 px-3 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 transition-colors disabled:opacity-50">
+                <Trash2 className="w-4 h-4" />
+                {bulkDeleting ? "Eliminando…" : `Eliminar ${selectedIds.size}`}
+              </button>
+            }
+          />
+        </div>
       )}
     </div>
   );
