@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
@@ -12,7 +12,7 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer,
+  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
@@ -906,11 +906,48 @@ export default function CustomersPage() {
   const [quickNoteCustomer, setQuickNoteCustomer] = useState<string | null>(null);
   const [quickNoteText, setQuickNoteText] = useState("");
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpNote, setFollowUpNote] = useState("");
+  const [followUpSaving, setFollowUpSaving] = useState(false);
   const [filterBirthday, setFilterBirthday] = useState("all");
   const [filterSeller, setFilterSeller] = useState("all");
   const [filterCompany, setFilterCompany] = useState("all");
   const [bulkBdayWaOpen, setBulkBdayWaOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Reset follow-up form when switching customers
+  useEffect(() => {
+    setFollowUpOpen(false);
+    setFollowUpDate("");
+    setFollowUpNote("");
+  }, [selectedCustomer]);
+
+  const scheduleFollowUp = useCallback(async (customerName: string) => {
+    if (!activeOrg || !user || !followUpDate) { toast.error("Seleccioná una fecha"); return; }
+    setFollowUpSaving(true);
+    try {
+      const { error } = await supabase.from("tasks").insert({
+        org_id: activeOrg.id,
+        created_by: user.id,
+        title: `Seguimiento: ${customerName}`,
+        description: followUpNote.trim() || null,
+        priority: "medium",
+        due_date: followUpDate,
+        category: "followup",
+        status: "pending",
+      });
+      if (error) throw error;
+      toast.success(`Seguimiento programado para ${new Date(followUpDate + "T12:00:00").toLocaleDateString("es-AR")}`);
+      setFollowUpOpen(false);
+      setFollowUpDate("");
+      setFollowUpNote("");
+    } catch (e: any) {
+      toast.error("Error al programar seguimiento: " + e.message);
+    } finally {
+      setFollowUpSaving(false);
+    }
+  }, [activeOrg, user, followUpDate, followUpNote]);
 
   const loadData = async () => {
     if (!user) return;
@@ -2796,6 +2833,57 @@ export default function CustomersPage() {
                             customerName={c.name}
                           />
                         )}
+
+                        {/* Follow-up Scheduler */}
+                        <div className="border-t border-border/30 pt-3">
+                          {!followUpOpen ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-8 text-xs gap-2 border-dashed border-primary/40 text-primary/70 hover:text-primary hover:border-primary"
+                              onClick={() => {
+                                const d = new Date();
+                                d.setDate(d.getDate() + 3);
+                                setFollowUpDate(d.toISOString().slice(0, 10));
+                                setFollowUpOpen(true);
+                              }}
+                            >
+                              <Bell className="w-3.5 h-3.5" />
+                              Programar seguimiento
+                            </Button>
+                          ) : (
+                            <div className="space-y-2 bg-primary/5 border border-primary/20 rounded-lg p-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                                  <Bell className="w-3.5 h-3.5" />Programar seguimiento
+                                </p>
+                                <button className="text-muted-foreground hover:text-foreground" onClick={() => setFollowUpOpen(false)}>
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <Input
+                                type="date"
+                                value={followUpDate}
+                                onChange={e => setFollowUpDate(e.target.value)}
+                                className="h-7 text-xs"
+                              />
+                              <Input
+                                value={followUpNote}
+                                onChange={e => setFollowUpNote(e.target.value)}
+                                placeholder="Motivo / recordatorio (opcional)"
+                                className="h-7 text-xs"
+                              />
+                              <Button
+                                size="sm"
+                                className="w-full h-7 text-xs gradient-gold text-primary-foreground font-semibold"
+                                onClick={() => scheduleFollowUp(c.name)}
+                                disabled={followUpSaving || !followUpDate}
+                              >
+                                {followUpSaving ? "Guardando…" : "Confirmar seguimiento"}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
 
                         {/* WhatsApp Remarketing */}
                         {settings?.whatsapp_number && (

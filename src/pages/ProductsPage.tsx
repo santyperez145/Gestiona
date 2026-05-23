@@ -1759,6 +1759,62 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
         </div>
       </div>
+      {/* ── AI Price Intelligence ─────────────────────────────── */}
+      {cost > 0 && (
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold flex items-center gap-1.5 text-blue-400">
+              <Sparkles className="w-3.5 h-3.5" />Inteligencia de Precios
+            </p>
+            {salePrice > 0 && (() => {
+              const margin = ((salePrice - totalCostARS) / salePrice) * 100;
+              const clr = margin >= 50 ? "text-emerald-400" : margin >= 35 ? "text-blue-400" : margin >= 20 ? "text-yellow-400" : "text-red-400";
+              return <span className={`text-[11px] font-bold ${clr}`}>Margen actual: {margin.toFixed(1)}%</span>;
+            })()}
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {([30, 40, 50, 60] as const).map(targetMargin => {
+              const suggested = Math.round(totalCostARS / (1 - targetMargin / 100));
+              const currentMargin = salePrice > 0 ? ((salePrice - totalCostARS) / salePrice) * 100 : -1;
+              const active = salePrice > 0 && Math.abs(currentMargin - targetMargin) < 2;
+              return (
+                <button
+                  key={targetMargin}
+                  type="button"
+                  onClick={() => { setSalePriceARS(suggested.toString()); setManualSalePrice(true); }}
+                  className={`text-center rounded-lg border py-1.5 px-1 transition-all hover:scale-105 ${
+                    active
+                      ? "border-blue-500/60 bg-blue-500/20 text-blue-300"
+                      : "border-border/50 hover:border-blue-500/40 text-muted-foreground hover:text-blue-300"
+                  }`}
+                >
+                  <p className="text-[9px] font-medium">{targetMargin}%</p>
+                  <p className="text-[10px] font-bold">{formatARS(suggested)}</p>
+                </button>
+              );
+            })}
+          </div>
+          {salePrice > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/40 hover:border-border/70 transition-colors"
+                onClick={() => { setSalePriceARS(String(Math.ceil(salePrice / 100) * 100)); setManualSalePrice(true); }}
+              >
+                Redondear ↑ {formatARS(Math.ceil(salePrice / 100) * 100)}
+              </button>
+              <button
+                type="button"
+                className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/40 hover:border-border/70 transition-colors"
+                onClick={() => { setSalePriceARS(String(Math.ceil(salePrice / 500) * 500)); setManualSalePrice(true); }}
+              >
+                Múltiplo 500 → {formatARS(Math.ceil(salePrice / 500) * 500)}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {isVaper && (
         <div className="rounded-lg border border-success/30 bg-success/5 p-3">
           <label className="text-sm font-medium text-success flex items-center gap-1.5 mb-1.5">
