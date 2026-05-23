@@ -4,6 +4,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
+import ApiKeysManager from "@/components/shared/ApiKeysManager";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
@@ -846,6 +847,11 @@ export default function IntegrationsPage() {
             Generar API Key
           </Button>
         )}
+      </div>
+
+      {/* Multi-Key API Manager */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <ApiKeysManager />
       </div>
 
       {/* Outbound Webhooks */}
