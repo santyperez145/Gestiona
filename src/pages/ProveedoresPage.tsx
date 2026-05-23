@@ -12,8 +12,9 @@ import {
   Plus, Pencil, Trash2, Search, Truck, Phone, Mail,
   MapPin, FileText, ChevronDown, ChevronUp, Building2, ShoppingCart,
   AlertCircle, CheckCircle2, Clock, DollarSign, CreditCard, Square, CheckSquare, Store,
-  ArrowUpDown, StickyNote, Check, X, FileSpreadsheet,
+  ArrowUpDown, StickyNote, Check, X, FileSpreadsheet, BarChart2, TrendingUp, Package,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
@@ -81,7 +82,8 @@ export default function ProveedoresPage() {
   const [savingDebt, setSavingDebt] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'proveedores' | 'aging' | 'pagos'>('proveedores');
+  const [activeTab, setActiveTab] = useState<'proveedores' | 'aging' | 'pagos' | 'analytics'>('proveedores');
+  const [allPurchases, setAllPurchases] = useState<any[]>([]);
   const [poOpen, setPoOpen] = useState(false);
   const [poSupplierId, setPoSupplierId] = useState<string | undefined>(undefined);
   const [editingNote, setEditingNote] = useState<{ id: string; value: string } | null>(null);
@@ -89,12 +91,14 @@ export default function ProveedoresPage() {
   const load = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const [{ data: suppData }, { data: debtData }] = await Promise.all([
+    const [{ data: suppData }, { data: debtData }, { data: purchData }] = await Promise.all([
       supabase.from("suppliers").select("*").eq("org_id", activeOrg.id).order("name"),
       supabase.from("supplier_debts").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
+      supabase.from("purchases").select("id, supplier_name, supplier_id, total_ars, total_usd, date, product_name, quantity").eq("org_id", activeOrg.id).order("date", { ascending: false }),
     ]);
     setSuppliers((suppData as Supplier[]) || []);
     setDebts(debtData || []);
+    setAllPurchases(purchData || []);
     setLoading(false);
   };
 
@@ -312,6 +316,7 @@ export default function ProveedoresPage() {
           { id: 'proveedores', label: 'Proveedores', icon: Store },
           { id: 'aging', label: 'Aging AP', icon: Clock },
           { id: 'pagos', label: 'Pagos', icon: CreditCard },
+          { id: 'analytics', label: 'Analítica', icon: BarChart2 },
         ] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card border border-border shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -716,6 +721,125 @@ export default function ProveedoresPage() {
           <p className="text-sm text-muted-foreground">Historial de pagos a proveedores — próximamente</p>
         </div>
       )}
+
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (() => {
+        // Compute per-supplier analytics from allPurchases
+        const supplierMap: Record<string, { name: string; count: number; totalARS: number; totalUSD: number; lastDate: string; products: Set<string> }> = {};
+        allPurchases.forEach((p: any) => {
+          const key = p.supplier_id || p.supplier_name || "Sin proveedor";
+          const name = suppliers.find(s => s.id === p.supplier_id)?.name || p.supplier_name || "Sin proveedor";
+          if (!supplierMap[key]) supplierMap[key] = { name, count: 0, totalARS: 0, totalUSD: 0, lastDate: "", products: new Set() };
+          supplierMap[key].count++;
+          supplierMap[key].totalARS += Number(p.total_ars || 0);
+          supplierMap[key].totalUSD += Number(p.total_usd || 0);
+          if (p.date > supplierMap[key].lastDate) supplierMap[key].lastDate = p.date;
+          if (p.product_name) supplierMap[key].products.add(p.product_name);
+        });
+        const ranked = Object.entries(supplierMap)
+          .map(([k, v]) => ({ key: k, ...v, productCount: v.products.size }))
+          .sort((a, b) => b.totalARS - a.totalARS);
+        const chartData = ranked.slice(0, 8).map(r => ({ name: r.name.length > 14 ? r.name.slice(0, 14) + "…" : r.name, totalARS: Math.round(r.totalARS / 1000) }));
+        const totalSpend = ranked.reduce((s, r) => s + r.totalARS, 0);
+        const totalOrders = allPurchases.length;
+        const avgOrder = totalOrders > 0 ? totalSpend / totalOrders : 0;
+
+        return (
+          <div className="space-y-5">
+            {/* KPIs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Total compras", value: formatARS(totalSpend), sub: `${totalOrders} órdenes`, icon: ShoppingCart },
+                { label: "Proveedores activos", value: ranked.length, sub: "con compras registradas", icon: Truck },
+                { label: "Ticket promedio", value: formatARS(avgOrder), sub: "por orden de compra", icon: DollarSign },
+                { label: "Proveedor top", value: ranked[0]?.name?.slice(0, 16) || "—", sub: ranked[0] ? formatARS(ranked[0].totalARS) : "", icon: TrendingUp },
+              ].map(card => (
+                <div key={card.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <card.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{card.label}</p>
+                  </div>
+                  <p className="text-base font-bold font-mono truncate">{card.value}</p>
+                  {card.sub && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{card.sub}</p>}
+                </div>
+              ))}
+            </div>
+
+            {/* Bar chart */}
+            {chartData.length > 0 && (
+              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  <BarChart2 className="w-3.5 h-3.5 inline mr-1.5" />Top 8 proveedores por gasto (ARS miles)
+                </p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 30 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `$${v}k`} />
+                    <Tooltip formatter={(v: number) => [formatARS(v * 1000), "Total"]} />
+                    <Bar dataKey="totalARS" radius={[4, 4, 0, 0]}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={i === 0 ? 'hsl(40,70%,50%)' : 'hsl(200,50%,40%)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Ranking table */}
+            {ranked.length > 0 ? (
+              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Proveedor</th>
+                      <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Órdenes</th>
+                      <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Productos</th>
+                      <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total ARS</th>
+                      <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Última compra</th>
+                      <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">% del gasto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {ranked.map((r, i) => {
+                      const pct = totalSpend > 0 ? (r.totalARS / totalSpend) * 100 : 0;
+                      return (
+                        <tr key={r.key} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-muted-foreground font-mono w-5">#{i + 1}</span>
+                              <span className="font-medium truncate max-w-[140px]">{r.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-muted-foreground">{r.count}</td>
+                          <td className="px-4 py-2.5 text-right text-muted-foreground hidden sm:table-cell">{r.productCount}</td>
+                          <td className="px-4 py-2.5 text-right font-mono font-semibold">{formatARS(r.totalARS)}</td>
+                          <td className="px-4 py-2.5 text-right text-muted-foreground hidden md:table-cell text-xs">
+                            {r.lastDate ? new Date(r.lastDate + "T12:00:00").toLocaleDateString("es-AR") : "—"}
+                          </td>
+                          <td className="px-4 py-2.5 text-right hidden md:table-cell">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-xs text-muted-foreground w-10 text-right">{pct.toFixed(1)}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="py-12 text-center">
+                <Package className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Sin compras registradas. Registrá compras en el módulo de Compras para ver analítica.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* New Debt Dialog */}
       <Dialog open={debtOpen} onOpenChange={v => { setDebtOpen(v); if (!v) setDebtForm(DEBT_EMPTY); }}>
