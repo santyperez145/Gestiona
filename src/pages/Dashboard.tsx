@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -381,26 +382,13 @@ export default function Dashboard() {
     })();
   }, [user, reloadKey]);
 
-  // Live dollar rates (dolarapi.com)
+  // Live dollar rates — shared hook with 15-min sessionStorage cache
+  const { rates: liveExchangeRates, refresh: refreshRates } = useExchangeRates(true);
   useEffect(() => {
-    const cacheKey = 'gestiona.dolar.cache';
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < 30 * 60 * 1000) { setDolarRates(data); return; }
-      } catch { /* ignore */ }
+    if (liveExchangeRates) {
+      setDolarRates({ blue: liveExchangeRates.blue, oficial: liveExchangeRates.oficial, mep: liveExchangeRates.mep });
     }
-    fetch('https://dolarapi.com/v1/dolares')
-      .then(r => r.json())
-      .then((items: any[]) => {
-        const get = (name: string) => items.find(i => i.nombre?.toLowerCase().includes(name))?.venta ?? 0;
-        const data = { blue: get('blue'), oficial: get('oficial'), mep: get('bolsa') };
-        setDolarRates(data);
-        localStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
-      })
-      .catch(() => { /* silently fail */ });
-  }, []);
+  }, [liveExchangeRates]);
 
   // Birthday reminders: customers with birthday in next 7 days
   useEffect(() => {
@@ -1133,15 +1121,24 @@ export default function Dashboard() {
               <span className="text-sm font-bold font-mono text-blue-400">${dolarRates.mep.toLocaleString('es-AR')}</span>
             </div>
           )}
+          {liveExchangeRates?.ccl > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">CCL</span>
+              <span className="text-sm font-bold font-mono text-amber-400">${liveExchangeRates.ccl.toLocaleString('es-AR')}</span>
+            </div>
+          )}
           {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
             <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Tu TC configurado:</span>
+              <span className="text-[10px] text-muted-foreground">Tu TC:</span>
               <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
                 ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
               </span>
               {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && (
                 <Link to="/ajustes" className="text-[10px] text-primary hover:underline">Actualizar →</Link>
               )}
+              <button onClick={refreshRates} title="Actualizar cotizaciones" className="text-muted-foreground hover:text-primary transition-colors ml-1">
+                <ArrowUp className="w-3 h-3 rotate-45" />
+              </button>
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
@@ -22,44 +23,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 export default function SettingsPage() {
   const { user, session } = useAuth();
   const [exchangeRate, setExchangeRate] = useState('');
-  const [fetchingRate, setFetchingRate] = useState(false);
-  const [liveRates, setLiveRates] = useState<{ oficial: number; blue: number; ccl: number; timestamp: string } | null>(null);
-
+  const { rates: liveRatesData, loading: fetchingRate, refresh: fetchBlueRateRaw } = useExchangeRates(false);
+  const liveRates = liveRatesData ? {
+    oficial: liveRatesData.oficial,
+    blue: liveRatesData.blue,
+    ccl: liveRatesData.ccl || liveRatesData.mep,
+    timestamp: new Date(liveRatesData.lastUpdated).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+  } : null;
   const fetchBlueRate = async () => {
-    setFetchingRate(true);
-    try {
-      // Bluelytics — free, no key required, returns oficial, blue, CCL for ARS/USD
-      const res = await fetch('https://api.bluelytics.com.ar/v2/latest');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const oficial = Math.round((data.oficial?.value_sell + data.oficial?.value_buy) / 2);
-      const blue = Math.round((data.blue?.value_sell + data.blue?.value_buy) / 2);
-      const ccl = Math.round((data.oficial_euro?.value_sell || blue) * 1.05); // approx CCL
-      const ts = new Date(data.last_update).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-      setLiveRates({ oficial, blue, ccl: data.blue_euro ? Math.round((data.blue_euro.value_sell + data.blue_euro.value_buy) / 2) : ccl, timestamp: ts });
-      toast.success(`💵 Dólar blue: $${blue.toLocaleString('es-AR')} · Oficial: $${oficial.toLocaleString('es-AR')}`);
-    } catch {
-      // Fallback: dolarapi.com
-      try {
-        const r2 = await fetch('https://dolarapi.com/v1/dolares');
-        const arr: any[] = await r2.json();
-        const blue = arr.find((d: any) => d.nombre === 'Blue');
-        const oficial = arr.find((d: any) => d.nombre === 'Oficial');
-        const ccl = arr.find((d: any) => d.nombre === 'Contado con liquidación');
-        if (blue) {
-          setLiveRates({
-            oficial: Math.round(oficial?.venta || 0),
-            blue: Math.round(blue.venta),
-            ccl: Math.round(ccl?.venta || blue.venta),
-            timestamp: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-          });
-          toast.success(`💵 Dólar blue: $${Math.round(blue.venta).toLocaleString('es-AR')}`);
-        }
-      } catch {
-        toast.error('No se pudo obtener la cotización. Verificá tu conexión.');
-      }
-    } finally {
-      setFetchingRate(false);
+    await fetchBlueRateRaw();
+    if (liveRatesData) {
+      toast.success(`💵 Dólar blue: $${liveRatesData.blue.toLocaleString('es-AR')} · Oficial: $${liveRatesData.oficial.toLocaleString('es-AR')}`);
     }
   };
 
