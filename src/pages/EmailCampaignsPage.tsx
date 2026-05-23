@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import {
   Mail, Plus, Send, Users, CheckCircle2, XCircle,
   Clock, Loader2, Eye, Trash2, AlertCircle, MousePointerClick, MailOpen,
+  Copy, FlaskConical, Trophy,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -178,6 +179,9 @@ export default function EmailCampaignsPage() {
   const [bulkCampaign, setBulkCampaign] = useState<{ emails: string[]; names: string[]; count: number; segment: string } | null>(null);
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  // A/B test state
+  const [abMode, setAbMode] = useState(false);
+  const [subjectB, setSubjectB] = useState("");
 
   // Read bulk selection from CRM sessionStorage on mount
   useEffect(() => {
@@ -286,27 +290,62 @@ export default function EmailCampaignsPage() {
   const handleCreate = async () => {
     if (!activeOrg || !user) return;
     if (!subject.trim() || !bodyHtml.trim()) { toast.error("Completá asunto y cuerpo"); return; }
+    if (abMode && !subjectB.trim()) { toast.error("Ingresá el asunto B para el test A/B"); return; }
     setSaving(true);
     try {
       const brandedHtml = buildBrandedEmail(bodyHtml.trim(), orgSettings.logo_url, orgSettings.business_name);
-      const { error } = await supabase.from("email_campaigns").insert({
+      const baseRow = {
         org_id: activeOrg.id,
-        subject: subject.trim(),
         body_html: brandedHtml,
         segment,
         status: "draft",
         sent_count: 0,
         failed_count: 0,
         scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-      });
-      if (error) throw error;
-      toast.success(scheduledAt ? `Campaña programada para ${new Date(scheduledAt).toLocaleString("es-AR")}` : "Campaña creada como borrador");
-      setOpen(false); setSubject(""); setBodyHtml(""); setSegment("all"); setScheduledAt("");
+      };
+
+      if (abMode) {
+        // Create two campaigns for A/B test
+        const [resA, resB] = await Promise.all([
+          supabase.from("email_campaigns").insert({ ...baseRow, subject: `[A] ${subject.trim()}` }),
+          supabase.from("email_campaigns").insert({ ...baseRow, subject: `[B] ${subjectB.trim()}` }),
+        ]);
+        if (resA.error || resB.error) throw resA.error || resB.error;
+        toast.success("Test A/B creado — dos campañas listas para enviar");
+      } else {
+        const { error } = await supabase.from("email_campaigns").insert({ ...baseRow, subject: subject.trim() });
+        if (error) throw error;
+        toast.success(scheduledAt ? `Campaña programada para ${new Date(scheduledAt).toLocaleString("es-AR")}` : "Campaña creada como borrador");
+      }
+
+      setOpen(false); setSubject(""); setSubjectB(""); setBodyHtml(""); setSegment("all"); setScheduledAt(""); setAbMode(false);
       load();
     } catch {
       toast.error("Error al guardar campaña");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Duplicate an existing campaign
+  const handleDuplicate = async (camp: Campaign) => {
+    if (!activeOrg) return;
+    try {
+      const { error } = await supabase.from("email_campaigns").insert({
+        org_id: activeOrg.id,
+        subject: `Copia — ${camp.subject}`,
+        body_html: camp.body_html,
+        segment: camp.segment,
+        status: "draft",
+        sent_count: 0,
+        failed_count: 0,
+        scheduled_at: null,
+      });
+      if (error) throw error;
+      toast.success("Campaña duplicada como borrador");
+      load();
+    } catch {
+      toast.error("Error al duplicar campaña");
     }
   };
 
@@ -422,7 +461,34 @@ export default function EmailCampaignsPage() {
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold truncate">{camp.subject}</span>
+                      {camp.subject.startsWith("[A] ") || camp.subject.startsWith("[B] ") ? (
+                        <>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${camp.subject.startsWith("[A]") ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}`}>
+                            {camp.subject.startsWith("[A]") ? "A/B — A" : "A/B — B"}
+                          </span>
+                          <span className="font-semibold truncate">{camp.subject.replace(/^\[A\] |\[B\] /, "")}</span>
+                          {camp.status === "sent" && camp.sent_count > 0 && (() => {
+                            // Find the paired campaign
+                            const paired = camp.subject.startsWith("[A]")
+                              ? campaigns.find(c => c.subject === camp.subject.replace("[A]", "[B]"))
+                              : campaigns.find(c => c.subject === camp.subject.replace("[B]", "[A]"));
+                            if (paired?.status === "sent" && paired.sent_count > 0) {
+                              const rateA = camp.subject.startsWith("[A]") ? (camp.open_count ?? 0) / camp.sent_count : (paired.open_count ?? 0) / paired.sent_count;
+                              const rateB = camp.subject.startsWith("[A]") ? (paired.open_count ?? 0) / paired.sent_count : (camp.open_count ?? 0) / camp.sent_count;
+                              const winner = rateA > rateB ? (camp.subject.startsWith("[A]") ? "A" : "B") : (camp.subject.startsWith("[A]") ? "B" : "A");
+                              const isWinner = (camp.subject.startsWith("[A]") && winner === "A") || (camp.subject.startsWith("[B]") && winner === "B");
+                              return isWinner ? (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded">
+                                  <Trophy className="w-3 h-3" /> Ganadora
+                                </span>
+                              ) : null;
+                            }
+                            return null;
+                          })()}
+                        </>
+                      ) : (
+                        <span className="font-semibold truncate">{camp.subject}</span>
+                      )}
                       <Badge className={`text-xs px-1.5 py-0 rounded-[3px] ${STATUS_COLORS[camp.status]}`}>
                         {STATUS_LABELS[camp.status]}
                       </Badge>
@@ -496,6 +562,13 @@ export default function EmailCampaignsPage() {
                     )}
                     <Button
                       variant="ghost" size="sm"
+                      title="Duplicar campaña"
+                      onClick={() => handleDuplicate(camp)}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm"
                       className="text-destructive hover:text-destructive"
                       disabled={deleting === camp.id}
                       onClick={() => handleDelete(camp.id)}
@@ -561,8 +634,24 @@ export default function EmailCampaignsPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* A/B Test toggle */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/20">
+              <FlaskConical className="w-4 h-4 text-purple-400 shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold">Test A/B de asunto</p>
+                <p className="text-[10px] text-muted-foreground">Crea dos versiones con distinto asunto para comparar tasas de apertura</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAbMode(v => !v)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${abMode ? 'bg-purple-500' : 'bg-muted'}`}
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${abMode ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
             <div className="space-y-1.5">
-              <Label>Asunto</Label>
+              <Label>{abMode ? "Asunto Versión A" : "Asunto"}</Label>
               <Input
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
@@ -570,6 +659,20 @@ export default function EmailCampaignsPage() {
                 maxLength={100}
               />
             </div>
+            {abMode && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  Asunto Versión B
+                  <span className="text-[10px] text-muted-foreground font-normal">— el sistema divide la audiencia 50/50</span>
+                </Label>
+                <Input
+                  value={subjectB}
+                  onChange={e => setSubjectB(e.target.value)}
+                  placeholder="Ej: Te extrañamos 💙 — volvé con esta oferta"
+                  maxLength={100}
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Cuerpo del email (HTML o texto)</Label>
