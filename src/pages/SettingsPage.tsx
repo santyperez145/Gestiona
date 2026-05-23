@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useStorageEstimate } from "@/hooks/useStorageEstimate";
 import { usePermissionStatus } from "@/hooks/usePermissionStatus";
+import PriceListsManager from "@/components/settings/PriceListsManager";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -1064,6 +1065,9 @@ export default function SettingsPage() {
 
           {/* Expense Categories CRUD */}
           <ExpenseCategoriesSection userId={user!.id} />
+
+          {/* Price Lists */}
+          {orgForTemplates && <PriceListsManager orgId={orgForTemplates.id} />}
 
           {/* Backup / Export */}
           <BackupExport userId={user!.id} />

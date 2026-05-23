@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
+import { usePriceList } from "@/hooks/usePriceList";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
 import confetti from "canvas-confetti";
@@ -842,19 +843,34 @@ export default function POSPage() {
   };
 
   // Pending debt alert for selected customer
+  // Price list — auto-applied when customer has one assigned
+  const [customerPriceListId, setCustomerPriceListId] = useState<string | null>(null);
+  const { meta: activePriceList, getPrice } = usePriceList(customerPriceListId);
+
   const [customerDebt, setCustomerDebt] = useState<number | null>(null);
   useEffect(() => {
     setCustomerDebt(null);
+    setCustomerPriceListId(null);
     if (!activeOrg || !customer.trim() || customer.trim().length < 3) return;
     const timeout = setTimeout(async () => {
-      const { data } = await supabase
-        .from("debts")
-        .select("remaining_ars")
-        .eq("org_id", activeOrg.id)
-        .ilike("customer_name", `%${customer.trim()}%`)
-        .neq("status", "paid");
-      const total = (data || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
+      const [debtRes, customerRes] = await Promise.all([
+        supabase
+          .from("debts")
+          .select("remaining_ars")
+          .eq("org_id", activeOrg.id)
+          .ilike("customer_name", `%${customer.trim()}%`)
+          .neq("status", "paid"),
+        supabase
+          .from("customers")
+          .select("price_list_id")
+          .eq("org_id", activeOrg.id)
+          .ilike("name", `%${customer.trim()}%`)
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      const total = (debtRes.data || []).reduce((s: number, d: any) => s + Number(d.remaining_ars), 0);
       setCustomerDebt(total > 0 ? total : null);
+      setCustomerPriceListId((customerRes.data as any)?.price_list_id ?? null);
     }, 600);
     return () => clearTimeout(timeout);
   }, [customer, activeOrg]);
@@ -1179,7 +1195,9 @@ export default function POSPage() {
   const addToCart = useCallback((prod: any, variantOverride?: { id: string; name: string; stock: number; price?: number }) => {
     const cartKey = variantOverride ? `${prod.id}__${variantOverride.id}` : prod.id;
     const stockLimit = variantOverride ? variantOverride.stock : prod.stock;
-    const price = (variantOverride?.price ?? Number(prod.sale_price_ars)) || 0;
+    // Use price list adjusted price if a customer with a list is selected
+    const basePrice = variantOverride?.price ?? Number(prod.sale_price_ars);
+    const price = customerPriceListId ? getPrice({ id: prod.id, sale_price_ars: basePrice }) : (basePrice || 0);
     const displayName = variantOverride ? `${prod.name} · ${variantOverride.name}` : prod.name;
     setCart((prev) => {
       const idx = prev.findIndex((it) => it.productId === cartKey);
@@ -1638,6 +1656,14 @@ export default function POSPage() {
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-destructive/15 border border-destructive/30 text-destructive">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{customer.trim()} tiene <strong>{formatARS(customerDebt)}</strong> pendiente de cobro</span>
+          </div>
+        )}
+
+        {/* Price list badge — shown when customer has an active price list */}
+        {activePriceList && activePriceList.discount_pct > 0 && (
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-blue-500/15 border border-blue-500/30 text-blue-300">
+            <Tag className="w-3.5 h-3.5 shrink-0" />
+            <span>Lista: <strong>{activePriceList.name}</strong> · -{activePriceList.discount_pct}% aplicado en precios</span>
           </div>
         )}
 
