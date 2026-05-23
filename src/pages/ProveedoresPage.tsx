@@ -17,6 +17,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
+import SupplierPOModal from "@/components/shared/SupplierPOModal";
 
 type Supplier = {
   id: string;
@@ -81,6 +82,8 @@ export default function ProveedoresPage() {
   const [selectedDebtIds, setSelectedDebtIds] = useState<Set<string>>(new Set());
   const [bulkPayLoading, setBulkPayLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'proveedores' | 'aging' | 'pagos'>('proveedores');
+  const [poOpen, setPoOpen] = useState(false);
+  const [poSupplierId, setPoSupplierId] = useState<string | undefined>(undefined);
   const [editingNote, setEditingNote] = useState<{ id: string; value: string } | null>(null);
 
   const load = async () => {
@@ -293,6 +296,9 @@ export default function ProveedoresPage() {
             <Button variant="outline" className="h-9 gap-2 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => setDebtOpen(true)}>
               <Plus className="w-4 h-4" />Nueva deuda
             </Button>
+            <Button variant="outline" className="h-9 gap-2 border-primary/40 text-primary hover:bg-primary/10" onClick={() => { setPoSupplierId(undefined); setPoOpen(true); }} title="Generar orden de compra por stock bajo">
+              <ShoppingCart className="w-4 h-4" /> Orden de compra
+            </Button>
             <Button className="gradient-gold text-primary-foreground shadow-gold h-9" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-2" /> Nuevo proveedor
             </Button>
@@ -437,6 +443,13 @@ export default function ProveedoresPage() {
                     title="Ver compras"
                   >
                     {expandedId === s.id ? <ChevronUp className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => { setPoSupplierId(s.id); setPoOpen(true); }}
+                    className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/60 hover:text-primary transition-colors"
+                    title="Generar orden de compra para este proveedor"
+                  >
+                    <FileText className="w-4 h-4" />
                   </button>
                   <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
                     <Pencil className="w-4 h-4" />
@@ -754,6 +767,13 @@ export default function ProveedoresPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Supplier PO Modal */}
+      <SupplierPOModal
+        open={poOpen}
+        onClose={() => setPoOpen(false)}
+        supplierId={poSupplierId}
+      />
     </div>
   );
 }
