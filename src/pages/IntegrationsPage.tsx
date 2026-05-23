@@ -81,6 +81,21 @@ export default function IntegrationsPage() {
   const [savingMp, setSavingMp] = useState(false);
   const [mpLoaded, setMpLoaded] = useState(false);
 
+  // MercadoLibre marketplace
+  const [mlToken, setMlToken] = useState("");
+  const [mlUserId, setMlUserId] = useState("");
+  const [mlEnabled, setMlEnabled] = useState(false);
+  const [mlTokenVisible, setMlTokenVisible] = useState(false);
+  const [savingMl, setSavingMl] = useState(false);
+
+  // Shopify
+  const [shopifyUrl, setShopifyUrl] = useState("");
+  const [shopifyKey, setShopifyKey] = useState("");
+  const [shopifySecret, setShopifySecret] = useState("");
+  const [shopifyEnabled, setShopifyEnabled] = useState(false);
+  const [shopifySecretVisible, setShopifySecretVisible] = useState(false);
+  const [savingShopify, setSavingShopify] = useState(false);
+
   // API key
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
@@ -218,7 +233,7 @@ export default function IntegrationsPage() {
     if (!activeOrg) return;
     const { data } = await supabase
       .from("settings")
-      .select("mp_access_token, mp_enabled, api_key, webhook_url, webhook_enabled, webhook_events, webhook_secret")
+      .select("mp_access_token, mp_enabled, api_key, webhook_url, webhook_enabled, webhook_events, webhook_secret, ml_access_token, ml_user_id, ml_enabled, shopify_store_url, shopify_api_key, shopify_api_secret, shopify_enabled")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (data) {
@@ -229,6 +244,15 @@ export default function IntegrationsPage() {
       setWebhookEnabled(!!data.webhook_enabled);
       setWebhookSecret(data.webhook_secret || "");
       if (data.webhook_events) setWebhookEvents(data.webhook_events as string[]);
+      // MercadoLibre
+      setMlToken(data.ml_access_token || "");
+      setMlUserId(data.ml_user_id || "");
+      setMlEnabled(!!(data as any).ml_enabled);
+      // Shopify
+      setShopifyUrl((data as any).shopify_store_url || "");
+      setShopifyKey((data as any).shopify_api_key || "");
+      setShopifySecret((data as any).shopify_api_secret || "");
+      setShopifyEnabled(!!(data as any).shopify_enabled);
     }
     setMpLoaded(true);
   };
@@ -337,6 +361,36 @@ export default function IntegrationsPage() {
     } else {
       toast.success("Configuración de Mercado Pago guardada");
     }
+  };
+
+  const handleSaveMl = async () => {
+    if (!activeOrg) return;
+    setSavingMl(true);
+    const { error } = await supabase.from("settings").upsert({
+      org_id: activeOrg.id,
+      ml_access_token: mlToken.trim() || null,
+      ml_user_id: mlUserId.trim() || null,
+      ml_enabled: mlEnabled,
+    } as any, { onConflict: "org_id" });
+    setSavingMl(false);
+    if (error) toast.error("Error al guardar: " + error.message);
+    else toast.success("Configuración de MercadoLibre guardada");
+  };
+
+  const handleSaveShopify = async () => {
+    if (!activeOrg) return;
+    if (shopifyEnabled && !shopifyUrl.trim()) { toast.error("Ingresá la URL de tu tienda Shopify"); return; }
+    setSavingShopify(true);
+    const { error } = await supabase.from("settings").upsert({
+      org_id: activeOrg.id,
+      shopify_store_url: shopifyUrl.trim() || null,
+      shopify_api_key: shopifyKey.trim() || null,
+      shopify_api_secret: shopifySecret.trim() || null,
+      shopify_enabled: shopifyEnabled,
+    } as any, { onConflict: "org_id" });
+    setSavingShopify(false);
+    if (error) toast.error("Error al guardar: " + error.message);
+    else toast.success("Configuración de Shopify guardada");
   };
 
   const handleRegisterWebhooks = async () => {
@@ -797,6 +851,164 @@ export default function IntegrationsPage() {
           </div>
         )}
       </div>
+
+      {/* ── MercadoLibre Marketplace ─────────────────────────────── */}
+      {mpLoaded && (
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0">
+                <span className="text-yellow-400 font-extrabold text-base">ML</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold">MercadoLibre</h2>
+                  {mlEnabled && mlToken ? (
+                    <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Activo</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Sincronizá publicaciones, pedidos y stock con MercadoLibre</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-5 py-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5">Access Token</label>
+                <div className="relative">
+                  <Input
+                    type={mlTokenVisible ? "text" : "password"}
+                    value={mlToken}
+                    onChange={e => setMlToken(e.target.value)}
+                    placeholder="APP_USR-..."
+                    className="bg-muted border-border pr-10 font-mono text-xs"
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setMlTokenVisible(v => !v)}>
+                    {mlTokenVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  <a href="https://developers.mercadolibre.com.ar/es_ar/autenticacion-y-autorizacion" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    Obtener en ML Developers → Credenciales
+                  </a>
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5">User ID (Seller ID)</label>
+                <Input
+                  value={mlUserId}
+                  onChange={e => setMlUserId(e.target.value)}
+                  placeholder="Ej: 123456789"
+                  className="bg-muted border-border font-mono text-xs"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Habilitar MercadoLibre</p>
+                <p className="text-[11px] text-muted-foreground">Activa la sincronización de productos y pedidos</p>
+              </div>
+              <Switch checked={mlEnabled} onCheckedChange={setMlEnabled} />
+            </div>
+            <div className="rounded-lg bg-yellow-500/5 border border-yellow-500/15 p-3 space-y-1">
+              <p className="text-[10px] font-semibold text-yellow-400">Funciones disponibles (próximamente)</p>
+              <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc list-inside">
+                <li>Sincronización de publicaciones y fotos</li>
+                <li>Importación de pedidos como ventas</li>
+                <li>Actualización automática de stock</li>
+                <li>Alertas de preguntas sin responder</li>
+              </ul>
+            </div>
+            <Button className="w-full h-9 text-sm gradient-gold text-primary-foreground shadow-gold" onClick={handleSaveMl} disabled={savingMl}>
+              {savingMl ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar configuración
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Shopify ──────────────────────────────────────────────── */}
+      {mpLoaded && (
+        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold">Shopify</h2>
+                  {shopifyEnabled && shopifyUrl ? (
+                    <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Activo</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Conectá tu tienda Shopify para sincronizar inventario y pedidos</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-5 py-4 space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1.5">URL de la tienda</label>
+              <Input
+                value={shopifyUrl}
+                onChange={e => setShopifyUrl(e.target.value)}
+                placeholder="mitienda.myshopify.com"
+                className="bg-muted border-border text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5">API Key</label>
+                <Input
+                  value={shopifyKey}
+                  onChange={e => setShopifyKey(e.target.value)}
+                  placeholder="Shopify Admin API key"
+                  className="bg-muted border-border font-mono text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5">API Secret</label>
+                <div className="relative">
+                  <Input
+                    type={shopifySecretVisible ? "text" : "password"}
+                    value={shopifySecret}
+                    onChange={e => setShopifySecret(e.target.value)}
+                    placeholder="shpss_..."
+                    className="bg-muted border-border pr-10 font-mono text-xs"
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShopifySecretVisible(v => !v)}>
+                    {shopifySecretVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Habilitar Shopify</p>
+                <p className="text-[11px] text-muted-foreground">Activa la sincronización con tu tienda Shopify</p>
+              </div>
+              <Switch checked={shopifyEnabled} onCheckedChange={setShopifyEnabled} />
+            </div>
+            <div className="rounded-lg bg-green-500/5 border border-green-500/15 p-3 space-y-1">
+              <p className="text-[10px] font-semibold text-green-400">Funciones disponibles (próximamente)</p>
+              <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc list-inside">
+                <li>Importación de pedidos como ventas automáticas</li>
+                <li>Sincronización bidireccional de stock</li>
+                <li>Actualización de precios desde Gestiona</li>
+                <li>Dashboard de canales unificado</li>
+              </ul>
+            </div>
+            <Button className="w-full h-9 text-sm gradient-gold text-primary-foreground shadow-gold" onClick={handleSaveShopify} disabled={savingShopify}>
+              {savingShopify ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar configuración
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Twilio WhatsApp */}
       <TwilioSection orgId={activeOrg?.id} />

@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
@@ -783,6 +783,24 @@ export default function POSPage() {
     if (!sellerName) setShowSellerPrompt(true);
   }, []);
 
+  // Fullscreen state (reactive via fullscreenchange event)
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
   // Offline mode
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineSales, setOfflineSales] = useState<any[]>(() => {
@@ -883,10 +901,17 @@ export default function POSPage() {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      // F1 / ? → show keyboard shortcuts help
+      if (e.key === 'F1' || (e.key === '?' && !inInput)) { e.preventDefault(); setShowShortcutHelp(v => !v); return; }
       // F2 → focus product search
       if (e.key === 'F2') { e.preventDefault(); searchInputRef.current?.focus(); searchInputRef.current?.select(); return; }
-      // Escape → clear search first, then clear cart if search already empty
-      if (e.key === 'Escape' && !inInput) { if (search) setSearch(''); else if (cart.length > 0) setCart([]); return; }
+      // F5 / F11 → toggle fullscreen
+      if (e.key === 'F5' || e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+      // Escape → close help overlay first, then clear search, then cart
+      if (e.key === 'Escape') {
+        if (showShortcutHelp) { setShowShortcutHelp(false); return; }
+        if (!inInput) { if (search) setSearch(''); else if (cart.length > 0) setCart([]); return; }
+      }
       // F9 → confirm sale (if cart has items and sale not disabled)
       if (e.key === 'F9') { e.preventDefault(); if (cart.length > 0 && !confirmDisabled) confirmSale(); return; }
       // + key → increment qty of last cart item
@@ -905,7 +930,7 @@ export default function POSPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart, search, confirmDisabled]);
+  }, [cart, search, confirmDisabled, showShortcutHelp, toggleFullscreen]);
 
   // ── Voice commands (Web Speech API) ──────────────────────────────────────────
   const [voiceActive, setVoiceActive] = useState(false);
@@ -2229,10 +2254,15 @@ export default function POSPage() {
               {voiceActive && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Pantalla completa"
-            onClick={() => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); }}
+          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Pantalla completa (F5 / F11)"
+            onClick={toggleFullscreen}
           >
-            {document.fullscreenElement ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Atajos de teclado (F1 / ?)"
+            onClick={() => setShowShortcutHelp(v => !v)}
+          >
+            <HelpCircle className="w-4 h-4" />
           </Button>
           {/* Mobile cart toggle */}
           <Button
@@ -2381,6 +2411,48 @@ export default function POSPage() {
           )}
         </div>
       </div>
+
+      {/* ── Keyboard shortcuts overlay ─────────────────────────── */}
+      {showShortcutHelp && (
+        <div
+          className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowShortcutHelp(false)}
+        >
+          <div
+            className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl shadow-2xl p-6 w-full max-w-md"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display font-bold flex items-center gap-2">
+                <Keyboard className="w-4 h-4 text-primary" />Atajos de teclado POS
+              </h2>
+              <button onClick={() => setShowShortcutHelp(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {([
+                ["F2", "Enfocar búsqueda de productos"],
+                ["F9", "Confirmar venta (si hay items en el carrito)"],
+                ["F5 / F11", "Pantalla completa"],
+                ["F1 / ?", "Mostrar / cerrar esta ayuda"],
+                ["Escape", "Cerrar ayuda · Limpiar búsqueda · Vaciar carrito"],
+                ["+ / −", "Aumentar / reducir cantidad del último ítem"],
+              ] as [string, string][]).map(([key, desc]) => (
+                <div key={key} className="flex items-center gap-3 text-sm">
+                  <kbd className="shrink-0 inline-flex items-center justify-center min-w-[52px] px-2 py-1 rounded-lg border border-border bg-muted font-mono text-[11px] font-bold text-foreground">
+                    {key}
+                  </kbd>
+                  <span className="text-muted-foreground">{desc}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-4 border-t border-border/40 pt-3">
+              Los atajos no funcionan cuando el foco está en un campo de texto. Presioná Escape para cerrar.
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
