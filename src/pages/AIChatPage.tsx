@@ -9,6 +9,7 @@ import {
   Brain, Send, Loader2, Trash2, Bot, User, Sparkles, ShoppingCart,
   Package, Users, BarChart2, DollarSign, Zap, Plus, CheckCircle2, X,
   TrendingDown, History, MessageSquare, ChevronLeft, ClipboardList, Download,
+  ImagePlus, Camera,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
@@ -2232,6 +2233,7 @@ const ACTION_STARTERS = [
   { label: "Top productos", icon: Package, msg: "Cuáles son mis mejores productos?" },
   { label: "Gastos del mes", icon: TrendingDown, msg: "Cuánto gasté este mes? Resumen de gastos" },
   { label: "Ver proveedor", icon: Package, msg: "Info del proveedor" },
+  { label: "📷 Foto producto", icon: Camera, msg: "Analizá esta imagen de un producto" },
 ];
 
 const QUICK_ACTIONS = [
@@ -2289,6 +2291,9 @@ export default function AIChatPage() {
   const [dismissedActions, setDismissedActions] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null); // base64
+  const [imageAnalyzing, setImageAnalyzing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [conversations, setConversations] = useState<SavedConversation[]>(() =>
     activeOrg ? loadConversations(activeOrg.id) : []
@@ -2392,6 +2397,89 @@ export default function AIChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // ── AI Vision: analyze image ───────────────────────────────────────────────
+  const analyzeImage = useCallback(async (base64: string, mimeType: string) => {
+    if (!activeOrg) return;
+    setImageAnalyzing(true);
+    const aiMsgId = crypto.randomUUID();
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(), role: "user",
+      content: "📷 [Imagen enviada para análisis]",
+      ts: Date.now(),
+    };
+    setMessages(prev => [...prev, userMsg, { id: aiMsgId, role: "assistant", content: "", ts: Date.now(), streaming: true }]);
+    setImagePreview(null);
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${session?.access_token || anonKey}`,
+          "apikey": anonKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: "Analizá esta imagen. Si es un producto: indicá nombre sugerido, categoría, precio estimado en ARS y descripción breve. Si es una factura o recibo: extraé proveedor, total, items y fecha. Si es otra cosa: describí qué ves y cómo puede ayudar al negocio.",
+          history: [],
+          orgId: activeOrg.id,
+          image: { base64, mimeType },
+        }),
+      });
+
+      if (!res.ok || !res.body) throw new Error(await res.text().catch(() => "Error"));
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split("\n");
+        buf = parts.pop() ?? "";
+        for (const line of parts) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (raw === "[DONE]") break;
+          try {
+            const chunk = JSON.parse(raw);
+            const delta = chunk.choices?.[0]?.delta?.content ?? chunk.delta?.text ?? "";
+            if (delta) {
+              accumulated += delta;
+              setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: accumulated } : m));
+            }
+          } catch { /* ignore parse errors */ }
+        }
+      }
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, streaming: false, content: accumulated || "Análisis completado." } : m));
+    } catch (e: any) {
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, streaming: false, content: `Error al analizar imagen: ${e.message}` } : m));
+    } finally {
+      setImageAnalyzing(false);
+    }
+  }, [activeOrg]);
+
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Solo se admiten imágenes"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("La imagen debe ser menor a 5MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1];
+      setImagePreview(result); // show preview
+      analyzeImage(base64, file.type);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, [analyzeImage]);
 
   const send = useCallback(async (text?: string) => {
     const msg = (text ?? input).trim();
@@ -2719,7 +2807,23 @@ export default function AIChatPage() {
 
       {/* Input */}
       <div className="pt-4 shrink-0">
+        {imagePreview && (
+          <div className="mb-2 relative inline-block">
+            <img src={imagePreview} alt="preview" className="h-16 w-auto rounded-lg border border-border object-cover" />
+            <button onClick={() => setImagePreview(null)} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-white flex items-center justify-center text-[10px]">×</button>
+          </div>
+        )}
         <div className="flex gap-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-2">
+          <input ref={imageInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
+          <button
+            type="button"
+            title="Analizar imagen con IA (producto, factura, recibo…)"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={imageAnalyzing || loading}
+            className="shrink-0 p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
+          >
+            {imageAnalyzing ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Camera className="w-4 h-4" />}
+          </button>
           <Input
             ref={inputRef}
             value={input}
@@ -2739,7 +2843,7 @@ export default function AIChatPage() {
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground/50 text-center mt-2">
-          Los datos se actualizan en tiempo real · Puede crear productos, gastos y clientes
+          Los datos se actualizan en tiempo real · 📷 Mandá una foto de producto o factura para análisis con IA
         </p>
       </div>
       </div>{/* end main chat */}
