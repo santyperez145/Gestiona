@@ -700,6 +700,8 @@ export default function POSPage() {
   const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
+  const [showBundles, setShowBundles] = useState(false);
+  const [bundles, setBundles] = useState<Array<{ id: string; name: string; description: string | null; price_ars: number; bundle_items: { product_id: string; quantity: number }[] }>>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceVal, setEditingPriceVal] = useState("");
@@ -1112,6 +1114,18 @@ export default function POSPage() {
     })();
   }, [user]);
 
+  // ── Load bundles for POS ──
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    supabase
+      .from("product_bundles")
+      .select("id,name,description,price_ars,bundle_items(product_id,quantity)")
+      .eq("org_id", activeOrg.id)
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data }) => setBundles((data || []) as any));
+  }, [activeOrg?.id]);
+
   // ── Filtered products ──
   const filtered = useMemo(() => {
     let list = products.filter((p) => p.stock > 0 || p.allow_negative_stock);
@@ -1228,6 +1242,48 @@ export default function POSPage() {
     setShowCart(true);
     if (variantPickerProduct) setVariantPickerProduct(null);
   }, [settings, variantPickerProduct]);
+
+  // ── Bundle: explode into individual cart items ──
+  const addBundleToCart = (bundle: typeof bundles[0]) => {
+    const exchangeRate = Number(settings?.exchange_rate) || 1695;
+    let addedCount = 0;
+    bundle.bundle_items.forEach(item => {
+      const prod = products.find(p => p.id === item.product_id);
+      if (!prod) return;
+      for (let i = 0; i < item.quantity; i++) {
+        const price = customerPriceListId ? getPrice({ id: prod.id, sale_price_ars: Number(prod.sale_price_ars) }) : Number(prod.sale_price_ars);
+        setCart(prev => {
+          const idx = prev.findIndex(it => it.productId === prod.id);
+          if (idx >= 0) {
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], quantity: updated[idx].quantity + 1 };
+            return updated;
+          }
+          return [...prev, {
+            productId: prod.id,
+            name: prod.name,
+            brand: prod.brand || '',
+            price,
+            discountPrice: prod.discount_price_ars ? Number(prod.discount_price_ars) : null,
+            costUSD: Number(prod.total_cost_usd) || 0,
+            exchangeRate,
+            quantity: 1,
+            stock: prod.stock,
+            imageUrl: prod.image_url || null,
+            useDiscount: false,
+            category: prod.category || '',
+          }];
+        });
+        addedCount++;
+      }
+    });
+    // Override the total with bundle price by adding a price-override note
+    toast.success(`Kit "${bundle.name}" agregado · ${bundle.bundle_items.length} producto${bundle.bundle_items.length !== 1 ? 's' : ''}`, {
+      description: `Precio del kit: $${Number(bundle.price_ars).toLocaleString('es-AR')} — ajustá el descuento en el carrito si es necesario`,
+    });
+    setShowCart(true);
+    setShowBundles(false);
+  };
 
   const changeQty = (productId: string, delta: number) => {
     setCart((prev) =>
@@ -2316,9 +2372,9 @@ export default function POSPage() {
           {CATS.map((c) => (
             <button
               key={c.value}
-              onClick={() => setCat(c.value)}
+              onClick={() => { setCat(c.value); setShowBundles(false); }}
               className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-[5px] border transition-all ${
-                cat === c.value
+                !showBundles && cat === c.value
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-muted border-border text-muted-foreground hover:border-primary/40"
               }`}
@@ -2326,13 +2382,83 @@ export default function POSPage() {
               {c.label}
             </button>
           ))}
+          {bundles.length > 0 && (
+            <button
+              onClick={() => setShowBundles(v => !v)}
+              className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-[5px] border transition-all flex items-center gap-1.5 ${
+                showBundles
+                  ? "bg-yellow-500 text-yellow-950 border-yellow-500"
+                  : "bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20"
+              }`}
+            >
+              <Layers className="w-3 h-3" />Kits ({bundles.length})
+            </button>
+          )}
         </div>
 
         {/* Main area */}
         <div className="flex-1 overflow-hidden flex">
-          {/* Product grid */}
+          {/* Product grid / Bundle grid */}
           <div className={`flex-1 overflow-y-auto p-3 ${showCart ? "hidden lg:block" : "block"}`}>
-            {loadingProds ? (
+            {/* Bundles grid */}
+            {showBundles ? (
+              <div>
+                <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" />Kits disponibles — hacé click para agregar al carrito
+                </p>
+                {bundles.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <Layers className="w-10 h-10 mb-3 opacity-20" />
+                    <p className="text-sm">Sin kits activos</p>
+                    <p className="text-xs mt-1">Creá kits en Catálogo → Combos & Kits</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {bundles.map(bundle => {
+                      const items = bundle.bundle_items || [];
+                      const componentNames = items.map(item => {
+                        const prod = products.find(p => p.id === item.product_id);
+                        return prod ? `${item.quantity}x ${prod.name}` : null;
+                      }).filter(Boolean);
+                      return (
+                        <button
+                          key={bundle.id}
+                          onClick={() => addBundleToCart(bundle)}
+                          className="text-left bg-card border border-yellow-500/20 rounded-xl p-4 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all group"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-yellow-500/15 flex items-center justify-center shrink-0">
+                                <Layers className="w-4 h-4 text-yellow-400" />
+                              </div>
+                              <p className="font-semibold text-sm leading-tight">{bundle.name}</p>
+                            </div>
+                            <span className="text-sm font-mono font-bold text-primary shrink-0">
+                              ${Number(bundle.price_ars).toLocaleString('es-AR')}
+                            </span>
+                          </div>
+                          {bundle.description && (
+                            <p className="text-[10px] text-muted-foreground mb-2 line-clamp-1">{bundle.description}</p>
+                          )}
+                          <div className="space-y-0.5">
+                            {componentNames.slice(0, 4).map((name, i) => (
+                              <p key={i} className="text-[10px] text-muted-foreground/70 truncate">· {name}</p>
+                            ))}
+                            {componentNames.length > 4 && (
+                              <p className="text-[10px] text-muted-foreground/50">+{componentNames.length - 4} más</p>
+                            )}
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-border/30 flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground">{items.length} producto{items.length !== 1 ? "s" : ""}</span>
+                            <span className="text-[10px] text-yellow-400 font-medium group-hover:translate-x-0.5 transition-transform">Agregar →</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : loadingProds ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>

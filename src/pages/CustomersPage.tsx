@@ -48,6 +48,7 @@ type CustomerData = {
   segment: string;
   segmentColor: string;
   healthScore: number;
+  clv: number; // projected Customer Lifetime Value in ARS
   sellers: string[]; // seller_name values from sales
   // Profile from customers table (if exists)
   profileId?: string;
@@ -1013,7 +1014,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore">("totalSpent");
+  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv">("totalSpent");
   const [savedSegments, setSavedSegments] = useState<SavedCRMSegment[]>([]);
   const [saveSegmentName, setSaveSegmentName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
@@ -1220,7 +1221,7 @@ export default function CustomersPage() {
         map[name] = {
           name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0, avgTicket: 0,
           lastPurchase: s.date, firstPurchase: s.date, daysSinceLastPurchase: 0,
-          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [],
+          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [], clv: 0,
         };
       }
       const c = map[name];
@@ -1250,7 +1251,7 @@ export default function CustomersPage() {
           name: p.name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0,
           avgTicket: 0, lastPurchase: new Date().toISOString(), firstPurchase: new Date().toISOString(),
           daysSinceLastPurchase: 999, frequency: 999, pendingDebt: 0, products: {},
-          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [],
+          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [], clv: 0,
         };
       }
       const prof = profileByName[p.name.toLowerCase()];
@@ -1282,7 +1283,13 @@ export default function CustomersPage() {
     });
     // Compute health scores (monetary uses percentile across all customers)
     const monetarySorted = list.filter(c => c.purchaseCount > 0).map(c => c.totalSpent).sort((a, b) => a - b);
-    list.forEach(c => { c.healthScore = computeHealthScore(c, monetarySorted); });
+    list.forEach(c => {
+      c.healthScore = computeHealthScore(c, monetarySorted);
+      // Projected CLV = avgTicket × purchasesPerYear × retentionYears
+      const purchasesPerYear = c.frequency > 0 && c.frequency < 365 ? 365 / c.frequency : (c.purchaseCount > 0 ? c.purchaseCount : 0);
+      const retentionYears = c.segment === "VIP" ? 3 : c.segment === "Premium" ? 2 : c.segment === "Frecuente" ? 1.5 : c.segment === "Activo" ? 1 : c.segment === "En riesgo" ? 0.5 : 0.25;
+      c.clv = c.avgTicket > 0 ? Math.round(c.avgTicket * purchasesPerYear * retentionYears) : 0;
+    });
     return list;
   }, [sales, debts, profiles, profileByName]);
 
@@ -1975,6 +1982,7 @@ export default function CustomersPage() {
           <SelectTrigger className="bg-muted border-border w-full sm:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="healthScore">Mayor score</SelectItem>
+            <SelectItem value="clv">Mayor CLV</SelectItem>
             <SelectItem value="totalSpent">Mayor facturación</SelectItem>
             <SelectItem value="purchaseCount">Más compras</SelectItem>
             <SelectItem value="avgTicket">Mayor ticket</SelectItem>
@@ -2668,13 +2676,13 @@ export default function CustomersPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           {[
                             { l: "Total gastado", v: formatARS(c.totalSpent), icon: <TrendingUp className="w-3 h-3 text-primary" /> },
-                            { l: "Ganancia generada", v: formatARS(c.totalProfit), icon: <Star className="w-3 h-3 text-yellow-400" /> },
+                            { l: "CLV proyectado", v: formatARS(c.clv), icon: <Star className="w-3 h-3 text-yellow-400" />, tooltip: "Valor de vida del cliente proyectado (ticket × frecuencia × retención estimada)" },
                             { l: "Ticket promedio", v: formatARS(c.avgTicket), icon: <ShoppingBag className="w-3 h-3 text-blue-400" /> },
                             { l: "Deuda pendiente", v: formatARS(c.pendingDebt), icon: <AlertCircle className={`w-3 h-3 ${c.pendingDebt > 0 ? "text-destructive" : "text-muted-foreground"}`} /> },
                           ].map(k => (
-                            <div key={k.l} className="bg-muted/30 rounded-lg p-2.5 text-xs">
+                            <div key={k.l} className="bg-muted/30 rounded-lg p-2.5 text-xs" title={(k as any).tooltip}>
                               <div className="flex items-center gap-1 text-muted-foreground mb-1">{k.icon}{k.l}</div>
-                              <p className={`font-mono font-semibold text-sm ${k.l === "Deuda pendiente" && c.pendingDebt > 0 ? "text-destructive" : ""}`}>{k.v}</p>
+                              <p className={`font-mono font-semibold text-sm ${k.l === "Deuda pendiente" && c.pendingDebt > 0 ? "text-destructive" : k.l === "CLV proyectado" ? "text-yellow-400" : ""}`}>{k.v}</p>
                             </div>
                           ))}
                         </div>
