@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useNotifications } from "@/hooks/useNotifications";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -338,6 +339,7 @@ export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { permission, notify } = useNotifications();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
@@ -993,6 +995,29 @@ export default function Dashboard() {
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
   }, [rawData, filterCat]);
+
+  // Browser notification for critical stock alert (once per session per threshold breach)
+  useEffect(() => {
+    if (!stats || permission !== "granted") return;
+    const key = `gestiona.notified_stock.${new Date().toISOString().slice(0, 10)}`;
+    if (sessionStorage.getItem(key)) return;
+    const outCount = stats.outOfStockProducts?.length ?? 0;
+    const lowCount = stats.lowStockProducts?.length ?? 0;
+    if (outCount > 0 || lowCount > 0) {
+      notify(
+        outCount > 0 ? `⚠️ ${outCount} producto${outCount > 1 ? "s" : ""} sin stock` : `📦 ${lowCount} producto${lowCount > 1 ? "s" : ""} con stock bajo`,
+        {
+          body: outCount > 0
+            ? `${stats.outOfStockProducts.slice(0, 3).map((p: any) => p.name).join(", ")}${outCount > 3 ? ` y ${outCount - 3} más` : ""}`
+            : `${stats.lowStockProducts.slice(0, 3).map((p: any) => p.name).join(", ")}${lowCount > 3 ? ` y ${lowCount - 3} más` : ""}`,
+          tag: "stock-alert",
+          autoClose: 8000,
+        }
+      );
+      sessionStorage.setItem(key, "1");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats, permission]);
 
   if (loading || !stats) return <DashboardSkeleton />;
 

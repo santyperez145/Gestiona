@@ -19,7 +19,9 @@ type AnalysisType =
   | "marketing_copy"
   | "customer_analysis"
   | "cashflow_advice"
-  | "pricing_strategy";
+  | "pricing_strategy"
+  | "tax_afip"
+  | "bundle_strategy";
 
 interface HistoryEntry {
   id: string;
@@ -73,6 +75,20 @@ const ANALYSIS_CONFIG: Record<
     icon: Tag,
     color: "text-purple-400",
     badge: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  },
+  tax_afip: {
+    label: "Impuestos AFIP",
+    desc: "Estimación de categoría Monotributo, IVA e Ingresos Brutos según facturación del período",
+    icon: DollarSign,
+    color: "text-red-400",
+    badge: "bg-red-500/15 text-red-400 border-red-500/20",
+  },
+  bundle_strategy: {
+    label: "Bundles & Combos",
+    desc: "Productos que se compran juntos, oportunidades de combos y estrategias de upselling",
+    icon: Users,
+    color: "text-cyan-400",
+    badge: "bg-cyan-500/15 text-cyan-400 border-cyan-500/20",
   },
 };
 
