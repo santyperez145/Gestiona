@@ -2010,6 +2010,44 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
   const [percent, setPercent] = useState('');
   const [field, setField] = useState('both');
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'percent' | 'recalc'>('percent');
+  const [newExchangeRate, setNewExchangeRate] = useState(String(settings?.exchange_rate || 1700));
+  const [recalcMarkup, setRecalcMarkup] = useState('100');
+
+  const handleRecalc = async () => {
+    const xRate = parseFloat(newExchangeRate);
+    const markup = parseFloat(recalcMarkup);
+    if (!xRate || xRate <= 0) { toast.error("Ingresá un tipo de cambio válido"); return; }
+    if (!markup || markup < 0) { toast.error("Ingresá un markup válido"); return; }
+    setLoading(true);
+    try {
+      const allProducts = await getProductsDB(userId);
+      const toUpdate = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
+      const customsPct = Number(settings?.customs_percent || 15);
+      let count = 0;
+      for (const p of toUpdate) {
+        const costUSD = Number(p.cost_usd) || 0;
+        if (!costUSD) continue;
+        const costImported = costUSD * (1 + customsPct / 100) * xRate;
+        const newSalePrice = Math.round(costImported * (1 + markup / 100));
+        const { profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(costUSD, customsPct, newSalePrice, xRate);
+        await updateProductDB(p.id, {
+          sale_price_ars: newSalePrice,
+          profit_per_unit_ars: profitPerUnitARS,
+          profit_per_unit_usd: profitPerUnitUSD,
+        });
+        count++;
+      }
+      // Also save the new exchange rate to settings
+      await import('@/lib/supabaseStore').then(m => m.saveSettingsDB(userId, { exchange_rate: xRate }));
+      toast.success(`${count} productos recalculados a $${xRate}/U$S`);
+      onDone();
+    } catch (err: any) {
+      toast.error("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApply = async () => {
     const pct = parseFloat(percent);
@@ -2052,7 +2090,25 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Aplicar un porcentaje de aumento o descuento a los precios de venta.</p>
+      {/* Mode switcher */}
+      <div className="flex rounded-lg overflow-hidden border border-border/50 p-0.5 gap-0.5 bg-muted/30">
+        <button
+          type="button"
+          onClick={() => setMode('percent')}
+          className={`flex-1 text-xs py-1.5 px-3 rounded-md font-medium transition-colors ${mode === 'percent' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          % Ajuste porcentual
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('recalc')}
+          className={`flex-1 text-xs py-1.5 px-3 rounded-md font-medium transition-colors ${mode === 'recalc' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Recalcular por TC
+        </button>
+      </div>
+
+      {/* Category selector (shared by both modes) */}
       <div>
         <label className="text-sm text-muted-foreground">Categoría</label>
         <Select value={category} onValueChange={setCategory}>
@@ -2066,24 +2122,88 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
           </SelectContent>
         </Select>
       </div>
-      <div>
-        <label className="text-sm text-muted-foreground">Campo a modificar</label>
-        <Select value={field} onValueChange={setField}>
-          <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="both">Venta + Descuento</SelectItem>
-            <SelectItem value="sale">Solo Precio Venta</SelectItem>
-            <SelectItem value="discount">Solo Precio Descuento</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
-        <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
-      </div>
-      <Button onClick={handleApply} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
-        {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
-      </Button>
+
+      {mode === 'percent' ? (
+        <>
+          <div>
+            <label className="text-sm text-muted-foreground">Campo a modificar</label>
+            <Select value={field} onValueChange={setField}>
+              <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">Venta + Descuento</SelectItem>
+                <SelectItem value="sale">Solo Precio Venta</SelectItem>
+                <SelectItem value="discount">Solo Precio Descuento</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground">Porcentaje (+ para subir, - para bajar)</label>
+            <Input type="number" value={percent} onChange={e => setPercent(e.target.value)} placeholder="Ej: 10 o -15" className="bg-muted border-border" />
+          </div>
+          <Button onClick={handleApply} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+            {loading ? 'Aplicando...' : 'Aplicar Ajuste'}
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Recalcula el precio de venta desde cero usando <strong>costo USD × TC × markup</strong>. Solo afecta productos con costo en USD cargado. También actualiza el tipo de cambio en configuración.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-muted-foreground">Nuevo tipo de cambio</label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
+                <Input
+                  type="number"
+                  min="1"
+                  value={newExchangeRate}
+                  onChange={e => setNewExchangeRate(e.target.value)}
+                  className="pl-7 bg-muted border-border"
+                  placeholder="1700"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Markup sobre costo importado</label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min="0"
+                  step="5"
+                  value={recalcMarkup}
+                  onChange={e => setRecalcMarkup(e.target.value)}
+                  className="bg-muted border-border"
+                  placeholder="100"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+              </div>
+            </div>
+          </div>
+          {/* Live preview */}
+          {parseFloat(newExchangeRate) > 0 && parseFloat(recalcMarkup) >= 0 && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs space-y-1">
+              <p className="font-semibold text-primary">Vista previa (ej: costo U$S 10)</p>
+              {(() => {
+                const xR = parseFloat(newExchangeRate);
+                const mk = parseFloat(recalcMarkup);
+                const customs = Number(settings?.customs_percent || 15);
+                const costImported = 10 * (1 + customs / 100) * xR;
+                const salePrice = Math.round(costImported * (1 + mk / 100));
+                const margin = salePrice > 0 ? ((salePrice - costImported) / salePrice * 100).toFixed(1) : '0';
+                return (
+                  <p className="text-muted-foreground">
+                    U$S 10 → <span className="text-foreground font-mono">${costImported.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span> importado → venta <span className="text-primary font-mono font-bold">${salePrice.toLocaleString('es-AR')}</span> · margen <span className="text-green-400">{margin}%</span>
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+          <Button onClick={handleRecalc} disabled={loading} className="w-full gradient-gold text-primary-foreground font-semibold">
+            {loading ? 'Recalculando...' : `Recalcular a $${parseFloat(newExchangeRate).toLocaleString('es-AR') || '?'}/U$S`}
+          </Button>
+        </>
+      )}
     </div>
   );
 }
