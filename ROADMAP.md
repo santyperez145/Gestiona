@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-22 (sesión 66)**
+Última actualización: **2026-05-23 (sesión 70)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -941,6 +941,59 @@ Ver tabla de sesión 29 arriba.
 | 2 | **AIChatPage: `query_expense_summary`** — detecta "cuánto gasté / resumen gastos / en qué gasté"; `ExpenseSummaryCard` con toggle Mes/Semana; 4 KPIs + barras por categoría + método principal; chip "Gastos del mes" | ✅ Hecho |
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 70a ✅ COMPLETA — Pipeline Stage Automation + Pipeline Analytics + Churn Risk Score
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AutomationFlowsPage: deal_stage_change trigger** — nueva categoría "Pipeline CRM" en el select de triggers; selector de etapa (Lead/Contactado/Propuesta/Negociación/Cerrado ✓/Perdido ✗); 2 plantillas nuevas (deal en negociación → tarea urgente, deal cerrado → notificación); trigger_config.stage persiste en DB | ✅ Hecho |
+| 2 | **SalesPipelinePage: disparo automático al mover deals** — `fireStageAutomations()` se ejecuta en `handleMove`; filtra flows activos por stage label; ejecuta `create_task` (con prioridad/due_date de config) o `notification` (toast); se llama también desde ActivityPanel stage-change buttons | ✅ Hecho |
+| 3 | **SalesPipelinePage: Panel de Analíticas** — botón toggle "Analíticas" en header; `analyticsData` useMemo con: funnel de conversión (count/% por etapa con barras visuales), valor promedio por etapa (BarChart), avg deal velocity, win/loss summary con valores ARS | ✅ Hecho |
+| 4 | **CustomersPage: Churn Risk Score (0–100)** — `computeChurnRisk()` basado en recency + purchaseCount + healthScore; campo `churnRisk` en CustomerData; `ChurnRiskBadge` visible en lista (≥50%); sort "Mayor riesgo de churn"; inicializado y computado en useMemo de customers | ✅ Hecho |
+| 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 69 ✅ COMPLETA — AlertsPage: panel de vencimientos en vivo
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **AlertsPage: panel de vencimientos de productos** — `useProductExpiry` hook; carga productos con `expiry_date IS NOT NULL`; panel colapsable con tabla (nombre/stock/fecha/urgencia/lote); badge pulsante "VENCIDOS" si hay stock vencido; colores: rojo=vencido, naranja=≤7d, amarillo=≤30d | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 68b ✅ COMPLETA — Pipeline Forecast Chart + Deal Scoring
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SalesPipelinePage: Pipeline Revenue Forecast** — `forecastData` useMemo agrupa deals por `expected_close` mes; BarChart con valor bruto vs ponderado por probabilidad; toggle "Ver gráfico →" | ✅ Hecho |
+| 2 | **SalesPipelinePage: Deal Scoring (0–100)** — `dealScore()` calcula probabilidad × 0.4 + value tier + freshness + close date; `DealScoreBadge` color-coded (verde/amarillo/naranja/rojo) en cada DealCard | ✅ Hecho |
+| 3 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 68 ✅ COMPLETA — POS Bundles + Customer CLV
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **POSPage: Kits/Bundles en POS** — `showBundles` state; carga `product_bundles` activos; categoría "🎁 Kits" en pills; grid de bundle cards con `addBundleToCart()` que explota bundle en items individuales | ✅ Hecho |
+| 2 | **CustomersPage: Customer Lifetime Value** — `clv` field en CustomerData; fórmula avgTicket × purchasesPerYear × retentionYears (por segmento); badge en lista; sort "Mayor CLV"; KPI "CLV proyectado" en ficha expandida | ✅ Hecho |
+| 3 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 67 ✅ COMPLETA — Forecast Tab + Deal Activity Timeline + CRM Widget
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ReportsPage: tab "🔮 Proyección"** — OLS regression via `useSalesForecaster`; lookback 14/30/60/90d × horizon 7/14/30d; ComposedChart Bar+Line+Area; tabla con fin de semanas; KPIs trend/R²/slope | ✅ Hecho |
+| 2 | **SalesPipelinePage: Activity Panel** — `ActivityPanel` sidebar fijo (420px); timeline de `deal_activities`; log form (nota/llamada/email/reunión/WhatsApp); stage-change buttons; `DealActivity` type + migration `deal_activities` table | ✅ Hecho |
+| 3 | **Dashboard: CRM follow-up widget mejorado** — `markFollowUpDone()` con hover ✓ y WhatsApp; urgencia hoy/vencido/próximo; límite 8; link `/clientes` correcto | ✅ Hecho |
+| 4 | **AppLayout: nav item Auto-Reposición** — link `/restock` en sección inventario, rol admin | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
