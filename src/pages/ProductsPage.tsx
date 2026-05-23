@@ -32,6 +32,7 @@ import { useClipboard } from "@/hooks/useClipboard";
 import { PriceSparkline } from "@/components/shared/PriceSparkline";
 import ProfitCalculatorModal from "@/components/shared/ProfitCalculatorModal";
 import { useProductExpiry } from "@/hooks/useProductExpiry";
+import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -307,6 +308,7 @@ export default function ProductsPage() {
   const { copy: copyText } = useClipboard();
   const [calcProduct, setCalcProduct] = useState<any | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -549,6 +551,9 @@ export default function ProductsPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportQRLabels(filtered, settings?.business_name || "Mi Negocio")} title="Imprimir etiquetas QR por producto">
               <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBarcodeOpen(true)} title="Imprimir etiquetas con código de barras">
+              <Layers className="w-4 h-4 mr-2" />Barcodes
             </Button>
             {canCreate && (
               <>
@@ -1222,6 +1227,25 @@ export default function ProductsPage() {
         product={calcProduct || undefined}
         exchangeRate={Number(settings?.exchange_rate) || 1700}
       />
+
+      {/* Barcode print sheet modal */}
+      <Dialog open={barcodeOpen} onOpenChange={setBarcodeOpen}>
+        <DialogContent className="bg-card border-border sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Layers className="w-4 h-4 text-primary" />
+              Etiquetas de código de barras
+            </DialogTitle>
+          </DialogHeader>
+          <BarcodePrintSheet
+            products={filtered.slice(0, 40).map(p => ({
+              id: p.id, name: p.name,
+              sku: p.sku, barcode: p.barcode,
+            }))}
+            onClose={() => setBarcodeOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Floating bulk action bar */}
       {selectedIds.size > 0 && (
