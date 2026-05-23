@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
@@ -868,6 +869,7 @@ ${transactions.length > 0 ? `
 // Main Page
 // ─────────────────────────────────────────────────────────────
 export default function CustomersPage() {
+  usePageTitle("Clientes — CRM");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { canCreate, canEdit, canDelete } = usePermissions();

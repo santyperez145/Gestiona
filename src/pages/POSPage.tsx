@@ -15,6 +15,7 @@ import {
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
   Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard,
 } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
 import confetti from "canvas-confetti";
@@ -682,6 +683,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
 // Main POS Page
 // ─────────────────────────────────────────────────────────────
 export default function POSPage() {
+  usePageTitle("POS — Punto de Venta");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const config = useBusinessConfig();

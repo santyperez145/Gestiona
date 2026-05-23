@@ -6,6 +6,8 @@ import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -248,7 +250,24 @@ async function exportProductsXLSX(products: any[], settings: any) {
   toast.success('Excel exportado con hojas por categoría');
 }
 
+/** Shows a live countdown on product cards/rows that have offer_expires_at set */
+function OfferCountdownBadge({ expiresAt }: { expiresAt: string }) {
+  const target = new Date(expiresAt);
+  const { hours, minutes, seconds, isExpired } = useCountdown(target);
+  if (isExpired) return <span className="text-[9px] text-red-400 font-medium">Expiró</span>;
+  if (hours > 24) {
+    const days = Math.ceil(hours / 24);
+    return <span className="text-[9px] text-orange-400 font-medium">Vence en {days}d</span>;
+  }
+  return (
+    <span className="text-[9px] text-orange-400 font-bold font-mono">
+      {String(hours).padStart(2,'0')}:{String(minutes).padStart(2,'0')}:{String(seconds).padStart(2,'0')}
+    </span>
+  );
+}
+
 export default function ProductsPage() {
+  usePageTitle("Productos");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { activeOrg } = useOrg();
@@ -785,7 +804,14 @@ export default function ProductsPage() {
                 }
                 {p.stock <= 0 && <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive text-white">SIN STOCK</span>}
                 {p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) && (
-                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white">OFERTA</span>
+                  <div className="absolute top-1 left-1 flex flex-col gap-0.5">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white">OFERTA</span>
+                    {p.offer_expires_at && (
+                      <span className="px-1.5 py-0.5 rounded bg-black/70 leading-tight">
+                        <OfferCountdownBadge expiresAt={p.offer_expires_at} />
+                      </span>
+                    )}
+                  </div>
                 )}
                 {canEdit && (
                   <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

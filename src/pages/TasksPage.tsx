@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ const EMPTY_FORM = {
 const CATEGORIES = ["Compras", "Ventas", "Stock", "Finanzas", "Marketing", "Equipo", "Operaciones", "Otro"];
 
 export default function TasksPage() {
+  usePageTitle("Tareas");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
