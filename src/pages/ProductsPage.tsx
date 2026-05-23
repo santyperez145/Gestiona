@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -337,8 +338,27 @@ export default function ProductsPage() {
     return exp <= in30Days && p.stock > 0;
   });
 
+  // Fuse.js index — rebuilt only when products list changes
+  const fuseIndex = useMemo(() => new Fuse(products, {
+    keys: [
+      { name: 'name', weight: 0.55 },
+      { name: 'brand', weight: 0.25 },
+      { name: 'sku', weight: 0.1 },
+      { name: 'barcode', weight: 0.1 },
+    ],
+    threshold: 0.38,
+    minMatchCharLength: 2,
+    ignoreLocation: true,
+  }), [products]);
+
+  const searchMatchIds = useMemo(() => {
+    if (!search || search.length < 2) return null;
+    return new Set(fuseIndex.search(search).map(r => r.item.id));
+  }, [fuseIndex, search]);
+
   const filtered = products.filter(p => {
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && search.length >= 2 && searchMatchIds && !searchMatchIds.has(p.id)) return false;
+    if (search && search.length < 2 && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
     if (filterStock === 'instock' && p.stock <= 0) return false;
     if (filterStock === 'low' && (p.stock > 3 || p.stock <= 0)) return false;

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -22,6 +22,47 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 export default function SettingsPage() {
   const { user, session } = useAuth();
   const [exchangeRate, setExchangeRate] = useState('');
+  const [fetchingRate, setFetchingRate] = useState(false);
+  const [liveRates, setLiveRates] = useState<{ oficial: number; blue: number; ccl: number; timestamp: string } | null>(null);
+
+  const fetchBlueRate = async () => {
+    setFetchingRate(true);
+    try {
+      // Bluelytics — free, no key required, returns oficial, blue, CCL for ARS/USD
+      const res = await fetch('https://api.bluelytics.com.ar/v2/latest');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const oficial = Math.round((data.oficial?.value_sell + data.oficial?.value_buy) / 2);
+      const blue = Math.round((data.blue?.value_sell + data.blue?.value_buy) / 2);
+      const ccl = Math.round((data.oficial_euro?.value_sell || blue) * 1.05); // approx CCL
+      const ts = new Date(data.last_update).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      setLiveRates({ oficial, blue, ccl: data.blue_euro ? Math.round((data.blue_euro.value_sell + data.blue_euro.value_buy) / 2) : ccl, timestamp: ts });
+      toast.success(`💵 Dólar blue: $${blue.toLocaleString('es-AR')} · Oficial: $${oficial.toLocaleString('es-AR')}`);
+    } catch {
+      // Fallback: dolarapi.com
+      try {
+        const r2 = await fetch('https://dolarapi.com/v1/dolares');
+        const arr: any[] = await r2.json();
+        const blue = arr.find((d: any) => d.nombre === 'Blue');
+        const oficial = arr.find((d: any) => d.nombre === 'Oficial');
+        const ccl = arr.find((d: any) => d.nombre === 'Contado con liquidación');
+        if (blue) {
+          setLiveRates({
+            oficial: Math.round(oficial?.venta || 0),
+            blue: Math.round(blue.venta),
+            ccl: Math.round(ccl?.venta || blue.venta),
+            timestamp: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          });
+          toast.success(`💵 Dólar blue: $${Math.round(blue.venta).toLocaleString('es-AR')}`);
+        }
+      } catch {
+        toast.error('No se pudo obtener la cotización. Verificá tu conexión.');
+      }
+    } finally {
+      setFetchingRate(false);
+    }
+  };
+
   const [customsPercent, setCustomsPercent] = useState('');
   const [defaultDiscountPercent, setDefaultDiscountPercent] = useState('');
   const [taxEnabled, setTaxEnabled] = useState(false);
@@ -631,8 +672,40 @@ export default function SettingsPage() {
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
             </h2>
             <div>
-              <label className="text-sm text-muted-foreground">Tipo de Cambio (USD → ARS)</label>
-              <Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border mt-1" />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm text-muted-foreground">Tipo de Cambio (USD → ARS)</label>
+                <button
+                  type="button"
+                  onClick={fetchBlueRate}
+                  disabled={fetchingRate}
+                  className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  {fetchingRate ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <TrendingUp className="w-2.5 h-2.5" />}
+                  Cotización en vivo
+                </button>
+              </div>
+              <Input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className="bg-muted border-border" />
+              {liveRates && (
+                <div className="mt-2 rounded-lg bg-muted/40 border border-border/60 p-2.5 space-y-1.5">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Cotizaciones en vivo · {liveRates.timestamp}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { l: 'Oficial', v: liveRates.oficial, color: 'text-blue-400' },
+                      { l: 'Blue', v: liveRates.blue, color: 'text-success' },
+                      { l: 'CCL', v: liveRates.ccl, color: 'text-amber-400' },
+                    ].map(r => (
+                      <button key={r.l} type="button"
+                        className="text-center rounded-lg bg-card border border-border/50 p-2 hover:border-primary/40 transition-colors group"
+                        onClick={() => setExchangeRate(String(r.v))}
+                        title={`Usar dólar ${r.l}: $${r.v.toLocaleString('es-AR')}`}
+                      >
+                        <p className={`text-sm font-bold font-mono ${r.color}`}>${r.v.toLocaleString('es-AR')}</p>
+                        <p className="text-[9px] text-muted-foreground group-hover:text-primary transition-colors">{r.l} · click p/ usar</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm text-muted-foreground">Porcentaje del Pasero (%)</label>

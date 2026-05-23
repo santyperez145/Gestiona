@@ -13,9 +13,11 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff,
 } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import Fuse from "fuse.js";
+import confetti from "canvas-confetti";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -905,6 +907,83 @@ export default function POSPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, search, confirmDisabled]);
 
+  // ── Voice commands (Web Speech API) ──────────────────────────────────────────
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const SpeechRecognitionAPI = typeof window !== 'undefined'
+    ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    : null;
+  const voiceSupported = !!SpeechRecognitionAPI;
+
+  const toggleVoice = useCallback(() => {
+    if (!SpeechRecognitionAPI) { toast.error("Tu navegador no soporta comandos de voz"); return; }
+    if (voiceActive) {
+      recognitionRef.current?.stop();
+      setVoiceActive(false);
+      setVoiceTranscript('');
+      return;
+    }
+    const rec = new SpeechRecognitionAPI();
+    rec.lang = 'es-AR';
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+      setVoiceTranscript(transcript);
+      if (e.results[e.results.length - 1].isFinal) {
+        processVoiceCommand(transcript.toLowerCase());
+        setVoiceActive(false);
+        setVoiceTranscript('');
+      }
+    };
+    rec.onerror = () => { setVoiceActive(false); setVoiceTranscript(''); toast.error("Error de micrófono"); };
+    rec.onend = () => setVoiceActive(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setVoiceActive(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceActive, SpeechRecognitionAPI]);
+
+  const processVoiceCommand = useCallback((cmd: string) => {
+    // "vende X [unidades] de [producto]" | "agrega X [producto]" | "busca [producto]"
+    const sellMatch = cmd.match(/(?:vend[eé]|agreg[aá]|a[ñn]ad[eé]|pone)\s+(\d+)?\s*(?:unidades?\s+de\s+)?(.+)/i);
+    const searchMatch = cmd.match(/(?:busca|busc[aá]r?|encontr[aá]r?)\s+(.+)/i);
+    const clearMatch = cmd.match(/(?:limpi[aá]r?|vaciá?r?|cancel[aá]r?)\s*(?:carrito)?/i);
+    const clientMatch = cmd.match(/(?:cliente|para)\s+(.+)/i);
+
+    if (clearMatch) { setCart([]); toast.success("🎤 Carrito vaciado"); return; }
+    if (clientMatch) { setCustomer(clientMatch[1].trim()); toast.success(`🎤 Cliente: ${clientMatch[1].trim()}`); return; }
+    if (searchMatch) { setSearch(searchMatch[1].trim()); toast.success(`🎤 Buscando: ${searchMatch[1].trim()}`); return; }
+    if (sellMatch) {
+      const qty = parseInt(sellMatch[1] || '1', 10);
+      const productQuery = sellMatch[2].trim();
+      setSearch(productQuery);
+      // Wait for fuse.js to filter, then add first result
+      setTimeout(() => {
+        const fuse = new Fuse(products, { keys: ['name', 'brand'], threshold: 0.5, ignoreLocation: true });
+        const results = fuse.search(productQuery);
+        if (results[0]) {
+          const p = results[0].item;
+          setCart(prev => {
+            const key = p.id;
+            const existing = prev.find(i => i.id === key);
+            if (existing) return prev.map(i => i.id === key ? { ...i, quantity: i.quantity + qty } : i);
+            return [...prev, { ...p, quantity: qty, id: key }];
+          });
+          setSearch('');
+          toast.success(`🎤 ${qty}× ${p.name} al carrito`);
+        } else {
+          toast.error(`🎤 No encontré "${productQuery}"`);
+        }
+      }, 300);
+    } else {
+      // Fallback: use as search
+      setSearch(cmd);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+
   // Saved orders (hold carts)
   type SavedOrder = { id: string; label: string; cart: CartItem[]; customer: string; savedAt: string };
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
@@ -992,13 +1071,21 @@ export default function POSPage() {
     let list = products.filter((p) => p.stock > 0 || p.allow_negative_stock);
     if (cat !== "all") list = list.filter((p) => p.category === cat);
     if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((p) =>
-        p.name?.toLowerCase().includes(q) ||
-        p.brand?.toLowerCase().includes(q) ||
-        p.barcode?.toLowerCase().includes(q) ||
-        p.sku?.toLowerCase().includes(q)
-      );
+      // Exact barcode/SKU match takes priority
+      const exactBarcode = list.find(p => p.barcode === search.trim() || p.sku === search.trim());
+      if (exactBarcode) return [exactBarcode];
+      // Fuse.js fuzzy search — handles typos, partial matches, accent-insensitive
+      const fuse = new Fuse(list, {
+        keys: [
+          { name: 'name', weight: 0.6 },
+          { name: 'brand', weight: 0.3 },
+          { name: 'description', weight: 0.1 },
+        ],
+        threshold: 0.4,      // 0=exact, 1=match anything — 0.4 is comfortably fuzzy
+        minMatchCharLength: 2,
+        ignoreLocation: true, // match anywhere in string, not just from start
+      });
+      return fuse.search(search).map(r => r.item);
     }
     return list;
   }, [products, cat, search]);
@@ -1279,6 +1366,14 @@ export default function POSPage() {
         note: posNote,
       });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
+      // Confetti: big sales or every 10th sale get extra celebration
+      const turnoCount = turnoSales.length + 1;
+      const isBigSale = cartTotal >= (Number(settings?.large_sale_threshold_ars) || 50_000);
+      if (isBigSale) {
+        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4'] });
+      } else if (turnoCount % 10 === 0) {
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      }
       setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now(), saleIds: txSaleIds }]);
     } catch (e: any) {
       toast.error(e.message || "Error al registrar");
@@ -2105,10 +2200,11 @@ export default function POSPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar producto o marca… (F2)"
-              className="pl-9 h-9 bg-muted/60 border-border text-sm"
+              value={voiceActive ? voiceTranscript || '🎤 Escuchando...' : search}
+              onChange={(e) => !voiceActive && setSearch(e.target.value)}
+              placeholder={voiceActive ? '🎤 Hablá ahora...' : 'Buscar producto… (F2 · 🎤 voz)'}
+              className={`pl-9 h-9 bg-muted/60 border-border text-sm ${voiceActive ? 'border-red-500/50 bg-red-500/5' : ''}`}
+              readOnly={voiceActive}
               autoFocus
             />
           </div>
@@ -2123,6 +2219,16 @@ export default function POSPage() {
           <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0" onClick={togglePosTheme} title={posTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
             {posTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
           </Button>
+          {voiceSupported && (
+            <Button size="sm" variant="ghost"
+              className={`h-9 w-9 p-0 shrink-0 hidden sm:flex relative ${voiceActive ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/40' : ''}`}
+              title={voiceActive ? `Escuchando: "${voiceTranscript}"` : "Comando de voz (ej: vende 2 Lattafa)"}
+              onClick={toggleVoice}
+            >
+              {voiceActive ? <MicOff className="w-4 h-4 text-red-400 animate-pulse" /> : <Mic className="w-4 h-4" />}
+              {voiceActive && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="h-9 w-9 p-0 shrink-0 hidden sm:flex" title="Pantalla completa"
             onClick={() => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); }}
           >
