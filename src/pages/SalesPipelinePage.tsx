@@ -18,8 +18,9 @@ import {
   Plus, X, Edit2, Trash2, DollarSign, User, Calendar,
   TrendingUp, Loader2, GripVertical, FileSpreadsheet, MessageCircle,
   Phone, Mail, Users, StickyNote, ChevronRight, Clock, Activity,
-  ArrowRight, Send, Zap,
+  ArrowRight, Send, Zap, BarChart3,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -69,6 +70,36 @@ const EMPTY_FORM = {
   notes: "",
   expected_close: "",
 };
+
+// ─── Deal scoring ─────────────────────────────────────────────────────────────
+
+/**
+ * Compute a 0–100 deal quality score based on:
+ *  - Stage probability (0–40 pts)
+ *  - Value tier (0–30 pts)
+ *  - Freshness — days since update (0–20 pts)
+ *  - Has expected close date (0–10 pts)
+ */
+function dealScore(deal: Deal): number {
+  const stagePts = (STAGES.find(s => s.value === deal.stage)?.probability ?? 0) * 0.4;
+  const valuePts = deal.value_ars >= 500000 ? 30 : deal.value_ars >= 200000 ? 22 : deal.value_ars >= 50000 ? 15 : deal.value_ars > 0 ? 8 : 0;
+  const daysSince = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
+  const freshPts = daysSince <= 1 ? 20 : daysSince <= 3 ? 16 : daysSince <= 7 ? 12 : daysSince <= 14 ? 6 : daysSince <= 30 ? 2 : 0;
+  const closePts = deal.expected_close ? 10 : 0;
+  return Math.round(Math.min(100, stagePts + valuePts + freshPts + closePts));
+}
+
+function DealScoreBadge({ score }: { score: number }) {
+  const color = score >= 75 ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/30"
+    : score >= 50 ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/30"
+    : score >= 25 ? "text-orange-400 bg-orange-400/10 border-orange-400/30"
+    : "text-red-400 bg-red-400/10 border-red-400/30";
+  return (
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${color}`} title={`Score del deal: ${score}/100 (etapa + valor + frescura + cierre)`}>
+      {score}
+    </span>
+  );
+}
 
 // ─── Activity helpers ─────────────────────────────────────────────────────────
 
@@ -457,6 +488,7 @@ function DealCard({
   const stageInfo = stages.find(s => s.value === deal.stage)!;
   const daysSinceUpdate = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
   const isStale = daysSinceUpdate >= 7 && deal.stage !== "cerrado" && deal.stage !== "perdido";
+  const score = dealScore(deal);
 
   return (
     <div
@@ -471,16 +503,19 @@ function DealCard({
           <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 mt-0.5 transition-colors" />
           <p className="text-sm font-semibold leading-tight">{deal.title}</p>
         </div>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <button onClick={onViewActivity} title="Ver actividad" className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary">
-            <Activity className="w-3 h-3" />
-          </button>
-          <button onClick={onEdit} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
-            <Edit2 className="w-3 h-3" />
-          </button>
-          <button onClick={onDelete} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-            <Trash2 className="w-3 h-3" />
-          </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <DealScoreBadge score={score} />
+          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={onViewActivity} title="Ver actividad" className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary">
+              <Activity className="w-3 h-3" />
+            </button>
+            <button onClick={onEdit} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+              <Edit2 className="w-3 h-3" />
+            </button>
+            <button onClick={onDelete} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -656,6 +691,30 @@ export default function SalesPipelinePage() {
     return days >= 14;
   }), [deals]);
 
+  // Pipeline forecast: group open deals by expected_close month, weighted by stage probability
+  const [showForecast, setShowForecast] = useState(false);
+  const forecastData = useMemo(() => {
+    const openDeals = deals.filter(d => d.stage !== "perdido" && d.expected_close);
+    const monthMap: Record<string, { raw: number; weighted: number; count: number }> = {};
+    openDeals.forEach(d => {
+      const m = d.expected_close!.slice(0, 7); // YYYY-MM
+      const prob = (STAGES.find(s => s.value === d.stage)?.probability ?? 0) / 100;
+      if (!monthMap[m]) monthMap[m] = { raw: 0, weighted: 0, count: 0 };
+      monthMap[m].raw += d.value_ars || 0;
+      monthMap[m].weighted += (d.value_ars || 0) * prob;
+      monthMap[m].count++;
+    });
+    return Object.entries(monthMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(0, 6)
+      .map(([month, vals]) => ({
+        month: new Date(month + "-01T12:00:00").toLocaleDateString("es-AR", { month: "short", year: "2-digit" }),
+        bruto: Math.round(vals.raw),
+        ponderado: Math.round(vals.weighted),
+        count: vals.count,
+      }));
+  }, [deals]);
+
   return (
     <div className={`p-4 md:p-6 space-y-5 transition-all duration-300 ${activityDeal ? "sm:mr-[420px]" : ""}`}>
       {/* Activity Panel overlay */}
@@ -762,6 +821,58 @@ export default function SalesPipelinePage() {
         <KPICard label="Tasa de cierre" value={`${stats.winRate.toFixed(0)}%`} icon={User}
           color={stats.winRate >= 50 ? "success" : stats.winRate >= 25 ? "warning" : "destructive"} />
       </div>
+
+      {/* Revenue Forecast Chart */}
+      {forecastData.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Proyección de cierre por mes
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-normal">
+                Basado en expected_close de deals abiertos
+              </span>
+            </h3>
+            <button
+              onClick={() => setShowForecast(v => !v)}
+              className="text-xs text-primary hover:underline"
+            >
+              {showForecast ? "Ocultar" : "Ver gráfico →"}
+            </button>
+          </div>
+          {showForecast && (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={forecastData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                    formatter={(val: any, name: string) => [formatARS(Number(val)), name === "bruto" ? "Valor bruto" : "Valor ponderado"]}
+                  />
+                  <Bar dataKey="bruto" fill="hsl(var(--primary))" opacity={0.3} radius={[3, 3, 0, 0]} name="bruto" />
+                  <Bar dataKey="ponderado" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} name="ponderado" />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-2 rounded bg-primary/30 inline-block" />Valor bruto</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-2 rounded bg-primary inline-block" />Ponderado por probabilidad de etapa</span>
+              </div>
+            </>
+          )}
+          {!showForecast && (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {forecastData.map(d => (
+                <div key={d.month} className="shrink-0 text-center">
+                  <p className="text-[10px] text-muted-foreground">{d.month}</p>
+                  <p className="text-xs font-mono font-semibold text-primary">{formatARS(d.ponderado)}</p>
+                  <p className="text-[9px] text-muted-foreground/60">{d.count} deal{d.count !== 1 ? "s" : ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Kanban board */}
       {loading ? (
