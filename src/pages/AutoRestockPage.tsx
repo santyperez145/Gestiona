@@ -59,6 +59,9 @@ interface RestockItem {
   supplierId: string | null;
   supplierName: string;
   override: number | null; // manual override for qty
+  eoq: number;             // Economic Order Quantity
+  rop: number;             // Reorder Point
+  safetyStock: number;     // Safety Stock buffer
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -81,6 +84,46 @@ function suggestQty(dailyVelocity: number, currentStock: number, targetDays = 30
   if (dailyVelocity <= 0) return 0;
   const needed = Math.ceil(dailyVelocity * targetDays);
   return Math.max(needed - currentStock, 1);
+}
+
+/**
+ * Economic Order Quantity (EOQ) — Wilson formula
+ * EOQ = sqrt(2 * annualDemand * orderingCost / holdingCostPerUnit)
+ * @param dailyVelocity units/day
+ * @param costUSD unit cost in USD
+ * @param orderingCostARS fixed cost per purchase order (default 5000 ARS)
+ * @param holdingRateAnnual fraction of unit cost as annual holding cost (default 0.25)
+ * @param exchangeRate ARS per USD (default 1000)
+ */
+function calcEOQ(
+  dailyVelocity: number,
+  costUSD: number,
+  orderingCostARS = 5000,
+  holdingRateAnnual = 0.25,
+  exchangeRate = 1000
+): number {
+  if (dailyVelocity <= 0 || costUSD <= 0) return 0;
+  const annualDemand = dailyVelocity * 365;
+  const costARS = costUSD * exchangeRate;
+  const holdingCostPerUnit = costARS * holdingRateAnnual;
+  return Math.ceil(Math.sqrt((2 * annualDemand * orderingCostARS) / holdingCostPerUnit));
+}
+
+/**
+ * Safety Stock — basic formula with 95% service level (Z=1.645) and 7-day lead time.
+ * SS = Z * stdDev(demand) * sqrt(leadTimeDays)
+ * Approximated as: 1.5 * avg_daily_velocity * lead_time_days
+ */
+function calcSafetyStock(dailyVelocity: number, leadTimeDays = 7): number {
+  if (dailyVelocity <= 0) return 0;
+  return Math.ceil(1.5 * dailyVelocity * Math.sqrt(leadTimeDays));
+}
+
+/**
+ * Reorder Point (ROP) = demand during lead time + safety stock
+ */
+function calcROP(dailyVelocity: number, leadTimeDays = 7): number {
+  return Math.ceil(dailyVelocity * leadTimeDays) + calcSafetyStock(dailyVelocity, leadTimeDays);
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -149,6 +192,9 @@ export default function AutoRestockPage() {
           const daily = sold30 / 30;
           const daysOut = daily > 0 ? Math.floor(p.stock / daily) : 999;
           const qty = suggestQty(daily, p.stock, targetDays);
+          const eoq = calcEOQ(daily, p.cost_usd || 0);
+          const rop = calcROP(daily);
+          const ss  = calcSafetyStock(daily);
           return {
             product: p,
             soldLast30: sold30,
@@ -160,6 +206,9 @@ export default function AutoRestockPage() {
             supplierId: p.supplier_id,
             supplierName: p.supplier_id ? (supplierMap[p.supplier_id] || "Sin proveedor") : "Sin proveedor",
             override: null,
+            eoq,
+            rop,
+            safetyStock: ss,
           };
         })
         .filter(i => i.daysUntilStockout <= thresholdDays || i.soldLast30 > 0);
@@ -419,6 +468,8 @@ export default function AutoRestockPage() {
                   Días stock <SortIcon k="daysUntilStockout" />
                 </TableHead>
                 <TableHead className="text-right">Sugerido</TableHead>
+                <TableHead className="text-right hidden lg:table-cell" title="Economic Order Quantity — cantidad óptima por pedido (Wilson)">EOQ</TableHead>
+                <TableHead className="text-right hidden lg:table-cell" title="Reorder Point — stock al que debés pedir">ROP</TableHead>
                 <TableHead className="text-right">Costo USD</TableHead>
                 <TableHead className="text-center">Urgencia</TableHead>
               </TableRow>
@@ -457,6 +508,19 @@ export default function AutoRestockPage() {
                         }}
                         className="w-20 h-7 text-right text-sm ml-auto"
                       />
+                    </TableCell>
+                    <TableCell className="text-right text-xs hidden lg:table-cell" title={`EOQ: ${item.eoq}u (pedido óptimo)`}>
+                      {item.eoq > 0 ? (
+                        <span className="text-blue-400 font-mono">{item.eoq}u</span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right text-xs hidden lg:table-cell" title={`ROP: pedir cuando el stock llegue a ${item.rop}u · SS: ${item.safetyStock}u`}>
+                      {item.rop > 0 ? (
+                        <div>
+                          <span className={`font-mono ${item.product.stock <= item.rop ? "text-orange-400 font-bold" : "text-muted-foreground"}`}>{item.rop}u</span>
+                          <div className="text-[10px] text-muted-foreground">SS: {item.safetyStock}</div>
+                        </div>
+                      ) : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-right text-sm">
                       ${cost.toFixed(2)}
