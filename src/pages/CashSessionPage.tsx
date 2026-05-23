@@ -16,6 +16,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, List, Printer, FileSpreadsheet,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 function printCashReport(
@@ -185,6 +186,7 @@ export default function CashSessionPage() {
 
   // Close form
   const [closingAmount, setClosingAmount] = useState("");
+  const [denomCountOpen, setDenomCountOpen] = useState(false);
   const [closingNotes, setClosingNotes] = useState("");
 
   // Session sales (for expected cash calculation)
@@ -434,7 +436,16 @@ export default function CashSessionPage() {
             <h2 className="font-semibold flex items-center gap-2"><Lock className="w-4 h-4 text-red-400" />Cerrar caja</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Efectivo contado al cierre ($)</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">Efectivo contado al cierre ($)</Label>
+                  <button
+                    type="button"
+                    onClick={() => setDenomCountOpen(true)}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                  >
+                    <Banknote className="w-3 h-3" />Contar billetes
+                  </button>
+                </div>
                 <Input
                   type="number" min="0" step="100"
                   value={closingAmount}
@@ -651,7 +662,17 @@ export default function CashSessionPage() {
             })}
           </div>
         )}
-      </div>
+      {/* Denomination Count Dialog */}
+      <CashDenominationCountDialog
+        open={denomCountOpen}
+        onClose={() => setDenomCountOpen(false)}
+        expectedBalance={expectedCash}
+        onConfirm={(total) => {
+          setClosingAmount(String(total));
+          setDenomCountOpen(false);
+        }}
+        title="Contar efectivo al cierre"
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
 import AIPrediction from "@/components/dashboard/AIPrediction";
 import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
 import DailyBriefingModal from "@/components/shared/DailyBriefingModal";
+import StockHeatmapWidget from "@/components/shared/StockHeatmapWidget";
 import { toast } from "sonner";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
@@ -2633,6 +2634,19 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Stock Heatmap */}
+      {stats.products?.length > 0 && (
+        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card mb-6 md:mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Package className="w-4 h-4" />Mapa de inventario
+            </h2>
+            <Link to="/productos" className="text-xs text-primary hover:underline">Ver productos →</Link>
+          </div>
+          <StockHeatmapWidget products={stats.products} maxTiles={80} />
         </div>
       )}
 
