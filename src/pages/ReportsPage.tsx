@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer, Sparkles, Mail, Calendar, Check, RefreshCw, Bell, Toggle, Send, Clock } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer, Sparkles, Mail, Calendar, Check, RefreshCw, Bell, Toggle, Send, Clock, FolderOpen } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { useFileSystemAccess } from "@/hooks/useFileSystemAccess";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -57,6 +58,23 @@ export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
   const [period, setPeriod] = useState<PeriodKey>('current_month');
   const [members, setMembers] = useState<any[]>([]);
+  const { saveFile: fsSaveFile, supported: fsSupported } = useFileSystemAccess();
+
+  // Enhanced CSV save: uses File System Access API (native "Save As" dialog) when available,
+  // falls back to anchor-click blob download on unsupported browsers.
+  const saveCSV = async (filename: string, headers: string[], rows: string[][]) => {
+    const bom = '﻿';
+    const csv = bom + [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+    if (fsSupported) {
+      await fsSaveFile(csv, {
+        suggestedName: filename,
+        types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }],
+      });
+      toast.success(`${filename} guardado`);
+    } else {
+      exportCSV(filename, headers, rows);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -128,15 +146,15 @@ export default function ReportsPage() {
   const grossMarginPct = periodRevenue > 0 ? (periodGrossProfit / periodRevenue) * 100 : 0;
   const netMarginPct = periodRevenue > 0 ? (netIncome / periodRevenue) * 100 : 0;
 
-  const handleExportProducts = () => exportCSV('productos.csv',
+  const handleExportProducts = () => saveCSV('productos.csv',
     ['Nombre','Marca','Categoría','Costo USD','Costo+Pasero USD','Precio ARS','Precio Oferta ARS','Ganancia ARS','Stock'],
     products.map((p: any) => [p.name, p.brand, getCategoryLabel(p.category), p.cost_usd, p.total_cost_usd, p.sale_price_ars, p.discount_price_ars || '', p.profit_per_unit_ars, p.stock])
   );
-  const handleExportSales = () => exportCSV('ventas.csv',
+  const handleExportSales = () => saveCSV('ventas.csv',
     ['Fecha','Producto','Cliente','Cantidad','Precio Unit.','Descuento','Total ARS','Ganancia ARS','Ganancia USD','Pagado'],
     sales.map((s: any) => [s.date, s.product_name, s.customer_name || '', s.quantity, s.unit_price_ars, s.discount_applied ? 'Sí' : 'No', s.total_ars, s.profit_ars, s.profit_usd, s.paid ? 'Sí' : 'No'])
   );
-  const handleExportPurchases = () => exportCSV('compras.csv',
+  const handleExportPurchases = () => saveCSV('compras.csv',
     ['Fecha','Producto','Proveedor','Cantidad','Costo Unit. USD','Pasero USD','Total USD','Total ARS','TC'],
     purchases.map((p: any) => [p.date, p.product_name, p.supplier || '', p.quantity, p.unit_cost_usd, p.customs_fee, p.total_usd, p.total_ars, p.exchange_rate])
   );
@@ -173,7 +191,7 @@ export default function ReportsPage() {
       const netPct = m.revenue > 0 ? ((m.net / m.revenue) * 100).toFixed(1) : '0';
       return [label, m.revenue.toFixed(0), m.cogs.toFixed(0), m.grossProfit.toFixed(0), grossPct, m.expenses.toFixed(0), m.net.toFixed(0), netPct];
     });
-    exportCSV(`PL_${new Date().getFullYear()}.csv`,
+    saveCSV(`PL_${new Date().getFullYear()}.csv`,
       ['Período', 'Ingresos ARS', 'COGS ARS', 'Ganancia Bruta ARS', 'Margen Bruto %', 'Gastos ARS', 'Ganancia Neta ARS', 'Margen Neto %'],
       rows
     );
@@ -430,9 +448,15 @@ export default function ReportsPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleMonthlyReportPDF} className="gradient-gold text-primary-foreground gap-1.5 font-semibold"><Sparkles className="w-3.5 h-3.5" />Reporte del mes PDF</Button>
-            <Button variant="outline" size="sm" onClick={handleExportProducts}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Productos CSV</Button>
-            <Button variant="outline" size="sm" onClick={handleExportSales}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Ventas CSV</Button>
-            <Button variant="outline" size="sm" onClick={handleExportPurchases}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Compras CSV</Button>
+            <Button variant="outline" size="sm" onClick={handleExportProducts} title={fsSupported ? "Guardar con diálogo nativo del sistema" : "Descargar CSV"}>
+              {fsSupported ? <FolderOpen className="w-3.5 h-3.5 mr-1.5 text-primary" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Productos CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportSales} title={fsSupported ? "Guardar con diálogo nativo del sistema" : "Descargar CSV"}>
+              {fsSupported ? <FolderOpen className="w-3.5 h-3.5 mr-1.5 text-primary" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Ventas CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPurchases} title={fsSupported ? "Guardar con diálogo nativo del sistema" : "Descargar CSV"}>
+              {fsSupported ? <FolderOpen className="w-3.5 h-3.5 mr-1.5 text-primary" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}Compras CSV
+            </Button>
             <Button variant="outline" size="sm" onClick={handlePDFSales}><FileText className="w-3.5 h-3.5 mr-1.5" />Ventas PDF</Button>
             <Button variant="outline" size="sm" onClick={handlePDFPurchases}><FileText className="w-3.5 h-3.5 mr-1.5" />Compras PDF</Button>
           </div>

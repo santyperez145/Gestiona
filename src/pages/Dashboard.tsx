@@ -1041,6 +1041,14 @@ export default function Dashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
+  // ── Sales Forecaster (OLS daily regression, 30-day horizon) ──────────────
+  const forecastSaleEntries = useMemo(() =>
+    (rawData?.sales ?? []).map((s: any) => ({ date: String(s.date).slice(0, 10), amount: Number(s.total_ars || 0) }))
+      .filter((e: { date: string; amount: number }) => e.date && e.amount > 0),
+  [rawData]);
+  const { forecast: forecastPoints, trend: forecastTrend, r2: forecastR2 } = useSalesForecaster(forecastSaleEntries, { horizon: 30 });
+  const forecast30dTotal = useMemo(() => forecastPoints.reduce((s, p) => s + p.value, 0), [forecastPoints]);
+
   const kpiCards = [
     { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
@@ -1053,6 +1061,13 @@ export default function Dashboard() {
     { label: "Ticket Prom.", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, color: "text-accent" },
     { label: "Stock Bajo", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / Agotado", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-success" },
     { label: "Clientes", value: stats.uniqueCustomers, sub: "Únicos", icon: Users, color: "text-primary" },
+    {
+      label: "Forecast 30d (OLS)",
+      value: formatARS(forecast30dTotal),
+      sub: `Tendencia: ${forecastTrend === "up" ? "↑ alza" : forecastTrend === "down" ? "↓ baja" : "→ estable"} · R²=${forecastR2.toFixed(2)}`,
+      icon: Target,
+      color: forecastTrend === "up" ? "text-success" : forecastTrend === "down" ? "text-destructive" : "text-muted-foreground",
+    },
   ];
 
   const tooltipStyle = { background: 'hsl(220, 18%, 12%)', border: '1px solid hsl(220, 15%, 18%)', borderRadius: 8, color: 'hsl(40, 20%, 92%)' };
