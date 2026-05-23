@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { broadcastSync } from "@/lib/broadcastSync";
 import { useAuth } from "@/lib/auth";
 import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode, attributeSaleToExchange } from "@/lib/supabaseStore";
@@ -1627,6 +1628,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           toast.success(`✓ Venta atribuida a ${couponResult.coupon.influencer_exchange.influencer_name}`);
         }
         toast.success(`${lines.length === 1 ? 'Venta registrada' : `${lines.length} ventas registradas`}`);
+        broadcastSync({ type: "sale_created", count: lines.length });
       }
       onSave();
     } catch (err: any) {

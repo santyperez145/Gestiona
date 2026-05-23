@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -23,6 +23,9 @@ import { logAudit } from "@/lib/auditLog";
 import { usePermissions } from "@/lib/usePermissions";
 import { useAIProductSuggest } from "@/hooks/useAIProductSuggest";
 import BarcodeScanModal from "@/components/shared/BarcodeScanModal";
+import { broadcastSync } from "@/lib/broadcastSync";
+import { useWebShare } from "@/hooks/useWebShare";
+import { useClipboard } from "@/hooks/useClipboard";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -276,6 +279,8 @@ export default function ProductsPage() {
   const [productView, setProductView] = useState<'list' | 'grid'>('list');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const { shareProduct, canShare } = useWebShare();
+  const { copy: copyText } = useClipboard();
 
   const reload = async () => {
     if (!user) return;
@@ -1000,6 +1005,22 @@ export default function ProductsPage() {
                              </Button>
                            )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
+                           {(canShare || p.barcode) && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               title={canShare ? "Compartir producto" : "Copiar código de barras"}
+                               onClick={() => {
+                                 if (canShare) {
+                                   shareProduct({ name: p.name, sale_price_ars: p.sale_price_ars, stock: p.stock });
+                                 } else if (p.barcode) {
+                                   copyText(p.barcode, "Código de barras");
+                                 }
+                               }}
+                             >
+                               {canShare ? <Share2 className="w-3.5 h-3.5 text-muted-foreground" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+                             </Button>
+                           )}
                            {canDelete && (
                              <ConfirmDialog
                                trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
@@ -1348,6 +1369,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         }
       }
       toast.success(product ? "Producto actualizado" : "Producto agregado");
+      broadcastSync({ type: "product_saved", name: data.name, action: product ? "update" : "create" });
       onSave();
     } catch (err: any) {
       console.error('Error guardando producto:', err);

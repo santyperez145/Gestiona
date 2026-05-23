@@ -12,6 +12,7 @@ import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
 import { useStockAlerts } from "@/hooks/useStockAlerts";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useBroadcastChannel } from "@/hooks/useBroadcastChannel";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
@@ -94,6 +95,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // ── PWA install prompt + offline detector ────────────────────────────────
   const { canInstall, install, dismiss: dismissInstall } = usePWAInstall();
   useOnlineStatus(); // fires toasts on online/offline changes automatically
+
+  // ── BroadcastChannel — cross-tab sync ────────────────────────────────────
+  // When another tab saves a product/customer/sale, notify the user.
+  useBroadcastChannel("gestiona-sync", (msg) => {
+    if (msg.type === "product_saved") {
+      toast.info(`Producto actualizado en otra pestaña`, { duration: 3000, description: String(msg.name || "") });
+    } else if (msg.type === "sale_created") {
+      toast.info(`Nueva venta registrada en otra pestaña`, { duration: 3000 });
+    }
+  });
 
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
