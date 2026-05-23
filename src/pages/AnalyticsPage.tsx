@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
+import { useSalesForecaster } from "@/hooks/useSalesForecaster";
 import {
   getProductsDB, getSalesDB, getPurchasesDB, getExpensesDB,
   formatARS,
@@ -1015,7 +1016,7 @@ export default function AnalyticsPage() {
         </TabsContent>
         {/* FORECAST TAB */}
         <TabsContent value="forecast" className="mt-4 space-y-4">
-          <ForecastTab monthly={derived.monthly} currentYear={currentYear} />
+          <ForecastTab monthly={derived.monthly} currentYear={currentYear} sales={rawData.sales} />
         </TabsContent>
 
         {/* DEMAND FORECAST TAB */}
@@ -2042,7 +2043,7 @@ export default function AnalyticsPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ForecastTab — Actual vs Projected sales with linear trend
+// ForecastTab — OLS daily regression via useSalesForecaster + prediction intervals
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -2059,48 +2060,81 @@ function linearRegression(points: { x: number; y: number }[]): (x: number) => nu
   return (x: number) => Math.max(0, m * x + b);
 }
 
-function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: number }) {
+function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentYear: number; sales: any[] }) {
   const currentMonth = new Date().getMonth(); // 0-indexed
 
-  // Build historical data points from actual months (up to current)
+  // ── Daily OLS via useSalesForecaster ──────────────────────────────────────
+  const saleEntries = useMemo(() =>
+    sales.map((s: any) => ({ date: s.date?.slice(0, 10) || "", amount: Number(s.total_ars || 0) }))
+         .filter(e => e.date && e.amount > 0),
+  [sales]);
+
+  const { forecast: dailyForecast, trend, r2, slope } = useSalesForecaster(saleEntries, { horizon: 30, smoothingWindow: 7 });
+
+  // 30-day aggregate for the next-month projection card
+  const projectedNext30 = useMemo(
+    () => dailyForecast.reduce((s, p) => s + p.value, 0),
+    [dailyForecast]
+  );
+
+  // ── Monthly chart (legacy monthly aggregate) ──────────────────────────────
   const historicalPoints = monthly
     .map((m, i) => ({ x: i, y: m.revenue }))
     .filter(p => p.x <= currentMonth);
 
   const predict = linearRegression(historicalPoints);
 
-  // Build chart data: all 12 months, with actual and projected
   const chartData = MONTHS_SHORT.map((name, i) => {
     const actual = i <= currentMonth ? Math.round(monthly[i].revenue) : null;
-    const trend = Math.round(predict(i));
-    // Projected = trend for future months, null for past (already actual)
-    const projected = i > currentMonth ? trend : null;
-    return { name, actual, projected, trend };
+    const trend_val = Math.round(predict(i));
+    const projected = i > currentMonth ? trend_val : null;
+    return { name, actual, projected, trend: trend_val };
   });
 
-  // Future months for projection table
   const futureMonths = MONTHS_SHORT.slice(currentMonth + 1).map((name, j) => {
     const idx = currentMonth + 1 + j;
     return { name, month: idx, projected: Math.round(predict(idx)) };
   });
 
-  // Stats
+  // ── Daily forecast chart (next 30 days) ───────────────────────────────────
+  // Aggregate by week for a cleaner chart
+  const weeklyForecast = useMemo(() => {
+    const weeks: { week: string; value: number; lo: number; hi: number }[] = [];
+    for (let w = 0; w < 4; w++) {
+      const slice = dailyForecast.slice(w * 7, (w + 1) * 7);
+      if (!slice.length) continue;
+      const first = new Date(slice[0].date);
+      weeks.push({
+        week: `Sem ${w + 1} (${first.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })})`,
+        value: Math.round(slice.reduce((s, p) => s + p.value, 0)),
+        lo: Math.round(slice.reduce((s, p) => s + p.lo, 0)),
+        hi: Math.round(slice.reduce((s, p) => s + p.hi, 0)),
+      });
+    }
+    return weeks;
+  }, [dailyForecast]);
+
   const pastRevenue = historicalPoints.reduce((s, p) => s + p.y, 0);
   const avgMonthly = historicalPoints.length > 0 ? pastRevenue / historicalPoints.length : 0;
-  const nextMonthProjected = predict(currentMonth + 1);
-  const trendPct = avgMonthly > 0 ? ((nextMonthProjected - avgMonthly) / avgMonthly) * 100 : 0;
+  const trendPct = avgMonthly > 0 ? ((projectedNext30 - avgMonthly) / avgMonthly) * 100 : 0;
+
+  const trendIcon = trend === "up" ? <TrendingUp className="w-4 h-4 text-green-400" /> : trend === "down" ? <TrendingDown className="w-4 h-4 text-red-400" /> : <span className="text-muted-foreground text-xs">→</span>;
+  const trendLabel = trend === "up" ? "text-green-400" : trend === "down" ? "text-red-400" : "text-muted-foreground";
 
   return (
     <div className="space-y-4">
       {/* Info banner */}
       <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
         <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-        <div className="text-sm">
-          <p className="font-medium">Forecast basado en regresión lineal</p>
+        <div className="text-sm flex-1">
+          <p className="font-medium">Forecast OLS diario + intervalo de confianza 80%</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Proyecta los meses restantes del año usando la tendencia de tus ventas reales.
-            Los meses futuros muestran la proyección estadística — no incluyen factores externos.
+            Regresión de mínimos cuadrados sobre ventas diarias reales. R² = <strong>{r2.toFixed(3)}</strong> · Pendiente: <strong>{slope >= 0 ? "+" : ""}{slope.toFixed(0)} ARS/día</strong> · Horizonte: 30 días
           </p>
+        </div>
+        <div className={`flex items-center gap-1.5 shrink-0 text-sm font-semibold ${trendLabel}`}>
+          {trendIcon}
+          {trend === "up" ? "Al alza" : trend === "down" ? "A la baja" : "Estable"}
         </div>
       </div>
 
@@ -2115,11 +2149,11 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
           <p className="text-lg font-bold">{formatARS(avgMonthly)}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Próximo mes proyectado</p>
-          <p className="text-lg font-bold text-success">{formatARS(nextMonthProjected)}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Próximos 30 días (OLS)</p>
+          <p className="text-lg font-bold text-success">{formatARS(projectedNext30)}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tendencia vs promedio</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">vs promedio mensual</p>
           <p className={`text-lg font-bold flex items-center justify-center gap-1 ${trendPct >= 0 ? "text-success" : "text-destructive"}`}>
             {trendPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
             {trendPct >= 0 ? "+" : ""}{trendPct.toFixed(1)}%
@@ -2127,13 +2161,40 @@ function ForecastTab({ monthly, currentYear }: { monthly: any[]; currentYear: nu
         </div>
       </div>
 
-      {/* Chart: Actual vs Projected */}
+      {/* Daily OLS forecast chart — next 30 days by week */}
+      {weeklyForecast.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+          <h3 className="text-sm font-semibold mb-1 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            Proyección próximos 30 días — por semana
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">Bandas muestran intervalo de confianza 80%</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={weeklyForecast} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" />
+              <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} />
+              <YAxis tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip
+                contentStyle={{ background: "hsl(222,15%,12%)", border: "1px solid hsl(220,15%,22%)", borderRadius: 8 }}
+                formatter={(value: any, name: string) => [
+                  `$${Number(value).toLocaleString("es-AR")}`,
+                  name === "value" ? "Proyectado" : name === "hi" ? "IC alto (80%)" : "IC bajo (80%)",
+                ]}
+              />
+              <Bar dataKey="value" fill="hsl(200,60%,50%)" radius={[4,4,0,0]} name="value" opacity={0.85} />
+              <Bar dataKey="hi" fill="hsl(200,40%,40%)" radius={[4,4,0,0]} name="hi" opacity={0.35} />
+              <Bar dataKey="lo" fill="hsl(220,30%,30%)" radius={[4,4,0,0]} name="lo" opacity={0.2} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Monthly chart: Actual vs Projected */}
       <div className="bg-card border border-border rounded-xl p-4 md:p-5">
         <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" />
-          Ventas reales vs proyección {currentYear}
+          Ventas reales vs proyección mensual {currentYear}
         </h3>
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={240}>
           <BarChart data={chartData} barGap={4} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" />
             <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} />

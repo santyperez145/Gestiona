@@ -31,6 +31,7 @@ import { useWebShare } from "@/hooks/useWebShare";
 import { useClipboard } from "@/hooks/useClipboard";
 import { PriceSparkline } from "@/components/shared/PriceSparkline";
 import ProfitCalculatorModal from "@/components/shared/ProfitCalculatorModal";
+import { useProductExpiry } from "@/hooks/useProductExpiry";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -364,11 +365,11 @@ export default function ProductsPage() {
   const in30Days = new Date(today); in30Days.setDate(today.getDate() + 30);
   const in90Days = new Date(today); in90Days.setDate(today.getDate() + 90);
 
-  const expiringSoon = products.filter(p => {
-    if (!p.expiry_date) return false;
-    const exp = new Date(p.expiry_date);
-    return exp <= in30Days && p.stock > 0;
-  });
+  const { expired, critical, warning, totalAtRisk, all: allExpiryProducts } = useProductExpiry(products);
+  // Legacy alias for filter UI that already uses this
+  const expiringSoon = allExpiryProducts.filter(p =>
+    (p.urgency === "expired" || p.urgency === "critical" || p.urgency === "warning") && p.stock > 0
+  );
 
   // Fuse.js index — rebuilt only when products list changes
   const fuseIndex = useMemo(() => new Fuse(products, {
@@ -590,7 +591,7 @@ export default function ProductsPage() {
       />
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KPICard label="Total productos" value={products.length} icon={Package} color="primary"
           sub={productLimit ? `${products.length}/${productLimit} del plan` : `${filtered.length} visibles`} />
         <KPICard label="Inversión total" value={formatUSD(totalValue)} icon={DollarSign} color="blue"
@@ -599,6 +600,19 @@ export default function ProductsPage() {
           color={lowStockCount > 0 ? "warning" : "success"} sub="1–3 unidades" />
         <KPICard label="Sin stock" value={outOfStockCount} icon={X}
           color={outOfStockCount > 0 ? "destructive" : "success"} sub="agotados" />
+        <button
+          onClick={() => setFilterExpiry(expired.length > 0 ? 'expired' : 'soon30')}
+          className="text-left"
+          title="Ver productos vencidos o por vencer"
+        >
+          <KPICard
+            label="Vencidos / en riesgo"
+            value={`${expired.length} / ${critical.length}`}
+            icon={Clock}
+            color={expired.length > 0 ? "destructive" : totalAtRisk > 0 ? "warning" : "success"}
+            sub={totalAtRisk > 0 ? `${totalAtRisk} con stock en riesgo` : warning.length > 0 ? `${warning.length} próximos a vencer` : "Sin vencimientos urgentes"}
+          />
+        </button>
       </div>
 
       {/* Bulk price adjustment modal */}
@@ -631,14 +645,45 @@ export default function ProductsPage() {
         onClose={() => setPriceHistoryProduct(null)}
       />
 
-      {expiringSoon.length > 0 && (
-        <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
-          <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
-          <div className="flex-1 text-sm">
-            <span className="font-semibold text-orange-400">{expiringSoon.length} producto{expiringSoon.length !== 1 ? 's' : ''} vence{expiringSoon.length !== 1 ? 'n' : ''} en menos de 30 días: </span>
-            <span className="text-orange-300/80">{expiringSoon.slice(0, 3).map(p => p.name).join(', ')}{expiringSoon.length > 3 ? ` +${expiringSoon.length - 3}` : ''}</span>
+      {(expired.length > 0 || critical.length > 0 || warning.length > 0) && (
+        <div className={`rounded-xl border px-4 py-3 ${
+          expired.length > 0
+            ? "bg-red-500/10 border-red-500/30"
+            : critical.length > 0
+            ? "bg-orange-500/10 border-orange-500/30"
+            : "bg-yellow-500/10 border-yellow-500/30"
+        }`}>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${expired.length > 0 ? "text-red-400" : critical.length > 0 ? "text-orange-400" : "text-yellow-400"}`} />
+            <div className="flex-1 min-w-0 text-sm space-y-1">
+              {expired.length > 0 && (
+                <div>
+                  <span className="font-semibold text-red-400">{expired.length} vencido{expired.length !== 1 ? 's' : ''}: </span>
+                  <span className="text-red-300/80">{expired.slice(0, 2).map(p => `${p.name} (${p.expiryLabel})`).join(', ')}{expired.length > 2 ? ` +${expired.length - 2}` : ''}</span>
+                </div>
+              )}
+              {critical.length > 0 && (
+                <div>
+                  <span className="font-semibold text-orange-400">{critical.length} vence{critical.length !== 1 ? 'n' : ''} en ≤7 días: </span>
+                  <span className="text-orange-300/80">{critical.slice(0, 2).map(p => `${p.name} (${p.daysUntil}d)`).join(', ')}{critical.length > 2 ? ` +${critical.length - 2}` : ''}</span>
+                </div>
+              )}
+              {warning.length > 0 && expired.length === 0 && critical.length === 0 && (
+                <div>
+                  <span className="font-semibold text-yellow-400">{warning.length} vence{warning.length !== 1 ? 'n' : ''} en ≤30 días: </span>
+                  <span className="text-yellow-300/80">{warning.slice(0, 3).map(p => p.name).join(', ')}{warning.length > 3 ? ` +${warning.length - 3}` : ''}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              {expired.length > 0 && (
+                <button onClick={() => setFilterExpiry('expired')} className="text-xs text-red-400 hover:underline">Ver vencidos</button>
+              )}
+              {(critical.length > 0 || warning.length > 0) && (
+                <button onClick={() => setFilterExpiry('soon30')} className="text-xs text-orange-400 hover:underline">Ver próximos</button>
+              )}
+            </div>
           </div>
-          <button onClick={() => setFilterExpiry('soon30')} className="text-xs text-orange-400 hover:underline shrink-0">Ver</button>
         </div>
       )}
 
