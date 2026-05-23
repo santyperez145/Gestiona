@@ -58,6 +58,7 @@ const allNavItems = [
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
   { to: "/actividad", label: "Feed de Actividad", icon: Activity, roles: ['admin'], section: 'analytics' },
+  { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/rendimiento-equipo", label: "Rendimiento Equipo", icon: Users, roles: ['admin'], section: 'analytics' },
   { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'analytics' },
   // ── Marketing ───────────────────────────────────────────────────────────────
