@@ -13,6 +13,7 @@ import { useStockAlerts } from "@/hooks/useStockAlerts";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useBroadcastChannel } from "@/hooks/useBroadcastChannel";
+import { useIdleDetector } from "@/hooks/useIdleDetector";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
@@ -107,6 +108,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   });
 
+  // ── Idle session lock — auto-blur after 30 min of inactivity ─────────────
+  const [idleLocked, setIdleLocked] = useState(false);
+  useIdleDetector({
+    idleMs: 30 * 60 * 1000, // 30 minutes
+    onIdle: () => setIdleLocked(true),
+    onActive: () => setIdleLocked(false),
+  });
+
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
   }, [role]);
@@ -151,6 +160,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      {/* ── Idle session lock overlay ────────────────────────────── */}
+      {idleLocked && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl animate-fade-in">
+            <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-7 h-7 text-primary" />
+            </div>
+            <h2 className="text-lg font-display font-bold mb-2">Sesion bloqueada</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              La sesion se bloqueo por inactividad. Hace clic para continuar.
+            </p>
+            <Button className="w-full gradient-gold text-primary-foreground font-semibold" onClick={() => setIdleLocked(false)}>
+              Continuar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {mobileOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}

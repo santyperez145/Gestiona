@@ -2567,6 +2567,72 @@ export default function CustomersPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* ── CLV / LTV Prediction ── */}
+                        {c.purchaseCount >= 2 && (() => {
+                          // Customer lifetime in days (from first to last purchase)
+                          const firstMs = new Date(c.firstPurchase).getTime();
+                          const lastMs  = new Date(c.lastPurchase).getTime();
+                          const spanDays = Math.max(1, (lastMs - firstMs) / 86400000);
+                          // Purchase frequency: purchases per day
+                          const freqPerDay = c.purchaseCount / spanDays;
+                          // Avg ticket
+                          const avgTicket = c.avgTicket;
+                          // Projected CLV for next 12 months
+                          const clv12m = avgTicket * freqPerDay * 365;
+                          // Monthly spend estimate
+                          const monthly = avgTicket * freqPerDay * 30;
+                          // Days until next expected purchase (based on frequency)
+                          const daysBetween = freqPerDay > 0 ? Math.round(1 / freqPerDay) : null;
+                          const nextPurchaseDays = daysBetween !== null
+                            ? Math.max(0, daysBetween - c.daysSinceLastPurchase)
+                            : null;
+                          // Churn probability (simple heuristic)
+                          const churnRisk = c.daysSinceLastPurchase > (daysBetween ?? 30) * 2
+                            ? "Alto"
+                            : c.daysSinceLastPurchase > (daysBetween ?? 30) * 1.5
+                            ? "Medio"
+                            : "Bajo";
+                          const churnColor = churnRisk === "Alto"
+                            ? "text-red-400 bg-red-500/10 border-red-500/20"
+                            : churnRisk === "Medio"
+                            ? "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                            : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+
+                          return (
+                            <div className="bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/20 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-xs font-semibold uppercase tracking-wider text-primary/80">CLV — Valor vitalicio proyectado</span>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="bg-background/40 rounded-lg p-2 text-center">
+                                  <p className="text-[10px] text-muted-foreground mb-0.5">CLV 12 meses</p>
+                                  <p className="text-sm font-mono font-bold text-primary">{formatARS(clv12m)}</p>
+                                </div>
+                                <div className="bg-background/40 rounded-lg p-2 text-center">
+                                  <p className="text-[10px] text-muted-foreground mb-0.5">Gasto/mes est.</p>
+                                  <p className="text-sm font-mono font-bold">{formatARS(monthly)}</p>
+                                </div>
+                                <div className="bg-background/40 rounded-lg p-2 text-center">
+                                  <p className="text-[10px] text-muted-foreground mb-0.5">Prox. compra</p>
+                                  <p className="text-sm font-mono font-bold">
+                                    {nextPurchaseDays !== null
+                                      ? nextPurchaseDays <= 0 ? "Hoy / Inminente" : `en ${nextPurchaseDays}d`
+                                      : "—"}
+                                  </p>
+                                </div>
+                                <div className="bg-background/40 rounded-lg p-2 text-center">
+                                  <p className="text-[10px] text-muted-foreground mb-0.5">Riesgo churn</p>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${churnColor}`}>{churnRisk}</span>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                Basado en {c.purchaseCount} compras en {Math.round(spanDays)} días · frec. {Math.round(daysBetween ?? 0)}d entre compras
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </TabsContent>
 
                       {/* ── Tab: Compras ── */}
