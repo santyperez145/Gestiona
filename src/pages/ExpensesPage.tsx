@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   getExpensesDB, addExpenseDB, updateExpenseDB, deleteExpenseDB,
@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash2, Wallet, TrendingDown, Repeat, Filter, Search, Pencil, Check, X, FileSpreadsheet, Printer, Paperclip, Camera, ExternalLink, Receipt, Target, TrendingUp, Copy, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -879,6 +879,29 @@ export default function ExpensesPage() {
   );
 }
 
+// ─── AI-assisted expense category inference ─────────────────────────────────
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  alquiler:      ["alquiler", "rent", "inmobiliaria", "local", "oficina", "deposito", "bodega", "mensualidad", "arriendo"],
+  servicios:     ["luz", "electricidad", "edesur", "edenor", "agua", "gas", "metrogas", "telefono", "internet", "fibertel", "claro", "personal", "movistar", "telecom", "wifi", "servicio"],
+  personal:      ["sueldo", "salario", "empleado", "jornal", "personal", "rrhh", "recursos humanos", "liquidacion", "aguinaldo", "jornada"],
+  marketing:     ["marketing", "publicidad", "facebook", "instagram", "google ads", "meta ads", "tiktok", "campaña", "flyer", "banner", "redes", "digital", "influencer", "promo", "diseño"],
+  mantenimiento: ["mantenimiento", "reparacion", "arreglo", "plomero", "electricista", "tecnico", "limpieza", "pintura", "refaccion", "obra"],
+  fletes:        ["flete", "envio", "correo", "andreani", "oca", "chilexpress", "despacho", "moto", "delivery", "transporte", "logistica"],
+  impuestos:     ["impuesto", "afip", "iva", "ingresos brutos", "iibb", "monotributo", "ganancias", "arba", "agip", "patente", "contribucion", "tasa"],
+  bancarios:     ["banco", "comision bancaria", "transferencia", "mercadopago", "tarjeta", "cuota", "interes", "prestamo", "debito", "credito", "cuenta corriente"],
+  insumos:       ["insumo", "material", "bolsa", "caja", "embalaje", "packaging", "etiqueta", "papel", "toner", "cartridge", "herramienta", "repuesto", "stock", "mercaderia", "proveedor"],
+};
+
+function inferExpenseCategory(description: string, vendor: string): string | null {
+  const text = `${description} ${vendor}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  let best: { cat: string; score: number } = { cat: "", score: 0 };
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    const score = keywords.reduce((s, kw) => s + (text.includes(kw) ? kw.length : 0), 0);
+    if (score > best.score) best = { cat, score };
+  }
+  return best.score > 0 ? best.cat : null;
+}
+
 function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string; editItem?: any; categories: { value: string; label: string; color: string }[]; onSave: () => void }) {
   const [amount, setAmount] = useState(editItem ? String(editItem.amount_ars) : '');
   const [category, setCategory] = useState(editItem?.category || categories[0]?.value || 'otros');
@@ -892,6 +915,19 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const receiptCamRef = useRef<HTMLInputElement>(null);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+
+  // Auto-suggest category when description or vendor changes (debounced 400ms)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (editItem) return; // Don't auto-suggest when editing
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const inferred = inferExpenseCategory(description, vendor);
+      setSuggestedCategory(inferred !== category ? inferred : null);
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [description, vendor, category, editItem]);
 
   const handleReceiptFile = async (file: File) => {
     if (!file) return;
@@ -972,7 +1008,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
 
       <div>
         <label className="text-sm text-muted-foreground">Categoría *</label>
-        <Select value={category} onValueChange={setCategory}>
+        <Select value={category} onValueChange={(v) => { setCategory(v); setSuggestedCategory(null); }}>
           <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
           <SelectContent>
             {categories.map(c => (
@@ -980,6 +1016,21 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
             ))}
           </SelectContent>
         </Select>
+        {suggestedCategory && (() => {
+          const cat = categories.find(c => c.value === suggestedCategory);
+          if (!cat) return null;
+          return (
+            <button
+              type="button"
+              onClick={() => { setCategory(suggestedCategory); setSuggestedCategory(null); }}
+              className="mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+            >
+              <Sparkles className="w-3 h-3" />
+              IA sugiere: <span className="font-bold">{cat.label}</span>
+              <span className="opacity-60 ml-1">— Clic para aplicar</span>
+            </button>
+          );
+        })()}
       </div>
 
       <div>
