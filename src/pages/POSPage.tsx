@@ -16,6 +16,7 @@ import {
   Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useWakeLock } from "@/hooks/useWakeLock";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
 import confetti from "canvas-confetti";
@@ -684,6 +685,8 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
 // ─────────────────────────────────────────────────────────────
 export default function POSPage() {
   usePageTitle("POS — Punto de Venta");
+  // Keep screen awake while POS is open — prevents display from dimming mid-transaction
+  useWakeLock({ active: true });
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const config = useBusinessConfig();

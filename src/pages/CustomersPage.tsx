@@ -13,8 +13,9 @@ import {
   Users, ShoppingBag, Crown, AlertCircle,
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
-  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell,
+  Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
 } from "lucide-react";
+import { useContactPicker } from "@/hooks/useContactPicker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -160,6 +161,20 @@ function CustomerFormModal({
     notes: initial?.notes ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const { supported: contactsSupported, pick: pickContact, picking } = useContactPicker();
+
+  const handlePickContact = async () => {
+    const contacts = await pickContact(false);
+    if (!contacts || contacts.length === 0) return;
+    const c = contacts[0];
+    setForm(f => ({
+      ...f,
+      name: c.name || f.name,
+      phone: c.phone || f.phone,
+      email: c.email || f.email,
+    }));
+    toast.success("Datos importados del contacto");
+  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("El nombre es obligatorio"); return; }
@@ -188,9 +203,23 @@ function CustomerFormModal({
       <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl animate-fade-in">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-display font-bold">{initial?.id ? "Editar cliente" : "Nuevo cliente"}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {contactsSupported && !initial?.id && (
+              <button
+                type="button"
+                onClick={handlePickContact}
+                disabled={picking}
+                className="flex items-center gap-1.5 text-xs text-primary/80 hover:text-primary border border-primary/20 hover:border-primary/40 rounded-[6px] px-2.5 py-1 transition-all"
+                title="Importar datos desde tu agenda de contactos"
+              >
+                <BookUser className="w-3.5 h-3.5" />
+                {picking ? "Abriendo…" : "Desde contactos"}
+              </button>
+            )}
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">

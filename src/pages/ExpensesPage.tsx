@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import ReceiptScanner from "@/components/shared/ReceiptScanner";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
@@ -917,6 +918,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const receiptCamRef = useRef<HTMLInputElement>(null);
   const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   // Auto-suggest category when description or vendor changes (debounced 400ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1001,6 +1003,42 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+      {/* ── AI Receipt Scanner ── */}
+      {!editItem && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            className="flex-1 flex items-center justify-center gap-2 h-9 rounded-lg border border-dashed border-primary/40 text-xs text-primary/80 hover:border-primary hover:bg-primary/5 transition-all"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            Escanear ticket con IA
+          </button>
+        </div>
+      )}
+
+      {/* Receipt Scanner Dialog */}
+      <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Camera className="w-4 h-4 text-primary" />Escanear comprobante
+            </DialogTitle>
+          </DialogHeader>
+          <ReceiptScanner
+            onExtracted={data => {
+              if (data.amount != null) setAmount(String(data.amount));
+              if (data.vendor) setVendor(data.vendor);
+              if (data.date) setDate(data.date);
+              if (data.category) setCategory(data.category);
+              if (data.description) setDescription(data.description);
+              if (data.imageUrl) setReceiptUrl(data.imageUrl);
+            }}
+            onClose={() => setScannerOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <div>
         <label className="text-sm text-muted-foreground">Monto (ARS) *</label>
         <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
