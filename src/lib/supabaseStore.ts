@@ -13,6 +13,52 @@ async function orgIdFor(_userId?: string): Promise<string> {
   return data.org_id;
 }
 
+// ========= FINANCIAL MOVEMENTS (Ledger) =========
+/**
+ * Records a financial movement into the ledger.
+ * Fire-and-forget — never throws, so it can't break callers.
+ * Call this after every sale, purchase, or expense insert.
+ */
+export async function recordFinancialMovement(params: {
+  orgId: string;
+  direction: 'income' | 'expense';
+  sourceType: 'sale' | 'purchase' | 'expense' | 'adjustment';
+  sourceId?: string | null;
+  amountArs: number;
+  description: string;
+  counterparty?: string | null;
+  paymentMethod?: string;
+  channel?: string;
+  affectsCash?: boolean;
+  affectsBank?: boolean;
+  cashSessionId?: string | null;
+  happenedAt?: string;
+  createdBy?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    await supabase.from('financial_movements').insert({
+      org_id: params.orgId,
+      direction: params.direction,
+      source_type: params.sourceType,
+      source_id: params.sourceId ?? null,
+      amount_ars: params.amountArs,
+      description: params.description,
+      counterparty: params.counterparty ?? null,
+      payment_method: params.paymentMethod ?? 'efectivo',
+      channel: params.channel ?? params.sourceType,
+      affects_cash: params.affectsCash ?? true,
+      affects_bank: params.affectsBank ?? false,
+      cash_session_id: params.cashSessionId ?? null,
+      happened_at: params.happenedAt ?? new Date().toISOString(),
+      created_by: params.createdBy ?? null,
+      metadata: (params.metadata ?? {}) as any,
+    });
+  } catch {
+    // Silent — movement ledger is supplementary, never break primary flow
+  }
+}
+
 // ========= PRODUCTS =========
 export async function getProductsDB(userId: string) {
   const orgId = await orgIdFor(userId);
@@ -56,6 +102,23 @@ export async function addPurchaseDB(purchase: any) {
       await supabase.from('products').update({ stock: prod.stock + purchase.quantity }).eq('id', purchase.product_id);
     }
   }
+  // Ledger entry
+  if (!purchase.is_scheduled) {
+    await recordFinancialMovement({
+      orgId,
+      direction: 'expense',
+      sourceType: 'purchase',
+      sourceId: purchase.id ?? null,
+      amountArs: purchase.total_ars ?? 0,
+      description: `Compra: ${purchase.product_name ?? purchase.supplier_name ?? 'Proveedor'}`,
+      counterparty: purchase.supplier_name ?? null,
+      paymentMethod: purchase.payment_method ?? 'efectivo',
+      channel: 'purchase',
+      happenedAt: purchase.date ? new Date(purchase.date + 'T12:00:00').toISOString() : undefined,
+      createdBy: purchase.user_id ?? null,
+      metadata: { quantity: purchase.quantity, product_name: purchase.product_name },
+    });
+  }
 }
 
 export async function deletePurchaseDB(id: string) {
@@ -97,6 +160,24 @@ export async function addSaleDB(sale: any) {
       status: 'pending',
     });
   }
+  // Ledger entry
+  await recordFinancialMovement({
+    orgId,
+    direction: 'income',
+    sourceType: 'sale',
+    sourceId: sale.id ?? null,
+    amountArs: sale.total_ars ?? 0,
+    description: `Venta: ${sale.product_name ?? 'Producto'}`,
+    counterparty: sale.customer_name ?? null,
+    paymentMethod: sale.payment_method ?? 'efectivo',
+    channel: 'sale',
+    affectsCash: (sale.payment_method ?? 'efectivo') === 'efectivo',
+    affectsBank: ['transferencia', 'debito', 'credito'].includes(sale.payment_method ?? ''),
+    cashSessionId: sale.cash_session_id ?? null,
+    happenedAt: sale.date ? new Date(sale.date + 'T12:00:00').toISOString() : undefined,
+    createdBy: sale.user_id ?? null,
+    metadata: { quantity: sale.quantity, product_name: sale.product_name, paid: sale.paid },
+  });
 }
 
 export async function deleteSaleDB(id: string) {
@@ -456,6 +537,24 @@ export async function addSaleWithVariantDB(sale: any, variantId?: string) {
       status: 'pending',
     });
   }
+  // Ledger entry
+  await recordFinancialMovement({
+    orgId,
+    direction: 'income',
+    sourceType: 'sale',
+    sourceId: sale.id ?? null,
+    amountArs: sale.total_ars ?? 0,
+    description: `Venta: ${sale.product_name ?? 'Producto'}`,
+    counterparty: sale.customer_name ?? null,
+    paymentMethod: sale.payment_method ?? 'efectivo',
+    channel: 'sale',
+    affectsCash: (sale.payment_method ?? 'efectivo') === 'efectivo',
+    affectsBank: ['transferencia', 'debito', 'credito'].includes(sale.payment_method ?? ''),
+    cashSessionId: sale.cash_session_id ?? null,
+    happenedAt: sale.date ? new Date(sale.date + 'T12:00:00').toISOString() : undefined,
+    createdBy: sale.user_id ?? null,
+    metadata: { quantity: sale.quantity, product_name: sale.product_name, paid: sale.paid },
+  });
 }
 
 // ========= HELPERS =========
@@ -539,6 +638,21 @@ export async function addExpenseDB(expense: any) {
   const orgId = expense.org_id || requireActiveOrgId();
   const { error } = await supabase.from('expenses').insert({ ...expense, org_id: orgId });
   if (error) throw error;
+  // Ledger entry
+  await recordFinancialMovement({
+    orgId,
+    direction: 'expense',
+    sourceType: 'expense',
+    sourceId: expense.id ?? null,
+    amountArs: expense.amount_ars ?? expense.amount ?? 0,
+    description: expense.description || `Gasto: ${expense.category ?? 'General'}`,
+    counterparty: expense.vendor ?? null,
+    paymentMethod: expense.payment_method ?? 'efectivo',
+    channel: 'expense',
+    happenedAt: expense.date ? new Date(expense.date + 'T12:00:00').toISOString() : undefined,
+    createdBy: expense.user_id ?? null,
+    metadata: { category: expense.category, vendor: expense.vendor },
+  });
 }
 
 export async function updateExpenseDB(id: string, updates: any) {

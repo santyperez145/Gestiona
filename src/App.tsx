@@ -71,10 +71,11 @@ const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
 const TeamChatPage           = lazy(() => import("@/pages/TeamChatPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
 const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
-const LoyaltyPage            = lazy(() => import("@/pages/LoyaltyPage"));
-const ProfilePage            = lazy(() => import("@/pages/ProfilePage"));
-const AlertsPage             = lazy(() => import("@/pages/AlertsPage"));
-const NotFound               = lazy(() => import("@/pages/NotFound"));
+const LoyaltyPage              = lazy(() => import("@/pages/LoyaltyPage"));
+const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
+const AlertsPage               = lazy(() => import("@/pages/AlertsPage"));
+const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
+const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
 // ── Page-level loading fallback ─────────────────────────────────────────────
@@ -206,6 +207,7 @@ function ProtectedRoutes() {
               <Route path="/links-de-pago" element={<PaymentLinksPage />} />
               <Route path="/chat-equipo" element={<TeamChatPage />} />
               <Route path="/banco" element={<BankReconciliationPage />} />
+              <Route path="/movimientos" element={<FinancialMovementsPage />} />
               <Route path="/pipeline" element={<SalesPipelinePage />} />
               <Route path="/fidelidad" element={<LoyaltyPage />} />
               <Route path="/alertas" element={<AlertsPage />} />
