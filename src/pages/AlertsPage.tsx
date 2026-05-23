@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { safeChannel } from "@/lib/realtimeChannel";
 import {
   Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
-  Clock, Zap, Info, ShieldCheck, CalendarX2, Mail,
+  Clock, Zap, Info, ShieldCheck, CalendarX2, Mail, ChevronDown, ChevronUp,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
+import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -146,6 +147,9 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [showExpiryPanel, setShowExpiryPanel] = useState(true);
+  const { expired, critical, warning, totalAtRisk } = useProductExpiry(products);
 
   // Per-rule email notification prefs (localStorage per org)
   const emailPrefKey = `gestiona.alert_email.${orgId || 'default'}`;
@@ -158,6 +162,17 @@ export default function AlertsPage() {
     localStorage.setItem(emailPrefKey, JSON.stringify(next));
     toast.success(next[ruleId] ? 'Recibirás email cuando se dispare esta alerta' : 'Notificación por email desactivada');
   };
+
+  // ─── Load products for expiry ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("products")
+      .select("id,name,stock,expiry_date,lot_number,category")
+      .eq("org_id", orgId)
+      .not("expiry_date", "is", null)
+      .then(({ data }) => setProducts(data || []));
+  }, [orgId]);
 
   // ─── Load ────────────────────────────────────────────────────────────────
 
@@ -312,6 +327,71 @@ export default function AlertsPage() {
           </div>
         }
       />
+
+      {/* Expiring Products Live Panel */}
+      {totalAtRisk > 0 && (
+        <div className="bg-card border border-rose-500/20 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowExpiryPanel(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-rose-500/5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <CalendarX2 className="w-4 h-4 text-rose-400" />
+              <span className="text-sm font-semibold">Productos por vencer o vencidos</span>
+              <span className="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 text-[10px] font-bold">{totalAtRisk} con stock</span>
+              {expired.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 text-[10px] font-bold animate-pulse">{expired.length} VENCIDOS</span>
+              )}
+            </div>
+            {showExpiryPanel ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showExpiryPanel && (
+            <div className="border-t border-border/50 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-muted/20">
+                    <th className="px-4 py-2 text-left text-xs text-muted-foreground font-medium">Producto</th>
+                    <th className="px-4 py-2 text-right text-xs text-muted-foreground font-medium">Stock</th>
+                    <th className="px-4 py-2 text-right text-xs text-muted-foreground font-medium">Vence</th>
+                    <th className="px-4 py-2 text-center text-xs text-muted-foreground font-medium">Estado</th>
+                    <th className="px-4 py-2 text-left text-xs text-muted-foreground font-medium hidden sm:table-cell">Lote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...expired, ...critical, ...warning].filter(p => p.stock > 0).map(p => {
+                    const isExpired = p.urgency === "expired";
+                    const isCritical = p.urgency === "critical";
+                    return (
+                      <tr key={p.id} className={`border-b border-border/30 last:border-0 hover:bg-muted/20 ${isExpired ? "bg-red-500/5" : isCritical ? "bg-orange-500/5" : ""}`}>
+                        <td className="px-4 py-2.5">
+                          <p className="font-medium text-sm truncate max-w-[180px]">{p.name}</p>
+                          {p.lot_number && <p className="text-[10px] text-muted-foreground sm:hidden">Lote: {p.lot_number}</p>}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-sm">{p.stock}</td>
+                        <td className={`px-4 py-2.5 text-right text-sm font-semibold ${isExpired ? "text-red-400" : isCritical ? "text-orange-400" : "text-yellow-400"}`}>
+                          {p.expiryLabel}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            isExpired ? "bg-red-500/15 text-red-400" :
+                            isCritical ? "bg-orange-500/15 text-orange-400" :
+                            "bg-yellow-500/15 text-yellow-400"
+                          }`}>
+                            {isExpired ? `Venció hace ${Math.abs(p.daysUntil)}d` : isCritical ? `${p.daysUntil}d` : `${p.daysUntil}d`}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground hidden sm:table-cell">
+                          {p.lot_number || "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
