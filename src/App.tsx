@@ -75,6 +75,7 @@ const LoyaltyPage              = lazy(() => import("@/pages/LoyaltyPage"));
 const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
 const AlertsPage               = lazy(() => import("@/pages/AlertsPage"));
 const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
+const ActivityFeedPage         = lazy(() => import("@/pages/ActivityFeedPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -211,6 +212,7 @@ function ProtectedRoutes() {
               <Route path="/pipeline" element={<SalesPipelinePage />} />
               <Route path="/fidelidad" element={<LoyaltyPage />} />
               <Route path="/alertas" element={<AlertsPage />} />
+              <Route path="/actividad" element={<ActivityFeedPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
