@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ import { broadcastSync } from "@/lib/broadcastSync";
 import { useWebShare } from "@/hooks/useWebShare";
 import { useClipboard } from "@/hooks/useClipboard";
 import { PriceSparkline } from "@/components/shared/PriceSparkline";
+import ProfitCalculatorModal from "@/components/shared/ProfitCalculatorModal";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -282,6 +283,8 @@ export default function ProductsPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const { shareProduct, canShare } = useWebShare();
   const { copy: copyText } = useClipboard();
+  const [calcProduct, setCalcProduct] = useState<any | null>(null);
+  const [calcOpen, setCalcOpen] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -535,6 +538,9 @@ export default function ProductsPage() {
                 <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
               </Button>
             )}
+            <Button variant="outline" size="sm" title="Calculadora de rentabilidad" onClick={() => { setCalcProduct(null); setCalcOpen(true); }}>
+              <Calculator className="w-4 h-4 mr-2" />Calculadora
+            </Button>
             {canCreate && (productLimit !== null && products.length >= productLimit ? (
               <Button
                 className="gradient-gold text-primary-foreground font-semibold shadow-gold"
@@ -1026,6 +1032,14 @@ export default function ProductsPage() {
                                {canShare ? <Share2 className="w-3.5 h-3.5 text-muted-foreground" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
                              </Button>
                            )}
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             title="Calculadora de rentabilidad"
+                             onClick={() => { setCalcProduct(p); setCalcOpen(true); }}
+                           >
+                             <Calculator className="w-3.5 h-3.5 text-muted-foreground" />
+                           </Button>
                            {canDelete && (
                              <ConfirmDialog
                                trigger={<Button variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
@@ -1115,6 +1129,14 @@ export default function ProductsPage() {
           )}
         </>
       )}
+
+      {/* Profit Calculator Modal */}
+      <ProfitCalculatorModal
+        open={calcOpen}
+        onClose={() => { setCalcOpen(false); setCalcProduct(null); }}
+        product={calcProduct || undefined}
+        exchangeRate={Number(settings?.exchange_rate) || 1700}
+      />
 
       {/* Floating bulk action bar */}
       {selectedIds.size > 0 && (
