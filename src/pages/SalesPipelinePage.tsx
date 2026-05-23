@@ -276,6 +276,7 @@ function DealCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SalesPipelinePage() {
+  usePageTitle("Pipeline de Ventas");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

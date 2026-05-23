@@ -43,6 +43,7 @@ for (let i = -6; i <= 0; i++) {
 }
 
 export default function SellerCommissionsPage() {
+  usePageTitle("Comisiones");
   const { activeOrg } = useOrg();
   const [members, setMembers] = useState<SellerMember[]>([]);
   const [payouts, setPayouts] = useState<SellerPayout[]>([]);

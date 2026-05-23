@@ -65,6 +65,7 @@ function fmtDate(d: string | null) {
 }
 
 export default function IntegrationsPage() {
+  usePageTitle("Integraciones");
   const { activeOrg } = useOrg();
   const [searchParams, setSearchParams] = useSearchParams();
   const [conn, setConn] = useState<TiendanubeConnection | null>(null);

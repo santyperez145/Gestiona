@@ -2278,6 +2278,7 @@ function saveConversations(orgId: string, convs: SavedConversation[]) {
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function AIChatPage() {
+  usePageTitle("Chat IA");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const navigate = useNavigate();

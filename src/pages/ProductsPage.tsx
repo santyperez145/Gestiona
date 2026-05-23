@@ -19,6 +19,7 @@ import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import ProductsExcelImport from "@/components/products/ProductsExcelImport";
+import CSVImportWizard from "@/components/products/CSVImportWizard";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
@@ -280,6 +281,7 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [filterStock, setFilterStock] = useState('all');
@@ -548,9 +550,14 @@ export default function ProductsPage() {
               <QrCode className="w-4 h-4 mr-2" />Etiquetas QR
             </Button>
             {canCreate && (
-              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-                <Upload className="w-4 h-4 mr-2" />Importar Excel
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                  <Upload className="w-4 h-4 mr-2" />Importar Excel
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCsvImportOpen(true)} title="Importar productos desde archivo CSV">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />Importar CSV
+                </Button>
+              </>
             )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
@@ -608,6 +615,13 @@ export default function ProductsPage() {
           <ProductsExcelImport onClose={() => setImportOpen(false)} onImported={reload} />
         </DialogContent>
       </Dialog>
+
+      {/* CSV Import Wizard */}
+      <CSVImportWizard
+        open={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onImported={() => { setCsvImportOpen(false); reload(); }}
+      />
 
       {/* Price history modal */}
       <PriceHistoryModal

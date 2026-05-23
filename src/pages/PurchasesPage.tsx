@@ -58,6 +58,7 @@ import { usePermissions } from "@/lib/usePermissions";
 const PAGE_SIZE = 20;
 
 export default function PurchasesPage() {
+  usePageTitle("Compras");
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchParams] = useSearchParams();

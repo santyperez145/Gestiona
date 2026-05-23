@@ -180,6 +180,7 @@ function HistoryItem({ entry, onExpand }: { entry: HistoryEntry; onExpand: () =>
 }
 
 export default function AIInsightsPage() {
+  usePageTitle("IA Insights");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [loadingType, setLoadingType] = useState<AnalysisType | null>(null);

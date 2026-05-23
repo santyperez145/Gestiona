@@ -22,6 +22,7 @@ const CATEGORIES = [
 ];
 
 export default function BrandKnowledgePage() {
+  usePageTitle("Conocimiento de Marca");
   const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');

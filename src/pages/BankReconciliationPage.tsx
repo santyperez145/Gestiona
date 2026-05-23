@@ -105,6 +105,7 @@ function parseBankCSV(text: string): Omit<BankTx, "id" | "org_id" | "matched" | 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function BankReconciliationPage() {
+  usePageTitle("Banco / Conciliación");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

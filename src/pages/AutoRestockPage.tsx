@@ -129,6 +129,7 @@ function calcROP(dailyVelocity: number, leadTimeDays = 7): number {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AutoRestockPage() {
+  usePageTitle("Reposición Automática");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

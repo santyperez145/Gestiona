@@ -135,6 +135,7 @@ const NOTIF_ICON: Record<string, typeof Bell> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
+  usePageTitle("Alertas");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const orgId = activeOrg?.id;

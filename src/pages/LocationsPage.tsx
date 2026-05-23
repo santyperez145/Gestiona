@@ -200,6 +200,7 @@ async function upsertLocationStock(orgId: string, locationId: string, productId:
 }
 
 export default function LocationsPage() {
+  usePageTitle("Ubicaciones");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [locations, setLocations] = useState<Location[]>([]);

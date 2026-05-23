@@ -92,6 +92,7 @@ function downloadCSV(movements: Movement[]) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function FinancialMovementsPage() {
+  usePageTitle("Libro Mayor");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
 

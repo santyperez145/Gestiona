@@ -206,6 +206,7 @@ function buildRentabilidadData(sales: any[], products: any[]) {
 }
 
 export default function AnalyticsPage() {
+  usePageTitle("Analytics");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [rawData, setRawData] = useState<any>(null);

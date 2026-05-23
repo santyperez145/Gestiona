@@ -39,6 +39,7 @@ function waDebtLink(d: any, orgId?: string) {
 }
 
 export default function DebtsPage() {
+  usePageTitle("Deudas");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [debts, setDebts] = useState<any[]>([]);

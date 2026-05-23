@@ -14,6 +14,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
 
 export default function CombosBannersPage() {
+  usePageTitle("Combos & Banners");
   return (
     <div className="space-y-6">
       <PageHeader

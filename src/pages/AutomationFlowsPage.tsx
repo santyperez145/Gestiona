@@ -496,6 +496,7 @@ interface AutomationRun {
 }
 
 export default function AutomationFlowsPage() {
+  usePageTitle("Automatizaciones");
   const { activeOrg } = useOrg();
   const [flows, setFlows] = useState<FlowRule[]>([]);
   const [loading, setLoading] = useState(true);

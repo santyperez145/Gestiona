@@ -48,6 +48,7 @@ const EMPTY_FORM = {
 };
 
 export default function ChequesPage() {
+  usePageTitle("Cheques");
   const { activeOrg } = useOrg();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);

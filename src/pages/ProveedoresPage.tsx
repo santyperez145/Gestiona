@@ -59,6 +59,7 @@ type SupplierDebt = {
 const DEBT_EMPTY = { supplier_name: "", supplier_id: "", description: "", amount_ars: "", due_date: "", notes: "" };
 
 export default function ProveedoresPage() {
+  usePageTitle("Proveedores");
   const { activeOrg } = useOrg();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);

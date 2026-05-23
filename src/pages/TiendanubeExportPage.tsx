@@ -129,6 +129,7 @@ function applyAllFees(
 }
 
 export default function TiendanubeExportPage() {
+  usePageTitle("Exportar Tiendanube");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id;
   const [loading, setLoading] = useState(true);

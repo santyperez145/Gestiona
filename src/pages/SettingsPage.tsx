@@ -21,6 +21,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
+  usePageTitle("Ajustes");
   const { user, session } = useAuth();
   const [exchangeRate, setExchangeRate] = useState('');
   const { rates: liveRatesData, loading: fetchingRate, refresh: fetchBlueRateRaw } = useExchangeRates(false);

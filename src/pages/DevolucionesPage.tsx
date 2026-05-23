@@ -56,6 +56,7 @@ const REASONS = [
 ];
 
 export default function DevolucionesPage() {
+  usePageTitle("Devoluciones");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
 

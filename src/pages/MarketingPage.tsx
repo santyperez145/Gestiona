@@ -15,6 +15,7 @@ import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel"
 import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 
 export default function MarketingPage() {
+  usePageTitle("Marketing");
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);

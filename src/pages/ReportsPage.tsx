@@ -52,6 +52,7 @@ function getPeriodRange(key: PeriodKey): { from: Date; to: Date; label: string }
 }
 
 export default function ReportsPage() {
+  usePageTitle("Reportes");
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [period, setPeriod] = useState<PeriodKey>('current_month');

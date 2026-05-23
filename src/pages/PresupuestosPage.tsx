@@ -371,6 +371,7 @@ function defaultValidUntil() {
 }
 
 export default function PresupuestosPage() {
+  usePageTitle("Presupuestos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);

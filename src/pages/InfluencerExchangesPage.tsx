@@ -19,6 +19,7 @@ import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 
 export default function InfluencerExchangesPage() {
+  usePageTitle("Canjes & Influencers");
   const { user } = useAuth();
   const [exchanges, setExchanges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -17,6 +17,7 @@ function endOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth() 
 function toDateInput(d: Date) { return d.toISOString().slice(0, 10); }
 
 export default function SettlementsPage() {
+  usePageTitle("Liquidaciones");
   const { user } = useAuth();
   const today = new Date();
   const [from, setFrom] = useState(toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)));

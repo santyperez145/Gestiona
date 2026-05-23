@@ -97,6 +97,7 @@ interface Customer {
 }
 
 export default function WhatsAppCampaignsPage() {
+  usePageTitle("WhatsApp Masivo");
   const { user, session } = useAuth();
   const { activeOrg } = useOrg();
 

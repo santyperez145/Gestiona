@@ -77,6 +77,7 @@ const CAT_LABELS: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function StockCountPage() {
+  usePageTitle("Conteo de Stock");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

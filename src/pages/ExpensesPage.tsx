@@ -71,6 +71,7 @@ function printExpensesReport(expenses: any[], getCategoryLabel: (c: string) => s
 }
 
 export default function ExpensesPage() {
+  usePageTitle("Gastos");
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [expenses, setExpenses] = useState<any[]>([]);

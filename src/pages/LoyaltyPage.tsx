@@ -51,6 +51,7 @@ interface CustomerBalance {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LoyaltyPage() {
+  usePageTitle("Fidelidad");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

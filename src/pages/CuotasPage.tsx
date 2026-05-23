@@ -36,6 +36,7 @@ const EMPTY_FORM = {
 };
 
 export default function CuotasPage() {
+  usePageTitle("Cuotas");
   const { activeOrg } = useOrg();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [loading, setLoading] = useState(true);

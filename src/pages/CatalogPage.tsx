@@ -41,6 +41,7 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
 }
 
 export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps) {
+  usePageTitle("Catálogo Online");
   const auth = useAuth();
   const userId = isPublic ? publicUserId : auth?.user?.id;
   const [products, setProducts] = useState<any[]>([]);

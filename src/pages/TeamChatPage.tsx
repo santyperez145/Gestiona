@@ -61,6 +61,7 @@ function avatarColor(userId: string) {
 const PAGE_SIZE = 50;
 
 export default function TeamChatPage() {
+  usePageTitle("Chat de Equipo");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const [messages, setMessages] = useState<TeamMessage[]>([]);

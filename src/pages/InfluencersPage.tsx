@@ -322,6 +322,7 @@ function PayoutsTab() {
 }
 
 export default function InfluencersPage() {
+  usePageTitle("Influencers");
   return (
     <div className="space-y-6">
       <PageHeader

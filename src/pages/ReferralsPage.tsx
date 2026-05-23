@@ -34,6 +34,7 @@ function generateCode(name: string): string {
 }
 
 export default function ReferralsPage() {
+  usePageTitle("Referidos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [referrals, setReferrals] = useState<Referral[]>([]);

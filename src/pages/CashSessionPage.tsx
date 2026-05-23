@@ -173,6 +173,7 @@ interface CashSession {
 }
 
 export default function CashSessionPage() {
+  usePageTitle("Sesión de Caja");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

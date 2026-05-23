@@ -28,6 +28,7 @@ type VendorStats = {
 };
 
 export default function AdminPage() {
+  usePageTitle("Admin");
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);

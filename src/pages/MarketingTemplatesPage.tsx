@@ -123,6 +123,7 @@ function TemplateForm({
 }
 
 export default function MarketingTemplatesPage() {
+  usePageTitle("Plantillas de Marketing");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);

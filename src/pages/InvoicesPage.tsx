@@ -265,6 +265,7 @@ function generatePDF(inv: Invoice, orgName: string, afipSettings?: AfipSettings 
 // Main page
 // ─────────────────────────────────────────────────────────────
 export default function InvoicesPage() {
+  usePageTitle("Facturas");
   const { user } = useAuth();
   const { activeOrg, activeRole } = useOrg();
   const [searchParams, setSearchParams] = useSearchParams();

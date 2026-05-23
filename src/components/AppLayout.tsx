@@ -19,6 +19,7 @@ import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
+import CommandPalette from "@/components/shared/CommandPalette";
 
 const allNavItems = [
   // ── Principal ───────────────────────────────────────────────────────────────
@@ -450,6 +451,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Floating page guide — rendered per-route, no-op if no guide exists */}
         <PageGuide />
       </main>
+
+      {/* ── Global command palette — Ctrl+K anywhere ──────────────── */}
+      <CommandPalette />
     </div>
   );
 }

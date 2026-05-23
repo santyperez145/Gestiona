@@ -153,6 +153,7 @@ function buildBrandedEmail(bodyHtml: string, logoUrl: string | null, businessNam
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EmailCampaignsPage() {
+  usePageTitle("Email Marketing");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 

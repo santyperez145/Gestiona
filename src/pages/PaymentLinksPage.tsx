@@ -66,6 +66,7 @@ function fmtDate(iso: string | null): string {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function PaymentLinksPage() {
+  usePageTitle("Links de Pago");
   const { user, session } = useAuth();
   const { activeOrg } = useOrg();
 

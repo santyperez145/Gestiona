@@ -57,6 +57,7 @@ async function getOrgUserLimit(orgId: string): Promise<number | null> {
 }
 
 export default function TeamPage() {
+  usePageTitle("Equipo");
   const { activeOrg, activeRole } = useOrg();
   const { userLimit, plan } = useEntitlements();
   const [members, setMembers] = useState<Member[]>([]);

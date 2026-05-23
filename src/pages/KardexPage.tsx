@@ -102,6 +102,7 @@ const DATE_PRESETS = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function KardexPage() {
+  usePageTitle("Kardex");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 
