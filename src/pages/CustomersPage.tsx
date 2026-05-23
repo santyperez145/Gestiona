@@ -48,6 +48,7 @@ type CustomerData = {
   segment: string;
   segmentColor: string;
   healthScore: number;
+  churnRisk: number; // 0-100 predicted churn probability
   clv: number; // projected Customer Lifetime Value in ARS
   sellers: string[]; // seller_name values from sales
   // Profile from customers table (if exists)
@@ -91,6 +92,27 @@ function getSegment(c: CustomerData): { label: string; color: string } {
   return { label: "Perdido", color: "bg-muted text-muted-foreground" };
 }
 
+/**
+ * Predict churn probability 0-100 based on RFM signals.
+ * Higher = more likely to churn (stop buying).
+ */
+function computeChurnRisk(c: CustomerData): number {
+  if (c.segment === "Sin compras") return 90;
+  const d = c.daysSinceLastPurchase;
+  // Recency-based base score
+  let risk = 0;
+  if (d >= 180) risk = 85;
+  else if (d >= 90) risk = 65 + Math.round((d - 90) / 3);
+  else if (d >= 60) risk = 45 + Math.round((d - 60) / 1.5);
+  else if (d >= 30) risk = 20 + Math.round((d - 30) / 1.5);
+  else risk = Math.max(5, 20 - c.purchaseCount * 2);
+  // Frequency penalty: single-purchase customers higher risk
+  if (c.purchaseCount <= 1) risk = Math.min(95, risk + 15);
+  // Health score inverse relationship
+  const healthBonus = Math.round((100 - c.healthScore) * 0.1);
+  return Math.min(95, Math.max(2, risk + healthBonus));
+}
+
 function computeHealthScore(c: CustomerData, monetarySorted: number[]): number {
   if (c.purchaseCount === 0) return 0;
 
@@ -107,6 +129,23 @@ function computeHealthScore(c: CustomerData, monetarySorted: number[]): number {
   const monetary = monetarySorted.length > 0 ? Math.round((rank / monetarySorted.length) * 30) : 0;
 
   return Math.min(100, recency + freq + monetary);
+}
+
+function ChurnRiskBadge({ risk }: { risk: number }) {
+  if (risk < 50) return null; // Only show when risk is meaningful
+  const { color, label } = risk >= 80
+    ? { color: "text-red-400 bg-red-400/15 border-red-400/30", label: "🔴" }
+    : risk >= 65
+    ? { color: "text-orange-400 bg-orange-400/15 border-orange-400/30", label: "🟠" }
+    : { color: "text-yellow-400 bg-yellow-400/15 border-yellow-400/30", label: "🟡" };
+  return (
+    <span
+      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border hidden sm:inline-flex items-center gap-0.5 ${color}`}
+      title={`Riesgo de churn: ${risk}% — probabilidad de que este cliente deje de comprar`}
+    >
+      {label} {risk}% churn
+    </span>
+  );
 }
 
 function HealthScoreBadge({ score }: { score: number }) {
@@ -1014,7 +1053,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv">("totalSpent");
+  const [sortBy, setSortBy] = useState<"totalSpent" | "purchaseCount" | "lastPurchase" | "avgTicket" | "healthScore" | "clv" | "churnRisk">("totalSpent");
   const [savedSegments, setSavedSegments] = useState<SavedCRMSegment[]>([]);
   const [saveSegmentName, setSaveSegmentName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
@@ -1221,7 +1260,7 @@ export default function CustomersPage() {
         map[name] = {
           name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0, avgTicket: 0,
           lastPurchase: s.date, firstPurchase: s.date, daysSinceLastPurchase: 0,
-          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [], clv: 0,
+          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [], clv: 0, churnRisk: 0,
         };
       }
       const c = map[name];
@@ -1251,7 +1290,7 @@ export default function CustomersPage() {
           name: p.name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0,
           avgTicket: 0, lastPurchase: new Date().toISOString(), firstPurchase: new Date().toISOString(),
           daysSinceLastPurchase: 999, frequency: 999, pendingDebt: 0, products: {},
-          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [], clv: 0,
+          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [], clv: 0, churnRisk: 0,
         };
       }
       const prof = profileByName[p.name.toLowerCase()];
@@ -1279,6 +1318,7 @@ export default function CustomersPage() {
         c.segmentColor = seg.color;
       }
       c.healthScore = 0;
+      c.churnRisk = 0;
       return c;
     });
     // Compute health scores (monetary uses percentile across all customers)
@@ -1289,6 +1329,8 @@ export default function CustomersPage() {
       const purchasesPerYear = c.frequency > 0 && c.frequency < 365 ? 365 / c.frequency : (c.purchaseCount > 0 ? c.purchaseCount : 0);
       const retentionYears = c.segment === "VIP" ? 3 : c.segment === "Premium" ? 2 : c.segment === "Frecuente" ? 1.5 : c.segment === "Activo" ? 1 : c.segment === "En riesgo" ? 0.5 : 0.25;
       c.clv = c.avgTicket > 0 ? Math.round(c.avgTicket * purchasesPerYear * retentionYears) : 0;
+      // Churn risk: predicted probability of losing this customer (0-100)
+      c.churnRisk = computeChurnRisk(c);
     });
     return list;
   }, [sales, debts, profiles, profileByName]);
@@ -1983,6 +2025,7 @@ export default function CustomersPage() {
           <SelectContent>
             <SelectItem value="healthScore">Mayor score</SelectItem>
             <SelectItem value="clv">Mayor CLV</SelectItem>
+            <SelectItem value="churnRisk">Mayor riesgo de churn</SelectItem>
             <SelectItem value="totalSpent">Mayor facturación</SelectItem>
             <SelectItem value="purchaseCount">Más compras</SelectItem>
             <SelectItem value="avgTicket">Mayor ticket</SelectItem>
@@ -2440,6 +2483,7 @@ export default function CustomersPage() {
                     <div className="flex items-center gap-2 shrink-0 ml-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.segmentColor}`}>{c.segment}</span>
                       {c.purchaseCount > 0 && <HealthScoreBadge score={c.healthScore} />}
+                      <ChurnRiskBadge risk={c.churnRisk} />
                       {c.birthday && bdayInRange(c.birthday, 'this_week') && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/20 text-pink-400 hidden sm:inline-flex items-center gap-0.5" title={`Cumpleaños: ${new Date(c.birthday + 'T12:00:00').toLocaleDateString('es-AR')}`}>🎂 Esta semana</span>
                       )}

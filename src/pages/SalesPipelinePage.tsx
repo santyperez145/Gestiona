@@ -643,8 +643,59 @@ export default function SalesPipelinePage() {
     try {
       await supabase.from("deals").update({ stage, updated_at: new Date().toISOString() }).eq("id", deal.id);
       setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage } : d));
+      // Fire deal_stage_change automations matching the new stage label
+      const stageLabel = STAGES.find(s => s.value === stage)?.label ?? stage;
+      void fireStageAutomations(deal, stageLabel);
     } catch {
       toast.error("Error al mover");
+    }
+  };
+
+  const fireStageAutomations = async (deal: Deal, stageLabel: string) => {
+    if (!activeOrg) return;
+    try {
+      const { data: flows } = await supabase
+        .from("automation_flows")
+        .select("id, action_type, action_config, trigger_config")
+        .eq("org_id", activeOrg.id)
+        .eq("active", true)
+        .eq("trigger_type", "deal_stage_change");
+      if (!flows || flows.length === 0) return;
+
+      // Filter client-side by stage label match
+      const matching = flows.filter(f => {
+        const cfg = (f.trigger_config ?? {}) as Record<string, unknown>;
+        return String(cfg.stage ?? "") === stageLabel;
+      });
+      if (matching.length === 0) return;
+
+      let fired = 0;
+      for (const flow of matching) {
+        const actionCfg = (flow.action_config ?? {}) as Record<string, string>;
+        if (flow.action_type === "create_task") {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + Number(actionCfg.task_due_days ?? 1));
+          await supabase.from("tasks").insert({
+            org_id: activeOrg.id,
+            title: actionCfg.message
+              ? `${actionCfg.message} — ${deal.title}`
+              : `Seguimiento: deal "${deal.title}" en ${stageLabel}`,
+            priority: actionCfg.task_priority ?? "medium",
+            due_date: dueDate.toISOString().slice(0, 10),
+            status: "pending",
+          });
+          fired++;
+        } else if (flow.action_type === "notification") {
+          // Show a toast as in-app notification (no notifications table required)
+          toast.info(actionCfg.message || `🎯 Deal "${deal.title}" movido a ${stageLabel}`);
+          fired++;
+        }
+      }
+      if (fired > 0) {
+        toast.success(`⚡ ${fired} automatización${fired > 1 ? "es" : ""} ejecutada${fired > 1 ? "s" : ""}`);
+      }
+    } catch {
+      // Silent fail — don't disrupt the stage move UX
     }
   };
 
@@ -690,6 +741,80 @@ export default function SalesPipelinePage() {
     const days = Math.floor((Date.now() - new Date(d.updated_at).getTime()) / 86400000);
     return days >= 14;
   }), [deals]);
+
+  // Analytics view toggle
+  const [showAnalytics, setShowAnalytics] = useState(false);
+
+  // Analytics: conversion funnel + velocity
+  const analyticsData = useMemo(() => {
+    const ACTIVE_STAGES: Stage[] = ["lead", "contactado", "propuesta", "negociacion"];
+    const now = Date.now();
+
+    // Count per stage (all deals)
+    const countByStage: Record<string, number> = {};
+    const valueByStage: Record<string, number> = {};
+    const ageByStage: Record<string, number[]> = {};
+    STAGES.forEach(s => { countByStage[s.value] = 0; valueByStage[s.value] = 0; ageByStage[s.value] = []; });
+    deals.forEach(d => {
+      countByStage[d.stage] = (countByStage[d.stage] || 0) + 1;
+      valueByStage[d.stage] = (valueByStage[d.stage] || 0) + (d.value_ars || 0);
+      const ageDays = Math.floor((now - new Date(d.created_at).getTime()) / 86400000);
+      ageByStage[d.stage].push(ageDays);
+    });
+
+    const won = deals.filter(d => d.stage === "cerrado");
+    const lost = deals.filter(d => d.stage === "perdido");
+    const open = deals.filter(d => d.stage !== "cerrado" && d.stage !== "perdido");
+
+    // Conversion funnel: ratio of deals that reached each stage vs total entered pipeline
+    const totalEntered = deals.length;
+    const funnel = STAGES.filter(s => s.value !== "perdido").map(s => {
+      const count = countByStage[s.value] || 0;
+      const pct = totalEntered > 0 ? Math.round((count / totalEntered) * 100) : 0;
+      const avgAge = ageByStage[s.value].length > 0
+        ? Math.round(ageByStage[s.value].reduce((a, b) => a + b, 0) / ageByStage[s.value].length)
+        : 0;
+      const avgValue = count > 0 ? Math.round(valueByStage[s.value] / count) : 0;
+      return { stage: s, count, pct, avgAge, avgValue };
+    });
+
+    // Stage conversion rates
+    const conversionRates = ACTIVE_STAGES.map((stageVal, idx) => {
+      const current = countByStage[stageVal] || 0;
+      const prev = idx === 0 ? totalEntered : (countByStage[ACTIVE_STAGES[idx - 1]] || 1);
+      return {
+        label: STAGES.find(s => s.value === stageVal)?.label ?? stageVal,
+        rate: prev > 0 ? Math.round((current / prev) * 100) : 0,
+        count: current,
+      };
+    });
+
+    // Avg deal velocity: days from lead creation to cerrado
+    const velocities = won
+      .map(d => Math.floor((now - new Date(d.created_at).getTime()) / 86400000))
+      .filter(v => v >= 0);
+    const avgVelocity = velocities.length > 0
+      ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
+      : null;
+
+    // Loss analysis: avg value of lost deals
+    const avgLostValue = lost.length > 0
+      ? Math.round(lost.reduce((s, d) => s + (d.value_ars || 0), 0) / lost.length)
+      : 0;
+
+    return {
+      funnel,
+      conversionRates,
+      won: won.length,
+      lost: lost.length,
+      open: open.length,
+      avgVelocity,
+      avgLostValue,
+      totalValue: deals.reduce((s, d) => s + (d.value_ars || 0), 0),
+      wonValue: won.reduce((s, d) => s + (d.value_ars || 0), 0),
+      lostValue: lost.reduce((s, d) => s + (d.value_ars || 0), 0),
+    };
+  }, [deals]);
 
   // Pipeline forecast: group open deals by expected_close month, weighted by stage probability
   const [showForecast, setShowForecast] = useState(false);
@@ -752,6 +877,15 @@ export default function SalesPipelinePage() {
         }
         actions={
           <div className="flex gap-2">
+            <Button
+              variant={showAnalytics ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowAnalytics(v => !v)}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Analíticas
+            </Button>
             <Button variant="outline" size="sm" onClick={() => {
               const header = "Título,Cliente,Etapa,Valor ARS,Cierre esperado,Notas,Creada\n";
               const rows = deals.map(d => [
@@ -821,6 +955,117 @@ export default function SalesPipelinePage() {
         <KPICard label="Tasa de cierre" value={`${stats.winRate.toFixed(0)}%`} icon={User}
           color={stats.winRate >= 50 ? "success" : stats.winRate >= 25 ? "warning" : "destructive"} />
       </div>
+
+      {/* Pipeline Analytics Panel */}
+      {showAnalytics && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-sm">Analíticas del Pipeline</h3>
+            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded ml-auto">
+              {deals.length} deals totales
+            </span>
+          </div>
+
+          {/* Win / Loss / Open summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold font-display text-emerald-400">{analyticsData.won}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Ganados</p>
+              <p className="text-xs text-emerald-400 font-semibold mt-1">{formatARS(analyticsData.wonValue)}</p>
+            </div>
+            <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold font-display text-primary">{analyticsData.open}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">En progreso</p>
+              {analyticsData.avgVelocity !== null && (
+                <p className="text-xs text-muted-foreground mt-1">~{analyticsData.avgVelocity}d ciclo</p>
+              )}
+            </div>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold font-display text-red-400">{analyticsData.lost}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Perdidos</p>
+              <p className="text-xs text-red-400 font-semibold mt-1">{formatARS(analyticsData.lostValue)}</p>
+            </div>
+          </div>
+
+          {/* Conversion Funnel */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Embudo de conversión</p>
+            <div className="space-y-2">
+              {analyticsData.funnel.map((item, idx) => {
+                const maxCount = analyticsData.funnel[0]?.count || 1;
+                const widthPct = maxCount > 0 ? Math.round((item.count / maxCount) * 100) : 0;
+                return (
+                  <div key={item.stage.value} className="flex items-center gap-3">
+                    <span className={`text-xs font-medium w-28 shrink-0 ${item.stage.color}`}>{item.stage.label}</span>
+                    <div className="flex-1 h-7 bg-muted/30 rounded-lg overflow-hidden relative">
+                      <div
+                        className="h-full rounded-lg transition-all duration-500"
+                        style={{
+                          width: `${widthPct}%`,
+                          background: item.stage.value === "cerrado"
+                            ? "hsl(var(--emerald-500, 160 60% 45%))"
+                            : "hsl(var(--primary))",
+                          opacity: 0.6 + (idx * 0.08),
+                        }}
+                      />
+                      <span className="absolute inset-0 flex items-center px-3 text-xs font-semibold">
+                        {item.count} deal{item.count !== 1 ? "s" : ""} · {widthPct}%
+                        {item.avgValue > 0 && (
+                          <span className="ml-2 text-muted-foreground font-normal">
+                            · avg {formatARS(item.avgValue)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {item.avgAge > 0 && (
+                      <span className="text-[10px] text-muted-foreground shrink-0 w-14 text-right">
+                        ~{item.avgAge}d avg
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Deal velocity insight */}
+          {analyticsData.avgVelocity !== null && (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center gap-3">
+              <Clock className="w-5 h-5 text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-semibold">Velocidad promedio de cierre: <span className="text-primary">{analyticsData.avgVelocity} días</span></p>
+                <p className="text-xs text-muted-foreground">
+                  Tiempo promedio desde la creación del deal hasta el cierre en los {analyticsData.won} deals ganados.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Stage value bar chart */}
+          {analyticsData.funnel.some(f => f.avgValue > 0) && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Valor promedio por etapa</p>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={analyticsData.funnel.filter(f => f.avgValue > 0)} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis dataKey={d => d.stage.label} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    formatter={(v: number) => [formatARS(v), "Valor promedio"]}
+                  />
+                  <Bar dataKey="avgValue" radius={[4, 4, 0, 0]}>
+                    {analyticsData.funnel.filter(f => f.avgValue > 0).map((entry, idx) => (
+                      <Cell key={entry.stage.value} fill={idx === analyticsData.funnel.filter(f => f.avgValue > 0).length - 1
+                        ? "hsl(var(--chart-2))" : "hsl(var(--primary))"} opacity={0.7 + idx * 0.05} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Revenue Forecast Chart */}
       {forecastData.length > 0 && (

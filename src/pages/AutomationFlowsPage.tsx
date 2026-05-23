@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import {
   Zap, Plus, Trash2, Play, Pause, Edit2,
   MessageCircle, Bell, Mail, Check, Package,
   ClipboardList, Globe, Users, ShoppingBag, TrendingUp, AlertTriangle,
-  History, RefreshCw, CheckCircle2, XCircle, SkipForward,
+  History, RefreshCw, CheckCircle2, XCircle, SkipForward, Kanban,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -25,7 +26,18 @@ type TriggerType =
   | "birthday"
   | "stock_out"
   | "new_customer"
-  | "big_sale";
+  | "big_sale"
+  | "deal_stage_change";
+
+// Pipeline stages — must match labels in SalesPipelinePage STAGES array
+const PIPELINE_STAGES = [
+  "Lead",
+  "Contactado",
+  "Propuesta",
+  "Negociación",
+  "Cerrado ✓",
+  "Perdido ✗",
+] as const;
 
 type ActionType =
   | "notification"
@@ -59,6 +71,7 @@ const TRIGGER_LABELS: Record<TriggerType, string> = {
   stock_out: "Producto sin stock",
   new_customer: "Nuevo cliente",
   big_sale: "Venta destacada",
+  deal_stage_change: "Deal cambia de etapa",
 };
 
 const TRIGGER_ICONS: Record<TriggerType, React.ReactNode> = {
@@ -69,6 +82,7 @@ const TRIGGER_ICONS: Record<TriggerType, React.ReactNode> = {
   stock_out: <Package className="w-4 h-4 text-destructive" />,
   new_customer: <Users className="w-4 h-4 text-success" />,
   big_sale: <TrendingUp className="w-4 h-4 text-success" />,
+  deal_stage_change: <Kanban className="w-4 h-4 text-primary" />,
 };
 
 const TRIGGER_EMOJI: Record<TriggerType, string> = {
@@ -79,6 +93,7 @@ const TRIGGER_EMOJI: Record<TriggerType, string> = {
   stock_out: "🚫",
   new_customer: "🆕",
   big_sale: "🚀",
+  deal_stage_change: "🎯",
 };
 
 const ACTION_LABELS: Record<ActionType, string> = {
@@ -178,6 +193,28 @@ const FLOW_TEMPLATES: {
       action_config: { task_priority: "medium", task_due_days: 3, message: "Contactar nuevo cliente y dar bienvenida" },
     },
   },
+  {
+    name: "Deal en Negociación → Tarea urgente",
+    emoji: "🎯",
+    description: "Crea tarea de seguimiento cuando un deal entra en negociación",
+    data: {
+      trigger_type: "deal_stage_change",
+      trigger_config: { stage: "Negociación" },
+      action_type: "create_task",
+      action_config: { task_priority: "high", task_due_days: 1, message: "Dar seguimiento — deal en negociación" },
+    },
+  },
+  {
+    name: "Deal cerrado → Notificación",
+    emoji: "🏆",
+    description: "Notifica al equipo cuando se cierra un deal como ganado",
+    data: {
+      trigger_type: "deal_stage_change",
+      trigger_config: { stage: "Cerrado ✓" },
+      action_type: "notification",
+      action_config: { message: "🏆 ¡Deal cerrado exitosamente!" },
+    },
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -189,6 +226,7 @@ const EMPTY_FORM = {
   trigger_days: "30",
   trigger_threshold: "3",
   trigger_min_amount: "50000",
+  trigger_stage: "Negociación" as string,
   action_type: "notification" as ActionType,
   action_message: "",
   action_recipient_email: "",
@@ -223,6 +261,10 @@ function FlowForm({
       toast.error("'Crear orden de compra' solo funciona con triggers de stock bajo o sin stock.");
       return;
     }
+    if (form.trigger_type === "deal_stage_change" && !form.trigger_stage.trim()) {
+      toast.error("Seleccioná una etapa del pipeline.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -232,6 +274,7 @@ function FlowForm({
       if (form.trigger_type === "debt_overdue") trigger_config.days_overdue = Number(form.trigger_days);
       if (form.trigger_type === "low_stock") trigger_config.threshold = Number(form.trigger_threshold);
       if (form.trigger_type === "big_sale") trigger_config.min_amount = Number(form.trigger_min_amount);
+      if (form.trigger_type === "deal_stage_change") trigger_config.stage = form.trigger_stage.trim();
 
       // Build action_config
       const action_config: Record<string, any> = {};
@@ -263,6 +306,7 @@ function FlowForm({
   const showDays = form.trigger_type === "customer_inactive" || form.trigger_type === "debt_overdue";
   const showThreshold = form.trigger_type === "low_stock";
   const showMinAmount = form.trigger_type === "big_sale";
+  const showStage = form.trigger_type === "deal_stage_change";
 
   // Actions that are not compatible with selected trigger
   const incompatibleAction =
@@ -298,6 +342,8 @@ function FlowForm({
             {(["low_stock", "stock_out"] as TriggerType[]).map((v) => (
               <SelectItem key={v} value={v}>{TRIGGER_EMOJI[v]} {TRIGGER_LABELS[v]}</SelectItem>
             ))}
+            <div className="px-2 py-1 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-1">Pipeline CRM</div>
+            <SelectItem value="deal_stage_change">{TRIGGER_EMOJI.deal_stage_change} {TRIGGER_LABELS.deal_stage_change}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -321,6 +367,22 @@ function FlowForm({
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Monto mínimo de la venta (ARS)</label>
           <Input type="number" min="0" value={form.trigger_min_amount} onChange={(e) => set("trigger_min_amount", e.target.value)} />
+        </div>
+      )}
+      {showStage && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Etapa del pipeline que dispara la regla</label>
+          <Select value={form.trigger_stage} onValueChange={(v) => set("trigger_stage", v)}>
+            <SelectTrigger><SelectValue placeholder="Seleccionar etapa…" /></SelectTrigger>
+            <SelectContent>
+              {PIPELINE_STAGES.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            La automatización se disparará cada vez que un deal sea movido a esta etapa.
+          </p>
         </div>
       )}
 
@@ -462,6 +524,7 @@ function triggerDescription(flow: FlowRule): string {
   if (flow.trigger_type === "debt_overdue") return `${base}: ${flow.trigger_config?.days_overdue ?? 0} días`;
   if (flow.trigger_type === "low_stock") return `${base}: ≤ ${flow.trigger_config?.threshold ?? 3} u.`;
   if (flow.trigger_type === "big_sale") return `${base}: ≥ $${Number(flow.trigger_config?.min_amount ?? 50000).toLocaleString("es-AR")}`;
+  if (flow.trigger_type === "deal_stage_change") return `Deal → "${flow.trigger_config?.stage ?? "?"}"`;
   return base;
 }
 
@@ -854,6 +917,7 @@ export default function AutomationFlowsPage() {
               ),
               trigger_threshold: String(editingFlow.trigger_config?.threshold ?? "3"),
               trigger_min_amount: String(editingFlow.trigger_config?.min_amount ?? "50000"),
+              trigger_stage: String(editingFlow.trigger_config?.stage ?? "Negociación"),
               action_type: editingFlow.action_type,
               action_message: editingFlow.action_config?.message ?? "",
               action_recipient_email: editingFlow.action_config?.recipient_email ?? "",
