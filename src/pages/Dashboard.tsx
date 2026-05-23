@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2 } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -1059,19 +1059,29 @@ export default function Dashboard() {
   const [pendingFollowUps, setPendingFollowUps] = useState<Array<{
     id: string; customer_name: string; type: string; summary: string; follow_up_date: string;
   }>>([]);
-  useEffect(() => {
+  const [markingFollowUp, setMarkingFollowUp] = useState<string | null>(null);
+  const loadFollowUps = async () => {
     if (!activeOrg?.id) return;
     const today = new Date().toISOString().slice(0, 10);
-    supabase
+    const { data } = await supabase
       .from("customer_communications")
       .select("id,customer_name,type,summary,follow_up_date")
       .eq("org_id", activeOrg.id)
       .lte("follow_up_date", today)
       .or("outcome.is.null,outcome.eq.pending")
       .order("follow_up_date", { ascending: true })
-      .limit(5)
-      .then(({ data }) => setPendingFollowUps((data || []) as any));
-  }, [activeOrg?.id]);
+      .limit(8);
+    setPendingFollowUps((data || []) as any);
+  };
+  useEffect(() => { loadFollowUps(); }, [activeOrg?.id]);
+
+  const markFollowUpDone = async (id: string) => {
+    setMarkingFollowUp(id);
+    await supabase.from("customer_communications").update({ outcome: "completed" }).eq("id", id);
+    setPendingFollowUps(prev => prev.filter(f => f.id !== id));
+    setMarkingFollowUp(null);
+    toast.success("Seguimiento marcado como completado");
+  };
 
   const kpiCards = [
     { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
@@ -2416,31 +2426,61 @@ export default function Dashboard() {
                 {pendingFollowUps.length}
               </span>
             </h3>
-            <Link to="/customers" className="text-[10px] text-primary hover:underline">Ver clientes →</Link>
+            <Link to="/clientes" className="text-[10px] text-primary hover:underline">Ver CRM →</Link>
           </div>
           <div className="space-y-1.5">
             {pendingFollowUps.map(f => {
-              const isOverdue = f.follow_up_date < new Date().toISOString().slice(0, 10);
+              const today = new Date().toISOString().slice(0, 10);
+              const isOverdue = f.follow_up_date < today;
+              const isToday = f.follow_up_date === today;
+              const isMarking = markingFollowUp === f.id;
               return (
-                <div key={f.id} className="flex items-start gap-2.5 bg-muted/30 rounded-lg px-3 py-2">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${
-                    isOverdue ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400"
+                <div key={f.id} className="flex items-center gap-2.5 bg-muted/30 rounded-lg px-3 py-2 group">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                    isOverdue ? "bg-red-500/15 text-red-400" : isToday ? "bg-amber-500/15 text-amber-400" : "bg-muted text-muted-foreground"
                   }`}>
-                    {isOverdue ? "⏰" : "📅"}
+                    {isOverdue ? "⏰" : isToday ? "🎯" : "📅"}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold">{f.customer_name}</span>
-                      <span className={`text-[9px] ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
-                        {isOverdue ? "Vencido — " : ""}{new Date(f.follow_up_date + "T12:00").toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" })}
+                      <span className={`text-[9px] ${isOverdue ? "text-red-400" : isToday ? "text-amber-400" : "text-muted-foreground"}`}>
+                        {isOverdue ? `Vencido hace ${Math.round((Date.now() - new Date(f.follow_up_date + "T12:00").getTime()) / 86400000)}d` : isToday ? "Hoy" : new Date(f.follow_up_date + "T12:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                       </span>
                     </div>
                     <p className="text-[10px] text-muted-foreground truncate">{f.summary}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {f.customer_name && (
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(`Hola ${f.customer_name}, te escribo para hacer seguimiento. `)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        title="WhatsApp"
+                        className="p-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => markFollowUpDone(f.id)}
+                      disabled={isMarking}
+                      title="Marcar como completado"
+                      className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                    >
+                      {isMarking ? (
+                        <div className="w-3 h-3 border border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3 h-3" />
+                      )}
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
+          <p className="text-[10px] text-muted-foreground mt-2 border-t border-border/30 pt-2">
+            Pasá el mouse sobre un ítem para ver opciones rápidas · <Link to="/clientes" className="text-primary hover:underline">Gestionar todos los seguimientos →</Link>
+          </p>
         </div>
       )}
 

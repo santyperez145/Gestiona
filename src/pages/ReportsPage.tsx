@@ -11,7 +11,8 @@ import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useFileSystemAccess } from "@/hooks/useFileSystemAccess";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine, Area, AreaChart, ComposedChart } from "recharts";
+import { useSalesForecaster } from "@/hooks/useSalesForecaster";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -482,6 +483,7 @@ export default function ReportsPage() {
           <TabsTrigger value="customers">Clientes</TabsTrigger>
           <TabsTrigger value="weekly_trend">📅 Por día</TabsTrigger>
           <TabsTrigger value="by_week">📊 Semanas</TabsTrigger>
+          <TabsTrigger value="forecast">🔮 Proyección</TabsTrigger>
           <TabsTrigger value="scheduled">✉️ Programados</TabsTrigger>
         </TabsList>
 
@@ -705,6 +707,10 @@ export default function ReportsPage() {
 
         <TabsContent value="by_week">
           <ByWeekTab sales={data.sales} />
+        </TabsContent>
+
+        <TabsContent value="forecast">
+          <ForecastTab sales={data.sales} />
         </TabsContent>
 
         <TabsContent value="scheduled">
@@ -3905,6 +3911,221 @@ function ScheduledReportsTab({ userId, settings }: { userId: string; settings: a
           <li>Podes enviar una prueba ahora con "Enviar ahora".</li>
           <li>Requiere configurar SMTP en Ajustes.</li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
+// ─── Forecast Tab ─────────────────────────────────────────────────────────────
+
+function ForecastTab({ sales }: { sales: any[] }) {
+  const [lookback, setLookback] = useState(30);
+  const [horizon, setHorizon] = useState(14);
+
+  const { forecast, trend, r2, slope } = useSalesForecaster(sales, { lookback, horizon });
+
+  // Build combined chart data: last 14 days actual + forecast
+  const chartData = useMemo(() => {
+    const dailyMap: Record<string, number> = {};
+    for (const s of sales) {
+      const d = String(s.date).slice(0, 10);
+      dailyMap[d] = (dailyMap[d] ?? 0) + Number(s.total_ars ?? 0);
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const actuals: { date: string; actual: number; projected?: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      actuals.push({ date: ds, actual: dailyMap[ds] ?? 0 });
+    }
+    const projections = forecast.map(f => ({
+      date: f.date,
+      actual: undefined as unknown as number,
+      projected: f.projected,
+      lower: f.lower,
+      upper: f.upper,
+    }));
+    return [...actuals, ...projections];
+  }, [sales, forecast]);
+
+  const totalForecast = forecast.reduce((s, f) => s + f.projected, 0);
+  const avgForecast = forecast.length > 0 ? totalForecast / forecast.length : 0;
+
+  const trendIcon = trend === "up" ? "↑" : trend === "down" ? "↓" : "→";
+  const trendColor = trend === "up" ? "text-emerald-400" : trend === "down" ? "text-red-400" : "text-yellow-400";
+  const trendLabel = trend === "up" ? "Tendencia alcista" : trend === "down" ? "Tendencia bajista" : "Tendencia estable";
+
+  const r2Color = r2 >= 0.7 ? "text-emerald-400" : r2 >= 0.4 ? "text-yellow-400" : "text-red-400";
+  const r2Label = r2 >= 0.7 ? "Alta confianza" : r2 >= 0.4 ? "Confianza media" : "Baja confianza";
+
+  const slopeAbs = Math.abs(slope);
+  const slopeSign = slope >= 0 ? "+" : "-";
+
+  return (
+    <div className="space-y-5">
+      {/* Controls */}
+      <div className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Historial:</span>
+          {[14, 30, 60, 90].map(d => (
+            <button
+              key={d}
+              onClick={() => setLookback(d)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${lookback === d ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+          <span className="text-xs text-muted-foreground">Proyectar:</span>
+          {[7, 14, 30].map(d => (
+            <button
+              key={d}
+              onClick={() => setHorizon(d)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${horizon === d ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p className="text-xs text-muted-foreground">Tendencia</p>
+          <p className={`text-2xl font-bold ${trendColor}`}>{trendIcon}</p>
+          <p className={`text-xs font-medium ${trendColor}`}>{trendLabel}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p className="text-xs text-muted-foreground">Proyección {horizon}d</p>
+          <p className="text-lg font-bold text-primary font-mono">{formatARS(totalForecast)}</p>
+          <p className="text-xs text-muted-foreground">~{formatARS(avgForecast)}/día</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p className="text-xs text-muted-foreground">Confianza (R²)</p>
+          <p className={`text-2xl font-bold ${r2Color}`}>{(r2 * 100).toFixed(0)}%</p>
+          <p className={`text-xs font-medium ${r2Color}`}>{r2Label}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p className="text-xs text-muted-foreground">Pendiente diaria</p>
+          <p className={`text-lg font-bold font-mono ${slope >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {slopeSign}{formatARS(slopeAbs)}
+          </p>
+          <p className="text-xs text-muted-foreground">por día</p>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <span>Ventas reales + proyección (regresión lineal)</span>
+          <span className="text-[10px] text-muted-foreground bg-muted rounded px-2 py-0.5">OLS</span>
+        </h3>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tickFormatter={d => {
+                const dt = new Date(d + "T12:00:00Z");
+                return dt.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+              }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+              formatter={(val: any, name: string) => [
+                formatARS(Number(val)),
+                name === "actual" ? "Real" : name === "projected" ? "Proyectado" : name === "upper" ? "Límite sup." : "Límite inf.",
+              ]}
+              labelFormatter={d => {
+                const dt = new Date(d + "T12:00:00Z");
+                return dt.toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" });
+              }}
+            />
+            {/* Confidence band */}
+            <Area dataKey="upper" fill="hsl(var(--primary))" stroke="none" opacity={0.08} name="upper" />
+            <Area dataKey="lower" fill="hsl(var(--background))" stroke="none" opacity={1} name="lower" />
+            {/* Actual sales bars */}
+            <Bar dataKey="actual" fill="hsl(var(--primary))" opacity={0.85} radius={[3, 3, 0, 0]} name="actual" />
+            {/* Projected line */}
+            <Line
+              dataKey="projected"
+              stroke="hsl(45, 90%, 55%)"
+              strokeWidth={2}
+              strokeDasharray="5 3"
+              dot={false}
+              name="projected"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Forecast table */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/50">
+          <h3 className="text-sm font-semibold">Proyección día a día</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/50">
+                <th className="px-4 py-2.5 text-left text-xs text-muted-foreground font-medium">Fecha</th>
+                <th className="px-4 py-2.5 text-right text-xs text-muted-foreground font-medium">Proyectado</th>
+                <th className="px-4 py-2.5 text-right text-xs text-muted-foreground font-medium">Rango 80%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecast.map((f, i) => {
+                const dt = new Date(f.date + "T12:00:00Z");
+                const isWeekend = dt.getUTCDay() === 0 || dt.getUTCDay() === 6;
+                return (
+                  <tr key={f.date} className={`border-b border-border/30 last:border-0 ${isWeekend ? "bg-muted/20" : ""}`}>
+                    <td className="px-4 py-2 text-xs">
+                      <span className={`font-medium ${isWeekend ? "text-muted-foreground" : ""}`}>
+                        {dt.toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" })}
+                      </span>
+                      {isWeekend && <span className="ml-1.5 text-[10px] text-muted-foreground/60">fin de semana</span>}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono text-xs font-semibold text-primary">
+                      {formatARS(f.projected)}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono text-xs text-muted-foreground">
+                      {formatARS(f.lower)} – {formatARS(f.upper)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-muted/30">
+                <td className="px-4 py-2.5 text-xs font-bold">Total proyectado</td>
+                <td className="px-4 py-2.5 text-right font-mono text-sm font-bold text-primary">{formatARS(totalForecast)}</td>
+                <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">
+                  {formatARS(forecast.reduce((s, f) => s + f.lower, 0))} – {formatARS(forecast.reduce((s, f) => s + f.upper, 0))}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* Methodology note */}
+      <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-1.5">
+        <p className="text-xs font-semibold text-primary flex items-center gap-1.5">🔬 Metodología</p>
+        <p className="text-xs text-muted-foreground">
+          Regresión lineal OLS (Ordinary Least Squares) sobre los últimos <strong>{lookback} días</strong> de ventas diarias.
+          R² = <strong className={r2Color}>{(r2 * 100).toFixed(1)}%</strong> — indica qué tan bien el modelo se ajusta a los datos históricos.
+          Rango de confianza al <strong>80%</strong>. No considera estacionalidad ni eventos extraordinarios.
+        </p>
       </div>
     </div>
   );

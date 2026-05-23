@@ -1,12 +1,12 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import {
   Plus, X, Edit2, Trash2, DollarSign, User, Calendar,
   TrendingUp, Loader2, GripVertical, FileSpreadsheet, MessageCircle,
+  Phone, Mail, Users, StickyNote, ChevronRight, Clock, Activity,
+  ArrowRight, Send, Zap,
 } from "lucide-react";
 import { formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
@@ -25,6 +27,17 @@ import KPICard from "@/components/shared/KPICard";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Stage = "lead" | "contactado" | "propuesta" | "negociacion" | "cerrado" | "perdido";
+
+type ActivityType = "note" | "call" | "email" | "meeting" | "stage_change" | "whatsapp";
+
+interface DealActivity {
+  id: string;
+  deal_id: string;
+  type: ActivityType;
+  content: string;
+  meta?: { from_stage?: string; to_stage?: string } | null;
+  created_at: string;
+}
 
 interface Deal {
   id: string;
@@ -56,6 +69,264 @@ const EMPTY_FORM = {
   notes: "",
   expected_close: "",
 };
+
+// ─── Activity helpers ─────────────────────────────────────────────────────────
+
+const ACTIVITY_META: Record<ActivityType, { icon: React.FC<any>; label: string; color: string }> = {
+  note:         { icon: StickyNote,    label: "Nota",        color: "text-yellow-400" },
+  call:         { icon: Phone,         label: "Llamada",     color: "text-blue-400" },
+  email:        { icon: Mail,          label: "Email",       color: "text-purple-400" },
+  meeting:      { icon: Users,         label: "Reunión",     color: "text-green-400" },
+  stage_change: { icon: ArrowRight,    label: "Etapa",       color: "text-primary" },
+  whatsapp:     { icon: MessageCircle, label: "WhatsApp",    color: "text-emerald-400" },
+};
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "hace un momento";
+  if (mins < 60) return `hace ${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `hace ${days}d`;
+}
+
+// ─── Activity Panel (Sidebar) ─────────────────────────────────────────────────
+
+function ActivityPanel({
+  deal,
+  orgId,
+  userId,
+  onClose,
+  onStageChange,
+}: {
+  deal: Deal;
+  orgId: string;
+  userId: string;
+  onClose: () => void;
+  onStageChange: (deal: Deal, stage: Stage) => Promise<void>;
+}) {
+  const [activities, setActivities] = useState<DealActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actType, setActType] = useState<ActivityType>("note");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const loadActivities = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("deal_activities")
+      .select("*")
+      .eq("deal_id", deal.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setActivities((data || []) as DealActivity[]);
+    setLoading(false);
+  }, [deal.id]);
+
+  useEffect(() => { loadActivities(); }, [loadActivities]);
+
+  const logActivity = async () => {
+    if (!content.trim()) return;
+    setSaving(true);
+    try {
+      await supabase.from("deal_activities").insert({
+        org_id: orgId,
+        deal_id: deal.id,
+        user_id: userId,
+        type: actType,
+        content: content.trim(),
+      });
+      setContent("");
+      await loadActivities();
+      // Touch the deal's updated_at
+      await supabase.from("deals").update({ updated_at: new Date().toISOString() }).eq("id", deal.id);
+    } catch (e: any) {
+      toast.error(e.message || "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const stageInfo = STAGES.find(s => s.value === deal.stage)!;
+  const isOverdue = deal.expected_close && new Date(deal.expected_close) < new Date()
+    && deal.stage !== "cerrado" && deal.stage !== "perdido";
+
+  return (
+    <div className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-card border-l border-border z-50 flex flex-col shadow-2xl">
+      {/* Header */}
+      <div className="flex items-start gap-3 p-4 border-b border-border shrink-0">
+        <button onClick={onClose} className="mt-0.5 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground shrink-0">
+          <X className="w-4 h-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-semibold text-sm leading-tight truncate">{deal.title}</h2>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {deal.customer_name && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <User className="w-3 h-3" />{deal.customer_name}
+              </span>
+            )}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${stageInfo.bg} ${stageInfo.color}`}>
+              {stageInfo.label}
+            </span>
+            {deal.value_ars > 0 && (
+              <span className="text-xs font-mono font-semibold text-primary">{formatARS(deal.value_ars)}</span>
+            )}
+          </div>
+          {deal.expected_close && (
+            <div className={`text-[10px] flex items-center gap-1 mt-0.5 ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
+              <Calendar className="w-3 h-3" />
+              Cierre: {new Date(deal.expected_close + "T12:00:00").toLocaleDateString("es-AR")}
+              {isOverdue && " (vencido)"}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Quick stage move */}
+      <div className="px-4 py-2.5 border-b border-border/50 shrink-0">
+        <p className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wider">Mover a etapa</p>
+        <div className="flex gap-1.5 flex-wrap">
+          {STAGES.filter(s => s.value !== deal.stage).map(s => (
+            <button
+              key={s.value}
+              onClick={async () => {
+                await onStageChange(deal, s.value);
+                // Log stage change activity
+                await supabase.from("deal_activities").insert({
+                  org_id: orgId,
+                  deal_id: deal.id,
+                  user_id: userId,
+                  type: "stage_change",
+                  content: `Etapa cambiada: ${stageInfo.label} → ${s.label}`,
+                  meta: { from_stage: deal.stage, to_stage: s.value },
+                });
+                await loadActivities();
+              }}
+              className={`text-[10px] px-2.5 py-1 rounded-full border transition-all hover:opacity-80 ${s.bg} ${s.color} border-current/20`}
+            >
+              → {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* New activity form */}
+      <div className="px-4 py-3 border-b border-border/50 shrink-0">
+        <div className="flex gap-1.5 mb-2 flex-wrap">
+          {(Object.keys(ACTIVITY_META) as ActivityType[]).filter(t => t !== "stage_change").map(t => {
+            const meta = ACTIVITY_META[t];
+            const Icon = meta.icon;
+            return (
+              <button
+                key={t}
+                onClick={() => setActType(t)}
+                className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full border transition-all ${
+                  actType === t
+                    ? `bg-primary/15 border-primary/40 text-primary`
+                    : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="w-3 h-3" />{meta.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-2">
+          <Textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder={`Registrar ${ACTIVITY_META[actType].label.toLowerCase()}...`}
+            className="bg-muted resize-none text-xs"
+            rows={2}
+            onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) logActivity(); }}
+          />
+          <Button
+            size="sm"
+            onClick={logActivity}
+            disabled={saving || !content.trim()}
+            className="gradient-gold text-primary-foreground shrink-0 h-auto px-3"
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          </Button>
+        </div>
+        <p className="text-[9px] text-muted-foreground/60 mt-1">Ctrl+Enter para guardar</p>
+      </div>
+
+      {/* Activity timeline */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        {loading ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />Cargando...
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/50 gap-2">
+            <Activity className="w-8 h-8" />
+            <p className="text-xs">Sin actividad registrada</p>
+            <p className="text-[10px]">Agrega una nota, llamada o email arriba</p>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* Timeline line */}
+            <div className="absolute left-3.5 top-0 bottom-0 w-px bg-border/50" />
+            <div className="space-y-4">
+              {activities.map(act => {
+                const meta = ACTIVITY_META[act.type] || ACTIVITY_META.note;
+                const Icon = meta.icon;
+                return (
+                  <div key={act.id} className="flex gap-3 relative pl-1">
+                    {/* Icon bubble */}
+                    <div className={`w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 z-10 ${meta.color}`}>
+                      <Icon className="w-3 h-3" />
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-[10px] font-semibold ${meta.color}`}>{meta.label}</span>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <Clock className="w-2.5 h-2.5" />{timeAgo(act.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">{act.content}</p>
+                      {act.meta?.from_stage && act.meta?.to_stage && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {STAGES.find(s => s.value === act.meta!.from_stage)?.label ?? act.meta.from_stage}
+                          </span>
+                          <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
+                          <span className="text-[9px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                            {STAGES.find(s => s.value === act.meta!.to_stage)?.label ?? act.meta.to_stage}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* WhatsApp quick action */}
+      {deal.customer_name && (
+        <div className="px-4 py-3 border-t border-border/50 shrink-0">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`Hola ${deal.customer_name}, te escribo sobre "${deal.title}". `)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-colors text-xs font-medium"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Enviar WhatsApp a {deal.customer_name}
+            <Zap className="w-3 h-3 ml-auto opacity-60" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Deal Form Dialog ─────────────────────────────────────────────────────────
 
@@ -172,6 +443,7 @@ function DealCard({
   onMove,
   stages,
   onDragStart,
+  onViewActivity,
 }: {
   deal: Deal;
   onEdit: () => void;
@@ -179,6 +451,7 @@ function DealCard({
   onMove: (stage: Stage) => void;
   stages: typeof STAGES;
   onDragStart: (id: string) => void;
+  onViewActivity: () => void;
 }) {
   const isOverdue = deal.expected_close && new Date(deal.expected_close) < new Date() && deal.stage !== "cerrado" && deal.stage !== "perdido";
   const stageInfo = stages.find(s => s.value === deal.stage)!;
@@ -199,6 +472,9 @@ function DealCard({
           <p className="text-sm font-semibold leading-tight">{deal.title}</p>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button onClick={onViewActivity} title="Ver actividad" className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary">
+            <Activity className="w-3 h-3" />
+          </button>
           <button onClick={onEdit} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
             <Edit2 className="w-3 h-3" />
           </button>
@@ -287,6 +563,7 @@ export default function SalesPipelinePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
+  const [activityDeal, setActivityDeal] = useState<Deal | null>(null);
 
   const load = async () => {
     if (!activeOrg) return;
@@ -380,7 +657,22 @@ export default function SalesPipelinePage() {
   }), [deals]);
 
   return (
-    <div className="p-4 md:p-6 space-y-5">
+    <div className={`p-4 md:p-6 space-y-5 transition-all duration-300 ${activityDeal ? "sm:mr-[420px]" : ""}`}>
+      {/* Activity Panel overlay */}
+      {activityDeal && activeOrg && user && (
+        <ActivityPanel
+          deal={activityDeal}
+          orgId={activeOrg.id}
+          userId={user.id}
+          onClose={() => setActivityDeal(null)}
+          onStageChange={async (deal, stage) => {
+            await handleMove(deal, stage);
+            // Update local activityDeal so panel reflects new stage
+            setActivityDeal(prev => prev ? { ...prev, stage } : null);
+          }}
+        />
+      )}
+
       {/* Dialog */}
       <DealDialog
         open={dialog.open}
@@ -539,6 +831,7 @@ export default function SalesPipelinePage() {
                         onDelete={() => handleDelete(deal)}
                         onMove={newStage => handleMove(deal, newStage)}
                         onDragStart={id => setDraggedId(id)}
+                        onViewActivity={() => setActivityDeal(deal)}
                       />
                     ))}
                     {stageDeals.length === 0 && (
