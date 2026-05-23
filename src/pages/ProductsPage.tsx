@@ -26,6 +26,7 @@ import BarcodeScanModal from "@/components/shared/BarcodeScanModal";
 import { broadcastSync } from "@/lib/broadcastSync";
 import { useWebShare } from "@/hooks/useWebShare";
 import { useClipboard } from "@/hooks/useClipboard";
+import { PriceSparkline } from "@/components/shared/PriceSparkline";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -838,6 +839,7 @@ export default function ProductsPage() {
                          </th>
                        ))}
                        <th className="text-right p-3 font-medium">Oferta</th>
+                       <th className="p-3 font-medium hidden lg:table-cell" title="Tendencia de precio (historial)">Tendencia</th>
                        <th className="text-right p-3 font-medium cursor-pointer hover:text-foreground select-none"
                          onClick={() => setProductSort(s => ({ col: "margin", dir: s.col === "margin" && s.dir === "desc" ? "asc" : "desc" }))}>
                          <span className="inline-flex items-center gap-1 justify-end">Ganancia
@@ -896,6 +898,9 @@ export default function ProductsPage() {
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
                          <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
                          <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
+                         <td className="p-3 hidden lg:table-cell">
+                           <PriceSparkline productId={p.id} orgId={activeOrg?.id} width={72} />
+                         </td>
                          <td className="p-3 text-right">
                            {(() => {
                              const margin = Number(p.sale_price_ars) > 0 ? (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 : 0;

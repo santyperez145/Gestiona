@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { RefreshCw, Database, Shield, Receipt, Palette, Building2, Upload, Keyboard, RotateCcw, CreditCard, MessageCircle, ShoppingBag, Droplets, Ticket, Plus, Trash2, FileSpreadsheet, FileJson, Download, Bell, DollarSign, Tags, Cloud, Zap, AlertTriangle, CheckCircle2, XCircle, Loader2, FileCheck, MapPin, Edit2, Check, X, Smartphone, BookMarked, Save, Mail, Lock, Server, Eye, EyeOff, TrendingUp, Package } from "lucide-react";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { applyColors } from "@/lib/useBusinessConfig";
 import { logAudit } from "@/lib/auditLog";
@@ -1030,6 +1030,9 @@ export default function SettingsPage() {
           {/* Cloud Backups */}
           <CloudBackupsSection userId={user!.id} />
 
+          {/* Automated Reports & Alerts */}
+          <AutomatedReportsSection />
+
           {/* AFIP Facturación Electrónica */}
           <AfipSection />
 
@@ -1634,6 +1637,135 @@ function CloudBackupsSection({ userId }: { userId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ===== Automated Reports =====
+function AutomatedReportsSection() {
+  const { activeOrg } = useOrg();
+  const [sendingDigest, setSendingDigest] = useState(false);
+  const [sendingAlert, setSendingAlert] = useState(false);
+  const [lastSent, setLastSent] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("gestiona.reports.lastSent") || "{}"); } catch { return {}; }
+  });
+
+  const trigger = async (fn: string, key: string, label: string, setter: (v: boolean) => void) => {
+    setter(true);
+    try {
+      const { error } = await supabase.functions.invoke(fn);
+      if (error) throw error;
+      const now = new Date().toLocaleString("es-AR");
+      const next = { ...lastSent, [key]: now };
+      setLastSent(next);
+      localStorage.setItem("gestiona.reports.lastSent", JSON.stringify(next));
+      toast.success(`${label} enviado/ejecutado`);
+    } catch (e: any) {
+      toast.error(`Error: ${e.message}`);
+    } finally {
+      setter(false);
+    }
+  };
+
+  const JOBS = [
+    {
+      key: "weekly_digest",
+      fn: "weekly-performance-digest",
+      icon: Mail,
+      label: "Resumen semanal",
+      desc: "Email con KPIs de la semana pasada (ingresos, ganancia, ventas, clientes). Se ejecuta automáticamente cada lunes 9:00 UTC.",
+      schedule: "Lunes 9:00 UTC",
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+      setter: setSendingDigest,
+      sending: sendingDigest,
+    },
+    {
+      key: "daily_kpi",
+      fn: "daily-kpi-alert",
+      icon: Bell,
+      label: "Alerta KPI diaria",
+      desc: "Notificación con ventas del día, alertas de métricas bajo umbral. Se ejecuta automáticamente cada noche.",
+      schedule: "Noche (automático)",
+      color: "text-yellow-400",
+      bg: "bg-yellow-500/10",
+      setter: setSendingAlert,
+      sending: sendingAlert,
+    },
+    {
+      key: "stock_alerts",
+      fn: "check-stock-alerts",
+      icon: Package,
+      label: "Alertas de stock",
+      desc: "Revisa productos por debajo del umbral y genera notificaciones de stock bajo.",
+      schedule: "A demanda",
+      color: "text-orange-400",
+      bg: "bg-orange-500/10",
+      setter: setSendingAlert,
+      sending: sendingAlert,
+    },
+    {
+      key: "overdue_debts",
+      fn: "check-overdue-debts",
+      icon: AlertTriangle,
+      label: "Deudas vencidas",
+      desc: "Revisa deudas con fecha de vencimiento pasada y genera notificaciones de alerta.",
+      schedule: "A demanda",
+      color: "text-red-400",
+      bg: "bg-red-500/10",
+      setter: setSendingAlert,
+      sending: sendingAlert,
+    },
+  ] as const;
+
+  return (
+    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" />Reportes y Alertas Automatizados
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Ejecutá manualmente cualquier tarea automática o verificá su última ejecución.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {JOBS.map(job => {
+          const Icon = job.icon;
+          return (
+            <div key={job.key} className={`p-3.5 rounded-xl border border-border/40 ${job.bg}`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[hsl(228_24%_10%)]`}>
+                  <Icon className={`w-4 h-4 ${job.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">{job.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{job.desc}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] font-mono bg-muted/40 px-2 py-0.5 rounded text-muted-foreground">{job.schedule}</span>
+                    {lastSent[job.key] && (
+                      <span className="text-[10px] text-muted-foreground/60">Última: {lastSent[job.key]}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full mt-3 h-7 text-xs gap-1.5"
+                disabled={job.sending}
+                onClick={() => trigger(job.fn, job.key, job.label, job.setter)}
+              >
+                {job.sending ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Zap className="w-3 h-3" />
+                )}
+                {job.sending ? "Ejecutando…" : "Ejecutar ahora"}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
