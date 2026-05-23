@@ -83,6 +83,7 @@ const PricingIntelligencePage  = lazy(() => import("@/pages/PricingIntelligenceP
 const TeamPerformancePage      = lazy(() => import("@/pages/TeamPerformancePage"));
 const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
+const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -227,6 +228,7 @@ function ProtectedRoutes() {
               <Route path="/rendimiento-equipo" element={<TeamPerformancePage />} />
               <Route path="/cupones" element={<CouponsPage />} />
               <Route path="/calendario" element={<CalendarPage />} />
+              <Route path="/rfm" element={<CustomerRFMPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
