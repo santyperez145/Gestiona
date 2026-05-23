@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
+import { useSalesForecaster } from "@/hooks/useSalesForecaster";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -121,6 +123,13 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
   const totalProfit = todaySales.reduce((s: number, v: any) => s + Number(v.profit_ars || 0), 0);
   const totalUnits = todaySales.reduce((s: number, v: any) => s + Number(v.quantity || 1), 0);
 
+  // Animated revenue counter — smoothly animates as sales update in real-time
+  const animatedRevenue = useAnimatedCounter(totalRevenue, {
+    duration: 800,
+    easing: "easeOut",
+    format: v => `$${Math.round(v).toLocaleString("es-AR")}`,
+  }) as string;
+
   // By seller
   const bySeller: Record<string, { rev: number; count: number }> = {};
   todaySales.forEach((s: any) => {
@@ -169,7 +178,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
           {isEvening && <span className="text-[9px] bg-primary/15 text-primary rounded-full px-2 py-0.5 font-bold">Cierre</span>}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold font-display text-success">{formatARS(totalRevenue)}</span>
+          <span className="text-sm font-bold font-display text-success tabular-nums">{animatedRevenue}</span>
           <span className="text-muted-foreground text-xs">{open ? '▲' : '▼'}</span>
         </div>
       </button>

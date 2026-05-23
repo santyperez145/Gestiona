@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useStorageEstimate } from "@/hooks/useStorageEstimate";
+import { usePermissionStatus } from "@/hooks/usePermissionStatus";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -19,6 +21,53 @@ import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+// ─── SystemInfoSection ────────────────────────────────────────────────────────
+function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {
+  const storage = useStorageEstimate();
+  const perms = usePermissionStatus(["notifications", "camera", "microphone", "geolocation"]);
+
+  const permLabel = (s: string) => s === "granted" ? "✓ Activo" : s === "denied" ? "✗ Bloqueado" : s === "prompt" ? "Sin respuesta" : "—";
+  const permColor = (s: string) => s === "granted" ? "text-success" : s === "denied" ? "text-destructive" : "text-muted-foreground";
+
+  return (
+    <div className="space-y-2 text-sm">
+      <div className="flex justify-between"><span className="text-muted-foreground">Negocio:</span><span className="font-medium">{businessName}</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{productCount}</span></div>
+      {!storage.loading && storage.quota > 0 && (
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Caché local:</span>
+            <span className="font-medium">{storage.usedHuman} / {storage.quotaHuman}</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-1">
+            <div
+              className={`h-1 rounded-full transition-all ${storage.percent > 80 ? "bg-destructive" : storage.percent > 60 ? "bg-warning" : "bg-success"}`}
+              style={{ width: `${Math.min(100, storage.percent)}%` }}
+            />
+          </div>
+          {!storage.persisted && (
+            <button onClick={storage.requestPersistent} className="text-[10px] text-primary hover:underline">
+              Proteger datos del navegador
+            </button>
+          )}
+        </div>
+      )}
+      <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Cloud ☁️</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Activo ✓</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-success">Activo ✓</span></div>
+      {perms.notifications !== "unsupported" && (
+        <div className="flex justify-between"><span className="text-muted-foreground">Notificaciones:</span><span className={`font-medium text-xs ${permColor(perms.notifications)}`}>{permLabel(perms.notifications)}</span></div>
+      )}
+      {perms.camera !== "unsupported" && (
+        <div className="flex justify-between"><span className="text-muted-foreground">Cámara:</span><span className={`font-medium text-xs ${permColor(perms.camera)}`}>{permLabel(perms.camera)}</span></div>
+      )}
+      <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">8.5</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{userEmail}</span></div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   usePageTitle("Ajustes");
@@ -995,16 +1044,7 @@ export default function SettingsPage() {
           {/* System info */}
           <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Negocio:</span><span className="font-medium">{businessName}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{productCount}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Cloud ☁️</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Activo ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-success">Activo ✓</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Versión:</span><span className="font-medium">7.5</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Usuario:</span><span className="font-medium text-xs truncate max-w-[150px]">{user?.email}</span></div>
-            </div>
+            <SystemInfoSection businessName={businessName} productCount={productCount} userEmail={user?.email} />
           </div>
 
           <div className="bg-[hsl(228_24%_7%)] border border-success/30 rounded-[10px] p-4 md:p-6">
