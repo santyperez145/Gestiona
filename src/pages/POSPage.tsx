@@ -18,6 +18,7 @@ import {
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePriceList } from "@/hooks/usePriceList";
+import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
 import confetti from "canvas-confetti";
@@ -696,6 +697,7 @@ export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
+  const [recSales, setRecSales] = useState<{ product_id: string; product_name: string; date: string; quantity: number }[]>([]);
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, any[]>>({});
   const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
   const [search, setSearch] = useState("");
@@ -848,6 +850,7 @@ export default function POSPage() {
   // Price list — auto-applied when customer has one assigned
   const [customerPriceListId, setCustomerPriceListId] = useState<string | null>(null);
   const { meta: activePriceList, getPrice } = usePriceList(customerPriceListId);
+  const getRecommendations = useProductRecommendations(recSales);
 
   const [customerDebt, setCustomerDebt] = useState<number | null>(null);
   useEffect(() => {
@@ -1090,11 +1093,13 @@ export default function POSPage() {
     if (!user) return;
     (async () => {
       const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-      const [prods, sett, { data: recentSales }, allVariants] = await Promise.all([
+      const since90 = new Date(); since90.setDate(since90.getDate() - 90);
+      const [prods, sett, { data: recentSales }, allVariants, { data: salesForRec }] = await Promise.all([
         getProductsDB(user.id),
         getSettingsDB(user.id),
         supabase.from('sales').select('product_id, quantity').gte('date', since30.toISOString().slice(0, 10)),
         getVariantsByUserDB(user.id).catch(() => []),
+        supabase.from('sales').select('product_id, product_name, date, quantity').gte('date', since90.toISOString().slice(0, 10)).not('product_id', 'is', null),
       ]);
       setProducts(prods);
       setSettings(sett);
@@ -1111,6 +1116,7 @@ export default function POSPage() {
       (recentSales || []).forEach((s: any) => { if (s.product_id) vel[s.product_id] = (vel[s.product_id] || 0) + Number(s.quantity || 1); });
       const top5 = Object.entries(vel).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => id);
       setTopProductIds(new Set(top5));
+      if (salesForRec) setRecSales(salesForRec as { product_id: string; product_name: string; date: string; quantity: number }[]);
     })();
   }, [user]);
 
@@ -1722,6 +1728,66 @@ export default function POSPage() {
             <span>Lista: <strong>{activePriceList.name}</strong> · -{activePriceList.discount_pct}% aplicado en precios</span>
           </div>
         )}
+
+        {/* Frequently bought together recommendations */}
+        {cart.length > 0 && recSales.length > 0 && (() => {
+          // Aggregate recommendations for all items in cart
+          const cartIds = new Set(cart.map(c => c.productId));
+          const recMap = new Map<string, { name: string; count: number }>();
+          cart.forEach(item => {
+            getRecommendations(item.productId).forEach(r => {
+              if (cartIds.has(r.product_id)) return; // already in cart
+              const cur = recMap.get(r.product_id);
+              recMap.set(r.product_id, { name: r.product_name, count: (cur?.count ?? 0) + r.coCount });
+            });
+          });
+          const recs = Array.from(recMap.entries())
+            .sort(([, a], [, b]) => b.count - a.count)
+            .slice(0, 3);
+          if (recs.length === 0) return null;
+          return (
+            <div className="px-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                🛍 También llevan
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {recs.map(([id, { name }]) => {
+                  const prod = products.find(p => p.id === id);
+                  if (!prod) return null;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        const cartItem: CartItem = {
+                          productId: prod.id,
+                          name: prod.name,
+                          brand: prod.brand || "",
+                          price: prod.sale_price_ars || 0,
+                          costUSD: prod.total_cost_usd || 0,
+                          exchangeRate: prod.exchange_rate || 0,
+                          quantity: 1,
+                          stock: prod.stock ?? 0,
+                          useDiscount: false,
+                          category: prod.category || "",
+                          discountPrice: prod.discount_price_ars || null,
+                        };
+                        setCart(prev => {
+                          const existing = prev.find(c => c.productId === id);
+                          if (existing) return prev.map(c => c.productId === id ? { ...c, quantity: c.quantity + 1 } : c);
+                          return [...prev, cartItem];
+                        });
+                        toast.success(`${prod.name} agregado`);
+                      }}
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <Plus className="w-2.5 h-2.5" />{name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Internal note */}
         <Input
