@@ -12,10 +12,11 @@ import { toast } from "sonner";
 import {
   CheckSquare, Plus, Check, Clock, AlertTriangle, X,
   Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search, FileSpreadsheet,
-  LayoutList, Kanban,
+  LayoutList, Kanban, Share2,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { useWebShare } from "@/hooks/useWebShare";
 
 type Task = {
   id: string;
@@ -73,6 +74,8 @@ export default function TasksPage() {
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
   const [addingSubtaskFor, setAddingSubtaskFor] = useState<string | null>(null);
   const [subtaskInput, setSubtaskInput] = useState("");
+
+  const { share } = useWebShare();
 
   const load = async () => {
     if (!activeOrg) return;
@@ -531,13 +534,25 @@ export default function TasksPage() {
                   })()}
                 </div>
 
-                {/* Delete */}
-                <button
-                  onClick={() => deleteTask(task)}
-                  className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 mt-0.5"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                {/* Share + Delete */}
+                <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                  <button
+                    onClick={() => share({
+                      title: task.title,
+                      text: `📋 ${task.title}${task.description ? `\n${task.description}` : ""}${task.due_date ? `\n📅 Vence: ${new Date(task.due_date + "T12:00:00").toLocaleDateString("es-AR")}` : ""}`,
+                    })}
+                    className="text-muted-foreground/40 hover:text-primary transition-colors p-0.5"
+                    title="Compartir tarea"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => deleteTask(task)}
+                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             );
           })}

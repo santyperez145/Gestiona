@@ -4,6 +4,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
+import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -349,6 +351,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { permission, notify } = useNotifications();
+  const { online, offlineSince, connection } = useNetworkStatus();
   const [rawData, setRawData] = useState<{ products: any[]; sales: any[]; purchases: any[]; debts: any[]; settings: any; expenses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('all');
@@ -1049,6 +1052,27 @@ export default function Dashboard() {
   const { forecast: forecastPoints, trend: forecastTrend, r2: forecastR2 } = useSalesForecaster(forecastSaleEntries, { horizon: 30 });
   const forecast30dTotal = useMemo(() => forecastPoints.reduce((s, p) => s + p.value, 0), [forecastPoints]);
 
+  // ── Supabase Realtime KPIs (live sale/stock/debt events) ──────────────────
+  const { lastSale, saleEventCount } = useRealtimeKPIs(activeOrg?.id);
+
+  // ── CRM Follow-ups due today / overdue ────────────────────────────────────
+  const [pendingFollowUps, setPendingFollowUps] = useState<Array<{
+    id: string; customer_name: string; type: string; summary: string; follow_up_date: string;
+  }>>([]);
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    const today = new Date().toISOString().slice(0, 10);
+    supabase
+      .from("customer_communications")
+      .select("id,customer_name,type,summary,follow_up_date")
+      .eq("org_id", activeOrg.id)
+      .lte("follow_up_date", today)
+      .or("outcome.is.null,outcome.eq.pending")
+      .order("follow_up_date", { ascending: true })
+      .limit(5)
+      .then(({ data }) => setPendingFollowUps((data || []) as any));
+  }, [activeOrg?.id]);
+
   const kpiCards = [
     { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
@@ -1096,6 +1120,22 @@ export default function Dashboard() {
 
   return (
     <div>
+      {/* Offline/slow network banner */}
+      {!online && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 mb-4 rounded-xl border border-orange-500/30 bg-orange-500/8 text-sm text-orange-300">
+          <span className="inline-block w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
+          <span className="flex-1">
+            Sin conexión{offlineSince ? ` desde las ${offlineSince.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}` : ""} — Los datos pueden estar desactualizados.
+          </span>
+        </div>
+      )}
+      {online && connection?.effectiveType && ["slow-2g", "2g"].includes(connection.effectiveType) && (
+        <div className="flex items-center gap-2 px-4 py-2 mb-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-400">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          Conexión lenta ({connection.effectiveType.toUpperCase()}) — algunos datos pueden tardar en cargar.
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
         <div>
@@ -2322,7 +2362,7 @@ export default function Dashboard() {
       })()}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-8 mt-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-4 mt-5">
         {kpiCards.map((c, i) => (
           <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-success/40 ring-1 ring-success/20 cursor-pointer' : 'border-border'}`}
             style={{ animationDelay: `${i * 50}ms` }}
@@ -2352,6 +2392,57 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Realtime last sale banner */}
+      {lastSale && saleEventCount > 0 && (
+        <div key={saleEventCount} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-success/25 bg-success/5 mb-4 animate-fade-in">
+          <span className="inline-block w-2 h-2 rounded-full bg-success animate-ping shrink-0" />
+          <div className="flex-1 min-w-0 text-xs">
+            <span className="font-semibold text-success">Nueva venta en tiempo real · </span>
+            <span className="text-muted-foreground">{lastSale.product} · {lastSale.customer} · </span>
+            <span className="font-mono font-bold">{formatARS(lastSale.amount)}</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground shrink-0">#{saleEventCount} evento{saleEventCount > 1 ? "s" : ""}</span>
+        </div>
+      )}
+
+      {/* CRM Follow-ups widget */}
+      {pendingFollowUps.length > 0 && (
+        <div className="bg-card border border-amber-500/20 rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-amber-400" />Seguimientos CRM pendientes
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[9px] font-bold">
+                {pendingFollowUps.length}
+              </span>
+            </h3>
+            <Link to="/customers" className="text-[10px] text-primary hover:underline">Ver clientes →</Link>
+          </div>
+          <div className="space-y-1.5">
+            {pendingFollowUps.map(f => {
+              const isOverdue = f.follow_up_date < new Date().toISOString().slice(0, 10);
+              return (
+                <div key={f.id} className="flex items-start gap-2.5 bg-muted/30 rounded-lg px-3 py-2">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${
+                    isOverdue ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400"
+                  }`}>
+                    {isOverdue ? "⏰" : "📅"}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold">{f.customer_name}</span>
+                      <span className={`text-[9px] ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
+                        {isOverdue ? "Vencido — " : ""}{new Date(f.follow_up_date + "T12:00").toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "short" })}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate">{f.summary}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ROI & Margin Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

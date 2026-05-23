@@ -16,6 +16,7 @@ import {
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
 } from "lucide-react";
 import { useContactPicker } from "@/hooks/useContactPicker";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -328,7 +329,14 @@ const COMM_TYPES = [
   { value: "other", label: "Otro", icon: "📌" },
 ];
 
-type CommEntry = { id: string; type: string; summary: string; created_at: string };
+type CommEntry = {
+  id: string;
+  type: string;
+  summary: string;
+  created_at: string;
+  follow_up_date?: string | null;
+  outcome?: string | null;
+};
 
 // ─────────────────────────────────────────────────────────────
 // Customer Sales Timeline — 360 view
@@ -532,13 +540,19 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
   const [entries, setEntries] = useState<CommEntry[]>([]);
   const [type, setType] = useState("note");
   const [summary, setSummary] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
   const [adding, setAdding] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  // Voice-to-text for quick note entry
+  const { transcript, listening, start: startSpeech, stop: stopSpeech, supported: speechSupported, reset: resetSpeech } = useSpeechRecognition({
+    onResult: (r) => { if (r.isFinal) setSummary(prev => (prev + " " + r.transcript).trim()); },
+  });
 
   useEffect(() => {
     supabase
       .from("customer_communications")
-      .select("id,type,summary,created_at")
+      .select("id,type,summary,created_at,follow_up_date,outcome")
       .eq("org_id", orgId)
       .eq("customer_name", customerName)
       .order("created_at", { ascending: false })
@@ -552,23 +566,47 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
     try {
       const { data, error } = await supabase
         .from("customer_communications")
-        .insert({ org_id: orgId, user_id: userId, customer_name: customerName, type, summary: summary.trim() })
-        .select("id,type,summary,created_at")
+        .insert({
+          org_id: orgId,
+          user_id: userId,
+          customer_name: customerName,
+          type,
+          summary: summary.trim(),
+          follow_up_date: followUpDate || null,
+          outcome: followUpDate ? "pending" : null,
+        })
+        .select("id,type,summary,created_at,follow_up_date,outcome")
         .single();
       if (error) throw error;
       setEntries(prev => [data as CommEntry, ...prev]);
       setSummary("");
+      setFollowUpDate("");
+      resetSpeech();
       setShowForm(false);
-      toast.success("Interacción registrada");
+      toast.success(followUpDate ? `Interacción + seguimiento para ${new Date(followUpDate + "T12:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}` : "Interacción registrada");
     } catch { toast.error("Error al guardar"); }
     finally { setAdding(false); }
   };
+
+  const markOutcome = async (id: string, outcome: string) => {
+    await supabase.from("customer_communications").update({ outcome }).eq("id", id);
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, outcome } : e));
+    toast.success(outcome === "completed" ? "✅ Seguimiento completado" : "Resultado actualizado");
+  };
+
+  const pendingFollowUps = entries.filter(e => e.follow_up_date && (e.outcome === "pending" || !e.outcome));
+  const overdue = pendingFollowUps.filter(e => e.follow_up_date! < new Date().toISOString().slice(0, 10));
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Clock className="w-3 h-3" />Historial de comunicaciones
+          {overdue.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[9px] font-bold">
+              {overdue.length} vencido{overdue.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </h3>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -580,6 +618,7 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
 
       {showForm && (
         <div className="bg-muted/40 rounded-[8px] p-3 space-y-2">
+          {/* Interaction type */}
           <div className="grid grid-cols-3 gap-1">
             {COMM_TYPES.map(t => (
               <button
@@ -593,18 +632,61 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
               </button>
             ))}
           </div>
-          <Textarea
-            value={summary}
-            onChange={e => setSummary(e.target.value)}
-            placeholder="Descripción de la interacción..."
-            className="bg-card resize-none text-xs"
-            rows={2}
-          />
+
+          {/* Summary + voice input */}
+          <div className="relative">
+            <Textarea
+              value={summary + (listening ? " " + transcript : "")}
+              onChange={e => setSummary(e.target.value)}
+              placeholder="Descripción de la interacción…"
+              className="bg-card resize-none text-xs pr-9"
+              rows={2}
+            />
+            {speechSupported && (
+              <button
+                type="button"
+                onMouseDown={startSpeech}
+                onMouseUp={stopSpeech}
+                onTouchStart={startSpeech}
+                onTouchEnd={stopSpeech}
+                className={`absolute right-2 top-2 p-1 rounded-md transition-colors ${
+                  listening ? "bg-red-500/20 text-red-400 animate-pulse" : "text-muted-foreground hover:text-primary"
+                }`}
+                title={listening ? "Escuchando… suelta para parar" : "Mantené presionado para dictar"}
+              >
+                <Bell className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {listening && (
+            <p className="text-[10px] text-red-400 animate-pulse">🎤 Escuchando…</p>
+          )}
+
+          {/* Follow-up date */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
+            <input
+              type="date"
+              value={followUpDate}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={e => setFollowUpDate(e.target.value)}
+              className="flex-1 h-7 text-xs bg-card border border-border rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+            {followUpDate && (
+              <button onClick={() => setFollowUpDate("")} className="text-muted-foreground hover:text-foreground text-[10px]">✕ Quitar</button>
+            )}
+          </div>
+          {followUpDate && (
+            <p className="text-[10px] text-primary/70 flex items-center gap-1">
+              <Bell className="w-3 h-3" />Recordatorio para {new Date(followUpDate + "T12:00").toLocaleDateString("es-AR", { weekday: "long", day: "2-digit", month: "long" })}
+            </p>
+          )}
+
           <div className="flex gap-2">
             <Button size="sm" className="flex-1 text-xs h-7" onClick={handleAdd} disabled={adding || !summary.trim()}>
               {adding ? "Guardando…" : "Guardar"}
             </Button>
-            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { setShowForm(false); resetSpeech(); }}>Cancelar</Button>
           </div>
         </div>
       )}
@@ -612,17 +694,39 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
       {entries.length === 0 ? (
         <p className="text-[11px] text-muted-foreground/50 italic py-1">Sin interacciones registradas</p>
       ) : (
-        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+        <div className="space-y-1.5 max-h-52 overflow-y-auto">
           {entries.map(e => {
             const t = COMM_TYPES.find(ct => ct.value === e.type);
+            const hasFollowUp = !!e.follow_up_date;
+            const isOverdue = hasFollowUp && e.follow_up_date! < new Date().toISOString().slice(0, 10) && (e.outcome === "pending" || !e.outcome);
+            const isPending = hasFollowUp && e.follow_up_date! >= new Date().toISOString().slice(0, 10) && (e.outcome === "pending" || !e.outcome);
             return (
-              <div key={e.id} className="flex gap-2 text-xs bg-muted/30 rounded-lg px-2.5 py-2">
+              <div key={e.id} className={`flex gap-2 text-xs rounded-lg px-2.5 py-2 ${
+                isOverdue ? "bg-red-500/8 border border-red-500/20" : isPending ? "bg-primary/5 border border-primary/15" : "bg-muted/30"
+              }`}>
                 <span className="shrink-0">{t?.icon || "📌"}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground leading-tight">{e.summary}</p>
                   <p className="text-muted-foreground text-[10px] mt-0.5">
                     {t?.label} · {new Date(e.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} {new Date(e.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
+                  {hasFollowUp && (
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full border ${
+                        isOverdue ? "bg-red-500/15 text-red-400 border-red-500/20"
+                        : e.outcome === "completed" ? "bg-green-500/15 text-green-400 border-green-500/20"
+                        : "bg-primary/10 text-primary border-primary/20"
+                      }`}>
+                        {isOverdue ? "⏰ Vencido" : e.outcome === "completed" ? "✅ Completado" : `📅 ${new Date(e.follow_up_date! + "T12:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}`}
+                      </span>
+                      {(isOverdue || isPending) && (
+                        <button
+                          onClick={() => markOutcome(e.id, "completed")}
+                          className="text-[9px] text-green-400 hover:underline"
+                        >Marcar hecho</button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -1065,6 +1066,42 @@ export default function InvoicesPage() {
                               Comprobante F{tipoCbte} Nro {String(inv.numero_afip).padStart(8, "0")}
                             </p>
                           )}
+                          {/* AFIP QR Code — RG 4291/2018 */}
+                          {afipSettings?.afip_cuit && (() => {
+                            const qrPayload = {
+                              ver: 1,
+                              fecha: inv.issue_date,
+                              cuit: parseInt((afipSettings.afip_cuit || "0").replace(/[-\s]/g, "")),
+                              ptoVta: afipSettings.afip_punto_venta || 1,
+                              tipoCmp: inv.tipo_comprobante || 11,
+                              nroCmp: inv.numero_afip || 0,
+                              importe: Number(inv.total),
+                              moneda: "PES",
+                              ctz: 1,
+                              tipoDocRec: inv.customer_tax_id
+                                ? (inv.customer_tax_id.replace(/[-\s]/g, "").length === 11 ? 80 : 96)
+                                : 99,
+                              nroDocRec: inv.customer_tax_id
+                                ? parseInt(inv.customer_tax_id.replace(/[-\s]/g, "")) || 0
+                                : 0,
+                              tipoCodAut: "E",
+                              codAut: parseInt(inv.cae || "0"),
+                            };
+                            const qrUrl = `https://www.afip.gob.ar/fe/qr/?p=${btoa(JSON.stringify(qrPayload))}`;
+                            return (
+                              <div className="flex items-center gap-3 pt-1">
+                                <div className="bg-white p-1.5 rounded-lg inline-flex">
+                                  <QRCodeSVG value={qrUrl} size={72} bgColor="#ffffff" fgColor="#000000" level="M" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-medium text-green-400 flex items-center gap-1">
+                                    <QrCode className="w-3 h-3" />QR AFIP
+                                  </p>
+                                  <p className="text-[9px] text-muted-foreground mt-0.5">Escaneá para verificar en afip.gob.ar</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                       {["rejected","error","config_error","network_error","validation_error"].includes(inv.afip_status || "") && inv.afip_error && (
