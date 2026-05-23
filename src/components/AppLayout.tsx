@@ -1,7 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/lib/useUserRole";
@@ -81,6 +81,7 @@ const SECTION_LABELS: Record<string, string> = {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { role } = useUserRole();
   const { isPlatformAdmin, activeOrg } = useOrg();
@@ -115,6 +116,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     onIdle: () => setIdleLocked(true),
     onActive: () => setIdleLocked(false),
   });
+
+  // ── Global keyboard shortcuts for quick navigation ────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // Alt+1 → Dashboard, Alt+2 → POS, Alt+3 → Productos, Alt+4 → Ventas, Alt+5 → Clientes
+      const routes: Record<string, string> = {
+        "1": "/", "2": "/caja", "3": "/productos", "4": "/ventas", "5": "/clientes",
+        "6": "/tareas", "7": "/movimientos", "8": "/analitica", "9": "/integraciones",
+      };
+      if (routes[e.key]) { e.preventDefault(); navigate(routes[e.key]); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [navigate]);
 
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
