@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   CheckSquare, Plus, Check, Clock, AlertTriangle, X,
   Circle, SquareStack, Flame, ChevronUp, ChevronDown, Search, FileSpreadsheet,
-  LayoutList, Kanban, Share2,
+  LayoutList, Kanban, Share2, CalendarDays,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -69,7 +69,8 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [viewMode, setViewMode] = useState<"list" | "kanban" | "calendar">("list");
+  const [calMonth, setCalMonth] = useState<Date>(() => { const d = new Date(); d.setDate(1); return d; });
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
   const [addingSubtaskFor, setAddingSubtaskFor] = useState<string | null>(null);
@@ -315,6 +316,13 @@ export default function TasksPage() {
             >
               <Kanban className="w-3.5 h-3.5" />
             </button>
+            <button
+              onClick={() => setViewMode("calendar")}
+              className={`px-2.5 py-1.5 transition-colors ${viewMode === "calendar" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"}`}
+              title="Vista calendario"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -558,6 +566,93 @@ export default function TasksPage() {
           })}
         </div>
       )}
+
+      {/* ── Calendar view ── */}
+      {!loading && viewMode === "calendar" && (() => {
+        const y = calMonth.getFullYear();
+        const m = calMonth.getMonth();
+        const firstDay = new Date(y, m, 1).getDay(); // 0=Sun
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        // Build map: due_date -> tasks[]
+        const dayMap: Record<string, Task[]> = {};
+        tasks.forEach(t => {
+          if (t.due_date) {
+            const key = t.due_date.slice(0, 10);
+            const d = new Date(key + "T12:00:00");
+            if (d.getFullYear() === y && d.getMonth() === m) {
+              if (!dayMap[key]) dayMap[key] = [];
+              dayMap[key].push(t);
+            }
+          }
+        });
+        const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+        const monthLabel = calMonth.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+        const PRIORITY_DOT: Record<string, string> = { urgent: "bg-red-500", high: "bg-orange-400", medium: "bg-yellow-400", low: "bg-green-400" };
+        return (
+          <div className="space-y-3">
+            {/* Month nav */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setCalMonth(new Date(y, m - 1, 1))}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+              >◀</button>
+              <span className="font-semibold capitalize text-sm">{monthLabel}</span>
+              <button
+                onClick={() => setCalMonth(new Date(y, m + 1, 1))}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+              >▶</button>
+            </div>
+            {/* Day-of-week headers */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {DOW.map(d => (
+                <div key={d} className="text-[10px] font-semibold text-muted-foreground pb-1">{d}</div>
+              ))}
+            </div>
+            {/* Calendar grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {/* Empty cells for first week */}
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-20 rounded-lg" />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                const dayTasks = dayMap[dateStr] || [];
+                const isToday = dateStr === todayStr;
+                const hasPending = dayTasks.some(t => t.status !== "done");
+                const hasOverdue = dayTasks.some(t => t.status !== "done" && t.due_date && t.due_date < todayStr);
+                return (
+                  <div key={day} className={`h-20 rounded-lg border p-1 overflow-hidden transition-colors ${isToday ? "border-primary bg-primary/5" : hasPending ? (hasOverdue ? "border-destructive/30 bg-destructive/5" : "border-border bg-card") : "border-border/30 bg-muted/10"}`}>
+                    <div className={`text-xs font-semibold mb-1 ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day}</div>
+                    <div className="space-y-0.5 overflow-hidden">
+                      {dayTasks.slice(0, 3).map(t => (
+                        <div key={t.id} className={`flex items-center gap-1 text-[9px] leading-tight rounded px-1 py-0.5 ${t.status === "done" ? "opacity-40 line-through" : ""}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] || "bg-muted-foreground"}`} />
+                          <span className="truncate">{t.title}</span>
+                        </div>
+                      ))}
+                      {dayTasks.length > 3 && (
+                        <p className="text-[8px] text-muted-foreground px-1">+{dayTasks.length - 3} más</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground pt-1">
+              {Object.entries(PRIORITY_DOT).map(([p, color]) => (
+                <span key={p} className="flex items-center gap-1">
+                  <span className={`w-2 h-2 rounded-full ${color}`} />
+                  {p === "urgent" ? "Urgente" : p === "high" ? "Alta" : p === "medium" ? "Media" : "Baja"}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Create dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>

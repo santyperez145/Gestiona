@@ -663,6 +663,7 @@ export default function CashSessionPage() {
             })}
           </div>
         )}
+      </div>
       {/* Denomination Count Dialog */}
       <CashDenominationCountDialog
         open={denomCountOpen}

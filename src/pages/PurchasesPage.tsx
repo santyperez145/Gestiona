@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3, Printer } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -151,9 +151,60 @@ export default function PurchasesPage() {
     return months;
   }, [purchases]);
 
+  const printPurchasesPDF = () => {
+    const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
+    const fmtUSD = (v: number) => `U$S ${v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const periodLabel = (() => {
+      if (!dateFrom) return 'Todo el período';
+      const f = dateFrom.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const t = dateTo ? dateTo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return f === t ? f : `${f} – ${t}`;
+    })();
+    const supplierMap: Record<string, number> = {};
+    filteredSorted.forEach(p => {
+      const k = p.supplier || '(Sin proveedor)';
+      supplierMap[k] = (supplierMap[k] || 0) + Number(p.total_ars || 0);
+    });
+    const topSuppliers = Object.entries(supplierMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const rows = filteredSorted.map(p => `
+      <tr style="${Number(p.total_usd) > 500 ? 'background:#fffbeb' : ''}">
+        <td>${p.date}</td>
+        <td>${p.product_name || '—'}</td>
+        <td>${p.supplier || '—'}</td>
+        <td style="text-align:center">${p.quantity}</td>
+        <td style="text-align:right">${fmtUSD(Number(p.total_usd || 0))}</td>
+        <td style="text-align:right">${fmtARS(Number(p.total_ars || 0))}</td>
+        <td style="text-align:center;font-size:10px;color:${p.is_scheduled ? '#92400e' : '#065f46'}">${p.is_scheduled ? 'Pedido' : 'Recibida'}</td>
+      </tr>`).join('');
+    const suppliersHtml = topSuppliers.map(([name, ars]) => `
+      <tr><td>${name}</td><td style="text-align:right">${fmtARS(ars)}</td><td style="text-align:right">${totalARS > 0 ? ((ars / totalARS) * 100).toFixed(1) : 0}%</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resumen de Compras</title>
+<style>body{font-family:Arial,sans-serif;margin:20px;color:#1a1a2e}h1{font-size:16px;margin:0 0 2px}h2{font-size:12px;color:#555;margin:14px 0 6px}
+.sub{font-size:11px;color:#888;margin-bottom:14px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px;text-align:center}
+.kpi .val{font-size:15px;font-weight:bold;color:#92400e}.kpi .lbl{font-size:9px;color:#777;margin-top:2px}
+table{width:100%;border-collapse:collapse;margin-bottom:14px}th{text-align:left;border-bottom:1px solid #ddd;padding:4px 6px;font-size:10px;color:#666;background:#f9fafb}
+td{padding:4px 6px;font-size:10px;border-bottom:1px solid #f0f0f0}.footer{font-size:9px;color:#aaa;text-align:center;margin-top:16px}
+@media print{.footer{position:fixed;bottom:10px;width:100%}}</style></head><body>
+<h1>Resumen de Compras</h1><div class="sub">${periodLabel} · Generado el ${new Date().toLocaleDateString('es-AR')}</div>
+<div class="kpis">
+  <div class="kpi"><div class="val">${fmtUSD(totalUSD)}</div><div class="lbl">Total USD</div></div>
+  <div class="kpi"><div class="val">${fmtARS(totalARS)}</div><div class="lbl">Total ARS</div></div>
+  <div class="kpi"><div class="val">${filteredSorted.length}</div><div class="lbl">Órdenes</div></div>
+  <div class="kpi"><div class="val">${Object.keys(supplierMap).length}</div><div class="lbl">Proveedores</div></div>
+</div>
+${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Proveedor</th><th style="text-align:right">Total ARS</th><th style="text-align:right">Share</th></tr></thead><tbody>${suppliersHtml}</tbody></table>` : ''}
+<h2>Detalle de compras</h2>
+<table><thead><tr><th>Fecha</th><th>Producto</th><th>Proveedor</th><th style="text-align:center">Cant.</th><th style="text-align:right">Total USD</th><th style="text-align:right">Total ARS</th><th style="text-align:center">Tipo</th></tr></thead><tbody>${rows}</tbody>
+<tfoot><tr style="font-weight:bold;background:#f9fafb"><td colspan="4">TOTAL</td><td style="text-align:right">${fmtUSD(totalUSD)}</td><td style="text-align:right">${fmtARS(totalARS)}</td><td></td></tr></tfoot></table>
+<div class="footer">Exentry Imports · Sistema de Gestión</div></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400); }
+  };
+
   const exportPurchasesCSV = () => {
     const header = ['Fecha', 'Producto', 'Proveedor', 'Cantidad', 'Costo USD', 'Total USD', 'Total ARS', 'Tipo'];
-    const rows = filtered.map(p => [
+    const rows = filteredSorted.map(p => [
       p.date,
       `"${(p.product_name || '').replace(/"/g, '""')}"`,
       `"${(p.supplier || '').replace(/"/g, '""')}"`,
@@ -168,7 +219,7 @@ export default function PurchasesPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `compras_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${filtered.length} compras exportadas`);
+    toast.success(`${filteredSorted.length} compras exportadas`);
   };
 
   const handleReceiveOrder = async () => {
@@ -213,10 +264,15 @@ export default function PurchasesPage() {
         actions={
           <div className="flex items-center gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); }} />
-            {filtered.length > 0 && (
-              <Button variant="outline" size="sm" onClick={exportPurchasesCSV} title={`Exportar ${filtered.length} compras a CSV`}>
-                <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
-              </Button>
+            {filteredSorted.length > 0 && (
+              <>
+                <Button variant="outline" size="sm" onClick={exportPurchasesCSV} title={`Exportar ${filteredSorted.length} compras a CSV`}>
+                  <FileSpreadsheet className="w-4 h-4 mr-1.5" />CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={printPurchasesPDF} title="Imprimir resumen de compras" className="hidden sm:flex">
+                  <Printer className="w-4 h-4 mr-1.5" />PDF
+                </Button>
+              </>
             )}
             <Button variant="outline" size="sm" onClick={() => setOrderOpen(true)}>
               <ClipboardList className="w-4 h-4 mr-1.5" />Orden de Compra
