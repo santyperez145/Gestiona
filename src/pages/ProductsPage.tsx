@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import { usePermissions } from "@/lib/usePermissions";
+import { useAIProductSuggest } from "@/hooks/useAIProductSuggest";
+import BarcodeScanModal from "@/components/shared/BarcodeScanModal";
 
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
@@ -1156,6 +1158,11 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
   const [vaperSubtype, setVaperSubtype] = useState(''); // desechable | pod | liquido | mod
+  const [scanBarcodeOpen, setScanBarcodeOpen] = useState(false);
+
+  // AI product suggestion
+  const { suggest: aiSuggest, loading: aiLoading, result: aiResult, clear: aiClear } = useAIProductSuggest(orgId);
+  const [aiDismissed, setAiDismissed] = useState(false);
 
   const isVaper = category === 'vaper';
 
@@ -1169,6 +1176,17 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
+
+  // AI name suggestion — only for new products, after 3+ characters
+  useEffect(() => {
+    if (!product && name.length >= 3) {
+      setAiDismissed(false);
+      aiSuggest(name);
+    } else {
+      aiClear();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
   const VARIANT_TYPE_LABELS: Record<string, string> = {
     sabor: 'Sabores', talle: 'Talles', color: 'Colores',
     medida: 'Medidas', otro: 'Variantes',
@@ -1377,7 +1395,87 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         </div>
         <p className="text-[10px] text-muted-foreground/60 mt-1">Pegá imágenes con Ctrl+V · se mantienen en calidad original (sin recompresión).</p>
       </div>
-      <div><label className="text-sm text-muted-foreground">Nombre *</label><Input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="Ej: LATTAFA KHAMRAH 100ML" className="bg-muted border-border uppercase" required /></div>
+      {/* Name + barcode scan */}
+      <div>
+        <label className="text-sm text-muted-foreground">Nombre *</label>
+        <div className="flex gap-2">
+          <Input
+            value={name}
+            onChange={e => setName(e.target.value.toUpperCase())}
+            placeholder="Ej: LATTAFA KHAMRAH 100ML"
+            className="bg-muted border-border uppercase flex-1"
+            required
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="shrink-0 border-border"
+            title="Escanear código de barras"
+            onClick={() => setScanBarcodeOpen(true)}
+          >
+            <ScanLine className="w-4 h-4" />
+          </Button>
+        </div>
+        {/* AI suggestion banner */}
+        {!product && !aiDismissed && aiResult && (
+          <div className="mt-2 p-2.5 rounded-lg bg-primary/8 border border-primary/25 flex items-start gap-2 animate-in slide-in-from-top-1 duration-200">
+            <Brain className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-primary mb-1">Sugerencia IA</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                {aiResult.category && <span>📁 {aiResult.category}</span>}
+                {aiResult.priceMin && aiResult.priceMax && (
+                  <span>💰 ${aiResult.priceMin.toLocaleString("es-AR")} – ${aiResult.priceMax.toLocaleString("es-AR")}</span>
+                )}
+                {aiResult.brand && <span>🏷 {aiResult.brand}</span>}
+                {aiResult.description && <span className="truncate max-w-full">{aiResult.description}</span>}
+              </div>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-6 text-[10px] px-2 text-primary hover:bg-primary/10"
+                onClick={() => {
+                  if (aiResult.category) setCategory(aiResult.category);
+                  if (aiResult.description && !description) setDescription(aiResult.description);
+                  if (aiResult.brand && !brand) setBrand(aiResult.brand.toUpperCase());
+                  if (aiResult.priceMax && !salePriceARS) setSalePriceARS(aiResult.priceMax.toString());
+                  setAiDismissed(true);
+                  toast.success("Sugerencia IA aplicada", { duration: 2000 });
+                }}
+              >
+                <Check className="w-3 h-3 mr-1" /> Aplicar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-6 text-[10px] px-2 text-muted-foreground/60 hover:text-muted-foreground"
+                onClick={() => setAiDismissed(true)}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+        {!product && !aiDismissed && aiLoading && name.length >= 3 && (
+          <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+            <Brain className="w-3 h-3 animate-pulse text-primary/60" />
+            <span>IA analizando producto...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Barcode scan modal */}
+      <BarcodeScanModal
+        open={scanBarcodeOpen}
+        onClose={() => setScanBarcodeOpen(false)}
+        onDetect={(code) => { setBarcode(code); setScanBarcodeOpen(false); }}
+        title="Escanear código de barras del producto"
+      />
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>

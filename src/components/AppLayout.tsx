@@ -10,6 +10,8 @@ import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
 import { useStockAlerts } from "@/hooks/useStockAlerts";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
@@ -89,6 +91,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Toasts for new sales and stock alerts fire automatically from this hook.
   useRealtimeKPIs(activeOrg?.id);
   useStockAlerts({ orgId: activeOrg?.id, threshold: 5 });
+  // ── PWA install prompt + offline detector ────────────────────────────────
+  const { canInstall, install, dismiss: dismissInstall } = usePWAInstall();
+  useOnlineStatus(); // fires toasts on online/offline changes automatically
 
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
@@ -365,6 +370,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           );
           return null;
         })()}
+
+        {/* PWA install banner */}
+        {canInstall && (
+          <div className="bg-primary/8 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
+            <Zap className="w-4 h-4 text-primary shrink-0" />
+            <p className="text-sm flex-1">
+              <span className="font-semibold">Instalá Gestiona</span> como app en tu dispositivo — acceso rápido sin abrir el navegador.
+            </p>
+            <Button size="sm" className="h-7 text-xs gradient-gold text-primary-foreground shrink-0" onClick={install}>
+              Instalar app
+            </Button>
+            <button onClick={dismissInstall} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0">
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="p-4 md:p-6 lg:p-8 max-w-[1380px] mx-auto animate-fade-in">
           {children}

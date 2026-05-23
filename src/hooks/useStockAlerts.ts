@@ -3,6 +3,10 @@
  *
  * Fires a toast + browser Notification when any product's stock
  * drops to or below the configured threshold.
+ *
+ * Also inserts a record into the `notifications` table so the
+ * NotificationBell panel shows the alert persistently.
+ *
  * Request notification permission on first use.
  */
 import { useEffect, useRef } from "react";
@@ -30,8 +34,23 @@ function fireNotification(title: string, body: string) {
   } catch { /* ignore */ }
 }
 
+/** Insert a notification row so it shows up in NotificationBell */
+async function insertNotification(orgId: string, title: string, message: string) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("notifications").insert({
+      user_id: user.id,
+      org_id: orgId,
+      title,
+      message,
+      type: "stock_bajo",
+      read: false,
+    });
+  } catch { /* non-critical — ignore insert errors */ }
+}
+
 export function useStockAlerts({ orgId, threshold = 5, enabled = true }: StockAlertOptions) {
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const alertedRef = useRef<Set<string>>(new Set()); // debounce: don't repeat same product
 
   useEffect(() => {
@@ -66,22 +85,28 @@ export function useStockAlerts({ orgId, threshold = 5, enabled = true }: StockAl
             setTimeout(() => alertedRef.current.delete(productKey), 30_000);
 
             const name = p.name || "Producto";
+
             if (newStock <= 0) {
-              toast.error(`⚠️ Sin stock: ${name}`, { duration: 8000, description: "Stock agotado — revisar reposición" });
-              fireNotification(`⚠️ Sin stock: ${name}`, "Stock agotado — revisar reposición");
+              const title = `⚠️ Sin stock: ${name}`;
+              const msg = "Stock agotado — revisar reposición";
+              toast.error(title, { duration: 8000, description: msg });
+              fireNotification(title, msg);
+              insertNotification(orgId, title, msg);
             } else {
-              toast.warning(`📦 Stock bajo: ${name} — quedan ${newStock} ud${newStock !== 1 ? "s" : ""}`, {
+              const title = `📦 Stock bajo: ${name}`;
+              const msg = `Quedan ${newStock} ud${newStock !== 1 ? "s" : ""} — por debajo del umbral de ${threshold}`;
+              toast.warning(`${title} — quedan ${newStock} ud${newStock !== 1 ? "s" : ""}`, {
                 duration: 6000,
                 description: `Por debajo del umbral de ${threshold} unidades`,
               });
-              fireNotification(`📦 Stock bajo: ${name}`, `Quedan ${newStock} unidades`);
+              fireNotification(title, msg);
+              insertNotification(orgId, title, msg);
             }
           }
         }
       )
       .subscribe();
 
-    channelRef.current = channel;
     return () => {
       supabase.removeChannel(channel);
     };
