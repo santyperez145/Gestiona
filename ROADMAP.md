@@ -1,7 +1,7 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-23 (sesión 70)**
+Última actualización: **2026-05-23 (sesión 76)**
 DB producción: `hummeopatkniwkyrrhwc`
 Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
 
@@ -225,6 +225,12 @@ La app tiene base técnica sólida: React 18, Vite, Tailwind, Radix UI, React Qu
 - **ProductsPage: etiquetas de precio** — `exportPriceLabels()` genera HTML 55×32mm imprimible: nombre, marca, precio, badge OFERTA + tachado si hay descuento, SKU/barcode; botón "Etiquetas precio" en barra de acciones. _(sesión 39)_
 - **Dashboard: widget "Objetivos por vendedor"** — `SellerGoalsWidget` component; ventas de la semana por `seller_name`; progress bars color-coded; meta editable inline por vendedor; localStorage por org; visible con ≥2 vendedores. _(sesión 39)_
 - **AnalyticsPage: tab "Canales de venta"** — distribución por `payment_method`: KPI cards con share %, barra stacked visual, BarChart apilado mensual, tabla detalle ganancia/ticket, CSV export. _(sesión 39)_
+- **ActivityFeedPage** `/actividad` — feed unificado en tiempo real de ventas/clientes/deals/tareas (últimos 30d); realtime subscription; filter chips; groupByDate; timeAgo; summary strip con conteo por tipo. _(sesión 71)_
+- **SellerGoalsPage** `/metas` — cuotas mensuales por vendedor; leaderboard con progress bars, medallas, badge Flame; bar chart Target vs Real; dialog crear/editar meta + comisión %; reads seller_goals + sales actuales. _(sesión 72)_
+- **InventoryAgingPage** `/inventario-aging` — aging 0-30/31-60/61-90/90+/Sin ventas; pie chart capital; recomendaciones automáticas; sorteable/filtrable; CSV export. _(sesión 73)_
+- **FollowUpPage** `/seguimiento` — "morning view": tareas vencidas + deals estancados (umbral configurable) + CRM follow-ups; log de nota inline; WhatsApp/email rápido; empty state celebratorio. _(sesión 74)_
+- **PricingIntelligencePage** `/precios-inteligentes` — márgenes por producto; scatter precio vs margen; bar por categoría; simulador de TC (what-if); target margin → precio sugerido; CSV export. _(sesión 75)_
+- **TeamPerformancePage** `/rendimiento-equipo` — cards por vendedor: ventas, tendencia MoM, meta%, comisión, tareas; ranking con 🏆; bar chart mes actual vs anterior; KPI equipo. _(sesión 76)_
 
 ### Integraciones
 - Tiendanube OAuth + sync + webhooks con HMAC-SHA256 + retry. _(sesión 2, 3)_
@@ -942,6 +948,60 @@ Ver tabla de sesión 29 arriba.
 | 3 | **ProductsPage: umbral de alerta inline** — columna "Alerta" (xl:table-cell) con `low_stock_threshold` editable al click; mismo patrón que stock inline; guarda con `updateProductDB` | ✅ Hecho |
 | 4 | **CustomersPage: badge "Nuevo"** — badge ✨ Nuevo (verde esmeralda) si primera compra ≤ 30 días; se muestra junto al segmento y health score; tooltip con fecha de primera compra | ✅ Hecho |
 | 5 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 76 ✅ COMPLETA — Team Performance Dashboard
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **TeamPerformancePage** `/rendimiento-equipo` — per-seller cards: ventas ARS, transacciones, progress bar de meta, comisión estimada, tareas; ranking con 🏆; bar chart mes actual vs anterior; KPI strip: total equipo, mejor vendedor, vendedores en meta, comisiones totales; selector de mes (últimos 6) | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 75 ✅ COMPLETA — Pricing Intelligence + Margin Simulator
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **PricingIntelligencePage** `/precios-inteligentes` — análisis de márgenes por producto: zonas Excelente/Bueno/Bajo/Crítico; scatter chart precio vs margen; bar chart horizontal margen por categoría; simulador de TC (what-if USD rate → recalcula márgenes live); target margin → precio sugerido con delta; CSV export | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 74 ✅ COMPLETA — Follow-up Center
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **FollowUpPage** `/seguimiento` — vista "morning view" del vendedor: tareas vencidas (one-click completar), deals estancados sin actividad en X días (configurable 3/5/7/14/30d), CRM follow-ups vencidos con WhatsApp/email rápido; log de nota inline en deals; empty state celebratorio; badge urgentes en header | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 73 ✅ COMPLETA — Inventory Aging Analysis
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **InventoryAgingPage** `/inventario-aging` — aging buckets 0-30/31-60/61-90/90+/Sin ventas; KPI: capital inmovilizado, productos en riesgo; pie chart capital por aging; progress bars por bucket; tabla sorteable/filtrable con último venta, días sin vender, vendido 90d, recomendación automática (liquidar/promover/monitorear/sobrestock); CSV export | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 72 ✅ COMPLETA — Seller Goals & Quota Tracking
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **SellerGoalsPage** `/metas` — cuotas de ventas mensuales por vendedor: leaderboard con progress bars color-coded (verde/dorado/rojo), medallas 🥇🥈🥉, badge 🔥 para quienes alcanzan meta; bar chart Target vs Real por vendedor; KPI: meta total equipo, ventas reales, % objetivo, vendedores al 100%; dialog crear/editar meta (vendedor, target ARS, comisión %) | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Sesión 71 ✅ COMPLETA — Activity Feed + Email A/B + POS Recommendations (continuación)
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **ActivityFeedPage** `/actividad` — registrada en router y nav; feed de actividad en tiempo real con realtime subscription para nuevas ventas; groupByDate (Hoy/Ayer/weekday); filter chips por tipo; summary strip con conteo por tipo; timeAgo helper | ✅ Hecho |
+| 2 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
 
 ---
 
