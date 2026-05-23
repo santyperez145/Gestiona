@@ -9,6 +9,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { useRealtimeKPIs } from "@/hooks/useRealtimeKPIs";
+import { useStockAlerts } from "@/hooks/useStockAlerts";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
@@ -87,6 +88,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // ── Global real-time KPI subscriptions ──────────────────────────────────
   // Toasts for new sales and stock alerts fire automatically from this hook.
   useRealtimeKPIs(activeOrg?.id);
+  useStockAlerts({ orgId: activeOrg?.id, threshold: 5 });
 
   const navItems = useMemo(() => {
     return allNavItems.filter(item => item.roles.includes(role));
