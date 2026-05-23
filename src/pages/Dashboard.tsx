@@ -4,7 +4,7 @@ import { safeChannel } from "@/lib/realtimeChannel";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
 import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +19,8 @@ import HealthScore from "@/components/dashboard/HealthScore";
 import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
 import AIPrediction from "@/components/dashboard/AIPrediction";
 import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
+import DailyBriefingModal from "@/components/shared/DailyBriefingModal";
+import { toast } from "sonner";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
 
@@ -368,6 +370,7 @@ export default function Dashboard() {
   const [monthlySummary, setMonthlySummary] = useState<string>(() => localStorage.getItem(monthlySummaryKey) || '');
   const [monthlySummaryDismissed, setMonthlySummaryDismissed] = useState<boolean>(() => localStorage.getItem(monthlySummaryKey + '.dismissed') === '1');
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -1128,13 +1131,24 @@ export default function Dashboard() {
             </div>
           )}
           {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-muted-foreground">Tu TC:</span>
               <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
                 ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
               </span>
-              {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && (
-                <Link to="/ajustes" className="text-[10px] text-primary hover:underline">Actualizar →</Link>
+              {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && user && (
+                <button
+                  onClick={async () => {
+                    await saveSettingsDB(user.id, { exchange_rate: dolarRates.blue });
+                    toast.success(`TC actualizado a $${dolarRates.blue.toLocaleString('es-AR')} (blue)`);
+                    // Refresh rawData to reflect change
+                    setReloadKey(k => k + 1);
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary hover:bg-primary/25 transition-colors font-semibold border border-primary/30"
+                  title="Sincronizar mi tipo de cambio al dólar blue actual"
+                >
+                  ↑ Sincronizar al blue
+                </button>
               )}
               <button onClick={refreshRates} title="Actualizar cotizaciones" className="text-muted-foreground hover:text-primary transition-colors ml-1">
                 <ArrowUp className="w-3 h-3 rotate-45" />
@@ -1160,6 +1174,13 @@ export default function Dashboard() {
             {a.label}
           </Link>
         ))}
+        <button
+          onClick={() => setBriefingOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors text-xs text-primary font-medium"
+          title="Ver briefing matutino del negocio"
+        >
+          ✨ Briefing
+        </button>
         <button
           onClick={() => {
             sessionStorage.setItem("gestiona.ai_prefill", "Dame un insight del día: qué vendí hoy, qué productos destacaron y qué debería priorizar ahora");
@@ -2835,6 +2856,35 @@ export default function Dashboard() {
           ) : <p className="p-5 text-muted-foreground text-sm">No hay ventas registradas aún.</p>}
         </div>
       </div>
+
+      {/* Daily Briefing Modal */}
+      {briefingOpen && user && stats && (
+        <DailyBriefingModal
+          open={briefingOpen}
+          onClose={() => setBriefingOpen(false)}
+          userId={user.id}
+          briefingData={(() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            const ydaySales = (stats.rawSales || []).filter((s: any) => String(s.date).slice(0, 10) === yday);
+            const topProductsMap: Record<string, number> = {};
+            ydaySales.forEach((s: any) => { if (s.product_name) topProductsMap[s.product_name] = (topProductsMap[s.product_name] || 0) + Number(s.quantity || 1); });
+            const topProduct = Object.entries(topProductsMap).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+            const lowStockCount = (stats.products || []).filter((p: any) => p.stock <= (p.low_stock_threshold ?? 3)).length;
+            const unpaidDebts = (stats.rawDebts || []).filter((d: any) => d.status !== 'paid');
+            return {
+              salesCount: ydaySales.length,
+              totalSalesARS: ydaySales.reduce((s: number, v: any) => s + Number(v.total_ars || 0), 0),
+              topProduct,
+              lowStockCount,
+              pendingDebtsARS: unpaidDebts.reduce((s: number, d: any) => s + Number(d.remaining_ars || 0), 0),
+              pendingDebtsCount: unpaidDebts.length,
+              businessName: stats.rawSettings?.business_name || "tu negocio",
+              date: today,
+            };
+          })()}
+        />
+      )}
     </div>
   );
 }

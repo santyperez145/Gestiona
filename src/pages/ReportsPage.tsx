@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
+import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, saveSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer, Sparkles } from "lucide-react";
+import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer, Sparkles, Mail, Calendar, Check, RefreshCw, Bell, Toggle, Send, Clock } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
@@ -457,6 +457,7 @@ export default function ReportsPage() {
           <TabsTrigger value="customers">Clientes</TabsTrigger>
           <TabsTrigger value="weekly_trend">📅 Por día</TabsTrigger>
           <TabsTrigger value="by_week">📊 Semanas</TabsTrigger>
+          <TabsTrigger value="scheduled">✉️ Programados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -679,6 +680,10 @@ export default function ReportsPage() {
 
         <TabsContent value="by_week">
           <ByWeekTab sales={data.sales} />
+        </TabsContent>
+
+        <TabsContent value="scheduled">
+          <ScheduledReportsTab userId={user!.id} settings={settings} />
         </TabsContent>
       </Tabs>
     </div>
@@ -3683,3 +3688,200 @@ function ByWeekTab({ sales }: { sales: any[] }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Scheduled Reports Tab
+// Configure and trigger automated monthly report emails
+// ─────────────────────────────────────────────────────────────
+type ReportType = "income" | "sales" | "inventory" | "debts";
+
+const REPORT_TYPE_LABELS: Record<ReportType, string> = {
+  income: "Estado de Resultados",
+  sales: "Reporte de Ventas",
+  inventory: "Inventario Valorado",
+  debts: "Deudas Pendientes",
+};
+
+function ScheduledReportsTab({ userId, settings }: { userId: string; settings: any }) {
+  const LAST_KEY = `gestiona.report_last_sent.${userId}`;
+  const [enabled, setEnabled] = useState<boolean>(settings?.report_monthly_enabled ?? false);
+  const [dayOfMonth, setDayOfMonth] = useState<string>(String(settings?.report_monthly_day ?? 1));
+  const [recipientEmail, setRecipientEmail] = useState<string>(settings?.report_monthly_email ?? settings?.email ?? "");
+  const [reportTypes, setReportTypes] = useState<ReportType[]>(() => {
+    const saved = settings?.report_monthly_types;
+    return Array.isArray(saved) && saved.length > 0 ? saved : ["income", "sales"];
+  });
+  const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [lastSent, setLastSent] = useState<string | null>(() => localStorage.getItem(LAST_KEY));
+
+  const toggleType = (t: ReportType) => {
+    setReportTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveSettingsDB(userId, {
+        report_monthly_enabled: enabled,
+        report_monthly_day: parseInt(dayOfMonth) || 1,
+        report_monthly_email: recipientEmail.trim(),
+        report_monthly_types: reportTypes,
+      });
+      toast.success("Configuracion de reportes guardada");
+    } catch (e: any) {
+      toast.error("Error guardando: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendNow = async () => {
+    if (!recipientEmail.trim()) { toast.error("Configura un email destinatario"); return; }
+    if (reportTypes.length === 0) { toast.error("Selecciona al menos un tipo de reporte"); return; }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("weekly-performance-digest", {
+        body: {
+          userId,
+          force: true,
+          recipientEmail: recipientEmail.trim(),
+          reportTypes,
+          subject: `Reporte mensual — ${new Date().toLocaleDateString("es-AR", { month: "long", year: "numeric" })}`,
+        },
+      });
+      if (error) throw error;
+      const ts = new Date().toLocaleString("es-AR");
+      setLastSent(ts);
+      localStorage.setItem(LAST_KEY, ts);
+      toast.success(`Reporte enviado a ${recipientEmail.trim()}`, { duration: 5000 });
+    } catch (e: any) {
+      toast.error("Error: " + (e.message ?? "Verifica la configuracion SMTP en Ajustes"));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const nextRunDate = useMemo(() => {
+    const day = parseInt(dayOfMonth) || 1;
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth(), day);
+    if (target <= now) target.setMonth(target.getMonth() + 1);
+    return target.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+  }, [dayOfMonth]);
+
+  return (
+    <div className="space-y-6 mt-4 max-w-2xl">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <Mail className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Reportes automaticos por email</h3>
+          <p className="text-sm text-muted-foreground">Recibi un resumen mensual del negocio directamente en tu email.</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+        <div>
+          <p className="text-sm font-medium">Reporte mensual automatico</p>
+          <p className="text-xs text-muted-foreground">
+            {enabled ? `Proximo envio: ${nextRunDate}` : "Desactivado"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEnabled(e => !e)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? "bg-primary" : "bg-muted"}`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
+        </button>
+      </div>
+
+      <div className="space-y-4 p-4 rounded-xl border border-border bg-card">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          Configuracion
+        </h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Email destinatario</label>
+            <div className="relative">
+              <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                type="email"
+                value={recipientEmail}
+                onChange={e => setRecipientEmail(e.target.value)}
+                placeholder="tu@email.com"
+                className="w-full pl-8 pr-3 py-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Dia del mes</label>
+            <select
+              value={dayOfMonth}
+              onChange={e => setDayOfMonth(e.target.value)}
+              className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                <option key={d} value={d}>Dia {d}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-2 block">Incluir en el reporte</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.entries(REPORT_TYPE_LABELS) as [ReportType, string][]).map(([type, label]) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => toggleType(type)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                  reportTypes.includes(type)
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-border bg-muted/30 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 ${reportTypes.includes(type) ? "border-primary bg-primary" : "border-border"}`}>
+                  {reportTypes.includes(type) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                </div>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold">
+          {saving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : <><Check className="w-4 h-4 mr-2" />Guardar configuracion</>}
+        </Button>
+        <Button variant="outline" onClick={handleSendNow} disabled={sending}>
+          {sending ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Enviando...</> : <><Send className="w-4 h-4 mr-2" />Enviar ahora</>}
+        </Button>
+      </div>
+
+      {lastSent && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/30 border border-border/50">
+          <Clock className="w-3.5 h-3.5 shrink-0" />
+          Ultimo envio: {lastSent}
+        </div>
+      )}
+
+      <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-2">
+        <p className="text-xs font-semibold text-blue-400 flex items-center gap-1.5">
+          <Bell className="w-3.5 h-3.5" />Como funciona
+        </p>
+        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+          <li>El reporte se genera automaticamente el dia configurado.</li>
+          <li>Incluye resumen de ventas, ganancias, stock y deudas del mes.</li>
+          <li>Podes enviar una prueba ahora con "Enviar ahora".</li>
+          <li>Requiere configurar SMTP en Ajustes.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
