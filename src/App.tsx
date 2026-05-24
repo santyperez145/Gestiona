@@ -114,6 +114,9 @@ const DigitalProductsPage      = lazy(() => import("@/pages/DigitalProductsPage"
 const DeliveryTrackingPage     = lazy(() => import("@/pages/DeliveryTrackingPage"));
 const SupplierQuotesPage       = lazy(() => import("@/pages/SupplierQuotesPage"));
 const GamificationPage         = lazy(() => import("@/pages/GamificationPage"));
+const WarrantyClaimsPage       = lazy(() => import("@/pages/WarrantyClaimsPage"));
+const FormsBuilderPage         = lazy(() => import("@/pages/FormsBuilderPage"));
+const NotificationRulesPage    = lazy(() => import("@/pages/NotificationRulesPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -289,6 +292,9 @@ function ProtectedRoutes() {
               <Route path="/envios" element={<DeliveryTrackingPage />} />
               <Route path="/cotizaciones-proveedor" element={<SupplierQuotesPage />} />
               <Route path="/gamificacion" element={<GamificationPage />} />
+              <Route path="/garantias" element={<WarrantyClaimsPage />} />
+              <Route path="/formularios" element={<FormsBuilderPage />} />
+              <Route path="/reglas-notificacion" element={<NotificationRulesPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
