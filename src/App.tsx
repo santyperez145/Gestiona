@@ -91,6 +91,7 @@ const CustomFieldsPage         = lazy(() => import("@/pages/CustomFieldsPage"));
 const KnowledgeBasePage        = lazy(() => import("@/pages/KnowledgeBasePage"));
 const NPSSurveysPage           = lazy(() => import("@/pages/NPSSurveysPage"));
 const AILeadScoringPage        = lazy(() => import("@/pages/AILeadScoringPage"));
+const ChurnPredictionPage      = lazy(() => import("@/pages/ChurnPredictionPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -243,6 +244,7 @@ function ProtectedRoutes() {
               <Route path="/base-conocimiento" element={<KnowledgeBasePage />} />
               <Route path="/encuestas-nps" element={<NPSSurveysPage />} />
               <Route path="/lead-scoring" element={<AILeadScoringPage />} />
+              <Route path="/churn" element={<ChurnPredictionPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
