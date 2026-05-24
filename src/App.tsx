@@ -107,6 +107,7 @@ const InventoryForecastPage    = lazy(() => import("@/pages/InventoryForecastPag
 const CustomerSegmentsPage     = lazy(() => import("@/pages/CustomerSegmentsPage"));
 const PurchaseOrdersPage       = lazy(() => import("@/pages/PurchaseOrdersPage"));
 const TimesheetsPage           = lazy(() => import("@/pages/TimesheetsPage"));
+const QRGeneratorPage          = lazy(() => import("@/pages/QRGeneratorPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -275,6 +276,7 @@ function ProtectedRoutes() {
               <Route path="/segmentos" element={<CustomerSegmentsPage />} />
               <Route path="/ordenes-compra" element={<PurchaseOrdersPage />} />
               <Route path="/fichajes" element={<TimesheetsPage />} />
+              <Route path="/qr-generator" element={<QRGeneratorPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
