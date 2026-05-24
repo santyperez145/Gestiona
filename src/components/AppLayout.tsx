@@ -85,6 +85,7 @@ const allNavItems = [
   { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'ia' },
   // ── Sistema ─────────────────────────────────────────────────────────────────
   { to: "/campos-personalizados", label: "Campos personalizados", icon: Settings, roles: ['admin'], section: 'config' },
+  { to: "/webhooks", label: "Webhooks", icon: Zap, roles: ['admin'], section: 'config' },
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
