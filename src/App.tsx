@@ -101,6 +101,8 @@ const WebhooksPage             = lazy(() => import("@/pages/WebhooksPage"));
 const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
 const AIProductRecommenderPage = lazy(() => import("@/pages/AIProductRecommenderPage"));
 const SLARulesPage             = lazy(() => import("@/pages/SLARulesPage"));
+const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
+const AffiliateProgramPage     = lazy(() => import("@/pages/AffiliateProgramPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -263,6 +265,8 @@ function ProtectedRoutes() {
               <Route path="/suscripciones" element={<SubscriptionsPage />} />
               <Route path="/recomendaciones-ia" element={<AIProductRecommenderPage />} />
               <Route path="/sla" element={<SLARulesPage />} />
+              <Route path="/listas-precios" element={<PriceListsPage />} />
+              <Route path="/afiliados" element={<AffiliateProgramPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
