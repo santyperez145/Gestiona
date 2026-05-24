@@ -73,6 +73,7 @@ const allNavItems = [
   { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
   // ── IA ──────────────────────────────────────────────────────────────────────
+  { to: "/lead-scoring", label: "AI Lead Scoring", icon: Brain, roles: ['admin'], section: 'ia' },
   { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'ia' },
   { to: "/chat-equipo", label: "Chat Equipo", icon: MessageCircle, roles: ['admin', 'vendedor'], section: 'ia' },
   { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'ia' },
