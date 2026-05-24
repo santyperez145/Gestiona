@@ -75,6 +75,7 @@ const allNavItems = [
   { to: "/chat-equipo", label: "Chat Equipo", icon: MessageCircle, roles: ['admin', 'vendedor'], section: 'ia' },
   { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'ia' },
   // ── Sistema ─────────────────────────────────────────────────────────────────
+  { to: "/campos-personalizados", label: "Campos personalizados", icon: Settings, roles: ['admin'], section: 'config' },
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
   { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },

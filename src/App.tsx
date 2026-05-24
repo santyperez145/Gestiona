@@ -87,6 +87,7 @@ const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
 const SalesForecastPage        = lazy(() => import("@/pages/SalesForecastPage"));
 const SupportPage              = lazy(() => import("@/pages/SupportPage"));
 const DripSequencesPage        = lazy(() => import("@/pages/DripSequencesPage"));
+const CustomFieldsPage         = lazy(() => import("@/pages/CustomFieldsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -235,6 +236,7 @@ function ProtectedRoutes() {
               <Route path="/forecast" element={<SalesForecastPage />} />
               <Route path="/soporte" element={<SupportPage />} />
               <Route path="/secuencias-email" element={<DripSequencesPage />} />
+              <Route path="/campos-personalizados" element={<CustomFieldsPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
