@@ -32,6 +32,7 @@ const allNavItems = [
   { to: "/productos", label: "Productos", icon: Package, roles: ['admin'], section: 'inventario' },
   { to: "/bundles", label: "Bundles / Kits", icon: Layers, roles: ['admin'], section: 'inventario' },
   { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
+  { to: "/ordenes-compra", label: "Órdenes de Compra", icon: ClipboardList, roles: ['admin'], section: 'inventario' },
   { to: "/restock", label: "Auto-Reposición", icon: RefreshCw, roles: ['admin'], section: 'inventario' },
   { to: "/transferencias", label: "Transferencias", icon: ArrowRightLeft, roles: ['admin'], section: 'inventario' },
   { to: "/inventario-aging", label: "Aging de Stock", icon: Archive, roles: ['admin'], section: 'inventario' },
