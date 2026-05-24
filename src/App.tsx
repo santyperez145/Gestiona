@@ -98,6 +98,7 @@ const ContractsPage            = lazy(() => import("@/pages/ContractsPage"));
 const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
 const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
 const WebhooksPage             = lazy(() => import("@/pages/WebhooksPage"));
+const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -257,6 +258,7 @@ function ProtectedRoutes() {
               <Route path="/transferencias" element={<InventoryTransfersPage />} />
               <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/webhooks" element={<WebhooksPage />} />
+              <Route path="/suscripciones" element={<SubscriptionsPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
