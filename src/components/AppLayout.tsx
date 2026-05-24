@@ -63,6 +63,7 @@ const allNavItems = [
   { to: "/cheques", label: "Cheques", icon: FileText, roles: ['admin'], section: 'finanzas' },
   { to: "/comisiones", label: "Comisiones", icon: Receipt, roles: ['admin'], section: 'finanzas' },
   { to: "/metas", label: "Metas de Ventas", icon: Target, roles: ['admin'], section: 'finanzas' },
+  { to: "/fichajes", label: "Fichajes & RRHH", icon: Clock, roles: ['admin'], section: 'finanzas' },
   { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'finanzas' },
   // ── Analytics ───────────────────────────────────────────────────────────────
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
