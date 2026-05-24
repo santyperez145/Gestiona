@@ -1083,6 +1083,26 @@ export default function Dashboard() {
     toast.success("Seguimiento marcado como completado");
   };
 
+  // ── Support tickets summary ───────────────────────────────────────────────
+  const [supportSummary, setSupportSummary] = useState<{
+    open: number; in_progress: number; sla_breach: number; resolved_today: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    const today = new Date().toISOString().slice(0, 10);
+    supabase.from("support_tickets").select("status, sla_due_at, resolved_at").eq("org_id", activeOrg.id)
+      .then(({ data }) => {
+        if (!data) return;
+        const now = new Date();
+        setSupportSummary({
+          open: data.filter((t: any) => t.status === "open").length,
+          in_progress: data.filter((t: any) => t.status === "in_progress").length,
+          sla_breach: data.filter((t: any) => t.sla_due_at && new Date(t.sla_due_at) < now && !["resolved","closed"].includes(t.status)).length,
+          resolved_today: data.filter((t: any) => t.resolved_at?.startsWith(today)).length,
+        });
+      });
+  }, [activeOrg?.id]);
+
   const kpiCards = [
     { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
     { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
@@ -2481,6 +2501,36 @@ export default function Dashboard() {
           <p className="text-[10px] text-muted-foreground mt-2 border-t border-border/30 pt-2">
             Pasá el mouse sobre un ítem para ver opciones rápidas · <Link to="/clientes" className="text-primary hover:underline">Gestionar todos los seguimientos →</Link>
           </p>
+        </div>
+      )}
+
+      {/* Support Tickets Widget */}
+      {supportSummary && (supportSummary.open + supportSummary.in_progress + supportSummary.sla_breach) > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <span className="text-primary">🎧</span>Soporte al Cliente
+              {supportSummary.sla_breach > 0 && (
+                <span className="text-[10px] font-bold text-red-400 bg-red-400/10 border border-red-400/20 rounded px-2 py-0.5 animate-pulse">
+                  {supportSummary.sla_breach} SLA vencido{supportSummary.sla_breach > 1 ? "s" : ""}
+                </span>
+              )}
+            </h3>
+            <Link to="/soporte" className="text-xs text-primary hover:underline">Ver todos →</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Abiertos", value: supportSummary.open, color: "text-blue-400" },
+              { label: "En progreso", value: supportSummary.in_progress, color: "text-yellow-400" },
+              { label: "SLA vencidos", value: supportSummary.sla_breach, color: "text-red-400" },
+              { label: "Resueltos hoy", value: supportSummary.resolved_today, color: "text-green-400" },
+            ].map(item => (
+              <div key={item.label} className="text-center p-2 rounded-lg bg-muted/30">
+                <p className={`text-xl font-bold font-display ${item.color}`}>{item.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
