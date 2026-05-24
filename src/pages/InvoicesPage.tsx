@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { useClipboard } from "@/hooks/useClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
