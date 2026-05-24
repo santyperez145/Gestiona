@@ -88,6 +88,7 @@ const allNavItems = [
   { to: "/campos-personalizados", label: "Campos personalizados", icon: Settings, roles: ['admin'], section: 'config' },
   { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
+  { to: "/forecast-inventario", label: "Forecast Inventario", icon: TrendingUp, roles: ['admin'], section: 'inventario' },
   { to: "/afiliados", label: "Programa Afiliados", icon: UserPlus, roles: ['admin'], section: 'marketing' },
   { to: "/sla", label: "SLA & Escalaciones", icon: Timer, roles: ['admin'], section: 'config' },
   { to: "/webhooks", label: "Webhooks", icon: Zap, roles: ['admin'], section: 'config' },

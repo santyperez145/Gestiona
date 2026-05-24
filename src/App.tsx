@@ -103,6 +103,7 @@ const AIProductRecommenderPage = lazy(() => import("@/pages/AIProductRecommender
 const SLARulesPage             = lazy(() => import("@/pages/SLARulesPage"));
 const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
 const AffiliateProgramPage     = lazy(() => import("@/pages/AffiliateProgramPage"));
+const InventoryForecastPage    = lazy(() => import("@/pages/InventoryForecastPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -267,6 +268,7 @@ function ProtectedRoutes() {
               <Route path="/sla" element={<SLARulesPage />} />
               <Route path="/listas-precios" element={<PriceListsPage />} />
               <Route path="/afiliados" element={<AffiliateProgramPage />} />
+              <Route path="/forecast-inventario" element={<InventoryForecastPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
