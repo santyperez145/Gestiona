@@ -66,6 +66,7 @@ const allNavItems = [
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
   { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
   { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
+  { to: "/secuencias-email", label: "Drip Sequences", icon: Zap, roles: ['admin'], section: 'marketing' },
   { to: "/whatsapp-campaigns", label: "WhatsApp Masivo", icon: MessageCircle, roles: ['admin'], section: 'marketing' },
   { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
