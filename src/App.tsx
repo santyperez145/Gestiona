@@ -108,6 +108,9 @@ const CustomerSegmentsPage     = lazy(() => import("@/pages/CustomerSegmentsPage
 const PurchaseOrdersPage       = lazy(() => import("@/pages/PurchaseOrdersPage"));
 const TimesheetsPage           = lazy(() => import("@/pages/TimesheetsPage"));
 const QRGeneratorPage          = lazy(() => import("@/pages/QRGeneratorPage"));
+const EventTicketingPage       = lazy(() => import("@/pages/EventTicketingPage"));
+const AppointmentBookingPage   = lazy(() => import("@/pages/AppointmentBookingPage"));
+const DigitalProductsPage      = lazy(() => import("@/pages/DigitalProductsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -277,6 +280,9 @@ function ProtectedRoutes() {
               <Route path="/ordenes-compra" element={<PurchaseOrdersPage />} />
               <Route path="/fichajes" element={<TimesheetsPage />} />
               <Route path="/qr-generator" element={<QRGeneratorPage />} />
+              <Route path="/eventos" element={<EventTicketingPage />} />
+              <Route path="/turnos" element={<AppointmentBookingPage />} />
+              <Route path="/productos-digitales" element={<DigitalProductsPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />

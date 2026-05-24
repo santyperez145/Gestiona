@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -91,6 +91,9 @@ const allNavItems = [
   { to: "/campos-personalizados", label: "Campos personalizados", icon: Settings, roles: ['admin'], section: 'config' },
   { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
+  { to: "/eventos", label: "Eventos & Tickets", icon: Ticket, roles: ['admin'], section: 'ventas' },
+  { to: "/turnos", label: "Turnos & Reservas", icon: CalendarClock, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/productos-digitales", label: "Prod. Digitales", icon: FileDown, roles: ['admin'], section: 'inventario' },
   { to: "/forecast-inventario", label: "Forecast Inventario", icon: TrendingUp, roles: ['admin'], section: 'inventario' },
   { to: "/afiliados", label: "Programa Afiliados", icon: UserPlus, roles: ['admin'], section: 'marketing' },
   { to: "/sla", label: "SLA & Escalaciones", icon: Timer, roles: ['admin'], section: 'config' },
