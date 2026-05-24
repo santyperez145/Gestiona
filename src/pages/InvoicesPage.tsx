@@ -19,7 +19,7 @@ import {
   Receipt, Plus, Trash2, FileDown, CheckCircle2, Clock, XCircle,
   Send, Eye, ChevronDown, ChevronUp, DollarSign, FileText, Mail,
   ShieldCheck, ShieldAlert, Loader2, QrCode, Search, FileMinus,
-  Square, CheckSquare, CheckCheck, RotateCcw, Package,
+  Square, CheckSquare, CheckCheck, RotateCcw, Package, Copy,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -294,6 +294,7 @@ export default function InvoicesPage() {
   const fromSaleId = useRef<string | null>(null); // track sale_id to persist on save
 
   const canManage = activeRole === "owner" || activeRole === "admin";
+  const { copy } = useClipboard();
 
   // Pre-fill form when navigated from SalesPage with ?from_sale=...
   useEffect(() => {
@@ -941,6 +942,13 @@ export default function InvoicesPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-mono text-sm font-semibold ${inv.number.startsWith("NC-") ? "text-orange-400" : ""}`}>{inv.number}</span>
+                          <button
+                            className="opacity-40 hover:opacity-100 transition-opacity"
+                            title="Copiar número de factura"
+                            onClick={e => { e.stopPropagation(); copy(inv.number, inv.number); }}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
                           {inv.number.startsWith("NC-") && (
                             <span className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-bold border border-orange-500/30 text-orange-400 bg-orange-500/5">
                               N.Crédito
@@ -1058,7 +1066,16 @@ export default function InvoicesPage() {
                           <p className="text-xs font-semibold text-green-400 flex items-center gap-1">
                             <ShieldCheck className="w-3.5 h-3.5" />Autorizada por AFIP
                           </p>
-                          <p className="text-xs text-muted-foreground font-mono">CAE: {inv.cae}</p>
+                          <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                            CAE: {inv.cae}
+                            <button
+                              className="opacity-40 hover:opacity-100 transition-opacity shrink-0"
+                              title="Copiar CAE"
+                              onClick={() => copy(inv.cae!, `CAE ${inv.cae}`)}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </p>
                           {inv.cae_vencimiento && (
                             <p className="text-xs text-muted-foreground">Vto. CAE: {new Date(inv.cae_vencimiento).toLocaleDateString("es-AR")}</p>
                           )}

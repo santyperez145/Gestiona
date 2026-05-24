@@ -51,7 +51,11 @@ interface Deal {
   expected_close: string | null;
   created_at: string;
   updated_at: string;
+  win_loss_reason?: string | null;
 }
+
+const WIN_REASONS = ["Precio competitivo", "Relación previa", "Mejor propuesta", "Velocidad de respuesta", "Referencia", "Otro"];
+const LOSS_REASONS = ["Precio alto", "Eligieron competencia", "Sin presupuesto", "Timing", "Falta de seguimiento", "Proyecto cancelado", "Otro"];
 
 const STAGES: { value: Stage; label: string; color: string; bg: string; probability: number }[] = [
   { value: "lead",        label: "Lead",         color: "text-muted-foreground", bg: "bg-muted/40",         probability: 10 },
@@ -599,6 +603,9 @@ export default function SalesPipelinePage() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
   const [activityDeal, setActivityDeal] = useState<Deal | null>(null);
+  const [winLossDialog, setWinLossDialog] = useState<{ deal: Deal; stage: "cerrado" | "perdido" } | null>(null);
+  const [winLossReason, setWinLossReason] = useState("");
+  const [winLossNote, setWinLossNote] = useState("");
 
   const load = async () => {
     if (!activeOrg) return;
@@ -640,12 +647,28 @@ export default function SalesPipelinePage() {
   };
 
   const handleMove = async (deal: Deal, stage: Stage) => {
+    // Intercept final stages to capture Win/Loss reason
+    if ((stage === "cerrado" || stage === "perdido") && deal.stage !== stage) {
+      setWinLossReason("");
+      setWinLossNote("");
+      setWinLossDialog({ deal, stage });
+      return;
+    }
+    await commitMove(deal, stage, null);
+  };
+
+  const commitMove = async (deal: Deal, stage: Stage, reason: string | null) => {
     try {
-      await supabase.from("deals").update({ stage, updated_at: new Date().toISOString() }).eq("id", deal.id);
-      setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage } : d));
-      // Fire deal_stage_change automations matching the new stage label
+      await supabase.from("deals").update({
+        stage,
+        win_loss_reason: reason || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", deal.id);
+      setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage, win_loss_reason: reason } : d));
       const stageLabel = STAGES.find(s => s.value === stage)?.label ?? stage;
       void fireStageAutomations(deal, stageLabel);
+      if (stage === "cerrado") toast.success(`🏆 Deal "${deal.title}" marcado como ganado!`);
+      if (stage === "perdido") toast.info(`Deal "${deal.title}" marcado como perdido.`);
     } catch {
       toast.error("Error al mover");
     }
@@ -802,6 +825,21 @@ export default function SalesPipelinePage() {
       ? Math.round(lost.reduce((s, d) => s + (d.value_ars || 0), 0) / lost.length)
       : 0;
 
+    // Win/Loss reason breakdown
+    const winReasonMap: Record<string, number> = {};
+    won.forEach(d => {
+      const r = d.win_loss_reason || "Sin registrar";
+      winReasonMap[r] = (winReasonMap[r] || 0) + 1;
+    });
+    const lossReasonMap: Record<string, number> = {};
+    lost.forEach(d => {
+      const r = d.win_loss_reason || "Sin registrar";
+      lossReasonMap[r] = (lossReasonMap[r] || 0) + 1;
+    });
+    const winRate = (won.length + lost.length) > 0
+      ? Math.round((won.length / (won.length + lost.length)) * 100)
+      : 0;
+
     return {
       funnel,
       conversionRates,
@@ -813,6 +851,9 @@ export default function SalesPipelinePage() {
       totalValue: deals.reduce((s, d) => s + (d.value_ars || 0), 0),
       wonValue: won.reduce((s, d) => s + (d.value_ars || 0), 0),
       lostValue: lost.reduce((s, d) => s + (d.value_ars || 0), 0),
+      winReasonMap,
+      lossReasonMap,
+      winRate,
     };
   }, [deals]);
 
@@ -1064,6 +1105,44 @@ export default function SalesPipelinePage() {
               </ResponsiveContainer>
             </div>
           )}
+          {/* Win/Loss Rate & Reason Breakdown */}
+          {(analyticsData.won + analyticsData.lost) > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Win Rate & Razones</p>
+              <div className="flex items-center gap-3">
+                <div className="relative w-16 h-16 shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="hsl(var(--muted))" strokeWidth="3.5" />
+                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="hsl(160 60% 45%)" strokeWidth="3.5"
+                      strokeDasharray={`${analyticsData.winRate} ${100 - analyticsData.winRate}`} strokeLinecap="round" />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-400">
+                    {analyticsData.winRate}%
+                  </span>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-xs font-semibold">Win rate: <span className="text-emerald-400">{analyticsData.winRate}%</span></p>
+                  <p className="text-[10px] text-muted-foreground">{analyticsData.won} ganados · {analyticsData.lost} perdidos</p>
+                  {Object.keys(analyticsData.lossReasonMap).length > 0 && (
+                    <div className="space-y-1 mt-2">
+                      <p className="text-[10px] text-red-400 font-medium">Top razones de pérdida:</p>
+                      {Object.entries(analyticsData.lossReasonMap)
+                        .sort(([,a],[,b]) => b - a).slice(0, 4).map(([reason, count]) => (
+                        <div key={reason} className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground flex-1 truncate">{reason}</span>
+                          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-red-400/60 rounded-full"
+                              style={{ width: `${Math.round((count / analyticsData.lost) * 100)}%` }} />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-4 text-right">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1201,6 +1280,62 @@ export default function SalesPipelinePage() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Win/Loss reason dialog */}
+      {winLossDialog && (
+        <Dialog open onOpenChange={() => setWinLossDialog(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className={winLossDialog.stage === "cerrado" ? "text-emerald-400" : "text-red-400"}>
+                {winLossDialog.stage === "cerrado" ? "🏆 Deal ganado — ¿por qué?" : "💡 Deal perdido — ¿por qué?"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Registrar la razón ayuda a mejorar el proceso de ventas. Podés omitirlo.
+              </p>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Razón principal</Label>
+                <Select value={winLossReason} onValueChange={setWinLossReason}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar razón (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    {(winLossDialog.stage === "cerrado" ? WIN_REASONS : LOSS_REASONS).map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Notas adicionales (opcional)</Label>
+                <Textarea
+                  placeholder="Contexto adicional..."
+                  value={winLossNote}
+                  onChange={e => setWinLossNote(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => {
+                commitMove(winLossDialog.deal, winLossDialog.stage, null);
+                setWinLossDialog(null);
+              }}>
+                Omitir
+              </Button>
+              <Button
+                className={winLossDialog.stage === "cerrado" ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-red-500 hover:bg-red-600 text-white"}
+                onClick={() => {
+                  const reason = winLossReason || (winLossNote.trim() ? winLossNote.trim() : null);
+                  commitMove(winLossDialog.deal, winLossDialog.stage, reason);
+                  setWinLossDialog(null);
+                }}
+              >
+                {winLossDialog.stage === "cerrado" ? "Marcar como ganado" : "Marcar como perdido"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

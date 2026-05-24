@@ -1,9 +1,22 @@
 # Roadmap del Proyecto — Gestiona / Exentry Imports
 
 Fecha de relevamiento: 2026-05-05
-Última actualización: **2026-05-23 (sesión 76)**
+Última actualización: **2026-05-23 (sesión 77)**
 DB producción: `hummeopatkniwkyrrhwc`
-Tipo de producto: sistema de gestión SaaS para pymes argentinas — ventas, stock, finanzas, CRM, marketing, integraciones e inteligencia artificial.
+Tipo de producto: **ERP/CRM SaaS de clase empresarial para pymes argentinas** — competidor directo de Salesforce Sales Cloud + Service Cloud en el mercado LATAM. Cubre ventas, POS, stock, finanzas, CRM 360°, service desk, marketing omnicanal, BI/analytics, automatizaciones e inteligencia artificial generativa.
+
+## Posicionamiento estratégico — Salesforce Competitor
+
+**Gestiona/Exentry es el Salesforce de las pymes argentinas.** El stack combina:
+- **Sales Cloud**: Pipeline kanban, deal scoring IA, seguimiento de actividad, cuotas por vendedor, forecast de ventas con ML, segmentación RFM
+- **Service Cloud**: Tickets de soporte con SLA automático, thread de mensajes internos/cliente, categorías y prioridades, realtime subscriptions
+- **Marketing Cloud**: Email campaigns con branding + SMTP propio, WhatsApp masivo vía Evolution API, campañas de cumpleaños automatizadas
+- **Einstein AI**: Chat IA generativo (Claude 3), análisis de clientes/productos/proveedores, restock inteligente, churn risk, CLV
+- **Finance Cloud**: Facturación AFIP, conciliación bancaria, control de gastos, P&L mensual, cheques y cuotas
+- **Field Service**: Inventario aging, pricing intelligence, comisiones automáticas, metas de equipo
+
+**Stack tecnológico de última generación:**
+React 18 + TypeScript + Vite + Tailwind + Radix UI + Supabase (Postgres + Realtime + Edge Functions) + Anthropic Claude (streaming SSE) + Recharts + jsPDF + date-fns + Fuse.js + ZXing + canvas-confetti + qrcode.react + Evolution API (WhatsApp) + Resend/SMTP + Stripe + Mercado Pago + AFIP + Tiendanube + Sentry + PWA + WebSockets/Presence
 
 ---
 
@@ -1225,3 +1238,31 @@ Una funcionalidad se considera lista cuando:
 - MRR proyectado: USD 12.000–20.000.
 - ARPU objetivo: USD 60–100/mes por org.
 - Plans: Starter $29 · Pro $59 · Business $99 · Enterprise custom.
+
+---
+
+## Sesión 77 ✅ COMPLETA — Service Cloud + Haptics + Clipboard + Salesforce Positioning
+
+| # | Acción | Estado |
+|---|--------|--------|
+| 1 | **fix: import supabase path en CustomerRFMPage + SalesForecastPage** — `@/lib/supabase` → `@/integrations/supabase/client`; fix de build error Vercel | ✅ Hecho |
+| 2 | **SupportPage** `/soporte` — Service Cloud completo: tickets con número auto-generado (SP-YYYYMMDD-XXXX), estados open/in_progress/waiting_customer/resolved/closed, prioridades low/medium/high/urgent, categorías, SLA automático con countdown y alerta de breach, thread de mensajes internos/externos, notas internas privadas (Ctrl+Enter), KPIs en tiempo real, realtime subscriptions para nuevas respuestas, controles inline de estado/prioridad, copy ticket number; ruta `/soporte` con nav en sidebar | ✅ Hecho |
+| 3 | **Migration `support_tickets`** — tablas `support_tickets` + `support_ticket_messages` con RLS por org, índices de performance, función `check_sla_breaches()`, trigger `updated_at`, view `support_open_tickets` con SLA status calculado | ✅ Hecho |
+| 4 | **POSPage: haptic feedback** — `useVibration` importado y cableado; `vibrateTap()` en cada `addToCart()`; `vibrateSuccess()` tras venta exitosa (doble pulso [20,60,20]); no-op silencioso en desktop | ✅ Hecho |
+| 5 | **InvoicesPage: copy buttons** — `useClipboard` completamente cableado (`const { copy }`); botón Copy junto al número de factura en la lista; botón Copy junto al CAE en el panel expandido; feedback toast automático | ✅ Hecho |
+| 6 | **ROADMAP: posicionamiento Salesforce competitor** — sección estratégica nueva con comparativa Sales/Service/Marketing/Einstein/Finance/Field Service Cloud; stack tecnológico detallado | ✅ Hecho |
+| 7 | **TypeScript: 0 errores** — verificado con `npx tsc --noEmit` | ✅ Hecho |
+
+---
+
+## Próximas sesiones — Salesforce-level features pendientes
+
+| Prioridad | Feature | Notas |
+|-----------|---------|-------|
+| 🔴 Alta | **AI Lead Scoring automático** — score 0-100 en SalesPipelinePage basado en días abierto, valor, actividad reciente, stage | Heurísticas client-side |
+| 🔴 Alta | **Win/Loss recording** — al cerrar deal como ganado/perdido: form de razón (precio/competidor/timing/otro), gráfico de win rate por razón, CSV | Nueva tabla `deal_outcomes` |
+| 🟡 Media | **Email drip sequences** — secuencias automáticas de emails por días desde evento (registro, presupuesto enviado, deal perdido); `drip_sequences` + `drip_enrollments` | Edge function scheduler |
+| 🟡 Media | **Custom fields CRM** — campos JSONB extra en customers y products; UI drag-drop para agregar Texto/Número/Fecha/Select | Schema `custom_field_defs` |
+| 🟡 Media | **POSPage: impresión ESC/POS** — WebSocket local a impresora térmica; fallback HTML 80mm | Requiere hardware local |
+| 🟢 Baja | **SupportPage: escalation rules** — auto-escalar tickets urgentes después de N horas sin respuesta | Cron edge function |
+| 🟢 Baja | **SupportPage: KB (base de conocimientos)** — artículos markdown por categoría; búsqueda; link desde tickets | Nueva tabla `kb_articles` |

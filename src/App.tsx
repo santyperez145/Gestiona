@@ -85,6 +85,7 @@ const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
 const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
 const SalesForecastPage        = lazy(() => import("@/pages/SalesForecastPage"));
+const SupportPage              = lazy(() => import("@/pages/SupportPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -231,6 +232,7 @@ function ProtectedRoutes() {
               <Route path="/calendario" element={<CalendarPage />} />
               <Route path="/rfm" element={<CustomerRFMPage />} />
               <Route path="/forecast" element={<SalesForecastPage />} />
+              <Route path="/soporte" element={<SupportPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />

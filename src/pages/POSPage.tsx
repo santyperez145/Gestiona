@@ -19,6 +19,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePriceList } from "@/hooks/usePriceList";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
+import { useVibration } from "@/hooks/useVibration";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
 import confetti from "canvas-confetti";
@@ -851,6 +852,7 @@ export default function POSPage() {
   const [customerPriceListId, setCustomerPriceListId] = useState<string | null>(null);
   const { meta: activePriceList, getPrice } = usePriceList(customerPriceListId);
   const getRecommendations = useProductRecommendations(recSales);
+  const { tap: vibrateTap, success: vibrateSuccess } = useVibration();
 
   const [customerDebt, setCustomerDebt] = useState<number | null>(null);
   useEffect(() => {
@@ -1219,6 +1221,7 @@ export default function POSPage() {
     const basePrice = variantOverride?.price ?? Number(prod.sale_price_ars);
     const price = customerPriceListId ? getPrice({ id: prod.id, sale_price_ars: basePrice }) : (basePrice || 0);
     const displayName = variantOverride ? `${prod.name} · ${variantOverride.name}` : prod.name;
+    vibrateTap();
     setCart((prev) => {
       const idx = prev.findIndex((it) => it.productId === cartKey);
       if (idx >= 0) {
@@ -1476,6 +1479,7 @@ export default function POSPage() {
         note: posNote,
       });
       toast.success(`Venta de ${formatARS(cartTotal)} registrada`);
+      vibrateSuccess();
       // Confetti: big sales or every 10th sale get extra celebration
       const turnoCount = turnoSales.length + 1;
       const isBigSale = cartTotal >= (Number(settings?.large_sale_threshold_ars) || 50_000);
