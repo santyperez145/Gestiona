@@ -89,6 +89,7 @@ const SupportPage              = lazy(() => import("@/pages/SupportPage"));
 const DripSequencesPage        = lazy(() => import("@/pages/DripSequencesPage"));
 const CustomFieldsPage         = lazy(() => import("@/pages/CustomFieldsPage"));
 const KnowledgeBasePage        = lazy(() => import("@/pages/KnowledgeBasePage"));
+const NPSSurveysPage           = lazy(() => import("@/pages/NPSSurveysPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -239,6 +240,7 @@ function ProtectedRoutes() {
               <Route path="/secuencias-email" element={<DripSequencesPage />} />
               <Route path="/campos-personalizados" element={<CustomFieldsPage />} />
               <Route path="/base-conocimiento" element={<KnowledgeBasePage />} />
+              <Route path="/encuestas-nps" element={<NPSSurveysPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />

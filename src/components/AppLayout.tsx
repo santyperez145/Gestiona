@@ -45,6 +45,7 @@ const allNavItems = [
   { to: "/rfm", label: "Segmentación RFM", icon: Users, roles: ['admin'], section: 'ventas' },
   { to: "/soporte", label: "Soporte al Cliente", icon: Headphones, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/base-conocimiento", label: "Base de Conocimiento", icon: BookOpen, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/encuestas-nps", label: "Encuestas NPS / CSAT", icon: Star, roles: ['admin'], section: 'ventas' },
   { to: "/cupones", label: "Cupones", icon: Tag, roles: ['admin'], section: 'ventas' },
   // ── Finanzas ────────────────────────────────────────────────────────────────
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
