@@ -1316,6 +1316,19 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [showVariants, setShowVariants] = useState(false);
   const [vaperSubtype, setVaperSubtype] = useState(''); // desechable | pod | liquido | mod
   const [scanBarcodeOpen, setScanBarcodeOpen] = useState(false);
+  const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(product?.custom_fields ?? {});
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("custom_field_defs")
+      .select("id, field_key, field_label, field_type, required, options, sort_order")
+      .eq("org_id", orgId)
+      .eq("entity_type", "product")
+      .order("sort_order")
+      .then(({ data }) => { if (data) setCustomFieldDefs(data); });
+  }, [orgId]);
 
   // AI product suggestion
   const { suggest: aiSuggest, loading: aiLoading, result: aiResult, clear: aiClear } = useAIProductSuggest(orgId);
@@ -1479,6 +1492,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         content_ml: parseInt(contentMl) || 100,
+        ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
       if (product) {
@@ -2163,6 +2177,69 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               </span>
             </div>
           )}
+        </div>
+      )}
+      {/* Custom fields */}
+      {customFieldDefs.length > 0 && (
+        <div className="space-y-3 border-t border-border/50 pt-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Campos personalizados</p>
+          {customFieldDefs.map((def: any) => (
+            <div key={def.id}>
+              <label className="text-sm text-muted-foreground block mb-1">
+                {def.field_label}
+                {def.required && <span className="text-destructive ml-0.5">*</span>}
+              </label>
+              {def.field_type === 'text' && (
+                <Input
+                  value={customFieldValues[def.field_key] ?? ""}
+                  onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.value }))}
+                  className="bg-muted border-border"
+                />
+              )}
+              {def.field_type === 'number' && (
+                <Input
+                  type="number"
+                  value={customFieldValues[def.field_key] ?? ""}
+                  onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.value ? Number(e.target.value) : "" }))}
+                  className="bg-muted border-border"
+                />
+              )}
+              {def.field_type === 'date' && (
+                <Input
+                  type="date"
+                  value={customFieldValues[def.field_key] ?? ""}
+                  onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.value }))}
+                  className="bg-muted border-border"
+                />
+              )}
+              {def.field_type === 'boolean' && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!customFieldValues[def.field_key]}
+                    onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.checked }))}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  <span className="text-sm text-muted-foreground">Activado</span>
+                </div>
+              )}
+              {def.field_type === 'select' && def.options && (
+                <Select
+                  value={customFieldValues[def.field_key] ?? ""}
+                  onValueChange={v => setCustomFieldValues(vals => ({ ...vals, [def.field_key]: v }))}
+                >
+                  <SelectTrigger className="bg-muted border-border">
+                    <SelectValue placeholder="Seleccioná..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(def.options as string[]).map((opt: string) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          ))}
         </div>
       )}
       <Button type="submit" disabled={uploading} className="w-full gradient-gold text-primary-foreground font-semibold">{uploading ? 'Subiendo imagen...' : product ? 'Guardar' : 'Agregar'}</Button>
