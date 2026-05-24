@@ -46,6 +46,7 @@ const allNavItems = [
   { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
   { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
   { to: "/rfm", label: "Segmentación RFM", icon: Users, roles: ['admin'], section: 'ventas' },
+  { to: "/segmentos", label: "Segmentos Dinámicos", icon: Layers, roles: ['admin'], section: 'ventas' },
   { to: "/churn", label: "Predicción de Churn", icon: TrendingDown, roles: ['admin'], section: 'ventas' },
   { to: "/soporte", label: "Soporte al Cliente", icon: Headphones, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/ordenes-servicio", label: "Órdenes de Servicio", icon: Wrench, roles: ['admin', 'vendedor'], section: 'ventas' },
