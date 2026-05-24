@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -51,6 +51,7 @@ const allNavItems = [
   { to: "/churn", label: "Predicción de Churn", icon: TrendingDown, roles: ['admin'], section: 'ventas' },
   { to: "/soporte", label: "Soporte al Cliente", icon: Headphones, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/ordenes-servicio", label: "Órdenes de Servicio", icon: Wrench, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/envios", label: "Seguimiento de Envíos", icon: Truck, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/base-conocimiento", label: "Base de Conocimiento", icon: BookOpen, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/encuestas-nps", label: "Encuestas NPS / CSAT", icon: Star, roles: ['admin'], section: 'ventas' },
   { to: "/cupones", label: "Cupones", icon: Tag, roles: ['admin'], section: 'ventas' },
@@ -71,6 +72,7 @@ const allNavItems = [
   { to: "/actividad", label: "Feed de Actividad", icon: Activity, roles: ['admin'], section: 'analytics' },
   { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/rendimiento-equipo", label: "Rendimiento Equipo", icon: Users, roles: ['admin'], section: 'analytics' },
+  { to: "/gamificacion", label: "Gamificación", icon: Trophy, roles: ['admin'], section: 'analytics' },
   { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'analytics' },
   // ── Marketing ───────────────────────────────────────────────────────────────
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
@@ -91,6 +93,7 @@ const allNavItems = [
   { to: "/campos-personalizados", label: "Campos personalizados", icon: Settings, roles: ['admin'], section: 'config' },
   { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
+  { to: "/cotizaciones-proveedor", label: "Cotiz. Proveedores", icon: FileSearch, roles: ['admin'], section: 'inventario' },
   { to: "/eventos", label: "Eventos & Tickets", icon: Ticket, roles: ['admin'], section: 'ventas' },
   { to: "/turnos", label: "Turnos & Reservas", icon: CalendarClock, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/productos-digitales", label: "Prod. Digitales", icon: FileDown, roles: ['admin'], section: 'inventario' },

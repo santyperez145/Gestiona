@@ -111,6 +111,9 @@ const QRGeneratorPage          = lazy(() => import("@/pages/QRGeneratorPage"));
 const EventTicketingPage       = lazy(() => import("@/pages/EventTicketingPage"));
 const AppointmentBookingPage   = lazy(() => import("@/pages/AppointmentBookingPage"));
 const DigitalProductsPage      = lazy(() => import("@/pages/DigitalProductsPage"));
+const DeliveryTrackingPage     = lazy(() => import("@/pages/DeliveryTrackingPage"));
+const SupplierQuotesPage       = lazy(() => import("@/pages/SupplierQuotesPage"));
+const GamificationPage         = lazy(() => import("@/pages/GamificationPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -283,6 +286,9 @@ function ProtectedRoutes() {
               <Route path="/eventos" element={<EventTicketingPage />} />
               <Route path="/turnos" element={<AppointmentBookingPage />} />
               <Route path="/productos-digitales" element={<DigitalProductsPage />} />
+              <Route path="/envios" element={<DeliveryTrackingPage />} />
+              <Route path="/cotizaciones-proveedor" element={<SupplierQuotesPage />} />
+              <Route path="/gamificacion" element={<GamificationPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
