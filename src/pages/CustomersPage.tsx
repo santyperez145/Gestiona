@@ -72,6 +72,17 @@ type CustomerProfile = {
   birthday?: string;
   tags?: string[];
   notes?: string;
+  custom_fields?: Record<string, any>;
+};
+
+type CustomFieldDef = {
+  id: string;
+  field_key: string;
+  field_label: string;
+  field_type: 'text' | 'number' | 'date' | 'boolean' | 'select';
+  required: boolean;
+  options?: string[] | null;
+  sort_order: number;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -186,10 +197,12 @@ function CustomerFormModal({
   initial,
   onSave,
   onClose,
+  orgId,
 }: {
   initial?: Partial<CustomerProfile>;
   onSave: (data: Partial<CustomerProfile>) => Promise<void>;
   onClose: () => void;
+  orgId?: string;
 }) {
   const [form, setForm] = useState({
     name: initial?.name ?? "",
@@ -201,7 +214,23 @@ function CustomerFormModal({
     tags: (initial?.tags ?? []).join(", "),
     notes: initial?.notes ?? "",
   });
+  const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(
+    initial?.custom_fields ?? {}
+  );
   const [saving, setSaving] = useState(false);
+
+  // Load custom field definitions for customers
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("custom_field_defs")
+      .select("id, field_key, field_label, field_type, required, options, sort_order")
+      .eq("org_id", orgId)
+      .eq("entity_type", "customer")
+      .order("sort_order")
+      .then(({ data }) => { if (data) setCustomFieldDefs(data as CustomFieldDef[]); });
+  }, [orgId]);
   const { supported: contactsSupported, pick: pickContact, picking } = useContactPicker();
 
   const handlePickContact = async () => {
@@ -219,6 +248,13 @@ function CustomerFormModal({
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("El nombre es obligatorio"); return; }
+    // Validate required custom fields
+    for (const def of customFieldDefs) {
+      if (def.required && !customFieldValues[def.field_key] && customFieldValues[def.field_key] !== false) {
+        toast.error(`El campo "${def.field_label}" es obligatorio`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       await onSave({
@@ -230,6 +266,7 @@ function CustomerFormModal({
         birthday: form.birthday || undefined,
         tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
         notes: form.notes.trim() || undefined,
+        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
       });
       onClose();
     } catch (e: any) {
@@ -343,6 +380,72 @@ function CustomerFormModal({
               rows={3}
             />
           </div>
+
+          {/* Custom fields */}
+          {customFieldDefs.length > 0 && (
+            <div className="border-t border-border/50 pt-3 space-y-3">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold">
+                Campos personalizados
+              </p>
+              {customFieldDefs.map(def => (
+                <div key={def.id}>
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    {def.field_label}
+                    {def.required && <span className="text-destructive ml-0.5">*</span>}
+                  </label>
+                  {def.field_type === 'text' && (
+                    <Input
+                      value={customFieldValues[def.field_key] ?? ""}
+                      onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.value }))}
+                      className="bg-muted"
+                    />
+                  )}
+                  {def.field_type === 'number' && (
+                    <Input
+                      type="number"
+                      value={customFieldValues[def.field_key] ?? ""}
+                      onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.value ? Number(e.target.value) : "" }))}
+                      className="bg-muted"
+                    />
+                  )}
+                  {def.field_type === 'date' && (
+                    <Input
+                      type="date"
+                      value={customFieldValues[def.field_key] ?? ""}
+                      onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.value }))}
+                      className="bg-muted"
+                    />
+                  )}
+                  {def.field_type === 'boolean' && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!!customFieldValues[def.field_key]}
+                        onChange={e => setCustomFieldValues(v => ({ ...v, [def.field_key]: e.target.checked }))}
+                        className="w-4 h-4 accent-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">Activado</span>
+                    </div>
+                  )}
+                  {def.field_type === 'select' && def.options && (
+                    <Select
+                      value={customFieldValues[def.field_key] ?? ""}
+                      onValueChange={v => setCustomFieldValues(vals => ({ ...vals, [def.field_key]: v }))}
+                    >
+                      <SelectTrigger className="bg-muted">
+                        <SelectValue placeholder="Seleccioná..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {def.options.map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 px-5 pb-5">
@@ -1657,6 +1760,7 @@ export default function CustomersPage() {
             : handleCreate
           }
           onClose={() => setFormModal({ open: false })}
+          orgId={activeOrg?.id}
         />
       )}
 
