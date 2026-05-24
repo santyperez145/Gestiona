@@ -93,6 +93,7 @@ const NPSSurveysPage           = lazy(() => import("@/pages/NPSSurveysPage"));
 const AILeadScoringPage        = lazy(() => import("@/pages/AILeadScoringPage"));
 const ChurnPredictionPage      = lazy(() => import("@/pages/ChurnPredictionPage"));
 const ServiceOrdersPage        = lazy(() => import("@/pages/ServiceOrdersPage"));
+const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -247,6 +248,7 @@ function ProtectedRoutes() {
               <Route path="/lead-scoring" element={<AILeadScoringPage />} />
               <Route path="/churn" element={<ChurnPredictionPage />} />
               <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
+              <Route path="/bundles" element={<ProductBundlesPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
