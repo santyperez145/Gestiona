@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -33,6 +33,7 @@ const allNavItems = [
   { to: "/bundles", label: "Bundles / Kits", icon: Layers, roles: ['admin'], section: 'inventario' },
   { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
   { to: "/restock", label: "Auto-Reposición", icon: RefreshCw, roles: ['admin'], section: 'inventario' },
+  { to: "/transferencias", label: "Transferencias", icon: ArrowRightLeft, roles: ['admin'], section: 'inventario' },
   { to: "/inventario-aging", label: "Aging de Stock", icon: Archive, roles: ['admin'], section: 'inventario' },
   { to: "/precios-inteligentes", label: "Precios Inteligentes", icon: Percent, roles: ['admin'], section: 'inventario' },
   // ── Ventas & CRM ────────────────────────────────────────────────────────────
