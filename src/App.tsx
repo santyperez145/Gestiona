@@ -96,6 +96,7 @@ const ServiceOrdersPage        = lazy(() => import("@/pages/ServiceOrdersPage"))
 const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
 const ContractsPage            = lazy(() => import("@/pages/ContractsPage"));
 const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
+const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -253,6 +254,7 @@ function ProtectedRoutes() {
               <Route path="/bundles" element={<ProductBundlesPage />} />
               <Route path="/contratos" element={<ContractsPage />} />
               <Route path="/transferencias" element={<InventoryTransfersPage />} />
+              <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />

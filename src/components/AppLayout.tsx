@@ -71,6 +71,7 @@ const allNavItems = [
   { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'analytics' },
   // ── Marketing ───────────────────────────────────────────────────────────────
   { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
+  { to: "/promociones", label: "Flash Sales / Promo", icon: Zap, roles: ['admin'], section: 'marketing' },
   { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
   { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
   { to: "/secuencias-email", label: "Drip Sequences", icon: Zap, roles: ['admin'], section: 'marketing' },
