@@ -105,6 +105,7 @@ const allNavItems = [
   { to: "/formularios", label: "Constructor de Forms", icon: FormInput, roles: ['admin'], section: 'config' },
   { to: "/reglas-notificacion", label: "Reglas de Alerta", icon: BellRing, roles: ['admin'], section: 'config' },
   { to: "/tipo-cambio", label: "Tipo de Cambio", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
+  { to: "/cash-flow", label: "Cash Flow", icon: BarChart3, roles: ['admin'], section: 'finanzas' },
   { to: "/presupuesto", label: "Presupuesto Mensual", icon: PiggyBank, roles: ['admin'], section: 'finanzas' },
   { to: "/planner-social", label: "Planner Social", icon: Share2, roles: ['admin'], section: 'marketing' },
   { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },

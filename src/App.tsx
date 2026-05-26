@@ -136,6 +136,7 @@ const CustomerPortalPage       = lazy(() => import("@/pages/CustomerPortalPage")
 const MultiWarehousePage       = lazy(() => import("@/pages/MultiWarehousePage"));
 const PurchaseRequestsPage     = lazy(() => import("@/pages/PurchaseRequestsPage"));
 const DocumentManagementPage   = lazy(() => import("@/pages/DocumentManagementPage"));
+const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -333,6 +334,7 @@ function ProtectedRoutes() {
               <Route path="/multi-deposito" element={<MultiWarehousePage />} />
               <Route path="/solicitudes-compra" element={<PurchaseRequestsPage />} />
               <Route path="/documentos" element={<DocumentManagementPage />} />
+              <Route path="/cash-flow" element={<CashFlowPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
