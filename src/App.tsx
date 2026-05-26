@@ -123,6 +123,9 @@ const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"))
 const BatchLotPage             = lazy(() => import("@/pages/BatchLotPage"));
 const RecipesPage              = lazy(() => import("@/pages/RecipesPage"));
 const RentalPage               = lazy(() => import("@/pages/RentalPage"));
+const MarketplaceListingsPage  = lazy(() => import("@/pages/MarketplaceListingsPage"));
+const EmployeePayrollPage      = lazy(() => import("@/pages/EmployeePayrollPage"));
+const ProjectManagementPage    = lazy(() => import("@/pages/ProjectManagementPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -307,6 +310,9 @@ function ProtectedRoutes() {
               <Route path="/lotes" element={<BatchLotPage />} />
               <Route path="/recetas" element={<RecipesPage />} />
               <Route path="/alquileres" element={<RentalPage />} />
+              <Route path="/marketplace" element={<MarketplaceListingsPage />} />
+              <Route path="/sueldos" element={<EmployeePayrollPage />} />
+              <Route path="/proyectos" element={<ProjectManagementPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
