@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2 } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -114,9 +114,11 @@ const allNavItems = [
   { to: "/sueldos", label: "Sueldos & RRHH", icon: Users2, roles: ['admin'], section: 'finanzas' },
   { to: "/impuestos", label: "Gestión Impositiva", icon: Scale, roles: ['admin'], section: 'finanzas' },
   { to: "/flota", label: "Flota Vehicular", icon: Car, roles: ['admin'], section: 'finanzas' },
+  { to: "/activos-fijos", label: "Activos Fijos", icon: Landmark, roles: ['admin'], section: 'finanzas' },
   { to: "/tarjetas-regalo", label: "Tarjetas de Regalo", icon: Gift, roles: ['admin'], section: 'ventas' },
   { to: "/dropshipping", label: "Dropshipping", icon: PackageSearch, roles: ['admin'], section: 'ventas' },
   { to: "/mermas", label: "Control de Mermas", icon: Trash2, roles: ['admin'], section: 'inventario' },
+  { to: "/portal-clientes", label: "Portal de Clientes", icon: Globe, roles: ['admin'], section: 'ventas' },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, roles: ['admin', 'vendedor'], section: 'principal' },
   { to: "/qr-generator", label: "Generador de QR", icon: QrCode, roles: ['admin'], section: 'config' },
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
