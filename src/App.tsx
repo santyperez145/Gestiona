@@ -117,6 +117,9 @@ const GamificationPage         = lazy(() => import("@/pages/GamificationPage"));
 const WarrantyClaimsPage       = lazy(() => import("@/pages/WarrantyClaimsPage"));
 const FormsBuilderPage         = lazy(() => import("@/pages/FormsBuilderPage"));
 const NotificationRulesPage    = lazy(() => import("@/pages/NotificationRulesPage"));
+const CurrencyTrackerPage      = lazy(() => import("@/pages/CurrencyTrackerPage"));
+const BudgetPlannerPage        = lazy(() => import("@/pages/BudgetPlannerPage"));
+const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -295,6 +298,9 @@ function ProtectedRoutes() {
               <Route path="/garantias" element={<WarrantyClaimsPage />} />
               <Route path="/formularios" element={<FormsBuilderPage />} />
               <Route path="/reglas-notificacion" element={<NotificationRulesPage />} />
+              <Route path="/tipo-cambio" element={<CurrencyTrackerPage />} />
+              <Route path="/presupuesto" element={<BudgetPlannerPage />} />
+              <Route path="/planner-social" element={<SocialPlannerPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
