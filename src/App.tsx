@@ -126,6 +126,9 @@ const RentalPage               = lazy(() => import("@/pages/RentalPage"));
 const MarketplaceListingsPage  = lazy(() => import("@/pages/MarketplaceListingsPage"));
 const EmployeePayrollPage      = lazy(() => import("@/pages/EmployeePayrollPage"));
 const ProjectManagementPage    = lazy(() => import("@/pages/ProjectManagementPage"));
+const GiftCardsPage            = lazy(() => import("@/pages/GiftCardsPage"));
+const DropshippingPage         = lazy(() => import("@/pages/DropshippingPage"));
+const TaxManagementPage        = lazy(() => import("@/pages/TaxManagementPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -313,6 +316,9 @@ function ProtectedRoutes() {
               <Route path="/marketplace" element={<MarketplaceListingsPage />} />
               <Route path="/sueldos" element={<EmployeePayrollPage />} />
               <Route path="/proyectos" element={<ProjectManagementPage />} />
+              <Route path="/tarjetas-regalo" element={<GiftCardsPage />} />
+              <Route path="/dropshipping" element={<DropshippingPage />} />
+              <Route path="/impuestos" element={<TaxManagementPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
