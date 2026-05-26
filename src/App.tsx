@@ -137,6 +137,9 @@ const MultiWarehousePage       = lazy(() => import("@/pages/MultiWarehousePage")
 const PurchaseRequestsPage     = lazy(() => import("@/pages/PurchaseRequestsPage"));
 const DocumentManagementPage   = lazy(() => import("@/pages/DocumentManagementPage"));
 const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
+const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
+const LoyaltyAdvancedPage      = lazy(() => import("@/pages/LoyaltyAdvancedPage"));
+const CompetitorPricingPage    = lazy(() => import("@/pages/CompetitorPricingPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -335,6 +338,9 @@ function ProtectedRoutes() {
               <Route path="/solicitudes-compra" element={<PurchaseRequestsPage />} />
               <Route path="/documentos" element={<DocumentManagementPage />} />
               <Route path="/cash-flow" element={<CashFlowPage />} />
+              <Route path="/kpi-dashboard" element={<KPIDashboardPage />} />
+              <Route path="/fidelidad-avanzada" element={<LoyaltyAdvancedPage />} />
+              <Route path="/precios-competencia" element={<CompetitorPricingPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
