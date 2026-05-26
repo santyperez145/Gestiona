@@ -129,6 +129,8 @@ const ProjectManagementPage    = lazy(() => import("@/pages/ProjectManagementPag
 const GiftCardsPage            = lazy(() => import("@/pages/GiftCardsPage"));
 const DropshippingPage         = lazy(() => import("@/pages/DropshippingPage"));
 const TaxManagementPage        = lazy(() => import("@/pages/TaxManagementPage"));
+const FleetPage                = lazy(() => import("@/pages/FleetPage"));
+const WasteControlPage         = lazy(() => import("@/pages/WasteControlPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -319,6 +321,8 @@ function ProtectedRoutes() {
               <Route path="/tarjetas-regalo" element={<GiftCardsPage />} />
               <Route path="/dropshipping" element={<DropshippingPage />} />
               <Route path="/impuestos" element={<TaxManagementPage />} />
+              <Route path="/flota" element={<FleetPage />} />
+              <Route path="/mermas" element={<WasteControlPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
