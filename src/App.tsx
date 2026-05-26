@@ -120,6 +120,9 @@ const NotificationRulesPage    = lazy(() => import("@/pages/NotificationRulesPag
 const CurrencyTrackerPage      = lazy(() => import("@/pages/CurrencyTrackerPage"));
 const BudgetPlannerPage        = lazy(() => import("@/pages/BudgetPlannerPage"));
 const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"));
+const BatchLotPage             = lazy(() => import("@/pages/BatchLotPage"));
+const RecipesPage              = lazy(() => import("@/pages/RecipesPage"));
+const RentalPage               = lazy(() => import("@/pages/RentalPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
@@ -301,6 +304,9 @@ function ProtectedRoutes() {
               <Route path="/tipo-cambio" element={<CurrencyTrackerPage />} />
               <Route path="/presupuesto" element={<BudgetPlannerPage />} />
               <Route path="/planner-social" element={<SocialPlannerPage />} />
+              <Route path="/lotes" element={<BatchLotPage />} />
+              <Route path="/recetas" element={<RecipesPage />} />
+              <Route path="/alquileres" element={<RentalPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2 } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -107,6 +107,9 @@ const allNavItems = [
   { to: "/tipo-cambio", label: "Tipo de Cambio", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
   { to: "/presupuesto", label: "Presupuesto Mensual", icon: PiggyBank, roles: ['admin'], section: 'finanzas' },
   { to: "/planner-social", label: "Planner Social", icon: Share2, roles: ['admin'], section: 'marketing' },
+  { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },
+  { to: "/recetas", label: "Fichas Técnicas / BOM", icon: ChefHat, roles: ['admin'], section: 'inventario' },
+  { to: "/alquileres", label: "Gestión de Alquileres", icon: Building2, roles: ['admin'], section: 'ventas' },
   { to: "/qr-generator", label: "Generador de QR", icon: QrCode, roles: ['admin'], section: 'config' },
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
   { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
