@@ -186,24 +186,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // ── Collapsible sidebar sections ─────────────────────────────────────────
+  const ALL_SECTIONS = Object.keys(SECTION_LABELS);
   const getActiveSectionForPath = (path: string) => {
     const item = allNavItems.find(i => i.to === path);
     return item?.section ?? 'principal';
   };
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    () => new Set(['principal', getActiveSectionForPath(window.location.pathname)])
-  );
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    // Restore from localStorage; default = ALL sections expanded
+    try {
+      const saved = localStorage.getItem('gestiona.sidebar.expanded');
+      if (saved) return new Set(JSON.parse(saved) as string[]);
+    } catch { /* ignore */ }
+    return new Set(ALL_SECTIONS);
+  });
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
       const next = new Set(prev);
       if (next.has(section)) { next.delete(section); } else { next.add(section); }
+      // Persist to localStorage
+      try { localStorage.setItem('gestiona.sidebar.expanded', JSON.stringify([...next])); } catch { /* ignore */ }
       return next;
     });
   };
-  // Auto-expand the section of the newly active route
+  // Auto-expand the section of the newly active route (never auto-collapse)
   useEffect(() => {
     const section = getActiveSectionForPath(pathname);
-    setExpandedSections(prev => prev.has(section) ? prev : new Set([...prev, section]));
+    setExpandedSections(prev => {
+      if (prev.has(section)) return prev;
+      const next = new Set([...prev, section]);
+      try { localStorage.setItem('gestiona.sidebar.expanded', JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
   }, [pathname]);
   const config = useBusinessConfig();
   const { subscription, isTrialing, trialDaysLeft } = useEntitlements();
