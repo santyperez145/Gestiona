@@ -89,16 +89,112 @@ function ObligationRow({ ob }: { ob: Obligation }) {
 
 export default function RevenueRecognitionPage() {
   const { orgId } = useOrganization();
+  const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"contracts" | "waterfall" | "journal" | "config">("contracts");
-  const [contracts] = useState<RevenueContract[]>(MOCK_CONTRACTS);
+  const [contracts, setContracts] = useState<RevenueContract[]>([]);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [waterfallData, setWaterfallData] = useState<{ month: string; new_contracts: number; recognized: number; deferred: number }[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<RevenueContract | null>(null);
   const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    setLoading(true);
+
+    const fetchData = async () => {
+      // Fetch contracts with obligations
+      const { data: contractsData } = await supabase
+        .from("revenue_contracts")
+        .select(`
+          id, contract_number, title, customer_id, total_value, currency,
+          start_date, end_date, status, recognition_method,
+          performance_obligations(id, contract_id, name, allocated_price, progress_pct,
+            fulfillment_method, is_satisfied, recognized_amount, deferred_amount)
+        `)
+        .eq("org_id", activeOrg.id)
+        .order("start_date", { ascending: false });
+
+      if (contractsData) {
+        const mapped: RevenueContract[] = (contractsData as any[]).map(c => ({
+          id: c.id,
+          contract_number: c.contract_number,
+          title: c.title,
+          customer_id: c.customer_id,
+          customer_name: c.customer_id ?? "—",
+          total_value: Number(c.total_value),
+          currency: c.currency,
+          start_date: c.start_date,
+          end_date: c.end_date,
+          status: c.status,
+          recognition_method: c.recognition_method,
+          obligations: (c.performance_obligations ?? []).map((o: any) => ({
+            id: o.id,
+            contract_id: o.contract_id,
+            name: o.name,
+            allocated_price: Number(o.allocated_price),
+            progress_pct: Number(o.progress_pct),
+            fulfillment_method: o.fulfillment_method,
+            is_satisfied: o.is_satisfied,
+            recognized_amount: Number(o.recognized_amount),
+            deferred_amount: Number(o.deferred_amount),
+          })),
+        }));
+        setContracts(mapped);
+      }
+
+      // Fetch journal entries
+      const { data: journalData } = await supabase
+        .from("revenue_journal_entries")
+        .select("id, entry_date, entry_type, contract_id, debit_account, credit_account, amount, description, period_month")
+        .eq("org_id", activeOrg.id)
+        .order("entry_date", { ascending: false })
+        .limit(50);
+
+      if (journalData) {
+        setJournalEntries(journalData as JournalEntry[]);
+      }
+
+      // Build waterfall from journal entries grouped by period_month
+      const { data: waterfallRaw } = await supabase
+        .from("revenue_journal_entries")
+        .select("period_month, entry_type, amount")
+        .eq("org_id", activeOrg.id)
+        .order("period_month", { ascending: true });
+
+      if (waterfallRaw) {
+        const byMonth: Record<string, { new_contracts: number; recognized: number }> = {};
+        (waterfallRaw as any[]).forEach(row => {
+          if (!byMonth[row.period_month]) byMonth[row.period_month] = { new_contracts: 0, recognized: 0 };
+          if (row.entry_type === "deferred") byMonth[row.period_month].new_contracts += Number(row.amount);
+          else if (row.entry_type === "recognized") byMonth[row.period_month].recognized += Number(row.amount);
+        });
+        let cumDeferred = 0;
+        const wf = Object.entries(byMonth).slice(-6).map(([period_month, vals]) => {
+          cumDeferred += vals.new_contracts - vals.recognized;
+          return {
+            month: new Date(period_month + "-01").toLocaleString("es-AR", { month: "short" }),
+            new_contracts: vals.new_contracts,
+            recognized: vals.recognized,
+            deferred: Math.max(0, cumDeferred),
+          };
+        });
+        setWaterfallData(wf);
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [activeOrg]);
 
   const totalContractValue = contracts.reduce((s, c) => s + c.total_value, 0);
   const totalRecognized = contracts.flatMap(c => c.obligations).reduce((s, o) => s + o.recognized_amount, 0);
   const totalDeferred = contracts.flatMap(c => c.obligations).reduce((s, o) => s + o.deferred_amount, 0);
 
-  const maxWaterfall = Math.max(...WATERFALL_DATA.map(d => d.deferred));
+  const maxWaterfall = waterfallData.length > 0
+    ? Math.max(...waterfallData.map(d => d.deferred))
+    : 1;
 
   return (
     <div className="p-6 space-y-6">
@@ -205,7 +301,7 @@ export default function RevenueRecognitionPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {WATERFALL_DATA.map((d, i) => (
+                    {waterfallData.map((d, i) => (
                       <tr key={i} className="border-b last:border-0">
                         <td className="py-2 pr-4 font-medium">{d.month}</td>
                         <td className="py-2 px-3 text-right text-green-600">+${(d.new_contracts / 1000).toFixed(0)}K</td>

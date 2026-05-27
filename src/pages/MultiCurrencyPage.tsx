@@ -388,10 +388,14 @@ export default function MultiCurrencyPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_EXPOSURE.map(e => {
+                  {exposure.length === 0 && (
+                    <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">Sin datos de exposición FX</td></tr>
+                  )}
+                  {exposure.map(e => {
                     const net = e.receivables - e.payables;
                     const netARS = net * e.spot;
                     const info = CURRENCIES_INFO[e.currency];
+                    if (!info) return null;
                     return (
                       <tr key={e.currency} className="border-b border-border/20 hover:bg-muted/20">
                         <td className="px-4 py-3"><div className="flex items-center gap-2"><span>{info.flag}</span><span className="font-mono font-bold text-xs">{e.currency}</span></div></td>

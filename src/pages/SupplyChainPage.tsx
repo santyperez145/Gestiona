@@ -164,7 +164,7 @@ export default function SupplyChainPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Truck} label="Proveedores activos" value={MOCK_SUPPLIERS.length} sub="evaluados este período" />
+        <StatCard icon={Truck} label="Proveedores activos" value={suppliers.length} sub="evaluados este período" />
         <StatCard icon={CheckCircle2} label="Entrega a tiempo" value={`${avgOnTime}%`} color="text-emerald-400" sub="promedio" />
         <StatCard icon={DollarSign} label="Gasto total" value={`$${(totalSpend / 1000000).toFixed(2)}M`} color="text-primary" sub="últimos 90 días" />
         <StatCard icon={AlertTriangle} label="Proveedores en riesgo" value={atRisk} color="text-red-400" sub="Grade D o F" />
@@ -202,21 +202,21 @@ export default function SupplyChainPage() {
                   {filtered.map(s => (
                     <tr key={s.id} className="border-b border-border/20 hover:bg-muted/20 cursor-pointer transition-colors"
                       onClick={() => setSelectedSupplier(s)}>
-                      <td className="px-4 py-3 font-medium text-sm">{s.name}</td>
+                      <td className="px-4 py-3 font-medium text-sm">{s.supplier_name ?? s.supplier_id}</td>
                       <td className="px-4 py-3"><GradeBadge grade={s.grade} /></td>
-                      <td className="px-4 py-3 min-w-[120px]"><ScoreBar value={s.score} /></td>
+                      <td className="px-4 py-3 min-w-[120px]"><ScoreBar value={s.overall_score} /></td>
                       <td className="px-4 py-3 text-xs">
-                        <span className={s.on_time >= 90 ? "text-emerald-400" : s.on_time >= 75 ? "text-yellow-400" : "text-red-400"}>{s.on_time}%</span>
+                        <span className={s.on_time_delivery >= 90 ? "text-emerald-400" : s.on_time_delivery >= 75 ? "text-yellow-400" : "text-red-400"}>{s.on_time_delivery.toFixed(1)}%</span>
                       </td>
                       <td className="px-4 py-3 text-xs">
-                        <span className={s.quality >= 90 ? "text-emerald-400" : "text-yellow-400"}>{s.quality}%</span>
+                        <span className={s.quality_rate >= 90 ? "text-emerald-400" : "text-yellow-400"}>{s.quality_rate.toFixed(1)}%</span>
                       </td>
                       <td className="px-4 py-3 text-xs">
-                        <span className={s.fill >= 90 ? "text-emerald-400" : "text-yellow-400"}>{s.fill}%</span>
+                        <span className={s.fill_rate >= 90 ? "text-emerald-400" : "text-yellow-400"}>{s.fill_rate.toFixed(1)}%</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{s.avg_lead} días</td>
-                      <td className="px-4 py-3 text-xs font-semibold">${(s.spend / 1000).toFixed(0)}K</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{s.orders}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">—</td>
+                      <td className="px-4 py-3 text-xs font-semibold">—</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">—</td>
                     </tr>
                   ))}
                 </tbody>

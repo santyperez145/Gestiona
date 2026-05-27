@@ -27,42 +27,43 @@ const TOUCHPOINT_ICONS: Record<string, any> = {
   nps_response: Star, cart_abandon: ShoppingCart,
 };
 
-// Mock stages
-const MOCK_STAGES = [
-  { id: "s1", name: "Descubrimiento",  stage_type: "awareness",     customers: 142, description: "Primer contacto con la marca" },
-  { id: "s2", name: "Evaluación",      stage_type: "consideration", customers: 87,  description: "Comparando opciones" },
-  { id: "s3", name: "Primera Compra",  stage_type: "decision",      customers: 256, description: "Realizó su primera compra" },
-  { id: "s4", name: "Cliente Activo",  stage_type: "retention",     customers: 389, description: "Compra con frecuencia regular" },
-  { id: "s5", name: "Embajador",       stage_type: "advocacy",      customers: 45,  description: "Recomienda activamente" },
-  { id: "s6", name: "Riesgo de Baja",  stage_type: "churn_risk",    customers: 28,  description: "Sin actividad reciente" },
-];
+interface JourneyStage {
+  id: string;
+  name: string;
+  stage_type: string;
+  customers: number;
+  description: string;
+}
 
-// Mock customers with journey data
-const MOCK_CUSTOMERS = [
-  { id: "c1", name: "Lucas Fernández", email: "lucas@gmail.com", stage: "retention", health: 87, touchpoints: 23, last_contact: "hace 2 días", sentiment: "positive", ltv: 128500 },
-  { id: "c2", name: "María González",  email: "mgonz@hotmail.com", stage: "advocacy", health: 96, touchpoints: 45, last_contact: "ayer",        sentiment: "positive", ltv: 342000 },
-  { id: "c3", name: "Carlos López",   email: "carlos@emp.com", stage: "churn_risk", health: 21, touchpoints: 8,  last_contact: "hace 45 días", sentiment: "negative", ltv: 67000  },
-  { id: "c4", name: "Sofía Martínez", email: "sofia@gmail.com", stage: "decision",   health: 72, touchpoints: 12, last_contact: "hace 5 días",  sentiment: "neutral",  ltv: 48000  },
-  { id: "c5", name: "Diego Ruiz",     email: "diego.r@email.com", stage: "consideration", health: 55, touchpoints: 4, last_contact: "hace 10 días", sentiment: "neutral", ltv: 12000 },
-];
+interface JourneyCustomer {
+  id: string;
+  name: string;
+  email: string;
+  stage: string;
+  health: number;
+  touchpoints: number;
+  last_contact: string;
+  sentiment: string;
+  ltv: number;
+}
 
-// Mock touchpoints for a customer
-const MOCK_TOUCHPOINTS = [
-  { id: "tp1", type: "sale",            channel: "pos",    subject: "Venta #4521 — $48.400", sentiment: "positive", date: "2026-05-27 14:30" },
-  { id: "tp2", type: "email_open",      channel: "email",  subject: "Abrió campaña 'Ofertas Mayo'", sentiment: "positive", date: "2026-05-26 10:15" },
-  { id: "tp3", type: "whatsapp",        channel: "whatsapp", subject: "Consulta sobre talle XL", sentiment: "neutral", date: "2026-05-25 16:20" },
-  { id: "tp4", type: "support_ticket",  channel: "web",    subject: "Problema con envío #889 — resuelto", sentiment: "neutral", date: "2026-05-22 09:45" },
-  { id: "tp5", type: "review",          channel: "web",    subject: "Reseña ⭐⭐⭐⭐⭐ — 'Excelente servicio'", sentiment: "positive", date: "2026-05-20 20:00" },
-  { id: "tp6", type: "loyalty_redeem",  channel: "pos",    subject: "Canjeó 500 puntos por $5.000", sentiment: "positive", date: "2026-05-18 13:00" },
-];
+interface Touchpoint {
+  id: string;
+  type: string;
+  channel: string;
+  subject: string;
+  sentiment: string;
+  date: string;
+}
 
-// Mock automations
-const MOCK_AUTOMATIONS = [
-  { id: "a1", name: "Welcome email", trigger: "touchpoint_created", action: "send_email", active: true, runs: 234 },
-  { id: "a2", name: "Churn risk alert", trigger: "days_inactive", action: "notify_team", active: true, runs: 45 },
-  { id: "a3", name: "Re-engagement WA", trigger: "churn_risk", action: "send_whatsapp", active: false, runs: 12 },
-  { id: "a4", name: "VIP stage upgrade", trigger: "stage_entered", action: "assign_stage", active: true, runs: 89 },
-];
+interface Automation {
+  id: string;
+  name: string;
+  trigger: string;
+  action: string;
+  active: boolean;
+  runs: number;
+}
 
 function SentimentIcon({ sentiment }: { sentiment: string }) {
   if (sentiment === "positive") return <Smile className="w-3.5 h-3.5 text-emerald-400" />;

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
@@ -22,36 +22,26 @@ const STATUS_COLORS: Record<string, string> = {
 
 const DOC_TYPES = ["invoice","receipt","bill","purchase_order","delivery_note","contract","other"];
 
-// Mock OCR documents
-const MOCK_DOCS = [
-  {
-    id: "d1", filename: "factura_norte_sa_052026.pdf", doc_type: "invoice", status: "completed",
-    confidence: 0.94, created_at: "2026-05-27 14:22",
-    extracted: { supplier: "Distribuidora Norte SA", cuit: "30-12345678-9", date: "2026-05-27", invoice_number: "0001-00004521", total: 485600, iva: 85600, neto: 400000 },
-    items: [
-      { description: "Artículo Premium XL x50", qty: 50, unit_price: 5000, total: 250000 },
-      { description: "Kit Estándar M x30",      qty: 30, unit_price: 4520, total: 135600 },
-    ]
-  },
-  {
-    id: "d2", filename: "ticket_mercado_centro.jpg", doc_type: "receipt", status: "completed",
-    confidence: 0.87, created_at: "2026-05-26 09:45",
-    extracted: { supplier: "Mercado Central", cuit: null, date: "2026-05-26", invoice_number: null, total: 12500, iva: null, neto: 12500 },
-    items: [
-      { description: "Materiales de empaque", qty: 1, unit_price: 12500, total: 12500 },
-    ]
-  },
-  {
-    id: "d3", filename: "compra_tech_supplies.pdf", doc_type: "invoice", status: "processing",
-    confidence: null, created_at: "2026-05-27 15:01",
-    extracted: null, items: []
-  },
-  {
-    id: "d4", filename: "remito_importadora_sur.pdf", doc_type: "delivery_note", status: "failed",
-    confidence: 0.23, created_at: "2026-05-25 11:30",
-    extracted: null, items: [], error: "Imagen con baja resolución — no se pudo extraer texto"
-  },
-];
+function mapDoc(d: any) {
+  return {
+    id: d.id,
+    filename: d.filename,
+    doc_type: d.document_type,
+    status: d.ocr_status,
+    confidence: d.confidence,
+    created_at: (d.created_at || "").slice(0, 16).replace("T", " "),
+    extracted: (d.ocr_status === "completed" || d.ocr_status === "reviewed") && d.extracted_data && Object.keys(d.extracted_data).length > 0
+      ? d.extracted_data
+      : null,
+    items: (d.ocr_line_items || []).map((i: any) => ({
+      description: i.description,
+      qty: i.quantity,
+      unit_price: i.unit_price,
+      total: i.total_price,
+    })),
+    error: d.error_message,
+  };
+}
 
 function ConfidenceBadge({ value }: { value: number | null }) {
   if (value === null) return null;
@@ -64,11 +54,25 @@ export default function DocumentOCRPage() {
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [docs, setDocs] = useState(MOCK_DOCS);
+  const [docs, setDocs] = useState<any[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("ocr_documents")
+      .select("*, ocr_line_items(*)")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data, error }) => {
+        if (error) { toast.error("Error cargando documentos OCR"); return; }
+        setDocs((data ?? []).map(mapDoc));
+      });
+  }, [orgId]);
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -94,22 +98,13 @@ export default function DocumentOCRPage() {
         mime_type: file.type || "application/pdf",
         ocr_status: "pending", ocr_provider: "google_vision",
       });
-      // Mock: add to local state with simulated processing
+      // Add optimistic entry while DB processes
       const newDoc: any = {
         id: Date.now().toString(), filename: file.name, doc_type: "invoice",
         status: "processing", confidence: null, created_at: new Date().toISOString().slice(0, 16).replace("T", " "),
         extracted: null, items: [],
       };
       setDocs(prev => [newDoc, ...prev]);
-      // Simulate OCR completion after 3s
-      setTimeout(() => {
-        setDocs(prev => prev.map(d => d.id === newDoc.id ? {
-          ...d, status: "completed", confidence: 0.91,
-          extracted: { supplier: "Proveedor Detectado", cuit: "20-99887766-5", date: new Date().toISOString().slice(0, 10), total: 75000, neto: 61983, iva: 13017 },
-          items: [{ description: "Ítem detectado por OCR", qty: 1, unit_price: 75000, total: 75000 }]
-        } : d));
-        toast.success(`OCR completado: ${file.name}`);
-      }, 3000);
     }
     setUploading(false);
     toast.info("Procesando documentos con OCR...");
@@ -300,7 +295,11 @@ export default function DocumentOCRPage() {
                         <Download className="w-3 h-3" />Exportar
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-red-400 border-red-400/30 hover:bg-red-400/10"
-                        onClick={() => setDocs(prev => prev.filter(d => d.id !== doc.id))}>
+                        onClick={async () => {
+                          setDocs(prev => prev.filter(d => d.id !== doc.id));
+                          await supabase.from("ocr_documents").delete().eq("id", doc.id);
+                          toast.success("Documento eliminado");
+                        }}>
                         <Trash2 className="w-3 h-3" />Eliminar
                       </Button>
                     </div>

@@ -364,40 +364,35 @@ export default function PricingEnginePage() {
       {/* ─── Margins tab ─── */}
       {tab === "margins" && (
         <div className="space-y-4">
-          {MOCK_MARGIN_ALERTS.length > 0 && (
+          {marginTargets.length > 0 && (
             <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-red-400">Alertas de margen activas</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{MOCK_MARGIN_ALERTS.length} productos con margen por debajo del umbral de alerta</p>
+                <p className="text-sm font-semibold text-red-400">Targets de margen configurados</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{marginTargets.length} targets activos</p>
               </div>
             </div>
           )}
 
           <div className="bg-card border border-border/40 rounded-xl p-5">
-            <h3 className="font-semibold flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-primary" />Márgenes por Producto</h3>
+            <h3 className="font-semibold flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-primary" />Targets de Margen</h3>
             <div className="space-y-4">
-              {[
-                { name: "Producto Premium Alpha", cost: 8500, price: 15000, target: 40, alert_at: 25 },
-                { name: "Kit Estándar XL",         cost: 4200, price: 8900,  target: 35, alert_at: 20 },
-                ...MOCK_MARGIN_ALERTS.map(a => ({ name: a.product, cost: 1000, price: 1090, target: a.target, alert_at: a.alert_at, margin: a.current_margin })),
-              ].map((p: any, i) => {
-                const m = p.margin !== undefined ? p.margin : ((p.price - p.cost) / p.price * 100);
-                return (
-                  <div key={i}>
-                    <div className="flex items-center justify-between text-sm mb-1.5">
-                      <span className="font-medium">{p.name}</span>
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="text-muted-foreground">Target: {p.target}%</span>
-                        <span className={`font-semibold ${m >= p.target ? "text-emerald-400" : m >= p.alert_at ? "text-yellow-400" : "text-red-400"}`}>
-                          {m >= p.target ? "✓" : m >= p.alert_at ? "⚠" : "✗"} {m.toFixed(1)}%
-                        </span>
-                      </div>
+              {marginTargets.map((mt) => (
+                <div key={mt.id}>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="font-medium">{mt.name}</span>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-muted-foreground">Target: {mt.target_margin_pct}%</span>
+                      <span className="text-muted-foreground">Alerta: {mt.alert_threshold}%</span>
+                      <span className="text-muted-foreground">Mínimo: {mt.min_margin_pct}%</span>
                     </div>
-                    <MarginBar value={m} target={p.target} alertAt={p.alert_at} />
                   </div>
-                );
-              })}
+                  <MarginBar value={mt.min_margin_pct} target={mt.target_margin_pct} alertAt={mt.alert_threshold} />
+                </div>
+              ))}
+              {marginTargets.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No hay targets de margen configurados</p>
+              )}
             </div>
           </div>
         </div>

@@ -63,43 +63,6 @@ function genKey(year: number, month: number) {
   return `${year}-${String(month).padStart(2,"0")}`;
 }
 
-const MOCK_SCENARIOS: Scenario[] = [
-  { id: "sc1", name: "Presupuesto 2026", scenario_type: "budget", start_date: "2026-01-01", end_date: "2026-12-31", is_baseline: true, assumptions: { inflation_rate: 40, growth_rate: 15 }, description: "Escenario base presupuestado" },
-  { id: "sc2", name: "Optimista 2026", scenario_type: "what_if", start_date: "2026-01-01", end_date: "2026-12-31", is_baseline: false, assumptions: { inflation_rate: 30, growth_rate: 30 }, description: "Mayor crecimiento de ventas" },
-  { id: "sc3", name: "Pesimista 2026", scenario_type: "what_if", start_date: "2026-01-01", end_date: "2026-12-31", is_baseline: false, assumptions: { inflation_rate: 60, growth_rate: -5 }, description: "Escenario de recesión" },
-];
-
-function buildMockLineItems(scenarioId: string, growthRate: number): LineItem[] {
-  const baseRevenue = 500_000;
-  const items: LineItem[] = [];
-  // Revenue
-  const revValues: Record<string, number> = {};
-  for (let m = 1; m <= 12; m++) revValues[genKey(2026, m)] = Math.round(baseRevenue * Math.pow(1 + growthRate / 100 / 12, m - 1));
-  items.push({ id: `${scenarioId}-rev`, scenario_id: scenarioId, category: "revenue", name: "Ventas Netas", sort_order: 1, is_subtotal: false, values: revValues });
-  // COGS
-  const cogsValues: Record<string, number> = {};
-  for (let m = 1; m <= 12; m++) cogsValues[genKey(2026, m)] = Math.round(revValues[genKey(2026, m)] * 0.45);
-  items.push({ id: `${scenarioId}-cogs`, scenario_id: scenarioId, category: "cogs", name: "Costo Mercadería", sort_order: 2, is_subtotal: false, values: cogsValues });
-  // Gross profit
-  const gpValues: Record<string, number> = {};
-  for (let m = 1; m <= 12; m++) gpValues[genKey(2026, m)] = revValues[genKey(2026, m)] - cogsValues[genKey(2026, m)];
-  items.push({ id: `${scenarioId}-gp`, scenario_id: scenarioId, category: "gross_profit", name: "Utilidad Bruta", sort_order: 3, is_subtotal: true, values: gpValues });
-  // OPEX
-  const opexValues: Record<string, number> = {};
-  for (let m = 1; m <= 12; m++) opexValues[genKey(2026, m)] = 120_000;
-  items.push({ id: `${scenarioId}-opex`, scenario_id: scenarioId, category: "opex", name: "Gastos Operativos", sort_order: 4, is_subtotal: false, values: opexValues });
-  // Net income
-  const niValues: Record<string, number> = {};
-  for (let m = 1; m <= 12; m++) niValues[genKey(2026, m)] = gpValues[genKey(2026, m)] - opexValues[genKey(2026, m)];
-  items.push({ id: `${scenarioId}-ni`, scenario_id: scenarioId, category: "net_income", name: "Resultado Neto", sort_order: 5, is_subtotal: true, values: niValues });
-  return items;
-}
-
-const MOCK_LINE_ITEMS: Record<string, LineItem[]> = {
-  sc1: buildMockLineItems("sc1", 15),
-  sc2: buildMockLineItems("sc2", 30),
-  sc3: buildMockLineItems("sc3", -5),
-};
 
 function PnLTable({ items }: { items: LineItem[] }) {
   const visibleMonths = MONTHS.slice(0, 6).map((_, i) => genKey(2026, i + 1));
@@ -226,32 +189,77 @@ function BreakevenCalc() {
 export default function FinancialScenariosPage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"pnl" | "breakeven" | "cashflow" | "variance">("pnl");
-  const [scenarios, setScenarios] = useState<Scenario[]>(MOCK_SCENARIOS);
-  const [activeScenarioId, setActiveScenarioId] = useState("sc1");
-  const [compareScenarioId, setCompareScenarioId] = useState("sc2");
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [activeScenarioId, setActiveScenarioId] = useState<string>("");
+  const [compareScenarioId, setCompareScenarioId] = useState<string>("");
+  const [lineItemsMap, setLineItemsMap] = useState<Record<string, LineItem[]>>({});
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("what_if");
 
-  const activeScenario = scenarios.find(s => s.id === activeScenarioId);
-  const lineItems = MOCK_LINE_ITEMS[activeScenarioId] ?? [];
-  const compareItems = MOCK_LINE_ITEMS[compareScenarioId] ?? [];
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("financial_scenarios")
+      .select("id, name, scenario_type, start_date, end_date, is_baseline, assumptions, description")
+      .eq("org_id", orgId)
+      .order("is_baseline", { ascending: false })
+      .order("created_at")
+      .then(({ data, error }) => {
+        if (error) { toast.error("Error cargando escenarios"); return; }
+        const list = (data ?? []) as Scenario[];
+        setScenarios(list);
+        if (list.length > 0) {
+          setActiveScenarioId(list[0].id);
+          if (list.length > 1) setCompareScenarioId(list[1].id);
+        }
+      });
+  }, [orgId]);
 
-  const handleCreate = () => {
-    if (!newName.trim()) { toast.error("Ingresá un nombre"); return; }
-    const id = `sc${Date.now()}`;
-    setScenarios(prev => [...prev, {
-      id,
-      name: newName,
-      scenario_type: newType,
-      start_date: "2026-01-01",
-      end_date: "2026-12-31",
-      is_baseline: false,
-      assumptions: { inflation_rate: 40, growth_rate: 10 },
-      description: null,
-    }]);
-    MOCK_LINE_ITEMS[id] = buildMockLineItems(id, 10);
-    setActiveScenarioId(id);
+  useEffect(() => {
+    if (!activeScenarioId) return;
+    // Load line items for active scenario if not cached
+    if (lineItemsMap[activeScenarioId]) return;
+    supabase
+      .from("financial_line_items")
+      .select("id, scenario_id, category, name, sort_order, is_subtotal, values")
+      .eq("scenario_id", activeScenarioId)
+      .order("sort_order")
+      .then(({ data }) => {
+        setLineItemsMap(prev => ({ ...prev, [activeScenarioId]: (data ?? []) as LineItem[] }));
+      });
+  }, [activeScenarioId]);
+
+  useEffect(() => {
+    if (!compareScenarioId || lineItemsMap[compareScenarioId]) return;
+    supabase
+      .from("financial_line_items")
+      .select("id, scenario_id, category, name, sort_order, is_subtotal, values")
+      .eq("scenario_id", compareScenarioId)
+      .order("sort_order")
+      .then(({ data }) => {
+        setLineItemsMap(prev => ({ ...prev, [compareScenarioId]: (data ?? []) as LineItem[] }));
+      });
+  }, [compareScenarioId]);
+
+  const activeScenario = scenarios.find(s => s.id === activeScenarioId);
+  const lineItems = lineItemsMap[activeScenarioId] ?? [];
+  const compareItems = lineItemsMap[compareScenarioId] ?? [];
+
+  const handleCreate = async () => {
+    if (!newName.trim() || !orgId) { toast.error("Ingresá un nombre"); return; }
+    const { data, error } = await supabase
+      .from("financial_scenarios")
+      .insert({
+        org_id: orgId, name: newName, scenario_type: newType,
+        start_date: "2026-01-01", end_date: "2026-12-31",
+        is_baseline: false, assumptions: { inflation_rate: 40, growth_rate: 10 },
+      })
+      .select()
+      .single();
+    if (error) { toast.error("Error creando escenario"); return; }
+    setScenarios(prev => [...prev, data as Scenario]);
+    setActiveScenarioId(data.id);
     toast.success("Escenario creado");
     setShowNew(false);
     setNewName("");

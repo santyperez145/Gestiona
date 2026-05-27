@@ -280,7 +280,10 @@ export default function CompetitorIntelligencePage() {
               </SelectContent>
             </Select>
             {unread > 0 && (
-              <Button variant="outline" size="sm" onClick={() => setSignals(prev => prev.map(s => ({ ...s, is_read: true })))}>
+              <Button variant="outline" size="sm" onClick={async () => {
+                setSignals(prev => prev.map(s => ({ ...s, is_read: true })));
+                if (orgId) await supabase.from("market_signals").update({ is_read: true }).eq("org_id", orgId).eq("is_read", false);
+              }}>
                 Marcar todos como leídos
               </Button>
             )}

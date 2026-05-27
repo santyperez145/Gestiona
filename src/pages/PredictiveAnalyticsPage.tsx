@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -10,33 +10,9 @@ import {
   Package, Users, DollarSign, Eye, ThumbsUp, ThumbsDown, Clock
 } from "lucide-react";
 
-// Mock forecast data
-const MOCK_FORECAST = [
-  { day: "28 May", predicted: 95000,  lo: 72000,  hi: 118000, actual: null },
-  { day: "29 May", predicted: 110000, lo: 84000,  hi: 136000, actual: null },
-  { day: "30 May", predicted: 88000,  lo: 67000,  hi: 109000, actual: null },
-  { day: "31 May", predicted: 125000, lo: 96000,  hi: 154000, actual: null },
-  { day: "01 Jun", predicted: 142000, lo: 108000, hi: 176000, actual: null },
-  { day: "02 Jun", predicted: 98000,  lo: 75000,  hi: 121000, actual: null },
-  { day: "03 Jun", predicted: 103000, lo: 79000,  hi: 127000, actual: null },
-];
-
-// Mock anomalies
-const MOCK_ANOMALIES = [
-  { id: "a1", type: "revenue_spike",    severity: "high",     entity: "Electrónica",    metric: "revenue_day",  expected: 85000, actual: 145000, deviation: 70.6, desc: "Revenue 71% sobre lo esperado — posible viral en redes sociales o evento externo", action: "Verificar stock y preparar reposición urgente", ack: false },
-  { id: "a2", type: "margin_erosion",   severity: "critical",  entity: "Textil",         metric: "gross_margin", expected: 38.5,  actual: 22.1,   deviation: -42.6, desc: "Margen cayó 42% — posible aumento de costos del proveedor no trasladado al precio", action: "Revisar lista de precios con motor de precios", ack: false },
-  { id: "a3", type: "churn_spike",      severity: "medium",   entity: "Clientes VIP",   metric: "churn_rate",   expected: 2.1,   actual: 6.8,    deviation: 223.8, desc: "Tasa de abandono 3x lo normal entre clientes de alto valor", action: "Activar campaña de retención inmediata", ack: false },
-  { id: "a4", type: "supplier_delay",   severity: "low",      entity: "Norte SA",       metric: "avg_lead_days", expected: 3.2,  actual: 8.5,    deviation: 165.6, desc: "Lead time del proveedor aumentó 165% esta semana", action: "Contactar al proveedor y evaluar alternativas", ack: true },
-];
-
-// Mock AI recommendations
-const MOCK_RECOMMENDATIONS = [
-  { id: "r1", type: "restock",           title: "Reposición urgente: Alpha XL", desc: "Stock para 4 días con demanda actual. Proyección: ruptura en 2026-05-31", impact: 180000, effort: "low", confidence: 0.95, entity: "Producto Premium Alpha" },
-  { id: "r2", type: "price_adjustment",  title: "Oportunidad: subir precio +8%", desc: "Elasticidad baja detectada — subir precio no impacta conversión pero mejora margen $42K/mes", impact: 42000, effort: "low", confidence: 0.88, entity: "Kit Estándar XL" },
-  { id: "r3", type: "bundle_opportunity", title: "Bundle sugerido: A + B", desc: "58% de clientes que compran A también compran B. Bundle con 10% dto. estima +$28K revenue", impact: 28000, effort: "medium", confidence: 0.82, entity: "Combo detectado" },
-  { id: "r4", type: "customer_winback",  title: "Recuperar 23 clientes inactivos", desc: "23 clientes con LTV promedio $85K sin comprar hace 45+ días. Email con 15% dto. esperado: 6 recuperados", impact: 75000, effort: "low", confidence: 0.74, entity: "Clientes inactivos" },
-  { id: "r5", type: "discontinue",       title: "Descontinuar: Producto Z", desc: "0 ventas en 90 días, $12K en stock inmovilizado. Liquidar a -40% recupera capital", impact: 7200, effort: "medium", confidence: 0.91, entity: "Producto Z" },
-];
+type ForecastRow   = { day: string; predicted: number; lo: number; hi: number; actual: number | null };
+type AnomalyRow    = { id: string; type: string; severity: string; entity: string; metric: string; expected: number; actual: number; deviation: number; desc: string; action: string; ack: boolean };
+type RecRow        = { id: string; type: string; title: string; desc: string; impact: number; effort: string; confidence: number; entity: string };
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/20",
@@ -54,7 +30,7 @@ const REC_TYPE_ICONS: Record<string, any> = {
 const EFFORT_COLORS = { low: "text-emerald-400", medium: "text-yellow-400", high: "text-red-400" };
 
 // Mini forecast bar chart
-function ForecastChart({ data }: { data: typeof MOCK_FORECAST }) {
+function ForecastChart({ data }: { data: ForecastRow[] }) {
   const max = Math.max(...data.map(d => d.hi));
   const h = 80;
   return (
@@ -82,11 +58,81 @@ function ForecastChart({ data }: { data: typeof MOCK_FORECAST }) {
 export default function PredictiveAnalyticsPage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"forecast" | "anomalies" | "recommendations">("recommendations");
-  const [ackedIds, setAckedIds] = useState<Set<string>>(new Set(["a4"]));
+  const [ackedIds, setAckedIds] = useState<Set<string>>(new Set());
   const [dismissedRecs, setDismissedRecs] = useState<Set<string>>(new Set());
   const [forecastModel, setForecastModel] = useState("moving_avg");
   const [forecastHorizon, setForecastHorizon] = useState(7);
   const [loading, setLoading] = useState(false);
+  const [forecast, setForecast] = useState<ForecastRow[]>([]);
+  const [anomalies, setAnomalies] = useState<AnomalyRow[]>([]);
+  const [recommendations, setRecommendations] = useState<RecRow[]>([]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    // Load sales forecasts (next 7 days, org-level)
+    supabase
+      .from("sales_forecasts")
+      .select("forecast_date, predicted_revenue, confidence_lo, confidence_hi")
+      .eq("org_id", orgId)
+      .is("product_id", null)
+      .gte("forecast_date", new Date().toISOString().slice(0, 10))
+      .order("forecast_date")
+      .limit(7)
+      .then(({ data }) => {
+        setForecast((data ?? []).map((f: any) => ({
+          day: new Date(f.forecast_date).toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
+          predicted: Number(f.predicted_revenue),
+          lo: Number(f.confidence_lo),
+          hi: Number(f.confidence_hi),
+          actual: null,
+        })));
+      });
+    // Load anomaly detections (unresolved)
+    supabase
+      .from("anomaly_detections")
+      .select("id, anomaly_type, severity, entity_name, metric_name, expected_value, actual_value, deviation_pct, description, suggested_action, is_acknowledged")
+      .eq("org_id", orgId)
+      .order("detected_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setAnomalies((data ?? []).map((a: any) => ({
+          id: a.id,
+          type: a.anomaly_type,
+          severity: a.severity,
+          entity: a.entity_name ?? "—",
+          metric: a.metric_name ?? "—",
+          expected: Number(a.expected_value),
+          actual: Number(a.actual_value),
+          deviation: Number(a.deviation_pct),
+          desc: a.description ?? "",
+          action: a.suggested_action ?? "",
+          ack: a.is_acknowledged,
+        })));
+        // Initialize ackedIds from DB
+        const alreadyAcked = new Set<string>((data ?? []).filter((a: any) => a.is_acknowledged).map((a: any) => a.id as string));
+        setAckedIds(alreadyAcked);
+      });
+    // Load AI recommendations (active)
+    supabase
+      .from("ai_recommendations")
+      .select("id, recommendation_type, title, description, estimated_impact, effort_level, confidence_score, entity_name")
+      .eq("org_id", orgId)
+      .eq("status", "pending")
+      .order("confidence_score", { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        setRecommendations((data ?? []).map((r: any) => ({
+          id: r.id,
+          type: r.recommendation_type,
+          title: r.title,
+          desc: r.description ?? "",
+          impact: Number(r.estimated_impact ?? 0),
+          effort: r.effort_level ?? "medium",
+          confidence: Number(r.confidence_score ?? 0),
+          entity: r.entity_name ?? "—",
+        })));
+      });
+  }, [orgId]);
 
   const runForecast = async () => {
     setLoading(true);
@@ -95,18 +141,20 @@ export default function PredictiveAnalyticsPage() {
     toast.success("Forecast recalculado correctamente");
   };
 
-  const ackAnomaly = (id: string) => {
+  const ackAnomaly = async (id: string) => {
     setAckedIds(prev => new Set([...prev, id]));
+    await supabase.from("anomaly_detections").update({ is_acknowledged: true }).eq("id", id);
     toast.success("Anomalía marcada como revisada");
   };
 
-  const handleRec = (id: string, accepted: boolean) => {
+  const handleRec = async (id: string, accepted: boolean) => {
     setDismissedRecs(prev => new Set([...prev, id]));
+    await supabase.from("ai_recommendations").update({ status: accepted ? "accepted" : "dismissed" }).eq("id", id);
     toast.success(accepted ? "Recomendación aceptada — creando tarea..." : "Recomendación descartada");
   };
 
-  const activeAnomalies = MOCK_ANOMALIES.filter(a => !ackedIds.has(a.id));
-  const activeRecs = MOCK_RECOMMENDATIONS.filter(r => !dismissedRecs.has(r.id));
+  const activeAnomalies = anomalies.filter(a => !ackedIds.has(a.id));
+  const activeRecs = recommendations.filter(r => !dismissedRecs.has(r.id));
 
   const TABS = [
     { id: "recommendations", label: "Recomendaciones IA" },
@@ -144,7 +192,7 @@ export default function PredictiveAnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Forecast 7 días</p>
-          <p className="text-2xl font-bold text-primary">${(MOCK_FORECAST.reduce((a, b) => a + b.predicted, 0) / 1000).toFixed(0)}K</p>
+          <p className="text-2xl font-bold text-primary">${(forecast.reduce((a, b) => a + b.predicted, 0) / 1000).toFixed(0)}K</p>
           <p className="text-xs text-muted-foreground">±15% intervalo confianza</p>
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
@@ -229,7 +277,7 @@ export default function PredictiveAnalyticsPage() {
       {/* ─── Anomalies tab ─── */}
       {tab === "anomalies" && (
         <div className="space-y-3">
-          {MOCK_ANOMALIES.map(a => {
+          {anomalies.map(a => {
             const acked = ackedIds.has(a.id);
             const up = a.deviation > 0;
             return (
@@ -305,7 +353,7 @@ export default function PredictiveAnalyticsPage() {
                 <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-primary/10" />Intervalo 80%</div>
               </div>
             </div>
-            <ForecastChart data={MOCK_FORECAST} />
+            <ForecastChart data={forecast} />
           </div>
 
           <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
@@ -319,7 +367,7 @@ export default function PredictiveAnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_FORECAST.map((d, i) => (
+                  {forecast.map((d, i) => (
                     <tr key={i} className="border-b border-border/20 hover:bg-muted/20">
                       <td className="px-4 py-3 text-xs font-medium">{d.day}</td>
                       <td className="px-4 py-3 text-sm font-semibold">${(d.predicted / 1000).toFixed(0)}K</td>

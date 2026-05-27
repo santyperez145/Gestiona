@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useOrganization } from "@/hooks/useOrganization";
+import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,21 +36,6 @@ interface InventoryLayer {
   total_cost: number;
 }
 
-const MOCK_VALUATION: ValuationRow[] = [
-  { product_id: "p1", product_name: "Notebook Lenovo IdeaPad", total_units: 12, avg_cost: 285_000, fifo_value: 3_420_000, market_value: 3_840_000, gain_loss: 420_000, sku: "NB-LP-001", category: "Electrónica" },
-  { product_id: "p2", product_name: "Auriculares Sony WH-1000XM5", total_units: 8, avg_cost: 95_000, fifo_value: 760_000, market_value: 824_000, gain_loss: 64_000, sku: "AU-SN-001", category: "Electrónica" },
-  { product_id: "p3", product_name: "Teclado Mecánico Redragon", total_units: 25, avg_cost: 28_000, fifo_value: 700_000, market_value: 750_000, gain_loss: 50_000, sku: "TC-RD-001", category: "Periféricos" },
-  { product_id: "p4", product_name: "Monitor LG 27' IPS", total_units: 5, avg_cost: 420_000, fifo_value: 2_100_000, market_value: 2_050_000, gain_loss: -50_000, sku: "MO-LG-001", category: "Periféricos" },
-  { product_id: "p5", product_name: "Mouse Logitech MX Master 3", total_units: 18, avg_cost: 52_000, fifo_value: 936_000, market_value: 990_000, gain_loss: 54_000, sku: "MS-LG-001", category: "Periféricos" },
-];
-
-const MOCK_LAYERS: InventoryLayer[] = [
-  { id: "l1", product_name: "Notebook Lenovo IdeaPad", layer_date: "2026-03-15", layer_type: "purchase", quantity_remaining: 5, unit_cost: 275_000, total_cost: 1_375_000 },
-  { id: "l2", product_name: "Notebook Lenovo IdeaPad", layer_date: "2026-04-20", layer_type: "purchase", quantity_remaining: 7, unit_cost: 292_000, total_cost: 2_044_000 },
-  { id: "l3", product_name: "Auriculares Sony WH-1000XM5", layer_date: "2026-04-01", layer_type: "purchase", quantity_remaining: 8, unit_cost: 95_000, total_cost: 760_000 },
-  { id: "l4", product_name: "Monitor LG 27' IPS", layer_date: "2026-02-10", layer_type: "purchase", quantity_remaining: 2, unit_cost: 400_000, total_cost: 800_000 },
-  { id: "l5", product_name: "Monitor LG 27' IPS", layer_date: "2026-04-05", layer_type: "purchase", quantity_remaining: 3, unit_cost: 433_000, total_cost: 1_299_000 },
-];
 
 export default function InventoryValuationPage() {
   const { orgId } = useOrganization();

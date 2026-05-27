@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -12,25 +12,6 @@ import {
   Sparkles, Zap, Eye
 } from "lucide-react";
 
-// Mock saved reports
-const MOCK_REPORTS = [
-  { id: "r1", name: "Revenue mensual por categoría", type: "sales",     chart: "bar",     pinned: true,  runs: 142, last_run: "hace 2 hs", shared: true  },
-  { id: "r2", name: "Cohort de retención Q1/Q2",     type: "customers", chart: "heatmap", pinned: true,  runs: 38,  last_run: "ayer",      shared: false },
-  { id: "r3", name: "ABC análisis semanal",           type: "inventory", chart: "pie",     pinned: false, runs: 67,  last_run: "hace 3 días", shared: true },
-  { id: "r4", name: "Gross margin por producto",      type: "finance",   chart: "table",   pinned: false, runs: 29,  last_run: "hace 1 sem", shared: false },
-  { id: "r5", name: "Campaña email Q2 — resultados", type: "marketing", chart: "line",    pinned: false, runs: 15,  last_run: "hace 2 días", shared: true },
-];
-
-// Mock BI snapshot data
-const MOCK_SNAPSHOTS = [
-  { date: "2026-05-27", rev_day: 85000, orders_day: 23, aov: 3695, margin: 38.2, new_cust: 4 },
-  { date: "2026-05-26", rev_day: 112000, orders_day: 31, aov: 3613, margin: 41.0, new_cust: 7 },
-  { date: "2026-05-25", rev_day: 67000, orders_day: 19, aov: 3526, margin: 36.5, new_cust: 3 },
-  { date: "2026-05-24", rev_day: 98000, orders_day: 27, aov: 3629, margin: 39.8, new_cust: 5 },
-  { date: "2026-05-23", rev_day: 145000, orders_day: 42, aov: 3452, margin: 43.1, new_cust: 11 },
-  { date: "2026-05-22", rev_day: 78000, orders_day: 21, aov: 3714, margin: 37.9, new_cust: 6 },
-  { date: "2026-05-21", rev_day: 61000, orders_day: 16, aov: 3812, margin: 35.0, new_cust: 2 },
-];
 
 // Mock cohort retention
 const COHORT_DATA = [
@@ -64,7 +45,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 // Mini bar chart for revenue trend
-function RevTrend({ data }: { data: typeof MOCK_SNAPSHOTS }) {
+function RevTrend({ data }: { data: SnapshotRow[] }) {
   const max = Math.max(...data.map(d => d.rev_day));
   return (
     <div className="flex items-end gap-1 h-16">
@@ -118,6 +99,9 @@ function StatCard({ icon: Icon, label, value, sub, trend, color = "text-primary"
   );
 }
 
+type SnapshotRow = { date: string; rev_day: number; orders_day: number; aov: number; margin: number; new_cust: number };
+type ReportRow = { id: string; name: string; type: string; chart: string; pinned: boolean; runs: number; last_run: string; shared: boolean };
+
 export default function BIReportsPage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "reports" | "cohort" | "drilldown">("overview");
@@ -126,22 +110,66 @@ export default function BIReportsPage() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [newReport, setNewReport] = useState({ name: "", type: "sales", chart: "bar" });
+  const [savedReports, setSavedReports] = useState<ReportRow[]>([]);
+  const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
 
-  const runReport = (id: string) => {
+  useEffect(() => {
+    if (!orgId) return;
+    // Load saved reports
+    supabase
+      .from("saved_reports")
+      .select("id, name, report_type, chart_type, is_pinned, run_count, last_run_at, is_shared")
+      .eq("org_id", orgId)
+      .order("is_pinned", { ascending: false })
+      .order("run_count", { ascending: false })
+      .then(({ data }) => {
+        setSavedReports((data ?? []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          type: r.report_type,
+          chart: r.chart_type ?? "bar",
+          pinned: r.is_pinned,
+          runs: r.run_count,
+          last_run: r.last_run_at ? new Date(r.last_run_at).toLocaleDateString("es-AR") : "—",
+          shared: r.is_shared,
+        })));
+      });
+    // Load BI snapshots (last 7 days)
+    supabase
+      .from("bi_snapshots")
+      .select("snapshot_date, revenue_day, orders_day, avg_order_value, new_customers")
+      .eq("org_id", orgId)
+      .order("snapshot_date", { ascending: false })
+      .limit(7)
+      .then(({ data }) => {
+        setSnapshots((data ?? []).map((s: any) => ({
+          date: s.snapshot_date,
+          rev_day: Number(s.revenue_day),
+          orders_day: s.orders_day,
+          aov: Number(s.avg_order_value),
+          margin: 0, // not stored in snapshot
+          new_cust: s.new_customers,
+        })));
+      });
+  }, [orgId]);
+
+  const runReport = async (id: string) => {
     setRunningId(id);
+    await supabase.from("saved_reports").update({ run_count: (savedReports.find(r => r.id === id)?.runs ?? 0) + 1, last_run_at: new Date().toISOString() }).eq("id", id);
+    setSavedReports(prev => prev.map(r => r.id === id ? { ...r, runs: r.runs + 1, last_run: "ahora" } : r));
     setTimeout(() => { setRunningId(null); toast.success("Reporte ejecutado — descarga lista"); }, 1800);
   };
 
-  const filtered = MOCK_REPORTS.filter(r => {
+  const filtered = savedReports.filter(r => {
     const matchSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
     const matchType = !typeFilter || r.type === typeFilter;
     return matchSearch && matchType;
   });
 
-  const todayRev = MOCK_SNAPSHOTS[0].rev_day;
-  const yesterdayRev = MOCK_SNAPSHOTS[1].rev_day;
-  const revTrend = Math.round(((todayRev - yesterdayRev) / yesterdayRev) * 100);
-  const weekRev = MOCK_SNAPSHOTS.slice(0, 7).reduce((a, b) => a + b.rev_day, 0);
+  const todayRev = snapshots[0]?.rev_day ?? 0;
+  const yesterdayRev = snapshots[1]?.rev_day ?? 1;
+  const revTrend = yesterdayRev > 0 ? Math.round(((todayRev - yesterdayRev) / yesterdayRev) * 100) : 0;
+  const weekRev = snapshots.reduce((a, b) => a + b.rev_day, 0);
 
   const TABS = [
     { id: "overview",   label: "Overview" },
@@ -179,8 +207,8 @@ export default function BIReportsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={DollarSign} label="Revenue hoy"   value={`$${(todayRev / 1000).toFixed(0)}K`} trend={revTrend} color="text-emerald-400" />
         <StatCard icon={TrendingUp} label="Revenue semana" value={`$${(weekRev / 1000).toFixed(0)}K`} sub="últimos 7 días" />
-        <StatCard icon={Users}      label="AOV promedio"   value={`$${MOCK_SNAPSHOTS[0].aov.toLocaleString("es-AR")}`} trend={2} />
-        <StatCard icon={Sparkles}   label="Gross Margin"   value={`${MOCK_SNAPSHOTS[0].margin}%`} trend={1} color="text-primary" />
+        <StatCard icon={Users}      label="AOV promedio"   value={`$${(snapshots[0]?.aov ?? 0).toLocaleString("es-AR")}`} trend={2} />
+        <StatCard icon={Sparkles}   label="Gross Margin"   value={`${snapshots[0]?.margin ?? 0}%`} trend={1} color="text-primary" />
       </div>
 
       {/* Tabs */}
@@ -202,10 +230,10 @@ export default function BIReportsPage() {
               <h3 className="font-semibold flex items-center gap-2"><LineChart className="w-4 h-4 text-primary" />Revenue últimos 7 días</h3>
               <Badge className="bg-primary/15 text-primary border-0 text-xs">diario</Badge>
             </div>
-            <RevTrend data={MOCK_SNAPSHOTS} />
+            <RevTrend data={snapshots} />
             <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-              {[{ label: "Máx", v: `$${(Math.max(...MOCK_SNAPSHOTS.map(d => d.rev_day)) / 1000).toFixed(0)}K` },
-                { label: "Prom", v: `$${((MOCK_SNAPSHOTS.reduce((a, b) => a + b.rev_day, 0) / MOCK_SNAPSHOTS.length) / 1000).toFixed(0)}K` },
+              {[{ label: "Máx", v: `$${((snapshots.length ? Math.max(...snapshots.map(d => d.rev_day)) : 0) / 1000).toFixed(0)}K` },
+                { label: "Prom", v: `$${((snapshots.length ? snapshots.reduce((a, b) => a + b.rev_day, 0) / snapshots.length : 0) / 1000).toFixed(0)}K` },
                 { label: "Total", v: `$${(weekRev / 1000).toFixed(0)}K` }].map(m => (
                 <div key={m.label} className="bg-muted/30 rounded-lg p-2">
                   <span className="text-[10px] text-muted-foreground">{m.label}</span>
@@ -259,7 +287,7 @@ export default function BIReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_SNAPSHOTS.map((s, i) => (
+                  {snapshots.map((s, i) => (
                     <tr key={s.date} className={`border-b border-border/20 hover:bg-muted/20 ${i === 0 ? "bg-primary/3" : ""}`}>
                       <td className="px-4 py-3 text-xs font-mono font-semibold">{s.date}{i === 0 ? " (hoy)" : ""}</td>
                       <td className="px-4 py-3 text-xs font-semibold">${(s.rev_day / 1000).toFixed(0)}K</td>
@@ -499,7 +527,16 @@ export default function BIReportsPage() {
             </div>
             <div className="px-6 py-4 border-t border-border/40 flex gap-3 justify-end">
               <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancelar</Button>
-              <Button onClick={() => { toast.success(`Reporte "${newReport.name}" creado`); setShowNewDialog(false); setNewReport({ name: "", type: "sales", chart: "bar" }); }}
+              <Button onClick={async () => {
+                if (!newReport.name || !orgId) return;
+                const { data, error } = await supabase.from("saved_reports").insert({
+                  org_id: orgId, name: newReport.name, report_type: newReport.type, chart_type: newReport.chart,
+                  is_pinned: false, run_count: 0, is_shared: false,
+                }).select().single();
+                if (error) { toast.error("Error guardando reporte"); return; }
+                setSavedReports(prev => [{ id: data.id, name: data.name, type: data.report_type, chart: data.chart_type ?? "bar", pinned: false, runs: 0, last_run: "—", shared: false }, ...prev]);
+                toast.success(`Reporte "${newReport.name}" creado`); setShowNewDialog(false); setNewReport({ name: "", type: "sales", chart: "bar" });
+              }}
                 disabled={!newReport.name} className="gradient-gold text-primary-foreground">
                 Crear Reporte
               </Button>

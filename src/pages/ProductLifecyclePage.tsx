@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -50,21 +51,36 @@ const BCG_CONFIG: Record<string, { label: string; icon: string; desc: string; co
   dog:           { label: "Perro 🐕",       icon: "🐕", desc: "Baja cuota + bajo crecimiento",   color: "bg-gray-50 border-gray-300" },
 };
 
-const MOCK_PRODUCTS: PLMProduct[] = [
-  { id: "p1", internal_code: "PLM-001", name: "Notebook Lenovo IdeaPad", lifecycle_stage: "maturity", version: "3.2.0", launch_date: "2024-01-15", eol_date: null, quality_score: 92, market_share_pct: 28, revenue_ltm: 4_200_000, margin_pct: 32, bcg_quadrant: "cash_cow" },
-  { id: "p2", internal_code: "PLM-002", name: "Auriculares Sony WH-1000XM5", lifecycle_stage: "growth", version: "2.0.0", launch_date: "2025-06-01", eol_date: null, quality_score: 96, market_share_pct: 15, revenue_ltm: 2_800_000, margin_pct: 45, bcg_quadrant: "star" },
-  { id: "p3", internal_code: "PLM-003", name: "Monitor LG 27 IPS", lifecycle_stage: "decline", version: "1.5.0", launch_date: "2022-08-01", eol_date: "2027-01-01", quality_score: 78, market_share_pct: 8, revenue_ltm: 1_200_000, margin_pct: 12, bcg_quadrant: "dog" },
-  { id: "p4", internal_code: "PLM-004", name: "Smartwatch Pro X", lifecycle_stage: "development", version: "0.9.0-beta", launch_date: null, eol_date: null, quality_score: 65, market_share_pct: 0, revenue_ltm: 0, margin_pct: 0, bcg_quadrant: "question_mark" },
-  { id: "p5", internal_code: "PLM-005", name: "Mouse Logitech MX Master 3", lifecycle_stage: "growth", version: "1.0.0", launch_date: "2025-11-01", eol_date: null, quality_score: 89, market_share_pct: 12, revenue_ltm: 1_900_000, margin_pct: 38, bcg_quadrant: "star" },
-];
+function computeBcg(market_share_pct: number, margin_pct: number): PLMProduct["bcg_quadrant"] {
+  if (market_share_pct >= 20 && margin_pct >= 15) return "star";
+  if (market_share_pct >= 20 && margin_pct < 15)  return "cash_cow";
+  if (market_share_pct < 20  && margin_pct >= 15) return "question_mark";
+  return "dog";
+}
 
 const LIFECYCLE_STAGES = ["concept","development","testing","launch","growth","maturity","decline","eol","discontinued"];
 
 export default function ProductLifecyclePage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"products" | "bcg" | "quality" | "roadmap">("products");
-  const [products] = useState<PLMProduct[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<PLMProduct[]>([]);
   const [selected, setSelected] = useState<PLMProduct | null>(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("plm_products")
+      .select("id, internal_code, name, lifecycle_stage, version, launch_date, eol_date, quality_score, market_share_pct, revenue_ltm, margin_pct")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) { toast.error("Error cargando productos PLM"); return; }
+        setProducts((data ?? []).map((p: any) => ({
+          ...p,
+          bcg_quadrant: computeBcg(p.market_share_pct, p.margin_pct),
+        })));
+      });
+  }, [orgId]);
   const [stageFilter, setStageFilter] = useState("all");
   const [showNew, setShowNew] = useState(false);
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -73,38 +74,95 @@ const CONFIDENCE_COLORS: Record<string, string> = {
   low:    "bg-gray-100 text-gray-700",
 };
 
-const MOCK_RULES: PricingRule[] = [
-  { id: "r1", name: "Happy Hour -15%", rule_type: "time_of_day", priority: 1, action: "pct_decrease", action_value: 15, is_active: true, trigger_count: 120, last_applied: "2026-05-27T18:00:00Z", condition_summary: "Lunes-Viernes 18:00-20:00" },
-  { id: "r2", name: "Alta Demanda +10%", rule_type: "demand", priority: 2, action: "pct_increase", action_value: 10, is_active: true, trigger_count: 45, last_applied: "2026-05-27T12:30:00Z", condition_summary: "Demand score > 80" },
-  { id: "r3", name: "Stock Bajo +5%", rule_type: "stock_level", priority: 3, action: "pct_increase", action_value: 5, is_active: true, trigger_count: 28, last_applied: "2026-05-26T09:00:00Z", condition_summary: "Stock < 10 unidades" },
-  { id: "r4", name: "Precio IA Optimizado", rule_type: "ai_optimized", priority: 5, action: "pct_increase", action_value: 0, is_active: false, trigger_count: 0, last_applied: null, condition_summary: "Modelo ML cada 6 horas" },
-  { id: "r5", name: "Fin de Semana -5%", rule_type: "day_of_week", priority: 4, action: "pct_decrease", action_value: 5, is_active: true, trigger_count: 62, last_applied: "2026-05-24T10:00:00Z", condition_summary: "Sábados y Domingos" },
-];
-
-const MOCK_DEMAND: DemandSignal[] = [
-  { product_name: "Notebook Lenovo IdeaPad", sku: "NB-LP-001", current_price: 320_000, demand_score: 87, trend: "up", suggested_price: 352_000, confidence: "high" },
-  { product_name: "Auriculares Sony WH-1000XM5", sku: "AU-SN-001", current_price: 105_000, demand_score: 65, trend: "stable", suggested_price: 110_250, confidence: "medium" },
-  { product_name: "Monitor LG 27 IPS", sku: "MO-LG-001", current_price: 450_000, demand_score: 18, trend: "down", suggested_price: 405_000, confidence: "medium" },
-  { product_name: "Teclado Mecánico Redragon", sku: "TC-RD-001", current_price: 32_000, demand_score: 72, trend: "up", suggested_price: 33_600, confidence: "high" },
-  { product_name: "Mouse Logitech MX Master 3", sku: "MS-LG-001", current_price: 58_000, demand_score: 44, trend: "stable", suggested_price: 58_000, confidence: "low" },
-];
-
-const MOCK_EVENTS: PriceEvent[] = [
-  { product_name: "Notebook Lenovo IdeaPad", rule_name: "Alta Demanda +10%", original_price: 320_000, adjusted_price: 352_000, adjustment_pct: 10, event_time: "2026-05-27T12:30:00Z", units_sold: 3 },
-  { product_name: "Auriculares Sony WH-1000XM5", rule_name: "Happy Hour -15%", original_price: 105_000, adjusted_price: 89_250, adjustment_pct: -15, event_time: "2026-05-27T18:00:00Z", units_sold: 7 },
-  { product_name: "Monitor LG 27 IPS", rule_name: "Stock Bajo +5%", original_price: 450_000, adjusted_price: 472_500, adjustment_pct: 5, event_time: "2026-05-26T09:00:00Z", units_sold: 1 },
-];
 
 export default function DynamicPricingPage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"rules" | "demand" | "events" | "simulator">("rules");
-  const [rules, setRules] = useState<PricingRule[]>(MOCK_RULES);
+  const [rules, setRules] = useState<PricingRule[]>([]);
+  const [demandSignals, setDemandSignals] = useState<DemandSignal[]>([]);
+  const [priceEvents, setPriceEvents] = useState<PriceEvent[]>([]);
   const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    // Load pricing rules
+    supabase
+      .from("dynamic_price_rules")
+      .select("id, name, rule_type, priority, action, action_value, is_active, trigger_count, last_applied, condition")
+      .eq("org_id", orgId)
+      .order("priority")
+      .then(({ data, error }) => {
+        if (error) { toast.error("Error cargando reglas de precios"); return; }
+        setRules((data ?? []).map((r: any) => ({
+          ...r,
+          condition_summary: r.condition ? JSON.stringify(r.condition).slice(0, 60) : "Sin condición",
+        })));
+      });
+    // Load latest demand signals with product info
+    supabase
+      .from("demand_signals")
+      .select("demand_score, signal_date, products(name, sku, price_ars)")
+      .eq("org_id", orgId)
+      .order("signal_date", { ascending: false })
+      .limit(20)
+      .then(({ data, error }) => {
+        if (error) return;
+        const seen = new Set<string>();
+        const signals: DemandSignal[] = [];
+        for (const d of data ?? []) {
+          const prod = d.products as any;
+          if (!prod || seen.has(prod.sku)) continue;
+          seen.add(prod.sku);
+          const score = d.demand_score ?? 0;
+          const trend: "up" | "down" | "stable" = score > 70 ? "up" : score < 25 ? "down" : "stable";
+          const suggested = score > 80 ? Math.round(prod.price_ars * 1.1)
+            : score < 20 ? Math.round(prod.price_ars * 0.9)
+            : prod.price_ars;
+          signals.push({
+            product_name: prod.name,
+            sku: prod.sku,
+            current_price: prod.price_ars,
+            demand_score: score,
+            trend,
+            suggested_price: suggested,
+            confidence: score > 70 ? "high" : score > 40 ? "medium" : "low",
+          });
+        }
+        setDemandSignals(signals);
+      });
+    // Load recent price events
+    supabase
+      .from("dynamic_price_events")
+      .select("original_price, adjusted_price, adjustment_pct, event_time, units_sold, dynamic_price_rules(name), products(name)")
+      .eq("org_id", orgId)
+      .order("event_time", { ascending: false })
+      .limit(20)
+      .then(({ data, error }) => {
+        if (error) return;
+        setPriceEvents((data ?? []).map((e: any) => ({
+          product_name: e.products?.name ?? "—",
+          rule_name: e.dynamic_price_rules?.name ?? "—",
+          original_price: e.original_price,
+          adjusted_price: e.adjusted_price,
+          adjustment_pct: e.adjustment_pct,
+          event_time: e.event_time,
+          units_sold: e.units_sold ?? 0,
+        })));
+      });
+  }, [orgId]);
   const [simPrice, setSimPrice] = useState("100000");
   const [simDemand, setSimDemand] = useState("75");
 
-  const toggleRule = (id: string) => {
-    setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: !r.is_active } : r));
+  const toggleRule = async (id: string) => {
+    const rule = rules.find(r => r.id === id);
+    if (!rule) return;
+    const newActive = !rule.is_active;
+    setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r));
+    const { error } = await supabase.from("dynamic_price_rules").update({ is_active: newActive }).eq("id", id);
+    if (error) {
+      setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: rule.is_active } : r));
+      toast.error("Error actualizando regla");
+    }
   };
 
   const simSuggested = parseFloat(simDemand) > 80 ? parseFloat(simPrice) * 1.10
@@ -159,8 +217,8 @@ export default function DynamicPricingPage() {
       <div className="grid grid-cols-4 gap-4">
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-primary">{rules.filter(r => r.is_active).length}</p><p className="text-xs text-muted-foreground">Reglas Activas</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{rules.reduce((s, r) => s + r.trigger_count, 0)}</p><p className="text-xs text-muted-foreground">Total Disparos</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{MOCK_DEMAND.filter(d => d.demand_score > 50).length}</p><p className="text-xs text-muted-foreground">Alta Demanda</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-orange-600">{MOCK_EVENTS.length}</p><p className="text-xs text-muted-foreground">Ajustes Hoy</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{demandSignals.filter(d => d.demand_score > 50).length}</p><p className="text-xs text-muted-foreground">Alta Demanda</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-orange-600">{priceEvents.length}</p><p className="text-xs text-muted-foreground">Ajustes Hoy</p></CardContent></Card>
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
@@ -204,7 +262,7 @@ export default function DynamicPricingPage() {
         {/* DEMAND */}
         <TabsContent value="demand" className="space-y-3">
           <p className="text-sm text-muted-foreground">Señales en tiempo real para ajuste automático de precios</p>
-          {MOCK_DEMAND.map((d, i) => (
+          {demandSignals.map((d, i) => (
             <Card key={i}>
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="flex-1">
@@ -251,7 +309,7 @@ export default function DynamicPricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_EVENTS.map((ev, i) => (
+                  {priceEvents.map((ev, i) => (
                     <tr key={i} className="border-b last:border-0 hover:bg-muted/20">
                       <td className="py-3 px-4 font-medium">{ev.product_name}</td>
                       <td className="py-3 px-4 text-sm text-muted-foreground">{ev.rule_name}</td>

@@ -114,27 +114,19 @@ const GOAL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: R
   paused:   { label: "Pausada",   color: "bg-gray-100 text-gray-600",  icon: <EyeOff className="w-3 h-3" /> },
 };
 
-/* ─────────────────────────── mock KPI values ─────────────────────────── */
-const MOCK_VALUES: Record<string, { value: number; prefix?: string; suffix?: string; trend?: number }> = {
-  sales_total:         { value: 284500,  prefix: "$", trend: 12.4 },
-  sales_count:         { value: 87,      trend: 5.1 },
-  avg_ticket:          { value: 3270,    prefix: "$", trend: -2.3 },
-  inventory_value:     { value: 945000,  prefix: "$" },
-  low_stock_count:     { value: 14 },
-  accounts_receivable: { value: 125000,  prefix: "$" },
-  accounts_payable:    { value: 47000,   prefix: "$" },
-  cash_balance:        { value: 312000,  prefix: "$", trend: 8.7 },
-  gross_margin:        { value: 34.2,    suffix: "%", trend: 1.2 },
-  new_customers:       { value: 23,      trend: 15 },
-  active_customers:    { value: 189,     trend: 3.4 },
-  open_quotes:         { value: 11 },
-  open_tasks:          { value: 8 },
-  overdue_tasks:       { value: 3 },
+/* ─────────────────────────── KPI format config ─────────────────────────── */
+const KPI_FORMAT_CONFIG: Record<string, { prefix?: string; suffix?: string }> = {
+  sales_total:         { prefix: "$" },
+  avg_ticket:          { prefix: "$" },
+  inventory_value:     { prefix: "$" },
+  accounts_receivable: { prefix: "$" },
+  accounts_payable:    { prefix: "$" },
+  cash_balance:        { prefix: "$" },
+  gross_margin:        { suffix: "%" },
 };
 
 function formatValue(source: string, value: number) {
-  const cfg = MOCK_VALUES[source];
-  if (!cfg) return value.toLocaleString("es-AR");
+  const cfg = KPI_FORMAT_CONFIG[source] ?? {};
   const prefix = cfg.prefix ?? "";
   const suffix = cfg.suffix ?? "";
   const formatted = source === "gross_margin"
@@ -146,19 +138,20 @@ function formatValue(source: string, value: number) {
 }
 
 /* ─────────────────────────── widget card ─────────────────────────── */
-function WidgetCard({ widget, onEdit, onDelete, onToggleVisibility }: {
+function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }: {
   widget: Widget;
+  liveValues: Record<string, { value: number; trend?: number }>;
   onEdit: () => void;
   onDelete: () => void;
   onToggleVisibility: () => void;
 }) {
-  const mock = MOCK_VALUES[widget.data_source] ?? { value: 0 };
+  const live = liveValues[widget.data_source] ?? { value: 0 };
   const dsLabel = DATA_SOURCES.find(d => d.value === widget.data_source)?.label ?? widget.data_source;
-  const hasTrend = mock.trend !== undefined;
-  const trendPositive = (mock.trend ?? 0) >= 0;
+  const hasTrend = live.trend !== undefined;
+  const trendPositive = (live.trend ?? 0) >= 0;
 
   const gaugePercent = widget.widget_type === "gauge"
-    ? Math.min(100, Math.max(0, (mock.value / (mock.value * 1.5)) * 100))
+    ? Math.min(100, Math.max(0, (live.value / (live.value * 1.5 || 1)) * 100))
     : 0;
 
   return (
@@ -192,7 +185,7 @@ function WidgetCard({ widget, onEdit, onDelete, onToggleVisibility }: {
               style={{ clipPath: `polygon(0 100%, ${gaugePercent}% 100%, ${gaugePercent}% 0%, 0 0%)` }}
             />
           </div>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{formatValue(widget.data_source, mock.value)}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{formatValue(widget.data_source, live.value)}</p>
         </div>
       ) : widget.widget_type === "bar_chart" ? (
         <div className="flex items-end gap-1 h-12 mt-1">
@@ -208,14 +201,14 @@ function WidgetCard({ widget, onEdit, onDelete, onToggleVisibility }: {
           />
         </svg>
       ) : (
-        <p className="text-2xl font-bold text-gray-900">{formatValue(widget.data_source, mock.value)}</p>
+        <p className="text-2xl font-bold text-gray-900">{formatValue(widget.data_source, live.value)}</p>
       )}
 
       {/* trend */}
       {hasTrend && widget.widget_type !== "bar_chart" && widget.widget_type !== "gauge" && (
         <div className={`flex items-center gap-1 text-xs font-medium ${trendPositive ? "text-green-600" : "text-red-500"}`}>
           {trendPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-          {Math.abs(mock.trend!)}% vs mes anterior
+          {Math.abs(live.trend!)}% vs mes anterior
         </div>
       )}
 
@@ -242,6 +235,7 @@ export default function KPIDashboardPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [activeDashId, setActiveDashId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [liveValues, setLiveValues] = useState<Record<string, { value: number; trend?: number }>>({});
 
   /* dialogs */
   const [showDashDialog, setShowDashDialog] = useState(false);
@@ -284,6 +278,26 @@ export default function KPIDashboardPage() {
     if (wr.status === "fulfilled" && wr.value.data) setWidgets(wr.value.data as Widget[]);
     if (gr.status === "fulfilled" && gr.value.data) setGoals(gr.value.data as Goal[]);
     if (ar.status === "fulfilled" && ar.value.data) setAlerts(ar.value.data as Alert[]);
+    // Load latest BI snapshot for live KPI values
+    const snapRes = await supabase
+      .from("bi_snapshots")
+      .select("revenue_day, orders_day, avg_order_value, new_customers, total_stock_value, low_stock_count")
+      .eq("org_id", orgId)
+      .order("snapshot_date", { ascending: false })
+      .limit(2);
+    if (snapRes.data && snapRes.data.length > 0) {
+      const today = snapRes.data[0];
+      const yesterday = snapRes.data[1];
+      const calcTrend = (a: number, b: number) => b > 0 ? Math.round(((a - b) / b) * 100) : 0;
+      setLiveValues({
+        sales_total:     { value: Number(today.revenue_day ?? 0), trend: yesterday ? calcTrend(Number(today.revenue_day), Number(yesterday.revenue_day)) : undefined },
+        sales_count:     { value: today.orders_day ?? 0, trend: yesterday ? calcTrend(today.orders_day, yesterday.orders_day) : undefined },
+        avg_ticket:      { value: Number(today.avg_order_value ?? 0) },
+        inventory_value: { value: Number(today.total_stock_value ?? 0) },
+        low_stock_count: { value: today.low_stock_count ?? 0 },
+        new_customers:   { value: today.new_customers ?? 0, trend: yesterday ? calcTrend(today.new_customers, yesterday.new_customers) : undefined },
+      });
+    }
     setLoading(false);
   }, [orgId, activeDashId]);
 
@@ -480,7 +494,7 @@ export default function KPIDashboardPage() {
               {activeDashId && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
                   {dashWidgets.map(w => (
-                    <WidgetCard key={w.id} widget={w}
+                    <WidgetCard key={w.id} widget={w} liveValues={liveValues}
                       onEdit={() => openEditWidget(w)}
                       onDelete={() => deleteWidget(w.id)}
                       onToggleVisibility={() => toggleWidgetVisibility(w)}
