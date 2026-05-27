@@ -432,20 +432,24 @@ export default function MultiCurrencyPage() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_TRANSACTIONS.map(t => (
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground">Sin transacciones multi-divisa registradas</td>
+                  </tr>
+                ) : transactions.map(t => (
                   <tr key={t.id} className="border-b border-border/20 hover:bg-muted/20">
-                    <td className="px-4 py-3"><Badge className="text-xs bg-muted text-muted-foreground border-0">{t.type}</Badge></td>
-                    <td className="px-4 py-3 text-xs font-medium">{t.entity}</td>
-                    <td className="px-4 py-3 text-xs font-mono">{t.from} → {t.to}</td>
-                    <td className="px-4 py-3 text-xs">{t.from === "USD" ? "US$" : "$"}{t.amount_fc.toLocaleString()}</td>
+                    <td className="px-4 py-3"><Badge className="text-xs bg-muted text-muted-foreground border-0">{t.entity_type}</Badge></td>
+                    <td className="px-4 py-3 text-xs font-medium">—</td>
+                    <td className="px-4 py-3 text-xs font-mono">{t.transaction_currency} → {t.base_currency}</td>
+                    <td className="px-4 py-3 text-xs">{t.transaction_currency === "USD" ? "US$" : "$"}{t.transaction_amount.toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">
                       <div>
-                        <span className="font-mono">{t.rate.toLocaleString("es-AR")}</span>
+                        <span className="font-mono">{t.exchange_rate.toLocaleString("es-AR")}</span>
                         <Badge className={`ml-1.5 text-[9px] ${RATE_TYPES.find(r => r.id === t.rate_type)?.color} bg-muted border-0`}>{t.rate_type}</Badge>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs font-semibold">${t.amount_bc.toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{t.date}</td>
+                    <td className="px-4 py-3 text-xs font-semibold">${t.base_amount.toLocaleString("es-AR")}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
                   </tr>
                 ))}
               </tbody>
