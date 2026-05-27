@@ -52,6 +52,9 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  optimizeDeps: {
+    include: ['@zxing/browser', '@zxing/library'],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
