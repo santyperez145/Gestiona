@@ -165,6 +165,8 @@ const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPa
 const ELearningPage            = lazy(() => import("@/pages/ELearningPage"));
 const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
 const VendorPortalPage         = lazy(() => import("@/pages/VendorPortalPage"));
+const RevenueRecognitionPage   = lazy(() => import("@/pages/RevenueRecognitionPage"));
+const CarbonFootprintPage      = lazy(() => import("@/pages/CarbonFootprintPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -392,6 +394,8 @@ function ProtectedRoutes() {
               <Route path="/capacitacion" element={<ELearningPage />} />
               <Route path="/alertas-inteligentes" element={<SmartAlertsPage />} />
               <Route path="/portal-proveedores" element={<VendorPortalPage />} />
+              <Route path="/reconocimiento-ingresos" element={<RevenueRecognitionPage />} />
+              <Route path="/huella-carbono" element={<CarbonFootprintPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />

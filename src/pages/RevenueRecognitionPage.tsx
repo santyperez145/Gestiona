@@ -1,0 +1,346 @@
+import { useState } from "react";
+import { useOrganization } from "@/hooks/useOrganization";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import {
+  BarChart3, DollarSign, Clock, CheckCircle, FileText,
+  Plus, TrendingUp, ArrowRight, AlertCircle, Layers
+} from "lucide-react";
+
+interface RevenueContract {
+  id: string;
+  contract_number: string;
+  title: string;
+  customer_name: string;
+  total_value: number;
+  start_date: string;
+  end_date: string | null;
+  status: string;
+  recognition_method: string;
+  obligations: Obligation[];
+}
+
+interface Obligation {
+  id: string;
+  name: string;
+  allocated_price: number;
+  progress_pct: number;
+  fulfillment_method: string;
+  is_satisfied: boolean;
+  recognized_amount: number;
+  deferred_amount: number;
+}
+
+const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+const MOCK_CONTRACTS: RevenueContract[] = [
+  {
+    id: "rc1", contract_number: "CON-2026-001", title: "Implementación + SaaS Anual",
+    customer_name: "Distribuidora Sur SA", total_value: 1_200_000, start_date: "2026-01-01", end_date: "2026-12-31",
+    status: "active", recognition_method: "over_time",
+    obligations: [
+      { id: "o1", name: "Implementación y configuración", allocated_price: 300_000, progress_pct: 100, fulfillment_method: "point_in_time", is_satisfied: true, recognized_amount: 300_000, deferred_amount: 0 },
+      { id: "o2", name: "Licencia SaaS 12 meses", allocated_price: 900_000, progress_pct: 41.7, fulfillment_method: "over_time", is_satisfied: false, recognized_amount: 375_300, deferred_amount: 524_700 },
+    ]
+  },
+  {
+    id: "rc2", contract_number: "CON-2026-002", title: "Consultoría por Hitos",
+    customer_name: "TechCorp Argentina", total_value: 500_000, start_date: "2026-03-01", end_date: "2026-09-30",
+    status: "active", recognition_method: "milestone",
+    obligations: [
+      { id: "o3", name: "Diagnóstico inicial", allocated_price: 100_000, progress_pct: 100, fulfillment_method: "point_in_time", is_satisfied: true, recognized_amount: 100_000, deferred_amount: 0 },
+      { id: "o4", name: "Diseño de arquitectura", allocated_price: 150_000, progress_pct: 75, fulfillment_method: "over_time", is_satisfied: false, recognized_amount: 112_500, deferred_amount: 37_500 },
+      { id: "o5", name: "Implementación final", allocated_price: 250_000, progress_pct: 0, fulfillment_method: "point_in_time", is_satisfied: false, recognized_amount: 0, deferred_amount: 250_000 },
+    ]
+  },
+  {
+    id: "rc3", contract_number: "CON-2026-003", title: "Soporte Premium Anual",
+    customer_name: "Comercio Norte SRL", total_value: 240_000, start_date: "2026-02-01", end_date: "2027-01-31",
+    status: "active", recognition_method: "over_time",
+    obligations: [
+      { id: "o6", name: "Soporte técnico 24/7", allocated_price: 240_000, progress_pct: 33.3, fulfillment_method: "over_time", is_satisfied: false, recognized_amount: 79_920, deferred_amount: 160_080 },
+    ]
+  },
+];
+
+const WATERFALL_DATA = [
+  { month: "Dic", new_contracts: 0,       recognized: 49_920,  deferred: 890_280 },
+  { month: "Ene", new_contracts: 1_200_000, recognized: 102_500, deferred: 1_987_780 },
+  { month: "Feb", new_contracts: 240_000,  recognized: 112_500, deferred: 2_115_280 },
+  { month: "Mar", new_contracts: 500_000,  recognized: 112_500, deferred: 2_502_780 },
+  { month: "Abr", new_contracts: 0,       recognized: 112_500, deferred: 2_390_280 },
+  { month: "May", new_contracts: 0,       recognized: 157_220, deferred: 2_233_060 },
+];
+
+const STATUS_CFG: Record<string, { label: string; color: string }> = {
+  draft:     { label: "Borrador",  color: "bg-gray-100 text-gray-700" },
+  active:    { label: "Activo",    color: "bg-green-100 text-green-700" },
+  completed: { label: "Completo",  color: "bg-blue-100 text-blue-700" },
+  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-700" },
+};
+
+function ObligationRow({ ob }: { ob: Obligation }) {
+  return (
+    <div className="border rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {ob.is_satisfied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Clock className="w-4 h-4 text-yellow-500" />}
+          <span className="font-medium text-sm">{ob.name}</span>
+          <span className="text-xs text-muted-foreground capitalize">({ob.fulfillment_method === "over_time" ? "Tiempo" : "Momento"})</span>
+        </div>
+        <span className="text-sm font-semibold">${ob.allocated_price.toLocaleString()}</span>
+      </div>
+      <Progress value={ob.progress_pct} className="h-2" />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span className="text-green-600">Reconocido: ${ob.recognized_amount.toLocaleString()}</span>
+        <span>{ob.progress_pct.toFixed(1)}% completado</span>
+        <span className="text-orange-600">Diferido: ${ob.deferred_amount.toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function RevenueRecognitionPage() {
+  const { orgId } = useOrganization();
+  const [tab, setTab] = useState<"contracts" | "waterfall" | "journal" | "config">("contracts");
+  const [contracts] = useState<RevenueContract[]>(MOCK_CONTRACTS);
+  const [selected, setSelected] = useState<RevenueContract | null>(null);
+  const [showNew, setShowNew] = useState(false);
+
+  const totalContractValue = contracts.reduce((s, c) => s + c.total_value, 0);
+  const totalRecognized = contracts.flatMap(c => c.obligations).reduce((s, o) => s + o.recognized_amount, 0);
+  const totalDeferred = contracts.flatMap(c => c.obligations).reduce((s, o) => s + o.deferred_amount, 0);
+
+  const maxWaterfall = Math.max(...WATERFALL_DATA.map(d => d.deferred));
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><DollarSign className="w-6 h-6 text-primary" /> Reconocimiento de Ingresos</h1>
+          <p className="text-muted-foreground text-sm mt-1">ASC 606 / IFRS 15 — Contratos, obligaciones de desempeño y diferidos</p>
+        </div>
+        <Dialog open={showNew} onOpenChange={setShowNew}>
+          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nuevo Contrato</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo Contrato</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <div><Label>N° Contrato</Label><Input placeholder="CON-2026-XXX" /></div>
+              <div><Label>Título</Label><Input placeholder="Descripción del contrato" /></div>
+              <div><Label>Cliente</Label><Input placeholder="Nombre del cliente" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Valor Total (ARS)</Label><Input type="number" placeholder="500000" /></div>
+                <div><Label>Método de Reconocimiento</Label>
+                  <Select defaultValue="over_time">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="over_time">En el tiempo</SelectItem>
+                      <SelectItem value="point_in_time">En un momento</SelectItem>
+                      <SelectItem value="milestone">Por hitos</SelectItem>
+                      <SelectItem value="percentage_completion">% Completado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button className="w-full" onClick={() => { toast.success("Contrato creado"); setShowNew(false); }}>Crear Contrato</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground mb-1">Valor Total Contratos</p><p className="text-2xl font-bold">${(totalContractValue / 1_000_000).toFixed(2)}M</p></CardContent></Card>
+        <Card className="border-green-200"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground mb-1">Revenue Reconocido</p><p className="text-2xl font-bold text-green-600">${(totalRecognized / 1000).toFixed(0)}K</p></CardContent></Card>
+        <Card className="border-orange-200"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground mb-1">Revenue Diferido</p><p className="text-2xl font-bold text-orange-600">${(totalDeferred / 1_000_000).toFixed(2)}M</p></CardContent></Card>
+      </div>
+
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="contracts">Contratos</TabsTrigger>
+          <TabsTrigger value="waterfall">Waterfall</TabsTrigger>
+          <TabsTrigger value="journal">Diario Contable</TabsTrigger>
+          <TabsTrigger value="config">Configuración</TabsTrigger>
+        </TabsList>
+
+        {/* CONTRACTS */}
+        <TabsContent value="contracts" className="space-y-3">
+          {contracts.map(contract => {
+            const recognized = contract.obligations.reduce((s, o) => s + o.recognized_amount, 0);
+            const pct = contract.total_value > 0 ? (recognized / contract.total_value) * 100 : 0;
+            return (
+              <Card key={contract.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelected(contract)}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm text-muted-foreground">{contract.contract_number}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_CFG[contract.status]?.color}`}>{STATUS_CFG[contract.status]?.label}</span>
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded capitalize">{contract.recognition_method.replace("_"," ")}</span>
+                      </div>
+                      <h3 className="font-semibold mt-1">{contract.title}</h3>
+                      <p className="text-sm text-muted-foreground">{contract.customer_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold">${(contract.total_value / 1000).toFixed(0)}K</p>
+                      <p className="text-xs text-muted-foreground">{contract.obligations.length} obligaciones</p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-green-600">Reconocido: ${(recognized / 1000).toFixed(0)}K</span>
+                      <span>{pct.toFixed(1)}%</span>
+                      <span className="text-orange-600">Diferido: ${((contract.total_value - recognized) / 1000).toFixed(0)}K</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </TabsContent>
+
+        {/* WATERFALL */}
+        <TabsContent value="waterfall">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Saldo de Revenue Diferido — Evolución</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm mb-6">
+                  <thead>
+                    <tr className="border-b text-muted-foreground text-xs">
+                      <th className="text-left py-2 pr-4">Mes</th>
+                      <th className="text-right py-2 px-3">Nuevos contratos</th>
+                      <th className="text-right py-2 px-3">Reconocido</th>
+                      <th className="text-right py-2 px-3">Saldo Diferido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {WATERFALL_DATA.map((d, i) => (
+                      <tr key={i} className="border-b last:border-0">
+                        <td className="py-2 pr-4 font-medium">{d.month}</td>
+                        <td className="py-2 px-3 text-right text-green-600">+${(d.new_contracts / 1000).toFixed(0)}K</td>
+                        <td className="py-2 px-3 text-right text-orange-600">-${(d.recognized / 1000).toFixed(0)}K</td>
+                        <td className="py-2 px-3 text-right font-bold">${(d.deferred / 1_000_000).toFixed(2)}M</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Bar chart */}
+              <div className="flex items-end gap-2 h-32">
+                {WATERFALL_DATA.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1">
+                    <div className="w-full flex flex-col gap-0.5">
+                      <div className="w-full rounded-t-sm bg-orange-300" style={{ height: `${(d.deferred / maxWaterfall) * 100}px`, maxHeight: "100px" }} />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{d.month}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* JOURNAL */}
+        <TabsContent value="journal">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 border-b">
+                  <tr>
+                    <th className="text-left py-3 px-4">Fecha</th>
+                    <th className="text-left py-3 px-4">Tipo</th>
+                    <th className="text-left py-3 px-4">Contrato</th>
+                    <th className="text-left py-3 px-4">Débito</th>
+                    <th className="text-left py-3 px-4">Crédito</th>
+                    <th className="text-right py-3 px-4">Importe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { date: "2026-05-31", type: "recognized", contract: "CON-2026-001", debit: "Ingresos Diferidos", credit: "Revenue SaaS", amount: 75_000 },
+                    { date: "2026-05-01", type: "deferred", contract: "CON-2026-001", debit: "Cuentas a Cobrar", credit: "Ingresos Diferidos", amount: 100_000 },
+                    { date: "2026-04-30", type: "recognized", contract: "CON-2026-002", debit: "Ingresos Diferidos", credit: "Revenue Consultoría", amount: 112_500 },
+                    { date: "2026-03-01", type: "deferred", contract: "CON-2026-003", debit: "Cuentas a Cobrar", credit: "Ingresos Diferidos", amount: 240_000 },
+                  ].map((entry, i) => (
+                    <tr key={i} className="border-b last:border-0 hover:bg-muted/20">
+                      <td className="py-3 px-4 text-muted-foreground">{entry.date}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${entry.type === "recognized" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                          {entry.type === "recognized" ? "Reconocido" : "Diferido"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs">{entry.contract}</td>
+                      <td className="py-3 px-4 text-sm">{entry.debit}</td>
+                      <td className="py-3 px-4 text-sm">{entry.credit}</td>
+                      <td className="py-3 px-4 text-right font-medium">${entry.amount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONFIG */}
+        <TabsContent value="config">
+          <Card className="max-w-lg">
+            <CardHeader><CardTitle className="text-sm">Estándar Contable</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { key: "ASC606", label: "ASC 606 (US GAAP)", desc: "Para empresas con reportes bajo normas americanas" },
+                { key: "IFRS15", label: "IFRS 15 (Internacional)", desc: "Para empresas argentinas con reportes internacionales" },
+                { key: "RT17", label: "RT 17 (Argentina)", desc: "Resolución Técnica 17 — norma contable argentina" },
+              ].map((std, i) => (
+                <div key={i} className={`p-3 rounded-lg border cursor-pointer transition-all ${i === 1 ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                  <p className="font-medium text-sm">{std.label}</p>
+                  <p className="text-xs text-muted-foreground">{std.desc}</p>
+                </div>
+              ))}
+              <Button className="w-full" onClick={() => toast.success("Configuración guardada")}>Guardar</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Contract detail */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
+          <Card className="w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <span className="font-mono text-xs text-muted-foreground">{selected.contract_number}</span>
+                <CardTitle className="text-base">{selected.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">{selected.customer_name}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => setSelected(null)}>✕</Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-xs text-muted-foreground">Valor Total</p><p className="font-bold">${selected.total_value.toLocaleString()}</p></div>
+                <div><p className="text-xs text-muted-foreground">Período</p><p>{selected.start_date} → {selected.end_date ?? "Indefinido"}</p></div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-2">Obligaciones de Desempeño</p>
+                <div className="space-y-2">
+                  {selected.obligations.map(ob => <ObligationRow key={ob.id} ob={ob} />)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
