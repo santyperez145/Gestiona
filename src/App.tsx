@@ -140,7 +140,11 @@ const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
 const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
 const LoyaltyAdvancedPage      = lazy(() => import("@/pages/LoyaltyAdvancedPage"));
 const CompetitorPricingPage    = lazy(() => import("@/pages/CompetitorPricingPage"));
+const HRPortalPage             = lazy(() => import("@/pages/HRPortalPage"));
+const AuditLogPage             = lazy(() => import("@/pages/AuditLogPage"));
+const APIKeysPage              = lazy(() => import("@/pages/APIKeysPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
+
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
 
 // ── Page-level loading fallback ─────────────────────────────────────────────
@@ -341,6 +345,9 @@ function ProtectedRoutes() {
               <Route path="/kpi-dashboard" element={<KPIDashboardPage />} />
               <Route path="/fidelidad-avanzada" element={<LoyaltyAdvancedPage />} />
               <Route path="/precios-competencia" element={<CompetitorPricingPage />} />
+              <Route path="/rrhh" element={<HRPortalPage />} />
+              <Route path="/auditoria" element={<AuditLogPage />} />
+              <Route path="/api-keys" element={<APIKeysPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
