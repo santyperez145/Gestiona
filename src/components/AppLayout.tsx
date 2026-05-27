@@ -476,6 +476,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest">v8.5</p>
             </div>
           )}
+          {!collapsed && (
+            <div className="px-1 pb-1 flex items-center gap-1.5">
+              <span className="text-[9px] text-muted-foreground/25 uppercase tracking-widest font-mono">build</span>
+              <span className="text-[9px] font-bold text-primary/50 font-mono">v9.0 · 132nav</span>
+            </div>
+          )}
           <button
             onClick={handleLogout}
             title={collapsed ? 'Cerrar sesión' : undefined}
