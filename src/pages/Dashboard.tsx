@@ -434,7 +434,7 @@ export default function Dashboard() {
   }, [user]);
 
   // Urgent/overdue tasks widget + tasks due today
-  const { activeOrg: orgForTasks } = useOrg();
+  const { activeOrg: orgForTasks, activeOrg } = useOrg();
   useEffect(() => {
     if (!orgForTasks) return;
     (async () => {
