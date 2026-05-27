@@ -224,10 +224,10 @@ export default function NPSSurveysPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Encuestas" value={stats.surveys} icon={Star} />
-        <KPICard title="Activas" value={stats.active} icon={TrendingUp} color="green" />
-        <KPICard title="Respuestas" value={stats.responses} icon={MessageSquare} color="blue" />
-        <KPICard title="NPS Global" value={stats.nps !== null ? `${stats.nps > 0 ? "+" : ""}${stats.nps}` : "—"} icon={BarChart3} color={stats.nps !== null && stats.nps >= 0 ? "yellow" : "red"} />
+        <KPICard label="Encuestas" value={stats.surveys} icon={Star} />
+        <KPICard label="Activas" value={stats.active} icon={TrendingUp} color="success" />
+        <KPICard label="Respuestas" value={stats.responses} icon={MessageSquare} color="blue" />
+        <KPICard label="NPS Global" value={stats.nps !== null ? `${stats.nps > 0 ? "+" : ""}${stats.nps}` : "—"} icon={BarChart3} color={stats.nps !== null && stats.nps >= 0 ? "warning" : "destructive"} />
       </div>
 
       {/* Create form */}

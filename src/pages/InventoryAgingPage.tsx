@@ -95,7 +95,7 @@ export default function InventoryAgingPage() {
     const [productsRes, salesRes] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, category, brand, stock, cost_ars, price_ars")
+        .select("id, name, category, brand, stock, cost_usd, sale_price_ars, profit_per_unit_ars")
         .eq("org_id", activeOrg.id)
         .gt("stock", 0)
         .order("name"),
@@ -143,7 +143,9 @@ export default function InventoryAgingPage() {
       const daysOfStock = avgDailyVelocity > 0
         ? Math.round(p.stock / avgDailyVelocity)
         : Infinity;
-      const stockValue = (p.stock || 0) * (p.cost_ars || 0);
+      // cost in ARS = sale_price_ars - profit_per_unit_ars (both stored in DB)
+      const costARS = Math.max(0, (p.sale_price_ars || 0) - (p.profit_per_unit_ars || 0));
+      const stockValue = (p.stock || 0) * costARS;
 
       return {
         id: p.id,
@@ -151,8 +153,8 @@ export default function InventoryAgingPage() {
         category: p.category || "Sin categoría",
         brand: p.brand || "",
         stock: p.stock || 0,
-        cost: p.cost_ars || 0,
-        price: p.price_ars || 0,
+        cost: costARS,
+        price: p.sale_price_ars || 0,
         stockValue,
         lastSoldDate,
         daysSinceSold,
@@ -241,32 +243,32 @@ export default function InventoryAgingPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KPICard
-          title="Productos en riesgo"
+          label="Productos en riesgo"
           value={String(kpis.atRisk)}
           icon={AlertTriangle}
-          trend="Sin venta en +90 días"
-          trendUp={false}
+          sub="Sin venta en +90 días"
+          color="destructive"
         />
         <KPICard
-          title="Capital inmovilizado"
+          label="Capital inmovilizado"
           value={formatARS(kpis.capitalAtRisk)}
           icon={DollarSign}
-          trend={kpis.totalCapital > 0 ? `${Math.round(kpis.capitalAtRisk / kpis.totalCapital * 100)}% del total` : "—"}
-          trendUp={false}
+          sub={kpis.totalCapital > 0 ? `${Math.round(kpis.capitalAtRisk / kpis.totalCapital * 100)}% del total` : "—"}
+          color="warning"
         />
         <KPICard
-          title="Capital total en stock"
+          label="Capital total en stock"
           value={formatARS(kpis.totalCapital)}
           icon={Package}
-          trend={`${products.length} productos con stock`}
-          trendUp={true}
+          sub={`${products.length} productos con stock`}
+          color="success"
         />
         <KPICard
-          title="Movimiento lento"
+          label="Movimiento lento"
           value={String(kpis.slowMovers)}
           icon={TrendingDown}
-          trend="+60 días sin vender"
-          trendUp={false}
+          sub="+60 días sin vender"
+          color="warning"
         />
       </div>
 

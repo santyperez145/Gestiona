@@ -218,10 +218,10 @@ export default function KnowledgeBasePage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Artículos" value={stats.total} icon={BookOpen} />
-        <KPICard title="Publicados" value={stats.published} icon={Eye} color="green" />
-        <KPICard title="Públicos" value={stats.public} icon={Globe} color="blue" />
-        <KPICard title="Útiles (👍)" value={stats.helpful} icon={Star} color="yellow" />
+        <KPICard label="Artículos" value={stats.total} icon={BookOpen} />
+        <KPICard label="Publicados" value={stats.published} icon={Eye} color="success" />
+        <KPICard label="Públicos" value={stats.public} icon={Globe} color="blue" />
+        <KPICard label="Útiles (👍)" value={stats.helpful} icon={Star} color="warning" />
       </div>
 
       {/* Create/Edit form */}

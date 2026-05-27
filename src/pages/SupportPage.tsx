@@ -324,11 +324,11 @@ export default function SupportPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KPICard title="Abiertos" value={stats.open} icon={Inbox} color="blue" />
-        <KPICard title="En progreso" value={stats.in_progress} icon={Zap} color="yellow" />
-        <KPICard title="SLA vencidos" value={stats.sla_breach} icon={ShieldAlert} color="red" />
-        <KPICard title="Resueltos hoy" value={stats.resolved_today} icon={CheckCircle2} color="green" />
-        <KPICard title="Resolución media" value={`${stats.avg_resolution_hrs}h`} icon={Clock} />
+        <KPICard label="Abiertos" value={stats.open} icon={Inbox} color="blue" />
+        <KPICard label="En progreso" value={stats.in_progress} icon={Zap} color="warning" />
+        <KPICard label="SLA vencidos" value={stats.sla_breach} icon={ShieldAlert} color="destructive" />
+        <KPICard label="Resueltos hoy" value={stats.resolved_today} icon={CheckCircle2} color="success" />
+        <KPICard label="Resolución media" value={`${stats.avg_resolution_hrs}h`} icon={Clock} />
       </div>
 
       {/* Create form */}

@@ -219,10 +219,10 @@ export default function CouponsPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <KPICard title="Cupones activos" value={String(kpis.active)} icon={Tag} trend={`${coupons.length} total`} trendUp={kpis.active > 0} />
-        <KPICard title="Usos totales" value={String(kpis.totalUses)} icon={BarChart3} trend="Veces canjeados" trendUp={kpis.totalUses > 0} />
-        <KPICard title="Revenue con cupones" value={formatARS(kpis.totalRevenue)} icon={DollarSign} trend="Ventas con código aplicado" trendUp={kpis.totalRevenue > 0} />
-        <KPICard title="Vencidos/Agotados" value={String(kpis.expired)} icon={AlertTriangle} trend="Ya no son canjeables" trendUp={kpis.expired === 0} />
+        <KPICard label="Cupones activos" value={String(kpis.active)} icon={Tag} sub={`${coupons.length} total`} />
+        <KPICard label="Usos totales" value={String(kpis.totalUses)} icon={BarChart3} sub="Veces canjeados" />
+        <KPICard label="Revenue con cupones" value={formatARS(kpis.totalRevenue)} icon={DollarSign} sub="Ventas con código aplicado" color="success" />
+        <KPICard label="Vencidos/Agotados" value={String(kpis.expired)} icon={AlertTriangle} sub="Ya no son canjeables" color="warning" />
       </div>
 
       {loading ? (

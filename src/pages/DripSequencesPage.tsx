@@ -313,10 +313,10 @@ export default function DripSequencesPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Secuencias" value={stats.total} icon={Mail} />
-        <KPICard title="Activas" value={stats.active} icon={Play} color="green" />
-        <KPICard title="En curso" value={stats.totalEnrolled} icon={Users} color="blue" />
-        <KPICard title="Completadas" value={stats.totalCompleted} icon={CheckCircle2} color="yellow" />
+        <KPICard label="Secuencias" value={stats.total} icon={Mail} />
+        <KPICard label="Activas" value={stats.active} icon={Play} color="success" />
+        <KPICard label="En curso" value={stats.totalEnrolled} icon={Users} color="blue" />
+        <KPICard label="Completadas" value={stats.totalCompleted} icon={CheckCircle2} color="warning" />
       </div>
 
       {/* Create form */}
