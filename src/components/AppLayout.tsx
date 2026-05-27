@@ -147,6 +147,8 @@ const allNavItems = [
   { to: "/franquicias", label: "Franquicias", icon: Building2, roles: ['admin'], section: 'ventas' },
   { to: "/inteligencia-competitiva", label: "Intel. Competitiva", icon: Eye, roles: ['admin'], section: 'analytics' },
   { to: "/gamificacion-ventas", label: "Gamificación de Ventas", icon: Trophy, roles: ['admin'], section: 'ventas' },
+  { to: "/valuacion-inventario", label: "Valuación de Inventario", icon: Layers, roles: ['admin'], section: 'inventario' },
+  { to: "/capacitacion", label: "Capacitación (E-Learning)", icon: BookOpen, roles: ['admin', 'vendedor'], section: 'principal' },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, roles: ['admin', 'vendedor'], section: 'principal' },
   { to: "/qr-generator", label: "Generador de QR", icon: QrCode, roles: ['admin'], section: 'config' },
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },

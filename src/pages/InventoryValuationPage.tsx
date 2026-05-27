@@ -1,0 +1,306 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Package, DollarSign, TrendingUp, TrendingDown, BarChart3,
+  RefreshCw, Download, AlertTriangle, Layers, Calculator
+} from "lucide-react";
+
+interface ValuationRow {
+  product_id: string;
+  product_name: string;
+  total_units: number;
+  avg_cost: number;
+  fifo_value: number;
+  market_value: number;
+  gain_loss: number;
+  sku?: string;
+  category?: string;
+}
+
+interface InventoryLayer {
+  id: string;
+  product_name: string;
+  layer_date: string;
+  layer_type: string;
+  quantity_remaining: number;
+  unit_cost: number;
+  total_cost: number;
+}
+
+const MOCK_VALUATION: ValuationRow[] = [
+  { product_id: "p1", product_name: "Notebook Lenovo IdeaPad", total_units: 12, avg_cost: 285_000, fifo_value: 3_420_000, market_value: 3_840_000, gain_loss: 420_000, sku: "NB-LP-001", category: "Electrónica" },
+  { product_id: "p2", product_name: "Auriculares Sony WH-1000XM5", total_units: 8, avg_cost: 95_000, fifo_value: 760_000, market_value: 824_000, gain_loss: 64_000, sku: "AU-SN-001", category: "Electrónica" },
+  { product_id: "p3", product_name: "Teclado Mecánico Redragon", total_units: 25, avg_cost: 28_000, fifo_value: 700_000, market_value: 750_000, gain_loss: 50_000, sku: "TC-RD-001", category: "Periféricos" },
+  { product_id: "p4", product_name: "Monitor LG 27' IPS", total_units: 5, avg_cost: 420_000, fifo_value: 2_100_000, market_value: 2_050_000, gain_loss: -50_000, sku: "MO-LG-001", category: "Periféricos" },
+  { product_id: "p5", product_name: "Mouse Logitech MX Master 3", total_units: 18, avg_cost: 52_000, fifo_value: 936_000, market_value: 990_000, gain_loss: 54_000, sku: "MS-LG-001", category: "Periféricos" },
+];
+
+const MOCK_LAYERS: InventoryLayer[] = [
+  { id: "l1", product_name: "Notebook Lenovo IdeaPad", layer_date: "2026-03-15", layer_type: "purchase", quantity_remaining: 5, unit_cost: 275_000, total_cost: 1_375_000 },
+  { id: "l2", product_name: "Notebook Lenovo IdeaPad", layer_date: "2026-04-20", layer_type: "purchase", quantity_remaining: 7, unit_cost: 292_000, total_cost: 2_044_000 },
+  { id: "l3", product_name: "Auriculares Sony WH-1000XM5", layer_date: "2026-04-01", layer_type: "purchase", quantity_remaining: 8, unit_cost: 95_000, total_cost: 760_000 },
+  { id: "l4", product_name: "Monitor LG 27' IPS", layer_date: "2026-02-10", layer_type: "purchase", quantity_remaining: 2, unit_cost: 400_000, total_cost: 800_000 },
+  { id: "l5", product_name: "Monitor LG 27' IPS", layer_date: "2026-04-05", layer_type: "purchase", quantity_remaining: 3, unit_cost: 433_000, total_cost: 1_299_000 },
+];
+
+export default function InventoryValuationPage() {
+  const { orgId } = useOrganization();
+  const [tab, setTab] = useState<"valuation" | "layers" | "snapshots" | "config">("valuation");
+  const [method, setMethod] = useState("average");
+  const [rows] = useState<ValuationRow[]>(MOCK_VALUATION);
+  const [layers] = useState<InventoryLayer[]>(MOCK_LAYERS);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "value" | "gain">("value");
+
+  const totalCostAvg = rows.reduce((s, r) => s + r.avg_cost * r.total_units, 0);
+  const totalMarket = rows.reduce((s, r) => s + r.market_value, 0);
+  const totalGain = rows.reduce((s, r) => s + r.gain_loss, 0);
+  const totalUnits = rows.reduce((s, r) => s + r.total_units, 0);
+
+  const filtered = rows
+    .filter(r => !search || r.product_name.toLowerCase().includes(search.toLowerCase()) || r.sku?.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "name") return a.product_name.localeCompare(b.product_name);
+      if (sortBy === "value") return b.market_value - a.market_value;
+      return b.gain_loss - a.gain_loss;
+    });
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><Layers className="w-6 h-6 text-primary" /> Valuación de Inventario</h1>
+          <p className="text-muted-foreground text-sm mt-1">Métodos FIFO, LIFO y Costo Promedio Ponderado</p>
+        </div>
+        <div className="flex gap-2">
+          <Select value={method} onValueChange={setMethod}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="average">Costo Promedio ✓</SelectItem>
+              <SelectItem value="fifo">FIFO (1° en entrar)</SelectItem>
+              <SelectItem value="lifo">LIFO (1° en salir)</SelectItem>
+              <SelectItem value="specific">Identificación Específica</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => toast.success("Snapshot generado")}>
+            <RefreshCw className="w-4 h-4 mr-2" />Snapshot
+          </Button>
+          <Button variant="outline" onClick={() => toast.info("Exportando...")}>
+            <Download className="w-4 h-4 mr-2" />Exportar
+          </Button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 flex gap-3 items-center">
+            <Package className="w-8 h-8 text-blue-500" />
+            <div><p className="text-xs text-muted-foreground">Unidades Totales</p><p className="text-2xl font-bold">{totalUnits.toLocaleString()}</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex gap-3 items-center">
+            <DollarSign className="w-8 h-8 text-purple-500" />
+            <div><p className="text-xs text-muted-foreground">Costo Total ({method.toUpperCase()})</p><p className="text-xl font-bold">${(totalCostAvg / 1_000_000).toFixed(2)}M</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex gap-3 items-center">
+            <BarChart3 className="w-8 h-8 text-green-500" />
+            <div><p className="text-xs text-muted-foreground">Valor de Mercado</p><p className="text-xl font-bold">${(totalMarket / 1_000_000).toFixed(2)}M</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex gap-3 items-center">
+            {totalGain >= 0
+              ? <TrendingUp className="w-8 h-8 text-emerald-500" />
+              : <TrendingDown className="w-8 h-8 text-red-500" />}
+            <div>
+              <p className="text-xs text-muted-foreground">Ganancia/Pérdida No Realizada</p>
+              <p className={`text-xl font-bold ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {totalGain >= 0 ? "+" : ""}${(totalGain / 1000).toFixed(0)}K
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="valuation">Valuación</TabsTrigger>
+          <TabsTrigger value="layers">Capas de Costo</TabsTrigger>
+          <TabsTrigger value="snapshots">Histórico</TabsTrigger>
+          <TabsTrigger value="config">Configuración</TabsTrigger>
+        </TabsList>
+
+        {/* VALUATION TABLE */}
+        <TabsContent value="valuation" className="space-y-3">
+          <div className="flex gap-2 items-center">
+            <Input placeholder="Buscar producto o SKU..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
+            <Select value={sortBy} onValueChange={v => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="value">Por Valor ↓</SelectItem>
+                <SelectItem value="gain">Por Ganancia ↓</SelectItem>
+                <SelectItem value="name">Por Nombre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 border-b">
+                  <tr>
+                    <th className="text-left py-3 px-4">Producto</th>
+                    <th className="text-right py-3 px-4">Unidades</th>
+                    <th className="text-right py-3 px-4">Costo {method === "fifo" ? "FIFO" : method === "lifo" ? "LIFO" : "Prom."}</th>
+                    <th className="text-right py-3 px-4">Valor Mercado</th>
+                    <th className="text-right py-3 px-4">G/P No Realizada</th>
+                    <th className="text-right py-3 px-4">Margen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(row => {
+                    const marginPct = row.market_value > 0 ? (row.gain_loss / row.market_value) * 100 : 0;
+                    return (
+                      <tr key={row.product_id} className="border-b last:border-0 hover:bg-muted/20">
+                        <td className="py-3 px-4">
+                          <p className="font-medium">{row.product_name}</p>
+                          <p className="text-xs text-muted-foreground">{row.sku} · {row.category}</p>
+                        </td>
+                        <td className="py-3 px-4 text-right">{row.total_units}</td>
+                        <td className="py-3 px-4 text-right">${(row.avg_cost * row.total_units / 1000).toFixed(0)}K</td>
+                        <td className="py-3 px-4 text-right font-medium">${(row.market_value / 1000).toFixed(0)}K</td>
+                        <td className={`py-3 px-4 text-right font-medium ${row.gain_loss >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                          {row.gain_loss >= 0 ? "+" : ""}${(row.gain_loss / 1000).toFixed(0)}K
+                        </td>
+                        <td className={`py-3 px-4 text-right text-xs font-medium ${marginPct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                          {marginPct >= 0 ? "+" : ""}{marginPct.toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-muted/30 font-semibold border-t">
+                  <tr>
+                    <td className="py-3 px-4">TOTAL</td>
+                    <td className="py-3 px-4 text-right">{totalUnits}</td>
+                    <td className="py-3 px-4 text-right">${(totalCostAvg / 1_000_000).toFixed(2)}M</td>
+                    <td className="py-3 px-4 text-right">${(totalMarket / 1_000_000).toFixed(2)}M</td>
+                    <td className={`py-3 px-4 text-right ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      {totalGain >= 0 ? "+" : ""}${(totalGain / 1000).toFixed(0)}K
+                    </td>
+                    <td className="py-3 px-4 text-right">{((totalGain / totalMarket) * 100).toFixed(1)}%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* LAYERS */}
+        <TabsContent value="layers" className="space-y-3">
+          <p className="text-sm text-muted-foreground">Capas de costo activas (stock disponible con su costo de adquisición)</p>
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 border-b">
+                  <tr>
+                    <th className="text-left py-3 px-4">Producto</th>
+                    <th className="text-left py-3 px-4">Fecha Ingreso</th>
+                    <th className="text-left py-3 px-4">Tipo</th>
+                    <th className="text-right py-3 px-4">Unidades Restantes</th>
+                    <th className="text-right py-3 px-4">Costo Unitario</th>
+                    <th className="text-right py-3 px-4">Total Capa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {layers.map(layer => (
+                    <tr key={layer.id} className="border-b last:border-0 hover:bg-muted/20">
+                      <td className="py-3 px-4 font-medium">{layer.product_name}</td>
+                      <td className="py-3 px-4">{new Date(layer.layer_date).toLocaleDateString("es-AR")}</td>
+                      <td className="py-3 px-4">
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded capitalize">{layer.layer_type}</span>
+                      </td>
+                      <td className="py-3 px-4 text-right">{layer.quantity_remaining}</td>
+                      <td className="py-3 px-4 text-right">${layer.unit_cost.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-right font-medium">${(layer.total_cost / 1000).toFixed(0)}K</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+          <div className="flex gap-3 text-xs text-muted-foreground items-center">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-full" />FIFO: primeras capas se consumen primero</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-purple-500 rounded-full" />LIFO: últimas capas se consumen primero</span>
+          </div>
+        </TabsContent>
+
+        {/* SNAPSHOTS */}
+        <TabsContent value="snapshots">
+          <Card>
+            <CardContent className="p-6">
+              {[
+                { date: "2026-05-01", avg: 7_916_000, fifo: 7_950_000, market: 8_454_000 },
+                { date: "2026-04-01", avg: 7_200_000, fifo: 7_250_000, market: 7_800_000 },
+                { date: "2026-03-01", avg: 6_100_000, fifo: 6_150_000, market: 6_400_000 },
+              ].map((snap, i) => (
+                <div key={i} className="flex items-center gap-4 py-3 border-b last:border-0">
+                  <span className="font-medium w-28">{new Date(snap.date).toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</span>
+                  <div className="flex gap-6 flex-1 text-sm">
+                    <div><p className="text-xs text-muted-foreground">Costo Prom.</p><p className="font-medium">${(snap.avg / 1_000_000).toFixed(2)}M</p></div>
+                    <div><p className="text-xs text-muted-foreground">FIFO</p><p className="font-medium">${(snap.fifo / 1_000_000).toFixed(2)}M</p></div>
+                    <div><p className="text-xs text-muted-foreground">Mercado</p><p className="font-medium">${(snap.market / 1_000_000).toFixed(2)}M</p></div>
+                    <div><p className="text-xs text-muted-foreground">G/P</p><p className={`font-medium ${snap.market > snap.avg ? "text-emerald-600" : "text-red-600"}`}>{snap.market > snap.avg ? "+" : ""}${((snap.market - snap.avg) / 1000).toFixed(0)}K</p></div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => toast.info("Descargando snapshot...")}>Ver</Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONFIG */}
+        <TabsContent value="config">
+          <Card className="max-w-md">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Calculator className="w-4 h-4" />Método de Valuación</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { value: "average", label: "Costo Promedio Ponderado", desc: "El más usado en Argentina. Promedia el costo de todas las unidades." },
+                { value: "fifo", label: "FIFO (First In, First Out)", desc: "Primero en entrar, primero en salir. El stock más antiguo se registra como vendido primero." },
+                { value: "lifo", label: "LIFO (Last In, First Out)", desc: "Último en entrar, primero en salir. Útil con precios inflacionarios." },
+                { value: "specific", label: "Identificación Específica", desc: "Cada unidad se rastrea individualmente. Ideal para bienes únicos." },
+              ].map(opt => (
+                <div
+                  key={opt.value}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${method === opt.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+                  onClick={() => setMethod(opt.value)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${method === opt.value ? "border-primary" : "border-muted-foreground"}`}>
+                      {method === opt.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                    <span className="font-medium text-sm">{opt.label}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">{opt.desc}</p>
+                </div>
+              ))}
+              <Button onClick={() => toast.success("Método actualizado")} className="w-full">Guardar Configuración</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

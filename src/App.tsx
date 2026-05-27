@@ -161,6 +161,8 @@ const FinancialScenariosPage   = lazy(() => import("@/pages/FinancialScenariosPa
 const FranchisePage            = lazy(() => import("@/pages/FranchisePage"));
 const CompetitorIntelligencePage = lazy(() => import("@/pages/CompetitorIntelligencePage"));
 const SalesGamificationPage    = lazy(() => import("@/pages/SalesGamificationPage"));
+const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
+const ELearningPage            = lazy(() => import("@/pages/ELearningPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -384,6 +386,8 @@ function ProtectedRoutes() {
               <Route path="/franquicias" element={<FranchisePage />} />
               <Route path="/inteligencia-competitiva" element={<CompetitorIntelligencePage />} />
               <Route path="/gamificacion-ventas" element={<SalesGamificationPage />} />
+              <Route path="/valuacion-inventario" element={<InventoryValuationPage />} />
+              <Route path="/capacitacion" element={<ELearningPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
