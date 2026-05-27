@@ -3,15 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Package, DollarSign, TrendingUp, TrendingDown, BarChart3,
-  RefreshCw, Download, AlertTriangle, Layers, Calculator
+  RefreshCw, Download, Layers, Calculator, Loader2
 } from "lucide-react";
 
 interface ValuationRow {
@@ -38,13 +36,76 @@ interface InventoryLayer {
 
 
 export default function InventoryValuationPage() {
-  const { orgId } = useOrganization();
+  const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"valuation" | "layers" | "snapshots" | "config">("valuation");
   const [method, setMethod] = useState("average");
-  const [rows] = useState<ValuationRow[]>(MOCK_VALUATION);
-  const [layers] = useState<InventoryLayer[]>(MOCK_LAYERS);
+  const [rows, setRows] = useState<ValuationRow[]>([]);
+  const [layers, setLayers] = useState<InventoryLayer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "value" | "gain">("value");
+
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    setLoading(true);
+
+    Promise.all([
+      supabase.from("products")
+        .select("id, name, sku, category, stock, cost_usd, sale_price_ars, profit_per_unit_ars")
+        .eq("org_id", activeOrg.id)
+        .gt("stock", 0)
+        .order("sale_price_ars", { ascending: false }),
+      supabase.from("purchases")
+        .select("product_name, product_id, quantity, unit_cost_usd, date, exchange_rate_used")
+        .eq("org_id", activeOrg.id)
+        .order("date", { ascending: false })
+        .limit(200),
+      supabase.from("settings")
+        .select("exchange_rate")
+        .eq("user_id", activeOrg.owner_id ?? "")
+        .single(),
+    ]).then(([prodRes, purchRes, settRes]) => {
+      const exchangeRate = Number((settRes.data as any)?.exchange_rate ?? 1200);
+      const products = prodRes.data || [];
+
+      // Build ValuationRow per product
+      const valuationRows: ValuationRow[] = products.map((p: any) => {
+        const costARS = Math.max(0, Number(p.sale_price_ars || 0) - Number(p.profit_per_unit_ars || 0));
+        const marketValue = Number(p.stock) * Number(p.sale_price_ars || 0);
+        const avgCost = costARS;
+        const gainLoss = Number(p.stock) * Number(p.profit_per_unit_ars || 0);
+        return {
+          product_id: p.id,
+          product_name: p.name,
+          sku: p.sku || "",
+          category: p.category || "Sin categoría",
+          total_units: Number(p.stock),
+          avg_cost: avgCost,
+          fifo_value: Number(p.stock) * costARS,
+          market_value: marketValue,
+          gain_loss: gainLoss,
+        };
+      });
+      setRows(valuationRows);
+
+      // Build InventoryLayer from purchases
+      const purchases = purchRes.data || [];
+      const layerData: InventoryLayer[] = purchases.map((pu: any) => {
+        const unitCostARS = Number(pu.unit_cost_usd || 0) * (Number(pu.exchange_rate_used || 0) || exchangeRate);
+        const qty = Number(pu.quantity || 0);
+        return {
+          id: pu.product_id + "_" + pu.date,
+          product_name: pu.product_name || "—",
+          layer_date: pu.date,
+          layer_type: "compra",
+          quantity_remaining: qty,
+          unit_cost: unitCostARS,
+          total_cost: qty * unitCostARS,
+        };
+      });
+      setLayers(layerData);
+    }).finally(() => setLoading(false));
+  }, [activeOrg?.id]);
 
   const totalCostAvg = rows.reduce((s, r) => s + r.avg_cost * r.total_units, 0);
   const totalMarket = rows.reduce((s, r) => s + r.market_value, 0);
@@ -58,6 +119,15 @@ export default function InventoryValuationPage() {
       if (sortBy === "value") return b.market_value - a.market_value;
       return b.gain_loss - a.gain_loss;
     });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Cargando valuación de inventario...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -143,52 +213,60 @@ export default function InventoryValuationPage() {
           </div>
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/30 border-b">
-                  <tr>
-                    <th className="text-left py-3 px-4">Producto</th>
-                    <th className="text-right py-3 px-4">Unidades</th>
-                    <th className="text-right py-3 px-4">Costo {method === "fifo" ? "FIFO" : method === "lifo" ? "LIFO" : "Prom."}</th>
-                    <th className="text-right py-3 px-4">Valor Mercado</th>
-                    <th className="text-right py-3 px-4">G/P No Realizada</th>
-                    <th className="text-right py-3 px-4">Margen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(row => {
-                    const marginPct = row.market_value > 0 ? (row.gain_loss / row.market_value) * 100 : 0;
-                    return (
-                      <tr key={row.product_id} className="border-b last:border-0 hover:bg-muted/20">
-                        <td className="py-3 px-4">
-                          <p className="font-medium">{row.product_name}</p>
-                          <p className="text-xs text-muted-foreground">{row.sku} · {row.category}</p>
-                        </td>
-                        <td className="py-3 px-4 text-right">{row.total_units}</td>
-                        <td className="py-3 px-4 text-right">${(row.avg_cost * row.total_units / 1000).toFixed(0)}K</td>
-                        <td className="py-3 px-4 text-right font-medium">${(row.market_value / 1000).toFixed(0)}K</td>
-                        <td className={`py-3 px-4 text-right font-medium ${row.gain_loss >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                          {row.gain_loss >= 0 ? "+" : ""}${(row.gain_loss / 1000).toFixed(0)}K
-                        </td>
-                        <td className={`py-3 px-4 text-right text-xs font-medium ${marginPct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                          {marginPct >= 0 ? "+" : ""}{marginPct.toFixed(1)}%
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="bg-muted/30 font-semibold border-t">
-                  <tr>
-                    <td className="py-3 px-4">TOTAL</td>
-                    <td className="py-3 px-4 text-right">{totalUnits}</td>
-                    <td className="py-3 px-4 text-right">${(totalCostAvg / 1_000_000).toFixed(2)}M</td>
-                    <td className="py-3 px-4 text-right">${(totalMarket / 1_000_000).toFixed(2)}M</td>
-                    <td className={`py-3 px-4 text-right ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                      {totalGain >= 0 ? "+" : ""}${(totalGain / 1000).toFixed(0)}K
-                    </td>
-                    <td className="py-3 px-4 text-right">{((totalGain / totalMarket) * 100).toFixed(1)}%</td>
-                  </tr>
-                </tfoot>
-              </table>
+              {filtered.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  {search ? "No se encontraron productos con ese criterio." : "Sin productos con stock disponible."}
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30 border-b">
+                    <tr>
+                      <th className="text-left py-3 px-4">Producto</th>
+                      <th className="text-right py-3 px-4">Unidades</th>
+                      <th className="text-right py-3 px-4">Costo {method === "fifo" ? "FIFO" : method === "lifo" ? "LIFO" : "Prom."}</th>
+                      <th className="text-right py-3 px-4">Valor Mercado</th>
+                      <th className="text-right py-3 px-4">G/P No Realizada</th>
+                      <th className="text-right py-3 px-4">Margen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(row => {
+                      const marginPct = row.market_value > 0 ? (row.gain_loss / row.market_value) * 100 : 0;
+                      return (
+                        <tr key={row.product_id} className="border-b last:border-0 hover:bg-muted/20">
+                          <td className="py-3 px-4">
+                            <p className="font-medium">{row.product_name}</p>
+                            <p className="text-xs text-muted-foreground">{row.sku} · {row.category}</p>
+                          </td>
+                          <td className="py-3 px-4 text-right">{row.total_units}</td>
+                          <td className="py-3 px-4 text-right">${(row.avg_cost * row.total_units / 1000).toFixed(0)}K</td>
+                          <td className="py-3 px-4 text-right font-medium">${(row.market_value / 1000).toFixed(0)}K</td>
+                          <td className={`py-3 px-4 text-right font-medium ${row.gain_loss >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                            {row.gain_loss >= 0 ? "+" : ""}${(row.gain_loss / 1000).toFixed(0)}K
+                          </td>
+                          <td className={`py-3 px-4 text-right text-xs font-medium ${marginPct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                            {marginPct >= 0 ? "+" : ""}{marginPct.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-muted/30 font-semibold border-t">
+                    <tr>
+                      <td className="py-3 px-4">TOTAL</td>
+                      <td className="py-3 px-4 text-right">{totalUnits}</td>
+                      <td className="py-3 px-4 text-right">${(totalCostAvg / 1_000_000).toFixed(2)}M</td>
+                      <td className="py-3 px-4 text-right">${(totalMarket / 1_000_000).toFixed(2)}M</td>
+                      <td className={`py-3 px-4 text-right ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {totalGain >= 0 ? "+" : ""}${(totalGain / 1000).toFixed(0)}K
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {totalMarket > 0 ? ((totalGain / totalMarket) * 100).toFixed(1) : "0.0"}%
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -198,32 +276,36 @@ export default function InventoryValuationPage() {
           <p className="text-sm text-muted-foreground">Capas de costo activas (stock disponible con su costo de adquisición)</p>
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/30 border-b">
-                  <tr>
-                    <th className="text-left py-3 px-4">Producto</th>
-                    <th className="text-left py-3 px-4">Fecha Ingreso</th>
-                    <th className="text-left py-3 px-4">Tipo</th>
-                    <th className="text-right py-3 px-4">Unidades Restantes</th>
-                    <th className="text-right py-3 px-4">Costo Unitario</th>
-                    <th className="text-right py-3 px-4">Total Capa</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {layers.map(layer => (
-                    <tr key={layer.id} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="py-3 px-4 font-medium">{layer.product_name}</td>
-                      <td className="py-3 px-4">{new Date(layer.layer_date).toLocaleDateString("es-AR")}</td>
-                      <td className="py-3 px-4">
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded capitalize">{layer.layer_type}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right">{layer.quantity_remaining}</td>
-                      <td className="py-3 px-4 text-right">${layer.unit_cost.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right font-medium">${(layer.total_cost / 1000).toFixed(0)}K</td>
+              {layers.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">Sin compras registradas para mostrar capas de costo.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30 border-b">
+                    <tr>
+                      <th className="text-left py-3 px-4">Producto</th>
+                      <th className="text-left py-3 px-4">Fecha Ingreso</th>
+                      <th className="text-left py-3 px-4">Tipo</th>
+                      <th className="text-right py-3 px-4">Unidades Restantes</th>
+                      <th className="text-right py-3 px-4">Costo Unitario</th>
+                      <th className="text-right py-3 px-4">Total Capa</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {layers.map(layer => (
+                      <tr key={layer.id} className="border-b last:border-0 hover:bg-muted/20">
+                        <td className="py-3 px-4 font-medium">{layer.product_name}</td>
+                        <td className="py-3 px-4">{new Date(layer.layer_date).toLocaleDateString("es-AR")}</td>
+                        <td className="py-3 px-4">
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded capitalize">{layer.layer_type}</span>
+                        </td>
+                        <td className="py-3 px-4 text-right">{layer.quantity_remaining}</td>
+                        <td className="py-3 px-4 text-right">${layer.unit_cost.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right font-medium">${(layer.total_cost / 1000).toFixed(0)}K</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </CardContent>
           </Card>
           <div className="flex gap-3 text-xs text-muted-foreground items-center">
@@ -236,22 +318,18 @@ export default function InventoryValuationPage() {
         <TabsContent value="snapshots">
           <Card>
             <CardContent className="p-6">
-              {[
-                { date: "2026-05-01", avg: 7_916_000, fifo: 7_950_000, market: 8_454_000 },
-                { date: "2026-04-01", avg: 7_200_000, fifo: 7_250_000, market: 7_800_000 },
-                { date: "2026-03-01", avg: 6_100_000, fifo: 6_150_000, market: 6_400_000 },
-              ].map((snap, i) => (
-                <div key={i} className="flex items-center gap-4 py-3 border-b last:border-0">
-                  <span className="font-medium w-28">{new Date(snap.date).toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</span>
-                  <div className="flex gap-6 flex-1 text-sm">
-                    <div><p className="text-xs text-muted-foreground">Costo Prom.</p><p className="font-medium">${(snap.avg / 1_000_000).toFixed(2)}M</p></div>
-                    <div><p className="text-xs text-muted-foreground">FIFO</p><p className="font-medium">${(snap.fifo / 1_000_000).toFixed(2)}M</p></div>
-                    <div><p className="text-xs text-muted-foreground">Mercado</p><p className="font-medium">${(snap.market / 1_000_000).toFixed(2)}M</p></div>
-                    <div><p className="text-xs text-muted-foreground">G/P</p><p className={`font-medium ${snap.market > snap.avg ? "text-emerald-600" : "text-red-600"}`}>{snap.market > snap.avg ? "+" : ""}${((snap.market - snap.avg) / 1000).toFixed(0)}K</p></div>
+              {rows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin historial de snapshots</p>
+              ) : (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm font-semibold mb-2">Snapshot actual</p>
+                  <div className="flex gap-6 text-sm">
+                    <div><p className="text-xs text-muted-foreground">Costo Total</p><p className="font-medium">${(totalCostAvg / 1_000_000).toFixed(2)}M</p></div>
+                    <div><p className="text-xs text-muted-foreground">Valor Mercado</p><p className="font-medium">${(totalMarket / 1_000_000).toFixed(2)}M</p></div>
+                    <div><p className="text-xs text-muted-foreground">Fecha</p><p className="font-medium">{new Date().toLocaleDateString("es-AR")}</p></div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => toast.info("Descargando snapshot...")}>Ver</Button>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </TabsContent>
