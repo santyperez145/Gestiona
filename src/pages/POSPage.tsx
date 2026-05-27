@@ -21,7 +21,11 @@ import { usePriceList } from "@/hooks/usePriceList";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
 import Fuse from "fuse.js";
-import confetti from "canvas-confetti";
+
+async function fireConfetti(opts: Record<string, unknown>) {
+  const { default: confetti } = await import("canvas-confetti");
+  confetti(opts as Parameters<typeof confetti>[0]);
+}
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -1485,9 +1489,9 @@ export default function POSPage() {
       const turnoCount = turnoSales.length + 1;
       const isBigSale = cartTotal >= (Number(settings?.large_sale_threshold_ars) || 50_000);
       if (isBigSale) {
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4'] });
+        fireConfetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4'] });
       } else if (turnoCount % 10 === 0) {
-        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+        fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
       }
       setTurnoSales(prev => [...prev, { items: [...cart], total: cartTotal, method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod, customer: customer.trim(), ts: Date.now(), saleIds: txSaleIds }]);
     } catch (e: any) {
