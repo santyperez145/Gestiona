@@ -92,22 +92,95 @@ export default function CustomerJourneyPage() {
   const [showNewAutomation, setShowNewAutomation] = useState(false);
   const [expandedTpId, setExpandedTpId] = useState<string | null>(null);
 
+  const [stages, setStages] = useState<JourneyStage[]>([]);
+  const [customers, setCustomers] = useState<JourneyCustomer[]>([]);
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+
   useEffect(() => {
     if (!orgId) return;
-    // Seed stages if none exist
-    supabase.from("journey_stages").select("id").eq("org_id", orgId).limit(1)
-      .then(({ data }) => {
-        if (!data?.length) supabase.rpc("seed_journey_stages", { p_org_id: orgId }).then(() => {});
+    setLoadingData(true);
+    Promise.all([
+      supabase.from("journey_stages").select("*").eq("org_id", orgId).order("sort_order"),
+      supabase.from("journey_automations").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+      // Derive customers from sales — group by customer_name, determine stage from recency
+      supabase.from("sales").select("customer_name, date, total_ars, profit_ars").eq("org_id", orgId).order("date", { ascending: false }).limit(500),
+    ]).then(([stagesRes, autoRes, salesRes]) => {
+      const stagesData: JourneyStage[] = (stagesRes.data || []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        stage_type: s.stage_type,
+        customers: 0,  // will be filled below
+        description: s.description || "",
+      }));
+
+      // Derive customers from sales
+      const salesList = salesRes.data || [];
+      const customerMap: Record<string, { name: string; totalARS: number; purchases: number; lastDate: string; firstDate: string }> = {};
+      for (const s of salesList) {
+        if (!s.customer_name) continue;
+        const k = s.customer_name;
+        if (!customerMap[k]) customerMap[k] = { name: k, totalARS: 0, purchases: 0, lastDate: s.date, firstDate: s.date };
+        customerMap[k].totalARS += Number(s.total_ars) || 0;
+        customerMap[k].purchases += 1;
+        if (s.date > customerMap[k].lastDate) customerMap[k].lastDate = s.date;
+        if (s.date < customerMap[k].firstDate) customerMap[k].firstDate = s.date;
+      }
+      const now = Date.now();
+      const derivedCustomers: JourneyCustomer[] = Object.values(customerMap).map(c => {
+        const daysSince = Math.floor((now - new Date(c.lastDate).getTime()) / 86400000);
+        let stage = "retention";
+        if (c.purchases === 1 && daysSince <= 30) stage = "decision";
+        else if (daysSince > 90) stage = "churn_risk";
+        else if (c.purchases >= 5 || c.totalARS >= 200000) stage = "advocacy";
+        else if (daysSince <= 14) stage = "retention";
+        else stage = "consideration";
+        return {
+          id: c.name,
+          name: c.name,
+          email: "",
+          stage,
+          health: Math.max(5, Math.min(100, 100 - daysSince)),
+          touchpoints: c.purchases,
+          last_contact: c.lastDate,
+          sentiment: daysSince <= 14 ? "positive" : daysSince <= 45 ? "neutral" : "negative",
+          ltv: c.totalARS,
+        };
       });
+
+      // Fill stage customer counts
+      const stageCounts: Record<string, number> = {};
+      for (const c of derivedCustomers) stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
+      const stagesWithCounts = stagesData.map(s => ({ ...s, customers: stageCounts[s.stage_type] || 0 }));
+      // If no stages in DB yet, use default stages
+      const finalStages: JourneyStage[] = stagesWithCounts.length > 0 ? stagesWithCounts : [
+        { id: "1", name: "Descubrimiento", stage_type: "awareness", customers: stageCounts["awareness"] || 0, description: "" },
+        { id: "2", name: "Evaluación", stage_type: "consideration", customers: stageCounts["consideration"] || 0, description: "" },
+        { id: "3", name: "Primera Compra", stage_type: "decision", customers: stageCounts["decision"] || 0, description: "" },
+        { id: "4", name: "Cliente Activo", stage_type: "retention", customers: stageCounts["retention"] || 0, description: "" },
+        { id: "5", name: "Embajador", stage_type: "advocacy", customers: stageCounts["advocacy"] || 0, description: "" },
+        { id: "6", name: "Riesgo de Baja", stage_type: "churn_risk", customers: stageCounts["churn_risk"] || 0, description: "" },
+      ];
+      setStages(finalStages);
+      setCustomers(derivedCustomers);
+      if (autoRes.data) setAutomations((autoRes.data as any[]).map(a => ({
+        id: a.id,
+        name: a.name,
+        trigger: a.trigger_type || a.trigger || "—",
+        action: a.action_type || a.action || "—",
+        active: a.is_active ?? true,
+        runs: a.run_count || 0,
+      })));
+    }).finally(() => setLoadingData(false));
   }, [orgId]);
 
-  const filteredCustomers = MOCK_CUSTOMERS.filter(c => {
+  const filteredCustomers = customers.filter(c => {
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
     const matchStage = !selectedStage || c.stage === selectedStage;
     return matchSearch && matchStage;
   });
 
-  const totalCustomers = MOCK_STAGES.reduce((acc, s) => acc + s.customers, 0);
+  const totalCustomers = stages.reduce((acc, s) => acc + s.customers, 0);
 
   const TABS = [
     { id: "funnel",      label: "Funnel de Etapas" },
@@ -143,31 +216,42 @@ export default function CustomerJourneyPage() {
         ))}
       </div>
 
+      {/* Loading spinner */}
+      {loadingData && (
+        <div className="flex items-center justify-center py-16">
+          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
+        </div>
+      )}
+
       {/* ─── Funnel tab ─── */}
-      {tab === "funnel" && (
+      {!loadingData && tab === "funnel" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            {MOCK_STAGES.map((s, i) => {
-              const c = STAGE_COLORS[s.stage_type];
-              const pct = Math.round((s.customers / totalCustomers) * 100);
-              return (
-                <button key={s.id} onClick={() => setSelectedStage(selectedStage === s.stage_type ? null : s.stage_type)}
-                  className={`${c.bg} border ${selectedStage === s.stage_type ? "border-primary/60" : c.border} rounded-xl p-4 text-left transition-all hover:opacity-80 relative`}>
-                  {i < MOCK_STAGES.length - 1 && (
-                    <div className="hidden xl:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
-                      <ChevronDown className="w-4 h-4 text-muted-foreground rotate-[-90deg]" />
+          {stages.length === 0 ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">No hay datos</div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {stages.map((s, i) => {
+                const c = STAGE_COLORS[s.stage_type] ?? STAGE_COLORS.awareness;
+                const pct = totalCustomers > 0 ? Math.round((s.customers / totalCustomers) * 100) : 0;
+                return (
+                  <button key={s.id} onClick={() => setSelectedStage(selectedStage === s.stage_type ? null : s.stage_type)}
+                    className={`${c.bg} border ${selectedStage === s.stage_type ? "border-primary/60" : c.border} rounded-xl p-4 text-left transition-all hover:opacity-80 relative`}>
+                    {i < stages.length - 1 && (
+                      <div className="hidden xl:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
+                        <ChevronDown className="w-4 h-4 text-muted-foreground rotate-[-90deg]" />
+                      </div>
+                    )}
+                    <p className="text-xs font-semibold mb-1 truncate">{s.name}</p>
+                    <p className={`text-3xl font-bold font-display ${c.text}`}>{s.customers}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{pct}% del total</p>
+                    <div className="mt-2 h-1 bg-black/10 rounded-full">
+                      <div className={`h-1 rounded-full ${c.text.replace("text-", "bg-").replace("-400", "-400")}`} style={{ width: `${pct * 3}%`, maxWidth: "100%" }} />
                     </div>
-                  )}
-                  <p className="text-xs font-semibold mb-1 truncate">{s.name}</p>
-                  <p className={`text-3xl font-bold font-display ${c.text}`}>{s.customers}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{pct}% del total</p>
-                  <div className="mt-2 h-1 bg-black/10 rounded-full">
-                    <div className={`h-1 rounded-full ${c.text.replace("text-", "bg-").replace("-400", "-400")}`} style={{ width: `${pct * 3}%`, maxWidth: "100%" }} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Sankey-like flow description */}
           <div className="bg-card border border-border/40 rounded-xl p-5">
@@ -197,7 +281,7 @@ export default function CustomerJourneyPage() {
       )}
 
       {/* ─── Customers tab ─── */}
-      {tab === "customers" && (
+      {!loadingData && tab === "customers" && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[200px]">
@@ -209,8 +293,8 @@ export default function CustomerJourneyPage() {
                 className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${!selectedStage ? "bg-primary/15 text-primary border-primary/30" : "border-border/40 text-muted-foreground"}`}>
                 Todos
               </button>
-              {MOCK_STAGES.map(s => {
-                const c = STAGE_COLORS[s.stage_type];
+              {stages.map(s => {
+                const c = STAGE_COLORS[s.stage_type] ?? STAGE_COLORS.awareness;
                 return (
                   <button key={s.id} onClick={() => setSelectedStage(selectedStage === s.stage_type ? null : s.stage_type)}
                     className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${selectedStage === s.stage_type ? `${c.bg} ${c.text} ${c.border}` : "border-border/40 text-muted-foreground"}`}>
@@ -232,27 +316,33 @@ export default function CustomerJourneyPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCustomers.map(c => {
-                    const stage = MOCK_STAGES.find(s => s.stage_type === c.stage);
-                    const stageColors = stage ? STAGE_COLORS[stage.stage_type] : STAGE_COLORS.awareness;
-                    return (
-                      <tr key={c.id} className="border-b border-border/20 hover:bg-muted/20 cursor-pointer" onClick={() => setSelectedCustomer(c)}>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-sm">{c.name}</p>
-                          <p className="text-xs text-muted-foreground">{c.email}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge className={`${stageColors.bg} ${stageColors.text} border-0 text-xs`}>{stage?.name}</Badge>
-                        </td>
-                        <td className="px-4 py-3"><HealthBar value={c.health} /></td>
-                        <td className="px-4 py-3 text-xs">{c.touchpoints}</td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{c.last_contact}</td>
-                        <td className="px-4 py-3"><SentimentIcon sentiment={c.sentiment} /></td>
-                        <td className="px-4 py-3 text-xs font-semibold">${c.ltv.toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 text-muted-foreground"><ChevronDown className="w-3.5 h-3.5" /></td>
-                      </tr>
-                    );
-                  })}
+                  {filteredCustomers.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">No hay datos</td>
+                    </tr>
+                  ) : (
+                    filteredCustomers.map(c => {
+                      const stage = stages.find(s => s.stage_type === c.stage);
+                      const stageColors = stage ? STAGE_COLORS[stage.stage_type] : STAGE_COLORS.awareness;
+                      return (
+                        <tr key={c.id} className="border-b border-border/20 hover:bg-muted/20 cursor-pointer" onClick={() => setSelectedCustomer(c)}>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-sm">{c.name}</p>
+                            <p className="text-xs text-muted-foreground">{c.email}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge className={`${stageColors.bg} ${stageColors.text} border-0 text-xs`}>{stage?.name}</Badge>
+                          </td>
+                          <td className="px-4 py-3"><HealthBar value={c.health} /></td>
+                          <td className="px-4 py-3 text-xs">{c.touchpoints}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{c.last_contact}</td>
+                          <td className="px-4 py-3"><SentimentIcon sentiment={c.sentiment} /></td>
+                          <td className="px-4 py-3 text-xs font-semibold">${c.ltv.toLocaleString("es-AR")}</td>
+                          <td className="px-4 py-3 text-muted-foreground"><ChevronDown className="w-3.5 h-3.5" /></td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -261,34 +351,38 @@ export default function CustomerJourneyPage() {
       )}
 
       {/* ─── Automations tab ─── */}
-      {tab === "automations" && (
+      {!loadingData && tab === "automations" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {MOCK_AUTOMATIONS.map(a => (
-              <div key={a.id} className="bg-card border border-border/40 rounded-xl p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-sm">{a.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{a.runs} ejecuciones</p>
+          {automations.length === 0 ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">No hay datos</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {automations.map(a => (
+                <div key={a.id} className="bg-card border border-border/40 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">{a.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{a.runs} ejecuciones</p>
+                    </div>
+                    <button onClick={() => toast.success(`Automatización ${a.active ? "desactivada" : "activada"}`)}
+                      className={`w-10 h-5 rounded-full transition-all ${a.active ? "bg-emerald-500" : "bg-muted"}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${a.active ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
                   </div>
-                  <button onClick={() => toast.success(`Automatización ${a.active ? "desactivada" : "activada"}`)}
-                    className={`w-10 h-5 rounded-full transition-all ${a.active ? "bg-emerald-500" : "bg-muted"}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${a.active ? "translate-x-5" : "translate-x-0"}`} />
-                  </button>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-muted/30 rounded-lg p-2">
+                      <span className="text-muted-foreground block">Trigger</span>
+                      <span className="font-medium">{a.trigger.replace(/_/g, " ")}</span>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-2">
+                      <span className="text-muted-foreground block">Acción</span>
+                      <span className="font-medium">{a.action.replace(/_/g, " ")}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-muted/30 rounded-lg p-2">
-                    <span className="text-muted-foreground block">Trigger</span>
-                    <span className="font-medium">{a.trigger.replace(/_/g, " ")}</span>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-2">
-                    <span className="text-muted-foreground block">Acción</span>
-                    <span className="font-medium">{a.action.replace(/_/g, " ")}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -322,7 +416,7 @@ export default function CustomerJourneyPage() {
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Timeline de Touchpoints</h4>
                 <div className="space-y-2">
-                  {MOCK_TOUCHPOINTS.map(tp => {
+                  {([] as Touchpoint[]).map(tp => {
                     const Icon = TOUCHPOINT_ICONS[tp.type] || MessageCircle;
                     return (
                       <div key={tp.id} className="flex gap-3 p-3 bg-muted/20 rounded-lg">
