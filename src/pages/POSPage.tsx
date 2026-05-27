@@ -20,7 +20,6 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePriceList } from "@/hooks/usePriceList";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
-import { BrowserMultiFormatReader } from "@zxing/browser";
 import Fuse from "fuse.js";
 import confetti from "canvas-confetti";
 
@@ -67,11 +66,13 @@ const CATS = [
 // ─────────────────────────────────────────────────────────────
 function useBarcodeScanner(onDetect: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
 
   const start = useCallback(async () => {
     try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
       readerRef.current = new BrowserMultiFormatReader();
       setScanning(true);
       await readerRef.current.decodeFromVideoDevice(undefined, videoRef.current!, (result) => {

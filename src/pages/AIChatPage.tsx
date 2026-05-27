@@ -2359,7 +2359,7 @@ export default function AIChatPage() {
   const exportConversation = () => {
     if (messages.length === 0) return;
     const date = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const header = `Conversación con IA — Gestiona / Exentry Imports\n${date}\n${'─'.repeat(60)}\n\n`;
+    const header = `Conversación con IA — ${activeOrg?.name || 'Gestiona'}\n${date}\n${'─'.repeat(60)}\n\n`;
     const body = messages.map(m => {
       const role = m.role === 'user' ? '👤 Usuario' : '🤖 Asistente IA';
       return `${role}:\n${m.content}\n`;

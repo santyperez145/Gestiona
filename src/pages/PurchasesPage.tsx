@@ -11,15 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, ShoppingCart, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Edit, FileSpreadsheet, ClipboardList, RotateCcw, Loader2, Clock, CalendarClock, DollarSign, Package, TrendingDown, Search, Truck, Sparkles, ScanLine, Mail, BarChart3, Printer } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
 
   const start = useCallback(async () => {
     try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
       setScanning(true);
@@ -60,6 +60,7 @@ const PAGE_SIZE = 20;
 export default function PurchasesPage() {
   usePageTitle("Compras");
   const { user } = useAuth();
+  const { activeOrg } = useOrg();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchParams] = useSearchParams();
   const prefilledProduct = searchParams.get("product") || "";
@@ -197,7 +198,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 <h2>Detalle de compras</h2>
 <table><thead><tr><th>Fecha</th><th>Producto</th><th>Proveedor</th><th style="text-align:center">Cant.</th><th style="text-align:right">Total USD</th><th style="text-align:right">Total ARS</th><th style="text-align:center">Tipo</th></tr></thead><tbody>${rows}</tbody>
 <tfoot><tr style="font-weight:bold;background:#f9fafb"><td colspan="4">TOTAL</td><td style="text-align:right">${fmtUSD(totalUSD)}</td><td style="text-align:right">${fmtARS(totalARS)}</td><td></td></tr></tfoot></table>
-<div class="footer">Exentry Imports · Sistema de Gestión</div></body></html>`;
+<div class="footer">${activeOrg?.name || 'Sistema de Gestión'} · Gestiona</div></body></html>`;
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400); }
   };
@@ -908,7 +909,7 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
     if (!selectedProducts.length) { toast.error('Seleccioná al menos un producto'); return; }
     const { utils, writeFile } = await import('xlsx');
     const wb = utils.book_new();
-    const businessName = settings?.business_name || 'EXENTRY IMPORTS';
+    const businessName = settings?.business_name || '';
 
     const bySupplier: Record<string, any[]> = {};
     selectedProducts.forEach(p => {

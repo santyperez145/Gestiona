@@ -169,6 +169,7 @@ const RevenueRecognitionPage   = lazy(() => import("@/pages/RevenueRecognitionPa
 const CarbonFootprintPage      = lazy(() => import("@/pages/CarbonFootprintPage"));
 const DynamicPricingPage       = lazy(() => import("@/pages/DynamicPricingPage"));
 const ProductLifecyclePage     = lazy(() => import("@/pages/ProductLifecyclePage"));
+const PLDashboardPage          = lazy(() => import("@/pages/PLDashboardPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -397,6 +398,7 @@ function ProtectedRoutes() {
               <Route path="/alertas-inteligentes" element={<SmartAlertsPage />} />
               <Route path="/portal-proveedores" element={<VendorPortalPage />} />
               <Route path="/reconocimiento-ingresos" element={<RevenueRecognitionPage />} />
+              <Route path="/pl-dashboard" element={<PLDashboardPage />} />
               <Route path="/huella-carbono" element={<CarbonFootprintPage />} />
               <Route path="/precios-dinamicos" element={<DynamicPricingPage />} />
               <Route path="/ciclo-vida-producto" element={<ProductLifecyclePage />} />

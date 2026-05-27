@@ -98,7 +98,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [businessName, setBusinessName] = useState('Exentry Imports');
+  const [businessName, setBusinessName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('¡Gracias por su compra!');
   const [primaryColor, setPrimaryColor] = useState('#D4A843');
@@ -321,7 +321,7 @@ export default function SettingsPage() {
       setTaxIva(String(s.tax_iva_percent ?? 21));
       setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
       setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
-      setBusinessName(s.business_name || 'Exentry Imports');
+      setBusinessName(s.business_name || '');
       setLogoUrl(s.logo_url || '');
       setReceiptFooter(s.receipt_footer || '¡Gracias por su compra!');
       setPrimaryColor(s.primary_color || '#D4A843');
@@ -400,7 +400,7 @@ export default function SettingsPage() {
         tax_iva_percent: num(taxIva, 21),
         tax_iibb_percent: num(taxIibb, 3.5),
         tax_monotributo_monthly: num(taxMonotributo, 0),
-        business_name: businessName || 'Exentry Imports',
+        business_name: businessName,
         logo_url: logoUrl || null,
         receipt_footer: receiptFooter || null,
         primary_color: primaryColor,

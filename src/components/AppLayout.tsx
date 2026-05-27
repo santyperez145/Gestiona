@@ -152,6 +152,7 @@ const allNavItems = [
   { to: "/alertas-inteligentes", label: "Alertas Inteligentes", icon: Bell, roles: ['admin'], section: 'analytics' },
   { to: "/portal-proveedores", label: "Portal de Proveedores", icon: Building2, roles: ['admin'], section: 'inventario' },
   { to: "/reconocimiento-ingresos", label: "Reconocimiento Ingresos", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
+  { to: "/pl-dashboard", label: "Dashboard P&L", icon: TrendingUp, roles: ['admin'], section: 'finanzas' },
   { to: "/huella-carbono", label: "Huella de Carbono ESG", icon: Leaf, roles: ['admin'], section: 'analytics' },
   { to: "/precios-dinamicos", label: "Precios Dinámicos", icon: Zap, roles: ['admin'], section: 'inventario' },
   { to: "/ciclo-vida-producto", label: "Ciclo de Vida PLM", icon: RefreshCw, roles: ['admin'], section: 'inventario' },

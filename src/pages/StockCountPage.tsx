@@ -14,17 +14,17 @@ import {
   PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
 function useBarcodeScanner(onDetected: (code: string) => void) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const readerRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
 
   const start = useCallback(async () => {
     try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
       setScanning(true);

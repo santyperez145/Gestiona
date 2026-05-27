@@ -94,7 +94,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const doc = new jsPDF('p', 'mm', 'a4');
       const W = doc.internal.pageSize.getWidth();
       const H = doc.internal.pageSize.getHeight();
-      const bName = settings?.business_name || 'Exentry Imports';
+      const bName = settings?.business_name || '';
 
       // ── Brand colors (primary = accent/prices, bg = cover/page bg, card = product cards)
       const hexPrimary = settings?.primary_color || '#D4A843';
@@ -837,7 +837,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${settings?.business_name || 'Exentry Imports'} — Catálogo`,
+          title: `${settings?.business_name || ''} — Catálogo`,
           text: `Mirá nuestro catálogo con ${filtered.length} productos disponibles`,
           url,
         });
@@ -850,7 +850,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
   if (loading) return <TableSkeleton rows={6} cols={4} />;
 
-  const businessName = settings?.business_name || 'Exentry Imports';
+  const businessName = settings?.business_name || '';
 
   return (
     <div className="space-y-5">
