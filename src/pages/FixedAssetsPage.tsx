@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +74,7 @@ const EMPTY_ASSET = {
 };
 
 export default function FixedAssetsPage() {
-  const { orgId } = useAuth();
+  const { orgId } = useOrganization();
 
   const [assets, setAssets]           = useState<FixedAsset[]>([]);
   const [entries, setEntries]         = useState<DeprEntry[]>([]);

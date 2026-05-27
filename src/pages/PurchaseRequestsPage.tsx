@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,7 +67,7 @@ const EMPTY_REQUEST = {
 };
 
 export default function PurchaseRequestsPage() {
-  const { orgId } = useAuth();
+  const { orgId } = useOrganization();
 
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);

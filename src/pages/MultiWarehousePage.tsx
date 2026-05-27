@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,7 @@ const EMPTY_ZONE = { warehouse_id: "", name: "", zone_type: "general" };
 const EMPTY_BIN = { zone_id: "", code: "", description: "", capacity: 0 };
 
 export default function MultiWarehousePage() {
-  const { orgId } = useAuth();
+  const { orgId } = useOrganization();
 
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [zones, setZones]           = useState<Zone[]>([]);

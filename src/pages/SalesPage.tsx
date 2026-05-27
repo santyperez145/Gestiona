@@ -73,6 +73,7 @@ export default function SalesPage() {
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -113,9 +114,10 @@ export default function SalesPage() {
   };
   const reload = async () => {
     if (user) {
-      const [s, p] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id)]);
+      const [s, p, cfg] = await Promise.all([getSalesDB(user.id), getProductsDB(user.id), getSettingsDB(user.id)]);
       setSales(s);
       setProducts(p);
+      setSettings(cfg);
       setLoading(false);
     }
   };
