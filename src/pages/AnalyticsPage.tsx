@@ -17,6 +17,7 @@ import {
   Package, Calendar, Percent, Clock, Filter, Brain, Sparkles, Download,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -25,33 +26,6 @@ const PALETTE = [
   "hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)",
   "hsl(280,60%,55%)", "hsl(0,65%,55%)", "hsl(60,70%,50%)",
 ];
-
-function KPI({ label, value, sub, icon: Icon, trend, color = "text-foreground" }: {
-  label: string; value: string; sub?: string;
-  icon: typeof TrendingUp; trend?: number; color?: string;
-}) {
-  return (
-    <div className="bg-card border border-border rounded-2xl p-4">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
-        <Icon className="w-4 h-4 text-primary" />
-      </div>
-      <div className={`text-2xl font-display font-bold ${color}`}>{value}</div>
-      {(sub || trend !== undefined) && (
-        <div className="flex items-center gap-1 mt-0.5">
-          {trend !== undefined && (
-            trend >= 0
-              ? <TrendingUp className="w-3 h-3 text-green-400" />
-              : <TrendingDown className="w-3 h-3 text-red-400" />
-          )}
-          <p className={`text-xs ${trend !== undefined ? (trend >= 0 ? "text-green-400" : "text-red-400") : "text-muted-foreground"}`}>
-            {trend !== undefined ? `${trend >= 0 ? "+" : ""}${trend.toFixed(1)}% vs año anterior` : sub}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -516,8 +490,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <PageHeader
         icon={BarChart3}
-        title="Analytics Avanzado"
-        description="Métricas profundas, tendencias y comparativas interanuales"
+        title="Analytics"
+        description="Análisis profundo de tu negocio"
         actions={
           <Select value={year} onValueChange={(v) => setYear(v as "0" | "1")}>
             <SelectTrigger className="w-36 bg-muted border-border text-sm">
@@ -534,11 +508,34 @@ export default function AnalyticsPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPI label="Ingresos" value={formatARS(derived.totalRevenue)} trend={derived.revYoY} icon={DollarSign} />
-        <KPI label="Ganancia bruta" value={formatARS(derived.totalProfit)} trend={derived.profYoY} icon={TrendingUp} />
-        <KPI label="Margen promedio" value={`${derived.avgMargin.toFixed(1)}%`} sub="sobre ingresos" icon={Percent}
-          color={derived.avgMargin >= 30 ? "text-green-400" : derived.avgMargin >= 15 ? "text-yellow-400" : "text-red-400"} />
-        <KPI label="Clientes únicos" value={String(derived.uniqueCustomers)} sub={`${derived.totalUnits} unidades`} icon={Users} />
+        <KPICard
+          label="Revenue Anual"
+          value={formatARS(derived.totalRevenue)}
+          icon={DollarSign}
+          color="primary"
+          trend={{ value: derived.revYoY, label: "vs año ant." }}
+        />
+        <KPICard
+          label="Ganancia Neta"
+          value={formatARS(derived.totalProfit)}
+          icon={TrendingUp}
+          color="success"
+          trend={{ value: derived.profYoY, label: "vs año ant." }}
+        />
+        <KPICard
+          label="Clientes Únicos"
+          value={derived.uniqueCustomers}
+          sub={`${derived.totalUnits} unidades`}
+          icon={Users}
+          color="blue"
+        />
+        <KPICard
+          label="Margen Promedio"
+          value={`${derived.avgMargin.toFixed(1)}%`}
+          sub="sobre ingresos"
+          icon={Percent}
+          color="warning"
+        />
       </div>
 
       <Tabs defaultValue="trend" className="w-full">
