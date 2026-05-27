@@ -13,7 +13,17 @@ cleanupOutdatedCaches();
 // self.__WB_MANIFEST is replaced by workbox-build injectManifest at build time
 precacheAndRoute(self.__WB_MANIFEST);
 
-// ── Skip waiting on message ──────────────────────────────────
+// ── Skip waiting immediately so new SW activates without manual trigger ──
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  // Take control of all open tabs immediately
+  event.waitUntil(self.clients.claim());
+});
+
+// ── Also handle explicit SKIP_WAITING messages (legacy / manual) ──────────
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
