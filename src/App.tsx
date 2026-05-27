@@ -152,6 +152,9 @@ const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
 const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
 const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
 const CustomerJourneyPage      = lazy(() => import("@/pages/CustomerJourneyPage"));
+const PricingEnginePage        = lazy(() => import("@/pages/PricingEnginePage"));
+const DocumentOCRPage          = lazy(() => import("@/pages/DocumentOCRPage"));
+const PredictiveAnalyticsPage  = lazy(() => import("@/pages/PredictiveAnalyticsPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -366,6 +369,9 @@ function ProtectedRoutes() {
               <Route path="/tienda-online" element={<EcommerceStorePage />} />
               <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
               <Route path="/customer-journey" element={<CustomerJourneyPage />} />
+              <Route path="/motor-precios" element={<PricingEnginePage />} />
+              <Route path="/ocr-facturas" element={<DocumentOCRPage />} />
+              <Route path="/analytics-ia" element={<PredictiveAnalyticsPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
