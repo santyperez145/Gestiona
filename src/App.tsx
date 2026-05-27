@@ -149,6 +149,9 @@ const AIChatAdvancedPage       = lazy(() => import("@/pages/AIChatAdvancedPage")
 const AFIPPage                 = lazy(() => import("@/pages/AFIPPage"));
 const SupplyChainPage          = lazy(() => import("@/pages/SupplyChainPage"));
 const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
+const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
+const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
+const CustomerJourneyPage      = lazy(() => import("@/pages/CustomerJourneyPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -360,6 +363,9 @@ function ProtectedRoutes() {
               <Route path="/afip" element={<AFIPPage />} />
               <Route path="/supply-chain" element={<SupplyChainPage />} />
               <Route path="/bi-reportes" element={<BIReportsPage />} />
+              <Route path="/tienda-online" element={<EcommerceStorePage />} />
+              <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
+              <Route path="/customer-journey" element={<CustomerJourneyPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
