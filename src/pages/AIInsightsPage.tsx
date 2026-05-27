@@ -8,8 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
 import { usePageTitle } from "@/hooks/usePageTitle";
+import {
   Brain, TrendingUp, Package, Megaphone, Users, DollarSign,
   Tag, Loader2, ChevronDown, ChevronUp, Clock, Sparkles, RefreshCw,
 } from "lucide-react";
