@@ -158,6 +158,9 @@ const PredictiveAnalyticsPage  = lazy(() => import("@/pages/PredictiveAnalyticsP
 const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
 const LogisticsPage            = lazy(() => import("@/pages/LogisticsPage"));
 const FinancialScenariosPage   = lazy(() => import("@/pages/FinancialScenariosPage"));
+const FranchisePage            = lazy(() => import("@/pages/FranchisePage"));
+const CompetitorIntelligencePage = lazy(() => import("@/pages/CompetitorIntelligencePage"));
+const SalesGamificationPage    = lazy(() => import("@/pages/SalesGamificationPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -378,6 +381,9 @@ function ProtectedRoutes() {
               <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
               <Route path="/logistica" element={<LogisticsPage />} />
               <Route path="/escenarios-financieros" element={<FinancialScenariosPage />} />
+              <Route path="/franquicias" element={<FranchisePage />} />
+              <Route path="/inteligencia-competitiva" element={<CompetitorIntelligencePage />} />
+              <Route path="/gamificacion-ventas" element={<SalesGamificationPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
