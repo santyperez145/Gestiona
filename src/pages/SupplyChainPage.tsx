@@ -101,7 +101,7 @@ export default function SupplyChainPage() {
   const [showScoreDialog, setShowScoreDialog] = useState(false);
   const [scoreForm, setScoreForm] = useState({ on_time: "90", quality: "95", fill: "92", price_var: "2", response_hrs: "8" });
   const [suppliers, setSuppliers] = useState<SupplierScorecard[]>([]);
-  const [leadTimes, setLeadTimes] = useState<LeadTime[]>([]);
+  const [leadTimes, setLeadTimes] = useState<(LeadTime & { supplier_name?: string })[]>([]);
   const [budgets, setBudgets] = useState<ProcurementBudget[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -110,7 +110,7 @@ export default function SupplyChainPage() {
     setLoading(true);
     Promise.all([
       supabase.from("supplier_scorecards").select("*, proveedores(nombre)").eq("org_id", orgId).order("overall_score", { ascending: false }),
-      supabase.from("supplier_lead_times").select("*").eq("org_id", orgId).order("ordered_at", { ascending: false }).limit(50),
+      supabase.from("supplier_lead_times").select("*, proveedores(nombre)").eq("org_id", orgId).order("ordered_at", { ascending: false }).limit(50),
       supabase.from("procurement_budgets").select("*").eq("org_id", orgId).order("year", { ascending: false }).order("month", { ascending: false }),
     ]).then(([scRes, ltRes, budgRes]) => {
       if (scRes.data) {
@@ -125,7 +125,10 @@ export default function SupplyChainPage() {
           overall_score: Number(row.overall_score),
         })));
       }
-      if (ltRes.data) setLeadTimes(ltRes.data as LeadTime[]);
+      if (ltRes.data) setLeadTimes((ltRes.data as any[]).map(row => ({
+        ...row,
+        supplier_name: (row.proveedores as any)?.nombre ?? row.supplier_id,
+      })));
       if (budgRes.data) setBudgets(budgRes.data as ProcurementBudget[]);
     }).finally(() => setLoading(false));
   }, [orgId]);
@@ -231,19 +234,18 @@ export default function SupplyChainPage() {
                 <Star className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Mejor Proveedor</span>
               </div>
-              <p className="font-bold">{topSupplier.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">Score: {topSupplier.score.toFixed(1)} — Grade {topSupplier.grade}</p>
-              <p className="text-xs text-muted-foreground">Lead time prom: {topSupplier.avg_lead} días</p>
+              <p className="font-bold">{topSupplier?.supplier_name ?? topSupplier?.supplier_id ?? "—"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Score: {topSupplier?.overall_score.toFixed(1) ?? "0"} — Grade {topSupplier?.grade}</p>
             </div>
-            {MOCK_SUPPLIERS.filter(s => s.grade === "D" || s.grade === "F").map(s => (
+            {suppliers.filter(s => s.grade === "D" || s.grade === "F").map(s => (
               <div key={s.id} className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="w-4 h-4 text-red-400" />
                   <span className="text-sm font-semibold text-red-400">Requiere Atención</span>
                 </div>
-                <p className="font-bold">{s.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">Score: {s.score.toFixed(1)} — Grade {s.grade}</p>
-                <p className="text-xs text-red-400">Entrega puntual: solo {s.on_time}%</p>
+                <p className="font-bold">{s.supplier_name ?? s.supplier_id}</p>
+                <p className="text-xs text-muted-foreground mt-1">Score: {s.overall_score.toFixed(1)} — Grade {s.grade}</p>
+                <p className="text-xs text-red-400">Entrega puntual: solo {s.on_time_delivery.toFixed(1)}%</p>
               </div>
             ))}
           </div>
@@ -267,16 +269,18 @@ export default function SupplyChainPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_LEAD_TIMES.map(l => {
-                    const delta = l.actual !== null ? l.actual - l.promised : null;
+                  {leadTimes.length === 0 ? (
+                    <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">No hay lead times registrados</td></tr>
+                  ) : leadTimes.map(l => {
+                    const delta = l.actual_days !== null && l.promised_days !== null ? l.actual_days - l.promised_days : null;
                     return (
                       <tr key={l.id} className="border-b border-border/20 hover:bg-muted/20">
-                        <td className="px-4 py-3 text-xs font-medium">{l.supplier}</td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{l.product}</td>
-                        <td className="px-4 py-3 text-xs font-mono">{l.ordered}</td>
-                        <td className="px-4 py-3 text-xs font-mono">{l.received || "—"}</td>
-                        <td className="px-4 py-3 text-xs text-center">{l.promised}d</td>
-                        <td className="px-4 py-3 text-xs text-center">{l.actual !== null ? `${l.actual}d` : "—"}</td>
+                        <td className="px-4 py-3 text-xs font-medium">{l.supplier_name ?? l.supplier_id}</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{l.notes ?? "—"}</td>
+                        <td className="px-4 py-3 text-xs font-mono">{l.ordered_at}</td>
+                        <td className="px-4 py-3 text-xs font-mono">{l.received_at || "—"}</td>
+                        <td className="px-4 py-3 text-xs text-center">{l.promised_days !== null ? `${l.promised_days}d` : "—"}</td>
+                        <td className="px-4 py-3 text-xs text-center">{l.actual_days !== null ? `${l.actual_days}d` : "—"}</td>
                         <td className="px-4 py-3 text-xs text-center">
                           {delta !== null ? (
                             <span className={delta > 0 ? "text-red-400" : delta < 0 ? "text-emerald-400" : "text-muted-foreground"}>
@@ -307,22 +311,30 @@ export default function SupplyChainPage() {
       {tab === "budgets" && (
         <div className="space-y-4">
           <div className="bg-card border border-border/40 rounded-xl p-5">
-            <h3 className="font-semibold flex items-center gap-2 mb-5"><BarChart3 className="w-4 h-4 text-primary" />Presupuesto de Compras — Mayo 2026</h3>
+            <h3 className="font-semibold flex items-center gap-2 mb-5">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Presupuesto de Compras — {budgets.length > 0
+                ? `${["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][budgets[0].month - 1]} ${budgets[0].year}`
+                : new Date().toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
+            </h3>
+            {budgets.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No hay datos de presupuesto</p>
+            ) : (
             <div className="space-y-4">
-              {MOCK_BUDGETS.map(b => {
-                const pct = Math.round((b.actual / b.budgeted) * 100);
-                const over = b.actual > b.budgeted;
+              {budgets.map(b => {
+                const pct = b.budgeted_amount > 0 ? Math.round((b.actual_amount / b.budgeted_amount) * 100) : 0;
+                const over = b.actual_amount > b.budgeted_amount;
                 return (
-                  <div key={b.category}>
+                  <div key={b.id}>
                     <div className="flex items-center justify-between text-sm mb-1.5">
                       <span className="font-medium">{b.category}</span>
                       <div className="flex items-center gap-4 text-xs">
-                        <span className="text-muted-foreground">Ppto: ${b.budgeted.toLocaleString("es-AR")}</span>
+                        <span className="text-muted-foreground">Ppto: ${b.budgeted_amount.toLocaleString("es-AR")}</span>
                         <span className={over ? "text-red-400 font-semibold" : "text-emerald-400 font-semibold"}>
-                          Real: ${b.actual.toLocaleString("es-AR")}
+                          Real: ${b.actual_amount.toLocaleString("es-AR")}
                         </span>
                         <Badge className={over ? "bg-red-500/15 text-red-400 border-0 text-xs" : "bg-emerald-500/15 text-emerald-400 border-0 text-xs"}>
-                          {over ? "+" : ""}{((b.actual - b.budgeted) / b.budgeted * 100).toFixed(1)}%
+                          {over ? "+" : ""}{b.budgeted_amount > 0 ? ((b.actual_amount - b.budgeted_amount) / b.budgeted_amount * 100).toFixed(1) : "0"}%
                         </Badge>
                       </div>
                     </div>
@@ -338,6 +350,7 @@ export default function SupplyChainPage() {
                 );
               })}
             </div>
+            )}
           </div>
         </div>
       )}
@@ -345,12 +358,15 @@ export default function SupplyChainPage() {
       {/* ─── Contracts tab ─── */}
       {tab === "contracts" && (
         <div className="space-y-4">
+          {suppliers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No hay proveedores registrados</p>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {MOCK_SUPPLIERS.slice(0, 3).map((s, i) => (
+            {suppliers.slice(0, 3).map((s, i) => (
               <div key={s.id} className="bg-card border border-border/40 rounded-xl p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-semibold text-sm">{s.name}</p>
+                    <p className="font-semibold text-sm">{s.supplier_name ?? s.supplier_id}</p>
                     <p className="text-xs text-muted-foreground">Contrato #{String(i + 1).padStart(4, "0")}-2026</p>
                   </div>
                   <Badge className="bg-emerald-500/15 text-emerald-400 border-0 text-xs">Activo</Badge>
@@ -367,6 +383,7 @@ export default function SupplyChainPage() {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -382,7 +399,7 @@ export default function SupplyChainPage() {
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Proveedor</label>
                 <select className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm">
-                  {MOCK_SUPPLIERS.map(s => <option key={s.id}>{s.name}</option>)}
+                  {suppliers.map(s => <option key={s.id} value={s.supplier_id}>{s.supplier_name ?? s.supplier_id}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -427,30 +444,28 @@ export default function SupplyChainPage() {
           <div className="bg-card border border-border/60 rounded-2xl w-full max-w-lg shadow-2xl max-h-[80vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between sticky top-0 bg-card">
               <div>
-                <h3 className="font-semibold">{selectedSupplier.name}</h3>
-                <div className="flex items-center gap-2 mt-0.5"><GradeBadge grade={selectedSupplier.grade} /><span className="text-xs text-muted-foreground">Score: {selectedSupplier.score.toFixed(1)}/100</span></div>
+                <h3 className="font-semibold">{selectedSupplier.supplier_name ?? selectedSupplier.supplier_id}</h3>
+                <div className="flex items-center gap-2 mt-0.5"><GradeBadge grade={selectedSupplier.grade} /><span className="text-xs text-muted-foreground">Score: {selectedSupplier.overall_score.toFixed(1)}/100</span></div>
               </div>
               <button onClick={() => setSelectedSupplier(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: "Entrega a tiempo", value: selectedSupplier.on_time, suffix: "%" },
-                  { label: "Calidad", value: selectedSupplier.quality, suffix: "%" },
-                  { label: "Fill Rate", value: selectedSupplier.fill, suffix: "%" },
-                  { label: "Lead time prom.", value: selectedSupplier.avg_lead, suffix: " días" },
-                  { label: "Órdenes", value: selectedSupplier.orders, suffix: "" },
-                  { label: "Respuesta", value: selectedSupplier.response_hrs, suffix: " hrs" },
+                  { label: "Entrega a tiempo", value: selectedSupplier.on_time_delivery?.toFixed(1), suffix: "%" },
+                  { label: "Calidad", value: selectedSupplier.quality_rate?.toFixed(1), suffix: "%" },
+                  { label: "Fill Rate", value: selectedSupplier.fill_rate?.toFixed(1), suffix: "%" },
+                  { label: "Respuesta", value: selectedSupplier.response_time_hrs, suffix: " hrs" },
                 ].map(m => (
                   <div key={m.label} className="bg-muted/30 rounded-lg p-3">
                     <span className="text-xs text-muted-foreground">{m.label}</span>
-                    <p className="text-xl font-bold mt-0.5">{m.value}{m.suffix}</p>
+                    <p className="text-xl font-bold mt-0.5">{m.value ?? "—"}{m.suffix}</p>
                   </div>
                 ))}
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block mb-2">Gasto total (90 días)</span>
-                <p className="text-2xl font-bold text-primary">${selectedSupplier.spend.toLocaleString("es-AR")}</p>
+                <p className="text-2xl font-bold text-primary">N/A</p>
               </div>
             </div>
           </div>
