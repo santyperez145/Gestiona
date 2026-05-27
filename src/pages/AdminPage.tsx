@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(200, 60%, 50%)', 'hsl(0, 70%, 50%)', 'hsl(280, 60%, 50%)'];
 

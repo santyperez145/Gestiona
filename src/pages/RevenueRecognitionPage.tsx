@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useOrg } from "@/lib/orgContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +21,10 @@ interface RevenueContract {
   id: string;
   contract_number: string;
   title: string;
+  customer_id: string | null;
   customer_name: string;
   total_value: number;
+  currency: string;
   start_date: string;
   end_date: string | null;
   status: string;
@@ -30,6 +34,7 @@ interface RevenueContract {
 
 interface Obligation {
   id: string;
+  contract_id: string;
   name: string;
   allocated_price: number;
   progress_pct: number;
@@ -39,46 +44,20 @@ interface Obligation {
   deferred_amount: number;
 }
 
+interface JournalEntry {
+  id: string;
+  entry_date: string;
+  entry_type: string;
+  contract_id: string;
+  debit_account: string;
+  credit_account: string;
+  amount: number;
+  description: string | null;
+  period_month: string;
+  contract_number?: string;
+}
+
 const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-
-const MOCK_CONTRACTS: RevenueContract[] = [
-  {
-    id: "rc1", contract_number: "CON-2026-001", title: "Implementación + SaaS Anual",
-    customer_name: "Distribuidora Sur SA", total_value: 1_200_000, start_date: "2026-01-01", end_date: "2026-12-31",
-    status: "active", recognition_method: "over_time",
-    obligations: [
-      { id: "o1", name: "Implementación y configuración", allocated_price: 300_000, progress_pct: 100, fulfillment_method: "point_in_time", is_satisfied: true, recognized_amount: 300_000, deferred_amount: 0 },
-      { id: "o2", name: "Licencia SaaS 12 meses", allocated_price: 900_000, progress_pct: 41.7, fulfillment_method: "over_time", is_satisfied: false, recognized_amount: 375_300, deferred_amount: 524_700 },
-    ]
-  },
-  {
-    id: "rc2", contract_number: "CON-2026-002", title: "Consultoría por Hitos",
-    customer_name: "TechCorp Argentina", total_value: 500_000, start_date: "2026-03-01", end_date: "2026-09-30",
-    status: "active", recognition_method: "milestone",
-    obligations: [
-      { id: "o3", name: "Diagnóstico inicial", allocated_price: 100_000, progress_pct: 100, fulfillment_method: "point_in_time", is_satisfied: true, recognized_amount: 100_000, deferred_amount: 0 },
-      { id: "o4", name: "Diseño de arquitectura", allocated_price: 150_000, progress_pct: 75, fulfillment_method: "over_time", is_satisfied: false, recognized_amount: 112_500, deferred_amount: 37_500 },
-      { id: "o5", name: "Implementación final", allocated_price: 250_000, progress_pct: 0, fulfillment_method: "point_in_time", is_satisfied: false, recognized_amount: 0, deferred_amount: 250_000 },
-    ]
-  },
-  {
-    id: "rc3", contract_number: "CON-2026-003", title: "Soporte Premium Anual",
-    customer_name: "Comercio Norte SRL", total_value: 240_000, start_date: "2026-02-01", end_date: "2027-01-31",
-    status: "active", recognition_method: "over_time",
-    obligations: [
-      { id: "o6", name: "Soporte técnico 24/7", allocated_price: 240_000, progress_pct: 33.3, fulfillment_method: "over_time", is_satisfied: false, recognized_amount: 79_920, deferred_amount: 160_080 },
-    ]
-  },
-];
-
-const WATERFALL_DATA = [
-  { month: "Dic", new_contracts: 0,       recognized: 49_920,  deferred: 890_280 },
-  { month: "Ene", new_contracts: 1_200_000, recognized: 102_500, deferred: 1_987_780 },
-  { month: "Feb", new_contracts: 240_000,  recognized: 112_500, deferred: 2_115_280 },
-  { month: "Mar", new_contracts: 500_000,  recognized: 112_500, deferred: 2_502_780 },
-  { month: "Abr", new_contracts: 0,       recognized: 112_500, deferred: 2_390_280 },
-  { month: "May", new_contracts: 0,       recognized: 157_220, deferred: 2_233_060 },
-];
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
   draft:     { label: "Borrador",  color: "bg-gray-100 text-gray-700" },

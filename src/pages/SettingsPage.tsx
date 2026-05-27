@@ -22,6 +22,7 @@ import { logAudit } from "@/lib/auditLog";
 import { FormSkeleton } from "@/components/shared/PageSkeleton";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── SystemInfoSection ────────────────────────────────────────────────────────
 function SystemInfoSection({ businessName, productCount, userEmail }: { businessName: string; productCount: number; userEmail?: string }) {

@@ -14,6 +14,7 @@ import {
   PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
 function useBarcodeScanner(onDetected: (code: string) => void) {

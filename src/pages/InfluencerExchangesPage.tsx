@@ -17,6 +17,7 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import KPICard from "@/components/shared/KPICard";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function InfluencerExchangesPage() {
   usePageTitle("Canjes & Influencers");

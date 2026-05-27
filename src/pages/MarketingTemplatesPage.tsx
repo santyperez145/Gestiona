@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Sparkles, Plus, Copy, Heart, Download, Globe, Lock, Search, Tag, ArrowUpRight } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { addMarketingPostDB } from "@/lib/supabaseStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Template = {
   id: string;

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Tiendanube usa ; como separador y comillas dobles para escapar
 function csvEscape(v: any) {

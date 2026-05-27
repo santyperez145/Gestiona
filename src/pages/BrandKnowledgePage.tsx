@@ -10,6 +10,7 @@ import { Brain, Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const CATEGORIES = [
   { code: 'perfume_arabe', label: 'Perfume árabe' },

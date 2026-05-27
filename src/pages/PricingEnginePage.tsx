@@ -22,26 +22,42 @@ const RULE_TYPES = [
   { id: "dynamic",        label: "Dinámico",              desc: "Sube/baja según demanda en tiempo real",   color: "text-primary" },
 ];
 
-// Mock pricing rules
-const MOCK_RULES = [
-  { id: "r1", name: "Margen mínimo 25%", type: "margin_floor",   priority: 10, active: true,  runs: 1240, last: "hace 5 min",  action: { type: "pct_markup", value: 25 } },
-  { id: "r2", name: "Mayorista -15%",    type: "customer_tier",   priority: 20, active: true,  runs: 342,  last: "hace 1 hora", action: { type: "pct_discount", value: 15 } },
-  { id: "r3", name: "Liquidación >90d",  type: "clearance",        priority: 50, active: true,  runs: 87,   last: "ayer",        action: { type: "pct_discount", value: 30 } },
-  { id: "r4", name: "Happy hour 18-20h", type: "time_based",       priority: 30, active: false, runs: 44,   last: "hace 2 días", action: { type: "pct_discount", value: 10 } },
-  { id: "r5", name: "Compra +10 unid.",  type: "volume_tier",      priority: 40, active: true,  runs: 156,  last: "hace 30 min", action: { type: "pct_discount", value: 8  } },
-];
+interface PricingRule {
+  id: string;
+  name: string;
+  rule_type: string;
+  priority: number;
+  is_active: boolean;
+  run_count: number;
+  last_applied_at: string | null;
+  action: { type: string; value: number };
+}
 
-// Mock A/B experiments
-const MOCK_EXPERIMENTS = [
-  { id: "e1", name: "Precio Alpha A/B", product: "Producto Premium Alpha", control: 12500, variant: 10900, status: "running", control_cvr: 3.2, variant_cvr: 4.8, confidence: 87 },
-  { id: "e2", name: "Precio Kit XL",    product: "Kit Estándar XL",        control: 8900,  variant: 8200,  status: "completed", winner: "variant", control_cvr: 2.1, variant_cvr: 3.1, confidence: 95 },
-];
+interface PricingExperiment {
+  id: string;
+  name: string;
+  product_id: string;
+  control_price: number;
+  variant_price: number;
+  status: string;
+  winner: string | null;
+  confidence_pct: number | null;
+  control_conversions: number;
+  variant_conversions: number;
+  control_impressions: number;
+  variant_impressions: number;
+}
 
-// Mock margin alerts
-const MOCK_MARGIN_ALERTS = [
-  { product: "Artículo Económico B", current_margin: 8.2,  target: 25, alert_at: 15 },
-  { product: "Importado Especial X",  current_margin: 12.5, target: 30, alert_at: 15 },
-];
+interface MarginTarget {
+  id: string;
+  name: string;
+  applies_to: string;
+  entity_id: string | null;
+  min_margin_pct: number;
+  target_margin_pct: number;
+  alert_threshold: number;
+  is_active: boolean;
+}
 
 function RuleTypeBadge({ type }: { type: string }) {
   const rt = RULE_TYPES.find(r => r.id === type);
@@ -67,6 +83,38 @@ export default function PricingEnginePage() {
   const [calcCost, setCalcCost] = useState("1000");
   const [calcBase, setCalcBase] = useState("1500");
   const [calcQty, setCalcQty] = useState("1");
+  const [rules, setRules] = useState<PricingRule[]>([]);
+  const [experiments, setExperiments] = useState<PricingExperiment[]>([]);
+  const [marginTargets, setMarginTargets] = useState<MarginTarget[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
+
+    Promise.all([
+      supabase
+        .from("pricing_rules")
+        .select("id, name, rule_type, priority, is_active, run_count, last_applied_at, action")
+        .eq("org_id", orgId)
+        .order("priority", { ascending: true }),
+      supabase
+        .from("pricing_experiments")
+        .select("id, name, product_id, control_price, variant_price, status, winner, confidence_pct, control_conversions, variant_conversions, control_impressions, variant_impressions")
+        .eq("org_id", orgId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("margin_targets")
+        .select("id, name, applies_to, entity_id, min_margin_pct, target_margin_pct, alert_threshold, is_active")
+        .eq("org_id", orgId)
+        .eq("is_active", true),
+    ]).then(([rulesRes, expRes, marginRes]) => {
+      if (!rulesRes.error && rulesRes.data) setRules(rulesRes.data as PricingRule[]);
+      if (!expRes.error && expRes.data) setExperiments(expRes.data as PricingExperiment[]);
+      if (!marginRes.error && marginRes.data) setMarginTargets(marginRes.data as MarginTarget[]);
+      setLoading(false);
+    });
+  }, [orgId]);
 
   // Calculator results
   const cost = Number(calcCost);
@@ -85,6 +133,15 @@ export default function PricingEnginePage() {
     toast.success("Regla de precios creada");
     setShowNewRule(false);
     setNewRule({ name: "", type: "cost_plus", action_type: "pct_markup", value: "40", priority: "100" });
+    // Refresh rules list
+    supabase
+      .from("pricing_rules")
+      .select("id, name, rule_type, priority, is_active, run_count, last_applied_at, action")
+      .eq("org_id", orgId)
+      .order("priority", { ascending: true })
+      .then(({ data, error: err }) => {
+        if (!err && data) setRules(data as PricingRule[]);
+      });
   };
 
   const TABS = [
@@ -116,22 +173,22 @@ export default function PricingEnginePage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Reglas Activas</p>
-          <p className="text-2xl font-bold">{MOCK_RULES.filter(r => r.active).length}</p>
-          <p className="text-xs text-muted-foreground">{MOCK_RULES.length} en total</p>
+          <p className="text-2xl font-bold">{rules.filter(r => r.is_active).length}</p>
+          <p className="text-xs text-muted-foreground">{rules.length} en total</p>
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Aplicaciones hoy</p>
-          <p className="text-2xl font-bold">1,869</p>
-          <p className="text-xs text-emerald-400">+12% vs ayer</p>
+          <p className="text-2xl font-bold">{rules.reduce((a, r) => a + r.run_count, 0).toLocaleString("es-AR")}</p>
+          <p className="text-xs text-emerald-400">total ejecuciones</p>
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Alertas de margen</p>
-          <p className="text-2xl font-bold text-red-400">{MOCK_MARGIN_ALERTS.length}</p>
-          <p className="text-xs text-muted-foreground">productos bajo target</p>
+          <p className="text-2xl font-bold text-red-400">{marginTargets.length}</p>
+          <p className="text-xs text-muted-foreground">targets configurados</p>
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Experimentos activos</p>
-          <p className="text-2xl font-bold text-blue-400">{MOCK_EXPERIMENTS.filter(e => e.status === "running").length}</p>
+          <p className="text-2xl font-bold text-blue-400">{experiments.filter(e => e.status === "running").length}</p>
           <p className="text-xs text-muted-foreground">A/B tests corriendo</p>
         </div>
       </div>
@@ -169,22 +226,22 @@ export default function PricingEnginePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_RULES.map(r => (
+                  {rules.map(r => (
                     <tr key={r.id} className="border-b border-border/20 hover:bg-muted/20">
                       <td className="px-4 py-3 font-medium text-sm">{r.name}</td>
-                      <td className="px-4 py-3"><RuleTypeBadge type={r.type} /></td>
+                      <td className="px-4 py-3"><RuleTypeBadge type={r.rule_type} /></td>
                       <td className="px-4 py-3 text-xs font-mono">{r.priority}</td>
                       <td className="px-4 py-3 text-xs">
-                        <span className={r.action.type === "pct_discount" ? "text-red-400" : "text-emerald-400"}>
-                          {r.action.type === "pct_discount" ? "-" : "+"}{r.action.value}%
+                        <span className={r.action?.type === "pct_discount" ? "text-red-400" : "text-emerald-400"}>
+                          {r.action?.type === "pct_discount" ? "-" : "+"}{r.action?.value}%
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{r.runs.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{r.last}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{r.run_count.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{r.last_applied_at ? new Date(r.last_applied_at).toLocaleString("es-AR") : "—"}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => toast.success(`Regla ${r.active ? "pausada" : "activada"}`)}
-                          className={`w-9 h-5 rounded-full transition-all ${r.active ? "bg-emerald-500" : "bg-muted"}`}>
-                          <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${r.active ? "translate-x-4" : "translate-x-0"}`} />
+                        <button onClick={() => toast.success(`Regla ${r.is_active ? "pausada" : "activada"}`)}
+                          className={`w-9 h-5 rounded-full transition-all ${r.is_active ? "bg-emerald-500" : "bg-muted"}`}>
+                          <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${r.is_active ? "translate-x-4" : "translate-x-0"}`} />
                         </button>
                       </td>
                       <td className="px-4 py-3">
@@ -255,9 +312,10 @@ export default function PricingEnginePage() {
       {/* ─── Experiments tab ─── */}
       {tab === "experiments" && (
         <div className="space-y-4">
-          {MOCK_EXPERIMENTS.map(exp => {
+          {experiments.map(exp => {
             const isRunning = exp.status === "running";
-            const totalConv = (exp.control_cvr || 0) + (exp.variant_cvr || 0);
+            const controlCvr = exp.control_impressions > 0 ? (exp.control_conversions / exp.control_impressions * 100) : 0;
+            const variantCvr = exp.variant_impressions > 0 ? (exp.variant_conversions / exp.variant_impressions * 100) : 0;
             return (
               <div key={exp.id} className="bg-card border border-border/40 rounded-xl p-5">
                 <div className="flex items-start justify-between mb-4">
@@ -268,15 +326,15 @@ export default function PricingEnginePage() {
                         {isRunning ? "● Corriendo" : "✓ Completado"}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{exp.product}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{exp.product_id}</p>
                   </div>
-                  <Badge className="bg-primary/15 text-primary border-0 text-xs">{exp.confidence}% confianza</Badge>
+                  <Badge className="bg-primary/15 text-primary border-0 text-xs">{exp.confidence_pct ?? 0}% confianza</Badge>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   {[
-                    { label: "Control (actual)", price: exp.control, cvr: exp.control_cvr, winner: !isRunning && (exp as any).winner === "control" },
-                    { label: "Variante (test)",  price: exp.variant, cvr: exp.variant_cvr, winner: !isRunning && (exp as any).winner === "variant" },
+                    { label: "Control (actual)", price: exp.control_price, cvr: controlCvr, winner: !isRunning && exp.winner === "control" },
+                    { label: "Variante (test)",  price: exp.variant_price, cvr: variantCvr, winner: !isRunning && exp.winner === "variant" },
                   ].map((v, i) => (
                     <div key={i} className={`p-4 rounded-xl border ${v.winner ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/40 bg-muted/20"}`}>
                       <div className="flex items-center justify-between mb-2">
@@ -284,9 +342,9 @@ export default function PricingEnginePage() {
                         {v.winner && <Badge className="bg-emerald-500/15 text-emerald-400 border-0 text-xs">🏆 Ganador</Badge>}
                       </div>
                       <p className="text-2xl font-bold">${v.price.toLocaleString("es-AR")}</p>
-                      <p className="text-xs text-muted-foreground mt-1">CVR: <span className="font-semibold text-foreground">{v.cvr}%</span></p>
+                      <p className="text-xs text-muted-foreground mt-1">CVR: <span className="font-semibold text-foreground">{v.cvr.toFixed(1)}%</span></p>
                       <div className="mt-2 h-1.5 bg-muted rounded-full">
-                        <div className="h-1.5 rounded-full bg-primary" style={{ width: `${(v.cvr / Math.max(exp.control_cvr, exp.variant_cvr)) * 100}%` }} />
+                        <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.max(controlCvr, variantCvr) > 0 ? (v.cvr / Math.max(controlCvr, variantCvr)) * 100 : 0}%` }} />
                       </div>
                     </div>
                   ))}
@@ -294,7 +352,7 @@ export default function PricingEnginePage() {
 
                 <div className="flex gap-2">
                   {isRunning && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => toast.success("Experimento pausado")}><Pause className="w-3 h-3" />Pausar</Button>}
-                  {!isRunning && (exp as any).winner === "variant" && <Button size="sm" className="h-7 text-xs gap-1 gradient-gold text-primary-foreground" onClick={() => toast.success("Precio variante aplicado")}><Check className="w-3 h-3" />Aplicar precio ganador</Button>}
+                  {!isRunning && exp.winner === "variant" && <Button size="sm" className="h-7 text-xs gap-1 gradient-gold text-primary-foreground" onClick={() => toast.success("Precio variante aplicado")}><Check className="w-3 h-3" />Aplicar precio ganador</Button>}
                 </div>
               </div>
             );

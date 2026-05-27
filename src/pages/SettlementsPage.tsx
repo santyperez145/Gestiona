@@ -11,6 +11,7 @@ import { Wallet, Download, Calendar, CheckCircle, FileText } from "lucide-react"
 import { toast } from "sonner";
 import KPICard from "@/components/shared/KPICard";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 function startOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); }
 function endOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString(); }

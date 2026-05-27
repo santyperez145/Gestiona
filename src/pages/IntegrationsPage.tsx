@@ -20,6 +20,7 @@ import {
   AlertTriangle, Send, MessageCircle, QrCode as QrCodeIcon,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Integration health types ──────────────────────────────────────────────────
 type IntegrationStatus = "ok" | "error" | "warning" | "unknown";

@@ -84,34 +84,14 @@ function OnTimeBar({ rate }: { rate: number }) {
   );
 }
 
-const MOCK_CARRIERS: Carrier[] = [
-  { id: "c1", name: "Andreani", code: "AND", carrier_type: "courier", is_active: true, avg_days: 3, max_weight_kg: 30 },
-  { id: "c2", name: "OCA", code: "OCA", carrier_type: "courier", is_active: true, avg_days: 4, max_weight_kg: 50 },
-  { id: "c3", name: "Correo Argentino", code: "CAR", carrier_type: "postal", is_active: true, avg_days: 6, max_weight_kg: 20 },
-  { id: "c4", name: "Logística Propia", code: "OWN", carrier_type: "own", is_active: true, avg_days: 1, max_weight_kg: null },
-];
-
-const MOCK_SHIPMENTS: Shipment[] = [
-  { id: "s1", tracking_number: "AND-000012345", status: "in_transit", order_ref: "ORD-001023", shipping_cost: 1200, weight_kg: 2.5, estimated_delivery: "2026-05-30", actual_delivery: null, dest_address: { city: "Córdoba", province: "Córdoba" }, created_at: "2026-05-26T10:00:00Z" },
-  { id: "s2", tracking_number: "OCA-987654321", status: "delivered", order_ref: "ORD-001018", shipping_cost: 950, weight_kg: 1.2, estimated_delivery: "2026-05-25", actual_delivery: "2026-05-25T14:30:00Z", dest_address: { city: "Rosario", province: "Santa Fe" }, created_at: "2026-05-22T09:00:00Z" },
-  { id: "s3", tracking_number: null, status: "pending", order_ref: "ORD-001029", shipping_cost: 0, weight_kg: 0.8, estimated_delivery: null, actual_delivery: null, dest_address: { city: "Mendoza", province: "Mendoza" }, created_at: "2026-05-27T08:00:00Z" },
-  { id: "s4", tracking_number: "CAR-456789012", status: "out_for_delivery", order_ref: "ORD-001020", shipping_cost: 650, weight_kg: 0.5, estimated_delivery: "2026-05-27", actual_delivery: null, dest_address: { city: "Tucumán", province: "Tucumán" }, created_at: "2026-05-23T11:00:00Z" },
-  { id: "s5", tracking_number: "AND-000011111", status: "returned", order_ref: "ORD-000998", shipping_cost: 1200, weight_kg: 3.0, estimated_delivery: "2026-05-20", actual_delivery: null, dest_address: { city: "Buenos Aires", province: "CABA" }, created_at: "2026-05-15T10:00:00Z" },
-];
-
-const MOCK_PERF: CarrierPerf[] = [
-  { carrier_id: "c1", carrier_name: "Andreani", total_shipments: 142, on_time: 128, late: 11, returned: 3, on_time_rate: 91.4, avg_days: 2.8 },
-  { carrier_id: "c2", carrier_name: "OCA", total_shipments: 89, on_time: 71, late: 15, returned: 3, on_time_rate: 82.6, avg_days: 3.9 },
-  { carrier_id: "c3", carrier_name: "Correo Argentino", total_shipments: 34, on_time: 22, late: 10, returned: 2, on_time_rate: 68.8, avg_days: 6.2 },
-  { carrier_id: "c4", carrier_name: "Logística Propia", total_shipments: 28, on_time: 27, late: 1, returned: 0, on_time_rate: 96.4, avg_days: 0.9 },
-];
 
 export default function LogisticsPage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"shipments" | "carriers" | "zones" | "performance">("shipments");
-  const [shipments, setShipments] = useState<Shipment[]>(MOCK_SHIPMENTS);
-  const [carriers] = useState<Carrier[]>(MOCK_CARRIERS);
-  const [perf] = useState<CarrierPerf[]>(MOCK_PERF);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [perf, setPerf] = useState<CarrierPerf[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showNewShipment, setShowNewShipment] = useState(false);
@@ -122,8 +102,31 @@ export default function LogisticsPage() {
 
   useEffect(() => {
     if (!orgId) return;
-    // In production, load from supabase
-    // supabase.from("shipments").select("*").eq("org_id", orgId).order("created_at", { ascending: false })
+    setLoading(true);
+    Promise.all([
+      supabase
+        .from("carriers")
+        .select("id, name, code, carrier_type, is_active, avg_days, max_weight_kg")
+        .eq("org_id", orgId)
+        .order("name"),
+      supabase
+        .from("shipments")
+        .select("id, tracking_number, status, order_ref, shipping_cost, weight_kg, estimated_delivery, actual_delivery, dest_address, created_at")
+        .eq("org_id", orgId)
+        .order("created_at", { ascending: false }),
+      supabase.rpc("get_carrier_performance", { p_org_id: orgId, p_days: 30 }),
+    ]).then(([carriersRes, shipmentsRes, perfRes]) => {
+      if (carriersRes.error) toast.error("Error cargando transportistas");
+      else setCarriers((carriersRes.data ?? []) as Carrier[]);
+
+      if (shipmentsRes.error) toast.error("Error cargando envíos");
+      else setShipments((shipmentsRes.data ?? []) as Shipment[]);
+
+      if (perfRes.error) toast.error("Error cargando performance");
+      else setPerf((perfRes.data ?? []) as CarrierPerf[]);
+
+      setLoading(false);
+    });
   }, [orgId]);
 
   const filtered = shipments.filter(s => {

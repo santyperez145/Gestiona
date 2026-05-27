@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail } from 'lucide-react';
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const ROLE_LABEL: Record<string, string> = {
   owner: 'Dueño', admin: 'Administrador', vendedor: 'Vendedor', viewer: 'Viewer',

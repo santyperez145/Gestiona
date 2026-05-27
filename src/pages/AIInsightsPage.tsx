@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
+import { usePageTitle } from "@/hooks/usePageTitle";
   Brain, TrendingUp, Package, Megaphone, Users, DollarSign,
   Tag, Loader2, ChevronDown, ChevronUp, Clock, Sparkles, RefreshCw,
 } from "lucide-react";

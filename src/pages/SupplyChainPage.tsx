@@ -20,32 +20,46 @@ const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
   "F":  { bg: "bg-red-500/15",     text: "text-red-400" },
 };
 
-// Mock suppliers with scorecards
-const MOCK_SUPPLIERS = [
-  { id: "s1", name: "Distribuidora Norte SA", on_time: 94, quality: 98, fill: 96, price_var: 1.2, grade: "A+", score: 96.0, orders: 34, avg_lead: 3.2, spend: 485000, response_hrs: 4 },
-  { id: "s2", name: "Mayorista Central SRL", on_time: 82, quality: 91, fill: 88, price_var: 3.5, grade: "B",  score: 87.5, orders: 21, avg_lead: 5.8, spend: 312000, response_hrs: 12 },
-  { id: "s3", name: "Importadora del Sur", on_time: 71, quality: 85, fill: 79, price_var: 5.1, grade: "C",  score: 78.2, orders: 15, avg_lead: 9.0, spend: 198000, response_hrs: 24 },
-  { id: "s4", name: "Tech Supplies CABA", on_time: 97, quality: 99, fill: 99, price_var: 0.5, grade: "A+", score: 98.3, orders: 47, avg_lead: 2.1, spend: 890000, response_hrs: 2 },
-  { id: "s5", name: "Proveedor Económico",  on_time: 55, quality: 72, fill: 68, price_var: 8.2, grade: "D",  score: 63.1, orders: 8,  avg_lead: 14.5, spend: 87000, response_hrs: 48 },
-];
+interface SupplierScorecard {
+  id: string;
+  supplier_id: string;
+  on_time_delivery: number;
+  quality_rate: number;
+  fill_rate: number;
+  price_variance: number;
+  response_time_hrs: number;
+  overall_score: number;
+  grade: string;
+  period_start: string;
+  period_end: string;
+  notes: string | null;
+  supplier_name?: string;
+}
 
-// Mock lead times timeline
-const MOCK_LEAD_TIMES = [
-  { id: "l1", supplier: "Distribuidora Norte SA", product: "Artículo Premium XL", ordered: "2026-05-20", received: "2026-05-23", promised: 3, actual: 3, qty_ordered: 100, qty_received: 100, status: "complete", cost: 45000 },
-  { id: "l2", supplier: "Tech Supplies CABA",    product: "Componente Electrónico A", ordered: "2026-05-22", received: "2026-05-24", promised: 2, actual: 2, qty_ordered: 50, qty_received: 50, status: "complete", cost: 120000 },
-  { id: "l3", supplier: "Mayorista Central SRL", product: "Producto Estándar M",  ordered: "2026-05-18", received: "2026-05-24", promised: 4, actual: 6, qty_ordered: 200, qty_received: 180, status: "partial", cost: 28000 },
-  { id: "l4", supplier: "Distribuidora Norte SA", product: "Accesorio Premium",   ordered: "2026-05-27", received: null,          promised: 3, actual: null, qty_ordered: 75, qty_received: 0,   status: "open",   cost: 15000 },
-  { id: "l5", supplier: "Importadora del Sur",    product: "Importado Especial",  ordered: "2026-05-15", received: "2026-05-24", promised: 7, actual: 9, qty_ordered: 30, qty_received: 30, status: "complete", cost: 67000 },
-];
+interface LeadTime {
+  id: string;
+  supplier_id: string;
+  ordered_at: string;
+  received_at: string | null;
+  promised_days: number | null;
+  actual_days: number | null;
+  qty_ordered: number;
+  qty_received: number;
+  status: string;
+  unit_cost: number;
+  notes: string | null;
+}
 
-// Mock procurement budgets
-const MOCK_BUDGETS = [
-  { category: "Electrónica",  budgeted: 500000, actual: 487000 },
-  { category: "Textil",       budgeted: 200000, actual: 231000 },
-  { category: "Alimentos",    budgeted: 150000, actual: 142000 },
-  { category: "Oficina",      budgeted: 80000,  actual: 65000  },
-  { category: "Herramientas", budgeted: 120000, actual: 118000 },
-];
+interface ProcurementBudget {
+  id: string;
+  year: number;
+  month: number;
+  category: string;
+  budgeted_amount: number;
+  actual_amount: number;
+  variance: number | null;
+  variance_pct: number | null;
+}
 
 function GradeBadge({ grade }: { grade: string }) {
   const c = GRADE_COLORS[grade] || GRADE_COLORS["C"];
@@ -86,13 +100,42 @@ export default function SupplyChainPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [showScoreDialog, setShowScoreDialog] = useState(false);
   const [scoreForm, setScoreForm] = useState({ on_time: "90", quality: "95", fill: "92", price_var: "2", response_hrs: "8" });
+  const [suppliers, setSuppliers] = useState<SupplierScorecard[]>([]);
+  const [leadTimes, setLeadTimes] = useState<LeadTime[]>([]);
+  const [budgets, setBudgets] = useState<ProcurementBudget[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = MOCK_SUPPLIERS.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()));
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
+    Promise.all([
+      supabase.from("supplier_scorecards").select("*, proveedores(nombre)").eq("org_id", orgId).order("overall_score", { ascending: false }),
+      supabase.from("supplier_lead_times").select("*").eq("org_id", orgId).order("ordered_at", { ascending: false }).limit(50),
+      supabase.from("procurement_budgets").select("*").eq("org_id", orgId).order("year", { ascending: false }).order("month", { ascending: false }),
+    ]).then(([scRes, ltRes, budgRes]) => {
+      if (scRes.data) {
+        setSuppliers((scRes.data as any[]).map(row => ({
+          ...row,
+          supplier_name: (row.proveedores as any)?.nombre ?? row.supplier_id,
+          on_time_delivery: Number(row.on_time_delivery),
+          quality_rate: Number(row.quality_rate),
+          fill_rate: Number(row.fill_rate),
+          price_variance: Number(row.price_variance),
+          response_time_hrs: Number(row.response_time_hrs),
+          overall_score: Number(row.overall_score),
+        })));
+      }
+      if (ltRes.data) setLeadTimes(ltRes.data as LeadTime[]);
+      if (budgRes.data) setBudgets(budgRes.data as ProcurementBudget[]);
+    }).finally(() => setLoading(false));
+  }, [orgId]);
 
-  const topSupplier = MOCK_SUPPLIERS.reduce((a, b) => a.score > b.score ? a : b);
-  const totalSpend = MOCK_SUPPLIERS.reduce((acc, s) => acc + s.spend, 0);
-  const avgOnTime = Math.round(MOCK_SUPPLIERS.reduce((acc, s) => acc + s.on_time, 0) / MOCK_SUPPLIERS.length);
-  const atRisk = MOCK_SUPPLIERS.filter(s => s.grade === "D" || s.grade === "F").length;
+  const filtered = suppliers.filter(s => !search || (s.supplier_name ?? "").toLowerCase().includes(search.toLowerCase()));
+
+  const topSupplier = suppliers.length > 0 ? suppliers.reduce((a, b) => a.overall_score > b.overall_score ? a : b) : null;
+  const totalSpend = 0; // spend comes from supplier_performance view — scorecards don't have it directly
+  const avgOnTime = suppliers.length > 0 ? Math.round(suppliers.reduce((acc, s) => acc + s.on_time_delivery, 0) / suppliers.length) : 0;
+  const atRisk = suppliers.filter(s => s.grade === "D" || s.grade === "F").length;
 
   const TABS = [
     { id: "scorecards", label: "Scorecards" },

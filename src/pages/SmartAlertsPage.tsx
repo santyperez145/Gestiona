@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useOrganization } from "@/hooks/useOrganization";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,20 +61,6 @@ const CHANNEL_ICONS: Record<string, { label: string; icon: typeof Bell }> = {
   webhook:  { label: "Webhook",  icon: Webhook },
 };
 
-const MOCK_RULES: AlertRule[] = [
-  { id: "r1", name: "Stock Crítico", category: "stock", metric: "stock_level", condition_op: "lt", threshold: 5, priority: "critical", channels: ["app", "email"], cooldown_min: 120, is_active: true, last_triggered: "2026-05-27T08:30:00Z", trigger_count: 12 },
-  { id: "r2", name: "Caída de Ventas Diarias", category: "sales", metric: "daily_revenue", condition_op: "change_pct", threshold: -20, priority: "high", channels: ["app", "whatsapp"], cooldown_min: 1440, is_active: true, last_triggered: "2026-05-25T18:00:00Z", trigger_count: 3 },
-  { id: "r3", name: "Factura Vencida", category: "financial", metric: "invoice_overdue_days", condition_op: "gt", threshold: 30, priority: "high", channels: ["app", "email"], cooldown_min: 1440, is_active: true, last_triggered: "2026-05-20T09:00:00Z", trigger_count: 7 },
-  { id: "r4", name: "NPS Bajo", category: "customer", metric: "nps_score", condition_op: "lt", threshold: 30, priority: "medium", channels: ["app"], cooldown_min: 10080, is_active: true, last_triggered: null, trigger_count: 0 },
-  { id: "r5", name: "Margen Bruto Bajo", category: "financial", metric: "gross_margin_pct", condition_op: "lt", threshold: 25, priority: "medium", channels: ["app", "email"], cooldown_min: 1440, is_active: false, last_triggered: null, trigger_count: 1 },
-];
-
-const MOCK_EVENTS: AlertEvent[] = [
-  { id: "e1", rule_name: "Stock Crítico", category: "stock", priority: "critical", title: "Stock crítico: Notebook Lenovo IdeaPad", message: "Solo quedan 3 unidades en stock (umbral: 5). Reposición urgente requerida.", metric_value: 3, threshold_value: 5, acknowledged_at: null, created_at: "2026-05-27T09:15:00Z" },
-  { id: "e2", rule_name: "Stock Crítico", category: "stock", priority: "critical", title: "Stock crítico: Auriculares Sony WH-1000XM5", message: "Solo quedan 2 unidades en stock (umbral: 5).", metric_value: 2, threshold_value: 5, acknowledged_at: null, created_at: "2026-05-27T08:30:00Z" },
-  { id: "e3", rule_name: "Caída de Ventas Diarias", category: "sales", priority: "high", title: "Ventas cayeron 28% vs ayer", message: "Revenue del día: $245.000 vs $340.000 ayer (-28%).", metric_value: -28, threshold_value: -20, acknowledged_at: "2026-05-25T20:00:00Z", created_at: "2026-05-25T18:00:00Z" },
-  { id: "e4", rule_name: "Factura Vencida", category: "financial", priority: "high", title: "Cliente Distribuidora Sur — factura 45 días vencida", message: "Factura FAC-001234 por $182.500 vencida hace 45 días.", metric_value: 45, threshold_value: 30, acknowledged_at: null, created_at: "2026-05-20T09:00:00Z" },
-];
 
 function PriorityBadge({ priority }: { priority: string }) {
   const cfg = PRIORITY_CONFIG[priority] ?? PRIORITY_CONFIG.info;
@@ -86,14 +73,54 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export default function SmartAlertsPage() {
-  const { orgId } = useOrganization();
+  const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"events" | "rules" | "config">("events");
-  const [rules, setRules] = useState<AlertRule[]>(MOCK_RULES);
-  const [events, setEvents] = useState<AlertEvent[]>(MOCK_EVENTS);
+  const [rules, setRules] = useState<AlertRule[]>([]);
+  const [events, setEvents] = useState<AlertEvent[]>([]);
+  const [loading, setLoading] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showNew, setShowNew] = useState(false);
   const [newRule, setNewRule] = useState({ name: "", category: "stock", metric: "stock_level", condition_op: "lt", threshold: "0", priority: "medium" });
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [rulesRes, eventsRes] = await Promise.all([
+          supabase
+            .from("alert_rules")
+            .select("id, name, category, metric, condition_op, threshold, priority, channels, cooldown_min, is_active, last_triggered, trigger_count")
+            .eq("org_id", activeOrg.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("alert_events")
+            .select("id, rule_name, category, priority, title, message, metric_value, threshold_value, acknowledged_at, created_at")
+            .eq("org_id", activeOrg.id)
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
+        setRules(
+          (rulesRes.data ?? []).map(r => ({
+            ...r,
+            threshold: Number(r.threshold),
+            last_triggered: r.last_triggered ?? null,
+          }))
+        );
+        setEvents(
+          (eventsRes.data ?? []).map(e => ({
+            ...e,
+            metric_value: e.metric_value !== null ? Number(e.metric_value) : null,
+            threshold_value: e.threshold_value !== null ? Number(e.threshold_value) : null,
+          }))
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeOrg]);
 
   const unacked = events.filter(e => !e.acknowledged_at).length;
 
@@ -102,19 +129,32 @@ export default function SmartAlertsPage() {
     (categoryFilter === "all" || e.category === categoryFilter)
   );
 
-  const acknowledge = (id: string) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, acknowledged_at: new Date().toISOString() } : e));
+  const acknowledge = async (id: string) => {
+    const now = new Date().toISOString();
+    await supabase
+      .from("alert_events")
+      .update({ acknowledged_at: now, acknowledged_by: (await supabase.auth.getUser()).data.user?.id })
+      .eq("id", id);
+    setEvents(prev => prev.map(e => e.id === id ? { ...e, acknowledged_at: now } : e));
     toast.success("Alerta reconocida");
   };
 
-  const toggleRule = (id: string) => {
-    setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: !r.is_active } : r));
+  const toggleRule = async (id: string) => {
+    const rule = rules.find(r => r.id === id);
+    if (!rule) return;
+    const newActive = !rule.is_active;
+    await supabase
+      .from("alert_rules")
+      .update({ is_active: newActive })
+      .eq("id", id);
+    setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r));
   };
 
-  const handleCreateRule = () => {
+  const handleCreateRule = async () => {
     if (!newRule.name.trim()) { toast.error("Ingresá un nombre"); return; }
-    setRules(prev => [...prev, {
-      id: `r${Date.now()}`,
+    if (!activeOrg) return;
+    const payload = {
+      org_id: activeOrg.id,
       name: newRule.name,
       category: newRule.category,
       metric: newRule.metric,
@@ -124,9 +164,14 @@ export default function SmartAlertsPage() {
       channels: ["app"],
       cooldown_min: 60,
       is_active: true,
-      last_triggered: null,
-      trigger_count: 0,
-    }]);
+    };
+    const { data, error } = await supabase
+      .from("alert_rules")
+      .insert(payload)
+      .select()
+      .single();
+    if (error) { toast.error("Error al crear regla"); return; }
+    setRules(prev => [{ ...data, threshold: Number(data.threshold), last_triggered: data.last_triggered ?? null }, ...prev]);
     toast.success("Regla creada");
     setShowNew(false);
   };
@@ -233,8 +278,16 @@ export default function SmartAlertsPage() {
               </SelectContent>
             </Select>
             {unacked > 0 && (
-              <Button variant="outline" size="sm" onClick={() => {
-                setEvents(prev => prev.map(e => ({ ...e, acknowledged_at: e.acknowledged_at ?? new Date().toISOString() })));
+              <Button variant="outline" size="sm" onClick={async () => {
+                const now = new Date().toISOString();
+                if (activeOrg) {
+                  await supabase
+                    .from("alert_events")
+                    .update({ acknowledged_at: now })
+                    .eq("org_id", activeOrg.id)
+                    .is("acknowledged_at", null);
+                }
+                setEvents(prev => prev.map(e => ({ ...e, acknowledged_at: e.acknowledged_at ?? now })));
                 toast.success("Todas las alertas reconocidas");
               }}>Reconocer todas</Button>
             )}

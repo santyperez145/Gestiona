@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Check } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Location = {
   id: string;

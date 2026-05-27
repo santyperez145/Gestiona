@@ -19,6 +19,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 import SupplierPOModal from "@/components/shared/SupplierPOModal";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Supplier = {
   id: string;

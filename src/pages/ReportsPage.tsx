@@ -16,6 +16,7 @@ import { useSalesForecaster } from "@/hooks/useSalesForecaster";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 function exportCSV(filename: string, headers: string[], rows: string[][]) {
   const bom = '\uFEFF';

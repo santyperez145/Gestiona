@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products" | "query_expense_summary" | "query_supplier";

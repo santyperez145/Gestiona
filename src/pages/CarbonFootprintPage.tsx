@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useOrg } from "@/lib/orgContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +18,10 @@ import {
 } from "lucide-react";
 
 interface EmissionEntry {
+  id: string;
   scope: number;
   category: string;
-  month: string;
+  period_date: string;
   co2e_kg: number;
   quantity: number;
   unit: string;
@@ -50,47 +53,91 @@ const OFFSET_ICONS: Record<string, string> = {
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun"];
 
-const MOCK_EMISSIONS: EmissionEntry[] = [
-  // Scope 1
-  { scope: 1, category: "Flota vehicular", month: "2026-05", co2e_kg: 1_240, quantity: 480, unit: "litros" },
-  { scope: 1, category: "Gas natural calefacción", month: "2026-05", co2e_kg: 450, quantity: 200, unit: "m3" },
-  // Scope 2
-  { scope: 2, category: "Electricidad oficina", month: "2026-05", co2e_kg: 680, quantity: 1_200, unit: "kwh" },
-  { scope: 2, category: "Electricidad depósito", month: "2026-05", co2e_kg: 520, quantity: 920, unit: "kwh" },
-  // Scope 3
-  { scope: 3, category: "Logística tercerizada", month: "2026-05", co2e_kg: 2_100, quantity: 12_400, unit: "km" },
-  { scope: 3, category: "Materiales empaque", month: "2026-05", co2e_kg: 380, quantity: 450, unit: "kg" },
-  { scope: 3, category: "Viajes de negocio", month: "2026-05", co2e_kg: 290, quantity: 3, unit: "vuelos" },
-];
-
-const MOCK_OFFSETS: CarbonOffset[] = [
-  { id: "of1", program_name: "Bosques del Chaco", offset_type: "reforestation", co2e_kg_offset: 5_000, cost_ars: 250_000, purchase_date: "2026-03-01", is_retired: false },
-  { id: "of2", program_name: "Energía Solar Mendoza", offset_type: "renewable_energy", co2e_kg_offset: 3_000, cost_ars: 180_000, purchase_date: "2026-05-01", is_retired: false },
-  { id: "of3", program_name: "Reforestación Misionera 2025", offset_type: "reforestation", co2e_kg_offset: 8_000, cost_ars: 400_000, purchase_date: "2025-12-01", is_retired: true },
-];
-
-const MONTHLY_EMISSIONS = MONTHS.map((m, i) => ({
-  month: m,
-  scope1: 1_690 + Math.round(Math.random() * 200 - 100),
-  scope2: 1_200 + Math.round(Math.random() * 150 - 75),
-  scope3: 2_770 + Math.round(Math.random() * 300 - 150),
-}));
-
 export default function CarbonFootprintPage() {
   const { orgId } = useOrganization();
+  const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"dashboard" | "emissions" | "offsets" | "targets">("dashboard");
   const [showAddEmission, setShowAddEmission] = useState(false);
   const [showAddOffset, setShowAddOffset] = useState(false);
+  const [emissions, setEmissions] = useState<EmissionEntry[]>([]);
+  const [offsets, setOffsets] = useState<CarbonOffset[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const totalEmissions = MOCK_EMISSIONS.reduce((s, e) => s + e.co2e_kg, 0);
-  const totalOffsets = MOCK_OFFSETS.filter(o => !o.is_retired).reduce((s, o) => s + o.co2e_kg_offset, 0);
+  useEffect(() => {
+    if (!activeOrg) return;
+    setLoading(true);
+
+    const fetchData = async () => {
+      const [emissionsRes, offsetsRes] = await Promise.all([
+        supabase
+          .from("carbon_emissions")
+          .select(`
+            id,
+            quantity,
+            co2e_kg,
+            period_date,
+            carbon_emission_categories!inner(scope, category, unit)
+          `)
+          .eq("org_id", activeOrg.id)
+          .order("period_date", { ascending: false }),
+        supabase
+          .from("carbon_offsets")
+          .select("id, program_name, offset_type, co2e_kg_offset, cost_ars, purchase_date, is_retired")
+          .eq("org_id", activeOrg.id)
+          .order("purchase_date", { ascending: false }),
+      ]);
+
+      if (emissionsRes.data) {
+        const mapped: EmissionEntry[] = emissionsRes.data.map((row: any) => ({
+          id: row.id,
+          scope: row.carbon_emission_categories.scope as number,
+          category: row.carbon_emission_categories.category as string,
+          period_date: row.period_date as string,
+          co2e_kg: Number(row.co2e_kg),
+          quantity: Number(row.quantity),
+          unit: row.carbon_emission_categories.unit as string,
+        }));
+        setEmissions(mapped);
+      }
+
+      if (offsetsRes.data) {
+        setOffsets(offsetsRes.data as CarbonOffset[]);
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [activeOrg]);
+
+  const totalEmissions = emissions.reduce((s, e) => s + e.co2e_kg, 0);
+  const totalOffsets = offsets.filter(o => !o.is_retired).reduce((s, o) => s + o.co2e_kg_offset, 0);
   const netEmissions = totalEmissions - totalOffsets;
   const reductionPct = totalEmissions > 0 ? (totalOffsets / totalEmissions) * 100 : 0;
 
   const byScope: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
-  MOCK_EMISSIONS.forEach(e => { byScope[e.scope] = (byScope[e.scope] ?? 0) + e.co2e_kg; });
+  emissions.forEach(e => { byScope[e.scope] = (byScope[e.scope] ?? 0) + e.co2e_kg; });
 
-  const maxMonthly = Math.max(...MONTHLY_EMISSIONS.map(m => m.scope1 + m.scope2 + m.scope3));
+  // Build monthly chart from emissions data
+  const monthlyMap: Record<string, { scope1: number; scope2: number; scope3: number }> = {};
+  emissions.forEach(e => {
+    const month = e.period_date ? e.period_date.substring(0, 7) : "";
+    if (!monthlyMap[month]) monthlyMap[month] = { scope1: 0, scope2: 0, scope3: 0 };
+    if (e.scope === 1) monthlyMap[month].scope1 += e.co2e_kg;
+    else if (e.scope === 2) monthlyMap[month].scope2 += e.co2e_kg;
+    else if (e.scope === 3) monthlyMap[month].scope3 += e.co2e_kg;
+  });
+  const MONTHLY_EMISSIONS = Object.entries(monthlyMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([month, vals]) => ({
+      month: new Date(month + "-01").toLocaleString("es-AR", { month: "short" }),
+      ...vals,
+    }));
+
+  const maxMonthly = MONTHLY_EMISSIONS.length > 0
+    ? Math.max(...MONTHLY_EMISSIONS.map(m => m.scope1 + m.scope2 + m.scope3))
+    : 1;
 
   return (
     <div className="p-6 space-y-6">
@@ -240,7 +287,7 @@ export default function CarbonFootprintPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_EMISSIONS.map((e, i) => {
+                  {emissions.map((e, i) => {
                     const cfg = SCOPE_COLORS[e.scope];
                     return (
                       <tr key={i} className="border-b last:border-0 hover:bg-muted/20">
@@ -271,7 +318,7 @@ export default function CarbonFootprintPage() {
         <TabsContent value="offsets" className="space-y-4">
           <Button onClick={() => setShowAddOffset(true)}><Plus className="w-4 h-4 mr-2" />Comprar Créditos</Button>
           <div className="space-y-3">
-            {MOCK_OFFSETS.map(offset => (
+            {offsets.map(offset => (
               <Card key={offset.id} className={offset.is_retired ? "opacity-50" : ""}>
                 <CardContent className="p-4 flex items-center gap-4">
                   <span className="text-3xl">{OFFSET_ICONS[offset.offset_type]}</span>

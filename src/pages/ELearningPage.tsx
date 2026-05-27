@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useOrganization } from "@/hooks/useOrganization";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,16 +20,18 @@ import {
 interface Course {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   category: string;
   level: string;
   duration_min: number;
   is_mandatory: boolean;
   xp_reward: number;
+  // stats from learning_course_stats view (may be null if no enrollments)
   module_count: number;
   enrolled: number;
   completion_rate: number;
   avg_score: number;
+  // current user progress (from learning_enrollments)
   my_progress: number;
   my_completed: boolean;
 }
@@ -57,42 +60,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   general: "📚",
 };
 
-const MOCK_COURSES: Course[] = [
-  {
-    id: "c1", title: "Técnicas de Venta Avanzadas", description: "Metodologías SPIN, Challenger y consultiva para cerrar más ventas.",
-    category: "sales", level: "intermediate", duration_min: 90, is_mandatory: false, xp_reward: 150,
-    module_count: 6, enrolled: 12, completion_rate: 75, avg_score: 84, my_progress: 67, my_completed: false
-  },
-  {
-    id: "c2", title: "Onboarding: Gestiona para Vendedores", description: "Todo lo que necesitás saber para empezar a usar el sistema.",
-    category: "onboarding", level: "beginner", duration_min: 45, is_mandatory: true, xp_reward: 100,
-    module_count: 4, enrolled: 18, completion_rate: 94, avg_score: 91, my_progress: 100, my_completed: true
-  },
-  {
-    id: "c3", title: "Facturación AFIP y Cumplimiento Fiscal", description: "AFIP, CAE, tipos de comprobantes y obligaciones fiscales 2026.",
-    category: "compliance", level: "intermediate", duration_min: 60, is_mandatory: true, xp_reward: 120,
-    module_count: 5, enrolled: 15, completion_rate: 68, avg_score: 76, my_progress: 40, my_completed: false
-  },
-  {
-    id: "c4", title: "Liderazgo de Equipos de Ventas", description: "Cómo liderar, motivar y medir performance de equipos comerciales.",
-    category: "leadership", level: "advanced", duration_min: 120, is_mandatory: false, xp_reward: 200,
-    module_count: 8, enrolled: 5, completion_rate: 45, avg_score: 88, my_progress: 0, my_completed: false
-  },
-  {
-    id: "c5", title: "Gestión de Inventario y Stock", description: "Manejo de inventario, reposición y control de mermas.",
-    category: "operations", level: "beginner", duration_min: 50, is_mandatory: false, xp_reward: 80,
-    module_count: 4, enrolled: 9, completion_rate: 82, avg_score: 79, my_progress: 25, my_completed: false
-  },
-];
-
-const MOCK_MODULES: Module[] = [
-  { id: "m1", title: "Introducción a SPIN Selling", module_type: "video", duration_min: 15, completed: true },
-  { id: "m2", title: "Las 4 preguntas SPIN en práctica", module_type: "video", duration_min: 20, completed: true },
-  { id: "m3", title: "Lecturas recomendadas", module_type: "pdf", duration_min: 10, completed: false },
-  { id: "m4", title: "Quiz: SPIN Selling", module_type: "quiz", duration_min: 8, completed: false },
-  { id: "m5", title: "Metodología Challenger", module_type: "video", duration_min: 18, completed: false },
-  { id: "m6", title: "Ejercicio de cierre", module_type: "exercise", duration_min: 15, completed: false },
-];
 
 const MODULE_ICONS: Record<string, typeof Video> = {
   video:    Video,
@@ -104,14 +71,103 @@ const MODULE_ICONS: Record<string, typeof Video> = {
 };
 
 export default function ELearningPage() {
-  const { orgId } = useOrganization();
+  const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [tab, setTab] = useState<"catalog" | "mylearning" | "manage" | "reports">("catalog");
-  const [courses] = useState<Course[]>(MOCK_COURSES);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch courses with stats from the view
+        const { data: statsData } = await supabase
+          .from("learning_course_stats")
+          .select("*")
+          .eq("org_id", activeOrg.id);
+
+        // Fetch base course data (mandatory, xp_reward, level, etc.)
+        const { data: coursesData } = await supabase
+          .from("learning_courses")
+          .select("id, title, description, category, level, duration_min, is_mandatory, xp_reward")
+          .eq("org_id", activeOrg.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false });
+
+        // Fetch current user enrollments for progress
+        const { data: enrollments } = await supabase
+          .from("learning_enrollments")
+          .select("course_id, progress_pct, completed_at")
+          .eq("org_id", activeOrg.id)
+          .eq("user_id", user?.id ?? "");
+
+        const enrollmentMap = new Map(
+          (enrollments ?? []).map(e => [e.course_id, e])
+        );
+        const statsMap = new Map(
+          (statsData ?? []).map((s: Record<string, unknown>) => [s.course_id as string, s])
+        );
+
+        const merged: Course[] = (coursesData ?? []).map(c => {
+          const stats = statsMap.get(c.id) as Record<string, unknown> | undefined;
+          const enr = enrollmentMap.get(c.id);
+          return {
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            category: c.category,
+            level: c.level,
+            duration_min: c.duration_min,
+            is_mandatory: c.is_mandatory,
+            xp_reward: c.xp_reward,
+            module_count: stats ? Number(stats.module_count ?? 0) : 0,
+            enrolled: stats ? Number(stats.total_enrolled ?? 0) : 0,
+            completion_rate: stats ? Number(stats.completion_rate ?? 0) : 0,
+            avg_score: stats ? Number(stats.avg_score ?? 0) : 0,
+            my_progress: enr ? Number(enr.progress_pct ?? 0) : 0,
+            my_completed: enr ? enr.completed_at !== null : false,
+          };
+        });
+        setCourses(merged);
+
+        // Fetch modules for the selected course (or first course as placeholder)
+        if (merged.length > 0) {
+          const firstId = merged[0].id;
+          const { data: modsData } = await supabase
+            .from("learning_modules")
+            .select("id, title, module_type, duration_min")
+            .eq("course_id", firstId)
+            .order("sort_order", { ascending: true });
+          setModules(
+            (modsData ?? []).map(m => ({ ...m, completed: false }))
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeOrg, user?.id]);
+
+  // Load modules when a course is selected
+  useEffect(() => {
+    if (!selectedCourse) return;
+    supabase
+      .from("learning_modules")
+      .select("id, title, module_type, duration_min")
+      .eq("course_id", selectedCourse.id)
+      .order("sort_order", { ascending: true })
+      .then(({ data }) => {
+        setModules((data ?? []).map(m => ({ ...m, completed: false })));
+      });
+  }, [selectedCourse?.id]);
 
   const myCourses = courses.filter(c => c.my_progress > 0 || c.my_completed);
   const filtered = courses.filter(c =>
@@ -358,7 +414,7 @@ export default function ELearningPage() {
               <div>
                 <p className="text-sm font-semibold mb-2">Módulos del curso</p>
                 <div className="space-y-2">
-                  {MOCK_MODULES.map((mod, i) => {
+                  {modules.map((mod, i) => {
                     const Icon = MODULE_ICONS[mod.module_type] ?? FileText;
                     return (
                       <div key={mod.id} className={`flex items-center gap-3 p-2 rounded-lg ${mod.completed ? "bg-green-50" : "bg-muted/30"}`}>

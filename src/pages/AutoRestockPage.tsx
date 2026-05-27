@@ -25,6 +25,7 @@ import {
   ChevronDown, ChevronUp,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─────────────────────────────────────────────────────────────
 // Types

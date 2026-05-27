@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle, Medal } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Tier system ──────────────────────────────────────────────────────────────
 

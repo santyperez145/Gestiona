@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import CashDenominationCountDialog from "@/components/shared/CashDenominationCountDialog";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 function printCashReport(

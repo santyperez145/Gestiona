@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Mail, Trash2, Users, Copy, Crown } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import type { OrgRole } from '@/lib/orgContext';
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Member {
   id: string;

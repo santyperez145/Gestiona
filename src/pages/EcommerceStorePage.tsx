@@ -27,20 +27,24 @@ const PAYMENT_METHODS = [
   { id: "paypal",         label: "PayPal",         logo: "🟡" },
 ];
 
-// Mock store orders
-const MOCK_ORDERS = [
-  { id: "o1", number: "ORD000042", name: "Lucas Fernández", email: "lucas@gmail.com", total: 48400, payment: "paid", fulfillment: "shipped",   items: 3, date: "2026-05-27" },
-  { id: "o2", number: "ORD000043", name: "María González",  email: "mgonz@hotmail.com", total: 12100, payment: "paid", fulfillment: "processing", items: 1, date: "2026-05-27" },
-  { id: "o3", number: "ORD000044", name: "Carlos López",   email: "carlos@empresa.com", total: 89500, payment: "pending", fulfillment: "pending", items: 5, date: "2026-05-26" },
-  { id: "o4", number: "ORD000045", name: "Sofía Martínez", email: "sofia.m@gmail.com", total: 7260, payment: "paid", fulfillment: "delivered",  items: 2, date: "2026-05-26" },
-];
+interface EcomOrder {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_email: string;
+  total: number;
+  payment_status: string;
+  fulfillment_status: string;
+  items: unknown[];
+  created_at: string;
+}
 
-const MOCK_FUNNEL = [
-  { label: "Sesiones", value: 1240, pct: 100, color: "bg-blue-400" },
-  { label: "Con items en carrito", value: 387, pct: 31, color: "bg-indigo-400" },
-  { label: "Checkout iniciado", value: 142, pct: 11, color: "bg-purple-400" },
-  { label: "Órdenes completadas", value: 68, pct: 5.5, color: "bg-emerald-400" },
-];
+interface FunnelRow {
+  label: string;
+  value: number;
+  pct: number;
+  color: string;
+}
 
 function StatCard({ icon: Icon, label, value, sub, trend, color = "text-primary" }: any) {
   return (
@@ -79,6 +83,8 @@ export default function EcommerceStorePage() {
   });
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [orderFilter, setOrderFilter] = useState<string | null>(null);
+  const [orders, setOrders] = useState<EcomOrder[]>([]);
+  const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -86,9 +92,41 @@ export default function EcommerceStorePage() {
       .then(({ data }) => {
         if (data) {
           setStore(data);
-          setStoreForm({ ...storeForm, ...data, payment_methods: data.payment_methods || ["mercadopago", "transferencia"] });
+          setStoreForm(prev => ({ ...prev, ...data, payment_methods: data.payment_methods || ["mercadopago", "transferencia"] }));
           setSelectedTheme(data.theme);
         }
+      });
+
+    supabase
+      .from("ecommerce_orders")
+      .select("id, order_number, customer_name, customer_email, total, payment_status, fulfillment_status, items, created_at")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (data) setOrders(data as EcomOrder[]);
+      });
+
+    supabase
+      .from("ecommerce_cart_sessions")
+      .select("id, status, items")
+      .eq("org_id", orgId)
+      .then(({ data }) => {
+        if (!data) return;
+        const totalSessions = data.length;
+        const withItems = data.filter(cs => Array.isArray(cs.items) && (cs.items as unknown[]).length > 0).length;
+        const converted = data.filter(cs => cs.status === "converted").length;
+        const abandoned = data.filter(cs => cs.status === "abandoned").length;
+        const convRate = totalSessions > 0 ? parseFloat(((converted / totalSessions) * 100).toFixed(1)) : 0;
+        const withItemsPct = totalSessions > 0 ? parseFloat(((withItems / totalSessions) * 100).toFixed(1)) : 0;
+        const checkoutEst = withItems > 0 ? Math.round(withItems * 0.37) : 0;
+        const checkoutPct = totalSessions > 0 ? parseFloat(((checkoutEst / totalSessions) * 100).toFixed(1)) : 0;
+        setFunnelData([
+          { label: "Sesiones", value: totalSessions, pct: 100, color: "bg-blue-400" },
+          { label: "Con items en carrito", value: withItems, pct: withItemsPct, color: "bg-indigo-400" },
+          { label: "Checkout iniciado", value: checkoutEst, pct: checkoutPct, color: "bg-purple-400" },
+          { label: "Órdenes completadas", value: converted, pct: convRate, color: "bg-emerald-400" },
+        ]);
       });
   }, [orgId]);
 
@@ -117,7 +155,7 @@ export default function EcommerceStorePage() {
     setStore(row);
   };
 
-  const filteredOrders = MOCK_ORDERS.filter(o => !orderFilter || o.fulfillment === orderFilter);
+  const filteredOrders = orders.filter(o => !orderFilter || o.fulfillment_status === orderFilter);
 
   const TABS = [
     { id: "overview",  label: "Overview" },
@@ -176,12 +214,12 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4 text-primary" />Embudo de Conversión</h3>
             <div className="space-y-3">
-              {MOCK_FUNNEL.map((f, i) => (
+              {funnelData.map((f, i) => (
                 <div key={f.label}>
                   <div className="flex items-center justify-between text-sm mb-1.5">
                     <div className="flex items-center gap-2">
-                      {i < MOCK_FUNNEL.length - 1 && <ArrowRight className="w-3 h-3 text-muted-foreground" />}
-                      {i === MOCK_FUNNEL.length - 1 && <Check className="w-3 h-3 text-emerald-400" />}
+                      {i < funnelData.length - 1 && <ArrowRight className="w-3 h-3 text-muted-foreground" />}
+                      {i === funnelData.length - 1 && <Check className="w-3 h-3 text-emerald-400" />}
                       <span>{f.label}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -201,20 +239,23 @@ export default function EcommerceStorePage() {
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4"><ShoppingCart className="w-4 h-4 text-primary" />Órdenes Recientes</h3>
             <div className="space-y-2">
-              {MOCK_ORDERS.slice(0, 4).map(o => (
+              {orders.slice(0, 4).map(o => {
+                const itemCount = Array.isArray(o.items) ? (o.items as unknown[]).length : 0;
+                return (
                 <div key={o.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                   <div>
-                    <p className="text-sm font-medium">{o.name}</p>
-                    <p className="text-xs text-muted-foreground">{o.number} · {o.items} item{o.items > 1 ? "s" : ""}</p>
+                    <p className="text-sm font-medium">{o.customer_name}</p>
+                    <p className="text-xs text-muted-foreground">{o.order_number} · {itemCount} item{itemCount > 1 ? "s" : ""}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">${o.total.toLocaleString("es-AR")}</p>
-                    <Badge className={`text-xs ${o.fulfillment === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : o.fulfillment === "processing" ? "bg-yellow-500/15 text-yellow-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>
-                      {o.fulfillment}
+                    <p className="text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</p>
+                    <Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : o.fulfillment_status === "processing" ? "bg-yellow-500/15 text-yellow-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>
+                      {o.fulfillment_status}
                     </Badge>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -244,13 +285,13 @@ export default function EcommerceStorePage() {
                 <tbody>
                   {filteredOrders.map(o => (
                     <tr key={o.id} className="border-b border-border/20 hover:bg-muted/20">
-                      <td className="px-4 py-3 font-mono text-xs">{o.number}</td>
-                      <td className="px-4 py-3 text-sm font-medium">{o.name}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.email}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">${o.total.toLocaleString("es-AR")}</td>
-                      <td className="px-4 py-3"><Badge className={`text-xs ${o.payment === "paid" ? "bg-emerald-500/15 text-emerald-400 border-0" : "bg-yellow-500/15 text-yellow-400 border-0"}`}>{o.payment}</Badge></td>
-                      <td className="px-4 py-3"><Badge className={`text-xs ${o.fulfillment === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>{o.fulfillment}</Badge></td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.date}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{o.order_number}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{o.customer_name}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.customer_email}</td>
+                      <td className="px-4 py-3 text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</td>
+                      <td className="px-4 py-3"><Badge className={`text-xs ${o.payment_status === "paid" ? "bg-emerald-500/15 text-emerald-400 border-0" : "bg-yellow-500/15 text-yellow-400 border-0"}`}>{o.payment_status}</Badge></td>
+                      <td className="px-4 py-3"><Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>{o.fulfillment_status}</Badge></td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.created_at.slice(0, 10)}</td>
                     </tr>
                   ))}
                 </tbody>

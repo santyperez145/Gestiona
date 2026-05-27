@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -70,33 +71,6 @@ const SIGNAL_ICONS: Record<string, string> = {
   expansion:    "🏢",
 };
 
-const MOCK_COMPETITORS: Competitor[] = [
-  { id: "c1", name: "VendeMás Pro", website: "vendemaspro.com", category: "direct", market_share_pct: 18, revenue_est: 50_000_000, founded_year: 2020, is_tracked: true, avg_price: 12_500, tags: ["SaaS", "PyMEs", "Argentina"] },
-  { id: "c2", name: "GestiónAR", website: "gestionar.ar", category: "direct", market_share_pct: 12, revenue_est: 30_000_000, founded_year: 2019, is_tracked: true, avg_price: 9_000, tags: ["ERP", "Argentina"] },
-  { id: "c3", name: "Odoo (Local)", website: "odoo.com", category: "indirect", market_share_pct: 8, revenue_est: null as unknown as number, founded_year: 2005, is_tracked: true, avg_price: 25_000, tags: ["ERP", "Internacional"] },
-  { id: "c4", name: "Tiendanube Gestor", website: "tiendanube.com", category: "substitute", market_share_pct: 5, revenue_est: null as unknown as number, founded_year: 2011, is_tracked: false, avg_price: 8_000, tags: ["Ecommerce", "PyMEs"] },
-];
-
-const MOCK_SIGNALS: Signal[] = [
-  { id: "s1", competitor_id: "c1", competitor_name: "VendeMás Pro", signal_type: "price_change", title: "Bajaron precio 15%", description: "Plan Starter bajó de $14.900 a $12.600", impact: "high", sentiment: "negative", detected_at: "2026-05-26T10:00:00Z", is_read: false },
-  { id: "s2", competitor_id: "c1", competitor_name: "VendeMás Pro", signal_type: "new_product", title: "Lanzaron módulo de AFIP", description: "Integración CAE directa desde facturación", impact: "high", sentiment: "negative", detected_at: "2026-05-25T14:00:00Z", is_read: false },
-  { id: "s3", competitor_id: "c2", competitor_name: "GestiónAR", signal_type: "funding", title: "Ronda Serie A de USD 2M", description: "Inversión de fondo local para expansión a Chile", impact: "medium", sentiment: "negative", detected_at: "2026-05-22T09:00:00Z", is_read: true },
-  { id: "s4", competitor_id: "c3", competitor_name: "Odoo (Local)", signal_type: "promotion", title: "Promo 3 meses gratis", description: "Campaña de migración desde ERP legacy", impact: "medium", sentiment: "negative", detected_at: "2026-05-20T11:00:00Z", is_read: true },
-];
-
-const MOCK_SWOT: SwotItem[] = [
-  { quadrant: "strength", item: "UX/UI moderno vs competidores legacy", impact_score: 9, evidence: "NPS 72 vs industria 45" },
-  { quadrant: "strength", item: "Stack tecnológico superior (realtime, PWA)", impact_score: 8 },
-  { quadrant: "strength", item: "Precio competitivo con más features", impact_score: 7 },
-  { quadrant: "weakness", item: "Sin módulo AFIP CAE nativo", impact_score: 8, evidence: "Top feedback en soporte" },
-  { quadrant: "weakness", item: "Menos integraciones con proveedores locales", impact_score: 6 },
-  { quadrant: "opportunity", item: "Mercado de franquicias no atendido", impact_score: 8 },
-  { quadrant: "opportunity", item: "Expansión a Chile y Uruguay", impact_score: 7 },
-  { quadrant: "opportunity", item: "API pública para desarrolladores", impact_score: 6 },
-  { quadrant: "threat", item: "VendeMás bajó precio agresivamente", impact_score: 9 },
-  { quadrant: "threat", item: "Grandes players internacionales (SAP B1)", impact_score: 7 },
-  { quadrant: "threat", item: "Consolidación del mercado (M&A)", impact_score: 5 },
-];
 
 const OUR_AVG_PRICE = 15_000;
 
@@ -123,15 +97,91 @@ const SWOT_CONFIG: Record<string, { label: string; color: string; bg: string }> 
 export default function CompetitorIntelligencePage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "signals" | "pricing" | "swot">("overview");
-  const [competitors] = useState<Competitor[]>(MOCK_COMPETITORS);
-  const [signals, setSignals] = useState<Signal[]>(MOCK_SIGNALS);
+  const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [swot, setSwot] = useState<SwotItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [filterImpact, setFilterImpact] = useState("all");
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
+
+    Promise.all([
+      supabase
+        .from("competitors")
+        .select("id, name, website, category, market_share_pct, revenue_est, founded_year, is_tracked, tags, competitor_products(price)")
+        .eq("org_id", orgId),
+      supabase
+        .from("market_signals")
+        .select("id, competitor_id, signal_type, title, description, impact, sentiment, detected_at, is_read, competitors(name)")
+        .eq("org_id", orgId)
+        .order("detected_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("swot_analysis")
+        .select("id, quadrant, item, impact_score, evidence")
+        .eq("org_id", orgId)
+        .order("impact_score", { ascending: false }),
+    ]).then(([compRes, sigRes, swotRes]) => {
+      if (compRes.data) {
+        const mapped: Competitor[] = compRes.data.map(row => {
+          const prices = (row.competitor_products as { price: number | null }[] | null) ?? [];
+          const validPrices = prices.map(p => p.price).filter((p): p is number => p !== null);
+          const avg_price = validPrices.length
+            ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
+            : 0;
+          return {
+            id: row.id,
+            name: row.name,
+            website: row.website ?? "",
+            category: row.category,
+            market_share_pct: Number(row.market_share_pct ?? 0),
+            revenue_est: Number(row.revenue_est ?? 0),
+            founded_year: row.founded_year ?? 0,
+            is_tracked: row.is_tracked,
+            avg_price,
+            tags: row.tags ?? [],
+          };
+        });
+        setCompetitors(mapped);
+      }
+      if (sigRes.data) {
+        const mapped: Signal[] = sigRes.data.map(row => ({
+          id: row.id,
+          competitor_id: row.competitor_id ?? "",
+          competitor_name: (row.competitors as { name: string } | null)?.name ?? "",
+          signal_type: row.signal_type,
+          title: row.title,
+          description: row.description ?? "",
+          impact: row.impact,
+          sentiment: row.sentiment ?? "neutral",
+          detected_at: row.detected_at,
+          is_read: row.is_read,
+        }));
+        setSignals(mapped);
+      }
+      if (swotRes.data) {
+        const mapped: SwotItem[] = swotRes.data.map(row => ({
+          quadrant: row.quadrant as SwotItem["quadrant"],
+          item: row.item,
+          impact_score: row.impact_score,
+          evidence: row.evidence ?? undefined,
+        }));
+        setSwot(mapped);
+      }
+      setLoading(false);
+    });
+  }, [orgId]);
 
   const unread = signals.filter(s => !s.is_read).length;
   const filteredSignals = signals.filter(s => filterImpact === "all" || s.impact === filterImpact);
 
-  const markRead = (id: string) => setSignals(prev => prev.map(s => s.id === id ? { ...s, is_read: true } : s));
+  const markRead = async (id: string) => {
+    setSignals(prev => prev.map(s => s.id === id ? { ...s, is_read: true } : s));
+    await supabase.from("market_signals").update({ is_read: true }).eq("id", id);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -297,7 +347,7 @@ export default function CompetitorIntelligencePage() {
           <div className="grid grid-cols-2 gap-4">
             {(["strength", "weakness", "opportunity", "threat"] as const).map(q => {
               const cfg = SWOT_CONFIG[q];
-              const items = MOCK_SWOT.filter(s => s.quadrant === q).sort((a, b) => b.impact_score - a.impact_score);
+              const items = swot.filter(s => s.quadrant === q).sort((a, b) => b.impact_score - a.impact_score);
               return (
                 <Card key={q} className={`border ${cfg.bg}`}>
                   <CardHeader className="pb-2">

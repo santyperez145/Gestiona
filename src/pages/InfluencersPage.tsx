@@ -17,6 +17,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import { TableSkeleton } from '@/components/shared/PageSkeleton';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import InfluencerExchangesPage from './InfluencerExchangesPage';
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const TIER_COLORS: Record<string, string> = {
   nano: 'bg-zinc-500/20 text-zinc-300',

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -59,35 +60,100 @@ const STATUS_CFG: Record<string, { label: string; color: string }> = {
   disputed: { label: "Disputada", color: "bg-orange-100 text-orange-700" },
 };
 
-const MOCK_VENDORS: Vendor[] = [
-  { id: "v1", name: "TechParts SA", email: "ventas@techparts.com.ar", is_active: true, last_login: "2026-05-26T14:30:00Z", pending_invoices: 2, pending_amount: 485_000, catalog_items: 47, unread_messages: 3, rating: 4.8 },
-  { id: "v2", name: "Distribuidora López", email: "contacto@dlopez.com.ar", is_active: true, last_login: "2026-05-27T09:00:00Z", pending_invoices: 1, pending_amount: 192_000, catalog_items: 23, unread_messages: 0, rating: 4.2 },
-  { id: "v3", name: "Importaciones MNZ", email: "info@mnz.com.ar", is_active: true, last_login: "2026-05-20T11:00:00Z", pending_invoices: 3, pending_amount: 890_000, catalog_items: 85, unread_messages: 1, rating: 3.9 },
-  { id: "v4", name: "Proveedor Nuevo", email: "nuevo@proveedor.com", is_active: false, last_login: null, pending_invoices: 0, pending_amount: 0, catalog_items: 0, unread_messages: 0, rating: 0 },
-];
-
-const MOCK_INVOICES: VendorInvoice[] = [
-  { id: "i1", vendor_name: "TechParts SA", invoice_number: "FP-2026-0142", invoice_date: "2026-05-10", due_date: "2026-05-25", amount: 285_000, status: "pending", purchase_order_ref: "OC-001245" },
-  { id: "i2", vendor_name: "TechParts SA", invoice_number: "FP-2026-0143", invoice_date: "2026-05-15", due_date: "2026-05-30", amount: 200_000, status: "approved", purchase_order_ref: "OC-001248" },
-  { id: "i3", vendor_name: "Distribuidora López", invoice_number: "DL-0089", invoice_date: "2026-05-20", due_date: "2026-06-05", amount: 192_000, status: "pending", purchase_order_ref: null },
-  { id: "i4", vendor_name: "Importaciones MNZ", invoice_number: "MNZ-2026-456", invoice_date: "2026-04-30", due_date: "2026-05-15", amount: 540_000, status: "pending", purchase_order_ref: "OC-001230" },
-  { id: "i5", vendor_name: "Importaciones MNZ", invoice_number: "MNZ-2026-412", invoice_date: "2026-04-15", due_date: "2026-04-30", amount: 350_000, status: "paid", purchase_order_ref: "OC-001210" },
-];
-
-const MOCK_CATALOG: CatalogItem[] = [
-  { id: "ci1", vendor_name: "TechParts SA", sku: "TP-NB-001", name: "Notebook Lenovo IdeaPad 3", unit_price: 290_000, min_order_qty: 1, lead_time_days: 3, stock_available: 15, is_active: true },
-  { id: "ci2", vendor_name: "TechParts SA", sku: "TP-MO-005", name: "Monitor LG 27 IPS", unit_price: 430_000, min_order_qty: 2, lead_time_days: 5, stock_available: 8, is_active: true },
-  { id: "ci3", vendor_name: "Importaciones MNZ", sku: "MNZ-AU-001", name: "Auriculares Sony WH-1000XM5", unit_price: 97_000, min_order_qty: 3, lead_time_days: 7, stock_available: 20, is_active: true },
-  { id: "ci4", vendor_name: "Distribuidora López", sku: "DL-TC-002", name: "Teclado Mecánico Redragon K552", unit_price: 29_000, min_order_qty: 5, lead_time_days: 2, stock_available: 50, is_active: true },
-];
 
 export default function VendorPortalPage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"vendors" | "invoices" | "catalog" | "messages">("vendors");
-  const [invoices, setInvoices] = useState<VendorInvoice[]>(MOCK_INVOICES);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [invoices, setInvoices] = useState<VendorInvoice[]>([]);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
+    Promise.all([
+      supabase
+        .from("vendor_portal_access")
+        .select("id, supplier_id, email, is_active, last_login, suppliers!inner(name)")
+        .eq("org_id", orgId),
+      supabase
+        .from("vendor_invoices")
+        .select("id, supplier_id, invoice_number, invoice_date, due_date, amount, status, purchase_order_ref, suppliers!inner(name)")
+        .eq("org_id", orgId)
+        .order("invoice_date", { ascending: false }),
+      supabase
+        .from("vendor_catalog_items")
+        .select("id, supplier_id, sku, name, unit_price, min_order_qty, lead_time_days, stock_available, is_active, suppliers!inner(name)")
+        .eq("org_id", orgId)
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("vendor_messages")
+        .select("supplier_id, is_read")
+        .eq("org_id", orgId)
+        .eq("is_read", false)
+        .eq("sender_type", "supplier"),
+    ]).then(([accessRes, invoicesRes, catalogRes, messagesRes]) => {
+      const accessData = accessRes.data ?? [];
+      const invoicesData = invoicesRes.data ?? [];
+      const catalogData = catalogRes.data ?? [];
+      const messagesData = messagesRes.data ?? [];
+
+      if (accessRes.error) toast.error("Error cargando proveedores");
+      if (invoicesRes.error) toast.error("Error cargando facturas");
+      if (catalogRes.error) toast.error("Error cargando catálogos");
+
+      // Build vendor list from portal access entries
+      const builtVendors: Vendor[] = (accessData as any[]).map(a => {
+        const supplierId = a.supplier_id;
+        const pendingInvs = invoicesData.filter((i: any) => i.supplier_id === supplierId && i.status === "pending");
+        return {
+          id: a.id,
+          name: (a.suppliers as any)?.name ?? a.email,
+          email: a.email,
+          is_active: a.is_active,
+          last_login: a.last_login,
+          pending_invoices: pendingInvs.length,
+          pending_amount: pendingInvs.reduce((s: number, i: any) => s + (i.amount ?? 0), 0),
+          catalog_items: catalogData.filter((c: any) => c.supplier_id === supplierId).length,
+          unread_messages: messagesData.filter((m: any) => m.supplier_id === supplierId).length,
+          rating: 0,
+        };
+      });
+      setVendors(builtVendors);
+
+      const mappedInvoices: VendorInvoice[] = (invoicesData as any[]).map(i => ({
+        id: i.id,
+        vendor_name: (i.suppliers as any)?.name ?? "",
+        invoice_number: i.invoice_number,
+        invoice_date: i.invoice_date,
+        due_date: i.due_date,
+        amount: i.amount,
+        status: i.status,
+        purchase_order_ref: i.purchase_order_ref,
+      }));
+      setInvoices(mappedInvoices);
+
+      const mappedCatalog: CatalogItem[] = (catalogData as any[]).map(c => ({
+        id: c.id,
+        vendor_name: (c.suppliers as any)?.name ?? "",
+        sku: c.sku,
+        name: c.name,
+        unit_price: c.unit_price,
+        min_order_qty: c.min_order_qty,
+        lead_time_days: c.lead_time_days,
+        stock_available: c.stock_available,
+        is_active: c.is_active,
+      }));
+      setCatalog(mappedCatalog);
+
+      setLoading(false);
+    });
+  }, [orgId]);
 
   const totalPending = invoices.filter(i => i.status === "pending").reduce((s, i) => s + i.amount, 0);
   const totalApproved = invoices.filter(i => i.status === "approved").reduce((s, i) => s + i.amount, 0);
@@ -125,10 +191,10 @@ export default function VendorPortalPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Building className="w-8 h-8 text-blue-500" /><div><p className="text-xs text-muted-foreground">Proveedores Activos</p><p className="text-2xl font-bold">{MOCK_VENDORS.filter(v => v.is_active).length}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex gap-3 items-center"><Building className="w-8 h-8 text-blue-500" /><div><p className="text-xs text-muted-foreground">Proveedores Activos</p><p className="text-2xl font-bold">{vendors.filter(v => v.is_active).length}</p></div></CardContent></Card>
         <Card><CardContent className="p-4 flex gap-3 items-center"><Clock className="w-8 h-8 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Facturas Pendientes</p><p className="text-xl font-bold">${(totalPending / 1000).toFixed(0)}K</p></div></CardContent></Card>
         <Card><CardContent className="p-4 flex gap-3 items-center"><CheckCircle className="w-8 h-8 text-green-500" /><div><p className="text-xs text-muted-foreground">Aprobadas para Pago</p><p className="text-xl font-bold">${(totalApproved / 1000).toFixed(0)}K</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Package className="w-8 h-8 text-purple-500" /><div><p className="text-xs text-muted-foreground">Ítems en Catálogos</p><p className="text-2xl font-bold">{MOCK_CATALOG.length}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex gap-3 items-center"><Package className="w-8 h-8 text-purple-500" /><div><p className="text-xs text-muted-foreground">Ítems en Catálogos</p><p className="text-2xl font-bold">{catalog.length}</p></div></CardContent></Card>
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
@@ -141,7 +207,7 @@ export default function VendorPortalPage() {
 
         {/* VENDORS */}
         <TabsContent value="vendors" className="space-y-3">
-          {MOCK_VENDORS.map(v => (
+          {vendors.map(v => (
             <Card key={v.id} className={`cursor-pointer hover:shadow-md transition-shadow ${!v.is_active ? "opacity-50" : ""}`} onClick={() => setSelected(v)}>
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary">{v.name.slice(0, 2).toUpperCase()}</div>
@@ -222,7 +288,7 @@ export default function VendorPortalPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_CATALOG.map(item => (
+                  {catalog.map(item => (
                     <tr key={item.id} className="border-b last:border-0 hover:bg-muted/20">
                       <td className="py-3 px-4 font-medium">{item.name}</td>
                       <td className="py-3 px-4 text-muted-foreground">{item.vendor_name}</td>
@@ -245,7 +311,7 @@ export default function VendorPortalPage() {
         {/* MESSAGES */}
         <TabsContent value="messages" className="space-y-4">
           <div className="text-sm text-muted-foreground mb-2">Canal de comunicación directa con proveedores</div>
-          {MOCK_VENDORS.filter(v => v.is_active).map(v => (
+          {vendors.filter(v => v.is_active).map(v => (
             <Card key={v.id}>
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">{v.name.slice(0, 2).toUpperCase()}</div>

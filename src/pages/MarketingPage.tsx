@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
 import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel";
 import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function MarketingPage() {
   usePageTitle("Marketing");

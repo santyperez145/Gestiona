@@ -63,31 +63,6 @@ const RARITY_COLORS: Record<string, string> = {
   legendary: "bg-yellow-100 border-yellow-500 text-yellow-800",
 };
 
-const MOCK_PROFILES: Profile[] = [
-  { user_id: "u1", name: "Martín González", email: "martin@empresa.com", total_xp: 2450, current_level: 6, current_streak: 12, badges_earned: ["first_sale","sales_10","streak_7","big_ticket"], rank_position: 1, stats: { sales_count: 187, revenue_total: 3_200_000, new_customers: 34 } },
-  { user_id: "u2", name: "Laura Rodríguez", email: "laura@empresa.com", total_xp: 1820, current_level: 5, current_streak: 5, badges_earned: ["first_sale","sales_10","new_customers_50"], rank_position: 2, stats: { sales_count: 145, revenue_total: 2_100_000, new_customers: 52 } },
-  { user_id: "u3", name: "Carlos Méndez", email: "carlos@empresa.com", total_xp: 980, current_level: 4, current_streak: 2, badges_earned: ["first_sale","sales_10"], rank_position: 3, stats: { sales_count: 89, revenue_total: 1_400_000, new_customers: 18 } },
-  { user_id: "u4", name: "Ana Fernández", email: "ana@empresa.com", total_xp: 420, current_level: 2, current_streak: 0, badges_earned: ["first_sale"], rank_position: 4, stats: { sales_count: 34, revenue_total: 580_000, new_customers: 8 } },
-];
-
-const MOCK_BADGES: GameBadge[] = [
-  { code: "first_sale",       name: "Primera Venta",       description: "Realizaste tu primera venta",           icon: "🎯", category: "achievement", rarity: "common",    xp_reward: 50,   threshold: 1,       condition_type: "sales_count",   unlocked: true },
-  { code: "sales_10",         name: "10 Ventas",            description: "Alcanzaste 10 ventas",                  icon: "🔟", category: "achievement", rarity: "common",    xp_reward: 100,  threshold: 10,      condition_type: "sales_count",   unlocked: true },
-  { code: "sales_100",        name: "100 Ventas",           description: "Cerraste 100 ventas",                   icon: "💯", category: "achievement", rarity: "rare",      xp_reward: 500,  threshold: 100,     condition_type: "sales_count",   unlocked: false },
-  { code: "streak_7",         name: "Racha Semanal",        description: "7 días consecutivos con ventas",        icon: "🔥", category: "streak",      rarity: "uncommon",  xp_reward: 150,  threshold: 7,       condition_type: "streak_days",   unlocked: true },
-  { code: "streak_30",        name: "Mes Perfecto",         description: "30 días consecutivos con ventas",       icon: "🌟", category: "streak",      rarity: "epic",      xp_reward: 500,  threshold: 30,      condition_type: "streak_days",   unlocked: false },
-  { code: "revenue_1m",       name: "Club del Millón",      description: "Superaste $1.000.000 en ventas",        icon: "💰", category: "revenue",     rarity: "epic",      xp_reward: 750,  threshold: 1000000, condition_type: "revenue_total", unlocked: false },
-  { code: "new_customers_50", name: "Conquistador",         description: "Conseguiste 50 clientes nuevos",        icon: "👑", category: "customer",    rarity: "rare",      xp_reward: 300,  threshold: 50,      condition_type: "new_customers", unlocked: true },
-  { code: "big_ticket",       name: "Ticket Grande",        description: "Venta individual por más de $50.000",   icon: "🏆", category: "achievement", rarity: "uncommon",  xp_reward: 200,  threshold: 50000,   condition_type: "single_sale",   unlocked: true },
-  { code: "upsell_master",    name: "Maestro del Upsell",   description: "25 upsells concretados",                icon: "📈", category: "achievement", rarity: "rare",      xp_reward: 250,  threshold: 25,      condition_type: "upsells",       unlocked: false },
-  { code: "legend",           name: "Leyenda",              description: "Alcanzaste el nivel Leyenda",            icon: "🦅", category: "special",     rarity: "legendary", xp_reward: 1000, threshold: 1000,    condition_type: "sales_count",   unlocked: false },
-];
-
-const MOCK_CHALLENGES: Challenge[] = [
-  { id: "ch1", name: "Sprint de Mayo", description: "Cierra 30 ventas antes del 31/05", metric: "sales_count", target_value: 30, current_value: 21, start_date: "2026-05-01", end_date: "2026-05-31", xp_reward: 300, is_active: true },
-  { id: "ch2", name: "Nuevos Clientes Q2", description: "Consigue 20 clientes nuevos en Q2", metric: "new_customers", target_value: 20, current_value: 13, start_date: "2026-04-01", end_date: "2026-06-30", xp_reward: 400, is_active: true },
-  { id: "ch3", name: "Revenue Record", description: "Alcanza $5M en ventas grupales", metric: "revenue", target_value: 5_000_000, current_value: 3_200_000, start_date: "2026-05-01", end_date: "2026-05-31", xp_reward: 500, is_active: true },
-];
 
 function XPBar({ xp, level }: { xp: number; level: number }) {
   const currentThreshold = LEVEL_THRESHOLDS[level] ?? 0;
@@ -120,13 +95,93 @@ export default function SalesGamificationPage() {
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const [tab, setTab] = useState<"leaderboard" | "badges" | "challenges" | "myprofile">("leaderboard");
-  const [profiles] = useState<Profile[]>(MOCK_PROFILES);
-  const [challenges] = useState<Challenge[]>(MOCK_CHALLENGES);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [badges, setBadges] = useState<GameBadge[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [loading, setLoading] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>("all");
 
-  const myProfile = profiles[2]; // Carlos Méndez as "me"
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
 
-  const filteredBadges = MOCK_BADGES.filter(b => badgeFilter === "all" || b.category === badgeFilter);
+    Promise.all([
+      supabase
+        .from("gamification_profiles")
+        .select("user_id, total_xp, current_level, current_streak, longest_streak, badges_earned, rank_position, stats")
+        .eq("org_id", orgId)
+        .order("total_xp", { ascending: false }),
+      supabase
+        .from("gamification_badges")
+        .select("code, name, description, icon, category, rarity, xp_reward, threshold, condition_type")
+        .eq("org_id", orgId)
+        .eq("is_active", true),
+      supabase
+        .from("gamification_challenges")
+        .select("id, name, description, challenge_type, metric, target_value, start_date, end_date, xp_reward, is_active, progress")
+        .eq("org_id", orgId)
+        .eq("is_active", true),
+    ]).then(([profRes, badgeRes, challRes]) => {
+      if (profRes.data) {
+        const mapped: Profile[] = profRes.data.map((row, idx) => ({
+          user_id: row.user_id,
+          name: (row.stats as any)?.name ?? row.user_id.slice(0, 8),
+          email: (row.stats as any)?.email ?? "",
+          total_xp: row.total_xp,
+          current_level: row.current_level,
+          current_streak: row.current_streak,
+          badges_earned: row.badges_earned ?? [],
+          rank_position: row.rank_position ?? idx + 1,
+          stats: {
+            sales_count: (row.stats as any)?.sales_count ?? 0,
+            revenue_total: (row.stats as any)?.revenue_total ?? 0,
+            new_customers: (row.stats as any)?.new_customers ?? 0,
+          },
+        }));
+        setProfiles(mapped);
+      }
+      if (badgeRes.data) {
+        const myEarned = profRes.data?.find(p => p.user_id === user?.id)?.badges_earned ?? [];
+        const mapped: GameBadge[] = badgeRes.data.map(row => ({
+          code: row.code,
+          name: row.name,
+          description: row.description,
+          icon: row.icon,
+          category: row.category,
+          rarity: row.rarity,
+          xp_reward: row.xp_reward,
+          threshold: Number(row.threshold),
+          condition_type: row.condition_type,
+          unlocked: myEarned.includes(row.code),
+        }));
+        setBadges(mapped);
+      }
+      if (challRes.data) {
+        const mapped: Challenge[] = challRes.data.map(row => {
+          const progress = (row.progress as Record<string, number>) ?? {};
+          const current_value = Object.values(progress).reduce((acc, v) => acc + v, 0);
+          return {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+            metric: row.metric,
+            target_value: Number(row.target_value),
+            current_value,
+            start_date: row.start_date,
+            end_date: row.end_date,
+            xp_reward: row.xp_reward,
+            is_active: row.is_active,
+          };
+        });
+        setChallenges(mapped);
+      }
+      setLoading(false);
+    });
+  }, [orgId, user?.id]);
+
+  const myProfile = profiles.find(p => p.user_id === user?.id) ?? profiles[0];
+
+  const filteredBadges = badges.filter(b => badgeFilter === "all" || b.category === badgeFilter);
 
   const simulateXP = () => {
     toast.success("¡+25 XP ganados! Racha activa 🔥", { description: "Venta registrada: $15.000" });
@@ -147,7 +202,7 @@ export default function SalesGamificationPage() {
       </div>
 
       {/* My mini profile */}
-      <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
+      {myProfile && <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
         <CardContent className="p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-xl font-bold text-primary">
             {myProfile.name.slice(0, 1)}
@@ -172,7 +227,7 @@ export default function SalesGamificationPage() {
             <p className="text-sm font-medium mt-1">#{myProfile.rank_position} del equipo</p>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
         <TabsList>
@@ -212,7 +267,7 @@ export default function SalesGamificationPage() {
                 </div>
                 <div className="flex gap-1 flex-wrap max-w-20">
                   {p.badges_earned.slice(0, 3).map(b => {
-                    const badge = MOCK_BADGES.find(x => x.code === b);
+                    const badge = badges.find(x => x.code === b);
                     return badge ? <span key={b} title={badge.name}>{badge.icon}</span> : null;
                   })}
                   {p.badges_earned.length > 3 && <span className="text-xs text-muted-foreground">+{p.badges_earned.length - 3}</span>}
@@ -301,6 +356,7 @@ export default function SalesGamificationPage() {
 
         {/* MY PROFILE */}
         <TabsContent value="myprofile" className="space-y-4">
+          {myProfile && <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-primary">{myProfile.stats.sales_count}</p><p className="text-xs text-muted-foreground mt-1">Ventas Totales</p></CardContent></Card>
             <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">${(myProfile.stats.revenue_total / 1_000_000).toFixed(1)}M</p><p className="text-xs text-muted-foreground mt-1">Revenue Total</p></CardContent></Card>
@@ -335,7 +391,7 @@ export default function SalesGamificationPage() {
             <CardContent>
               <div className="flex gap-3 flex-wrap">
                 {myProfile.badges_earned.map(code => {
-                  const badge = MOCK_BADGES.find(b => b.code === code);
+                  const badge = badges.find(b => b.code === code);
                   return badge ? (
                     <div key={code} className={`text-center p-2 rounded-lg border ${RARITY_COLORS[badge.rarity]}`} title={badge.description}>
                       <span className="text-2xl">{badge.icon}</span>
@@ -346,6 +402,7 @@ export default function SalesGamificationPage() {
               </div>
             </CardContent>
           </Card>
+          </>}
         </TabsContent>
       </Tabs>
     </div>

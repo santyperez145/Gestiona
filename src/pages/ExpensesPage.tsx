@@ -23,6 +23,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePermissions } from "@/lib/usePermissions";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
   const header = ['Fecha', 'Descripción', 'Proveedor', 'Categoría', 'Monto (ARS)', 'Recurrente'];

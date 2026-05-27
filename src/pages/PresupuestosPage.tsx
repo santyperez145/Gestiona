@@ -18,6 +18,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { formatARS, addSaleDB } from "@/lib/supabaseStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type QuoteItem = { description: string; qty: number; unitPrice: number; total: number };
 type Quote = {

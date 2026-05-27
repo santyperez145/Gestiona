@@ -38,20 +38,6 @@ interface Royalty {
   status: string;
 }
 
-const MOCK_UNITS: FranchiseUnit[] = [
-  { id: "u1", unit_code: "ARG-001", owner_name: "Martín González", address: { city: "Palermo", province: "CABA" }, opened_at: "2023-03-15", revenue_mtd: 1_250_000, revenue_ytd: 12_800_000, compliance_score: 94, last_audit: "2026-04-10", is_active: true },
-  { id: "u2", unit_code: "ARG-002", owner_name: "Laura Rodríguez", address: { city: "Córdoba", province: "Córdoba" }, opened_at: "2023-08-01", revenue_mtd: 890_000, revenue_ytd: 9_100_000, compliance_score: 88, last_audit: "2026-03-22", is_active: true },
-  { id: "u3", unit_code: "ARG-003", owner_name: "Sergio Peña", address: { city: "Rosario", province: "Santa Fe" }, opened_at: "2024-01-10", revenue_mtd: 720_000, revenue_ytd: 7_200_000, compliance_score: 72, last_audit: "2026-02-15", is_active: true },
-  { id: "u4", unit_code: "ARG-004", owner_name: "Ana Méndez", address: { city: "Mendoza", province: "Mendoza" }, opened_at: "2024-06-01", revenue_mtd: 0, revenue_ytd: 2_100_000, compliance_score: 65, last_audit: "2025-12-01", is_active: false },
-];
-
-const MOCK_ROYALTIES: Royalty[] = [
-  { unit_id: "u1", unit_code: "ARG-001", period_month: "2026-05", gross_revenue: 1_250_000, royalty_amount: 62_500, marketing_fee: 25_000, status: "pending" },
-  { unit_id: "u2", unit_code: "ARG-002", period_month: "2026-05", gross_revenue: 890_000, royalty_amount: 44_500, marketing_fee: 17_800, status: "invoiced" },
-  { unit_id: "u3", unit_code: "ARG-003", period_month: "2026-05", gross_revenue: 720_000, royalty_amount: 36_000, marketing_fee: 14_400, status: "pending" },
-  { unit_id: "u1", unit_code: "ARG-001", period_month: "2026-04", gross_revenue: 1_190_000, royalty_amount: 59_500, marketing_fee: 23_800, status: "paid" },
-  { unit_id: "u2", unit_code: "ARG-002", period_month: "2026-04", gross_revenue: 840_000, royalty_amount: 42_000, marketing_fee: 16_800, status: "paid" },
-];
 
 function ComplianceBadge({ score }: { score: number }) {
   const cfg = score >= 90 ? { label: "Excelente", cls: "bg-green-100 text-green-700" }
@@ -64,10 +50,49 @@ function ComplianceBadge({ score }: { score: number }) {
 export default function FranchisePage() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"units" | "royalties" | "compliance" | "analytics">("units");
-  const [units] = useState<FranchiseUnit[]>(MOCK_UNITS);
-  const [royalties] = useState<Royalty[]>(MOCK_ROYALTIES);
+  const [units, setUnits] = useState<FranchiseUnit[]>([]);
+  const [royalties, setRoyalties] = useState<Royalty[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<FranchiseUnit | null>(null);
   const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
+    supabase
+      .from("franchise_units")
+      .select("id, unit_code, owner_name, address, opened_at, revenue_mtd, revenue_ytd, compliance_score, last_audit, is_active")
+      .eq("org_id", orgId)
+      .order("unit_code")
+      .then(({ data, error }) => {
+        if (error) { toast.error("Error cargando unidades"); setLoading(false); return; }
+        const fetchedUnits = (data ?? []) as FranchiseUnit[];
+        setUnits(fetchedUnits);
+        if (fetchedUnits.length === 0) { setLoading(false); return; }
+        const unitIds = fetchedUnits.map(u => u.id);
+        supabase
+          .from("franchise_royalties")
+          .select("unit_id, period_month, gross_revenue, royalty_amount, marketing_fee, status, franchise_units!inner(unit_code)")
+          .in("unit_id", unitIds)
+          .order("period_month", { ascending: false })
+          .then(({ data: rData, error: rError }) => {
+            if (rError) toast.error("Error cargando regalías");
+            else {
+              const mapped: Royalty[] = (rData ?? []).map((r: any) => ({
+                unit_id: r.unit_id,
+                unit_code: r.franchise_units?.unit_code ?? "",
+                period_month: r.period_month,
+                gross_revenue: r.gross_revenue,
+                royalty_amount: r.royalty_amount,
+                marketing_fee: r.marketing_fee,
+                status: r.status,
+              }));
+              setRoyalties(mapped);
+            }
+            setLoading(false);
+          });
+      });
+  }, [orgId]);
 
   const totalRevenueMtd = units.filter(u => u.is_active).reduce((sum, u) => sum + u.revenue_mtd, 0);
   const totalRoyaltiesPending = royalties.filter(r => r.status === "pending").reduce((sum, r) => sum + r.royalty_amount + r.marketing_fee, 0);

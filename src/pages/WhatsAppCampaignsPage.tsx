@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Template library ─────────────────────────────────────────────────────────
 const WA_TEMPLATES = [

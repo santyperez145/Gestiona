@@ -17,6 +17,7 @@ import { formatARS } from "@/lib/supabaseStore";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Return = {
   id: string;

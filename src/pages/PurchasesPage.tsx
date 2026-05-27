@@ -54,6 +54,7 @@ import { logAudit } from "@/lib/auditLog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePermissions } from "@/lib/usePermissions";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PAGE_SIZE = 20;
 

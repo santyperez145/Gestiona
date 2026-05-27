@@ -34,22 +34,28 @@ const GRADE_COLORS: Record<string, string> = {
   C: "text-yellow-400", D: "text-orange-400", F: "text-red-400",
 };
 
-// Mock comprobantes for demo
-const MOCK_CBTES = [
-  { id: "1", tipo_cbte: 6, punto_venta: 1, nro_cbte: 42, fecha_cbte: "2026-05-26", nro_doc: "20304050607", imp_total: 48400, cae: "74234567890123", status: "authorized", imp_neto: 40000, imp_iva: 8400 },
-  { id: "2", tipo_cbte: 6, punto_venta: 1, nro_cbte: 43, fecha_cbte: "2026-05-26", nro_doc: "27111222333", imp_total: 12100, cae: "74234567890124", status: "authorized", imp_neto: 10000, imp_iva: 2100 },
-  { id: "3", tipo_cbte: 11, punto_venta: 1, nro_cbte: 12, fecha_cbte: "2026-05-27", nro_doc: "0", imp_total: 7260, cae: null, status: "pending", imp_neto: 6000, imp_iva: 1260 },
-  { id: "4", tipo_cbte: 1, punto_venta: 1, nro_cbte: 8, fecha_cbte: "2026-05-25", nro_doc: "30123456789", imp_total: 242000, cae: "74234567890120", status: "authorized", imp_neto: 200000, imp_iva: 42000 },
-  { id: "5", tipo_cbte: 6, punto_venta: 1, nro_cbte: 44, fecha_cbte: "2026-05-27", nro_doc: "20987654321", imp_total: 5500, cae: null, status: "rejected", imp_neto: 4545.45, imp_iva: 954.55 },
-];
+interface AfipComprobante {
+  id: string;
+  tipo_cbte: number;
+  punto_venta: number;
+  nro_cbte: number;
+  fecha_cbte: string;
+  nro_doc: string;
+  imp_total: number;
+  cae: string | null;
+  status: string;
+  imp_neto: number;
+  imp_iva: number;
+}
 
-const MOCK_STATS = [
-  { day: "2026-05-27", total: 5, authorized: 3, rejected: 1, pending: 1, total_amount: 315260 },
-  { day: "2026-05-26", total: 12, authorized: 11, rejected: 0, pending: 1, total_amount: 890500 },
-  { day: "2026-05-25", total: 9, authorized: 9, rejected: 0, pending: 0, total_amount: 545000 },
-  { day: "2026-05-24", total: 7, authorized: 6, rejected: 1, pending: 0, total_amount: 420000 },
-  { day: "2026-05-23", total: 14, authorized: 13, rejected: 0, pending: 1, total_amount: 1100000 },
-];
+interface AfipStat {
+  day: string;
+  total: number;
+  authorized: number;
+  rejected: number;
+  pending: number;
+  total_amount: number;
+}
 
 function StatCard({ icon: Icon, label, value, sub, color = "text-primary" }: any) {
   return (
@@ -71,8 +77,8 @@ export default function AFIPPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<"comprobantes" | "config" | "stats" | "padron">("comprobantes");
   const [config, setConfig] = useState<any>(null);
-  const [cbtes, setCbtes] = useState<any[]>(MOCK_CBTES);
-  const [stats, setStats] = useState<any[]>(MOCK_STATS);
+  const [cbtes, setCbtes] = useState<AfipComprobante[]>([]);
+  const [stats, setStats] = useState<AfipStat[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -92,12 +98,34 @@ export default function AFIPPage() {
 
   useEffect(() => {
     if (!orgId) return;
+
+    // Load AFIP config
     supabase.from("afip_config").select("*").eq("org_id", orgId).maybeSingle()
       .then(({ data }) => {
         if (data) {
           setConfig(data);
           setConfigForm({ cuit: data.cuit, razon_social: data.razon_social, punto_venta: String(data.punto_venta), ambiente: data.ambiente, is_active: data.is_active });
         }
+      });
+
+    // Load comprobantes
+    setLoading(true);
+    supabase
+      .from("afip_comprobantes")
+      .select("id, tipo_cbte, punto_venta, nro_cbte, fecha_cbte, nro_doc, imp_total, cae, status, imp_neto, imp_iva")
+      .eq("org_id", orgId)
+      .order("fecha_cbte", { ascending: false })
+      .limit(200)
+      .then(({ data, error }) => {
+        if (!error && data) setCbtes(data as AfipComprobante[]);
+        setLoading(false);
+      });
+
+    // Load daily stats via RPC
+    supabase
+      .rpc("get_afip_stats", { p_org_id: orgId, p_days: 30 })
+      .then(({ data, error }) => {
+        if (!error && data) setStats(data as AfipStat[]);
       });
   }, [orgId]);
 

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Users, Plus, Copy, Check, TrendingUp, Gift, Settings2, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Referral = {
   id: string;

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { CreditCard, Plus, Check, CalendarDays, TrendingUp, AlertTriangle, DollarSign, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Installment = {
   id: string;

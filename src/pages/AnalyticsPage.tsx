@@ -19,6 +19,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PALETTE = [
   "hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)",

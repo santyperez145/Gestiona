@@ -19,31 +19,44 @@ const STAGES = [
   { id: "s4", name: "Negociación",  color: "#10b981", win_probability: 75 },
 ];
 
-// Mock deals
-const MOCK_DEALS: any[] = [
-  { id: "d1", stage: "s1", title: "Distribución CABA zona norte", value: 480000, customer: "Mayorista Central SRL", owner: "Marcos R.", close: "2026-06-30", probability: 15, rotting: false, source: "outbound", last: "hace 2 días" },
-  { id: "d2", stage: "s1", title: "Proveedor corporativo TechCorp", value: 1200000, customer: "TechCorp SA",          owner: "Ana G.",    close: "2026-07-15", probability: 20, rotting: false, source: "inbound",  last: "ayer" },
-  { id: "d3", stage: "s2", title: "Contrato anual retail x3 locales", value: 850000, customer: "Retail Express",     owner: "Marcos R.", close: "2026-06-15", probability: 30, rotting: true,  source: "referral", last: "hace 18 días" },
-  { id: "d4", stage: "s3", title: "Catering empresarial mensual",   value: 280000, customer: "Catering Delicias",    owner: "Sofia M.",  close: "2026-05-31", probability: 55, rotting: false, source: "web",      last: "hace 3 días" },
-  { id: "d5", stage: "s3", title: "Equipamiento oficinas completo", value: 640000, customer: "Oficinas Modernas SRL", owner: "Carlos L.", close: "2026-06-10", probability: 60, rotting: false, source: "cold_call", last: "hoy" },
-  { id: "d6", stage: "s4", title: "Acuerdo exclusivo zona sur",     value: 2100000, customer: "Distribuidora Sur SA", owner: "Ana G.",   close: "2026-05-30", probability: 80, rotting: false, source: "referral",  last: "hoy" },
-];
+interface CrmDeal {
+  id: string;
+  stage_id: string;
+  title: string;
+  value: number;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  probability: number;
+  is_rotting: boolean;
+  source: string | null;
+  updated_at: string;
+  expected_close: string | null;
+  weighted_value: number | null;
+}
 
-// Mock contacts
-const MOCK_CONTACTS = [
-  { id: "c1", name: "Carlos Martínez", company: "TechCorp SA", role: "Dir. Compras", score: 87, stage: "prospect", email: "c.martinez@techcorp.com", phone: "+54 11 4567-8901" },
-  { id: "c2", name: "Lucía Pérez",     company: "Retail Express", role: "Gerente Gral.", score: 72, stage: "customer", email: "l.perez@retail.com", phone: "+54 11 3456-7890" },
-  { id: "c3", name: "Diego Ruiz",      company: "Distribuidora Sur SA", role: "CEO", score: 95, stage: "customer", email: "d.ruiz@dissur.com", phone: "+54 11 2345-6789" },
-  { id: "c4", name: "Valeria Torres",  company: "Catering Delicias", role: "Socia", score: 60, stage: "lead", email: "v.torres@cateringd.com", phone: "+54 11 1234-5678" },
-];
+interface CrmContact {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  role: string | null;
+  lead_score: number;
+  lifecycle_stage: string;
+}
 
-// Mock activities
-const MOCK_ACTIVITIES = [
-  { id: "a1", type: "call",    deal: "Acuerdo exclusivo zona sur", subject: "Llamada de seguimiento", outcome: "positive", date: "2026-05-27 11:00", completed: true },
-  { id: "a2", type: "email",   deal: "Propuesta retail x3 locales", subject: "Envío de propuesta actualizada", outcome: "neutral", date: "2026-05-26 14:30", completed: true },
-  { id: "a3", type: "meeting", deal: "Equipamiento oficinas", subject: "Demo de productos premium", outcome: "positive", date: "2026-05-27 16:00", completed: false },
-  { id: "a4", type: "task",    deal: "TechCorp SA", subject: "Preparar contrato base", outcome: null, date: "2026-05-28 10:00", completed: false },
-];
+interface CrmActivity {
+  id: string;
+  activity_type: string;
+  subject: string;
+  outcome: string | null;
+  scheduled_at: string | null;
+  is_completed: boolean;
+  deal_id: string | null;
+  created_at: string;
+}
 
 const SOURCE_COLORS: Record<string, string> = {
   inbound: "bg-emerald-500/15 text-emerald-400", outbound: "bg-blue-500/15 text-blue-400",
@@ -55,21 +68,21 @@ const ACT_ICONS: Record<string, any> = {
   call: Phone, email: Mail, meeting: Calendar, task: CheckCircle2, note: Edit3,
 };
 
-function DealCard({ deal, stage }: { deal: any; stage: any }) {
+function DealCard({ deal, stage }: { deal: CrmDeal; stage: any }) {
   return (
-    <div className={`bg-card border rounded-xl p-3 text-xs space-y-2 cursor-pointer hover:border-primary/40 transition-all ${deal.rotting ? "border-orange-500/40 bg-orange-500/3" : "border-border/40"}`}>
+    <div className={`bg-card border rounded-xl p-3 text-xs space-y-2 cursor-pointer hover:border-primary/40 transition-all ${deal.is_rotting ? "border-orange-500/40 bg-orange-500/3" : "border-border/40"}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-sm leading-tight line-clamp-2">{deal.title}</p>
-        {deal.rotting && <AlertTriangle className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />}
+        {deal.is_rotting && <AlertTriangle className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />}
       </div>
-      <p className="text-muted-foreground truncate">{deal.customer}</p>
+      <p className="text-muted-foreground truncate">{deal.contact_name ?? "—"}</p>
       <div className="flex items-center justify-between">
-        <span className="font-bold text-sm">${(deal.value / 1000).toFixed(0)}K</span>
-        <Badge className={`text-[9px] ${SOURCE_COLORS[deal.source] || "bg-muted text-muted-foreground"} border-0`}>{deal.source}</Badge>
+        <span className="font-bold text-sm">${((deal.value ?? 0) / 1000).toFixed(0)}K</span>
+        <Badge className={`text-[9px] ${SOURCE_COLORS[deal.source ?? ""] || "bg-muted text-muted-foreground"} border-0`}>{deal.source ?? "—"}</Badge>
       </div>
       <div className="flex items-center justify-between text-muted-foreground">
         <span>{deal.probability}% prob.</span>
-        <span>{deal.last}</span>
+        <span>{deal.updated_at ? new Date(deal.updated_at).toLocaleDateString("es-AR") : "—"}</span>
       </div>
       <div className="h-1 bg-muted rounded-full">
         <div className="h-1 rounded-full" style={{ width: `${deal.probability}%`, background: stage.color }} />
@@ -84,15 +97,29 @@ export default function AdvancedCRMPage() {
   const [showNewDeal, setShowNewDeal] = useState(false);
   const [search, setSearch] = useState("");
   const [newDeal, setNewDeal] = useState({ title: "", value: "", stage: "s1", probability: "20" });
+  const [deals, setDeals] = useState<CrmDeal[]>([]);
+  const [contacts, setContacts] = useState<CrmContact[]>([]);
+  const [activities, setActivities] = useState<CrmActivity[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!orgId) return;
     supabase.rpc("seed_crm_pipeline", { p_org_id: orgId }).catch(() => {});
+    setLoading(true);
+    Promise.all([
+      supabase.from("crm_deals").select("*").eq("org_id", orgId).order("updated_at", { ascending: false }),
+      supabase.from("crm_contacts").select("*").eq("org_id", orgId).order("lead_score", { ascending: false }).limit(50),
+      supabase.from("crm_activities").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(20),
+    ]).then(([dealsRes, contactsRes, activitiesRes]) => {
+      if (dealsRes.data) setDeals(dealsRes.data as CrmDeal[]);
+      if (contactsRes.data) setContacts(contactsRes.data as CrmContact[]);
+      if (activitiesRes.data) setActivities(activitiesRes.data as CrmActivity[]);
+    }).finally(() => setLoading(false));
   }, [orgId]);
 
-  const totalPipeline = MOCK_DEALS.reduce((a, d) => a + d.value, 0);
-  const weightedPipeline = MOCK_DEALS.reduce((a, d) => a + d.value * d.probability / 100, 0);
-  const rottingCount = MOCK_DEALS.filter(d => d.rotting).length;
+  const totalPipeline = deals.reduce((a, d) => a + (d.value ?? 0), 0);
+  const weightedPipeline = deals.reduce((a, d) => a + (d.value ?? 0) * (d.probability ?? 0) / 100, 0);
+  const rottingCount = deals.filter(d => d.is_rotting).length;
 
   const TABS = [
     { id: "kanban",     label: "Pipeline Kanban" },
@@ -124,7 +151,7 @@ export default function AdvancedCRMPage() {
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Pipeline Total</p>
           <p className="text-2xl font-bold">${(totalPipeline / 1000000).toFixed(1)}M</p>
-          <p className="text-xs text-muted-foreground">{MOCK_DEALS.length} deals abiertos</p>
+          <p className="text-xs text-muted-foreground">{deals.length} deals abiertos</p>
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">Weighted Pipeline</p>
@@ -133,7 +160,7 @@ export default function AdvancedCRMPage() {
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground mb-1">En negociación</p>
-          <p className="text-2xl font-bold text-emerald-400">${(MOCK_DEALS.filter(d => d.stage === "s4").reduce((a, d) => a + d.value, 0) / 1000000).toFixed(1)}M</p>
+          <p className="text-2xl font-bold text-emerald-400">${(deals.filter(d => d.stage_id === STAGES[3]?.id).reduce((a, d) => a + (d.value ?? 0), 0) / 1000000).toFixed(1)}M</p>
           <p className="text-xs text-muted-foreground">etapa final</p>
         </div>
         <div className="bg-card border border-border/40 rounded-xl p-4">
@@ -157,8 +184,8 @@ export default function AdvancedCRMPage() {
       {tab === "kanban" && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-x-auto">
           {STAGES.map(stage => {
-            const stageDeals = MOCK_DEALS.filter(d => d.stage === stage.id);
-            const stageTotal = stageDeals.reduce((a, d) => a + d.value, 0);
+            const stageDeals = deals.filter(d => d.stage_id === stage.id);
+            const stageTotal = stageDeals.reduce((a, d) => a + (d.value ?? 0), 0);
             return (
               <div key={stage.id} className="bg-muted/20 border border-border/30 rounded-xl p-3 min-w-[240px]">
                 <div className="flex items-center justify-between mb-3">
@@ -202,33 +229,39 @@ export default function AdvancedCRMPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_CONTACTS.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.company.toLowerCase().includes(search.toLowerCase())).map(c => (
+                  {contacts.filter(c => {
+                    const fullName = `${c.first_name} ${c.last_name ?? ""}`.trim();
+                    return !search || fullName.toLowerCase().includes(search.toLowerCase()) || (c.company ?? "").toLowerCase().includes(search.toLowerCase());
+                  }).map(c => {
+                    const fullName = `${c.first_name} ${c.last_name ?? ""}`.trim();
+                    return (
                     <tr key={c.id} className="border-b border-border/20 hover:bg-muted/20 cursor-pointer">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{c.name[0]}</div>
-                          <span className="font-medium">{c.name}</span>
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{c.first_name[0]}</div>
+                          <span className="font-medium">{fullName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{c.company}</td>
-                      <td className="px-4 py-3 text-xs">{c.role}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{c.company ?? "—"}</td>
+                      <td className="px-4 py-3 text-xs">{c.role ?? "—"}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-12 h-1.5 bg-muted rounded-full">
-                            <div className={`h-1.5 rounded-full ${c.score >= 80 ? "bg-emerald-400" : c.score >= 60 ? "bg-yellow-400" : "bg-red-400"}`} style={{ width: `${c.score}%` }} />
+                            <div className={`h-1.5 rounded-full ${c.lead_score >= 80 ? "bg-emerald-400" : c.lead_score >= 60 ? "bg-yellow-400" : "bg-red-400"}`} style={{ width: `${c.lead_score}%` }} />
                           </div>
-                          <span className="text-xs font-semibold">{c.score}</span>
+                          <span className="text-xs font-semibold">{c.lead_score}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3"><Badge className="bg-muted border-0 text-xs">{c.stage}</Badge></td>
+                      <td className="px-4 py-3"><Badge className="bg-muted border-0 text-xs">{c.lifecycle_stage}</Badge></td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
-                          <button className="text-muted-foreground hover:text-foreground" title={c.email}><Mail className="w-3.5 h-3.5" /></button>
-                          <button className="text-muted-foreground hover:text-foreground" title={c.phone}><Phone className="w-3.5 h-3.5" /></button>
+                          <button className="text-muted-foreground hover:text-foreground" title={c.email ?? ""}><Mail className="w-3.5 h-3.5" /></button>
+                          <button className="text-muted-foreground hover:text-foreground" title={c.phone ?? ""}><Phone className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -239,20 +272,20 @@ export default function AdvancedCRMPage() {
       {/* ─── Activities tab ─── */}
       {tab === "activities" && (
         <div className="space-y-3">
-          {MOCK_ACTIVITIES.map(a => {
-            const Icon = ACT_ICONS[a.type] || Activity;
+          {activities.map(a => {
+            const Icon = ACT_ICONS[a.activity_type] || Activity;
             return (
-              <div key={a.id} className={`bg-card border border-border/40 rounded-xl p-4 flex items-center gap-4 ${a.completed ? "opacity-70" : ""}`}>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${a.completed ? "bg-emerald-500/10" : "bg-primary/10"}`}>
-                  <Icon className={`w-4 h-4 ${a.completed ? "text-emerald-400" : "text-primary"}`} />
+              <div key={a.id} className={`bg-card border border-border/40 rounded-xl p-4 flex items-center gap-4 ${a.is_completed ? "opacity-70" : ""}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${a.is_completed ? "bg-emerald-500/10" : "bg-primary/10"}`}>
+                  <Icon className={`w-4 h-4 ${a.is_completed ? "text-emerald-400" : "text-primary"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.subject}</p>
-                  <p className="text-xs text-muted-foreground">{a.deal} · {a.date}</p>
+                  <p className="text-xs text-muted-foreground">{a.deal_id ?? "—"} · {a.scheduled_at ? new Date(a.scheduled_at).toLocaleString("es-AR") : new Date(a.created_at).toLocaleString("es-AR")}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {a.outcome && <Badge className={`text-xs border-0 ${a.outcome === "positive" ? "bg-emerald-500/15 text-emerald-400" : a.outcome === "negative" ? "bg-red-500/15 text-red-400" : "bg-muted text-muted-foreground"}`}>{a.outcome}</Badge>}
-                  {a.completed ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : (
+                  {a.is_completed ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : (
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => toast.success("Actividad marcada como completada")}>Completar</Button>
                   )}
                 </div>
@@ -270,9 +303,9 @@ export default function AdvancedCRMPage() {
             <h3 className="font-semibold flex items-center gap-2 mb-4"><Target className="w-4 h-4 text-primary" />Forecast por Etapa</h3>
             <div className="space-y-3">
               {STAGES.map(stage => {
-                const deals = MOCK_DEALS.filter(d => d.stage === stage.id);
-                const total = deals.reduce((a, d) => a + d.value, 0);
-                const weighted = deals.reduce((a, d) => a + d.value * d.probability / 100, 0);
+                const stageDeals = deals.filter(d => d.stage_id === stage.id);
+                const total = stageDeals.reduce((a, d) => a + (d.value ?? 0), 0);
+                const weighted = stageDeals.reduce((a, d) => a + (d.value ?? 0) * (d.probability ?? 0) / 100, 0);
                 return (
                   <div key={stage.id} className="flex items-center gap-4 p-3 bg-muted/20 rounded-lg">
                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: stage.color }} />
@@ -280,7 +313,7 @@ export default function AdvancedCRMPage() {
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="font-medium">{stage.name}</span>
                         <div className="flex items-center gap-4 text-xs">
-                          <span className="text-muted-foreground">{deals.length} deals · ${(total / 1000000).toFixed(2)}M</span>
+                          <span className="text-muted-foreground">{stageDeals.length} deals · ${(total / 1000000).toFixed(2)}M</span>
                           <span className="font-semibold text-primary">weighted: ${(weighted / 1000).toFixed(0)}K</span>
                         </div>
                       </div>

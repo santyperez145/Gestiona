@@ -26,35 +26,30 @@ const RATE_TYPES = [
   { id: "ccl",     label: "CCL",          color: "text-yellow-400" },
 ];
 
-// Mock current rates USD/ARS
-const MOCK_RATES = {
-  oficial: { rate: 938.50,  change: 2.15,  updated: "hace 30 min" },
-  blue:    { rate: 1285.00, change: -5.00, updated: "hace 5 min" },
-  mep:     { rate: 1278.00, change: 1.50,  updated: "hace 15 min" },
-  ccl:     { rate: 1290.00, change: 3.00,  updated: "hace 10 min" },
-};
+interface RateInfo {
+  rate: number;
+  change: number;
+  updated: string;
+}
 
-// Sparkline data points (last 7 days)
-const SPARKLINE_DATA: Record<string, number[]> = {
-  oficial: [920, 923, 927, 930, 934, 936, 938.5],
-  blue:    [1260, 1270, 1275, 1280, 1290, 1290, 1285],
-  mep:     [1252, 1260, 1265, 1270, 1278, 1276, 1278],
-  ccl:     [1265, 1272, 1280, 1284, 1288, 1287, 1290],
-};
+interface ExposureRow {
+  currency: string;
+  receivables: number;
+  payables: number;
+  spot: number;
+}
 
-// Mock FX exposure
-const MOCK_EXPOSURE = [
-  { currency: "USD", receivables: 15000, payables: 8000, spot: 1285 },
-  { currency: "EUR", receivables: 5000,  payables: 2000, spot: 1401 },
-  { currency: "BRL", receivables: 22000, payables: 5000, spot: 236  },
-];
-
-// Mock recent transactions
-const MOCK_TRANSACTIONS = [
-  { id: "t1", type: "sale",     entity: "Venta #4521", from: "USD", to: "ARS", amount_fc: 500,  amount_bc: 642500,  rate: 1285, rate_type: "blue", date: "2026-05-27" },
-  { id: "t2", type: "purchase", entity: "Compra #891", from: "ARS", to: "USD", amount_fc: 938500, amount_bc: 1000, rate: 938.5, rate_type: "oficial", date: "2026-05-26" },
-  { id: "t3", type: "expense",  entity: "Servicio Cloud", from: "USD", to: "ARS", amount_fc: 120, amount_bc: 154200, rate: 1285, rate_type: "blue", date: "2026-05-26" },
-];
+interface MCTransaction {
+  id: string;
+  entity_type: string;
+  base_currency: string;
+  transaction_currency: string;
+  base_amount: number;
+  transaction_amount: number;
+  exchange_rate: number;
+  rate_type: string;
+  created_at: string;
+}
 
 function MiniSparkline({ data, color = "#f59e0b" }: { data: number[]; color?: string }) {
   const min = Math.min(...data);
@@ -99,9 +94,103 @@ export default function MultiCurrencyPage() {
   const [convAmount, setConvAmount] = useState("100");
   const [showAddRate, setShowAddRate] = useState(false);
   const [newRate, setNewRate] = useState({ currency_from: "USD", currency_to: "ARS", rate: "", rate_type: "custom" });
+  const [rates, setRates] = useState<Record<string, RateInfo>>({});
+  const [sparklineData, setSparklineData] = useState<Record<string, number[]>>({});
+  const [exposure, setExposure] = useState<ExposureRow[]>([]);
+  const [transactions, setTransactions] = useState<MCTransaction[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+  const [otherRates, setOtherRates] = useState<Array<{ code: string; rate: number; change: number; spark: number[] }>>([]);
 
-  // Conversion result
-  const selectedRateData = MOCK_RATES[selectedRate as keyof typeof MOCK_RATES];
+  useEffect(() => {
+    if (!orgId) return;
+    setLoadingData(true);
+
+    // Fetch latest exchange rates for USD/ARS per rate_type
+    supabase
+      .from("exchange_rates")
+      .select("rate_type, rate, valid_from, currency_from, currency_to")
+      .eq("currency_to", "ARS")
+      .or(`org_id.eq.${orgId},org_id.is.null`)
+      .order("valid_from", { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        if (!data) return;
+        const usdRows = data.filter(r => r.currency_from === "USD");
+        const byType: Record<string, RateInfo> = {};
+        const sparkMap: Record<string, number[]> = {};
+        for (const rt of RATE_TYPES) {
+          const rows = usdRows.filter(r => r.rate_type === rt.id);
+          if (rows.length > 0) {
+            const latest = rows[0];
+            const prev = rows[1];
+            const change = prev ? parseFloat((Number(latest.rate) - Number(prev.rate)).toFixed(2)) : 0;
+            const now = new Date();
+            const validFrom = new Date(latest.valid_from);
+            const diffMs = now.getTime() - validFrom.getTime();
+            const diffMin = Math.round(diffMs / 60000);
+            const updated = diffMin < 60 ? `hace ${diffMin} min` : `hace ${Math.round(diffMin / 60)}h`;
+            byType[rt.id] = { rate: Number(latest.rate), change, updated };
+            sparkMap[rt.id] = rows.slice(0, 7).map(r => Number(r.rate)).reverse();
+          }
+        }
+        setRates(byType);
+        setSparklineData(sparkMap);
+
+        // Build "other currencies vs ARS" table (non-USD)
+        const otherCodes = Object.keys(CURRENCIES_INFO).filter(c => c !== "USD" && c !== "ARS");
+        const otherArr = otherCodes.map(code => {
+          const rows = data.filter(r => r.currency_from === code);
+          if (rows.length === 0) return null;
+          const latest = rows[0];
+          const prev = rows[1];
+          const change = prev ? parseFloat((Number(latest.rate) - Number(prev.rate)).toFixed(2)) : 0;
+          const spark = rows.slice(0, 7).map(r => Number(r.rate)).reverse();
+          return { code, rate: Number(latest.rate), change, spark };
+        }).filter((r): r is { code: string; rate: number; change: number; spark: number[] } => r !== null);
+        setOtherRates(otherArr);
+      });
+
+    // Fetch FX exposure
+    supabase
+      .from("fx_exposure")
+      .select("currency_code, receivables_fc, payables_fc, spot_rate")
+      .eq("org_id", orgId)
+      .order("snapshot_date", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (!data) return;
+        // Take latest snapshot per currency
+        const seen = new Set<string>();
+        const rows: ExposureRow[] = [];
+        for (const r of data) {
+          if (!seen.has(r.currency_code)) {
+            seen.add(r.currency_code);
+            rows.push({
+              currency: r.currency_code,
+              receivables: Number(r.receivables_fc),
+              payables: Number(r.payables_fc),
+              spot: Number(r.spot_rate),
+            });
+          }
+        }
+        setExposure(rows);
+      });
+
+    // Fetch recent multi-currency transactions
+    supabase
+      .from("multi_currency_transactions")
+      .select("id, entity_type, base_currency, transaction_currency, base_amount, transaction_amount, exchange_rate, rate_type, created_at")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (data) setTransactions(data as MCTransaction[]);
+        setLoadingData(false);
+      });
+  }, [orgId]);
+
+  // Conversion result — use loaded rate or fallback to 1
+  const selectedRateData = rates[selectedRate] ?? { rate: 1, change: 0, updated: "—" };
   const convResult = convFrom === "USD" && convTo === "ARS"
     ? Number(convAmount) * selectedRateData.rate
     : convFrom === "ARS" && convTo === "USD"
@@ -167,11 +256,14 @@ export default function MultiCurrencyPage() {
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">USD / ARS — Cotizaciones</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {RATE_TYPES.map(rt => (
-                <RateCard key={rt.id} type={rt.id} data={MOCK_RATES[rt.id as keyof typeof MOCK_RATES]}
-                  sparkData={SPARKLINE_DATA[rt.id]} selected={selectedRate === rt.id}
+              {RATE_TYPES.filter(rt => rates[rt.id]).map(rt => (
+                <RateCard key={rt.id} type={rt.id} data={rates[rt.id]}
+                  sparkData={sparklineData[rt.id] ?? []} selected={selectedRate === rt.id}
                   onClick={() => setSelectedRate(rt.id)} />
               ))}
+              {!loadingData && Object.keys(rates).length === 0 && (
+                <p className="col-span-4 text-sm text-muted-foreground text-center py-4">Sin tipos de cambio registrados. Agregá una tasa manual.</p>
+              )}
             </div>
           </div>
 
@@ -188,13 +280,12 @@ export default function MultiCurrencyPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { code: "EUR", rate: 1021.50, change: 5.20,  spark: [990, 998, 1005, 1010, 1015, 1019, 1021.5] },
-                    { code: "BRL", rate: 163.40,  change: -1.10, spark: [165, 164.5, 164, 163.8, 163.5, 163.6, 163.4] },
-                    { code: "UYU", rate: 23.80,   change: 0.15,  spark: [23.5, 23.6, 23.65, 23.7, 23.75, 23.78, 23.8] },
-                    { code: "CLP", rate: 0.97,    change: 0.02,  spark: [0.94, 0.95, 0.95, 0.96, 0.96, 0.97, 0.97] },
-                  ].map(r => {
+                  {otherRates.length === 0 && (
+                    <tr><td colSpan={5} className="px-4 py-4 text-xs text-muted-foreground text-center">Sin datos de otras divisas</td></tr>
+                  )}
+                  {otherRates.map(r => {
                     const c = CURRENCIES_INFO[r.code];
+                    if (!c) return null;
                     const up = r.change >= 0;
                     return (
                       <tr key={r.code} className="border-b border-border/20 hover:bg-muted/20">
