@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe, Warehouse, FolderOpen, LineChart, Shield, Code2, Map, Eye, Leaf } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe, Warehouse, FolderOpen, LineChart, Shield, Code2, Map, Eye, Leaf, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -153,6 +153,8 @@ const allNavItems = [
   { to: "/portal-proveedores", label: "Portal de Proveedores", icon: Building2, roles: ['admin'], section: 'inventario' },
   { to: "/reconocimiento-ingresos", label: "Reconocimiento Ingresos", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
   { to: "/huella-carbono", label: "Huella de Carbono ESG", icon: Leaf, roles: ['admin'], section: 'analytics' },
+  { to: "/precios-dinamicos", label: "Precios Dinámicos", icon: Zap, roles: ['admin'], section: 'inventario' },
+  { to: "/ciclo-vida-producto", label: "Ciclo de Vida PLM", icon: RefreshCw, roles: ['admin'], section: 'inventario' },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, roles: ['admin', 'vendedor'], section: 'principal' },
   { to: "/qr-generator", label: "Generador de QR", icon: QrCode, roles: ['admin'], section: 'config' },
   { to: "/integraciones", label: "Integraciones", icon: Plug, roles: ['admin'], section: 'config' },
@@ -182,6 +184,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // ── Collapsible sidebar sections ─────────────────────────────────────────
+  const getActiveSectionForPath = (path: string) => {
+    const item = allNavItems.find(i => i.to === path);
+    return item?.section ?? 'principal';
+  };
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    () => new Set(['principal', getActiveSectionForPath(window.location.pathname)])
+  );
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) { next.delete(section); } else { next.add(section); }
+      return next;
+    });
+  };
+  // Auto-expand the section of the newly active route
+  useEffect(() => {
+    const section = getActiveSectionForPath(pathname);
+    setExpandedSections(prev => prev.has(section) ? prev : new Set([...prev, section]));
+  }, [pathname]);
   const config = useBusinessConfig();
   const { subscription, isTrialing, trialDaysLeft } = useEntitlements();
 
@@ -331,68 +354,77 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* ── Navigation ───────────────────────────────────────────── */}
         <nav className="flex-1 px-2 py-2.5 overflow-y-auto scrollbar-hide">
-          {groupedNav.map((group, gi) => (
+          {groupedNav.map((group, gi) => {
+            const isExpanded = group.section === 'principal' || collapsed || expandedSections.has(group.section);
+            return (
             <div key={group.section} className={gi > 0 ? 'mt-1' : ''}>
-              {/* Section label */}
+              {/* Section label — clickable to collapse/expand */}
               {group.label && !collapsed && (
-                <div className={`px-2.5 ${gi > 0 ? 'pt-4 pb-1.5' : 'pb-1.5'}`}>
-                  <span className="nav-section-label">{group.label}</span>
-                </div>
+                <button
+                  onClick={() => toggleSection(group.section)}
+                  className={`w-full flex items-center justify-between px-2.5 ${gi > 0 ? 'pt-4 pb-1.5' : 'pb-1.5'} group/sec hover:opacity-100`}
+                >
+                  <span className="nav-section-label group-hover/sec:text-foreground/60 transition-colors">{group.label}</span>
+                  <ChevronRight className={`w-3 h-3 text-muted-foreground/30 group-hover/sec:text-muted-foreground/60 transition-all duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                </button>
               )}
               {gi > 0 && collapsed && (
                 <div className="my-2 mx-3 border-t border-sidebar-border/40" />
               )}
-              {/* Nav items */}
-              <div className="space-y-[2px]">
-                {group.items.map(({ to, label, icon: Icon }) => {
-                  const active = pathname === to;
-                  const hasNew = unseenNewPages.has(to);
-                  return (
-                    <Link
-                      key={to}
-                      to={to}
-                      onClick={() => setMobileOpen(false)}
-                      title={collapsed ? label : undefined}
-                      className={`group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
-                        collapsed ? 'justify-center px-0' : 'px-2.5'
-                      } ${
-                        active
-                          ? "bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
-                      }`}
-                    >
-                      {/* Active left bar — glowing */}
-                      {active && (
-                        <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(38_82%_52%/0.7)]" />
-                      )}
+              {/* Nav items — hidden when section is collapsed */}
+              {isExpanded && (
+                <div className="space-y-[2px]">
+                  {group.items.map(({ to, label, icon: Icon }) => {
+                    const active = pathname === to;
+                    const hasNew = unseenNewPages.has(to);
+                    return (
+                      <Link
+                        key={to}
+                        to={to}
+                        onClick={() => setMobileOpen(false)}
+                        title={collapsed ? label : undefined}
+                        className={`group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
+                          collapsed ? 'justify-center px-0' : 'px-2.5'
+                        } ${
+                          active
+                            ? "bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
+                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
+                        }`}
+                      >
+                        {/* Active left bar — glowing */}
+                        {active && (
+                          <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(38_82%_52%/0.7)]" />
+                        )}
 
-                      {/* Icon */}
-                      <div className={`relative shrink-0 transition-transform duration-150 ${active ? '' : 'group-hover:scale-105'}`}>
-                        <Icon className={`w-[17px] h-[17px] ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90'}`} />
-                        {hasNew && !active && (
-                          <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-primary">
-                            <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+                        {/* Icon */}
+                        <div className={`relative shrink-0 transition-transform duration-150 ${active ? '' : 'group-hover:scale-105'}`}>
+                          <Icon className={`w-[17px] h-[17px] ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90'}`} />
+                          {hasNew && !active && (
+                            <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-primary">
+                              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Label */}
+                        {!collapsed && (
+                          <span className="flex-1 truncate">{label}</span>
+                        )}
+
+                        {/* "new" badge */}
+                        {!collapsed && hasNew && !active && (
+                          <span className="text-[8px] font-bold px-1 py-px rounded-[3px] bg-primary/15 text-primary uppercase tracking-wider shrink-0">
+                            new
                           </span>
                         )}
-                      </div>
-
-                      {/* Label */}
-                      {!collapsed && (
-                        <span className="flex-1 truncate">{label}</span>
-                      )}
-
-                      {/* "new" badge */}
-                      {!collapsed && hasNew && !active && (
-                        <span className="text-[8px] font-bold px-1 py-px rounded-[3px] bg-primary/15 text-primary uppercase tracking-wider shrink-0">
-                          new
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* ── Collapse toggle ──────────────────────────────────────── */}
