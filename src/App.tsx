@@ -163,6 +163,8 @@ const CompetitorIntelligencePage = lazy(() => import("@/pages/CompetitorIntellig
 const SalesGamificationPage    = lazy(() => import("@/pages/SalesGamificationPage"));
 const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
 const ELearningPage            = lazy(() => import("@/pages/ELearningPage"));
+const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
+const VendorPortalPage         = lazy(() => import("@/pages/VendorPortalPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -388,6 +390,8 @@ function ProtectedRoutes() {
               <Route path="/gamificacion-ventas" element={<SalesGamificationPage />} />
               <Route path="/valuacion-inventario" element={<InventoryValuationPage />} />
               <Route path="/capacitacion" element={<ELearningPage />} />
+              <Route path="/alertas-inteligentes" element={<SmartAlertsPage />} />
+              <Route path="/portal-proveedores" element={<VendorPortalPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
