@@ -20,7 +20,7 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePriceList } from "@/hooks/usePriceList";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { useVibration } from "@/hooks/useVibration";
-import Fuse from "fuse.js";
+// fuse.js loaded dynamically to avoid Rollup TDZ (const kt) in production builds
 
 async function fireConfetti(opts: Record<string, unknown>) {
   const { default: confetti } = await import("canvas-confetti");
@@ -700,6 +700,12 @@ export default function POSPage() {
   const config = useBusinessConfig();
   const { checkSalesLimit } = usePlanLimits();
 
+  // ── Dynamically-loaded Fuse.js (avoids Rollup TDZ in prod) ──
+  const [FuseClass, setFuseClass] = useState<any>(null);
+  useEffect(() => {
+    import("fuse.js").then((m) => setFuseClass(() => m.default));
+  }, []);
+
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
@@ -1018,8 +1024,9 @@ export default function POSPage() {
       const productQuery = sellMatch[2].trim();
       setSearch(productQuery);
       // Wait for fuse.js to filter, then add first result
-      setTimeout(() => {
-        const fuse = new Fuse(products, { keys: ['name', 'brand'], threshold: 0.5, ignoreLocation: true });
+      setTimeout(async () => {
+        const FC = FuseClass || (await import("fuse.js").then((m) => m.default));
+        const fuse = new FC(products, { keys: ['name', 'brand'], threshold: 0.5, ignoreLocation: true });
         const results = fuse.search(productQuery);
         if (results[0]) {
           const p = results[0].item;
@@ -1147,21 +1154,28 @@ export default function POSPage() {
       // Exact barcode/SKU match takes priority
       const exactBarcode = list.find(p => p.barcode === search.trim() || p.sku === search.trim());
       if (exactBarcode) return [exactBarcode];
-      // Fuse.js fuzzy search — handles typos, partial matches, accent-insensitive
-      const fuse = new Fuse(list, {
-        keys: [
-          { name: 'name', weight: 0.6 },
-          { name: 'brand', weight: 0.3 },
-          { name: 'description', weight: 0.1 },
-        ],
-        threshold: 0.4,      // 0=exact, 1=match anything — 0.4 is comfortably fuzzy
-        minMatchCharLength: 2,
-        ignoreLocation: true, // match anywhere in string, not just from start
-      });
-      return fuse.search(search).map(r => r.item);
+      if (FuseClass) {
+        // Fuse.js fuzzy search — handles typos, partial matches, accent-insensitive
+        const fuse = new FuseClass(list, {
+          keys: [
+            { name: 'name', weight: 0.6 },
+            { name: 'brand', weight: 0.3 },
+            { name: 'description', weight: 0.1 },
+          ],
+          threshold: 0.4,
+          minMatchCharLength: 2,
+          ignoreLocation: true,
+        });
+        return fuse.search(search).map((r: any) => r.item);
+      }
+      // Fallback: simple substring search while Fuse loads (< 100ms in practice)
+      const q = search.toLowerCase();
+      return list.filter(
+        (p) => p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q),
+      );
     }
     return list;
-  }, [products, cat, search]);
+  }, [products, cat, search, FuseClass]);
 
   // ── Cart calculations ──
   const effectivePayMethod = splitMode ? splitMethod1 : payMethod;
