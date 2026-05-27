@@ -143,6 +143,9 @@ const CompetitorPricingPage    = lazy(() => import("@/pages/CompetitorPricingPag
 const HRPortalPage             = lazy(() => import("@/pages/HRPortalPage"));
 const AuditLogPage             = lazy(() => import("@/pages/AuditLogPage"));
 const APIKeysPage              = lazy(() => import("@/pages/APIKeysPage"));
+const ReturnsPortalPage        = lazy(() => import("@/pages/ReturnsPortalPage"));
+const SmartInventoryPage       = lazy(() => import("@/pages/SmartInventoryPage"));
+const AIChatAdvancedPage       = lazy(() => import("@/pages/AIChatAdvancedPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
 const CommandPalette         = lazy(() => import("@/components/shared/CommandPalette"));
@@ -348,6 +351,9 @@ function ProtectedRoutes() {
               <Route path="/rrhh" element={<HRPortalPage />} />
               <Route path="/auditoria" element={<AuditLogPage />} />
               <Route path="/api-keys" element={<APIKeysPage />} />
+              <Route path="/devoluciones-rma" element={<ReturnsPortalPage />} />
+              <Route path="/inventario-inteligente" element={<SmartInventoryPage />} />
+              <Route path="/chat-ia-avanzado" element={<AIChatAdvancedPage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
