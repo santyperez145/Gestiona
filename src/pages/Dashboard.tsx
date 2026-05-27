@@ -1031,8 +1031,6 @@ export default function Dashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats, permission]);
 
-  if (loading || !stats) return <DashboardSkeleton />;
-
   const shareDailyResume = () => {
     const today = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
     const revenue = formatARS(liveTodaySales?.total ?? 0);
@@ -1102,6 +1100,8 @@ export default function Dashboard() {
         });
       });
   }, [activeOrg?.id]);
+
+  if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
     { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
