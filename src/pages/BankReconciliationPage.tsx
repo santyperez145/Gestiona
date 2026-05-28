@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import KPICard from "@/components/shared/KPICard";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -294,7 +294,7 @@ export default function BankReconciliationPage() {
     : [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <PageHeader
         icon={Landmark}
@@ -339,23 +339,11 @@ export default function BankReconciliationPage() {
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Ingresos", value: formatARS(stats.credits), icon: TrendingUp, color: "text-emerald-400" },
-          { label: "Egresos", value: formatARS(stats.debits), icon: TrendingDown, color: "text-red-400" },
-          { label: "Balance neto", value: formatARS(stats.net), icon: Landmark, color: stats.net >= 0 ? "text-emerald-400" : "text-red-400" },
-          { label: "Sin conciliar", value: stats.unmatched, icon: AlertTriangle, color: stats.unmatched > 0 ? "text-yellow-400" : "text-muted-foreground" },
-        ].map(s => (
-          <Card key={s.label} className="border-border bg-card/60">
-            <CardContent className="p-4 flex items-center gap-3">
-              <s.icon className={`w-8 h-8 ${s.color} shrink-0`} />
-              <div>
-                <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KPICard label="Ingresos" value={formatARS(stats.credits)} icon={TrendingUp} color="success" sub="créditos del período" />
+        <KPICard label="Egresos" value={formatARS(stats.debits)} icon={TrendingDown} color="destructive" sub="débitos del período" />
+        <KPICard label="Balance neto" value={formatARS(stats.net)} icon={Landmark} color={stats.net >= 0 ? "success" : "destructive"} sub="créditos − débitos" />
+        <KPICard label="Sin conciliar" value={stats.unmatched} icon={AlertTriangle} color={stats.unmatched > 0 ? "warning" : "success"} sub={`${stats.matched} conciliados`} />
       </div>
 
       {/* CSV format hint */}

@@ -6,7 +6,7 @@ import { formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import {
   ClipboardList, CheckCircle2, AlertTriangle, RefreshCw,
@@ -350,31 +350,17 @@ export default function StockCountPage() {
 
       {/* Stats strip */}
       {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          {[
-            { label: "Contados", value: stats.counted, icon: CheckCircle2, color: "text-emerald-400" },
-            { label: "Sin contar", value: stats.missing, icon: Minus, color: "text-muted-foreground" },
-            { label: "Sobrantes", value: stats.surplus, icon: TrendingUp, color: "text-green-400" },
-            { label: "Faltantes", value: stats.shortage, icon: TrendingDown, color: "text-red-400" },
-          ].map(s => (
-            <Card key={s.label} className="border-border bg-card/60">
-              <CardContent className="p-3 flex items-center gap-2">
-                <s.icon className={`w-5 h-5 ${s.color} shrink-0`} />
-                <div>
-                  <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-                  <div className="text-xs text-muted-foreground">{s.label}</div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          <Card className="border-border bg-card/60">
-            <CardContent className="p-3">
-              <div className={`text-xl font-bold ${stats.totalDiffCost < 0 ? "text-red-400" : stats.totalDiffCost > 0 ? "text-green-400" : ""}`}>
-                {stats.totalDiffCost >= 0 ? "+" : ""}{stats.totalDiffCost.toFixed(0)} USD
-              </div>
-              <div className="text-xs text-muted-foreground">Impacto costo neto</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <KPICard label="Contados" value={stats.counted} icon={CheckCircle2} color="success" />
+          <KPICard label="Sin contar" value={stats.missing} icon={Minus} color="primary" />
+          <KPICard label="Sobrantes" value={stats.surplus} icon={TrendingUp} color="success" />
+          <KPICard label="Faltantes" value={stats.shortage} icon={TrendingDown} color="destructive" />
+          <KPICard
+            label="Impacto costo neto"
+            value={`${stats.totalDiffCost >= 0 ? "+" : ""}${stats.totalDiffCost.toFixed(0)} USD`}
+            icon={stats.totalDiffCost < 0 ? TrendingDown : TrendingUp}
+            color={stats.totalDiffCost < 0 ? "destructive" : "success"}
+          />
         </div>
       )}
 

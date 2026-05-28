@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import KPICard from "@/components/shared/KPICard";
 import { Slider } from "@/components/ui/slider";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -352,7 +353,7 @@ export default function AutoRestockPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <PageHeader
         icon={PackageOpen}
@@ -402,43 +403,11 @@ export default function AutoRestockPage() {
 
       {/* KPI strip */}
       {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="border-border bg-card/60">
-            <CardContent className="p-4 flex items-center gap-3">
-              <AlertTriangle className="w-8 h-8 text-red-400 shrink-0" />
-              <div>
-                <div className="text-2xl font-bold text-red-400">{criticalCount}</div>
-                <div className="text-xs text-muted-foreground">Críticos (≤3d)</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card/60">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Clock className="w-8 h-8 text-orange-400 shrink-0" />
-              <div>
-                <div className="text-2xl font-bold text-orange-400">{urgentCount}</div>
-                <div className="text-xs text-muted-foreground">Urgentes (4–7d)</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card/60">
-            <CardContent className="p-4 flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 text-amber-400 shrink-0" />
-              <div>
-                <div className="text-2xl font-bold">{filtered.length}</div>
-                <div className="text-xs text-muted-foreground">Total a reponer</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card/60">
-            <CardContent className="p-4 flex items-center gap-3">
-              <ShoppingCart className="w-8 h-8 text-primary shrink-0" />
-              <div>
-                <div className="text-2xl font-bold">${totalCostUSD.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">USD</span></div>
-                <div className="text-xs text-muted-foreground">Inversión estimada</div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KPICard label="Críticos (≤3d)" value={criticalCount} icon={AlertTriangle} color="destructive" sub="quiebre inminente" />
+          <KPICard label="Urgentes (4–7d)" value={urgentCount} icon={Clock} color="warning" sub="atención pronto" />
+          <KPICard label="Total a reponer" value={filtered.length} icon={TrendingUp} color="primary" sub={`umbral: ${thresholdDays}d`} />
+          <KPICard label="Inversión estimada" value={`$${totalCostUSD.toFixed(0)} USD`} icon={ShoppingCart} color="blue" sub="costo total sugerido" />
         </div>
       )}
 

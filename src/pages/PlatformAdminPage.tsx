@@ -21,6 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import PageHeader from '@/components/shared/PageHeader';
+import KPICard from '@/components/shared/KPICard';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +112,7 @@ const fmtFull = (d: string | null) => d ? new Date(d).toLocaleString('es-AR', { 
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PlatformAdminPage() {
+  usePageTitle("Platform Admin");
   const { isPlatformAdmin, loading: orgLoading } = useOrg();
   const [tab, setTab] = useState('overview');
 
@@ -548,84 +552,38 @@ export default function PlatformAdminPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Crown className="w-5 h-5 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-display font-bold">Platform Admin</h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">Control total de todos los tenants de Gestiona.</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => { loadOrgs(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs} className="self-start sm:self-auto">
-          <RefreshCw className={`w-4 h-4 mr-2 ${loadingOrgs ? 'animate-spin' : ''}`} /> Actualizar
-        </Button>
-      </div>
+      <PageHeader
+        icon={Crown}
+        title="Platform Admin"
+        description="Control total de todos los tenants de Gestiona"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => { loadOrgs(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loadingOrgs ? 'animate-spin' : ''}`} /> Actualizar
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { l: 'Organizaciones', v: stats.orgs, i: Building2, sub: `${stats.trialing} en trial` },
-          { l: 'Usuarios totales', v: stats.users || '—', i: Users, sub: `${stats.orgs} orgs` },
-          { l: 'MRR', v: `$${stats.mrr.toLocaleString()}`, i: DollarSign, sub: `ARR: $${stats.arr.toLocaleString()}` },
-          { l: 'Conversión trial', v: `${stats.trialConversion}%`, i: TrendingUp, sub: `${stats.active} pagos activos` },
-        ].map(s => (
-          <div key={s.l} className="rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)] p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">{s.l}</span>
-              <s.i className="w-4 h-4 text-primary" />
-            </div>
-            <div className="text-2xl font-display font-bold">{s.v}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.sub}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Organizaciones" value={stats.orgs} icon={Building2} color="primary" sub={`${stats.trialing} en trial`} />
+        <KPICard label="Usuarios totales" value={stats.users || '—'} icon={Users} color="blue" sub={`${stats.orgs} orgs`} />
+        <KPICard label="MRR" value={`$${stats.mrr.toLocaleString()}`} icon={DollarSign} color="success" sub={`ARR: $${stats.arr.toLocaleString()}`} />
+        <KPICard label="Conversión trial" value={`${stats.trialConversion}%`} icon={TrendingUp} color={stats.trialConversion >= 50 ? "success" : "warning"} sub={`${stats.active} pagos activos`} />
       </div>
 
       {/* Status row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { l: 'Activos',        v: stats.active,   color: 'text-green-400' },
-          { l: 'En trial',       v: stats.trialing, color: 'text-blue-400' },
-          { l: 'Pago pendiente', v: stats.past_due, color: 'text-yellow-400' },
-          { l: 'Cancelados',     v: stats.canceled, color: 'text-red-400' },
-        ].map(s => (
-          <div key={s.l} className="rounded-xl border border-border bg-card/50 p-3 text-center">
-            <div className={`text-2xl font-bold ${s.color}`}>{s.v}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.l}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KPICard label="Activos" value={stats.active} icon={CheckCircle2} color="success" sub="pagos al día" />
+        <KPICard label="En trial" value={stats.trialing} icon={Zap} color="blue" sub="períodos de prueba" />
+        <KPICard label="Pago pendiente" value={stats.past_due} icon={Clock} color="warning" sub="requieren acción" />
+        <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
       </div>
 
       {/* Growth / Churn / ARPU row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">Crecimiento 30d</span>
-            {stats.growth30d >= 0 ? <TrendingUp className="w-4 h-4 text-green-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
-          </div>
-          <div className={`text-2xl font-display font-bold ${stats.growth30d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {stats.growth30d >= 0 ? '+' : ''}{stats.growth30d}%
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Nuevas orgs últimos 30 días</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">Churn Rate</span>
-            <TrendingDown className={`w-4 h-4 ${stats.churnRate > 5 ? 'text-red-400' : 'text-muted-foreground'}`} />
-          </div>
-          <div className={`text-2xl font-display font-bold ${stats.churnRate > 5 ? 'text-red-400' : 'text-foreground'}`}>
-            {stats.churnRate}%
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{stats.canceled} cancelaciones</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4 col-span-2 md:col-span-1">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">ARPU</span>
-            <DollarSign className="w-4 h-4 text-primary" />
-          </div>
-          <div className="text-2xl font-display font-bold">${stats.arpu}</div>
-          <p className="text-xs text-muted-foreground mt-0.5">Revenue promedio / org</p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <KPICard label="Crecimiento 30d" value={`${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%`} icon={stats.growth30d >= 0 ? TrendingUp : TrendingDown} color={stats.growth30d >= 0 ? "success" : "destructive"} sub="nuevas orgs últimos 30d" />
+        <KPICard label="Churn Rate" value={`${stats.churnRate}%`} icon={TrendingDown} color={stats.churnRate > 5 ? "destructive" : "success"} sub={`${stats.canceled} cancelaciones`} />
+        <KPICard label="ARPU" value={`$${stats.arpu}`} icon={DollarSign} color="purple" sub="revenue promedio / org" />
       </div>
 
       {/* Tabs */}

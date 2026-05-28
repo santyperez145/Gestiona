@@ -52,9 +52,9 @@ interface SwotItem {
 }
 
 const IMPACT_COLORS: Record<string, string> = {
-  high:   "bg-red-100 text-red-700",
-  medium: "bg-yellow-100 text-yellow-800",
-  low:    "bg-green-100 text-green-700",
+  high:   "bg-red-500/15 text-red-400",
+  medium: "bg-yellow-500/15 text-yellow-400",
+  low:    "bg-emerald-500/15 text-emerald-400",
 };
 
 const SENTIMENT_ICONS: Record<string, string> = {
@@ -82,19 +82,19 @@ function PriceGapBar({ ourPrice, theirPrice }: { ourPrice: number; theirPrice: n
   const isHigher = gap > 0;
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className={`font-medium ${isHigher ? "text-orange-600" : "text-green-600"}`}>
+      <span className={`font-medium ${isHigher ? "text-orange-400" : "text-emerald-400"}`}>
         {isHigher ? "+" : ""}{gap.toFixed(1)}% vs nosotros
       </span>
-      {isHigher ? <TrendingUp className="w-3 h-3 text-orange-600" /> : <TrendingDown className="w-3 h-3 text-green-600" />}
+      {isHigher ? <TrendingUp className="w-3 h-3 text-orange-400" /> : <TrendingDown className="w-3 h-3 text-emerald-400" />}
     </div>
   );
 }
 
 const SWOT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  strength:    { label: "Fortalezas",   color: "text-green-700",  bg: "bg-green-50 border-green-200" },
-  weakness:    { label: "Debilidades",  color: "text-red-700",    bg: "bg-red-50 border-red-200" },
-  opportunity: { label: "Oportunidades", color: "text-blue-700",  bg: "bg-blue-50 border-blue-200" },
-  threat:      { label: "Amenazas",     color: "text-orange-700", bg: "bg-orange-50 border-orange-200" },
+  strength:    { label: "Fortalezas",    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  weakness:    { label: "Debilidades",   color: "text-red-400",     bg: "bg-red-500/10 border-red-500/20" },
+  opportunity: { label: "Oportunidades", color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20" },
+  threat:      { label: "Amenazas",      color: "text-orange-400",  bg: "bg-orange-500/10 border-orange-500/20" },
 };
 
 export default function CompetitorIntelligencePage() {

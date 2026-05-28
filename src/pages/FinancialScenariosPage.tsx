@@ -17,6 +17,7 @@ import {
   Layers, Target, Zap
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Scenario {
   id: string;
@@ -92,11 +93,11 @@ function PnLTable({ items }: { items: LineItem[] }) {
                   </div>
                 </td>
                 {visibleMonths.map(m => (
-                  <td key={m} className={`text-right py-2 px-2 ${(item.values[m] ?? 0) < 0 ? "text-red-600" : ""}`}>
+                  <td key={m} className={`text-right py-2 px-2 ${(item.values[m] ?? 0) < 0 ? "text-red-400" : ""}`}>
                     {((item.values[m] ?? 0) / 1000).toFixed(0)}K
                   </td>
                 ))}
-                <td className={`text-right py-2 px-2 font-semibold ${total < 0 ? "text-red-600" : ""}`}>
+                <td className={`text-right py-2 px-2 font-semibold ${total < 0 ? "text-red-400" : ""}`}>
                   {(total / 1000).toFixed(0)}K
                 </td>
               </tr>
@@ -142,24 +143,18 @@ function BreakevenCalc() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-blue-200 bg-blue-500/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-blue-600 font-medium mb-1">Margen de Contribución</p>
-            <p className="text-3xl font-bold text-blue-700">{contributionMarginPct.toFixed(1)}%</p>
-          </CardContent>
-        </Card>
-        <Card className="border-purple-200 bg-purple-500/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-purple-600 font-medium mb-1">Punto de Equilibrio (ARS)</p>
-            <p className="text-2xl font-bold text-purple-700">${breakevenRevenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-200 bg-emerald-500/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-emerald-600 font-medium mb-1">Unidades de Equilibrio</p>
-            <p className="text-3xl font-bold text-emerald-700">{Math.ceil(breakevenUnits).toLocaleString()}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
+          <p className="text-xs text-blue-400 font-medium mb-1">Margen de Contribución</p>
+          <p className="text-3xl font-bold text-blue-400">{contributionMarginPct.toFixed(1)}%</p>
+        </div>
+        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 text-center">
+          <p className="text-xs text-purple-400 font-medium mb-1">Punto de Equilibrio (ARS)</p>
+          <p className="text-2xl font-bold text-purple-400">${breakevenRevenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</p>
+        </div>
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+          <p className="text-xs text-emerald-400 font-medium mb-1">Unidades de Equilibrio</p>
+          <p className="text-3xl font-bold text-emerald-400">{Math.ceil(breakevenUnits).toLocaleString()}</p>
+        </div>
       </div>
 
       {/* Visual breakeven chart */}
@@ -169,7 +164,7 @@ function BreakevenCalc() {
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>$0</span>
-              <span className="text-purple-600">Equilibrio: ${(breakevenRevenue / 1000).toFixed(0)}K</span>
+              <span className="text-purple-400">Equilibrio: ${(breakevenRevenue / 1000).toFixed(0)}K</span>
               <span>Ventas Act.: $500K</span>
             </div>
             <div className="h-4 bg-muted rounded-full overflow-hidden flex">
@@ -177,7 +172,7 @@ function BreakevenCalc() {
               <div className="bg-green-400 h-full flex-1" />
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              Margen de seguridad: <span className={safetyMargin > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>{safetyMargin.toFixed(1)}%</span>
+              Margen de seguridad: <span className={safetyMargin > 0 ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>{safetyMargin.toFixed(1)}%</span>
               {safetyMargin < 0 && " ⚠️ Estás por debajo del punto de equilibrio"}
             </p>
           </div>
@@ -188,6 +183,7 @@ function BreakevenCalc() {
 }
 
 export default function FinancialScenariosPage() {
+  usePageTitle("Escenarios Financieros");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"pnl" | "breakeven" | "cashflow" | "variance">("pnl");
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -349,7 +345,7 @@ export default function FinancialScenariosPage() {
           <CardContent className="p-3 flex items-center gap-4 text-sm">
             <div><span className="text-muted-foreground">Tipo: </span><span className="font-medium capitalize">{activeScenario.scenario_type}</span></div>
             <div><span className="text-muted-foreground">Inflación: </span><span className="font-medium">{activeScenario.assumptions.inflation_rate}%</span></div>
-            <div><span className="text-muted-foreground">Crecimiento: </span><span className={`font-medium ${(activeScenario.assumptions.growth_rate ?? 0) < 0 ? "text-red-600" : "text-green-600"}`}>{activeScenario.assumptions.growth_rate}%</span></div>
+            <div><span className="text-muted-foreground">Crecimiento: </span><span className={`font-medium ${(activeScenario.assumptions.growth_rate ?? 0) < 0 ? "text-red-400" : "text-emerald-400"}`}>{activeScenario.assumptions.growth_rate}%</span></div>
             {activeScenario.description && <div className="text-muted-foreground">{activeScenario.description}</div>}
           </CardContent>
         </Card>
@@ -407,12 +403,12 @@ export default function FinancialScenariosPage() {
                     </tr>
                     <tr className="border-b font-semibold bg-muted/30">
                       <td className="py-2 pr-4">Neto del Mes</td>
-                      {cashData.map((d, i) => <td key={i} className={`text-right py-2 px-2 ${d.net < 0 ? "text-red-600" : "text-green-600"}`}>{d.net >= 0 ? "+" : ""}{(d.net / 1000).toFixed(0)}K</td>)}
+                      {cashData.map((d, i) => <td key={i} className={`text-right py-2 px-2 ${d.net < 0 ? "text-red-400" : "text-emerald-400"}`}>{d.net >= 0 ? "+" : ""}{(d.net / 1000).toFixed(0)}K</td>)}
                     </tr>
                     <tr className="font-bold">
                       <td className="py-2 pr-4">Saldo Acumulado</td>
                       {cumulativeCash.map((c, i) => (
-                        <td key={i} className={`text-right py-2 px-2 ${c < 0 ? "text-red-600 font-bold" : ""}`}>
+                        <td key={i} className={`text-right py-2 px-2 ${c < 0 ? "text-red-400 font-bold" : ""}`}>
                           {c < 0 && <AlertTriangle className="w-3 h-3 inline mr-0.5" />}
                           {(c / 1000).toFixed(0)}K
                         </td>
@@ -478,10 +474,10 @@ export default function FinancialScenariosPage() {
                       </td>
                       <td className="py-3 px-4 text-right text-muted-foreground">${(v.baseTotal / 1000).toFixed(0)}K</td>
                       <td className="py-3 px-4 text-right">${(v.compTotal / 1000).toFixed(0)}K</td>
-                      <td className={`py-3 px-4 text-right font-medium ${v.varAbs > 0 ? "text-green-600" : v.varAbs < 0 ? "text-red-600" : ""}`}>
+                      <td className={`py-3 px-4 text-right font-medium ${v.varAbs > 0 ? "text-emerald-400" : v.varAbs < 0 ? "text-red-400" : ""}`}>
                         {v.varAbs > 0 ? "+" : ""}{(v.varAbs / 1000).toFixed(0)}K
                       </td>
-                      <td className={`py-3 px-4 text-right font-medium ${v.varPct > 0 ? "text-green-600" : v.varPct < 0 ? "text-red-600" : ""}`}>
+                      <td className={`py-3 px-4 text-right font-medium ${v.varPct > 0 ? "text-emerald-400" : v.varPct < 0 ? "text-red-400" : ""}`}>
                         {v.varPct > 0 ? "+" : ""}{v.varPct.toFixed(1)}%
                       </td>
                     </tr>

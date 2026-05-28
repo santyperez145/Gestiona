@@ -16,23 +16,13 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 
-// Mock cohort retention
-const COHORT_DATA = [
-  { month: "Ene", m0: 100, m1: 42, m2: 31, m3: 28, m4: 25, m5: 22 },
-  { month: "Feb", m0: 100, m1: 48, m2: 35, m3: 30, m4: 27, m5: null },
-  { month: "Mar", m0: 100, m1: 45, m2: 33, m3: 28, m4: null, m5: null },
-  { month: "Abr", m0: 100, m1: 51, m2: 38, m3: null, m4: null, m5: null },
-  { month: "May", m0: 100, m1: 44, m2: null, m3: null, m4: null, m5: null },
-];
+const MONTH_LABELS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
-// Category revenue split
-const CATEGORY_REV = [
-  { name: "Electrónica",  rev: 420000, pct: 38 },
-  { name: "Textil",       rev: 231000, pct: 21 },
-  { name: "Alimentos",    rev: 198000, pct: 18 },
-  { name: "Herramientas", rev: 143000, pct: 13 },
-  { name: "Otros",        rev: 110000, pct: 10 },
-];
+function addMonths(yearMonth: string, n: number): string {
+  const [y, m] = yearMonth.split("-").map(Number);
+  const d = new Date(y, m - 1 + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 const CHART_ICONS: Record<string, any> = {
   bar: BarChart3, line: LineChart, pie: PieChart, heatmap: Layers, table: Table,
@@ -80,30 +70,11 @@ function CohortCell({ value }: { value: number | null }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, trend, color = "text-primary" }: any) {
-  return (
-    <div className="bg-card border border-border/40 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className={`w-3.5 h-3.5 ${color}`} />
-          </div>
-          <span className="text-xs text-muted-foreground">{label}</span>
-        </div>
-        {trend !== undefined && (
-          <Badge className={trend >= 0 ? "bg-emerald-500/15 text-emerald-400 border-0 text-xs" : "bg-red-500/15 text-red-400 border-0 text-xs"}>
-            {trend >= 0 ? "+" : ""}{trend}%
-          </Badge>
-        )}
-      </div>
-      <p className="text-xl font-bold font-display">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  );
-}
-
 type SnapshotRow = { date: string; rev_day: number; orders_day: number; aov: number; margin: number; new_cust: number };
 type ReportRow = { id: string; name: string; type: string; chart: string; pinned: boolean; runs: number; last_run: string; shared: boolean };
+type CohortRow = { month: string; m0: number; m1: number | null; m2: number | null; m3: number | null; m4: number | null; m5: number | null };
+type CatRevRow = { name: string; rev: number; pct: number };
+type TopProductRow = { name: string; rev: number; orders: number; margin: number };
 
 export default function BIReportsPage() {
   usePageTitle("Business Intelligence");
@@ -116,6 +87,9 @@ export default function BIReportsPage() {
   const [newReport, setNewReport] = useState({ name: "", type: "sales", chart: "bar" });
   const [savedReports, setSavedReports] = useState<ReportRow[]>([]);
   const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
+  const [cohortData, setCohortData] = useState<CohortRow[]>([]);
+  const [categoryRev, setCategoryRev] = useState<CatRevRow[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProductRow[]>([]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -151,9 +125,91 @@ export default function BIReportsPage() {
           rev_day: Number(s.revenue_day),
           orders_day: s.orders_day,
           aov: Number(s.avg_order_value),
-          margin: 0, // not stored in snapshot
+          margin: 0,
           new_cust: s.new_customers,
         })));
+      });
+
+    // Cohort retention — built from ecommerce_orders by customer first-purchase month
+    supabase
+      .from("ecommerce_orders")
+      .select("customer_email, created_at, total")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const firstPurchase: Record<string, string> = {};
+        const purchasesByCustomer: Record<string, Set<string>> = {};
+        data.forEach((o: any) => {
+          const email = o.customer_email;
+          const month = (o.created_at as string).slice(0, 7);
+          if (!firstPurchase[email]) firstPurchase[email] = month;
+          if (!purchasesByCustomer[email]) purchasesByCustomer[email] = new Set();
+          purchasesByCustomer[email].add(month);
+        });
+        const nowMonth = new Date().toISOString().slice(0, 7);
+        const cohortMonths = [...new Set(Object.values(firstPurchase))].sort().slice(-5);
+        const rows: CohortRow[] = cohortMonths.map((cohortMonth) => {
+          const [, monthNum] = cohortMonth.split("-");
+          const label = MONTH_LABELS[parseInt(monthNum, 10) - 1];
+          const cohortCustomers = Object.keys(firstPurchase).filter(e => firstPurchase[e] === cohortMonth);
+          const cohortSize = cohortCustomers.length || 1;
+          const getRetention = (offset: number): number | null => {
+            const target = addMonths(cohortMonth, offset);
+            if (target > nowMonth) return null;
+            const retained = cohortCustomers.filter(e => purchasesByCustomer[e].has(target)).length;
+            return Math.round((retained / cohortSize) * 100);
+          };
+          return { month: label, m0: 100, m1: getRetention(1), m2: getRetention(2), m3: getRetention(3), m4: getRetention(4), m5: getRetention(5) };
+        });
+        setCohortData(rows);
+      });
+
+    // Category revenue — from sale_items joined to products
+    supabase
+      .from("sale_items")
+      .select("quantity, unit_price, products(category)")
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const byCategory: Record<string, number> = {};
+        data.forEach((item: any) => {
+          const cat = item.products?.category || "Otros";
+          byCategory[cat] = (byCategory[cat] || 0) + (Number(item.unit_price) * Number(item.quantity));
+        });
+        const total = Object.values(byCategory).reduce((a, b) => a + b, 0) || 1;
+        const result: CatRevRow[] = Object.entries(byCategory)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([name, rev]) => ({ name, rev, pct: Math.round((rev / total) * 100) }));
+        setCategoryRev(result);
+      });
+
+    // Top products drill-down — from products ordered by current_stock * cost or use sale_items
+    supabase
+      .from("sale_items")
+      .select("quantity, unit_price, sale_id, products(name, cost_price)")
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const byProduct: Record<string, { rev: number; orders: Set<string>; cost: number }> = {};
+        data.forEach((item: any) => {
+          const name = item.products?.name || "Sin nombre";
+          const cost = Number(item.products?.cost_price ?? 0);
+          const rev = Number(item.unit_price) * Number(item.quantity);
+          if (!byProduct[name]) byProduct[name] = { rev: 0, orders: new Set(), cost };
+          byProduct[name].rev += rev;
+          byProduct[name].orders.add(item.sale_id);
+          byProduct[name].cost = cost;
+        });
+        const top: TopProductRow[] = Object.entries(byProduct)
+          .sort(([, a], [, b]) => b.rev - a.rev)
+          .slice(0, 5)
+          .map(([name, d]) => ({
+            name,
+            rev: Math.round(d.rev),
+            orders: d.orders.size,
+            margin: d.rev > 0 ? Math.round(((d.rev - d.cost * d.orders.size) / d.rev) * 100) : 0,
+          }));
+        setTopProducts(top);
       });
   }, [orgId]);
 
@@ -248,7 +304,9 @@ export default function BIReportsPage() {
               <h3 className="font-semibold flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" />Revenue por Categoría</h3>
             </div>
             <div className="space-y-3">
-              {CATEGORY_REV.map((c, i) => {
+              {categoryRev.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Sin datos de ventas por categoría</p>
+              ) : categoryRev.map((c, i) => {
                 const colors = ["bg-primary", "bg-blue-400", "bg-purple-400", "bg-emerald-400", "bg-yellow-400"];
                 return (
                   <div key={c.name}>
@@ -396,7 +454,9 @@ export default function BIReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {COHORT_DATA.map(row => (
+                  {cohortData.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">Sin datos de compras repetidas aún</td></tr>
+                  ) : cohortData.map(row => (
                     <tr key={row.month}>
                       <td className="px-2 py-2 text-xs font-semibold text-muted-foreground">{row.month}</td>
                       <CohortCell value={row.m0} />
@@ -422,20 +482,28 @@ export default function BIReportsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-card border border-border/40 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-primary">47%</p>
-              <p className="text-xs text-muted-foreground mt-1">Retención mes 1 (prom)</p>
-            </div>
-            <div className="bg-card border border-border/40 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-blue-400">34%</p>
-              <p className="text-xs text-muted-foreground mt-1">Retención mes 2 (prom)</p>
-            </div>
-            <div className="bg-card border border-border/40 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-emerald-400">29%</p>
-              <p className="text-xs text-muted-foreground mt-1">Retención mes 3 (prom)</p>
-            </div>
-          </div>
+          {cohortData.length > 0 && (() => {
+            const avg = (key: "m1"|"m2"|"m3") => {
+              const vals = cohortData.map(r => r[key]).filter(v => v !== null) as number[];
+              return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+            };
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-card border border-border/40 rounded-xl p-4 text-center">
+                  <p className="text-3xl font-bold text-primary">{avg("m1")}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Retención mes 1 (prom)</p>
+                </div>
+                <div className="bg-card border border-border/40 rounded-xl p-4 text-center">
+                  <p className="text-3xl font-bold text-blue-400">{avg("m2")}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Retención mes 2 (prom)</p>
+                </div>
+                <div className="bg-card border border-border/40 rounded-xl p-4 text-center">
+                  <p className="text-3xl font-bold text-emerald-400">{avg("m3")}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Retención mes 3 (prom)</p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -463,23 +531,19 @@ export default function BIReportsPage() {
               ))}
             </div>
 
-            {/* Quick drill by product — top 5 */}
+            {/* Quick drill by product — top 5 from real sale_items */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Productos — Este Mes</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Top Productos por Revenue</h4>
               <div className="space-y-2">
-                {[
-                  { name: "Producto Premium Alpha", rev: 185000, orders: 42, margin: 43 },
-                  { name: "Kit Estándar XL",        rev: 142000, orders: 67, margin: 38 },
-                  { name: "Accesorio Básico Pro",   rev: 98000,  orders: 156, margin: 52 },
-                  { name: "Artículo Especial B2B",  rev: 87000,  orders: 8,  margin: 31 },
-                  { name: "Bundle Completo V3",     rev: 65000,  orders: 23, margin: 47 },
-                ].map((p, i) => (
+                {topProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Sin datos de ventas disponibles</p>
+                ) : topProducts.map((p, i) => (
                   <div key={p.name} className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer">
                     <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{p.name}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        <span>{p.orders} órdenes</span>
+                        <span>{p.orders} ventas</span>
                         <span className="text-emerald-400">{p.margin}% margen</span>
                       </div>
                     </div>

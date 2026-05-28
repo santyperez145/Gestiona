@@ -49,28 +49,6 @@ interface FunnelRow {
   color: string;
 }
 
-function StatCard({ icon: Icon, label, value, sub, trend, color = "text-primary" }: any) {
-  return (
-    <div className="bg-card border border-border/40 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className={`w-3.5 h-3.5 ${color}`} />
-          </div>
-          <span className="text-xs text-muted-foreground">{label}</span>
-        </div>
-        {trend !== undefined && (
-          <Badge className={trend >= 0 ? "bg-emerald-500/15 text-emerald-400 border-0 text-xs" : "bg-red-500/15 text-red-400 border-0 text-xs"}>
-            {trend >= 0 ? "+" : ""}{trend}%
-          </Badge>
-        )}
-      </div>
-      <p className="text-xl font-bold font-display">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  );
-}
-
 export default function EcommerceStorePage() {
   usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
