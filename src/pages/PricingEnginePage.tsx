@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Tag, Plus, Play, Pause, RefreshCw, TrendingUp, TrendingDown,
   AlertTriangle, BarChart3, Settings, Calculator, ChevronDown,
-  ChevronUp, Check, Zap, Target, DollarSign, Edit3, Trash2
+  ChevronUp, Check, Zap, Target, DollarSign, Edit3, Trash2, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const RULE_TYPES = [
   { id: "cost_plus",      label: "Costo + Margen",       desc: "Precio basado en costo + % fijo",         color: "text-blue-400" },
@@ -76,6 +79,7 @@ function MarginBar({ value, target, alertAt }: { value: number; target: number; 
 }
 
 export default function PricingEnginePage() {
+  usePageTitle("Motor de Precios");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"rules" | "calculator" | "experiments" | "margins">("rules");
   const [showNewRule, setShowNewRule] = useState(false);
@@ -151,46 +155,32 @@ export default function PricingEnginePage() {
     { id: "margins",     label: "Control Márgenes" },
   ];
 
+  const kpis = useMemo(() => ({
+    activeRules: rules.filter(r => r.is_active).length,
+    totalRuns: rules.reduce((a, r) => a + r.run_count, 0),
+    marginTargetsCount: marginTargets.length,
+    runningExperiments: experiments.filter(e => e.status === "running").length,
+  }), [rules, marginTargets, experiments]);
+
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Tag className="w-4 h-4 text-primary" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Motor de Precios</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Reglas dinámicas, A/B testing y control de márgenes</p>
-        </div>
-        <Button size="sm" onClick={() => setShowNewRule(true)} className="gap-1.5 gradient-gold text-primary-foreground">
-          <Plus className="w-3.5 h-3.5" />Nueva Regla
-        </Button>
-      </div>
+      <PageHeader
+        icon={<Tag className="w-6 h-6" />}
+        title="Motor de Precios"
+        description="Reglas dinámicas, A/B testing y control de márgenes"
+        actions={
+          <Button size="sm" onClick={() => setShowNewRule(true)} className="gap-1.5 gradient-gold text-primary-foreground">
+            <Plus className="w-3.5 h-3.5" />Nueva Regla
+          </Button>
+        }
+      />
 
-      {/* Stats */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Reglas Activas</p>
-          <p className="text-2xl font-bold">{rules.filter(r => r.is_active).length}</p>
-          <p className="text-xs text-muted-foreground">{rules.length} en total</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Aplicaciones hoy</p>
-          <p className="text-2xl font-bold">{rules.reduce((a, r) => a + r.run_count, 0).toLocaleString("es-AR")}</p>
-          <p className="text-xs text-emerald-400">total ejecuciones</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Alertas de margen</p>
-          <p className="text-2xl font-bold text-red-400">{marginTargets.length}</p>
-          <p className="text-xs text-muted-foreground">targets configurados</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Experimentos activos</p>
-          <p className="text-2xl font-bold text-blue-400">{experiments.filter(e => e.status === "running").length}</p>
-          <p className="text-xs text-muted-foreground">A/B tests corriendo</p>
-        </div>
+        <KPICard label="Reglas Activas" value={kpis.activeRules} color="primary" />
+        <KPICard label="Total Ejecuciones" value={kpis.totalRuns.toLocaleString("es-AR")} color="success" />
+        <KPICard label="Targets de Margen" value={kpis.marginTargetsCount} color="warning" />
+        <KPICard label="Experimentos Activos" value={kpis.runningExperiments} color="blue" />
       </div>
 
       {/* Tabs */}

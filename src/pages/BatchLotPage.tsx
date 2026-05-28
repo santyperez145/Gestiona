@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -12,7 +12,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Layers, Plus, AlertTriangle, Package, Pencil, ChevronDown, ChevronRight, Trash2, RefreshCw } from "lucide-react";
+import { Layers, Plus, AlertTriangle, Package, Pencil, ChevronDown, ChevronRight, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Product { id: string; name: string; sku: string | null; }
 
@@ -62,6 +65,7 @@ function fmtDate(d: string | null) {
 }
 
 export default function BatchLotPage() {
+  usePageTitle("Lotes & Vencimientos");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -167,50 +171,49 @@ export default function BatchLotPage() {
     return true;
   });
 
-  const expiringCount = batches.filter(b => {
-    const d = daysToExpiry(b.expiry_date);
-    return b.status === "active" && d !== null && d <= 30 && d >= 0;
-  }).length;
+  const kpis = useMemo(() => {
+    const activeLots = batches.filter(b => b.status === "active").length;
+    const expiringCnt = batches.filter(b => {
+      const d = daysToExpiry(b.expiry_date);
+      return b.status === "active" && d !== null && d <= 30 && d >= 0;
+    }).length;
+    const expiredCnt = batches.filter(b => b.status === "expired").length;
+    const totalVal = batches.filter(b => b.status === "active").reduce((s, b) => s + (b.quantity * (b.unit_cost || 0)), 0);
+    return { activeLots, expiringCnt, expiredCnt, totalVal };
+  }, [batches]);
 
-  const expiredCount = batches.filter(b => b.status === "expired").length;
-  const totalValue = batches.filter(b => b.status === "active").reduce((s, b) => s + (b.quantity * (b.unit_cost || 0)), 0);
+  const expiringCount = kpis.expiringCnt;
+  const expiredCount = kpis.expiredCnt;
+  const totalValue = kpis.totalVal;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" /> Lotes & Vencimientos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Trazabilidad completa por lote: fechas de vencimiento, movimientos y cuarentenas.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={expireBatches}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Verificar vencidos
-          </Button>
-          <Button onClick={() => setBatchOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo lote
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Layers className="w-6 h-6" />}
+        title="Lotes & Vencimientos"
+        description="Trazabilidad completa por lote: fechas de vencimiento, movimientos y cuarentenas."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={expireBatches}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Verificar vencidos
+            </Button>
+            <Button onClick={() => setBatchOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Nuevo lote
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Lotes activos", value: batches.filter(b => b.status === "active").length, color: "" },
-          { label: "Por vencer (30 días)", value: expiringCount, color: expiringCount > 0 ? "text-yellow-400" : "" },
-          { label: "Vencidos", value: expiredCount, color: expiredCount > 0 ? "text-destructive" : "" },
-          { label: "Valor en stock",
-            value: new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(totalValue),
-            color: "" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">{k.label}</p>
-            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Lotes activos" value={kpis.activeLots} color="primary" />
+        <KPICard label="Por vencer (30 días)" value={kpis.expiringCnt} color={kpis.expiringCnt > 0 ? "warning" : "success"} />
+        <KPICard label="Vencidos" value={kpis.expiredCnt} color={kpis.expiredCnt > 0 ? "destructive" : "success"} />
+        <KPICard
+          label="Valor en stock"
+          value={new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(kpis.totalVal)}
+          color="blue"
+        />
       </div>
 
       {/* Alert banners */}
@@ -244,7 +247,9 @@ export default function BatchLotPage() {
 
       {/* Batch list */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
       ) : filteredBatches.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Package className="w-10 h-10 mx-auto mb-3 opacity-30" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -14,8 +14,11 @@ import { Progress } from "@/components/ui/progress";
 import {
   Package, TrendingUp, TrendingDown, Star, AlertTriangle,
   Plus, ChevronRight, BarChart3, Clock, Shield, Layers,
-  ArrowRight
+  ArrowRight, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface PLMProduct {
   id: string;
@@ -33,22 +36,22 @@ interface PLMProduct {
 }
 
 const STAGE_CONFIG: Record<string, { label: string; color: string; order: number }> = {
-  concept:      { label: "Concepto",       color: "bg-gray-100 text-gray-700",    order: 1 },
-  development:  { label: "Desarrollo",     color: "bg-blue-100 text-blue-700",    order: 2 },
-  testing:      { label: "Testing",        color: "bg-indigo-100 text-indigo-700", order: 3 },
-  launch:       { label: "Lanzamiento",    color: "bg-purple-100 text-purple-700", order: 4 },
-  growth:       { label: "Crecimiento",    color: "bg-green-100 text-green-700",  order: 5 },
-  maturity:     { label: "Madurez",        color: "bg-yellow-100 text-yellow-800", order: 6 },
-  decline:      { label: "Declive",        color: "bg-orange-100 text-orange-700", order: 7 },
-  eol:          { label: "Fin de Vida",    color: "bg-red-100 text-red-700",      order: 8 },
-  discontinued: { label: "Descontinuado", color: "bg-gray-200 text-gray-600",    order: 9 },
+  concept:      { label: "Concepto",       color: "bg-muted text-muted-foreground",    order: 1 },
+  development:  { label: "Desarrollo",     color: "bg-blue-500/15 text-blue-400",    order: 2 },
+  testing:      { label: "Testing",        color: "bg-indigo-500/15 text-indigo-400", order: 3 },
+  launch:       { label: "Lanzamiento",    color: "bg-purple-500/15 text-purple-400", order: 4 },
+  growth:       { label: "Crecimiento",    color: "bg-emerald-500/15 text-emerald-400",  order: 5 },
+  maturity:     { label: "Madurez",        color: "bg-yellow-500/15 text-yellow-400", order: 6 },
+  decline:      { label: "Declive",        color: "bg-orange-500/15 text-orange-400", order: 7 },
+  eol:          { label: "Fin de Vida",    color: "bg-destructive/15 text-destructive", order: 8 },
+  discontinued: { label: "Descontinuado", color: "bg-muted/80 text-muted-foreground",    order: 9 },
 };
 
 const BCG_CONFIG: Record<string, { label: string; icon: string; desc: string; color: string }> = {
-  star:          { label: "Estrella ⭐",    icon: "⭐", desc: "Alta cuota + alto crecimiento",    color: "bg-yellow-50 border-yellow-300" },
-  cash_cow:      { label: "Vaca lechera 🐄", icon: "🐄", desc: "Alta cuota + bajo crecimiento",   color: "bg-green-50 border-green-300" },
-  question_mark: { label: "Interrogante ❓", icon: "❓", desc: "Baja cuota + alto crecimiento",   color: "bg-blue-50 border-blue-300" },
-  dog:           { label: "Perro 🐕",       icon: "🐕", desc: "Baja cuota + bajo crecimiento",   color: "bg-gray-50 border-gray-300" },
+  star:          { label: "Estrella ⭐",    icon: "⭐", desc: "Alta cuota + alto crecimiento",    color: "bg-yellow-500/10 border-yellow-500/30" },
+  cash_cow:      { label: "Vaca lechera 🐄", icon: "🐄", desc: "Alta cuota + bajo crecimiento",   color: "bg-emerald-500/10 border-emerald-500/30" },
+  question_mark: { label: "Interrogante ❓", icon: "❓", desc: "Baja cuota + alto crecimiento",   color: "bg-blue-500/10 border-blue-500/30" },
+  dog:           { label: "Perro 🐕",       icon: "🐕", desc: "Baja cuota + bajo crecimiento",   color: "bg-muted border-border" },
 };
 
 function computeBcg(market_share_pct: number, margin_pct: number): PLMProduct["bcg_quadrant"] {
@@ -61,6 +64,7 @@ function computeBcg(market_share_pct: number, margin_pct: number): PLMProduct["b
 const LIFECYCLE_STAGES = ["concept","development","testing","launch","growth","maturity","decline","eol","discontinued"];
 
 export default function ProductLifecyclePage() {
+  usePageTitle("Ciclo de Vida de Producto");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"products" | "bcg" | "quality" | "roadmap">("products");
   const [products, setProducts] = useState<PLMProduct[]>([]);
@@ -86,6 +90,13 @@ export default function ProductLifecyclePage() {
 
   const filtered = products.filter(p => stageFilter === "all" || p.lifecycle_stage === stageFilter);
 
+  const kpis = useMemo(() => ({
+    total: products.length,
+    inDevelopment: products.filter(p => ["concept","development","testing"].includes(p.lifecycle_stage)).length,
+    active: products.filter(p => ["launch","growth","maturity"].includes(p.lifecycle_stage)).length,
+    endOfLife: products.filter(p => ["decline","eol","discontinued"].includes(p.lifecycle_stage)).length,
+  }), [products]);
+
   const advanceStage = (product: PLMProduct) => {
     const idx = LIFECYCLE_STAGES.indexOf(product.lifecycle_stage);
     if (idx < LIFECYCLE_STAGES.length - 2) {
@@ -98,34 +109,43 @@ export default function ProductLifecyclePage() {
   products.forEach(p => { if (bcgGroups[p.bcg_quadrant]) bcgGroups[p.bcg_quadrant].push(p); });
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Layers className="w-6 h-6 text-primary" /> Ciclo de Vida de Producto</h1>
-          <p className="text-muted-foreground text-sm mt-1">PLM: etapas, versiones, calidad y matriz BCG</p>
-        </div>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nuevo Producto</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Agregar Producto al PLM</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label>Código Interno</Label><Input placeholder="PLM-006" /></div>
-              <div><Label>Nombre</Label><Input placeholder="Nombre del producto" /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Etapa Inicial</Label>
-                  <Select defaultValue="concept">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(STAGE_CONFIG).slice(0, 6).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+    <div className="space-y-6">
+      <PageHeader
+        icon={<Layers className="w-6 h-6" />}
+        title="Ciclo de Vida de Producto"
+        description="PLM: etapas, versiones, calidad y matriz BCG"
+        actions={
+          <Dialog open={showNew} onOpenChange={setShowNew}>
+            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nuevo Producto</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Agregar Producto al PLM</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label>Código Interno</Label><Input placeholder="PLM-006" /></div>
+                <div><Label>Nombre</Label><Input placeholder="Nombre del producto" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Etapa Inicial</Label>
+                    <Select defaultValue="concept">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(STAGE_CONFIG).slice(0, 6).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Versión</Label><Input defaultValue="1.0.0" /></div>
                 </div>
-                <div><Label>Versión</Label><Input defaultValue="1.0.0" /></div>
+                <Button className="w-full" onClick={() => { toast.success("Producto agregado al PLM"); setShowNew(false); }}>Agregar</Button>
               </div>
-              <Button className="w-full" onClick={() => { toast.success("Producto agregado al PLM"); setShowNew(false); }}>Agregar</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <KPICard label="Total Productos PLM" value={kpis.total} color="primary" />
+        <KPICard label="En Desarrollo" value={kpis.inDevelopment} color="blue" />
+        <KPICard label="Activos (Mercado)" value={kpis.active} color="success" />
+        <KPICard label="Fin de Vida" value={kpis.endOfLife} color={kpis.endOfLife > 0 ? "warning" : "success"} />
       </div>
 
       {/* Stage summary */}
@@ -234,7 +254,7 @@ export default function ProductLifecyclePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Progress value={p.quality_score} className="flex-1 h-3" />
-                    <span className={`text-sm font-bold ${p.quality_score >= 90 ? "text-green-600" : p.quality_score >= 70 ? "text-yellow-600" : "text-red-600"}`}>{p.quality_score}</span>
+                    <span className={`text-sm font-bold ${p.quality_score >= 90 ? "text-emerald-400" : p.quality_score >= 70 ? "text-yellow-400" : "text-destructive"}`}>{p.quality_score}</span>
                   </div>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => toast.info("Iniciando auditoría de calidad...")}>

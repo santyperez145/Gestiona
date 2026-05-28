@@ -36,8 +36,12 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -386,6 +390,7 @@ function PLItemsDialog({ open, list, products, orgId, onClose }: PLItemsDialogPr
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PriceListsPage() {
+  usePageTitle("Listas de Precios");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -441,47 +446,34 @@ export default function PriceListsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Tag className="w-6 h-6 text-primary" />
-            Listas de Precios
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Precios segmentados por cliente, moneda y cantidad</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="w-4 h-4 mr-1.5" /> Exportar
-          </Button>
-          <Button size="sm" onClick={() => { setEditingList(null); setPLFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nueva lista
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={<Tag className="w-6 h-6" />}
+        title="Listas de Precios"
+        description="Precios segmentados por cliente, moneda y cantidad"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download className="w-4 h-4 mr-1.5" /> Exportar
+            </Button>
+            <Button size="sm" onClick={() => { setEditingList(null); setPLFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nueva lista
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Total listas", value: kpis.total, icon: Tag },
-          { label: "Activas", value: kpis.active, icon: CheckCircle },
-          { label: "Monedas", value: kpis.currencies, icon: Globe },
-          { label: "Con descuento", value: kpis.withDiscounts, icon: DollarSign },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Total listas" value={kpis.total} color="primary" />
+        <KPICard label="Activas" value={kpis.active} color="success" />
+        <KPICard label="Monedas" value={kpis.currencies} color="blue" />
+        <KPICard label="Con descuento" value={kpis.withDiscounts} color="purple" />
       </div>
 
       {/* Lists */}
       {loading ? (
-        <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
       ) : lists.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
