@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Deal {
@@ -189,15 +192,21 @@ function urgencyFromScore(score: number): 'hot' | 'warm' | 'cold' {
   return 'cold';
 }
 
+// ── Tab type ─────────────────────────────────────────────────────────────────
+type TabId = 'todos' | 'calientes' | 'por-vendedor';
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AILeadScoringPage() {
   const { activeOrg } = useOrg();
+  usePageTitle("AI Lead Scoring");
+
   const [deals, setDeals] = useState<Deal[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'score' | 'amount' | 'updated'>('score');
   const [filterUrgency, setFilterUrgency] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
+  const [activeTab, setActiveTab] = useState<TabId>('todos');
 
   const load = async () => {
     if (!activeOrg?.id) return;
@@ -257,6 +266,27 @@ export default function AILeadScoringPage() {
     });
   }, [deals, avgAmount, customerMap]);
 
+  // ── KPI computations ─────────────────────────────────────────────────────
+  const hotCount = useMemo(() => scoredDeals.filter(d => d.urgency === 'hot').length, [scoredDeals]);
+
+  const avgScore = useMemo(() => {
+    if (!scoredDeals.length) return 0;
+    return scoredDeals.reduce((s, d) => s + d.score, 0) / scoredDeals.length;
+  }, [scoredDeals]);
+
+  const highValuePipeline = useMemo(
+    () => scoredDeals.filter(d => d.score >= 70).reduce((s, d) => s + d.amount, 0),
+    [scoredDeals]
+  );
+
+  const needsAttentionCount = useMemo(
+    () => scoredDeals.filter(d => {
+      const earlyStages = ['prospecto', 'contactado', 'calificado'];
+      return earlyStages.includes(d.stage) && d.score < 40;
+    }).length,
+    [scoredDeals]
+  );
+
   const filtered = useMemo(() => {
     let list = filterUrgency === 'all' ? scoredDeals : scoredDeals.filter(d => d.urgency === filterUrgency);
     return [...list].sort((a, b) => {
@@ -266,18 +296,41 @@ export default function AILeadScoringPage() {
     });
   }, [scoredDeals, sortBy, filterUrgency]);
 
-  // KPIs
+  // Hot deals for "Calientes" tab (sorted by score desc)
+  const hotDeals = useMemo(
+    () => [...scoredDeals.filter(d => d.urgency === 'hot')].sort((a, b) => b.score - a.score),
+    [scoredDeals]
+  );
+
+  // Per-seller grouping for "Por Vendedor" tab
+  const sellerGroups = useMemo(() => {
+    const map = new Map<string, ScoredDeal[]>();
+    scoredDeals.forEach(d => {
+      const key = d.assigned_name ?? "Sin asignar";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(d);
+    });
+    return Array.from(map.entries())
+      .map(([seller, sellerDeals]) => ({
+        seller,
+        count: sellerDeals.length,
+        avgScore: sellerDeals.length
+          ? Math.round(sellerDeals.reduce((s, d) => s + d.score, 0) / sellerDeals.length)
+          : 0,
+        deals: [...sellerDeals].sort((a, b) => b.score - a.score),
+      }))
+      .sort((a, b) => b.avgScore - a.avgScore);
+  }, [scoredDeals]);
+
+  // KPIs (kept for backward-compat internal use)
   const kpis = useMemo(() => {
-    const hot = scoredDeals.filter(d => d.urgency === 'hot').length;
+    const hot = hotCount;
     const warm = scoredDeals.filter(d => d.urgency === 'warm').length;
     const cold = scoredDeals.filter(d => d.urgency === 'cold').length;
-    const avgScore = scoredDeals.length
-      ? Math.round(scoredDeals.reduce((s, d) => s + d.score, 0) / scoredDeals.length)
-      : 0;
     const totalValue = scoredDeals.reduce((s, d) => s + d.amount, 0);
     const hotValue = scoredDeals.filter(d => d.urgency === 'hot').reduce((s, d) => s + d.amount, 0);
-    return { hot, warm, cold, avgScore, totalValue, hotValue };
-  }, [scoredDeals]);
+    return { hot, warm, cold, avgScore: Math.round(avgScore), totalValue, hotValue };
+  }, [scoredDeals, hotCount, avgScore]);
 
   const urgencyConfig = {
     hot:  { label: 'Caliente', color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/20',    dot: 'bg-red-400' },
@@ -290,63 +343,204 @@ export default function AILeadScoringPage() {
   const scoreBar = (s: number) =>
     s >= 65 ? '[&>div]:bg-emerald-400' : s >= 35 ? '[&>div]:bg-amber-400' : '[&>div]:bg-red-400';
 
+  // Reusable deal card renderer
+  const renderDealCard = (deal: ScoredDeal, idx: number) => {
+    const uc = urgencyConfig[deal.urgency];
+    const isExpanded = expandedId === deal.id;
+    return (
+      <div
+        key={deal.id}
+        className="bg-card border border-border rounded-xl overflow-hidden transition-all duration-200 hover:border-border/80"
+      >
+        {/* Main row */}
+        <button
+          className="w-full text-left p-4 flex items-center gap-4"
+          onClick={() => setExpandedId(isExpanded ? null : deal.id)}
+        >
+          {/* Rank */}
+          <span className="text-xs font-mono text-muted-foreground/50 w-5 shrink-0">
+            #{idx + 1}
+          </span>
+
+          {/* Score ring */}
+          <div className="relative w-12 h-12 shrink-0">
+            <svg className="w-12 h-12 -rotate-90" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+              <circle
+                cx="20" cy="20" r="16" fill="none"
+                stroke={deal.score >= 65 ? '#34d399' : deal.score >= 35 ? '#fbbf24' : '#f87171'}
+                strokeWidth="3"
+                strokeDasharray={`${(deal.score / 100) * 100.5} 100.5`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className={`absolute inset-0 flex items-center justify-center text-sm font-bold ${scoreColor(deal.score)}`}>
+              {deal.score}
+            </span>
+          </div>
+
+          {/* Deal info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="font-semibold text-sm truncate">{deal.title}</p>
+              <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${uc.bg} ${uc.color}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${uc.dot}`} />
+                {uc.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {deal.customer_name && (
+                <span className="flex items-center gap-1">
+                  <User className="w-3 h-3" /> {deal.customer_name}
+                </span>
+              )}
+              <span className="capitalize">{deal.stage}</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDistanceToNow(new Date(deal.updated_at), { locale: es, addSuffix: true })}
+              </span>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div className="text-right shrink-0">
+            <p className="font-bold text-sm">${deal.amount.toLocaleString("es-AR")}</p>
+            {deal.assigned_name && (
+              <p className="text-[10px] text-muted-foreground">{deal.assigned_name}</p>
+            )}
+          </div>
+
+          {/* Expand */}
+          <div className="shrink-0 text-muted-foreground/40">
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </button>
+
+        {/* Expanded detail */}
+        {isExpanded && (
+          <div className="border-t border-border bg-muted/20 p-4 space-y-4">
+            {/* Recommendation */}
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-card border border-border">
+              <Sparkles className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-0.5">Recomendación IA</p>
+                <p className="text-sm text-muted-foreground">{deal.recommendation}</p>
+              </div>
+            </div>
+
+            {/* Score breakdown */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Desglose del score
+              </p>
+              <div className="space-y-2.5">
+                {deal.factors.map((f, fi) => (
+                  <div key={fi} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5">
+                        {f.positive
+                          ? <TrendingUp className="w-3 h-3 text-emerald-400" />
+                          : <TrendingDown className="w-3 h-3 text-red-400" />
+                        }
+                        <span className="font-medium">{f.label}</span>
+                      </span>
+                      <span className={`font-bold ${f.positive ? 'text-emerald-400' : 'text-red-400'}`}>
+                        +{f.points}/{f.max}
+                      </span>
+                    </div>
+                    <Progress
+                      value={(f.points / f.max) * 100}
+                      className={`h-1.5 ${scoreBar(Math.round((f.points / f.max) * 100))}`}
+                    />
+                    <p className="text-[10px] text-muted-foreground">{f.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Customer data */}
+            {deal.customerData && (
+              <div className="p-3 rounded-lg bg-card border border-border">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Cliente</p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{deal.customerData.purchase_count}</p>
+                    <p className="text-[10px] text-muted-foreground">Compras previas</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">
+                      ${(deal.customerData.total_spent / 1000).toFixed(1)}K
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Total histórico</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      {deal.customerData.last_purchase_at
+                        ? formatDistanceToNow(new Date(deal.customerData.last_purchase_at), { locale: es, addSuffix: true })
+                        : 'Sin compras'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Última compra</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'todos', label: 'Todos los Deals' },
+    { id: 'calientes', label: 'Calientes 🔥' },
+    { id: 'por-vendedor', label: 'Por Vendedor' },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
-              <Brain className="w-4.5 h-4.5 text-violet-400" />
-            </div>
-            AI Lead Scoring
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Puntaje predictivo 0–100 por deal activo · actualizado en tiempo real
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Recalcular
-        </Button>
-      </div>
+      {/* PageHeader */}
+      <PageHeader
+        icon={Brain}
+        title="AI Lead Scoring"
+        description="Priorización inteligente de oportunidades de venta"
+        actions={
+          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Recalcular
+          </Button>
+        }
+      />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-card border border-border rounded-xl p-4 col-span-1">
-          <p className="text-xs text-muted-foreground">Score promedio</p>
-          <p className={`text-2xl font-bold mt-1 ${scoreColor(kpis.avgScore)}`}>{kpis.avgScore}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">de 100 pts</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">🔥 Calientes</p>
-          <p className="text-2xl font-bold mt-1 text-red-400">{kpis.hot}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">score ≥ 65</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">⚡ Tibios</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{kpis.warm}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">score 35–64</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">❄️ Fríos</p>
-          <p className="text-2xl font-bold mt-1 text-blue-400">{kpis.cold}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">score &lt; 35</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Pipeline total</p>
-          <p className="text-lg font-bold mt-1 text-foreground">
-            ${(kpis.totalValue / 1000).toFixed(0)}K
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-1">{deals.length} deals activos</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Valor caliente</p>
-          <p className="text-lg font-bold mt-1 text-red-400">
-            ${(kpis.hotValue / 1000).toFixed(0)}K
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-1">potencial cierre</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard
+          label="Leads calientes"
+          value={hotCount}
+          sub="score ≥ 65"
+          icon={Zap}
+          color="destructive"
+        />
+        <KPICard
+          label="Score promedio"
+          value={avgScore.toFixed(0)}
+          sub="de 100 pts"
+          icon={Brain}
+          color="primary"
+        />
+        <KPICard
+          label="Pipeline prioritario"
+          value={`$${(highValuePipeline / 1000).toFixed(0)}K`}
+          sub="deals con score ≥ 70"
+          icon={DollarSign}
+          color="success"
+        />
+        <KPICard
+          label="Necesitan atención"
+          value={needsAttentionCount}
+          sub="etapa temprana + score bajo"
+          icon={AlertTriangle}
+          color="warning"
+        />
       </div>
 
       {/* Scoring info box */}
@@ -359,201 +553,143 @@ export default function AILeadScoringPage() {
         </p>
       </div>
 
-      {/* Filters + Sort */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex gap-1.5">
-          {(['all', 'hot', 'warm', 'cold'] as const).map(u => (
-            <button
-              key={u}
-              onClick={() => setFilterUrgency(u)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                filterUrgency === u
-                  ? 'bg-primary/15 text-primary border-primary/30'
-                  : 'border-border text-muted-foreground hover:bg-muted/50'
-              }`}
-            >
-              {u === 'all' ? 'Todos' : u === 'hot' ? '🔥 Calientes' : u === 'warm' ? '⚡ Tibios' : '❄️ Fríos'}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
-          <span>Ordenar:</span>
-          {(['score', 'amount', 'updated'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => setSortBy(s)}
-              className={`px-2.5 py-1 rounded-md border transition-all ${
-                sortBy === s ? 'bg-muted border-border text-foreground' : 'border-transparent hover:bg-muted/40'
-              }`}
-            >
-              {s === 'score' ? 'Score' : s === 'amount' ? 'Valor' : 'Actividad'}
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${
+              activeTab === tab.id
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Deal list */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="text-center">
-            <Brain className="w-8 h-8 text-violet-400 mx-auto mb-3 animate-pulse" />
-            <p className="text-sm text-muted-foreground">Analizando deals con IA...</p>
-          </div>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Target className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>No hay deals activos en el pipeline.</p>
-          <p className="text-sm mt-1">Creá deals en la página de Pipeline para ver scores.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((deal, idx) => {
-            const uc = urgencyConfig[deal.urgency];
-            const isExpanded = expandedId === deal.id;
-            return (
-              <div
-                key={deal.id}
-                className="bg-card border border-border rounded-xl overflow-hidden transition-all duration-200 hover:border-border/80"
-              >
-                {/* Main row */}
+      {/* Tab: Todos los Deals */}
+      {activeTab === 'todos' && (
+        <>
+          {/* Filters + Sort */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-1.5">
+              {(['all', 'hot', 'warm', 'cold'] as const).map(u => (
                 <button
-                  className="w-full text-left p-4 flex items-center gap-4"
-                  onClick={() => setExpandedId(isExpanded ? null : deal.id)}
+                  key={u}
+                  onClick={() => setFilterUrgency(u)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    filterUrgency === u
+                      ? 'bg-primary/15 text-primary border-primary/30'
+                      : 'border-border text-muted-foreground hover:bg-muted/50'
+                  }`}
                 >
-                  {/* Rank */}
-                  <span className="text-xs font-mono text-muted-foreground/50 w-5 shrink-0">
-                    #{idx + 1}
-                  </span>
-
-                  {/* Score ring */}
-                  <div className="relative w-12 h-12 shrink-0">
-                    <svg className="w-12 h-12 -rotate-90" viewBox="0 0 40 40">
-                      <circle cx="20" cy="20" r="16" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
-                      <circle
-                        cx="20" cy="20" r="16" fill="none"
-                        stroke={deal.score >= 65 ? '#34d399' : deal.score >= 35 ? '#fbbf24' : '#f87171'}
-                        strokeWidth="3"
-                        strokeDasharray={`${(deal.score / 100) * 100.5} 100.5`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className={`absolute inset-0 flex items-center justify-center text-sm font-bold ${scoreColor(deal.score)}`}>
-                      {deal.score}
-                    </span>
-                  </div>
-
-                  {/* Deal info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-semibold text-sm truncate">{deal.title}</p>
-                      <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${uc.bg} ${uc.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${uc.dot}`} />
-                        {uc.label}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {deal.customer_name && (
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" /> {deal.customer_name}
-                        </span>
-                      )}
-                      <span className="capitalize">{deal.stage}</span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(new Date(deal.updated_at), { locale: es, addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Amount */}
-                  <div className="text-right shrink-0">
-                    <p className="font-bold text-sm">${deal.amount.toLocaleString("es-AR")}</p>
-                    {deal.assigned_name && (
-                      <p className="text-[10px] text-muted-foreground">{deal.assigned_name}</p>
-                    )}
-                  </div>
-
-                  {/* Expand */}
-                  <div className="shrink-0 text-muted-foreground/40">
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </div>
+                  {u === 'all' ? 'Todos' : u === 'hot' ? '🔥 Calientes' : u === 'warm' ? '⚡ Tibios' : '❄️ Fríos'}
                 </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
+              <span>Ordenar:</span>
+              {(['score', 'amount', 'updated'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSortBy(s)}
+                  className={`px-2.5 py-1 rounded-md border transition-all ${
+                    sortBy === s ? 'bg-muted border-border text-foreground' : 'border-transparent hover:bg-muted/40'
+                  }`}
+                >
+                  {s === 'score' ? 'Score' : s === 'amount' ? 'Valor' : 'Actividad'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                {/* Expanded detail */}
-                {isExpanded && (
-                  <div className="border-t border-border bg-muted/20 p-4 space-y-4">
-                    {/* Recommendation */}
-                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-card border border-border">
-                      <Sparkles className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-semibold text-foreground mb-0.5">Recomendación IA</p>
-                        <p className="text-sm text-muted-foreground">{deal.recommendation}</p>
-                      </div>
-                    </div>
-
-                    {/* Score breakdown */}
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                        Desglose del score
-                      </p>
-                      <div className="space-y-2.5">
-                        {deal.factors.map((f, fi) => (
-                          <div key={fi} className="space-y-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="flex items-center gap-1.5">
-                                {f.positive
-                                  ? <TrendingUp className="w-3 h-3 text-emerald-400" />
-                                  : <TrendingDown className="w-3 h-3 text-red-400" />
-                                }
-                                <span className="font-medium">{f.label}</span>
-                              </span>
-                              <span className={`font-bold ${f.positive ? 'text-emerald-400' : 'text-red-400'}`}>
-                                +{f.points}/{f.max}
-                              </span>
-                            </div>
-                            <Progress
-                              value={(f.points / f.max) * 100}
-                              className={`h-1.5 ${scoreBar(Math.round((f.points / f.max) * 100))}`}
-                            />
-                            <p className="text-[10px] text-muted-foreground">{f.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Customer data */}
-                    {deal.customerData && (
-                      <div className="p-3 rounded-lg bg-card border border-border">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Cliente</p>
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div>
-                            <p className="text-lg font-bold text-foreground">{deal.customerData.purchase_count}</p>
-                            <p className="text-[10px] text-muted-foreground">Compras previas</p>
-                          </div>
-                          <div>
-                            <p className="text-lg font-bold text-foreground">
-                              ${(deal.customerData.total_spent / 1000).toFixed(1)}K
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Total histórico</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-foreground">
-                              {deal.customerData.last_purchase_at
-                                ? formatDistanceToNow(new Date(deal.customerData.last_purchase_at), { locale: es, addSuffix: true })
-                                : 'Sin compras'}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Última compra</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+          {/* Deal list */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <Brain className="w-8 h-8 text-violet-400 mx-auto mb-3 animate-pulse" />
+                <p className="text-sm text-muted-foreground">Analizando deals con IA...</p>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Target className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No hay deals activos en el pipeline.</p>
+              <p className="text-sm mt-1">Creá deals en la página de Pipeline para ver scores.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((deal, idx) => renderDealCard(deal, idx))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Tab: Calientes */}
+      {activeTab === 'calientes' && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Brain className="w-8 h-8 text-violet-400 mx-auto mb-3 animate-pulse" />
+            </div>
+          ) : hotDeals.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Zap className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No hay leads calientes en este momento.</p>
+              <p className="text-sm mt-1">Los deals con score ≥ 65 aparecen aquí.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {hotDeals.map((deal, idx) => renderDealCard(deal, idx))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Tab: Por Vendedor */}
+      {activeTab === 'por-vendedor' && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Brain className="w-8 h-8 text-violet-400 mx-auto mb-3 animate-pulse" />
+            </div>
+          ) : sellerGroups.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No hay deals con vendedor asignado.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sellerGroups.map(({ seller, count, avgScore: sellerAvg, deals: sellerDeals }) => (
+                <div key={seller} className="bg-card border border-border rounded-xl overflow-hidden">
+                  {/* Seller header */}
+                  <div className="flex items-center justify-between p-4 border-b border-border bg-muted/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary/60" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">{seller}</p>
+                        <p className="text-xs text-muted-foreground">{count} deal{count !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-lg font-bold ${scoreColor(sellerAvg)}`}>{sellerAvg}</p>
+                      <p className="text-[10px] text-muted-foreground">score promedio</p>
+                    </div>
+                  </div>
+                  {/* Seller deals */}
+                  <div className="divide-y divide-border/50">
+                    {sellerDeals.map((deal, idx) => renderDealCard(deal, idx))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
