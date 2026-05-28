@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   TrendingUp, TrendingDown, Minus, Plus, Pencil, Trash2,
   Globe, Package, BarChart3, AlertTriangle, RefreshCcw,
-  ArrowUpRight, ArrowDownRight, Search, ExternalLink, Bell
+  ArrowUpRight, ArrowDownRight, Search, ExternalLink, Bell, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,10 +76,10 @@ interface OurProduct {
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const POSITION_CONFIG = {
-  undercut: { label: "Competidor más barato", color: "bg-red-100 text-red-700",   icon: <TrendingDown className="w-3.5 h-3.5" />, dot: "bg-red-500" },
-  above:    { label: "Nosotros más barato",   color: "bg-green-100 text-green-700", icon: <TrendingUp className="w-3.5 h-3.5" />, dot: "bg-green-500" },
-  parity:   { label: "Precio igual",          color: "bg-gray-100 text-gray-600", icon: <Minus className="w-3.5 h-3.5" />,     dot: "bg-gray-400" },
-  unknown:  { label: "Sin comparar",          color: "bg-yellow-100 text-yellow-700", icon: <AlertTriangle className="w-3.5 h-3.5" />, dot: "bg-yellow-400" },
+  undercut: { label: "Competidor más barato", color: "bg-red-500/15 text-red-400",      icon: <TrendingDown className="w-3.5 h-3.5" />, dot: "bg-red-500" },
+  above:    { label: "Nosotros más barato",   color: "bg-emerald-500/15 text-emerald-400", icon: <TrendingUp className="w-3.5 h-3.5" />, dot: "bg-emerald-500" },
+  parity:   { label: "Precio igual",          color: "bg-muted/40 text-muted-foreground",  icon: <Minus className="w-3.5 h-3.5" />,     dot: "bg-muted-foreground" },
+  unknown:  { label: "Sin comparar",          color: "bg-yellow-500/15 text-yellow-400",   icon: <AlertTriangle className="w-3.5 h-3.5" />, dot: "bg-yellow-400" },
 };
 
 const TABS = ["Comparativa", "Competidores", "Productos", "Historial"] as const;
@@ -102,6 +105,7 @@ function MiniTrend({ prices }: { prices: number[] }) {
 }
 
 export default function CompetitorPricingPage() {
+  usePageTitle("Inteligencia de Precios");
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("Comparativa");
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -242,66 +246,59 @@ export default function CompetitorPricingPage() {
     return priceHistory.filter(h => h.competitor_product_id === cpId).slice(0, 10);
   }
 
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-indigo-600" /> Inteligencia de Precios
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Monitoreo de precios de la competencia en tiempo real</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load}><RefreshCcw className="w-4 h-4 mr-1" /> Actualizar</Button>
-          {activeTab === "Competidores" && <Button size="sm" onClick={openNewComp}><Plus className="w-4 h-4 mr-1" /> Competidor</Button>}
-          {activeTab === "Productos" && <Button size="sm" onClick={openNewProd}><Plus className="w-4 h-4 mr-1" /> Producto</Button>}
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={BarChart3}
+        title="Inteligencia de Precios"
+        description="Monitoreo de precios de la competencia en tiempo real"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load}><RefreshCcw className="w-4 h-4 mr-1" /> Actualizar</Button>
+            {activeTab === "Competidores" && <Button size="sm" onClick={openNewComp}><Plus className="w-4 h-4 mr-1" /> Competidor</Button>}
+            {activeTab === "Productos" && <Button size="sm" onClick={openNewProd}><Plus className="w-4 h-4 mr-1" /> Producto</Button>}
+          </div>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Nos superan en precio", value: undercutCount, color: "text-red-600", bg: "bg-red-50", icon: <TrendingDown className="w-5 h-5 text-red-600" /> },
-          { label: "Somos más baratos",     value: aboveCount,    color: "text-green-600", bg: "bg-green-50", icon: <TrendingUp className="w-5 h-5 text-green-600" /> },
-          { label: "Precio paridad",         value: parityCount,   color: "text-gray-600", bg: "bg-gray-50",  icon: <Minus className="w-5 h-5 text-gray-600" /> },
-          { label: "Dif. promedio competidor", value: `${avgDiffPct.toFixed(1)}%`, color: avgDiffPct >= 0 ? "text-green-600" : "text-red-600", bg: "bg-indigo-50", icon: <BarChart3 className="w-5 h-5 text-indigo-600" /> },
-        ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl border p-4 flex items-center gap-3">
-            <div className={`${k.bg} p-2.5 rounded-lg`}>{k.icon}</div>
-            <div>
-              <p className="text-xs text-gray-500">{k.label}</p>
-              <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-            </div>
-          </div>
-        ))}
+        <KPICard label="Nos superan en precio" value={undercutCount} icon={TrendingDown} color="destructive" />
+        <KPICard label="Somos más baratos" value={aboveCount} icon={TrendingUp} color="success" />
+        <KPICard label="Precio paridad" value={parityCount} icon={Minus} color="primary" />
+        <KPICard label="Dif. promedio" value={`${avgDiffPct.toFixed(1)}%`} icon={BarChart3} color={avgDiffPct >= 0 ? "success" : "destructive"} />
       </div>
 
       {/* tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted/30 rounded-lg p-1 w-fit border border-border/40">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
       </div>
 
-      {loading ? <div className="text-center py-16 text-gray-400">Cargando…</div> : (
-        <>
+      <>
           {/* ── Comparativa ── */}
           {activeTab === "Comparativa" && (
             <div className="space-y-4">
               {/* filters */}
               <div className="flex gap-3 flex-wrap">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
                   <Input placeholder="Buscar producto…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 w-56" />
                 </div>
                 <div className="flex gap-2">
                   {(["all","undercut","above","parity","unknown"] as const).map(pos => (
                     <button key={pos} onClick={() => setFilterPosition(pos)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterPosition === pos ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 hover:border-indigo-300"}`}>
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterPosition === pos ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-muted-foreground hover:border-indigo-300"}`}>
                       {pos === "all" ? "Todos" : POSITION_CONFIG[pos].label}
                     </button>
                   ))}
@@ -311,7 +308,7 @@ export default function CompetitorPricingPage() {
               {/* comparison table */}
               <div className="bg-white rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600">
+                  <thead className="bg-muted/20 text-muted-foreground">
                     <tr>
                       {["Nuestro producto", "Competidor", "Su producto", "Nuestro precio", "Su precio", "Diferencia", "Posición", ""].map(h => (
                         <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -323,33 +320,33 @@ export default function CompetitorPricingPage() {
                       const pos = POSITION_CONFIG[c.position] ?? POSITION_CONFIG.unknown;
                       const hist = historyFor(c.competitor_product_id).map(h => h.price);
                       return (
-                        <tr key={c.competitor_product_id} className="hover:bg-gray-50">
+                        <tr key={c.competitor_product_id} className="hover:bg-muted/20">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Package className="w-4 h-4 text-gray-400" />
-                              <span className="font-medium text-gray-900">{c.our_product_name ?? <span className="text-gray-400 italic">Sin mapear</span>}</span>
+                              <Package className="w-4 h-4 text-muted-foreground/70" />
+                              <span className="font-medium text-foreground">{c.our_product_name ?? <span className="text-muted-foreground/70 italic">Sin mapear</span>}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{c.competitor_name}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{c.competitor_name}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
-                              <span className="text-gray-700">{c.their_product_name}</span>
+                              <span className="text-foreground/80">{c.their_product_name}</span>
                               {c.url && <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-600"><ExternalLink className="w-3 h-3" /></a>}
                             </div>
                             {c.their_promotion && <span className="text-xs text-orange-600 bg-orange-50 px-1 rounded">{c.their_promotion}</span>}
                           </td>
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {c.our_price != null ? `$${c.our_price.toLocaleString("es-AR")}` : <span className="text-gray-400">—</span>}
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {c.our_price != null ? `$${c.our_price.toLocaleString("es-AR")}` : <span className="text-muted-foreground/70">—</span>}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className={`font-medium ${c.their_price == null ? "text-gray-400" : c.position === "undercut" ? "text-red-600" : "text-gray-900"}`}>
+                              <span className={`font-medium ${c.their_price == null ? "text-muted-foreground/70" : c.position === "undercut" ? "text-red-600" : "text-foreground"}`}>
                                 {c.their_price != null ? `$${c.their_price.toLocaleString("es-AR")}` : "—"}
                               </span>
-                              {!c.their_in_stock && <Badge className="bg-gray-100 text-gray-500 text-xs">Sin stock</Badge>}
+                              {!c.their_in_stock && <Badge className="bg-muted/40 text-muted-foreground text-xs">Sin stock</Badge>}
                               {hist.length > 1 && <MiniTrend prices={hist.reverse()} />}
                             </div>
-                            {c.recorded_at && <p className="text-xs text-gray-400">{new Date(c.recorded_at).toLocaleDateString("es-AR")}</p>}
+                            {c.recorded_at && <p className="text-xs text-muted-foreground/70">{new Date(c.recorded_at).toLocaleDateString("es-AR")}</p>}
                           </td>
                           <td className="px-4 py-3">
                             {c.price_diff_pct != null ? (
@@ -357,7 +354,7 @@ export default function CompetitorPricingPage() {
                                 {c.price_diff_pct >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                                 {Math.abs(c.price_diff_pct).toFixed(1)}%
                               </span>
-                            ) : <span className="text-gray-400">—</span>}
+                            ) : <span className="text-muted-foreground/70">—</span>}
                           </td>
                           <td className="px-4 py-3">
                             <Badge className={`${pos.color} flex items-center gap-1 text-xs w-fit`}>{pos.icon}{pos.label}</Badge>
@@ -371,7 +368,7 @@ export default function CompetitorPricingPage() {
                       );
                     })}
                     {filteredComparison.length === 0 && (
-                      <tr><td colSpan={8} className="text-center py-12 text-gray-400">Sin datos de comparación</td></tr>
+                      <tr><td colSpan={8} className="text-center py-12 text-muted-foreground/70">Sin datos de comparación</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -390,19 +387,19 @@ export default function CompetitorPricingPage() {
                       <div className="flex items-center gap-2">
                         <Globe className="w-5 h-5 text-indigo-500" />
                         <div>
-                          <p className="font-semibold text-gray-900">{c.name}</p>
+                          <p className="font-semibold text-foreground">{c.name}</p>
                           {c.website && <a href={c.website} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-0.5">{c.website} <ExternalLink className="w-3 h-3" /></a>}
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => openEditComp(c)} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => openEditComp(c)} className="p-1 rounded hover:bg-muted/40 text-muted-foreground/70"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => supabase.from("competitors").delete().eq("id", c.id).then(load)} className="p-1 rounded hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
-                    {c.notes && <p className="text-xs text-gray-500">{c.notes}</p>}
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    {c.notes && <p className="text-xs text-muted-foreground">{c.notes}</p>}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{prodCount} productos monitoreados</span>
-                      <Badge className={c.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}>
+                      <Badge className={c.is_active ? "bg-green-100 text-green-700" : "bg-muted/40 text-muted-foreground"}>
                         {c.is_active ? "Activo" : "Inactivo"}
                       </Badge>
                     </div>
@@ -410,7 +407,7 @@ export default function CompetitorPricingPage() {
                 );
               })}
               {competitors.length === 0 && (
-                <div className="col-span-3 text-center py-16 text-gray-400">
+                <div className="col-span-3 text-center py-16 text-muted-foreground/70">
                   <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">Sin competidores cargados</p>
                   <p className="text-sm mt-1">Agregá competidores para empezar a monitorear precios</p>
@@ -423,7 +420,7 @@ export default function CompetitorPricingPage() {
           {activeTab === "Productos" && (
             <div className="bg-white rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
                     {["Competidor", "Producto rival", "SKU rival", "Nuestro producto", "URL", "Últ. precio", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -434,18 +431,18 @@ export default function CompetitorPricingPage() {
                   {compProducts.map(p => {
                     const latest = priceHistory.find(h => h.competitor_product_id === p.id);
                     return (
-                      <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{p.competitors?.name ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-700">{p.competitor_name}</td>
-                        <td className="px-4 py-3 text-gray-400 font-mono text-xs">{p.competitor_sku ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-600">{(p.products as CompetitorProduct["products"])?.name ?? <span className="text-gray-400 italic text-xs">Sin mapear</span>}</td>
+                      <tr key={p.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 font-medium text-foreground">{p.competitors?.name ?? "—"}</td>
+                        <td className="px-4 py-3 text-foreground/80">{p.competitor_name}</td>
+                        <td className="px-4 py-3 text-muted-foreground/70 font-mono text-xs">{p.competitor_sku ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{(p.products as CompetitorProduct["products"])?.name ?? <span className="text-muted-foreground/70 italic text-xs">Sin mapear</span>}</td>
                         <td className="px-4 py-3">
                           {p.url ? <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700"><ExternalLink className="w-4 h-4" /></a> : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           {latest ? (
-                            <span className="font-medium text-gray-900">${latest.price.toLocaleString("es-AR")}</span>
-                          ) : <span className="text-gray-400 text-xs">Sin datos</span>}
+                            <span className="font-medium text-foreground">${latest.price.toLocaleString("es-AR")}</span>
+                          ) : <span className="text-muted-foreground/70 text-xs">Sin datos</span>}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
@@ -458,7 +455,7 @@ export default function CompetitorPricingPage() {
                     );
                   })}
                   {compProducts.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-12 text-gray-400">Sin productos cargados</td></tr>
+                    <tr><td colSpan={7} className="text-center py-12 text-muted-foreground/70">Sin productos cargados</td></tr>
                   )}
                 </tbody>
               </table>
@@ -469,7 +466,7 @@ export default function CompetitorPricingPage() {
           {activeTab === "Historial" && (
             <div className="bg-white rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
                     {["Fecha y hora", "Producto rival", "Competidor", "Precio", "Moneda", "En stock", "Promoción", "Fuente"].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -480,12 +477,12 @@ export default function CompetitorPricingPage() {
                   {priceHistory.map(h => {
                     const cp = compProducts.find(p => p.id === h.competitor_product_id);
                     return (
-                      <tr key={h.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-500 text-xs">{new Date(h.recorded_at).toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{cp?.competitor_name ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-600">{cp?.competitors?.name ?? "—"}</td>
-                        <td className="px-4 py-3 font-semibold text-gray-900">${h.price.toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 text-gray-500">{h.currency}</td>
+                      <tr key={h.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(h.recorded_at).toLocaleString("es-AR")}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{cp?.competitor_name ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{cp?.competitors?.name ?? "—"}</td>
+                        <td className="px-4 py-3 font-semibold text-foreground">${h.price.toLocaleString("es-AR")}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{h.currency}</td>
                         <td className="px-4 py-3">
                           {h.in_stock ? <Badge className="bg-green-100 text-green-700 text-xs">Sí</Badge> : <Badge className="bg-red-100 text-red-700 text-xs">No</Badge>}
                         </td>
@@ -495,14 +492,13 @@ export default function CompetitorPricingPage() {
                     );
                   })}
                   {priceHistory.length === 0 && (
-                    <tr><td colSpan={8} className="text-center py-12 text-gray-400">Sin historial de precios</td></tr>
+                    <tr><td colSpan={8} className="text-center py-12 text-muted-foreground/70">Sin historial de precios</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           )}
-        </>
-      )}
+      </>
 
       {/* ── Competitor Dialog ── */}
       <Dialog open={showCompDialog} onOpenChange={setShowCompDialog}>

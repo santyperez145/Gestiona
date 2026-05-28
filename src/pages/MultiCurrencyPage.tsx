@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus, ArrowRight,
   Clock, AlertTriangle, BarChart3, Settings, Globe, Zap
@@ -86,6 +88,7 @@ function RateCard({ type, data, sparkData, selected, onClick }: any) {
 }
 
 export default function MultiCurrencyPage() {
+  usePageTitle("Multi-Divisa & FX");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"rates" | "converter" | "exposure" | "transactions">("rates");
   const [selectedRate, setSelectedRate] = useState("blue");
@@ -219,26 +222,21 @@ export default function MultiCurrencyPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-blue-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Multi-Divisa & FX</h1>
+      <PageHeader
+        icon={Globe}
+        title="Multi-Divisa & FX"
+        description="Tipos de cambio en tiempo real, conversor y exposición FX"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Tasas actualizadas")}>
+              <RefreshCw className="w-3 h-3" />Actualizar tasas
+            </Button>
+            <Button size="sm" onClick={() => setShowAddRate(true)} className="gap-1.5 gradient-gold text-primary-foreground">
+              <Plus className="w-3.5 h-3.5" />Tasa manual
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground">Tipos de cambio en tiempo real, conversor y exposición FX</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Tasas actualizadas")}>
-            <RefreshCw className="w-3 h-3" />Actualizar tasas
-          </Button>
-          <Button size="sm" onClick={() => setShowAddRate(true)} className="gap-1.5 gradient-gold text-primary-foreground">
-            <Plus className="w-3.5 h-3.5" />Tasa manual
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Building2, MapPin, TrendingUp, DollarSign, CheckCircle, AlertTriangle,
   Plus, Users, Star, BarChart3, Calendar, ShieldCheck
@@ -48,6 +51,7 @@ function ComplianceBadge({ score }: { score: number }) {
 }
 
 export default function FranchisePage() {
+  usePageTitle("Gestión de Franquicias");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"units" | "royalties" | "compliance" | "analytics">("units");
   const [units, setUnits] = useState<FranchiseUnit[]>([]);
@@ -99,36 +103,37 @@ export default function FranchisePage() {
   const avgCompliance = units.length ? Math.round(units.reduce((s, u) => s + u.compliance_score, 0) / units.length) : 0;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-primary" /> Gestión de Franquicias</h1>
-          <p className="text-muted-foreground text-sm mt-1">Red de unidades, regalías y cumplimiento</p>
-        </div>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nueva Unidad</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Agregar Unidad Franquiciada</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label>Código de Unidad</Label><Input placeholder="ARG-005" /></div>
-              <div><Label>Nombre del Franquiciado</Label><Input placeholder="Nombre completo" /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Ciudad</Label><Input placeholder="Buenos Aires" /></div>
-                <div><Label>Provincia</Label><Input placeholder="CABA" /></div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Building2}
+        title="Gestión de Franquicias"
+        description="Red de unidades, regalías y cumplimiento"
+        actions={
+          <Dialog open={showNew} onOpenChange={setShowNew}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nueva Unidad</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Agregar Unidad Franquiciada</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label>Código de Unidad</Label><Input placeholder="ARG-005" /></div>
+                <div><Label>Nombre del Franquiciado</Label><Input placeholder="Nombre completo" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Ciudad</Label><Input placeholder="Buenos Aires" /></div>
+                  <div><Label>Provincia</Label><Input placeholder="CABA" /></div>
+                </div>
+                <div><Label>Fecha de Apertura</Label><Input type="date" /></div>
+                <Button className="w-full" onClick={() => { toast.success("Unidad creada"); setShowNew(false); }}>Crear Unidad</Button>
               </div>
-              <div><Label>Fecha de Apertura</Label><Input type="date" /></div>
-              <Button className="w-full" onClick={() => { toast.success("Unidad creada"); setShowNew(false); }}>Crear Unidad</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Building2 className="w-8 h-8 text-blue-500" /><div><p className="text-xs text-muted-foreground">Unidades Activas</p><p className="text-2xl font-bold">{units.filter(u => u.is_active).length}</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><DollarSign className="w-8 h-8 text-green-500" /><div><p className="text-xs text-muted-foreground">Revenue MTD Red</p><p className="text-xl font-bold">${(totalRevenueMtd / 1_000_000).toFixed(1)}M</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><TrendingUp className="w-8 h-8 text-purple-500" /><div><p className="text-xs text-muted-foreground">Regalías Pendientes</p><p className="text-xl font-bold">${(totalRoyaltiesPending / 1000).toFixed(0)}K</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><ShieldCheck className="w-8 h-8 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Cumplimiento Prom.</p><p className="text-2xl font-bold">{avgCompliance}%</p></div></CardContent></Card>
+        <KPICard label="Unidades Activas" value={units.filter(u => u.is_active).length} icon={Building2} color="blue" />
+        <KPICard label="Revenue MTD Red" value={`$${(totalRevenueMtd / 1_000_000).toFixed(1)}M`} icon={DollarSign} color="success" />
+        <KPICard label="Regalías Pendientes" value={`$${(totalRoyaltiesPending / 1000).toFixed(0)}K`} icon={TrendingUp} color="purple" />
+        <KPICard label="Cumplimiento Prom." value={`${avgCompliance}%`} icon={ShieldCheck} color={avgCompliance >= 80 ? "success" : avgCompliance >= 60 ? "warning" : "destructive"} />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

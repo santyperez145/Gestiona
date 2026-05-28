@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   Map, Users, TrendingUp, Heart, AlertTriangle, Plus, Search,
   MessageCircle, Mail, Phone, ShoppingCart, Star, RefreshCw,
-  Smile, Meh, Frown, Zap, CheckCircle2, ChevronDown, ChevronUp
+  Smile, Meh, Frown, Zap, CheckCircle2, ChevronDown, ChevronUp, Loader2
 } from "lucide-react";
 
 const STAGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -84,6 +86,7 @@ function HealthBar({ value }: { value: number }) {
 }
 
 export default function CustomerJourneyPage() {
+  usePageTitle("Customer Journey");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"funnel" | "customers" | "automations">("funnel");
   const [search, setSearch] = useState("");
@@ -190,21 +193,16 @@ export default function CustomerJourneyPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
-              <Map className="w-4 h-4 text-pink-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Customer Journey</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Mapa de etapas, touchpoints e interacciones por cliente</p>
-        </div>
-        <Button size="sm" onClick={() => setShowNewAutomation(true)} className="gap-1.5 gradient-gold text-primary-foreground">
-          <Plus className="w-3.5 h-3.5" />Nueva Automatización
-        </Button>
-      </div>
+      <PageHeader
+        icon={Map}
+        title="Customer Journey"
+        description="Mapa de etapas, touchpoints e interacciones por cliente"
+        actions={
+          <Button size="sm" onClick={() => setShowNewAutomation(true)} className="gap-1.5 gradient-gold text-primary-foreground">
+            <Plus className="w-3.5 h-3.5" />Nueva Automatización
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
@@ -219,7 +217,7 @@ export default function CustomerJourneyPage() {
       {/* Loading spinner */}
       {loadingData && (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       )}
 

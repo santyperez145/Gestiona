@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -17,7 +20,7 @@ import {
 } from "@/components/ui/tabs";
 import {
   ChefHat, Plus, Pencil, Trash2, Play, ChevronDown, ChevronRight,
-  Clock, Package, DollarSign, Sparkles,
+  Clock, Package, DollarSign, Sparkles, Loader2,
 } from "lucide-react";
 
 interface Product { id: string; name: string; sku: string | null; price: number; }
@@ -80,6 +83,7 @@ const EMPTY_RECIPE = {
 };
 
 export default function RecipesPage() {
+  usePageTitle("Fichas Técnicas & BOM");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -228,44 +232,40 @@ export default function RecipesPage() {
       .reduce((s, i) => s + (i.unit_cost || 0) * i.quantity * batches, 0);
   }
 
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ChefHat className="w-6 h-6 text-primary" /> Fichas Técnicas & BOM
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Recetas de producción con lista de ingredientes, costos y trazabilidad de lotes.
-          </p>
-        </div>
-        <Button onClick={() => { setEditingRecipe(null); setRecipeForm(EMPTY_RECIPE); setIngrRows([{ ingredient_product_id: "", ingredient_name: "", quantity: "1", unit: "unidad", unit_cost: "", is_optional: false }]); setRecipeOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nueva receta
-        </Button>
+      <PageHeader
+        icon={ChefHat}
+        title="Fichas Técnicas & BOM"
+        description="Recetas de producción con lista de ingredientes, costos y trazabilidad de lotes."
+        actions={
+          <Button onClick={() => { setEditingRecipe(null); setRecipeForm(EMPTY_RECIPE); setIngrRows([{ ingredient_product_id: "", ingredient_name: "", quantity: "1", unit: "unidad", unit_cost: "", is_optional: false }]); setRecipeOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nueva receta
+          </Button>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <KPICard label="Total recetas" value={recipes.length} icon={ChefHat} color="primary" />
+        <KPICard label="Producciones registradas" value={productions.length} icon={Play} color="success" />
+        <KPICard
+          label="Costo prom. por producción"
+          value={productions.filter(p => p.total_cost).length > 0
+            ? fmtCurrency(productions.filter(p => p.total_cost).reduce((s, p) => s + (p.total_cost || 0), 0) / productions.filter(p => p.total_cost).length)
+            : "—"}
+          icon={DollarSign}
+          color="purple"
+        />
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border/50 bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Total recetas</p>
-          <p className="text-2xl font-bold">{recipes.length}</p>
-        </div>
-        <div className="rounded-xl border border-border/50 bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Producciones registradas</p>
-          <p className="text-2xl font-bold">{productions.length}</p>
-        </div>
-        <div className="rounded-xl border border-border/50 bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Costo prom. último mes</p>
-          <p className="text-2xl font-bold">
-            {productions.length > 0
-              ? fmtCurrency(productions.filter(p => p.total_cost).reduce((s, p) => s + (p.total_cost || 0), 0) / productions.filter(p => p.total_cost).length)
-              : "—"}
-          </p>
-        </div>
-      </div>
-
-      {loading ? <div className="text-center py-12 text-muted-foreground">Cargando...</div> : (
-        <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="recipes">Recetas ({recipes.length})</TabsTrigger>
             <TabsTrigger value="productions">Producciones ({productions.length})</TabsTrigger>
@@ -385,8 +385,7 @@ export default function RecipesPage() {
               </div>
             )}
           </TabsContent>
-        </Tabs>
-      )}
+      </Tabs>
 
       {/* Recipe dialog */}
       <Dialog open={recipeOpen} onOpenChange={v => { setRecipeOpen(v); if (!v) setEditingRecipe(null); }}>

@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   Select,
   SelectContent,
@@ -127,6 +129,7 @@ function buildWifi(ssid: string, password: string, type = "WPA") {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function QRGeneratorPage() {
+  usePageTitle("Generador de QR");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -219,18 +222,12 @@ export default function QRGeneratorPage() {
   const typeConfig = QR_TYPE_CONFIG[qrType];
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <QrCode className="w-6 h-6 text-primary" />
-            Generador de QR
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Creá QR para productos, pagos, contactos, WiFi y más
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={QrCode}
+        title="Generador de QR"
+        description="Creá QR para productos, pagos, contactos, WiFi y más"
+      />
 
       <Tabs defaultValue="generator">
         <TabsList>

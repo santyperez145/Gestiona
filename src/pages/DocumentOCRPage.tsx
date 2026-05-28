@@ -2,10 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   ScanLine, Upload, FileText, CheckCircle2, XCircle, Clock,
   RefreshCw, Eye, Download, Trash2, AlertTriangle, Sparkles,
@@ -51,6 +54,7 @@ function ConfidenceBadge({ value }: { value: number | null }) {
 }
 
 export default function DocumentOCRPage() {
+  usePageTitle("OCR & Smart Import");
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -130,42 +134,27 @@ export default function DocumentOCRPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-              <ScanLine className="w-4 h-4 text-indigo-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">OCR & Smart Import</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Escaneá facturas y remitos — extracción automática con IA</p>
-        </div>
-        <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-1.5 gradient-gold text-primary-foreground">
-          {uploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-          Subir documentos
-        </Button>
-        <input ref={fileRef} type="file" multiple accept="image/*,.pdf" className="hidden" onChange={handleFileInput} />
-      </div>
+      <PageHeader
+        icon={ScanLine}
+        title="OCR & Smart Import"
+        description="Escaneá facturas y remitos — extracción automática con IA"
+        actions={
+          <>
+            <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-1.5 gradient-gold text-primary-foreground">
+              {uploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              Subir documentos
+            </Button>
+            <input ref={fileRef} type="file" multiple accept="image/*,.pdf" className="hidden" onChange={handleFileInput} />
+          </>
+        }
+      />
 
-      {/* Stats */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Total documentos</p>
-          <p className="text-2xl font-bold">{stats.total}</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Completados</p>
-          <p className="text-2xl font-bold text-emerald-400">{stats.completed}</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Confianza promedio</p>
-          <p className="text-2xl font-bold text-primary">{stats.avgConfidence}%</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Con errores</p>
-          <p className="text-2xl font-bold text-red-400">{stats.failed}</p>
-        </div>
+        <KPICard label="Total documentos" value={stats.total} icon={FileText} color="primary" />
+        <KPICard label="Completados" value={stats.completed} icon={CheckCircle2} color="success" />
+        <KPICard label="Confianza promedio" value={`${stats.avgConfidence}%`} icon={Sparkles} color="blue" />
+        <KPICard label="Con errores" value={stats.failed} icon={XCircle} color="destructive" />
       </div>
 
       {/* Drop zone */}

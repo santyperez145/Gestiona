@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Leaf, TrendingDown, TrendingUp, Target, Plus, Download,
-  Zap, Truck, Building, Users, Globe, CheckCircle
+  Zap, Truck, Building, Users, Globe, CheckCircle, Loader2
 } from "lucide-react";
 
 interface EmissionEntry {
@@ -38,9 +41,9 @@ interface CarbonOffset {
 }
 
 const SCOPE_COLORS: Record<number, { color: string; bg: string; label: string; icon: typeof Leaf }> = {
-  1: { color: "text-red-700",    bg: "bg-red-100",    label: "Scope 1 — Directo",    icon: Building },
-  2: { color: "text-yellow-700", bg: "bg-yellow-100", label: "Scope 2 — Energía",    icon: Zap },
-  3: { color: "text-blue-700",   bg: "bg-blue-100",   label: "Scope 3 — Cadena",     icon: Truck },
+  1: { color: "text-red-400",    bg: "bg-red-500/10",    label: "Scope 1 — Directo",    icon: Building },
+  2: { color: "text-yellow-400", bg: "bg-yellow-500/10", label: "Scope 2 — Energía",    icon: Zap },
+  3: { color: "text-blue-400",   bg: "bg-blue-500/10",   label: "Scope 3 — Cadena",     icon: Truck },
 };
 
 const OFFSET_ICONS: Record<string, string> = {
@@ -54,6 +57,7 @@ const OFFSET_ICONS: Record<string, string> = {
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun"];
 
 export default function CarbonFootprintPage() {
+  usePageTitle("Huella de Carbono");
   const { orgId } = useOrganization();
   const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"dashboard" | "emissions" | "offsets" | "targets">("dashboard");
@@ -139,75 +143,58 @@ export default function CarbonFootprintPage() {
     ? Math.max(...MONTHLY_EMISSIONS.map(m => m.scope1 + m.scope2 + m.scope3))
     : 1;
 
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Leaf className="w-6 h-6 text-green-600" /> Huella de Carbono</h1>
-          <p className="text-muted-foreground text-sm mt-1">Medición GHG Protocol, offsets y reporte ESG</p>
-        </div>
-        <div className="flex gap-2">
-          <Dialog open={showAddEmission} onOpenChange={setShowAddEmission}>
-            <DialogTrigger asChild><Button variant="outline"><Plus className="w-4 h-4 mr-2" />Registrar Emisión</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Registrar Emisión</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-2">
-                <div><Label>Scope</Label>
-                  <Select defaultValue="2">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Scope 1 — Emisiones directas</SelectItem>
-                      <SelectItem value="2">Scope 2 — Energía indirecta</SelectItem>
-                      <SelectItem value="3">Scope 3 — Cadena de valor</SelectItem>
-                    </SelectContent>
-                  </Select>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Leaf}
+        title="Huella de Carbono"
+        description="Medición GHG Protocol, offsets y reporte ESG"
+        actions={
+          <div className="flex gap-2">
+            <Dialog open={showAddEmission} onOpenChange={setShowAddEmission}>
+              <DialogTrigger asChild><Button variant="outline" size="sm"><Plus className="w-4 h-4 mr-2" />Registrar Emisión</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Registrar Emisión</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div><Label>Scope</Label>
+                    <Select defaultValue="2">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Scope 1 — Emisiones directas</SelectItem>
+                        <SelectItem value="2">Scope 2 — Energía indirecta</SelectItem>
+                        <SelectItem value="3">Scope 3 — Cadena de valor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Categoría</Label><Input placeholder="Ej: Electricidad oficina" /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label>Cantidad</Label><Input type="number" placeholder="1000" /></div>
+                    <div><Label>Unidad</Label><Input placeholder="kwh / litros / km" /></div>
+                  </div>
+                  <div><Label>Período</Label><Input type="month" defaultValue="2026-05" /></div>
+                  <Button className="w-full" onClick={() => { toast.success("Emisión registrada"); setShowAddEmission(false); }}>Registrar</Button>
                 </div>
-                <div><Label>Categoría</Label><Input placeholder="Ej: Electricidad oficina" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Cantidad</Label><Input type="number" placeholder="1000" /></div>
-                  <div><Label>Unidad</Label><Input placeholder="kwh / litros / km" /></div>
-                </div>
-                <div><Label>Período</Label><Input type="month" defaultValue="2026-05" /></div>
-                <Button className="w-full" onClick={() => { toast.success("Emisión registrada"); setShowAddEmission(false); }}>Registrar</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline" onClick={() => toast.info("Exportando reporte ESG...")}>
-            <Download className="w-4 h-4 mr-2" />Reporte ESG
-          </Button>
-        </div>
-      </div>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" size="sm" onClick={() => toast.info("Exportando reporte ESG...")}>
+              <Download className="w-4 h-4 mr-2" />Reporte ESG
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-red-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Emisiones Brutas</p>
-            <p className="text-2xl font-bold text-red-600">{(totalEmissions / 1000).toFixed(1)} t</p>
-            <p className="text-xs text-muted-foreground">CO₂e este mes</p>
-          </CardContent>
-        </Card>
-        <Card className="border-green-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Créditos de Carbono</p>
-            <p className="text-2xl font-bold text-green-600">{(totalOffsets / 1000).toFixed(1)} t</p>
-            <p className="text-xs text-muted-foreground">CO₂e compensado</p>
-          </CardContent>
-        </Card>
-        <Card className={netEmissions > 0 ? "border-orange-200" : "border-emerald-200"}>
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Emisiones Netas</p>
-            <p className={`text-2xl font-bold ${netEmissions > 0 ? "text-orange-600" : "text-emerald-600"}`}>{(netEmissions / 1000).toFixed(1)} t</p>
-            <p className="text-xs text-muted-foreground">CO₂e neto</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Compensación</p>
-            <p className="text-2xl font-bold text-blue-600">{reductionPct.toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground">de emisiones cubiertas</p>
-          </CardContent>
-        </Card>
+        <KPICard label="Emisiones Brutas" value={`${(totalEmissions / 1000).toFixed(1)} t`} icon={Building} color="destructive" />
+        <KPICard label="Créditos de Carbono" value={`${(totalOffsets / 1000).toFixed(1)} t`} icon={Leaf} color="success" />
+        <KPICard label="Emisiones Netas" value={`${(netEmissions / 1000).toFixed(1)} t`} icon={TrendingDown} color={netEmissions > 0 ? "warning" : "success"} />
+        <KPICard label="Compensación" value={`${reductionPct.toFixed(0)}%`} icon={Target} color="blue" />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
@@ -227,49 +214,45 @@ export default function CarbonFootprintPage() {
               const Icon = cfg.icon;
               const val = byScope[scope] ?? 0;
               return (
-                <Card key={scope} className={`border ${cfg.bg.replace("bg-", "border-").replace("100", "200")}`}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <Icon className={`w-8 h-8 ${cfg.color}`} />
-                    <div>
-                      <p className="text-xs font-medium">{cfg.label}</p>
-                      <p className={`text-xl font-bold ${cfg.color}`}>{(val / 1000).toFixed(2)} t CO₂e</p>
-                      <p className="text-xs text-muted-foreground">{totalEmissions > 0 ? ((val / totalEmissions) * 100).toFixed(0) : 0}% del total</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div key={scope} className={`${cfg.bg} border border-border/40 rounded-xl p-4 flex items-center gap-3`}>
+                  <Icon className={`w-8 h-8 ${cfg.color}`} />
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">{cfg.label}</p>
+                    <p className={`text-xl font-bold ${cfg.color}`}>{(val / 1000).toFixed(2)} t CO₂e</p>
+                    <p className="text-xs text-muted-foreground">{totalEmissions > 0 ? ((val / totalEmissions) * 100).toFixed(0) : 0}% del total</p>
+                  </div>
+                </div>
               );
             })}
           </div>
           {/* Monthly trend */}
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Emisiones Mensuales por Scope</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2 h-32">
-                {MONTHLY_EMISSIONS.map((m, i) => {
-                  const total = m.scope1 + m.scope2 + m.scope3;
-                  const h = (total / maxMonthly) * 100;
-                  const s1h = (m.scope1 / total) * h;
-                  const s2h = (m.scope2 / total) * h;
-                  const s3h = (m.scope3 / total) * h;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full flex flex-col justify-end" style={{ height: "100px" }}>
-                        <div className="w-full bg-blue-300 rounded-t-sm" style={{ height: `${s3h}px` }} />
-                        <div className="w-full bg-yellow-300" style={{ height: `${s2h}px` }} />
-                        <div className="w-full bg-red-300" style={{ height: `${s1h}px` }} />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{m.month}</span>
+          <div className="bg-card border border-border/40 rounded-xl p-5">
+            <p className="text-sm font-semibold mb-4">Emisiones Mensuales por Scope</p>
+            <div className="flex items-end gap-2 h-32">
+              {MONTHLY_EMISSIONS.map((m, i) => {
+                const total = m.scope1 + m.scope2 + m.scope3;
+                const h = (total / maxMonthly) * 100;
+                const s1h = (m.scope1 / total) * h;
+                const s2h = (m.scope2 / total) * h;
+                const s3h = (m.scope3 / total) * h;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex flex-col justify-end" style={{ height: "100px" }}>
+                      <div className="w-full bg-blue-400/60 rounded-t-sm" style={{ height: `${s3h}px` }} />
+                      <div className="w-full bg-yellow-400/60" style={{ height: `${s2h}px` }} />
+                      <div className="w-full bg-red-400/60" style={{ height: `${s1h}px` }} />
                     </div>
-                  );
-                })}
-              </div>
-              <div className="flex gap-4 mt-3 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-300 rounded" />S1</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-300 rounded" />S2</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-300 rounded" />S3</span>
-              </div>
-            </CardContent>
-          </Card>
+                    <span className="text-[10px] text-muted-foreground">{m.month}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400/60 rounded" />S1</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-400/60 rounded" />S2</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-400/60 rounded" />S3</span>
+            </div>
+          </div>
         </TabsContent>
 
         {/* EMISSIONS */}

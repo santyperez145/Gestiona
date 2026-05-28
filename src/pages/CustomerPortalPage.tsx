@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Globe, Plus, MessageSquare, Settings, CheckCircle, Clock,
-  AlertCircle, ChevronDown, ChevronRight, Send, User
+  AlertCircle, ChevronDown, ChevronRight, Send, User, Loader2, Star
 } from "lucide-react";
 
 interface PortalConfig {
@@ -61,18 +64,18 @@ interface Customer {
 }
 
 const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
-  low:    { label: "Baja",    color: "bg-gray-100 text-gray-700" },
-  normal: { label: "Normal",  color: "bg-blue-100 text-blue-800" },
-  high:   { label: "Alta",    color: "bg-orange-100 text-orange-800" },
-  urgent: { label: "Urgente", color: "bg-red-100 text-red-800" },
+  low:    { label: "Baja",    color: "bg-muted/50 text-muted-foreground" },
+  normal: { label: "Normal",  color: "bg-blue-500/15 text-blue-400" },
+  high:   { label: "Alta",    color: "bg-orange-500/15 text-orange-400" },
+  urgent: { label: "Urgente", color: "bg-red-500/15 text-red-400" },
 };
 
 const STATUS_CFG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  open:        { label: "Abierto",     color: "bg-blue-100 text-blue-800",   icon: <AlertCircle className="w-3 h-3" /> },
-  in_progress: { label: "En progreso", color: "bg-indigo-100 text-indigo-800",icon: <Clock className="w-3 h-3" /> },
-  waiting:     { label: "Esperando",   color: "bg-yellow-100 text-yellow-800",icon: <Clock className="w-3 h-3" /> },
-  resolved:    { label: "Resuelto",    color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3" /> },
-  closed:      { label: "Cerrado",     color: "bg-gray-100 text-gray-600",   icon: <CheckCircle className="w-3 h-3" /> },
+  open:        { label: "Abierto",     color: "bg-blue-500/15 text-blue-400",    icon: <AlertCircle className="w-3 h-3" /> },
+  in_progress: { label: "En progreso", color: "bg-purple-500/15 text-purple-400", icon: <Clock className="w-3 h-3" /> },
+  waiting:     { label: "Esperando",   color: "bg-yellow-500/15 text-yellow-400", icon: <Clock className="w-3 h-3" /> },
+  resolved:    { label: "Resuelto",    color: "bg-emerald-500/15 text-emerald-400", icon: <CheckCircle className="w-3 h-3" /> },
+  closed:      { label: "Cerrado",     color: "bg-muted/50 text-muted-foreground", icon: <CheckCircle className="w-3 h-3" /> },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -93,6 +96,7 @@ const DEFAULT_CONFIG: PortalConfig = {
 };
 
 export default function CustomerPortalPage() {
+  usePageTitle("Portal de Clientes");
   const { orgId } = useOrganization();
 
   const [config, setConfig]           = useState<PortalConfig>(DEFAULT_CONFIG);
@@ -220,23 +224,22 @@ export default function CustomerPortalPage() {
       : "—",
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Globe className="w-8 h-8 text-indigo-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Portal de Clientes</h1>
-            <p className="text-sm text-gray-500">Autoservicio, tickets de soporte y configuración del portal</p>
-          </div>
-        </div>
-        {activeTab === "tickets" && (
+    <div className="space-y-6">
+      <PageHeader
+        icon={Globe}
+        title="Portal de Clientes"
+        description="Autoservicio, tickets de soporte y configuración del portal"
+        actions={activeTab === "tickets" ? (
           <Dialog open={ticketOpen} onOpenChange={setTicketOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setTicketForm({ ...EMPTY_TICKET })}>
+              <Button size="sm" onClick={() => setTicketForm({ ...EMPTY_TICKET })}>
                 <Plus className="w-4 h-4 mr-2" /> Nuevo ticket
               </Button>
             </DialogTrigger>
@@ -286,31 +289,16 @@ export default function CustomerPortalPage() {
               </div>
             </DialogContent>
           </Dialog>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{kpis.total}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-1 mb-1"><AlertCircle className="w-3.5 h-3.5 text-blue-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Abiertos</p></div>
-          <p className="text-3xl font-bold text-blue-600">{kpis.open}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-1 mb-1"><Clock className="w-3.5 h-3.5 text-indigo-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">En progreso</p></div>
-          <p className="text-3xl font-bold text-indigo-600">{kpis.inProgress}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-1 mb-1"><CheckCircle className="w-3.5 h-3.5 text-green-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Resueltos</p></div>
-          <p className="text-3xl font-bold text-green-600">{kpis.resolved}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Satisfacción ★</p>
-          <p className="text-3xl font-bold text-yellow-600 mt-1">{kpis.avgSatisfaction}</p>
-        </CardContent></Card>
+        <KPICard label="Total tickets" value={kpis.total} icon={MessageSquare} color="primary" />
+        <KPICard label="Abiertos" value={kpis.open} icon={AlertCircle} color="blue" />
+        <KPICard label="En progreso" value={kpis.inProgress} icon={Clock} color="purple" />
+        <KPICard label="Resueltos" value={kpis.resolved} icon={CheckCircle} color="success" />
+        <KPICard label="Satisfacción ★" value={kpis.avgSatisfaction} icon={Star} color="warning" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -346,7 +334,7 @@ export default function CustomerPortalPage() {
           </div>
 
           {filteredTickets.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay tickets de soporte aún</p>
             </div>
@@ -363,16 +351,16 @@ export default function CustomerPortalPage() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <button onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)} className="text-gray-400 flex-shrink-0">
+                          <button onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)} className="text-muted-foreground/70 flex-shrink-0">
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </button>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-mono text-xs text-gray-400">{ticket.ticket_number}</span>
-                              <span className="font-medium text-gray-900">{ticket.subject}</span>
+                              <span className="font-mono text-xs text-muted-foreground/70">{ticket.ticket_number}</span>
+                              <span className="font-medium text-foreground">{ticket.subject}</span>
                               <Badge className={`text-xs ${pc.color}`}>{pc.label}</Badge>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                               <User className="w-3 h-3" />
                               <span>{ticket.customers?.name ?? "—"}</span>
                               <span>·</span>
@@ -396,7 +384,7 @@ export default function CustomerPortalPage() {
                             </Button>
                           )}
                           {ticket.status === "resolved" && (
-                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2 text-gray-500" onClick={() => updateTicketStatus(ticket.id, "closed")}>
+                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2 text-muted-foreground" onClick={() => updateTicketStatus(ticket.id, "closed")}>
                               Cerrar
                             </Button>
                           )}
@@ -405,17 +393,17 @@ export default function CustomerPortalPage() {
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t space-y-3">
-                          <p className="text-sm text-gray-700">{ticket.description}</p>
+                          <p className="text-sm text-foreground/80">{ticket.description}</p>
 
                           {/* Messages */}
                           {msgs.length > 0 && (
                             <div className="space-y-2">
                               {msgs.filter(m => !m.is_internal).map(m => (
                                 <div key={m.id} className={`flex gap-2 ${m.sender_type === "agent" ? "flex-row-reverse" : ""}`}>
-                                  <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${m.sender_type === "agent" ? "bg-indigo-50 text-indigo-900" : "bg-gray-100 text-gray-800"}`}>
+                                  <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${m.sender_type === "agent" ? "bg-primary/10 text-foreground" : "bg-muted/40 text-foreground"}`}>
                                     <p className="text-xs font-semibold mb-0.5">{m.sender_name}</p>
                                     <p>{m.message}</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">{new Date(m.created_at).toLocaleString("es-AR")}</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-0.5">{new Date(m.created_at).toLocaleString("es-AR")}</p>
                                   </div>
                                 </div>
                               ))}
@@ -433,7 +421,7 @@ export default function CustomerPortalPage() {
                                 <div className="space-y-2">
                                   <Textarea value={replyMsg} onChange={e => setReplyMsg(e.target.value)} rows={3} placeholder="Escribí tu respuesta..." className="text-sm" />
                                   <div className="flex items-center justify-between">
-                                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                                       <Switch checked={isInternal} onCheckedChange={setIsInternal} />
                                       Nota interna (no visible al cliente)
                                     </label>
@@ -463,10 +451,10 @@ export default function CustomerPortalPage() {
           <Card>
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Settings className="w-4 h-4" /> Configuración del portal de clientes</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">Portal habilitado</p>
-                  <p className="text-sm text-gray-500">Activar o desactivar el acceso al portal</p>
+                  <p className="font-medium text-foreground">Portal habilitado</p>
+                  <p className="text-sm text-muted-foreground">Activar o desactivar el acceso al portal</p>
                 </div>
                 <Switch checked={config.enabled} onCheckedChange={v => setConfig(c => ({ ...c, enabled: v }))} />
               </div>
@@ -478,10 +466,10 @@ export default function CustomerPortalPage() {
                   { key: "allow_tickets",  label: "Tickets de soporte",     desc: "Abrir y seguir tickets de soporte" },
                   { key: "allow_loyalty",  label: "Programa de fidelidad",  desc: "Ver puntos y beneficios" },
                 ].map(({ key, label, desc }) => (
-                  <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={key} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">{label}</p>
-                      <p className="text-xs text-gray-500">{desc}</p>
+                      <p className="font-medium text-foreground text-sm">{label}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
                     </div>
                     <Switch
                       checked={config[key as keyof PortalConfig] as boolean}

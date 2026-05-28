@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Truck, Star, TrendingUp, TrendingDown, AlertTriangle, Plus,
   RefreshCw, Search, BarChart3, FileText, Clock, Package,
-  CheckCircle2, XCircle, Target, DollarSign
+  CheckCircle2, XCircle, Target, DollarSign, Loader2
 } from "lucide-react";
 
 const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -78,22 +81,8 @@ function ScoreBar({ value }: { value: number }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, color = "text-primary" }: any) {
-  return (
-    <div className="bg-card border border-border/40 rounded-xl p-4">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon className={`w-4 h-4 ${color}`} />
-        </div>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <p className="text-2xl font-bold font-display">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  );
-}
-
 export default function SupplyChainPage() {
+  usePageTitle("Supply Chain Intelligence");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"scorecards" | "leadtimes" | "budgets" | "contracts">("scorecards");
   const [search, setSearch] = useState("");
@@ -103,7 +92,7 @@ export default function SupplyChainPage() {
   const [suppliers, setSuppliers] = useState<SupplierScorecard[]>([]);
   const [leadTimes, setLeadTimes] = useState<(LeadTime & { supplier_name?: string })[]>([]);
   const [budgets, setBudgets] = useState<ProcurementBudget[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!orgId) return;
@@ -147,30 +136,31 @@ export default function SupplyChainPage() {
     { id: "contracts",  label: "Contratos" },
   ];
 
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
+
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <Truck className="w-4 h-4 text-purple-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Supply Chain Intelligence</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Scorecards de proveedores, lead times y análisis de procurement</p>
-        </div>
-        <Button size="sm" onClick={() => { setShowScoreDialog(true); }} className="gap-1.5 gradient-gold text-primary-foreground">
-          <Plus className="w-3.5 h-3.5" />Nuevo Scorecard
-        </Button>
-      </div>
+      <PageHeader
+        icon={Truck}
+        title="Supply Chain Intelligence"
+        description="Scorecards de proveedores, lead times y análisis de procurement"
+        actions={
+          <Button size="sm" onClick={() => setShowScoreDialog(true)} className="gap-1.5 gradient-gold text-primary-foreground">
+            <Plus className="w-3.5 h-3.5" />Nuevo Scorecard
+          </Button>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Truck} label="Proveedores activos" value={suppliers.length} sub="evaluados este período" />
-        <StatCard icon={CheckCircle2} label="Entrega a tiempo" value={`${avgOnTime}%`} color="text-emerald-400" sub="promedio" />
-        <StatCard icon={DollarSign} label="Gasto total" value={`$${(totalSpend / 1000000).toFixed(2)}M`} color="text-primary" sub="últimos 90 días" />
-        <StatCard icon={AlertTriangle} label="Proveedores en riesgo" value={atRisk} color="text-red-400" sub="Grade D o F" />
+        <KPICard label="Proveedores activos" value={suppliers.length} icon={Truck} color="primary" />
+        <KPICard label="Entrega a tiempo" value={`${avgOnTime}%`} icon={CheckCircle2} color="success" />
+        <KPICard label="Gasto total" value={`$${(totalSpend / 1000000).toFixed(2)}M`} icon={DollarSign} color="purple" />
+        <KPICard label="Proveedores en riesgo" value={atRisk} icon={AlertTriangle} color="destructive" />
       </div>
 
       {/* Tabs */}
