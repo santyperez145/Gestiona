@@ -15,9 +15,12 @@ import {
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   PiggyBank, Plus, ChevronLeft, ChevronRight, TrendingUp, TrendingDown,
-  Pencil, Trash2, Sparkles, ArrowUpRight, ArrowDownRight,
+  Pencil, Trash2, Sparkles, ArrowUpRight, ArrowDownRight, Loader2, BarChart3,
 } from "lucide-react";
 
 interface BudgetCategory {
@@ -206,32 +209,37 @@ export default function BudgetPlannerPage() {
   const netActual = totalActualIncome - totalActualExpenses;
   const expensePct = totalBudgetedExpenses > 0 ? Math.min((totalActualExpenses / totalBudgetedExpenses) * 100, 100) : 0;
 
+  const chartData = useMemo(() => {
+    return categories.map(cat => ({
+      name: cat.name.length > 14 ? cat.name.slice(0, 14) + "…" : cat.name,
+      presupuestado: budgetMap[cat.id] || 0,
+      real: spendingMap[cat.id] || 0,
+      type: cat.type,
+    })).filter(d => d.presupuestado > 0 || d.real > 0);
+  }, [categories, budgetMap, spendingMap]);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <PiggyBank className="w-6 h-6 text-primary" /> Presupuesto Mensual
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Planificá ingresos y gastos por categoría, con seguimiento en tiempo real.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {categories.length === 0 && (
-            <Button variant="outline" onClick={seedCategories}>
-              <Sparkles className="w-4 h-4 mr-1" /> Cargar categorías por defecto
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        title="Presupuesto Mensual"
+        description="Planificá ingresos y gastos por categoría, con seguimiento en tiempo real"
+        icon={PiggyBank}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            {categories.length === 0 && (
+              <Button variant="outline" size="sm" onClick={seedCategories}>
+                <Sparkles className="w-4 h-4 mr-1" /> Cargar por defecto
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => { setEditingCat(null); setCatForm({ name: "", color: "#6366f1", icon: "💰", type: "expense", sort_order: "0" }); setCatOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Categoría
             </Button>
-          )}
-          <Button variant="outline" onClick={() => { setEditingCat(null); setCatForm({ name: "", color: "#6366f1", icon: "💰", type: "expense", sort_order: "0" }); setCatOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Categoría
-          </Button>
-          <Button onClick={() => setTxnOpen(true)} disabled={categories.length === 0}>
-            <Plus className="w-4 h-4 mr-1" /> Movimiento
-          </Button>
-        </div>
-      </div>
+            <Button size="sm" onClick={() => setTxnOpen(true)} disabled={categories.length === 0}>
+              <Plus className="w-4 h-4 mr-1" /> Movimiento
+            </Button>
+          </div>
+        }
+      />
 
       {/* Month navigator */}
       <div className="flex items-center justify-center gap-4">
@@ -244,21 +252,10 @@ export default function BudgetPlannerPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Gasto real", value: fmt(totalActualExpenses), sub: `de ${fmt(totalBudgetedExpenses)} pres.`, icon: TrendingDown, bad: totalActualExpenses > totalBudgetedExpenses },
-          { label: "Ingreso real", value: fmt(totalActualIncome), sub: `de ${fmt(totalBudgetedIncome)} pres.`, icon: TrendingUp, bad: false },
-          { label: "Balance presupuestado", value: fmt(netBudgeted), sub: "ingresos − gastos", icon: PiggyBank, bad: netBudgeted < 0 },
-          { label: "Balance real", value: fmt(netActual), sub: "ingresos − gastos", icon: PiggyBank, bad: netActual < 0 },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className={`text-xl font-bold ${k.bad ? "text-destructive" : ""}`}>{k.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{k.sub}</p>
-          </div>
-        ))}
+        <KPICard label="Gasto real" value={fmt(totalActualExpenses)} sub={`de ${fmt(totalBudgetedExpenses)} presupuestado`} icon={TrendingDown} color={totalActualExpenses > totalBudgetedExpenses ? "destructive" : "warning"} />
+        <KPICard label="Ingreso real" value={fmt(totalActualIncome)} sub={`de ${fmt(totalBudgetedIncome)} presupuestado`} icon={TrendingUp} color="success" />
+        <KPICard label="Balance presupuestado" value={fmt(netBudgeted)} sub="ingresos − gastos estimados" icon={PiggyBank} color={netBudgeted >= 0 ? "primary" : "destructive"} />
+        <KPICard label="Balance real" value={fmt(netActual)} sub="ingresos − gastos reales" icon={BarChart3} color={netActual >= 0 ? "success" : "destructive"} />
       </div>
 
       {/* Overall progress bar */}
@@ -284,12 +281,16 @@ export default function BudgetPlannerPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Cargando presupuesto...</span>
+        </div>
       ) : (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="overview">Por categoría</TabsTrigger>
             <TabsTrigger value="transactions">Movimientos ({transactions.length})</TabsTrigger>
+            <TabsTrigger value="graficos">Gráficos</TabsTrigger>
             <TabsTrigger value="categories">Categorías ({categories.length})</TabsTrigger>
           </TabsList>
 
@@ -404,6 +405,120 @@ export default function BudgetPlannerPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </TabsContent>
+
+          {/* Charts */}
+          <TabsContent value="graficos" className="pt-3 space-y-6">
+            {chartData.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground text-sm">
+                <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                Sin datos para graficar. Asigná presupuestos o registrá movimientos.
+              </div>
+            ) : (
+              <>
+                {/* Overall progress ring + bar */}
+                <div className="rounded-2xl border border-border/50 bg-card p-5">
+                  <h3 className="text-sm font-semibold mb-4">Ejecución global de gastos</h3>
+                  {totalBudgetedExpenses > 0 ? (
+                    <>
+                      <div className="flex items-end gap-3 mb-2">
+                        <span className={`text-3xl font-bold ${expensePct >= 90 ? "text-destructive" : expensePct >= 70 ? "text-warning" : "text-success"}`}>
+                          {expensePct.toFixed(1)}%
+                        </span>
+                        <span className="text-sm text-muted-foreground mb-1">ejecutado</span>
+                      </div>
+                      <div className="h-4 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${expensePct >= 90 ? "bg-destructive" : expensePct >= 70 ? "bg-warning" : "bg-success"}`}
+                          style={{ width: `${Math.min(expensePct, 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                        <span>Real: <strong>{fmt(totalActualExpenses)}</strong></span>
+                        <span>Presupuestado: <strong>{fmt(totalBudgetedExpenses)}</strong></span>
+                        <span className={totalBudgetedExpenses - totalActualExpenses < 0 ? "text-destructive" : "text-success"}>
+                          {totalBudgetedExpenses - totalActualExpenses >= 0 ? "Disponible: " : "Excedido: "}
+                          <strong>{fmt(Math.abs(totalBudgetedExpenses - totalActualExpenses))}</strong>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No hay presupuesto de gastos asignado.</p>
+                  )}
+                </div>
+
+                {/* Presupuestado vs Real bar chart */}
+                <div className="rounded-2xl border border-border/50 bg-card p-5">
+                  <h3 className="text-sm font-semibold mb-4">Presupuestado vs Real por categoría</h3>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 60 }}>
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(220 15% 55%)" }} angle={-35} textAnchor="end" interval={0} />
+                      <YAxis tickFormatter={v => v >= 1000 ? `$${(v/1000).toFixed(0)}k` : `$${v}`} tick={{ fontSize: 10, fill: "hsl(220 15% 55%)" }} width={55} />
+                      <Tooltip
+                        formatter={(v: number) => fmt(v)}
+                        contentStyle={{ background: "hsl(228 24% 9%)", border: "1px solid hsl(220 15% 22%)", borderRadius: 8, fontSize: 12 }}
+                        labelStyle={{ color: "hsl(220 15% 70%)" }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                      <Bar dataKey="presupuestado" name="Presupuestado" fill="hsl(220 15% 30%)" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="real" name="Real" radius={[3, 3, 0, 0]}>
+                        {chartData.map((entry, i) => (
+                          <Cell key={i} fill={
+                            entry.type === "income"
+                              ? "hsl(155 55% 45%)"
+                              : entry.real > entry.presupuestado
+                                ? "hsl(0 68% 55%)"
+                                : "hsl(40 82% 52%)"
+                          } />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Income vs Expense summary */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-border/50 bg-card p-5">
+                    <h3 className="text-sm font-semibold text-success mb-3 flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4" /> Ingresos
+                    </h3>
+                    <div className="space-y-2">
+                      {incomeCats.map(cat => (
+                        <div key={cat.id} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{cat.icon} {cat.name}</span>
+                          <span className="font-semibold text-success">{fmt(spendingMap[cat.id] || 0)}</span>
+                        </div>
+                      ))}
+                      {incomeCats.length === 0 && <p className="text-xs text-muted-foreground">Sin categorías de ingreso.</p>}
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-border/40 flex justify-between text-xs font-semibold">
+                      <span>Total</span>
+                      <span className="text-success">{fmt(totalActualIncome)}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-border/50 bg-card p-5">
+                    <h3 className="text-sm font-semibold text-destructive mb-3 flex items-center gap-1.5">
+                      <TrendingDown className="w-4 h-4" /> Gastos
+                    </h3>
+                    <div className="space-y-2">
+                      {expenseCats.map(cat => (
+                        <div key={cat.id} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{cat.icon} {cat.name}</span>
+                          <span className={`font-semibold ${(spendingMap[cat.id] || 0) > (budgetMap[cat.id] || 0) && (budgetMap[cat.id] || 0) > 0 ? "text-destructive" : ""}`}>
+                            {fmt(spendingMap[cat.id] || 0)}
+                          </span>
+                        </div>
+                      ))}
+                      {expenseCats.length === 0 && <p className="text-xs text-muted-foreground">Sin categorías de gasto.</p>}
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-border/40 flex justify-between text-xs font-semibold">
+                      <span>Total</span>
+                      <span className="text-destructive">{fmt(totalActualExpenses)}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </TabsContent>
 
