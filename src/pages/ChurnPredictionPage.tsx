@@ -9,8 +9,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Customer {
@@ -158,8 +162,206 @@ const RISK_CONFIG = {
   low:      { label: 'Bajo',     color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/25', bar: '[&>div]:bg-emerald-400' },
 };
 
+// ── Customer card (shared between tabs) ─────────────────────────────────────
+function CustomerCard({
+  c,
+  idx,
+  expandedId,
+  setExpandedId,
+  activeOrg,
+}: {
+  c: ChurnedCustomer;
+  idx: number;
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  activeOrg: any;
+}) {
+  const rc = RISK_CONFIG[c.riskLevel];
+  const isExpanded = expandedId === c.id;
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <button
+        className="w-full text-left p-4 flex items-center gap-4"
+        onClick={() => setExpandedId(isExpanded ? null : c.id)}
+      >
+        <span className="text-xs font-mono text-muted-foreground/50 w-5 shrink-0">
+          #{idx + 1}
+        </span>
+
+        {/* Score circle */}
+        <div className="relative w-11 h-11 shrink-0">
+          <svg className="w-11 h-11 -rotate-90" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+            <circle
+              cx="20" cy="20" r="16" fill="none"
+              stroke={c.churnScore >= 75 ? '#f87171' : c.churnScore >= 50 ? '#fb923c' : c.churnScore >= 25 ? '#fbbf24' : '#34d399'}
+              strokeWidth="3"
+              strokeDasharray={`${(c.churnScore / 100) * 100.5} 100.5`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${rc.color}`}>
+            {c.churnScore}
+          </span>
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="font-semibold text-sm truncate">{c.name}</p>
+            <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${rc.bg} ${rc.color}`}>
+              {rc.label}
+            </span>
+            {c.overdueByDays > 0 && (
+              <span className="shrink-0 text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">
+                +{c.overdueByDays}d vencido
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {c.daysSinceLastPurchase}d sin comprar
+            </span>
+            <span>{c.purchase_count} compras</span>
+            {c.email && (
+              <span className="flex items-center gap-1">
+                <Mail className="w-3 h-3" /> {c.email}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* LTV */}
+        <div className="text-right shrink-0">
+          <p className="font-bold text-sm">${c.ltv.toLocaleString("es-AR")}</p>
+          <p className="text-[10px] text-muted-foreground">LTV</p>
+        </div>
+
+        {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+                   : <ChevronDown className="w-4 h-4 text-muted-foreground/40 shrink-0" />}
+      </button>
+
+      {/* Expanded */}
+      {isExpanded && (
+        <div className="border-t border-border bg-muted/20 p-4 space-y-4">
+          {/* Recommended action */}
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-card border border-border">
+            <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold mb-0.5">Acción recomendada</p>
+              <p className="text-sm text-muted-foreground">{c.action}</p>
+            </div>
+          </div>
+
+          {/* Score breakdown */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Factores de riesgo
+            </p>
+            <div className="space-y-2.5">
+              {c.factors.map((f, fi) => (
+                <div key={fi} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-medium flex items-center gap-1.5">
+                      {f.bad
+                        ? <AlertTriangle className="w-3 h-3 text-red-400" />
+                        : <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                      }
+                      {f.label}
+                    </span>
+                    <span className={f.bad ? 'text-red-400' : 'text-emerald-400'}>
+                      {Math.round(f.weight * 100)}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={f.weight * 100}
+                    className={`h-1.5 ${f.bad ? '[&>div]:bg-red-400' : '[&>div]:bg-emerald-400'}`}
+                  />
+                  <p className="text-[10px] text-muted-foreground">{f.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick contact actions */}
+          <div className="flex gap-2">
+            {c.email && (
+              <a
+                href={`mailto:${c.email}?subject=Te extrañamos ${c.name.split(' ')[0]}&body=Hola ${c.name.split(' ')[0]}, ha pasado un tiempo...`}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-all"
+              >
+                <Mail className="w-3.5 h-3.5" /> Enviar email
+              </a>
+            )}
+            {c.phone && (
+              <a
+                href={`https://wa.me/${c.phone.replace(/\D/g, '')}?text=Hola ${c.name.split(' ')[0]}! Te contactamos desde ${activeOrg?.name ?? 'la tienda'}.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-all"
+              >
+                <Phone className="w-3.5 h-3.5" /> WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Customer list with empty state ───────────────────────────────────────────
+function CustomerList({
+  list,
+  loading,
+  expandedId,
+  setExpandedId,
+  activeOrg,
+  emptyMessage,
+}: {
+  list: ChurnedCustomer[];
+  loading: boolean;
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  activeOrg: any;
+  emptyMessage?: string;
+}) {
+  if (loading) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <TrendingDown className="w-8 h-8 mx-auto mb-3 animate-pulse text-red-400" />
+        <p className="text-sm">Analizando comportamiento de clientes...</p>
+      </div>
+    );
+  }
+  if (list.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-emerald-400/50" />
+        <p>{emptyMessage ?? "¡Excelente! No se detectan clientes en riesgo en este momento."}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {list.map((c, idx) => (
+        <CustomerCard
+          key={c.id}
+          c={c}
+          idx={idx}
+          expandedId={expandedId}
+          setExpandedId={setExpandedId}
+          activeOrg={activeOrg}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function ChurnPredictionPage() {
+  usePageTitle("Predicción de Churn");
   const { activeOrg } = useOrg();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,7 +435,23 @@ export default function ChurnPredictionPage() {
     });
   }, [scored, filterRisk, sortBy]);
 
-  // KPIs
+  // KPI summary stats
+  const summaryKpis = useMemo(() => {
+    const atRisk = scored;
+    const criticalCount = atRisk.filter(c => c.riskLevel === 'critical').length;
+    const ltvAtRisk = atRisk.reduce((s, c) => s + c.ltv, 0);
+    const riskRate = customers.length > 0
+      ? Math.round((atRisk.length / customers.length) * 100)
+      : 0;
+    return {
+      totalAtRisk: atRisk.length,
+      criticalCount,
+      ltvAtRisk,
+      riskRate,
+    };
+  }, [scored, customers]);
+
+  // Existing KPIs (internal breakdown)
   const kpis = useMemo(() => {
     const critical = scored.filter(c => c.riskLevel === 'critical').length;
     const high = scored.filter(c => c.riskLevel === 'high').length;
@@ -259,33 +477,88 @@ export default function ChurnPredictionPage() {
     toast.success("CSV exportado");
   };
 
+  // Grouped by action (for Acciones tab)
+  const groupedByAction = useMemo(() => {
+    const map = new Map<string, ChurnedCustomer[]>();
+    for (const c of scored) {
+      const key = c.action;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(c);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [scored]);
+
+  // Critical customers list
+  const criticalList = useMemo(
+    () => scored.filter(c => c.riskLevel === 'critical')
+               .sort((a, b) => b.churnScore - a.churnScore),
+    [scored],
+  );
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
-              <TrendingDown className="w-4.5 h-4.5 text-red-400" />
-            </div>
-            Predicción de Churn
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Clientes en riesgo de abandono · algoritmo RFM + comportamiento
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
-            <Download className="w-3.5 h-3.5" /> Exportar CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Recalcular
-          </Button>
-        </div>
+      {/* PageHeader */}
+      <PageHeader
+        icon={TrendingDown}
+        title="Predicción de Churn"
+        description="Clientes en riesgo de no volver — acción preventiva"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
+              <Download className="w-3.5 h-3.5" /> Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Recalcular
+            </Button>
+          </>
+        }
+      />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          label="Clientes en riesgo"
+          value={summaryKpis.totalAtRisk}
+          sub={`score ≥ ${minScore}`}
+          icon={Users}
+          color="warning"
+        />
+        <KPICard
+          label="Riesgo crítico"
+          value={summaryKpis.criticalCount}
+          sub="score ≥ 75"
+          icon={AlertTriangle}
+          color="destructive"
+        />
+        <KPICard
+          label="LTV en riesgo"
+          value={`$${(summaryKpis.ltvAtRisk / 1000).toFixed(0)}k`}
+          sub="valor total expuesto"
+          icon={DollarSign}
+          color="destructive"
+        />
+        <KPICard
+          label="Tasa de riesgo"
+          value={`${summaryKpis.riskRate}%`}
+          sub="del total de clientes"
+          icon={TrendingDown}
+          color="warning"
+        />
       </div>
 
-      {/* KPIs */}
+      {/* Info */}
+      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/15 text-sm">
+        <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-muted-foreground leading-relaxed">
+          Score de churn basado en <strong className="text-foreground">RFM</strong>: Recency (40 pts),
+          Frequency (30 pts), Monetary (20 pts) y antigüedad vs actividad (10 pts).
+          Intervalo promedio entre compras de la organización: <strong className="text-foreground">{orgAvgInterval} días</strong>.
+          Clientes con score ≥ 50 tienen alta probabilidad de no volver.
+        </p>
+      </div>
+
+      {/* Breakdown KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-card border border-red-500/20 rounded-xl p-4">
           <p className="text-xs text-muted-foreground">🚨 Crítico</p>
@@ -319,17 +592,6 @@ export default function ChurnPredictionPage() {
           <p className="text-lg font-bold mt-1">{orgAvgInterval}d</p>
           <p className="text-[10px] text-muted-foreground">entre compras</p>
         </div>
-      </div>
-
-      {/* Info */}
-      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/15 text-sm">
-        <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-        <p className="text-muted-foreground leading-relaxed">
-          Score de churn basado en <strong className="text-foreground">RFM</strong>: Recency (40 pts),
-          Frequency (30 pts), Monetary (20 pts) y antigüedad vs actividad (10 pts).
-          Intervalo promedio entre compras de la organización: <strong className="text-foreground">{orgAvgInterval} días</strong>.
-          Clientes con score ≥ 50 tienen alta probabilidad de no volver.
-        </p>
       </div>
 
       {/* Controls */}
@@ -378,156 +640,123 @@ export default function ChurnPredictionPage() {
         </div>
       </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <TrendingDown className="w-8 h-8 mx-auto mb-3 animate-pulse text-red-400" />
-          <p className="text-sm">Analizando comportamiento de clientes...</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <ShieldCheck className="w-10 h-10 mx-auto mb-3 text-emerald-400/40" />
-          <p>¡Buenas noticias! No hay clientes en riesgo con el filtro actual.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((c, idx) => {
-            const rc = RISK_CONFIG[c.riskLevel];
-            const isExpanded = expandedId === c.id;
-            return (
-              <div key={c.id} className="bg-card border border-border rounded-xl overflow-hidden">
-                <button
-                  className="w-full text-left p-4 flex items-center gap-4"
-                  onClick={() => setExpandedId(isExpanded ? null : c.id)}
-                >
-                  <span className="text-xs font-mono text-muted-foreground/50 w-5 shrink-0">
-                    #{idx + 1}
-                  </span>
+      {/* Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview">Vista general</TabsTrigger>
+          <TabsTrigger value="critical">
+            Críticos
+            {kpis.critical > 0 && (
+              <span className="ml-1.5 text-[10px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full">
+                {kpis.critical}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="actions">Acciones</TabsTrigger>
+        </TabsList>
 
-                  {/* Score circle */}
-                  <div className="relative w-11 h-11 shrink-0">
-                    <svg className="w-11 h-11 -rotate-90" viewBox="0 0 40 40">
-                      <circle cx="20" cy="20" r="16" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
-                      <circle
-                        cx="20" cy="20" r="16" fill="none"
-                        stroke={c.churnScore >= 75 ? '#f87171' : c.churnScore >= 50 ? '#fb923c' : c.churnScore >= 25 ? '#fbbf24' : '#34d399'}
-                        strokeWidth="3"
-                        strokeDasharray={`${(c.churnScore / 100) * 100.5} 100.5`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${rc.color}`}>
-                      {c.churnScore}
-                    </span>
-                  </div>
+        {/* ── Tab: Vista general ─────────────────────────────────────────── */}
+        <TabsContent value="overview">
+          <CustomerList
+            list={filtered}
+            loading={loading}
+            expandedId={expandedId}
+            setExpandedId={setExpandedId}
+            activeOrg={activeOrg}
+            emptyMessage="¡Excelente! No se detectan clientes en riesgo en este momento."
+          />
+        </TabsContent>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-semibold text-sm truncate">{c.name}</p>
-                      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${rc.bg} ${rc.color}`}>
-                        {rc.label}
-                      </span>
-                      {c.overdueByDays > 0 && (
-                        <span className="shrink-0 text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">
-                          +{c.overdueByDays}d vencido
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {c.daysSinceLastPurchase}d sin comprar
-                      </span>
-                      <span>{c.purchase_count} compras</span>
-                      {c.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {c.email}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+        {/* ── Tab: Críticos ──────────────────────────────────────────────── */}
+        <TabsContent value="critical">
+          <CustomerList
+            list={criticalList}
+            loading={loading}
+            expandedId={expandedId}
+            setExpandedId={setExpandedId}
+            activeOrg={activeOrg}
+            emptyMessage="¡Excelente! No se detectan clientes en riesgo crítico en este momento."
+          />
+        </TabsContent>
 
-                  {/* LTV */}
-                  <div className="text-right shrink-0">
-                    <p className="font-bold text-sm">${c.ltv.toLocaleString("es-AR")}</p>
-                    <p className="text-[10px] text-muted-foreground">LTV</p>
-                  </div>
-
-                  {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground/40 shrink-0" />
-                             : <ChevronDown className="w-4 h-4 text-muted-foreground/40 shrink-0" />}
-                </button>
-
-                {/* Expanded */}
-                {isExpanded && (
-                  <div className="border-t border-border bg-muted/20 p-4 space-y-4">
-                    {/* Recommended action */}
-                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-card border border-border">
-                      <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-semibold mb-0.5">Acción recomendada</p>
-                        <p className="text-sm text-muted-foreground">{c.action}</p>
-                      </div>
-                    </div>
-
-                    {/* Score breakdown */}
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                        Factores de riesgo
+        {/* ── Tab: Acciones ──────────────────────────────────────────────── */}
+        <TabsContent value="actions">
+          {loading ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <TrendingDown className="w-8 h-8 mx-auto mb-3 animate-pulse text-red-400" />
+              <p className="text-sm">Analizando comportamiento de clientes...</p>
+            </div>
+          ) : groupedByAction.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-emerald-400/50" />
+              <p>¡Excelente! No se detectan clientes en riesgo en este momento.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {groupedByAction.map(([actionLabel, customers]) => (
+                <div key={actionLabel} className="bg-card border border-border rounded-xl overflow-hidden">
+                  {/* Action group header */}
+                  <div className="p-4 border-b border-border bg-muted/20 flex items-center gap-3">
+                    <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">{actionLabel}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {customers.length} {customers.length === 1 ? 'cliente' : 'clientes'}
                       </p>
-                      <div className="space-y-2.5">
-                        {c.factors.map((f, fi) => (
-                          <div key={fi} className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="font-medium flex items-center gap-1.5">
-                                {f.bad
-                                  ? <AlertTriangle className="w-3 h-3 text-red-400" />
-                                  : <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                                }
-                                {f.label}
-                              </span>
-                              <span className={f.bad ? 'text-red-400' : 'text-emerald-400'}>
-                                {Math.round(f.weight * 100)}%
+                    </div>
+                  </div>
+                  {/* Customer rows */}
+                  <div className="divide-y divide-border">
+                    {customers.map(c => {
+                      const rc = RISK_CONFIG[c.riskLevel];
+                      return (
+                        <div key={c.id} className="p-3.5 flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="font-medium text-sm truncate">{c.name}</p>
+                              <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${rc.bg} ${rc.color}`}>
+                                {rc.label}
                               </span>
                             </div>
-                            <Progress
-                              value={f.weight * 100}
-                              className={`h-1.5 ${f.bad ? '[&>div]:bg-red-400' : '[&>div]:bg-emerald-400'}`}
-                            />
-                            <p className="text-[10px] text-muted-foreground">{f.description}</p>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span>Score {c.churnScore}</span>
+                              <span>{c.daysSinceLastPurchase}d sin comprar</span>
+                              {c.ltv > 0 && <span>${c.ltv.toLocaleString("es-AR")} LTV</span>}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Quick contact actions */}
-                    <div className="flex gap-2">
-                      {c.email && (
-                        <a
-                          href={`mailto:${c.email}?subject=Te extrañamos ${c.name.split(' ')[0]}&body=Hola ${c.name.split(' ')[0]}, ha pasado un tiempo...`}
-                          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-all"
-                        >
-                          <Mail className="w-3.5 h-3.5" /> Enviar email
-                        </a>
-                      )}
-                      {c.phone && (
-                        <a
-                          href={`https://wa.me/${c.phone.replace(/\D/g, '')}?text=Hola ${c.name.split(' ')[0]}! Te contactamos desde ${activeOrg?.name ?? 'la tienda'}.`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-all"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> WhatsApp
-                        </a>
-                      )}
-                    </div>
+                          {/* Quick contact */}
+                          <div className="flex gap-2 shrink-0">
+                            {c.email && (
+                              <a
+                                href={`mailto:${c.email}?subject=Te extrañamos ${c.name.split(' ')[0]}&body=Hola ${c.name.split(' ')[0]}, ha pasado un tiempo...`}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-all"
+                                title="Enviar email"
+                              >
+                                <Mail className="w-3 h-3" />
+                              </a>
+                            )}
+                            {c.phone && (
+                              <a
+                                href={`https://wa.me/${c.phone.replace(/\D/g, '')}?text=Hola ${c.name.split(' ')[0]}! Te contactamos desde ${activeOrg?.name ?? 'la tienda'}.`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted/50 transition-all"
+                                title="WhatsApp"
+                              >
+                                <Phone className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
