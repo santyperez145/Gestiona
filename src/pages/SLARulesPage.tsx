@@ -101,7 +101,7 @@ interface SLATicketAssignment {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  low: { label: "Baja", color: "bg-gray-500/15 text-gray-400" },
+  low: { label: "Baja", color: "bg-muted/40 text-muted-foreground" },
   normal: { label: "Normal", color: "bg-blue-500/15 text-blue-400" },
   high: { label: "Alta", color: "bg-amber-500/15 text-amber-400" },
   urgent: { label: "Urgente", color: "bg-orange-500/15 text-orange-400" },
@@ -539,7 +539,7 @@ export default function SLARulesPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold">{pol.name}</h3>
                     <Badge className={`text-xs ${pc.color}`}>{pc.label}</Badge>
-                    {!pol.active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactiva</Badge>}
+                    {!pol.active && <Badge className="text-xs bg-muted/40 text-muted-foreground">Inactiva</Badge>}
                     {pol.business_hours_only && <Badge className="text-xs bg-blue-500/15 text-blue-400">Horario laboral</Badge>}
                   </div>
                   {pol.description && <p className="text-xs text-muted-foreground mt-1">{pol.description}</p>}

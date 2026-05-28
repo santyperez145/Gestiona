@@ -59,7 +59,7 @@ interface Challenge {
 const LEVEL_NAMES = ["Novato", "Vendedor", "Pro", "Experto", "Élite", "Leyenda", "Maestro", "Campeón"];
 const LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2200, 3000];
 const RARITY_COLORS: Record<string, string> = {
-  common:    "bg-gray-100 border-gray-300 text-gray-700",
+  common:    "bg-muted/40 border-border/40 text-muted-foreground",
   uncommon:  "bg-green-100 border-green-300 text-green-700",
   rare:      "bg-blue-100 border-blue-400 text-blue-700",
   epic:      "bg-purple-100 border-purple-400 text-purple-700",

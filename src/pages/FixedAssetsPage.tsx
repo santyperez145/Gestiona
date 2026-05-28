@@ -49,21 +49,21 @@ interface DeprEntry {
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
-  equipment:   { label: "Equipamiento",   color: "bg-blue-100 text-blue-800" },
-  furniture:   { label: "Mobiliario",     color: "bg-yellow-100 text-yellow-800" },
-  vehicle:     { label: "Vehículo",       color: "bg-purple-100 text-purple-800" },
-  building:    { label: "Edificio",       color: "bg-orange-100 text-orange-800" },
-  land:        { label: "Terreno",        color: "bg-green-100 text-green-800" },
-  computer:    { label: "Informática",    color: "bg-indigo-100 text-indigo-800" },
-  software:    { label: "Software",       color: "bg-pink-100 text-pink-800" },
-  other:       { label: "Otro",           color: "bg-gray-100 text-gray-700" },
+  equipment:   { label: "Equipamiento",   color: "bg-blue-500/15 text-blue-400" },
+  furniture:   { label: "Mobiliario",     color: "bg-yellow-500/15 text-yellow-400" },
+  vehicle:     { label: "Vehículo",       color: "bg-purple-500/15 text-purple-400" },
+  building:    { label: "Edificio",       color: "bg-orange-500/15 text-orange-400" },
+  land:        { label: "Terreno",        color: "bg-emerald-500/15 text-emerald-400" },
+  computer:    { label: "Informática",    color: "bg-indigo-500/15 text-indigo-400" },
+  software:    { label: "Software",       color: "bg-pink-500/15 text-pink-400" },
+  other:       { label: "Otro",           color: "bg-muted/40 text-muted-foreground" },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  active:             { label: "Activo",           color: "bg-green-100 text-green-800" },
-  disposed:           { label: "Dado de baja",     color: "bg-red-100 text-red-800" },
-  fully_depreciated:  { label: "Totalmente dep.",  color: "bg-gray-100 text-gray-700" },
-  written_off:        { label: "Cancelado",        color: "bg-orange-100 text-orange-800" },
+  active:             { label: "Activo",           color: "bg-emerald-500/15 text-emerald-400" },
+  disposed:           { label: "Dado de baja",     color: "bg-red-500/15 text-red-400" },
+  fully_depreciated:  { label: "Totalmente dep.",  color: "bg-muted/40 text-muted-foreground" },
+  written_off:        { label: "Cancelado",        color: "bg-orange-500/15 text-orange-400" },
 };
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];

@@ -48,20 +48,20 @@ interface RequestItem {
 }
 
 const STATUS_CFG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  draft:      { label: "Borrador",    color: "bg-gray-100 text-gray-700",    icon: <Clock className="w-3 h-3" /> },
-  submitted:  { label: "Enviada",     color: "bg-blue-100 text-blue-800",    icon: <Clock className="w-3 h-3" /> },
-  approved:   { label: "Aprobada",    color: "bg-green-100 text-green-800",  icon: <CheckCircle className="w-3 h-3" /> },
-  rejected:   { label: "Rechazada",   color: "bg-red-100 text-red-800",      icon: <XCircle className="w-3 h-3" /> },
-  ordered:    { label: "Pedida",      color: "bg-indigo-100 text-indigo-800",icon: <CheckCircle className="w-3 h-3" /> },
-  received:   { label: "Recibida",    color: "bg-emerald-100 text-emerald-800",icon: <CheckCircle className="w-3 h-3" /> },
-  cancelled:  { label: "Cancelada",   color: "bg-orange-100 text-orange-800",icon: <XCircle className="w-3 h-3" /> },
+  draft:      { label: "Borrador",    color: "bg-muted/40 text-muted-foreground",      icon: <Clock className="w-3 h-3" /> },
+  submitted:  { label: "Enviada",     color: "bg-blue-500/15 text-blue-400",           icon: <Clock className="w-3 h-3" /> },
+  approved:   { label: "Aprobada",    color: "bg-emerald-500/15 text-emerald-400",     icon: <CheckCircle className="w-3 h-3" /> },
+  rejected:   { label: "Rechazada",   color: "bg-red-500/15 text-red-400",             icon: <XCircle className="w-3 h-3" /> },
+  ordered:    { label: "Pedida",      color: "bg-indigo-500/15 text-indigo-400",       icon: <CheckCircle className="w-3 h-3" /> },
+  received:   { label: "Recibida",    color: "bg-emerald-500/15 text-emerald-400",     icon: <CheckCircle className="w-3 h-3" /> },
+  cancelled:  { label: "Cancelada",   color: "bg-orange-500/15 text-orange-400",       icon: <XCircle className="w-3 h-3" /> },
 };
 
 const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
-  low:    { label: "Baja",    color: "bg-gray-100 text-gray-600" },
-  normal: { label: "Normal",  color: "bg-blue-100 text-blue-700" },
-  high:   { label: "Alta",    color: "bg-orange-100 text-orange-700" },
-  urgent: { label: "Urgente", color: "bg-red-100 text-red-700" },
+  low:    { label: "Baja",    color: "bg-muted/40 text-muted-foreground" },
+  normal: { label: "Normal",  color: "bg-blue-500/15 text-blue-400" },
+  high:   { label: "Alta",    color: "bg-orange-500/15 text-orange-400" },
+  urgent: { label: "Urgente", color: "bg-red-500/15 text-red-400" },
 };
 
 const EMPTY_REQUEST = {

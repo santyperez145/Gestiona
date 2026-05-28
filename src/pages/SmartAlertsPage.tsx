@@ -49,11 +49,11 @@ interface AlertEvent {
 }
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: typeof Bell }> = {
-  critical: { label: "Crítico",  color: "bg-red-100 text-red-700 border-red-300",    icon: XCircle },
-  high:     { label: "Alto",     color: "bg-orange-100 text-orange-700 border-orange-300", icon: AlertTriangle },
-  medium:   { label: "Medio",    color: "bg-yellow-100 text-yellow-800 border-yellow-300", icon: Bell },
-  low:      { label: "Bajo",     color: "bg-blue-100 text-blue-700 border-blue-300",  icon: Info },
-  info:     { label: "Info",     color: "bg-gray-100 text-gray-700 border-gray-300",  icon: Info },
+  critical: { label: "Crítico",  color: "bg-red-500/15 text-red-400 border-red-500/20",       icon: XCircle },
+  high:     { label: "Alto",     color: "bg-orange-500/15 text-orange-400 border-orange-500/20", icon: AlertTriangle },
+  medium:   { label: "Medio",    color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20", icon: Bell },
+  low:      { label: "Bajo",     color: "bg-blue-500/15 text-blue-400 border-blue-500/20",   icon: Info },
+  info:     { label: "Info",     color: "bg-muted/40 text-muted-foreground border-border/40", icon: Info },
 };
 
 const CHANNEL_ICONS: Record<string, { label: string; icon: typeof Bell }> = {
