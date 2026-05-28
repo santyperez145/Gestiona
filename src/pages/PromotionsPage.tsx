@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import {
   Zap, Plus, X, Save, Search, Trash2, Edit2, Clock, CheckCircle,
   PauseCircle, XCircle, RefreshCw, Tag, DollarSign, Users,
@@ -103,6 +106,7 @@ function Countdown({ endsAt }: { endsAt: string | null }) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function PromotionsPage() {
+  usePageTitle("Promociones & Flash Sales");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -255,49 +259,30 @@ export default function PromotionsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
-              <Zap className="w-4.5 h-4.5 text-red-400" />
-            </div>
-            Promociones & Flash Sales
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Descuentos, cupones y ofertas por tiempo limitado
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          {isAdmin && (
-            <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
-              <Plus className="w-4 h-4" /> Nueva promoción
+      <PageHeader
+        icon={Zap}
+        title="Promociones & Flash Sales"
+        description="Descuentos, cupones y ofertas por tiempo limitado"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button onClick={openCreate}>
+                <Plus className="w-4 h-4 mr-1" /> Nueva promoción
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-card border border-emerald-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Activas ahora</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">{kpis.active}</p>
-        </div>
-        <div className="bg-card border border-blue-500/15 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Programadas</p>
-          <p className="text-2xl font-bold mt-1 text-blue-400">{kpis.scheduled}</p>
-        </div>
-        <div className="bg-card border border-amber-500/15 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">⚡ Vencen en 24h</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{kpis.expiringSoon}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Usos totales</p>
-          <p className="text-2xl font-bold mt-1">{kpis.totalUses}</p>
-        </div>
+        <KPICard label="Activas ahora" value={kpis.active} icon={Play} color="success" />
+        <KPICard label="Programadas" value={kpis.scheduled} icon={Clock} color="blue" />
+        <KPICard label="Vencen en 24h" value={kpis.expiringSoon} icon={Timer} color="warning" />
+        <KPICard label="Usos totales" value={kpis.totalUses} icon={BarChart3} color="primary" />
       </div>
 
       {/* Filters */}

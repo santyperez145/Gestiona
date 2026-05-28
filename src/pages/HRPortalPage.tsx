@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Users, UserPlus, Calendar, Star, FileText, ChevronDown, ChevronUp,
   Plus, Pencil, Trash2, CheckCircle2, XCircle, Clock, Building2,
-  Phone, Mail, AlertCircle, Award, RefreshCcw, Shield
+  Phone, Mail, AlertCircle, Award, RefreshCcw, Shield, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -81,21 +84,21 @@ const CONTRACT_LABELS: Record<string, string> = {
   intern: "Pasante", temporary: "Temporal",
 };
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  active:     { label: "Activo",      color: "bg-green-100 text-green-700" },
-  on_leave:   { label: "De licencia", color: "bg-yellow-100 text-yellow-700" },
-  terminated: { label: "Finalizado",  color: "bg-red-100 text-red-700" },
-  suspended:  { label: "Suspendido",  color: "bg-orange-100 text-orange-700" },
+  active:     { label: "Activo",      color: "bg-green-500/15 text-green-400" },
+  on_leave:   { label: "De licencia", color: "bg-yellow-500/15 text-yellow-400" },
+  terminated: { label: "Finalizado",  color: "bg-red-500/15 text-red-400" },
+  suspended:  { label: "Suspendido",  color: "bg-orange-500/15 text-orange-400" },
 };
 const LEAVE_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:   { label: "Pendiente", color: "bg-yellow-100 text-yellow-700", icon: <Clock className="w-3 h-3" /> },
-  approved:  { label: "Aprobada",  color: "bg-green-100 text-green-700",  icon: <CheckCircle2 className="w-3 h-3" /> },
-  rejected:  { label: "Rechazada", color: "bg-red-100 text-red-700",      icon: <XCircle className="w-3 h-3" /> },
-  cancelled: { label: "Cancelada", color: "bg-gray-100 text-gray-500",    icon: <XCircle className="w-3 h-3" /> },
+  pending:   { label: "Pendiente", color: "bg-yellow-500/15 text-yellow-400", icon: <Clock className="w-3 h-3" /> },
+  approved:  { label: "Aprobada",  color: "bg-green-500/15 text-green-400",  icon: <CheckCircle2 className="w-3 h-3" /> },
+  rejected:  { label: "Rechazada", color: "bg-red-500/15 text-red-400",      icon: <XCircle className="w-3 h-3" /> },
+  cancelled: { label: "Cancelada", color: "bg-muted/50 text-muted-foreground", icon: <XCircle className="w-3 h-3" /> },
 };
 const REVIEW_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  draft:        { label: "Borrador",    color: "bg-gray-100 text-gray-600" },
-  submitted:    { label: "Enviada",     color: "bg-blue-100 text-blue-700" },
-  acknowledged: { label: "Confirmada", color: "bg-green-100 text-green-700" },
+  draft:        { label: "Borrador",    color: "bg-muted/40 text-muted-foreground" },
+  submitted:    { label: "Enviada",     color: "bg-blue-500/15 text-blue-400" },
+  acknowledged: { label: "Confirmada", color: "bg-green-500/15 text-green-400" },
 };
 
 const TABS = ["Empleados", "Licencias", "Evaluaciones", "Tipos de licencia"] as const;
@@ -106,7 +109,7 @@ function StarRating({ value, onChange }: { value: string; onChange: (v: string) 
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button" onClick={() => onChange(String(n))}
-          className={`text-xl transition-colors ${Number(value) >= n ? "text-yellow-400" : "text-gray-200 hover:text-yellow-200"}`}>
+          className={`text-xl transition-colors ${Number(value) >= n ? "text-yellow-400" : "text-muted/40 hover:text-yellow-200"}`}>
           ★
         </button>
       ))}
@@ -115,6 +118,7 @@ function StarRating({ value, onChange }: { value: string; onChange: (v: string) 
 }
 
 export default function HRPortalPage() {
+  usePageTitle("Portal RRHH");
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("Empleados");
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -249,55 +253,50 @@ export default function HRPortalPage() {
   const deptMap = employees.reduce<Record<string, number>>((acc, e) => { acc[e.department] = (acc[e.department] ?? 0) + 1; return acc; }, {});
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Users className="w-6 h-6 text-violet-600" /> Portal RRHH</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Empleados, licencias y evaluaciones de desempeño</p>
-        </div>
-        <div className="flex gap-2">
-          {activeTab === "Empleados" && <Button size="sm" onClick={openNewEmp}><Plus className="w-4 h-4 mr-1" /> Empleado</Button>}
-          {activeTab === "Licencias" && <Button size="sm" onClick={() => setShowLeaveDialog(true)}><Plus className="w-4 h-4 mr-1" /> Solicitud</Button>}
-          {activeTab === "Evaluaciones" && <Button size="sm" onClick={() => { setEditingReview(null); setReviewForm({ employee_id: "", review_period: "", review_type: "annual", overall_rating: "3", goals_score: "3", skills_score: "3", teamwork_score: "3", leadership_score: "3", strengths: "", improvements: "" }); setShowReviewDialog(true); }}><Plus className="w-4 h-4 mr-1" /> Evaluación</Button>}
-          {activeTab === "Tipos de licencia" && <Button size="sm" onClick={() => setShowLeaveTypeDialog(true)}><Plus className="w-4 h-4 mr-1" /> Tipo</Button>}
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="Portal RRHH"
+        description="Empleados, licencias y evaluaciones de desempeño"
+        actions={
+          <div className="flex gap-2">
+            {activeTab === "Empleados" && <Button size="sm" onClick={openNewEmp}><Plus className="w-4 h-4 mr-1" /> Empleado</Button>}
+            {activeTab === "Licencias" && <Button size="sm" onClick={() => setShowLeaveDialog(true)}><Plus className="w-4 h-4 mr-1" /> Solicitud</Button>}
+            {activeTab === "Evaluaciones" && <Button size="sm" onClick={() => { setEditingReview(null); setReviewForm({ employee_id: "", review_period: "", review_type: "annual", overall_rating: "3", goals_score: "3", skills_score: "3", teamwork_score: "3", leadership_score: "3", strengths: "", improvements: "" }); setShowReviewDialog(true); }}><Plus className="w-4 h-4 mr-1" /> Evaluación</Button>}
+            {activeTab === "Tipos de licencia" && <Button size="sm" onClick={() => setShowLeaveTypeDialog(true)}><Plus className="w-4 h-4 mr-1" /> Tipo</Button>}
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Empleados activos",  value: activeCount,                     icon: <Users className="w-5 h-5 text-violet-600" />,  bg: "bg-violet-50" },
-          { label: "Licencias pendientes",value: pendingLeaves,                  icon: <Clock className="w-5 h-5 text-yellow-600" />,  bg: "bg-yellow-50" },
-          { label: "Departamentos",       value: Object.keys(deptMap).length,    icon: <Building2 className="w-5 h-5 text-blue-600" />, bg: "bg-blue-50" },
-          { label: "Evaluaciones abiertas",value: reviews.filter(r => r.status !== "acknowledged").length, icon: <Star className="w-5 h-5 text-green-600" />, bg: "bg-green-50" },
-        ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl border p-4 flex items-center gap-3">
-            <div className={`${k.bg} p-2.5 rounded-lg`}>{k.icon}</div>
-            <div>
-              <p className="text-xs text-gray-500">{k.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{k.value}</p>
-            </div>
-          </div>
-        ))}
+        <KPICard label="Empleados activos" value={activeCount} icon={Users} color="purple" />
+        <KPICard label="Licencias pendientes" value={pendingLeaves} icon={Clock} color="warning" />
+        <KPICard label="Departamentos" value={Object.keys(deptMap).length} icon={Building2} color="blue" />
+        <KPICard label="Evaluaciones abiertas" value={reviews.filter(r => r.status !== "acknowledged").length} icon={Star} color="success" />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted/30 rounded-lg p-1 w-fit border border-border/40">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
       </div>
 
-      {loading ? <div className="text-center py-16 text-gray-400">Cargando…</div> : (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
+      ) : (
         <>
           {/* ── Empleados ── */}
           {activeTab === "Empleados" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>{["Nombre", "Puesto", "Depto.", "Contrato", "Sueldo", "Ingreso", "Estado", ""].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y">
@@ -306,17 +305,17 @@ export default function HRPortalPage() {
                     const isExp = expandedEmp === e.id;
                     return (
                       <>
-                        <tr key={e.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedEmp(isExp ? null : e.id)}>
-                          <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
+                        <tr key={e.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => setExpandedEmp(isExp ? null : e.id)}>
+                          <td className="px-4 py-3 font-medium text-foreground flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-bold">{e.first_name[0]}{e.last_name[0]}</div>
                             {e.first_name} {e.last_name}
-                            {isExp ? <ChevronUp className="w-4 h-4 text-gray-400 ml-auto" /> : <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />}
+                            {isExp ? <ChevronUp className="w-4 h-4 text-muted-foreground ml-auto" /> : <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{e.position}</td>
-                          <td className="px-4 py-3 text-gray-500">{e.department}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{CONTRACT_LABELS[e.contract_type]}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{e.position}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{e.department}</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{CONTRACT_LABELS[e.contract_type]}</td>
                           <td className="px-4 py-3 font-medium">${e.salary.toLocaleString("es-AR")} {e.salary_currency}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{e.hire_date}</td>
+                          <td className="px-4 py-3 text-muted-foreground/70 text-xs">{e.hire_date}</td>
                           <td className="px-4 py-3"><Badge className={`${st.color} text-xs`}>{st.label}</Badge></td>
                           <td className="px-4 py-3" onClick={ev => ev.stopPropagation()}>
                             <div className="flex gap-1">
@@ -329,10 +328,10 @@ export default function HRPortalPage() {
                           <tr key={`${e.id}-exp`} className="bg-violet-50/30">
                             <td colSpan={8} className="px-6 py-3">
                               <div className="grid grid-cols-3 gap-4 text-sm">
-                                {e.email && <span className="flex items-center gap-1 text-gray-600"><Mail className="w-3.5 h-3.5" />{e.email}</span>}
-                                {e.phone && <span className="flex items-center gap-1 text-gray-600"><Phone className="w-3.5 h-3.5" />{e.phone}</span>}
-                                {e.cuil && <span className="text-gray-500">CUIL: {e.cuil}</span>}
-                                {e.notes && <span className="col-span-3 text-gray-500 italic">{e.notes}</span>}
+                                {e.email && <span className="flex items-center gap-1 text-muted-foreground"><Mail className="w-3.5 h-3.5" />{e.email}</span>}
+                                {e.phone && <span className="flex items-center gap-1 text-muted-foreground"><Phone className="w-3.5 h-3.5" />{e.phone}</span>}
+                                {e.cuil && <span className="text-muted-foreground">CUIL: {e.cuil}</span>}
+                                {e.notes && <span className="col-span-3 text-muted-foreground italic">{e.notes}</span>}
                               </div>
                             </td>
                           </tr>
@@ -340,7 +339,7 @@ export default function HRPortalPage() {
                       </>
                     );
                   })}
-                  {employees.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-gray-400">Sin empleados registrados</td></tr>}
+                  {employees.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">Sin empleados registrados</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -348,26 +347,26 @@ export default function HRPortalPage() {
 
           {/* ── Licencias ── */}
           {activeTab === "Licencias" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>{["Empleado","Tipo","Inicio","Fin","Días","Motivo","Estado",""].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y">
                   {leaveRequests.map(l => {
                     const st = LEAVE_STATUS_CONFIG[l.status] ?? LEAVE_STATUS_CONFIG.pending;
                     return (
-                      <tr key={l.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{l.employees ? `${l.employees.first_name} ${l.employees.last_name}` : "—"}</td>
+                      <tr key={l.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 font-medium text-foreground">{l.employees ? `${l.employees.first_name} ${l.employees.last_name}` : "—"}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${(l.leave_types as LeaveRequest["leave_types"])?.color}20`, color: (l.leave_types as LeaveRequest["leave_types"])?.color }}>
                             {(l.leave_types as LeaveRequest["leave_types"])?.name}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">{l.start_date}</td>
-                        <td className="px-4 py-3 text-gray-500">{l.end_date}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{l.start_date}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{l.end_date}</td>
                         <td className="px-4 py-3 font-medium">{l.days_count}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">{l.reason ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">{l.reason ?? "—"}</td>
                         <td className="px-4 py-3"><Badge className={`${st.color} flex items-center gap-1 text-xs w-fit`}>{st.icon}{st.label}</Badge></td>
                         <td className="px-4 py-3">
                           {l.status === "pending" && (
@@ -380,7 +379,7 @@ export default function HRPortalPage() {
                       </tr>
                     );
                   })}
-                  {leaveRequests.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-gray-400">Sin solicitudes de licencia</td></tr>}
+                  {leaveRequests.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">Sin solicitudes de licencia</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -394,11 +393,11 @@ export default function HRPortalPage() {
                 const metrics = [r.goals_score, r.skills_score, r.teamwork_score, r.leadership_score].filter(Boolean) as number[];
                 const avg = metrics.length > 0 ? metrics.reduce((a, b) => a + b, 0) / metrics.length : 0;
                 return (
-                  <div key={r.id} className="bg-white rounded-xl border p-4 space-y-3">
+                  <div key={r.id} className="bg-card rounded-xl border p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-gray-900">{r.employees ? `${r.employees.first_name} ${r.employees.last_name}` : "—"}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{r.review_period} · {r.review_type}</p>
+                        <p className="font-semibold text-foreground">{r.employees ? `${r.employees.first_name} ${r.employees.last_name}` : "—"}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{r.review_period} · {r.review_type}</p>
                       </div>
                       <Badge className={`${st.color} text-xs`}>{st.label}</Badge>
                     </div>
@@ -407,15 +406,15 @@ export default function HRPortalPage() {
                         <div className="flex">
                           {[1,2,3,4,5].map(n => <span key={n} className={`text-lg ${(r.overall_rating ?? 0) >= n ? "text-yellow-400" : "text-gray-200"}`}>★</span>)}
                         </div>
-                        <span className="text-sm font-medium text-gray-700">{r.overall_rating.toFixed(1)} / 5</span>
+                        <span className="text-sm font-medium text-foreground">{r.overall_rating.toFixed(1)} / 5</span>
                       </div>
                     )}
                     {avg > 0 && (
-                      <div className="grid grid-cols-4 gap-1 text-xs text-center text-gray-500">
+                      <div className="grid grid-cols-4 gap-1 text-xs text-center text-muted-foreground">
                         {[["Metas", r.goals_score], ["Skills", r.skills_score], ["Equipo", r.teamwork_score], ["Liderazgo", r.leadership_score]].map(([label, val]) => (
-                          <div key={label as string} className="bg-gray-50 rounded p-1">
-                            <p className="font-medium text-gray-700">{val ?? "—"}</p>
-                            <p className="text-gray-400">{label}</p>
+                          <div key={label as string} className="bg-muted/30 rounded p-1">
+                            <p className="font-medium text-foreground">{val ?? "—"}</p>
+                            <p className="text-muted-foreground">{label}</p>
                           </div>
                         ))}
                       </div>
@@ -429,7 +428,7 @@ export default function HRPortalPage() {
                   </div>
                 );
               })}
-              {reviews.length === 0 && <div className="col-span-3 text-center py-16 text-gray-400"><Award className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Sin evaluaciones</p></div>}
+              {reviews.length === 0 && <div className="col-span-3 text-center py-16 text-muted-foreground"><Award className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Sin evaluaciones</p></div>}
             </div>
           )}
 
@@ -441,13 +440,13 @@ export default function HRPortalPage() {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {leaveTypes.map(lt => (
-                  <div key={lt.id} className="bg-white rounded-xl border p-4 flex items-center gap-3">
+                  <div key={lt.id} className="bg-card rounded-xl border p-4 flex items-center gap-3">
                     <div className="w-3 h-10 rounded-full" style={{ backgroundColor: lt.color }} />
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{lt.name}</p>
-                      <p className="text-xs text-gray-500">{lt.max_days_per_year} días/año · {lt.is_paid ? "Con goce" : "Sin goce"}</p>
+                      <p className="font-medium text-foreground">{lt.name}</p>
+                      <p className="text-xs text-muted-foreground">{lt.max_days_per_year} días/año · {lt.is_paid ? "Con goce" : "Sin goce"}</p>
                     </div>
-                    {lt.requires_approval && <Shield className="w-4 h-4 text-gray-300" title="Requiere aprobación" />}
+                    {lt.requires_approval && <Shield className="w-4 h-4 text-muted-foreground/50" title="Requiere aprobación" />}
                     <button onClick={() => supabase.from("leave_types").delete().eq("id", lt.id).then(load)} className="p-1 rounded hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 ))}

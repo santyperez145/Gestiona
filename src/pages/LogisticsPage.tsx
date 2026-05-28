@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import {
   Truck, Package, MapPin, Plus, CheckCircle, Clock, AlertCircle,
-  XCircle, RotateCcw, TrendingUp, Star, Navigation, Zap
+  XCircle, RotateCcw, TrendingUp, Star, Navigation, Zap, Loader2
 } from "lucide-react";
 
 interface Carrier {
@@ -86,6 +89,7 @@ function OnTimeBar({ rate }: { rate: number }) {
 
 
 export default function LogisticsPage() {
+  usePageTitle("Logística & Envíos");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"shipments" | "carriers" | "zones" | "performance">("shipments");
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -171,71 +175,66 @@ export default function LogisticsPage() {
     pending: shipments.filter(s => s.status === "pending").length,
   };
 
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Logística & Envíos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestión de transportistas, zonas y seguimiento de envíos</p>
-        </div>
-        <Dialog open={showNewShipment} onOpenChange={setShowNewShipment}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Nuevo Envío</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Crear Envío</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <Label>Transportista</Label>
-                <Select value={form.carrier_id} onValueChange={v => setForm(f => ({ ...f, carrier_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {carriers.map(c => <SelectItem key={c.id} value={c.id}>{c.name} — {c.avg_days}d</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>N° de Orden</Label>
-                <Input value={form.order_ref} onChange={e => setForm(f => ({ ...f, order_ref: e.target.value }))} placeholder="ORD-001234" />
-              </div>
-              <div>
-                <Label>Peso (kg)</Label>
-                <Input type="number" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value }))} placeholder="1.5" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Truck}
+        title="Logística & Envíos"
+        description="Gestión de transportistas, zonas y seguimiento de envíos"
+        actions={
+          <Dialog open={showNewShipment} onOpenChange={setShowNewShipment}>
+            <DialogTrigger asChild>
+              <Button><Plus className="w-4 h-4 mr-2" />Nuevo Envío</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Crear Envío</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
                 <div>
-                  <Label>Ciudad</Label>
-                  <Input value={form.dest_city} onChange={e => setForm(f => ({ ...f, dest_city: e.target.value }))} placeholder="Buenos Aires" />
+                  <Label>Transportista</Label>
+                  <Select value={form.carrier_id} onValueChange={v => setForm(f => ({ ...f, carrier_id: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                    <SelectContent>
+                      {carriers.map(c => <SelectItem key={c.id} value={c.id}>{c.name} — {c.avg_days}d</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label>Provincia</Label>
-                  <Input value={form.dest_province} onChange={e => setForm(f => ({ ...f, dest_province: e.target.value }))} placeholder="CABA" />
+                  <Label>N° de Orden</Label>
+                  <Input value={form.order_ref} onChange={e => setForm(f => ({ ...f, order_ref: e.target.value }))} placeholder="ORD-001234" />
                 </div>
+                <div>
+                  <Label>Peso (kg)</Label>
+                  <Input type="number" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value }))} placeholder="1.5" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Ciudad</Label>
+                    <Input value={form.dest_city} onChange={e => setForm(f => ({ ...f, dest_city: e.target.value }))} placeholder="Buenos Aires" />
+                  </div>
+                  <div>
+                    <Label>Provincia</Label>
+                    <Input value={form.dest_province} onChange={e => setForm(f => ({ ...f, dest_province: e.target.value }))} placeholder="CABA" />
+                  </div>
+                </div>
+                <Button className="w-full" onClick={handleCreate}>Crear Envío</Button>
               </div>
-              <Button className="w-full" onClick={handleCreate}>Crear Envío</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total Envíos", value: stats.total, icon: Package, color: "text-blue-600" },
-          { label: "En Tránsito", value: stats.in_transit, icon: Truck, color: "text-yellow-600" },
-          { label: "Entregados", value: stats.delivered, icon: CheckCircle, color: "text-green-600" },
-          { label: "Pendientes", value: stats.pending, icon: Clock, color: "text-gray-600" },
-        ].map(kpi => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <kpi.icon className={`w-8 h-8 ${kpi.color}`} />
-              <div>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className="text-2xl font-bold">{kpi.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <KPICard label="Total Envíos" value={stats.total} icon={Package} color="primary" />
+        <KPICard label="En Tránsito" value={stats.in_transit} icon={Truck} color="warning" />
+        <KPICard label="Entregados" value={stats.delivered} icon={CheckCircle} color="success" />
+        <KPICard label="Pendientes" value={stats.pending} icon={Clock} color="blue" />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

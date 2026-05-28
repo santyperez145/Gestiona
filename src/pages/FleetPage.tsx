@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import {
   Car, Plus, Wrench, Fuel, MapPin, AlertTriangle,
-  CheckCircle, Clock, ChevronDown, ChevronRight, DollarSign
+  CheckCircle, Clock, ChevronDown, ChevronRight, DollarSign, Loader2
 } from "lucide-react";
 
 interface Vehicle {
@@ -76,10 +79,10 @@ interface Trip {
 }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  available:   { label: "Disponible",   color: "bg-green-100 text-green-800" },
-  in_use:      { label: "En uso",       color: "bg-blue-100 text-blue-800" },
-  maintenance: { label: "Mantenimiento",color: "bg-orange-100 text-orange-800" },
-  inactive:    { label: "Inactivo",     color: "bg-gray-100 text-gray-600" },
+  available:   { label: "Disponible",   color: "bg-green-500/15 text-green-400" },
+  in_use:      { label: "En uso",       color: "bg-blue-500/15 text-blue-400" },
+  maintenance: { label: "Mantenimiento",color: "bg-orange-500/15 text-orange-400" },
+  inactive:    { label: "Inactivo",     color: "bg-muted/50 text-muted-foreground" },
 };
 
 const FUEL_LABELS: Record<string, string> = {
@@ -88,10 +91,10 @@ const FUEL_LABELS: Record<string, string> = {
 };
 
 const MAINT_STATUS_CFG: Record<string, { label: string; color: string }> = {
-  scheduled:   { label: "Programado",   color: "bg-yellow-100 text-yellow-800" },
-  in_progress: { label: "En progreso",  color: "bg-blue-100 text-blue-800" },
-  completed:   { label: "Completado",   color: "bg-green-100 text-green-800" },
-  cancelled:   { label: "Cancelado",    color: "bg-gray-100 text-gray-600" },
+  scheduled:   { label: "Programado",   color: "bg-yellow-500/15 text-yellow-400" },
+  in_progress: { label: "En progreso",  color: "bg-blue-500/15 text-blue-400" },
+  completed:   { label: "Completado",   color: "bg-green-500/15 text-green-400" },
+  cancelled:   { label: "Cancelado",    color: "bg-muted/50 text-muted-foreground" },
 };
 
 const EMPTY_VEHICLE = {
@@ -116,6 +119,7 @@ const EMPTY_TRIP = {
 };
 
 export default function FleetPage() {
+  usePageTitle("Flota Vehicular");
   const { orgId } = useOrganization();
 
   const [vehicles, setVehicles]     = useState<Vehicle[]>([]);
@@ -287,20 +291,20 @@ export default function FleetPage() {
   const filteredFuel = selectedVehicle ? fuelLogs.filter(f => f.vehicle_id === selectedVehicle) : fuelLogs;
   const filteredTrips = selectedVehicle ? trips.filter(t => t.vehicle_id === selectedVehicle) : trips;
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Car className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Flota Vehicular</h1>
-            <p className="text-sm text-gray-500">Vehículos, mantenimiento, combustible y viajes</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Car}
+        title="Flota Vehicular"
+        description="Vehículos, mantenimiento, combustible y viajes"
+        actions={
+          <div className="flex gap-2">
           {activeTab === "vehicles" && (
             <Dialog open={vehicleOpen} onOpenChange={setVehicleOpen}>
               <DialogTrigger asChild>
@@ -487,7 +491,7 @@ export default function FleetPage() {
                     </div>
                   </div>
                   {fuelForm.liters > 0 && fuelForm.price_per_liter > 0 && (
-                    <div className="bg-blue-50 rounded p-2 text-sm text-blue-800 font-medium">
+                    <div className="bg-blue-500/10 rounded p-2 text-sm text-blue-400 font-medium">
                       Total: {fmt(Number(fuelForm.liters) * Number(fuelForm.price_per_liter))}
                     </div>
                   )}
@@ -548,7 +552,7 @@ export default function FleetPage() {
                     </div>
                   </div>
                   {Number(tripForm.end_odometer) > Number(tripForm.start_odometer) && (
-                    <div className="bg-green-50 rounded p-2 text-sm text-green-800">
+                    <div className="bg-green-500/10 rounded p-2 text-sm text-green-400">
                       Distancia: {Number(tripForm.end_odometer) - Number(tripForm.start_odometer)} km
                     </div>
                   )}
@@ -559,38 +563,27 @@ export default function FleetPage() {
               </DialogContent>
             </Dialog>
           )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Vehículos activos</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{vehicles.length}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-orange-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Mant. pendientes</p></div>
-          <p className="text-3xl font-bold text-orange-600">{pendingMaint}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><Fuel className="w-4 h-4 text-blue-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Costo combustible</p></div>
-          <p className="text-3xl font-bold text-blue-600">{fmt(totalFuelCost)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><MapPin className="w-4 h-4 text-green-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Km recorridos</p></div>
-          <p className="text-3xl font-bold text-green-600">{totalKm.toLocaleString("es-AR")}</p>
-        </CardContent></Card>
+        <KPICard label="Vehículos activos" value={vehicles.length} icon={Car} color="primary" />
+        <KPICard label="Mant. pendientes" value={pendingMaint} icon={AlertTriangle} color="warning" />
+        <KPICard label="Costo combustible" value={fmt(totalFuelCost)} icon={Fuel} color="blue" />
+        <KPICard label="Km recorridos" value={`${totalKm.toLocaleString("es-AR")} km`} icon={MapPin} color="success" />
       </div>
 
       {/* Vehicle filter pills */}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setSelectedVehicle(null)}
-          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!selectedVehicle ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!selectedVehicle ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
           Todos
         </button>
         {vehicles.map(v => (
           <button key={v.id} onClick={() => setSelectedVehicle(v.id)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${selectedVehicle === v.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${selectedVehicle === v.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
             {v.plate ?? v.name}
           </button>
         ))}
@@ -607,7 +600,7 @@ export default function FleetPage() {
         {/* VEHICLES */}
         <TabsContent value="vehicles" className="mt-4">
           {vehicles.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <Car className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay vehículos registrados aún</p>
             </div>
@@ -625,7 +618,7 @@ export default function FleetPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <CardTitle className="text-base">{v.name}</CardTitle>
-                          {v.plate && <p className="text-xs font-mono text-gray-500 mt-0.5">{v.plate}</p>}
+                          {v.plate && <p className="text-xs font-mono text-muted-foreground mt-0.5">{v.plate}</p>}
                         </div>
                         <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
                       </div>
@@ -636,17 +629,17 @@ export default function FleetPage() {
                         <Badge variant="outline" className="text-xs">{FUEL_LABELS[v.fuel_type]}</Badge>
                         <Badge variant="outline" className="text-xs">{Number(v.odometer_km).toLocaleString("es-AR")} km</Badge>
                       </div>
-                      {v.assigned_to_name && <p className="text-sm text-gray-600">👤 {v.assigned_to_name}</p>}
+                      {v.assigned_to_name && <p className="text-sm text-muted-foreground">👤 {v.assigned_to_name}</p>}
                       <div className="space-y-1">
                         {v.insurance_expiry && (
-                          <p className={`text-xs flex items-center gap-1 ${insExpired ? "text-red-600 font-semibold" : insSoon ? "text-orange-600" : "text-gray-500"}`}>
+                          <p className={`text-xs flex items-center gap-1 ${insExpired ? "text-red-600 font-semibold" : insSoon ? "text-orange-600" : "text-muted-foreground"}`}>
                             {(insExpired || insSoon) && <AlertTriangle className="w-3 h-3" />}
                             Seguro: {new Date(v.insurance_expiry).toLocaleDateString("es-AR")}
                             {insExpired ? " (VENCIDO)" : insSoon ? " (próx. a vencer)" : ""}
                           </p>
                         )}
                         {v.vtv_expiry && (
-                          <p className={`text-xs flex items-center gap-1 ${vtvExpired ? "text-red-600 font-semibold" : vtvSoon ? "text-orange-600" : "text-gray-500"}`}>
+                          <p className={`text-xs flex items-center gap-1 ${vtvExpired ? "text-red-600 font-semibold" : vtvSoon ? "text-orange-600" : "text-muted-foreground"}`}>
                             {(vtvExpired || vtvSoon) && <AlertTriangle className="w-3 h-3" />}
                             VTV: {new Date(v.vtv_expiry).toLocaleDateString("es-AR")}
                             {vtvExpired ? " (VENCIDA)" : vtvSoon ? " (próx. a vencer)" : ""}
@@ -664,7 +657,7 @@ export default function FleetPage() {
         {/* MAINTENANCE */}
         <TabsContent value="maintenance" className="mt-4 space-y-2">
           {filteredMaint.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <Wrench className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Sin mantenimientos registrados</p>
             </div>
@@ -676,18 +669,18 @@ export default function FleetPage() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <button onClick={() => setExpandedMaint(isExp ? null : m.id)} className="text-gray-400 flex-shrink-0">
+                      <button onClick={() => setExpandedMaint(isExp ? null : m.id)} className="text-muted-foreground flex-shrink-0">
                         {isExp ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       </button>
                       <div className="min-w-0">
-                        <p className="font-medium text-gray-900">{m.title}</p>
-                        <p className="text-xs text-gray-500">{m.vehicles?.name} {m.vehicles?.plate && `(${m.vehicles.plate})`}</p>
-                        {m.scheduled_date && <p className="text-xs text-gray-400">{new Date(m.scheduled_date).toLocaleDateString("es-AR")}</p>}
+                        <p className="font-medium text-foreground">{m.title}</p>
+                        <p className="text-xs text-muted-foreground">{m.vehicles?.name} {m.vehicles?.plate && `(${m.vehicles.plate})`}</p>
+                        {m.scheduled_date && <p className="text-xs text-muted-foreground/70">{new Date(m.scheduled_date).toLocaleDateString("es-AR")}</p>}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
-                        {m.cost > 0 && <p className="text-sm font-semibold text-gray-900">{fmt(m.cost)}</p>}
+                        {m.cost > 0 && <p className="text-sm font-semibold text-foreground">{fmt(m.cost)}</p>}
                         <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
                       </div>
                       {m.status === "scheduled" && (
@@ -698,10 +691,10 @@ export default function FleetPage() {
                     </div>
                   </div>
                   {isExp && (
-                    <div className="mt-3 pt-3 border-t text-sm text-gray-600 space-y-1">
+                    <div className="mt-3 pt-3 border-t text-sm text-muted-foreground space-y-1">
                       {m.description && <p>{m.description}</p>}
                       {m.provider_name && <p>🔧 {m.provider_name}</p>}
-                      {m.notes && <p className="text-xs text-gray-400 italic">{m.notes}</p>}
+                      {m.notes && <p className="text-xs text-muted-foreground/70 italic">{m.notes}</p>}
                     </div>
                   )}
                 </CardContent>
@@ -713,10 +706,10 @@ export default function FleetPage() {
         {/* FUEL */}
         <TabsContent value="fuel" className="mt-4">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Total combustible: <span className="font-semibold text-gray-900">{fmt(filteredFuel.reduce((s, f) => s + Number(f.total_cost), 0))}</span></p>
+            <p className="text-sm text-muted-foreground">Total combustible: <span className="font-semibold text-foreground">{fmt(filteredFuel.reduce((s, f) => s + Number(f.total_cost), 0))}</span></p>
           </div>
           {filteredFuel.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <Fuel className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Sin cargas de combustible registradas</p>
             </div>
@@ -725,25 +718,25 @@ export default function FleetPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Fecha</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Vehículo</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Litros</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Precio/L</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Total</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Odómetro</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Estación</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Fecha</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Vehículo</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Litros</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Precio/L</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Total</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Odómetro</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Estación</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredFuel.map(f => (
-                    <tr key={f.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-3 text-gray-600">{new Date(f.date).toLocaleDateString("es-AR")}</td>
-                      <td className="py-2 px-3 text-gray-900">{f.vehicles?.name ?? "—"}</td>
-                      <td className="py-2 px-3 text-right text-gray-600">{Number(f.liters).toFixed(2)}</td>
-                      <td className="py-2 px-3 text-right text-gray-600">{fmt(f.price_per_liter)}</td>
-                      <td className="py-2 px-3 text-right font-semibold text-gray-900">{fmt(f.total_cost)}</td>
-                      <td className="py-2 px-3 text-right text-gray-500">{f.odometer_km ? `${Number(f.odometer_km).toLocaleString("es-AR")} km` : "—"}</td>
-                      <td className="py-2 px-3 text-gray-500">{f.station_name ?? "—"}</td>
+                    <tr key={f.id} className="border-b hover:bg-muted/20">
+                      <td className="py-2 px-3 text-muted-foreground">{new Date(f.date).toLocaleDateString("es-AR")}</td>
+                      <td className="py-2 px-3 text-foreground">{f.vehicles?.name ?? "—"}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{Number(f.liters).toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{fmt(f.price_per_liter)}</td>
+                      <td className="py-2 px-3 text-right font-semibold text-foreground">{fmt(f.total_cost)}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{f.odometer_km ? `${Number(f.odometer_km).toLocaleString("es-AR")} km` : "—"}</td>
+                      <td className="py-2 px-3 text-muted-foreground">{f.station_name ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -755,10 +748,10 @@ export default function FleetPage() {
         {/* TRIPS */}
         <TabsContent value="trips" className="mt-4">
           <div className="mb-3">
-            <p className="text-sm text-gray-500">Total km registrados: <span className="font-semibold text-gray-900">{filteredTrips.reduce((s, t) => s + Number(t.km_driven ?? 0), 0).toLocaleString("es-AR")} km</span></p>
+            <p className="text-sm text-muted-foreground">Total km registrados: <span className="font-semibold text-foreground">{filteredTrips.reduce((s, t) => s + Number(t.km_driven ?? 0), 0).toLocaleString("es-AR")} km</span></p>
           </div>
           {filteredTrips.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Sin viajes registrados</p>
             </div>
@@ -767,25 +760,25 @@ export default function FleetPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Fecha</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Vehículo</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Conductor</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Propósito</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Ruta</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Km</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Fecha</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Vehículo</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Conductor</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Propósito</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ruta</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Km</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredTrips.map(t => (
-                    <tr key={t.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-3 text-gray-600">{new Date(t.start_time).toLocaleDateString("es-AR")}</td>
-                      <td className="py-2 px-3 text-gray-900">{t.vehicles?.name ?? "—"}</td>
-                      <td className="py-2 px-3 text-gray-900">{t.driver_name}</td>
-                      <td className="py-2 px-3 text-gray-500">{t.purpose ?? "—"}</td>
-                      <td className="py-2 px-3 text-gray-500">
+                    <tr key={t.id} className="border-b hover:bg-muted/20">
+                      <td className="py-2 px-3 text-muted-foreground">{new Date(t.start_time).toLocaleDateString("es-AR")}</td>
+                      <td className="py-2 px-3 text-foreground">{t.vehicles?.name ?? "—"}</td>
+                      <td className="py-2 px-3 text-foreground">{t.driver_name}</td>
+                      <td className="py-2 px-3 text-muted-foreground">{t.purpose ?? "—"}</td>
+                      <td className="py-2 px-3 text-muted-foreground">
                         {t.origin && t.destination ? `${t.origin} → ${t.destination}` : (t.origin || t.destination || "—")}
                       </td>
-                      <td className="py-2 px-3 text-right font-semibold text-gray-900">
+                      <td className="py-2 px-3 text-right font-semibold text-foreground">
                         {t.km_driven != null ? `${Number(t.km_driven).toLocaleString("es-AR")} km` : "—"}
                       </td>
                     </tr>

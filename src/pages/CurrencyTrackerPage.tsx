@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +19,7 @@ import {
 } from "@/components/ui/tabs";
 import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus,
-  Zap, ArrowUpRight, ArrowDownRight, Info, Package,
+  Zap, ArrowUpRight, ArrowDownRight, Info, Package, Loader2,
 } from "lucide-react";
 
 interface ExchangeRate {
@@ -53,6 +55,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 export default function CurrencyTrackerPage() {
+  usePageTitle("Tipo de Cambio & Precios");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [rates, setRates] = useState<ExchangeRate[]>([]);
@@ -202,28 +205,25 @@ export default function CurrencyTrackerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <DollarSign className="w-6 h-6 text-primary" /> Tipo de Cambio & Precios
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Registrá cotizaciones y actualizá precios masivamente con el dólar.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchLiveRates} disabled={fetching}>
-            <Zap className="w-4 h-4 mr-1" />
-            {fetching ? "Consultando..." : "Cotización en vivo"}
-          </Button>
-          <Button variant="outline" onClick={() => setAddOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Manual
-          </Button>
-          <Button onClick={() => setBulkOpen(true)} disabled={rates.length === 0}>
-            <Package className="w-4 h-4 mr-1" /> Actualizar precios
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={DollarSign}
+        title="Tipo de Cambio & Precios"
+        description="Registrá cotizaciones y actualizá precios masivamente con el dólar."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchLiveRates} disabled={fetching}>
+              <Zap className="w-4 h-4 mr-1" />
+              {fetching ? "Consultando..." : "Cotización en vivo"}
+            </Button>
+            <Button variant="outline" onClick={() => setAddOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Manual
+            </Button>
+            <Button onClick={() => setBulkOpen(true)} disabled={rates.length === 0}>
+              <Package className="w-4 h-4 mr-1" /> Actualizar precios
+            </Button>
+          </div>
+        }
+      />
 
       {/* Live rate cards */}
       {latest && (
@@ -291,7 +291,9 @@ export default function CurrencyTrackerPage() {
 
         <TabsContent value="rates" className="pt-2">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
           ) : (
             <div className="rounded-xl border border-border/50 overflow-hidden">
               <table className="w-full text-sm">

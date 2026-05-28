@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +40,7 @@ import {
   Bell,
   TrendingUp,
   XCircle,
+  Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -391,6 +395,7 @@ function EscForm({ open, rule, policies, orgId, onClose, onSaved }: EscFormProps
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SLARulesPage() {
+  usePageTitle("SLA & Escalaciones");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -470,48 +475,33 @@ export default function SLARulesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Timer className="w-6 h-6 text-primary" />
-            SLA & Escalaciones
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Políticas de tiempo de respuesta y escalación automática de tickets
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleCheckBreaches} disabled={checking}>
-            {checking ? <RefreshCw className="w-4 h-4 animate-spin mr-1.5" /> : <Zap className="w-4 h-4 mr-1.5" />}
-            Verificar SLA
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => { setEditingEsc(null); setEscDialogOpen(true); }}>
-            <Bell className="w-4 h-4 mr-1.5" /> Nueva escalación
-          </Button>
-          <Button size="sm" onClick={() => { setEditingPolicy(null); setPolicyDialogOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nueva política
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Timer}
+        title="SLA & Escalaciones"
+        description="Políticas de tiempo de respuesta y escalación automática de tickets"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCheckBreaches} disabled={checking}>
+              {checking ? <RefreshCw className="w-4 h-4 animate-spin mr-1.5" /> : <Zap className="w-4 h-4 mr-1.5" />}
+              Verificar SLA
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { setEditingEsc(null); setEscDialogOpen(true); }}>
+              <Bell className="w-4 h-4 mr-1.5" /> Nueva escalación
+            </Button>
+            <Button size="sm" onClick={() => { setEditingPolicy(null); setPolicyDialogOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nueva política
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Incumplimientos abiertos", value: kpis.openBreaches, icon: AlertTriangle, color: "text-red-400" },
-          { label: "Resueltos", value: kpis.resolvedBreaches, icon: CheckCircle, color: "text-emerald-400" },
-          { label: "Por vencer (<30m)", value: kpis.atRisk, icon: Clock, color: "text-amber-400" },
-          { label: "Cumplimiento SLA", value: `${kpis.compliancePct}%`, icon: ShieldAlert, color: kpis.compliancePct >= 90 ? "text-emerald-400" : kpis.compliancePct >= 70 ? "text-amber-400" : "text-red-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Incumplimientos abiertos" value={kpis.openBreaches} icon={AlertTriangle} color="destructive" />
+        <KPICard label="Resueltos" value={kpis.resolvedBreaches} icon={CheckCircle} color="success" />
+        <KPICard label="Por vencer (<30m)" value={kpis.atRisk} icon={Clock} color="warning" />
+        <KPICard label="Cumplimiento SLA" value={`${kpis.compliancePct}%`} icon={ShieldAlert} color={kpis.compliancePct >= 90 ? "success" : kpis.compliancePct >= 70 ? "warning" : "destructive"} />
       </div>
 
       <Tabs defaultValue="policies">
@@ -534,7 +524,7 @@ export default function SLARulesPage() {
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">{policies.filter(p => p.active).length} política{policies.filter(p => p.active).length !== 1 ? "s" : ""} activa{policies.filter(p => p.active).length !== 1 ? "s" : ""}</p>
           </div>
-          {loading ? <div className="flex justify-center py-12"><RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          {loading ? <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
           : policies.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Timer className="w-10 h-10 mx-auto mb-3 opacity-30" />

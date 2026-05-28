@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -36,6 +39,7 @@ interface InventoryLayer {
 
 
 export default function InventoryValuationPage() {
+  usePageTitle("Valuación de Inventario");
   const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"valuation" | "layers" | "snapshots" | "config">("valuation");
   const [method, setMethod] = useState("average");
@@ -130,64 +134,43 @@ export default function InventoryValuationPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Layers className="w-6 h-6 text-primary" /> Valuación de Inventario</h1>
-          <p className="text-muted-foreground text-sm mt-1">Métodos FIFO, LIFO y Costo Promedio Ponderado</p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={method} onValueChange={setMethod}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="average">Costo Promedio ✓</SelectItem>
-              <SelectItem value="fifo">FIFO (1° en entrar)</SelectItem>
-              <SelectItem value="lifo">LIFO (1° en salir)</SelectItem>
-              <SelectItem value="specific">Identificación Específica</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => toast.success("Snapshot generado")}>
-            <RefreshCw className="w-4 h-4 mr-2" />Snapshot
-          </Button>
-          <Button variant="outline" onClick={() => toast.info("Exportando...")}>
-            <Download className="w-4 h-4 mr-2" />Exportar
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Layers}
+        title="Valuación de Inventario"
+        description="Métodos FIFO, LIFO y Costo Promedio Ponderado"
+        actions={
+          <div className="flex gap-2">
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="average">Costo Promedio ✓</SelectItem>
+                <SelectItem value="fifo">FIFO (1° en entrar)</SelectItem>
+                <SelectItem value="lifo">LIFO (1° en salir)</SelectItem>
+                <SelectItem value="specific">Identificación Específica</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => toast.success("Snapshot generado")}>
+              <RefreshCw className="w-4 h-4 mr-2" />Snapshot
+            </Button>
+            <Button variant="outline" onClick={() => toast.info("Exportando...")}>
+              <Download className="w-4 h-4 mr-2" />Exportar
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex gap-3 items-center">
-            <Package className="w-8 h-8 text-blue-500" />
-            <div><p className="text-xs text-muted-foreground">Unidades Totales</p><p className="text-2xl font-bold">{totalUnits.toLocaleString()}</p></div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex gap-3 items-center">
-            <DollarSign className="w-8 h-8 text-purple-500" />
-            <div><p className="text-xs text-muted-foreground">Costo Total ({method.toUpperCase()})</p><p className="text-xl font-bold">${(totalCostAvg / 1_000_000).toFixed(2)}M</p></div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex gap-3 items-center">
-            <BarChart3 className="w-8 h-8 text-green-500" />
-            <div><p className="text-xs text-muted-foreground">Valor de Mercado</p><p className="text-xl font-bold">${(totalMarket / 1_000_000).toFixed(2)}M</p></div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex gap-3 items-center">
-            {totalGain >= 0
-              ? <TrendingUp className="w-8 h-8 text-emerald-500" />
-              : <TrendingDown className="w-8 h-8 text-red-500" />}
-            <div>
-              <p className="text-xs text-muted-foreground">Ganancia/Pérdida No Realizada</p>
-              <p className={`text-xl font-bold ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {totalGain >= 0 ? "+" : ""}${(totalGain / 1000).toFixed(0)}K
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <KPICard label="Unidades Totales" value={totalUnits.toLocaleString()} icon={Package} color="blue" />
+        <KPICard label={`Costo Total (${method.toUpperCase()})`} value={`$${(totalCostAvg / 1_000_000).toFixed(2)}M`} icon={DollarSign} color="purple" />
+        <KPICard label="Valor de Mercado" value={`$${(totalMarket / 1_000_000).toFixed(2)}M`} icon={BarChart3} color="success" />
+        <KPICard
+          label="Gan./Pérd. No Realizada"
+          value={`${totalGain >= 0 ? "+" : ""}$${(totalGain / 1000).toFixed(0)}K`}
+          icon={totalGain >= 0 ? TrendingUp : TrendingDown}
+          color={totalGain >= 0 ? "success" : "destructive"}
+        />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

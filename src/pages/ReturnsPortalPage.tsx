@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import {
   RotateCcw, Plus, CheckCircle2, XCircle, Clock, Package,
-  Pencil, Trash2, RefreshCcw, DollarSign, AlertCircle, Search
+  Pencil, Trash2, RefreshCcw, DollarSign, AlertCircle, Search, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,12 +30,12 @@ interface OurProduct { id: string; name: string; }
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:    { label: "Pendiente",    color: "bg-yellow-100 text-yellow-700", icon: <Clock className="w-3 h-3" /> },
-  approved:   { label: "Aprobado",     color: "bg-blue-100 text-blue-700",    icon: <CheckCircle2 className="w-3 h-3" /> },
-  rejected:   { label: "Rechazado",    color: "bg-red-100 text-red-700",      icon: <XCircle className="w-3 h-3" /> },
-  processing: { label: "En proceso",   color: "bg-purple-100 text-purple-700", icon: <RefreshCcw className="w-3 h-3" /> },
-  resolved:   { label: "Resuelto",     color: "bg-green-100 text-green-700",  icon: <CheckCircle2 className="w-3 h-3" /> },
-  closed:     { label: "Cerrado",      color: "bg-gray-100 text-gray-500",    icon: <XCircle className="w-3 h-3" /> },
+  pending:    { label: "Pendiente",    color: "bg-yellow-500/15 text-yellow-400", icon: <Clock className="w-3 h-3" /> },
+  approved:   { label: "Aprobado",     color: "bg-blue-500/15 text-blue-400",    icon: <CheckCircle2 className="w-3 h-3" /> },
+  rejected:   { label: "Rechazado",    color: "bg-red-500/15 text-red-400",      icon: <XCircle className="w-3 h-3" /> },
+  processing: { label: "En proceso",   color: "bg-purple-500/15 text-purple-400", icon: <RefreshCcw className="w-3 h-3" /> },
+  resolved:   { label: "Resuelto",     color: "bg-green-500/15 text-green-400",  icon: <CheckCircle2 className="w-3 h-3" /> },
+  closed:     { label: "Cerrado",      color: "bg-muted/50 text-muted-foreground", icon: <XCircle className="w-3 h-3" /> },
 };
 const RESOLUTION_LABELS: Record<string, string> = {
   refund: "Reembolso", exchange: "Cambio de producto", store_credit: "Crédito en tienda",
@@ -50,6 +53,7 @@ const TABS = ["Solicitudes", "Razones", "Estadísticas"] as const;
 type Tab = typeof TABS[number];
 
 export default function ReturnsPortalPage() {
+  usePageTitle("Portal de Devoluciones RMA");
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("Solicitudes");
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
@@ -151,66 +155,66 @@ export default function ReturnsPortalPage() {
   const totalRefunds = returns.filter(r => r.resolution === "refund" && r.refund_amount).reduce((s, r) => s + (r.refund_amount ?? 0), 0);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><RotateCcw className="w-6 h-6 text-orange-600" /> Portal de Devoluciones RMA</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Solicitudes de devolución, cambio y reembolso</p>
-        </div>
-        <Button size="sm" onClick={() => { setForm(blankForm); setShowNewDialog(true); }}><Plus className="w-4 h-4 mr-1" /> Nueva Solicitud</Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={RotateCcw}
+        title="Portal de Devoluciones RMA"
+        description="Solicitudes de devolución, cambio y reembolso"
+        actions={
+          <Button size="sm" onClick={() => { setForm(blankForm); setShowNewDialog(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nueva Solicitud
+          </Button>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total solicitudes",   value: returns.length,                       icon: <Package className="w-5 h-5 text-gray-600" />,   bg: "bg-gray-50" },
-          { label: "Pendientes",          value: pendingCount,                          icon: <Clock className="w-5 h-5 text-yellow-600" />,   bg: "bg-yellow-50" },
-          { label: "Resueltas",           value: resolvedCount,                         icon: <CheckCircle2 className="w-5 h-5 text-green-600" />, bg: "bg-green-50" },
-          { label: "Total reembolsado",   value: `$${totalRefunds.toLocaleString("es-AR")}`, icon: <DollarSign className="w-5 h-5 text-red-600" />, bg: "bg-red-50" },
-        ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl border p-4 flex items-center gap-3">
-            <div className={`${k.bg} p-2.5 rounded-lg`}>{k.icon}</div>
-            <div><p className="text-xs text-gray-500">{k.label}</p><p className="text-xl font-bold text-gray-900">{k.value}</p></div>
-          </div>
-        ))}
+        <KPICard label="Total solicitudes" value={returns.length} icon={Package} color="primary" />
+        <KPICard label="Pendientes" value={pendingCount} icon={Clock} color="warning" />
+        <KPICard label="Resueltas" value={resolvedCount} icon={CheckCircle2} color="success" />
+        <KPICard label="Total reembolsado" value={`$${totalRefunds.toLocaleString("es-AR")}`} icon={DollarSign} color="destructive" />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {TABS.map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>{t}</button>)}
+      <div className="flex gap-1 bg-muted/30 rounded-lg p-1 w-fit border border-border/40">
+        {TABS.map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>)}
       </div>
 
-      {loading ? <div className="text-center py-16 text-gray-400">Cargando…</div> : (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
+      ) : (
         <>
           {activeTab === "Solicitudes" && (
             <div className="space-y-4">
               <div className="flex gap-3 flex-wrap">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                   <Input placeholder="Buscar RMA, cliente, producto…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-64" />
                 </div>
                 {(["all", ...Object.keys(STATUS_CONFIG)] as const).map(s => (
-                  <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterStatus === s ? "bg-orange-600 text-white border-orange-600" : "bg-white text-gray-600 hover:border-orange-300"}`}>
+                  <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterStatus === s ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}>
                     {s === "all" ? "Todos" : STATUS_CONFIG[s]?.label}
                   </button>
                 ))}
               </div>
 
-              <div className="bg-white rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600">
+                  <thead className="bg-muted/20 text-muted-foreground">
                     <tr>{["RMA", "Cliente", "Producto", "Cant.", "Razón", "Resolución", "Reembolso", "Estado", ""].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y">
                     {filtered.map(r => {
                       const st = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.pending;
                       return (
-                        <tr key={r.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-mono text-xs text-blue-600">{r.rma_number}</td>
-                          <td className="px-4 py-3 font-medium text-gray-900">{r.customer_name}<br/><span className="text-xs text-gray-400">{r.customer_email}</span></td>
-                          <td className="px-4 py-3 text-gray-700">{r.product_name}</td>
-                          <td className="px-4 py-3 text-gray-500">{r.quantity}</td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{(r.return_reasons as ReturnRequest["return_reasons"])?.name ?? r.reason_text ?? "—"}</td>
+                        <tr key={r.id} className="hover:bg-muted/20">
+                          <td className="px-4 py-3 font-mono text-xs text-primary">{r.rma_number}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{r.customer_name}<br/><span className="text-xs text-muted-foreground">{r.customer_email}</span></td>
+                          <td className="px-4 py-3 text-muted-foreground">{r.product_name}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{r.quantity}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{(r.return_reasons as ReturnRequest["return_reasons"])?.name ?? r.reason_text ?? "—"}</td>
                           <td className="px-4 py-3 text-xs">{r.resolution ? RESOLUTION_LABELS[r.resolution] : "—"}</td>
                           <td className="px-4 py-3 text-xs">{r.refund_amount ? `$${r.refund_amount.toLocaleString("es-AR")}` : "—"}</td>
                           <td className="px-4 py-3"><Badge className={`${st.color} flex items-center gap-1 text-xs`}>{st.icon}{st.label}</Badge></td>
@@ -228,7 +232,7 @@ export default function ReturnsPortalPage() {
                         </tr>
                       );
                     })}
-                    {filtered.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-gray-400">Sin solicitudes</td></tr>}
+                    {filtered.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">Sin solicitudes</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -241,9 +245,9 @@ export default function ReturnsPortalPage() {
               <Button size="sm" onClick={() => { setReasonForm({ name: "", requires_photo: false }); setShowReasonDialog(true); }}><Plus className="w-4 h-4 mr-1" /> Nueva razón</Button>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {reasons.map(r => (
-                  <div key={r.id} className={`bg-white rounded-xl border p-4 flex items-center justify-between ${!r.is_active ? "opacity-50" : ""}`}>
+                  <div key={r.id} className={`bg-card rounded-xl border p-4 flex items-center justify-between ${!r.is_active ? "opacity-50" : ""}`}>
                     <div>
-                      <p className="font-medium text-gray-900">{r.name}</p>
+                      <p className="font-medium text-foreground">{r.name}</p>
                       {r.requires_photo && <p className="text-xs text-orange-500 mt-0.5">Requiere foto</p>}
                     </div>
                     <button onClick={() => supabase.from("return_reasons").delete().eq("id", r.id).then(load)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
@@ -255,27 +259,27 @@ export default function ReturnsPortalPage() {
 
           {activeTab === "Estadísticas" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border p-5 space-y-3">
-                <h3 className="font-semibold text-gray-800">Por estado</h3>
+              <div className="bg-card rounded-xl border p-5 space-y-3">
+                <h3 className="font-semibold text-foreground">Por estado</h3>
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => {
                   const count = returns.filter(r => r.status === k).length;
                   const pct = returns.length > 0 ? (count / returns.length) * 100 : 0;
                   return (
                     <div key={k} className="space-y-1">
                       <div className="flex justify-between text-sm"><span className="flex items-center gap-1">{v.icon}<span>{v.label}</span></span><span className="font-medium">{count}</span></div>
-                      <div className="h-1.5 bg-gray-100 rounded-full"><div className="h-full rounded-full bg-orange-400" style={{ width: `${pct}%` }} /></div>
+                      <div className="h-1.5 bg-muted/40 rounded-full"><div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
                     </div>
                   );
                 })}
               </div>
-              <div className="bg-white rounded-xl border p-5 space-y-3">
-                <h3 className="font-semibold text-gray-800">Por resolución</h3>
+              <div className="bg-card rounded-xl border p-5 space-y-3">
+                <h3 className="font-semibold text-foreground">Por resolución</h3>
                 {Object.entries(RESOLUTION_LABELS).map(([k, label]) => {
                   const count = returns.filter(r => r.resolution === k).length;
                   if (count === 0) return null;
                   return (
                     <div key={k} className="flex justify-between text-sm py-1 border-b last:border-0">
-                      <span className="text-gray-600">{label}</span>
+                      <span className="text-muted-foreground">{label}</span>
                       <span className="font-semibold">{count}</span>
                     </div>
                   );

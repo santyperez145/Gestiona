@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { KPICard } from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,6 +106,7 @@ function fmtDate(d: string) {
 }
 
 export default function MarketplaceListingsPage() {
+  usePageTitle("Marketplace & Canales de Venta");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -246,27 +250,24 @@ export default function MarketplaceListingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShoppingBag className="w-6 h-6 text-primary" /> Marketplace & Canales de Venta
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Gestioná listings en MercadoLibre, Tiendanube, Shopify y más desde un solo lugar.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setChannelOpen(true)}>
-            <Settings2 className="w-4 h-4 mr-1" /> Canal
-          </Button>
-          <Button variant="outline" onClick={() => setOrderOpen(true)} disabled={channels.length === 0}>
-            <ShoppingCart className="w-4 h-4 mr-1" /> Venta
-          </Button>
-          <Button onClick={() => { setEditingListing(null); setListingOpen(true); }} disabled={channels.length === 0}>
-            <Plus className="w-4 h-4 mr-1" /> Listing
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={ShoppingBag}
+        title="Marketplace & Canales de Venta"
+        description="Gestioná listings en MercadoLibre, Tiendanube, Shopify y más desde un solo lugar."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setChannelOpen(true)}>
+              <Settings2 className="w-4 h-4 mr-1" /> Canal
+            </Button>
+            <Button variant="outline" onClick={() => setOrderOpen(true)} disabled={channels.length === 0}>
+              <ShoppingCart className="w-4 h-4 mr-1" /> Venta
+            </Button>
+            <Button onClick={() => { setEditingListing(null); setListingOpen(true); }} disabled={channels.length === 0}>
+              <Plus className="w-4 h-4 mr-1" /> Listing
+            </Button>
+          </div>
+        }
+      />
 
       {/* Channel pills */}
       {channels.length > 0 && (
@@ -286,17 +287,10 @@ export default function MarketplaceListingsPage() {
 
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Listings activos", value: activeListings, icon: ShoppingBag },
-          { label: "Órdenes totales", value: totalOrders, icon: ShoppingCart },
-          { label: "Vistas totales", value: listings.reduce((s, l) => s + l.views, 0).toLocaleString("es-AR"), icon: Eye },
-          { label: "Ingresos netos", value: fmt(totalRevenue), icon: DollarSign },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1"><k.icon className="w-4 h-4 text-muted-foreground" /><span className="text-xs text-muted-foreground">{k.label}</span></div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Listings activos" value={activeListings} icon={ShoppingBag} color="success" />
+        <KPICard label="Órdenes totales" value={totalOrders} icon={ShoppingCart} color="primary" />
+        <KPICard label="Vistas totales" value={listings.reduce((s, l) => s + l.views, 0).toLocaleString("es-AR")} icon={Eye} color="blue" />
+        <KPICard label="Ingresos netos" value={fmt(totalRevenue)} icon={DollarSign} color="success" />
       </div>
 
       {channels.length === 0 ? (
