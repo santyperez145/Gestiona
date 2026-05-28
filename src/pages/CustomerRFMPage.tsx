@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Download, Users, TrendingUp, AlertTriangle, Crown, Flame, Zap, Leaf, Moon, Skull, RefreshCw, Search, Filter } from "lucide-react";
+import { Download, Users, TrendingUp, AlertTriangle, Crown, Flame, Zap, Leaf, Moon, Skull, RefreshCw, Search, Filter, DollarSign, BarChart3 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Sale {
@@ -98,6 +101,7 @@ const fmtNum = (n: number) => new Intl.NumberFormat("es-AR").format(n);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function CustomerRFMPage() {
+  usePageTitle("Segmentación RFM");
   const { activeOrg } = useOrg();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,41 +254,62 @@ export default function CustomerRFMPage() {
     </div>
   );
 
+  // ── RFM KPI derivations ────────────────────────────────────────────────────
+  const championsCount = rfmData.filter(c => c.segment === "champion").length;
+  const atRiskCount = rfmData.filter(c => c.segment === "at_risk" || c.segment === "cant_lose").length;
+  const totalRevenue = rfmData.reduce((a, c) => a + c.monetary, 0);
+  const avgRFMScore = rfmData.length > 0
+    ? (rfmData.reduce((a, c) => a + c.rfmScore, 0) / rfmData.length).toFixed(1)
+    : "—";
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Segmentación RFM</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Recency · Frequency · Monetary — últimos 12 meses · {fmtNum(rfmData.length)} clientes
-          </p>
-        </div>
-        <button
-          onClick={exportCSV}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 text-sm hover:bg-muted/50 transition-colors"
-        >
-          <Download className="w-4 h-4" /> Exportar CSV
-        </button>
-      </div>
+      {/* PageHeader */}
+      <PageHeader
+        icon={Users}
+        title="Segmentación RFM"
+        description="Recencia, Frecuencia y Valor monetario por cliente"
+        actions={
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 text-sm hover:bg-muted/50 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Exportar CSV
+          </button>
+        }
+      />
 
-      {/* KPI strip */}
-      {kpis && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Total clientes", value: fmtNum(kpis.total), sub: "últimos 12 meses", icon: <Users className="w-4 h-4 text-blue-400" />, cls: "border-blue-500/20" },
-            { label: "Campeones", value: fmtNum(kpis.champions), sub: `${kpis.total ? Math.round(kpis.champions / kpis.total * 100) : 0}% del total`, icon: <Crown className="w-4 h-4 text-amber-400" />, cls: "border-amber-500/20" },
-            { label: "En riesgo / no perder", value: fmtNum(kpis.atRisk), sub: "acción urgente", icon: <AlertTriangle className="w-4 h-4 text-red-400" />, cls: "border-red-500/20" },
-            { label: "Compras promedio", value: fmtNum(Math.round(kpis.avgFreq * 10) / 10), sub: "por cliente", icon: <RefreshCw className="w-4 h-4 text-emerald-400" />, cls: "border-emerald-500/20" },
-          ].map(k => (
-            <div key={k.label} className={`rounded-xl border ${k.cls} bg-card p-4`}>
-              <div className="flex items-center gap-2 mb-1">{k.icon}<span className="text-xs text-muted-foreground">{k.label}</span></div>
-              <p className="text-2xl font-bold font-display">{k.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{k.sub}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KPICard
+          label="Campeones"
+          value={championsCount}
+          sub="máximo valor y frecuencia"
+          icon={Crown}
+          color="warning"
+        />
+        <KPICard
+          label="En riesgo"
+          value={atRiskCount}
+          sub="acción urgente requerida"
+          icon={AlertTriangle}
+          color="destructive"
+        />
+        <KPICard
+          label="Revenue total"
+          value={fmt(totalRevenue)}
+          sub="todos los clientes"
+          icon={DollarSign}
+          color="success"
+        />
+        <KPICard
+          label="Score RFM promedio"
+          value={avgRFMScore}
+          sub="escala 1-5 por dimensión"
+          icon={BarChart3}
+          color="blue"
+        />
+      </div>
 
       {/* Charts row */}
       <div className="grid lg:grid-cols-2 gap-4">
@@ -343,25 +368,63 @@ export default function CustomerRFMPage() {
       <div className="rounded-xl border border-border/60 bg-card p-4">
         <h3 className="text-sm font-semibold mb-3">Leyenda de segmentos</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {Object.entries(SEGMENTS).map(([key, def]) => (
+          {Object.entries(SEGMENTS).map(([key, def]) => {
+            const segCount = rfmData.filter(c => c.segment === key).length;
+            const segPct = rfmData.length > 0 ? Math.round(segCount / rfmData.length * 100) : 0;
+            return (
+              <button
+                key={key}
+                onClick={() => setSegFilter(segFilter === key ? "all" : key as Segment)}
+                className={`flex flex-col gap-1 p-2.5 rounded-lg border text-left transition-all ${
+                  segFilter === key ? `${def.bg} ${def.border}` : "border-border/40 hover:border-border/70"
+                }`}
+              >
+                <div className="flex items-center gap-1.5" style={{ color: def.color }}>
+                  {def.icon}
+                  <span className="text-xs font-semibold">{def.label}</span>
+                  <span className="ml-auto text-xs font-bold opacity-80">
+                    {segCount}
+                    <span className="text-[9px] font-normal opacity-60 ml-0.5">({segPct}%)</span>
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-tight">{def.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Segment filter pills */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setSegFilter("all")}
+          className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+            segFilter === "all"
+              ? "bg-primary/15 border-primary/40 text-primary"
+              : "border-border/40 text-muted-foreground hover:border-border/70 hover:text-foreground"
+          }`}
+        >
+          Todos ({rfmData.length})
+        </button>
+        {Object.entries(SEGMENTS).map(([key, def]) => {
+          const cnt = rfmData.filter(c => c.segment === key).length;
+          if (cnt === 0) return null;
+          return (
             <button
               key={key}
               onClick={() => setSegFilter(segFilter === key ? "all" : key as Segment)}
-              className={`flex flex-col gap-1 p-2.5 rounded-lg border text-left transition-all ${
-                segFilter === key ? `${def.bg} ${def.border}` : "border-border/40 hover:border-border/70"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                segFilter === key
+                  ? `${def.bg} ${def.border}`
+                  : "border-border/40 text-muted-foreground hover:border-border/70 hover:text-foreground"
               }`}
+              style={segFilter === key ? { color: def.color } : {}}
             >
-              <div className="flex items-center gap-1.5" style={{ color: def.color }}>
-                {def.icon}
-                <span className="text-xs font-semibold">{def.label}</span>
-                <span className="ml-auto text-xs font-bold opacity-80">
-                  {rfmData.filter(c => c.segment === key).length}
-                </span>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-tight">{def.description}</p>
+              {def.icon}
+              {def.label} ({cnt})
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       {/* Table */}
