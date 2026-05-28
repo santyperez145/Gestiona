@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -20,6 +20,8 @@ import {
   Trophy, Star, Zap, Plus, Edit2, Trash2, RefreshCw,
   Award, TrendingUp, Users, Crown, Gift, Target,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BadgeDef {
@@ -282,7 +284,7 @@ export default function GamificationPage() {
   const [leaderboard, setLeaderboard] = useState<StaffPoints[]>([]);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("leaderboard");
+  const [tab, setTab] = useState("ranking");
   const [badgeFormOpen, setBadgeFormOpen] = useState(false);
   const [editingBadge, setEditingBadge] = useState<BadgeDef | null>(null);
   const [awardFormOpen, setAwardFormOpen] = useState(false);
@@ -323,61 +325,80 @@ export default function GamificationPage() {
     loadData();
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+        <RefreshCw className="w-5 h-5 animate-spin" />
+        <span className="text-sm">Cargando gamificación...</span>
+      </div>
+    );
+  }
+
   const totalPoints = leaderboard.reduce((s, l) => s + l.total_points, 0);
+  const avgLevel = leaderboard.length > 0
+    ? (leaderboard.reduce((a, s) => a + s.level, 0) / leaderboard.length).toFixed(1)
+    : "—";
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-primary" /> Gamificación del Equipo
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Reconocé logros, otorgá badges y mostrá el ranking de tu equipo.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {badges.length === 0 && !loading && (
-            <Button variant="outline" onClick={seedDefaults} disabled={seeding}>
-              {seeding ? "Creando..." : "Crear badges de ejemplo"}
+      <PageHeader
+        icon={Trophy}
+        title="Gamificación"
+        description="Puntos, insignias y rankings del equipo"
+        actions={
+          <div className="flex gap-2">
+            {badges.length === 0 && (
+              <Button variant="outline" onClick={seedDefaults} disabled={seeding}>
+                {seeding ? "Creando..." : "Crear badges de ejemplo"}
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { setAwardFormOpen(true); }}>
+              <Award className="w-4 h-4 mr-1" /> Otorgar badge
             </Button>
-          )}
-          <Button variant="outline" onClick={() => { setAwardFormOpen(true); }}>
-            <Award className="w-4 h-4 mr-1" /> Otorgar badge
-          </Button>
-          <Button onClick={() => { setEditingBadge(null); setBadgeFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo badge
-          </Button>
-        </div>
-      </div>
+            <Button onClick={() => { setEditingBadge(null); setBadgeFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Nueva Insignia
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Badges definidos", value: badges.length, icon: Star, color: "text-primary" },
-          { label: "Staff en ranking", value: leaderboard.length, icon: Users, color: "text-blue-400" },
-          { label: "Puntos totales", value: totalPoints, icon: TrendingUp, color: "text-yellow-400" },
-          { label: "Badges otorgados", value: awards.length, icon: Trophy, color: "text-emerald-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard
+          label="Puntos totales del equipo"
+          value={totalPoints}
+          icon={TrendingUp}
+          color="primary"
+        />
+        <KPICard
+          label="Insignias activas"
+          value={badges.filter(b => b.active).length}
+          icon={Star}
+          color="success"
+        />
+        <KPICard
+          label="Premios otorgados"
+          value={awards.length}
+          icon={Trophy}
+          color="warning"
+        />
+        <KPICard
+          label="Nivel promedio"
+          value={avgLevel}
+          icon={Crown}
+          color="blue"
+        />
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="leaderboard">Ranking</TabsTrigger>
-          <TabsTrigger value="badges">Badges ({badges.length})</TabsTrigger>
-          <TabsTrigger value="feed">Actividad reciente</TabsTrigger>
+          <TabsTrigger value="ranking">Ranking</TabsTrigger>
+          <TabsTrigger value="insignias">Insignias ({badges.length})</TabsTrigger>
+          <TabsTrigger value="premios">Premios</TabsTrigger>
         </TabsList>
 
         {/* Leaderboard */}
-        <TabsContent value="leaderboard" className="space-y-3 pt-2">
+        <TabsContent value="ranking" className="space-y-3 pt-2">
           {leaderboard.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               El ranking se construye al otorgar badges al equipo.
@@ -430,7 +451,7 @@ export default function GamificationPage() {
         </TabsContent>
 
         {/* Badges catalog */}
-        <TabsContent value="badges" className="space-y-3 pt-2">
+        <TabsContent value="insignias" className="space-y-3 pt-2">
           {badges.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               Sin badges. Creá uno o cargá los de ejemplo.
@@ -478,7 +499,7 @@ export default function GamificationPage() {
         </TabsContent>
 
         {/* Activity feed */}
-        <TabsContent value="feed" className="space-y-2 pt-2">
+        <TabsContent value="premios" className="space-y-2 pt-2">
           {awards.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">Sin badges otorgados aún.</div>
           ) : (
