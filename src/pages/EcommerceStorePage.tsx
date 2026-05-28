@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
-  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight
+  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const THEMES = [
   { id: "minimal", label: "Minimal", desc: "Limpio y moderno", preview: "bg-white" },
@@ -69,6 +72,7 @@ function StatCard({ icon: Icon, label, value, sub, trend, color = "text-primary"
 }
 
 export default function EcommerceStorePage() {
+  usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "orders" | "design" | "settings">("overview");
   const [store, setStore] = useState<any>(null);
@@ -164,37 +168,38 @@ export default function EcommerceStorePage() {
     { id: "settings",  label: "Configuración" },
   ];
 
+  const kpis = useMemo(() => [
+    { label: "Revenue hoy",      value: "$48.4K", sub: "+12% vs ayer",    icon: DollarSign,    color: "success"  as const },
+    { label: "Órdenes hoy",      value: String(orders.length || 0), sub: `${orders.length} este mes`, icon: ShoppingCart, color: "primary"  as const },
+    { label: "Conversión",       value: "5.5%",   sub: "-1% vs semana",   icon: TrendingUp,    color: "warning"  as const },
+    { label: "Carritos activos", value: "23",     sub: "3 abandonados",   icon: Users,         color: "blue"     as const },
+  ], [orders.length]);
+
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4 text-emerald-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Tienda E-Commerce</h1>
+      <PageHeader
+        icon={ShoppingBag}
+        title="Tienda E-Commerce"
+        description="Tu tienda online integrada con inventario y pagos"
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge className={store?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
+              {store?.is_active ? "● Activa" : "○ Inactiva"}
+            </Badge>
+            {store?.slug && (
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(`https://gestiona.app/tienda/${store.slug}`, "_blank")}>
+                <ExternalLink className="w-3 h-3" />Ver tienda
+              </Button>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground">Tu tienda online integrada con inventario y pagos</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className={store?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
-            {store?.is_active ? "● Activa" : "○ Inactiva"}
-          </Badge>
-          {store?.slug && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(`https://gestiona.app/tienda/${store.slug}`, "_blank")}>
-              <ExternalLink className="w-3 h-3" />Ver tienda
-            </Button>
-          )}
-        </div>
-      </div>
+        }
+      />
 
-      {/* Stats */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="Revenue hoy"        value="$48.4K" trend={12} color="text-emerald-400" />
-        <StatCard icon={ShoppingCart} label="Órdenes hoy"     value="4" sub="68 este mes" />
-        <StatCard icon={TrendingUp}  label="Conversión"       value="5.5%" trend={-1} />
-        <StatCard icon={Users}       label="Carritos activos" value="23" sub="3 abandonados" />
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
+        ))}
       </div>
 
       {/* Tabs */}
@@ -303,7 +308,7 @@ export default function EcommerceStorePage() {
 
       {/* ─── Design tab ─── */}
       {tab === "design" && (
-        <div className="space-y-5 max-w-2xl">
+        <div className="space-y-5">
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4"><Palette className="w-4 h-4 text-primary" />Tema de la Tienda</h3>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -330,7 +335,7 @@ export default function EcommerceStorePage() {
             </div>
           </div>
           <Button onClick={saveStore} disabled={loading} className="gradient-gold text-primary-foreground">
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Guardar Diseño
           </Button>
         </div>
@@ -338,7 +343,7 @@ export default function EcommerceStorePage() {
 
       {/* ─── Settings tab ─── */}
       {tab === "settings" && (
-        <div className="space-y-5 max-w-xl">
+        <div className="space-y-5">
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
             <h3 className="font-semibold flex items-center gap-2"><Settings className="w-4 h-4 text-primary" />Configuración General</h3>
             <div className="space-y-3">
@@ -403,7 +408,7 @@ export default function EcommerceStorePage() {
           </div>
 
           <Button onClick={saveStore} disabled={loading} className="gradient-gold text-primary-foreground w-full">
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
             Guardar Configuración
           </Button>
         </div>

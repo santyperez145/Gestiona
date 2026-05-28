@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,10 @@ import {
 import {
   Share2, Plus, Pencil, Trash2, Copy, Lightbulb, Hash, Calendar,
   Eye, Heart, MessageCircle, Repeat2, MousePointerClick, CheckCircle2, Clock,
-  Send, XCircle, FileEdit,
+  Send, XCircle, FileEdit, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 interface SocialPost {
   id: string;
@@ -101,6 +104,7 @@ const EMPTY_POST = {
 };
 
 export default function SocialPlannerPage() {
+  usePageTitle("Planner de Redes Sociales");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -276,51 +280,43 @@ export default function SocialPlannerPage() {
   const publishedCount = posts.filter(p => p.status === "published").length;
   const scheduledCount = posts.filter(p => p.status === "scheduled").length;
 
+  const kpis = useMemo(() => [
+    { label: "Total posts", value: posts.length, icon: Share2, color: "primary" as const },
+    { label: "Publicados", value: publishedCount, icon: CheckCircle2, color: "success" as const },
+    { label: "Programados", value: scheduledCount, icon: Clock, color: "blue" as const },
+    { label: "Interacciones totales", value: totalEngagement.toLocaleString("es-AR"), icon: Heart, color: "purple" as const },
+  ], [posts.length, publishedCount, scheduledCount, totalEngagement]);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Share2 className="w-6 h-6 text-primary" /> Planner de Redes Sociales
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Planificá, programá y analizá tu contenido en Instagram, TikTok, Facebook y más.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setIdeaOpen(true)}>
-            <Lightbulb className="w-4 h-4 mr-1" /> Idea
-          </Button>
-          <Button variant="outline" onClick={() => setHashtagOpen(true)}>
-            <Hash className="w-4 h-4 mr-1" /> Hashtags
-          </Button>
-          <Button onClick={() => { setEditingPost(null); setPostForm(EMPTY_POST); setPostOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo post
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Share2}
+        title="Planner de Redes Sociales"
+        description="Planificá, programá y analizá tu contenido en Instagram, TikTok, Facebook y más."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setIdeaOpen(true)}>
+              <Lightbulb className="w-4 h-4 mr-1" /> Idea
+            </Button>
+            <Button variant="outline" onClick={() => setHashtagOpen(true)}>
+              <Hash className="w-4 h-4 mr-1" /> Hashtags
+            </Button>
+            <Button onClick={() => { setEditingPost(null); setPostForm(EMPTY_POST); setPostOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Nuevo post
+            </Button>
+          </>
+        }
+      />
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total posts", value: posts.length, icon: Share2 },
-          { label: "Publicados", value: publishedCount, icon: CheckCircle2 },
-          { label: "Programados", value: scheduledCount, icon: Clock },
-          { label: "Interacciones totales", value: totalEngagement.toLocaleString("es-AR"), icon: Heart },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} icon={k.icon} color={k.color} />
         ))}
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
       ) : (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>

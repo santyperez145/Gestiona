@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,11 @@ import { toast } from "sonner";
 import {
   PackageSearch, Plus, Truck, DollarSign, TrendingUp,
   ExternalLink, ChevronDown, ChevronRight, CheckCircle,
-  Clock, AlertCircle, XCircle, Package, RotateCcw
+  Clock, AlertCircle, XCircle, Package, RotateCcw, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Supplier {
   id: string;
@@ -115,6 +118,7 @@ const EMPTY_ORDER = {
 };
 
 export default function DropshippingPage() {
+  usePageTitle("Dropshipping");
   const { orgId } = useOrganization();
 
   const [suppliers, setSuppliers]   = useState<Supplier[]>([]);
@@ -289,20 +293,19 @@ export default function DropshippingPage() {
     totalProfit: orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.profit), 0),
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <PackageSearch className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dropshipping</h1>
-            <p className="text-sm text-gray-500">Gestión de proveedores, productos y pedidos drop</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-6">
+      <PageHeader
+        icon={PackageSearch}
+        title="Dropshipping"
+        description="Gestión de proveedores, productos y pedidos drop."
+        actions={<div className="flex gap-2">
           {activeTab === "orders" && (
             <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
               <DialogTrigger asChild>
@@ -346,9 +349,9 @@ export default function DropshippingPage() {
                       <Label>Productos</Label>
                       <Button size="sm" variant="outline" onClick={addOrderItem}><Plus className="w-3 h-3 mr-1" /> Agregar</Button>
                     </div>
-                    {orderItems.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Sin productos aún</p>}
+                    {orderItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sin productos aún</p>}
                     {orderItems.map((it, idx) => (
-                      <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-gray-50 p-2 rounded">
+                      <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-muted/40 p-2 rounded">
                         <div className="col-span-4 space-y-1">
                           <Label className="text-xs">Nombre</Label>
                           <Input className="h-8 text-sm" value={it.product_name} onChange={e => updateOrderItem(idx, "product_name", e.target.value)} placeholder="Producto" />
@@ -375,7 +378,7 @@ export default function DropshippingPage() {
                       </div>
                     ))}
                     {orderItems.length > 0 && (
-                      <div className="flex justify-between text-sm font-medium bg-blue-50 px-3 py-2 rounded">
+                      <div className="flex justify-between text-sm font-medium bg-primary/10 px-3 py-2 rounded">
                         <span>Costo proveedor: {fmt(orderTotals.supplier)}</span>
                         <span>Venta total: {fmt(orderTotals.sell)}</span>
                         <span className="text-green-700">Ganancia: {fmt(orderTotals.sell - orderTotals.supplier)}</span>
@@ -440,7 +443,7 @@ export default function DropshippingPage() {
                     </div>
                   </div>
                   {productForm.supplier_price > 0 && productForm.sell_price > 0 && (
-                    <div className="bg-green-50 rounded p-2 text-sm text-green-800">
+                    <div className="bg-success/10 rounded p-2 text-sm text-success">
                       Margen estimado: {(((productForm.sell_price - productForm.supplier_price) / productForm.sell_price) * 100).toFixed(1)}%
                     </div>
                   )}
@@ -530,44 +533,15 @@ export default function DropshippingPage() {
               </DialogContent>
             </Dialog>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Total pedidos</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{kpis.total}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Pendientes</p>
-            </div>
-            <p className="text-3xl font-bold text-yellow-600 mt-1">{kpis.pending}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-indigo-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">En tránsito</p>
-            </div>
-            <p className="text-3xl font-bold text-indigo-600 mt-1">{kpis.inTransit}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-green-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Ganancia entregados</p>
-            </div>
-            <p className="text-3xl font-bold text-green-600 mt-1">{fmt(kpis.totalProfit)}</p>
-          </CardContent>
-        </Card>
+        <KPICard label="Total pedidos" value={kpis.total} icon={Package} color="primary" />
+        <KPICard label="Pendientes" value={kpis.pending} icon={AlertCircle} color="warning" />
+        <KPICard label="En tránsito" value={kpis.inTransit} icon={Truck} color="blue" />
+        <KPICard label="Ganancia entregados" value={fmt(kpis.totalProfit)} icon={TrendingUp} color="success" />
       </div>
 
       {/* Tabs */}
@@ -584,14 +558,14 @@ export default function DropshippingPage() {
           <div className="flex flex-wrap gap-2">
             {["all", ...Object.keys(STATUS_CONFIG)].map(st => (
               <button key={st} onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${statusFilter === st ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${statusFilter === st ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
                 {st === "all" ? `Todos (${orders.length})` : STATUS_CONFIG[st]?.label}
               </button>
             ))}
           </div>
 
           {filteredOrders.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <PackageSearch className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay pedidos {statusFilter !== "all" ? `con estado "${STATUS_CONFIG[statusFilter]?.label}"` : "aún"}</p>
             </div>
@@ -689,7 +663,7 @@ export default function DropshippingPage() {
         {/* PRODUCTS */}
         <TabsContent value="products" className="mt-4">
           {products.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay productos dropshipping aún</p>
             </div>
@@ -737,7 +711,7 @@ export default function DropshippingPage() {
         {/* SUPPLIERS */}
         <TabsContent value="suppliers" className="mt-4">
           {suppliers.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <Truck className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay proveedores dropshipping aún</p>
             </div>

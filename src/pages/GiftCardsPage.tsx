@@ -11,7 +11,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Gift, Plus, Search, Copy, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { Gift, Plus, Search, Copy, ChevronDown, ChevronRight, RefreshCw, DollarSign, TrendingDown, Loader2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface GiftCard {
   id: string;
@@ -58,6 +61,7 @@ function fmt(n: number) {
 }
 
 export default function GiftCardsPage() {
+  usePageTitle("Gift Cards");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -178,38 +182,28 @@ export default function GiftCardsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Gift className="w-6 h-6 text-primary" /> Gift Cards
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Emití, administrá y canjeá tarjetas de regalo. Saldo actualizado en tiempo real.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { setLookupCode(""); setLookupCard(null); setRedeemOpen(true); }}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Canjear
-          </Button>
-          <Button onClick={() => setIssueOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Emitir tarjeta
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Gift}
+        title="Gift Cards"
+        description="Emití, administrá y canjeá tarjetas de regalo. Saldo actualizado en tiempo real."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setLookupCode(""); setLookupCard(null); setRedeemOpen(true); }}>
+              <RefreshCw className="w-4 h-4 mr-1" /> Canjear
+            </Button>
+            <Button onClick={() => setIssueOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Emitir tarjeta
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Tarjetas activas", value: cards.filter(c => c.status === "active").length },
-          { label: "Valor emitido", value: fmt(totalIssuedValue) },
-          { label: "Saldo pendiente", value: fmt(totalOutstanding) },
-          { label: "Total canjeado", value: fmt(totalRedeemed) },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">{k.label}</p>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Tarjetas activas" value={cards.filter(c => c.status === "active").length} icon={Gift} color="success" />
+        <KPICard label="Valor emitido" value={fmt(totalIssuedValue)} icon={DollarSign} color="primary" />
+        <KPICard label="Saldo pendiente" value={fmt(totalOutstanding)} icon={TrendingDown} color="warning" />
+        <KPICard label="Total canjeado" value={fmt(totalRedeemed)} icon={DollarSign} color="blue" />
       </div>
 
       {/* Filters */}
@@ -228,7 +222,7 @@ export default function GiftCardsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Gift className="w-10 h-10 mx-auto mb-3 opacity-30" />

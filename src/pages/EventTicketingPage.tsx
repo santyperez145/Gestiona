@@ -19,8 +19,11 @@ import {
 import {
   Calendar, MapPin, Users, Ticket, Plus, Edit2, Trash2, QrCode,
   CheckCircle2, XCircle, Clock, TrendingUp, Download, RefreshCw,
-  Search, ChevronDown, ChevronUp, Tag, DollarSign,
+  Search, ChevronDown, ChevronUp, Tag, DollarSign, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Event {
@@ -774,6 +777,7 @@ function EventDetail({ event, orgId, onBack, onEventUpdated }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function EventTicketingPage() {
+  usePageTitle("Eventos & Tickets");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [events, setEvents] = useState<Event[]>([]);
@@ -815,11 +819,11 @@ export default function EventTicketingPage() {
   if (selectedEvent) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Ticket className="w-6 h-6 text-primary" /> Eventos & Tickets
-          </h1>
-        </div>
+        <PageHeader
+          icon={Ticket}
+          title="Eventos & Tickets"
+          description="Gestioná eventos, tipos de entrada, asistentes y check-in con QR."
+        />
         <EventDetail
           event={selectedEvent} orgId={orgId} onBack={() => setSelectedEvent(null)}
           onEventUpdated={() => {
@@ -833,43 +837,32 @@ export default function EventTicketingPage() {
     );
   }
 
+  const upcomingCount = events.filter(e => {
+    const d = new Date(e.event_date);
+    const now = new Date();
+    const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return d >= now && d <= week;
+  }).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Ticket className="w-6 h-6 text-primary" /> Eventos & Tickets
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Gestioná eventos, tipos de entrada, asistentes y check-in con QR.
-          </p>
-        </div>
-        <Button onClick={() => { setEditingEvent(null); setEventFormOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nuevo evento
-        </Button>
-      </div>
+      <PageHeader
+        icon={Ticket}
+        title="Eventos & Tickets"
+        description="Gestioná eventos, tipos de entrada, asistentes y check-in con QR."
+        actions={
+          <Button onClick={() => { setEditingEvent(null); setEventFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo evento
+          </Button>
+        }
+      />
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Eventos totales", value: events.length, icon: Calendar },
-          { label: "Publicados", value: events.filter(e => e.status === "published").length, icon: CheckCircle2 },
-          { label: "Tickets vendidos", value: totalRevenue, icon: Ticket },
-          { label: "Próximos (7 días)", value: events.filter(e => {
-            const d = new Date(e.event_date);
-            const now = new Date();
-            const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-            return d >= now && d <= week;
-          }).length, icon: Clock },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Eventos totales" value={events.length} icon={Calendar} color="primary" />
+        <KPICard label="Publicados" value={events.filter(e => e.status === "published").length} icon={CheckCircle2} color="success" />
+        <KPICard label="Tickets vendidos" value={totalRevenue} icon={Ticket} color="blue" />
+        <KPICard label="Próximos (7 días)" value={upcomingCount} icon={Clock} color="warning" />
       </div>
 
       {/* Filters */}

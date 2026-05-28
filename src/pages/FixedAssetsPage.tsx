@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Landmark, Plus, TrendingDown, DollarSign, CalendarCheck, AlertTriangle, CheckCircle } from "lucide-react";
+import { Landmark, Plus, TrendingDown, DollarSign, CalendarCheck, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface FixedAsset {
   id: string;
@@ -74,6 +77,7 @@ const EMPTY_ASSET = {
 };
 
 export default function FixedAssetsPage() {
+  usePageTitle("Activos Fijos");
   const { orgId } = useOrganization();
 
   const [assets, setAssets]           = useState<FixedAsset[]>([]);
@@ -196,19 +200,26 @@ export default function FixedAssetsPage() {
     return assetEntries[assetEntries.length - 1].accumulated;
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+  const kpis = useMemo(() => [
+    { label: "Activos activos", value: activeCount, icon: Landmark, color: "primary" as const },
+    { label: "Costo total", value: fmt(totalCost), icon: DollarSign, color: "blue" as const },
+    { label: "Amort. acumulada", value: fmt(totalDepreciated), icon: TrendingDown, color: "warning" as const },
+    { label: "Garantías por vencer", value: warrantyExpiringSoon, icon: AlertTriangle, color: "destructive" as const },
+  ], [activeCount, totalCost, totalDepreciated, warrantyExpiringSoon]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Landmark className="w-8 h-8 text-indigo-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Activos Fijos</h1>
-            <p className="text-sm text-gray-500">Patrimonio, depreciación y amortización</p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Landmark}
+        title="Activos Fijos"
+        description="Patrimonio, depreciación y amortización"
+        actions={
         <Dialog open={assetOpen} onOpenChange={setAssetOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => setAssetForm({ ...EMPTY_ASSET })}>
@@ -260,7 +271,7 @@ export default function FixedAssetsPage() {
                 </div>
               </div>
               {assetForm.purchase_cost > 0 && assetForm.useful_life_years > 0 && (
-                <div className="bg-indigo-50 rounded p-2 text-sm text-indigo-800">
+                <div className="bg-primary/5 rounded p-2 text-sm text-primary">
                   Amort. anual (SL): {fmt((assetForm.purchase_cost - assetForm.salvage_value) / assetForm.useful_life_years)}
                   {" · "}Mensual: {fmt((assetForm.purchase_cost - assetForm.salvage_value) / assetForm.useful_life_years / 12)}
                 </div>
@@ -293,26 +304,14 @@ export default function FixedAssetsPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Activos activos</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{activeCount}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><DollarSign className="w-4 h-4 text-blue-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Costo total</p></div>
-          <p className="text-3xl font-bold text-blue-600">{fmt(totalCost)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><TrendingDown className="w-4 h-4 text-orange-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Amort. acumulada</p></div>
-          <p className="text-3xl font-bold text-orange-600">{fmt(totalDepreciated)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Garantías por vencer</p></div>
-          <p className="text-3xl font-bold text-yellow-600">{warrantyExpiringSoon}</p>
-        </CardContent></Card>
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} icon={k.icon} color={k.color} />
+        ))}
       </div>
 
       {/* Filters */}
@@ -335,7 +334,7 @@ export default function FixedAssetsPage() {
 
       {/* Asset cards */}
       {filteredAssets.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <Landmark className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>No hay activos fijos registrados</p>
         </div>
@@ -359,7 +358,7 @@ export default function FixedAssetsPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs font-mono text-gray-400">{asset.asset_number}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{asset.asset_number}</p>
                       <CardTitle className="text-base">{asset.name}</CardTitle>
                     </div>
                     <div className="flex flex-col gap-1 flex-shrink-0">
@@ -370,28 +369,28 @@ export default function FixedAssetsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-2 text-center">
-                    <div className="bg-gray-50 rounded p-2">
-                      <p className="text-xs text-gray-500">Costo</p>
+                    <div className="bg-muted/20 rounded p-2">
+                      <p className="text-xs text-muted-foreground">Costo</p>
                       <p className="text-sm font-semibold">{fmt(asset.purchase_cost)}</p>
                     </div>
-                    <div className="bg-indigo-50 rounded p-2">
-                      <p className="text-xs text-gray-500">Valor libro</p>
-                      <p className="text-sm font-semibold text-indigo-700">{fmt(bookValue)}</p>
+                    <div className="bg-primary/5 rounded p-2">
+                      <p className="text-xs text-muted-foreground">Valor libro</p>
+                      <p className="text-sm font-semibold text-primary">{fmt(bookValue)}</p>
                     </div>
                   </div>
 
                   {/* Depreciation bar */}
                   <div>
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
                       <span>Amortización</span>
                       <span>{deprPct.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div className="w-full bg-muted/40 rounded-full h-1.5">
                       <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${Math.min(deprPct, 100)}%` }} />
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 text-xs text-gray-500">
+                  <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                     <span>Vida útil: {asset.useful_life_years} años</span>
                     {asset.location && <span>· {asset.location}</span>}
                     {assetEntries.length > 0 && <span>· {assetEntries.length} períodos</span>}
@@ -415,7 +414,7 @@ export default function FixedAssetsPage() {
                         <DialogContent className="max-w-sm">
                           <DialogHeader><DialogTitle>Registrar amortización mensual</DialogTitle></DialogHeader>
                           <div className="space-y-3">
-                            <p className="text-sm text-gray-600"><strong>{asset.name}</strong></p>
+                            <p className="text-sm text-muted-foreground"><strong>{asset.name}</strong></p>
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-1">
                                 <Label>Año</Label>
@@ -431,7 +430,7 @@ export default function FixedAssetsPage() {
                                 </Select>
                               </div>
                             </div>
-                            <div className="bg-indigo-50 rounded p-3 text-sm space-y-1">
+                            <div className="bg-primary/5 rounded p-3 text-sm space-y-1">
                               <p>Amort. mensual (SL): <strong>{fmt((asset.purchase_cost - asset.salvage_value) / asset.useful_life_years / 12)}</strong></p>
                               <p>Acumulada actual: {fmt(accumulated)}</p>
                               <p>Valor libro actual: {fmt(bookValue)}</p>
@@ -446,9 +445,9 @@ export default function FixedAssetsPage() {
                       {/* History */}
                       {assetEntries.length > 0 && (
                         <div className="mt-2 max-h-32 overflow-y-auto">
-                          <p className="text-xs text-gray-500 font-medium mb-1">Historial</p>
+                          <p className="text-xs text-muted-foreground font-medium mb-1">Historial</p>
                           {assetEntries.slice(-6).map(e => (
-                            <div key={e.id} className="flex justify-between text-xs text-gray-500 py-0.5">
+                            <div key={e.id} className="flex justify-between text-xs text-muted-foreground py-0.5">
                               <span>{MONTHS[e.period_month - 1]} {e.period_year}</span>
                               <span className="text-orange-600">-{fmt(e.depreciation)}</span>
                               <span>VL: {fmt(e.book_value_end)}</span>

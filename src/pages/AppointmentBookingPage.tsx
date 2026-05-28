@@ -19,8 +19,11 @@ import {
 import {
   Calendar, Clock, Users, Plus, Edit2, Trash2, CheckCircle2,
   XCircle, RefreshCw, Search, Scissors, Star, DollarSign,
-  ChevronLeft, ChevronRight, UserCheck,
+  ChevronLeft, ChevronRight, UserCheck, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Service {
@@ -395,6 +398,7 @@ function WeekView({ appointments, services, weekStart, onAptClick }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AppointmentBookingPage() {
+  usePageTitle("Turnos & Reservas");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [tab, setTab] = useState("calendar");
@@ -469,36 +473,23 @@ export default function AppointmentBookingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-primary" /> Turnos & Reservas
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Agenda de servicios, turnos de clientes y seguimiento de pagos.
-          </p>
-        </div>
-        <Button onClick={() => { setEditingApt(null); setAptFormOpen(true); }} disabled={activeServices.length === 0}>
-          <Plus className="w-4 h-4 mr-1" /> Nuevo turno
-        </Button>
-      </div>
+      <PageHeader
+        icon={Calendar}
+        title="Turnos & Reservas"
+        description="Agenda de servicios, turnos de clientes y seguimiento de pagos."
+        actions={
+          <Button onClick={() => { setEditingApt(null); setAptFormOpen(true); }} disabled={activeServices.length === 0}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo turno
+          </Button>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Turnos hoy", value: todayApts.length, icon: Calendar, color: "text-primary" },
-          { label: "Pendientes de confirmar", value: pendingCount, icon: Clock, color: "text-yellow-400" },
-          { label: "Servicios activos", value: activeServices.length, icon: Scissors, color: "text-blue-400" },
-          { label: "Facturado este mes", value: fmtCurrency(monthRevenue), icon: DollarSign, color: "text-emerald-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Turnos hoy" value={todayApts.length} icon={Calendar} color="primary" />
+        <KPICard label="Pendientes de confirmar" value={pendingCount} icon={Clock} color="warning" />
+        <KPICard label="Servicios activos" value={activeServices.length} icon={Scissors} color="blue" />
+        <KPICard label="Facturado este mes" value={fmtCurrency(monthRevenue)} icon={DollarSign} color="success" />
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -532,7 +523,9 @@ export default function AppointmentBookingPage() {
             <span className="text-sm text-muted-foreground">{weekApts.length} turnos esta semana</span>
           </div>
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            </div>
           ) : (
             <WeekView
               appointments={weekApts} services={services} weekStart={weekStart}

@@ -17,8 +17,11 @@ import {
 } from "@/components/ui/tabs";
 import {
   Building2, Plus, Pencil, Trash2, CheckCircle2, AlertTriangle, Clock,
-  DollarSign, Package, ChevronDown, ChevronRight,
+  DollarSign, Package, ChevronDown, ChevronRight, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface RentalAsset {
   id: string;
@@ -99,6 +102,7 @@ const EMPTY_ASSET = {
 };
 
 export default function RentalPage() {
+  usePageTitle("Gestión de Alquileres");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -231,38 +235,28 @@ export default function RentalPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" /> Gestión de Alquileres
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Alquilá activos, equipos o espacios con contratos, depósitos y seguimiento.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { setEditingAsset(null); setAssetForm(EMPTY_ASSET); setAssetOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Activo
-          </Button>
-          <Button onClick={() => setContractOpen(true)} disabled={assets.filter(a => a.status === "available").length === 0}>
-            <Plus className="w-4 h-4 mr-1" /> Contrato
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title="Gestión de Alquileres"
+        description="Alquilá activos, equipos o espacios con contratos, depósitos y seguimiento."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setEditingAsset(null); setAssetForm(EMPTY_ASSET); setAssetOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Activo
+            </Button>
+            <Button onClick={() => setContractOpen(true)} disabled={assets.filter(a => a.status === "available").length === 0}>
+              <Plus className="w-4 h-4 mr-1" /> Contrato
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Disponibles", value: availableCount, color: availableCount > 0 ? "text-emerald-400" : "" },
-          { label: "Alquilados", value: rentedCount, color: "" },
-          { label: "Contratos vencidos", value: overdueContracts.length, color: overdueContracts.length > 0 ? "text-destructive" : "" },
-          { label: "Ingresos (30 días)", value: fmt(monthlyRevenue), color: "" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">{k.label}</p>
-            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Disponibles" value={availableCount} icon={Package} color="success" />
+        <KPICard label="Alquilados" value={rentedCount} icon={Building2} color="blue" />
+        <KPICard label="Contratos vencidos" value={overdueContracts.length} icon={AlertTriangle} color="destructive" />
+        <KPICard label="Ingresos (30 días)" value={fmt(monthlyRevenue)} icon={DollarSign} color="primary" />
       </div>
 
       {overdueContracts.length > 0 && (
@@ -272,7 +266,7 @@ export default function RentalPage() {
         </div>
       )}
 
-      {loading ? <div className="text-center py-12 text-muted-foreground">Cargando...</div> : (
+      {loading ? <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div> : (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="assets">Activos ({assets.length})</TabsTrigger>

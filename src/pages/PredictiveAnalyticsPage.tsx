@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Brain, TrendingUp, TrendingDown, AlertTriangle, Sparkles, Zap,
   RefreshCw, CheckCircle2, XCircle, ChevronRight, BarChart3,
-  Package, Users, DollarSign, Eye, ThumbsUp, ThumbsDown, Clock
+  Package, Users, DollarSign, Eye, ThumbsUp, ThumbsDown, Clock, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type ForecastRow   = { day: string; predicted: number; lo: number; hi: number; actual: number | null };
 type AnomalyRow    = { id: string; type: string; severity: string; entity: string; metric: string; expected: number; actual: number; deviation: number; desc: string; action: string; ack: boolean };
@@ -56,6 +59,7 @@ function ForecastChart({ data }: { data: ForecastRow[] }) {
 }
 
 export default function PredictiveAnalyticsPage() {
+  usePageTitle("Analytics Predictivo & IA");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"forecast" | "anomalies" | "recommendations">("recommendations");
   const [ackedIds, setAckedIds] = useState<Set<string>>(new Set());
@@ -162,53 +166,63 @@ export default function PredictiveAnalyticsPage() {
     { id: "forecast",        label: "Forecast de Ventas" },
   ];
 
+  const kpis = useMemo(() => [
+    {
+      label: "Forecast 7 días",
+      value: `$${(forecast.reduce((a, b) => a + b.predicted, 0) / 1000).toFixed(0)}K`,
+      sub: "±15% intervalo confianza",
+      icon: BarChart3,
+      color: "primary" as const,
+    },
+    {
+      label: "Recomendaciones IA",
+      value: activeRecs.length,
+      sub: `$${(activeRecs.reduce((a, r) => a + r.impact, 0) / 1000).toFixed(0)}K impacto total`,
+      icon: Sparkles,
+      color: "success" as const,
+    },
+    {
+      label: "Anomalías activas",
+      value: activeAnomalies.length,
+      sub: activeAnomalies.length > 0 ? "Requieren revisión" : "Todo normal",
+      icon: AlertTriangle,
+      color: activeAnomalies.length > 0 ? "destructive" as const : "success" as const,
+    },
+    {
+      label: "Precisión modelo",
+      value: "91.4%",
+      sub: "MAPE 8.6%",
+      icon: Brain,
+      color: "blue" as const,
+    },
+  ], [forecast, activeRecs, activeAnomalies]);
+
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-              <Brain className="w-4 h-4 text-violet-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Analytics Predictivo & IA</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Forecasting, anomalías automáticas y recomendaciones inteligentes</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeAnomalies.length > 0 && (
-            <Badge className="bg-red-500/15 text-red-400 border-red-500/20">
-              {activeAnomalies.length} anomalía{activeAnomalies.length > 1 ? "s" : ""} activa{activeAnomalies.length > 1 ? "s" : ""}
-            </Badge>
-          )}
-          <Button size="sm" onClick={runForecast} disabled={loading} variant="outline" className="gap-1.5 text-xs">
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
-            Recalcular
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Brain}
+        title="Analytics Predictivo & IA"
+        description="Forecasting, anomalías automáticas y recomendaciones inteligentes"
+        actions={
+          <>
+            {activeAnomalies.length > 0 && (
+              <Badge className="bg-red-500/15 text-red-400 border-red-500/20">
+                {activeAnomalies.length} anomalía{activeAnomalies.length > 1 ? "s" : ""} activa{activeAnomalies.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+            <Button size="sm" onClick={runForecast} disabled={loading} variant="outline" className="gap-1.5 text-xs">
+              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
+              Recalcular
+            </Button>
+          </>
+        }
+      />
 
-      {/* Summary KPIs */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Forecast 7 días</p>
-          <p className="text-2xl font-bold text-primary">${(forecast.reduce((a, b) => a + b.predicted, 0) / 1000).toFixed(0)}K</p>
-          <p className="text-xs text-muted-foreground">±15% intervalo confianza</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Recomendaciones</p>
-          <p className="text-2xl font-bold">{activeRecs.length}</p>
-          <p className="text-xs text-emerald-400">${(activeRecs.reduce((a, r) => a + r.impact, 0) / 1000).toFixed(0)}K impacto total</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Anomalías activas</p>
-          <p className={`text-2xl font-bold ${activeAnomalies.length > 0 ? "text-red-400" : "text-emerald-400"}`}>{activeAnomalies.length}</p>
-        </div>
-        <div className="bg-card border border-border/40 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground mb-1">Precisión modelo</p>
-          <p className="text-2xl font-bold text-blue-400">91.4%</p>
-          <p className="text-xs text-muted-foreground">MAPE 8.6%</p>
-        </div>
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
+        ))}
       </div>
 
       {/* Tabs */}
@@ -340,7 +354,7 @@ export default function PredictiveAnalyticsPage() {
               ))}
             </div>
             <Button size="sm" onClick={runForecast} disabled={loading} className="gradient-gold text-primary-foreground h-7 text-xs gap-1">
-              {loading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
               Calcular
             </Button>
           </div>

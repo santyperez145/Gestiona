@@ -18,8 +18,11 @@ import {
 import {
   Download, Plus, Edit2, Trash2, Copy, RefreshCw, Search,
   FileDown, Key, Eye, TrendingUp, DollarSign, Users, CheckCircle2,
-  XCircle, Link2, ExternalLink,
+  XCircle, Link2, ExternalLink, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DigitalProduct {
@@ -261,6 +264,7 @@ function LicenseForm({ open, onClose, products, orgId, onSaved }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DigitalProductsPage() {
+  usePageTitle("Productos Digitales");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [products, setProducts] = useState<DigitalProduct[]>([]);
@@ -316,42 +320,35 @@ export default function DigitalProductsPage() {
   const activeProducts = products.filter(p => p.active).length;
   const revokedCount = licenses.filter(l => l.revoked).length;
 
+  const kpis = useMemo(() => [
+    { label: "Productos activos", value: String(activeProducts),          sub: `${products.length} total`,            icon: FileDown,    color: "primary"     as const },
+    { label: "Licencias emitidas", value: String(licenses.length),        sub: `${revokedCount} revocadas`,           icon: Key,         color: "blue"        as const },
+    { label: "Total vendido",      value: String(totalSold),              sub: "unidades digitales",                  icon: TrendingUp,  color: "warning"     as const },
+    { label: "Ingresos totales",   value: fmtCurrency(totalRevenue),      sub: "acumulado",                           icon: DollarSign,  color: "success"     as const },
+  ], [activeProducts, products.length, licenses.length, revokedCount, totalSold, totalRevenue]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileDown className="w-6 h-6 text-primary" /> Productos Digitales
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Vendé ebooks, presets, cursos y cualquier descarga digital con licencias únicas.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setLicFormOpen(true)} disabled={products.filter(p => p.active).length === 0}>
-            <Key className="w-4 h-4 mr-1" /> Emitir licencia
-          </Button>
-          <Button onClick={() => { setEditingProd(null); setProdFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo producto
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={FileDown}
+        title="Productos Digitales"
+        description="Vendé ebooks, presets, cursos y cualquier descarga digital con licencias únicas."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setLicFormOpen(true)} disabled={products.filter(p => p.active).length === 0}>
+              <Key className="w-4 h-4 mr-1" /> Emitir licencia
+            </Button>
+            <Button onClick={() => { setEditingProd(null); setProdFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Nuevo producto
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Productos activos", value: activeProducts, icon: FileDown, color: "text-primary" },
-          { label: "Licencias emitidas", value: licenses.length, icon: Key, color: "text-blue-400" },
-          { label: "Total vendido", value: totalSold, icon: TrendingUp, color: "text-yellow-400" },
-          { label: "Ingresos totales", value: fmtCurrency(totalRevenue), icon: DollarSign, color: "text-emerald-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
         ))}
       </div>
 
@@ -364,7 +361,9 @@ export default function DigitalProductsPage() {
         {/* Products */}
         <TabsContent value="products" className="space-y-3 pt-2">
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">Sin productos digitales. Creá uno para empezar a vender.</div>
           ) : (

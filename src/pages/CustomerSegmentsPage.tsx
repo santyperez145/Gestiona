@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,10 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -483,6 +487,7 @@ function CampForm({ open, segmentId, segments, orgId, onClose, onSaved }: CampFo
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CustomerSegmentsPage() {
+  usePageTitle("Segmentos de Clientes");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -548,45 +553,32 @@ export default function CustomerSegmentsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" />
-            Segmentos de Clientes
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Audiencias dinámicas basadas en comportamiento y datos</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={syncAll}>
-            <RefreshCw className="w-4 h-4 mr-1.5" /> Sync todos
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => { setCampSegmentId(null); setCampFormOpen(true); }}>
-            <Send className="w-4 h-4 mr-1.5" /> Nueva campaña
-          </Button>
-          <Button size="sm" onClick={() => { setEditingSegment(null); setSegFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nuevo segmento
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Layers}
+        title="Segmentos de Clientes"
+        description="Audiencias dinámicas basadas en comportamiento y datos"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={syncAll}>
+              <RefreshCw className="w-4 h-4 mr-1.5" /> Sync todos
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { setCampSegmentId(null); setCampFormOpen(true); }}>
+              <Send className="w-4 h-4 mr-1.5" /> Nueva campaña
+            </Button>
+            <Button size="sm" onClick={() => { setEditingSegment(null); setSegFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nuevo segmento
+            </Button>
+          </>
+        }
+      />
 
-      {/* KPIs */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Segmentos", value: kpis.total, icon: Layers },
-          { label: "Dinámicos", value: kpis.dynamic, icon: Zap },
-          { label: "Clientes totales", value: kpis.totalCustomers.toLocaleString("es-AR"), icon: Users },
-          { label: "Campañas", value: kpis.campaigns, icon: Send },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Segmentos" value={kpis.total} icon={Layers} color="primary" />
+        <KPICard label="Dinámicos" value={kpis.dynamic} icon={Zap} color="purple" />
+        <KPICard label="Clientes totales" value={kpis.totalCustomers.toLocaleString("es-AR")} icon={Users} color="blue" />
+        <KPICard label="Campañas" value={kpis.campaigns} icon={Send} color="success" />
       </div>
 
       <Tabs defaultValue="segments">
@@ -601,7 +593,7 @@ export default function CustomerSegmentsPage() {
             <Input placeholder="Buscar segmento..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
 
-          {loading ? <div className="flex justify-center py-12"><RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          {loading ? <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
           : filtered.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Layers className="w-10 h-10 mx-auto mb-3 opacity-30" />

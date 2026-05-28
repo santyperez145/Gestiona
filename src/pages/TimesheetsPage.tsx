@@ -37,7 +37,11 @@ import {
   UserPlus,
   Calendar,
   Banknote,
+  Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -324,6 +328,7 @@ function TSForm({ open, ts, employees, orgId, onClose, onSaved }: TSFormProps) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TimesheetsPage() {
+  usePageTitle("Fichajes & Liquidación");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -427,43 +432,31 @@ export default function TimesheetsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Clock className="w-6 h-6 text-primary" />
-            Fichajes & Liquidación
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Control de asistencia y generación de liquidaciones</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Input type="month" value={viewMonth} onChange={e => setViewMonth(e.target.value)} className="w-36" />
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4 mr-1.5" /> CSV</Button>
-          <Button variant="outline" size="sm" onClick={() => { setEditingEmp(null); setEmpFormOpen(true); }}>
-            <UserPlus className="w-4 h-4 mr-1.5" /> Empleado
-          </Button>
-          <Button size="sm" onClick={() => { setEditingTs(null); setTsFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Fichaje
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Clock}
+        title="Fichajes & Liquidación"
+        description="Control de asistencia y generación de liquidaciones"
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Input type="month" value={viewMonth} onChange={e => setViewMonth(e.target.value)} className="w-36" />
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4 mr-1.5" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => { setEditingEmp(null); setEmpFormOpen(true); }}>
+              <UserPlus className="w-4 h-4 mr-1.5" /> Empleado
+            </Button>
+            <Button size="sm" onClick={() => { setEditingTs(null); setTsFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Fichaje
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Empleados activos", value: kpis.activeEmp, icon: Users, color: "text-blue-400" },
-          { label: "Horas aprobadas", value: fmtHours(kpis.totalHours), icon: Clock, color: "text-emerald-400" },
-          { label: "Costo estimado", value: fmtCurrency(kpis.totalCost), icon: DollarSign, color: "text-primary" },
-          { label: "Pendientes aprobación", value: kpis.pending, icon: BarChart3, color: "text-amber-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Empleados activos" value={kpis.activeEmp} icon={Users} color="blue" />
+        <KPICard label="Horas aprobadas" value={fmtHours(kpis.totalHours)} icon={Clock} color="success" />
+        <KPICard label="Costo estimado" value={fmtCurrency(kpis.totalCost)} icon={DollarSign} color="primary" />
+        <KPICard label="Pendientes aprobación" value={kpis.pending} icon={BarChart3} color="warning" />
       </div>
 
       <Tabs defaultValue="timesheets">
@@ -485,7 +478,7 @@ export default function TimesheetsPage() {
             </Select>
           </div>
 
-          {loading ? <div className="flex justify-center py-12"><RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          {loading ? <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
           : filteredTs.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Clock className="w-10 h-10 mx-auto mb-3 opacity-30" />

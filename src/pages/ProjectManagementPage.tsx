@@ -18,8 +18,13 @@ import {
 } from "@/components/ui/tabs";
 import {
   FolderKanban, Plus, Pencil, Trash2, CheckCircle2, Circle, Clock,
-  ChevronDown, ChevronRight, DollarSign, Timer, AlertTriangle,
+  ChevronDown, ChevronRight, DollarSign, Timer, AlertTriangle, Loader2,
+  BarChart3, CheckSquare,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useMemo } from "react";
 
 interface Project {
   id: string;
@@ -109,6 +114,7 @@ const EMPTY_PROJECT = {
 };
 
 export default function ProjectManagementPage() {
+  usePageTitle("Gestión de Proyectos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const orgId = activeOrg?.id ?? "";
@@ -256,20 +262,37 @@ export default function ProjectManagementPage() {
 
   const tasksByStatus = (status: string) => projectTasks.filter(t => t.status === status);
 
+  const kpis = useMemo(() => {
+    const activeProjects = projects.filter(p => p.status === "active").length;
+    const totalTasks = tasks.length;
+    const doneTasks = tasks.filter(t => t.status === "done").length;
+    const totalBudget = projects.reduce((s, p) => s + (p.budget ?? 0), 0);
+    return [
+      { label: "Proyectos activos", value: activeProjects, icon: FolderKanban, color: "primary" as const },
+      { label: "Tareas totales", value: totalTasks, icon: BarChart3, color: "blue" as const },
+      { label: "Tareas completadas", value: doneTasks, icon: CheckSquare, color: "success" as const },
+      { label: "Presupuesto total", value: new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(totalBudget), icon: DollarSign, color: "warning" as const },
+    ];
+  }, [projects, tasks]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FolderKanban className="w-6 h-6 text-primary" /> Gestión de Proyectos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Proyectos con hitos, tareas Kanban, registro de horas y control de presupuesto.
-          </p>
-        </div>
-        <Button onClick={() => { setEditingProject(null); setProjectForm(EMPTY_PROJECT); setProjectOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nuevo proyecto
-        </Button>
+      <PageHeader
+        icon={FolderKanban}
+        title="Gestión de Proyectos"
+        description="Proyectos con hitos, tareas Kanban, registro de horas y control de presupuesto."
+        actions={
+          <Button onClick={() => { setEditingProject(null); setProjectForm(EMPTY_PROJECT); setProjectOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo proyecto
+          </Button>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} icon={k.icon} color={k.color} />
+        ))}
       </div>
 
       {/* Status filters */}
@@ -282,7 +305,11 @@ export default function ProjectManagementPage() {
         ))}
       </div>
 
-      {loading ? <div className="text-center py-12 text-muted-foreground">Cargando...</div> : (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
+      ) : (
         <div className={`grid gap-6 ${selectedProject ? "grid-cols-1 lg:grid-cols-[320px_1fr]" : ""}`}>
           {/* Project cards */}
           <div className="space-y-3">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -13,8 +13,11 @@ import { Progress } from "@/components/ui/progress";
 import {
   Building, Package, FileText, MessageCircle, DollarSign,
   CheckCircle, Clock, AlertTriangle, Plus, ExternalLink,
-  Mail, Send, Star, Download
+  Mail, Send, Star, Download, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Vendor {
   id: string;

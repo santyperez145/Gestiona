@@ -15,8 +15,11 @@ import {
 import {
   Shield, Plus, Edit2, Trash2, RefreshCw, Search,
   CheckCircle2, Clock, Wrench, AlertTriangle, DollarSign,
-  ChevronDown, ChevronUp, Package,
+  ChevronDown, ChevronUp, Package, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface WarrantyClaim {
   id: string;
@@ -237,6 +240,7 @@ function ClaimForm({ open, onClose, editing, orgId, onSaved }: {
 }
 
 export default function WarrantyClaimsPage() {
+  usePageTitle("Garantías & Reparaciones");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [claims, setClaims] = useState<WarrantyClaim[]>([]);
@@ -311,35 +315,22 @@ export default function WarrantyClaimsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" /> Garantías & Reparaciones
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Gestioná reclamos de garantía, reparaciones y seguimiento técnico.
-          </p>
-        </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nuevo reclamo
-        </Button>
-      </div>
+      <PageHeader
+        icon={Shield}
+        title="Garantías & Reparaciones"
+        description="Gestioná reclamos de garantía, reparaciones y seguimiento técnico."
+        actions={
+          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo reclamo
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Reclamos abiertos", value: openCount, icon: Shield, color: "text-primary" },
-          { label: "En reparación", value: claims.filter(c => c.status === "in_repair").length, icon: Wrench, color: "text-yellow-400" },
-          { label: "Cubiertos por garantía", value: coveredCount, icon: CheckCircle2, color: "text-emerald-400" },
-          { label: "Costo total reparaciones", value: fmtCurrency(totalCost), icon: DollarSign, color: "text-blue-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Reclamos abiertos" value={openCount} icon={Shield} color="primary" />
+        <KPICard label="En reparación" value={claims.filter(c => c.status === "in_repair").length} icon={Wrench} color="warning" />
+        <KPICard label="Cubiertos por garantía" value={coveredCount} icon={CheckCircle2} color="success" />
+        <KPICard label="Costo total reparaciones" value={fmtCurrency(totalCost)} icon={DollarSign} color="blue" />
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -359,7 +350,9 @@ export default function WarrantyClaimsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
       ) : (
         <div className="space-y-2">
           {filtered.map(claim => {

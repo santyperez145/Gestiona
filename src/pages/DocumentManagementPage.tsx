@@ -12,8 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   FolderOpen, Plus, FileText, Download, Eye, Archive,
-  Search, Tag, Clock, AlertTriangle, ExternalLink
+  Search, Tag, Clock, AlertTriangle, ExternalLink, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface DocCategory {
   id: string;
@@ -73,6 +76,7 @@ const EMPTY_DOC = {
 };
 
 export default function DocumentManagementPage() {
+  usePageTitle("Gestión Documental");
   const { orgId } = useOrganization();
 
   const [categories, setCategories] = useState<DocCategory[]>([]);
@@ -189,31 +193,31 @@ export default function DocumentManagementPage() {
   const totalActive  = documents.filter(d => d.status === "active").length;
   const totalViews   = documents.reduce((s, d) => s + d.view_count, 0);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FolderOpen className="w-8 h-8 text-indigo-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión Documental</h1>
-            <p className="text-sm text-gray-500">Repositorio centralizado de documentos con control de versiones</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {categories.length === 0 && (
-            <Button variant="outline" onClick={seedCategories} disabled={seeding}>
-              {seeding ? "Cargando..." : "Cargar categorías"}
-            </Button>
-          )}
-          <Dialog open={docOpen} onOpenChange={open => { setDocOpen(open); if (!open) { setEditDoc(null); setDocForm({ ...EMPTY_DOC }); } }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { setEditDoc(null); setDocForm({ ...EMPTY_DOC }); }}>
-                <Plus className="w-4 h-4 mr-2" /> Nuevo documento
+    <div className="space-y-6">
+      <PageHeader
+        icon={FolderOpen}
+        title="Gestión Documental"
+        description="Repositorio centralizado de documentos con control de versiones"
+        actions={
+          <>
+            {categories.length === 0 && (
+              <Button variant="outline" onClick={seedCategories} disabled={seeding}>
+                {seeding ? "Cargando..." : "Cargar categorías"}
               </Button>
-            </DialogTrigger>
+            )}
+            <Dialog open={docOpen} onOpenChange={open => { setDocOpen(open); if (!open) { setEditDoc(null); setDocForm({ ...EMPTY_DOC }); } }}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { setEditDoc(null); setDocForm({ ...EMPTY_DOC }); }}>
+                  <Plus className="w-4 h-4 mr-2" /> Nuevo documento
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editDoc ? "Editar documento" : "Registrar documento"}</DialogTitle></DialogHeader>
               <div className="space-y-3">
@@ -298,22 +302,23 @@ export default function DocumentManagementPage() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+            </Dialog>
+          </>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Total documentos</p><p className="text-3xl font-bold text-gray-900 mt-1">{documents.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Activos</p><p className="text-3xl font-bold text-green-600 mt-1">{totalActive}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-orange-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Por vencer</p></div><p className="text-3xl font-bold text-orange-600">{expiringSoon}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="flex items-center gap-2 mb-1"><Eye className="w-4 h-4 text-blue-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Vistas totales</p></div><p className="text-3xl font-bold text-blue-600">{totalViews}</p></CardContent></Card>
+        <KPICard label="Total documentos" value={documents.length} icon={FileText} color="primary" />
+        <KPICard label="Activos" value={totalActive} icon={FolderOpen} color="success" />
+        <KPICard label="Por vencer" value={expiringSoon} icon={AlertTriangle} color="warning" />
+        <KPICard label="Vistas totales" value={totalViews} icon={Eye} color="blue" />
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar por título o descripción..." className="pl-9 h-8" />
         </div>
         <Select value={catFilter} onValueChange={setCatFilter}>

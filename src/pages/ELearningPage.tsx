@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -14,8 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import {
   BookOpen, Play, CheckCircle, Clock, Star, Award, Users,
-  Plus, Video, FileText, HelpCircle, ChevronRight, Zap, Trophy
+  Plus, Video, FileText, HelpCircle, ChevronRight, Zap, Trophy, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Course {
   id: string;
@@ -71,6 +74,7 @@ const MODULE_ICONS: Record<string, typeof Video> = {
 };
 
 export default function ELearningPage() {
+  usePageTitle("Centro de Capacitación");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [tab, setTab] = useState<"catalog" | "mylearning" | "manage" | "reports">("catalog");
@@ -177,60 +181,68 @@ export default function ELearningPage() {
 
   const totalXPEarned = courses.filter(c => c.my_completed).reduce((s, c) => s + c.xp_reward, 0);
 
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><BookOpen className="w-6 h-6 text-primary" /> Centro de Capacitación</h1>
-          <p className="text-muted-foreground text-sm mt-1">Cursos, módulos y certificados para tu equipo</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-sm text-yellow-600 font-medium">
-            <Zap className="w-4 h-4" />{totalXPEarned} XP ganados
-          </div>
-          <Dialog open={showCreate} onOpenChange={setShowCreate}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Crear Curso</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nuevo Curso</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-2">
-                <div><Label>Título</Label><Input placeholder="Nombre del curso" /></div>
-                <div><Label>Descripción</Label><Input placeholder="¿Qué aprenderán?" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Categoría</Label>
-                    <Select defaultValue="general"><SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["sales","products","compliance","operations","leadership","onboarding","general"].map(c =>
-                          <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label>Nivel</Label>
-                    <Select defaultValue="beginner"><SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="beginner">Principiante</SelectItem>
-                        <SelectItem value="intermediate">Intermedio</SelectItem>
-                        <SelectItem value="advanced">Avanzado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Duración (min)</Label><Input type="number" defaultValue={60} /></div>
-                  <div><Label>XP de recompensa</Label><Input type="number" defaultValue={100} /></div>
-                </div>
-                <Button className="w-full" onClick={() => { toast.success("Curso creado"); setShowCreate(false); }}>Crear Curso</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+  const kpis = useMemo(() => [
+    { label: "Cursos disponibles", value: String(courses.length),                                sub: "en catálogo",      icon: BookOpen,   color: "primary"  as const },
+    { label: "Cursos iniciados",   value: String(myCourses.length),                             sub: "en progreso",      icon: Play,       color: "blue"     as const },
+    { label: "Completados",        value: String(courses.filter(c => c.my_completed).length),   sub: "con certificado",  icon: CheckCircle, color: "success" as const },
+    { label: "XP ganados",         value: String(totalXPEarned),                                sub: "puntos de logro",  icon: Zap,        color: "warning"  as const },
+  ], [courses, myCourses.length, totalXPEarned]);
 
-      {/* My progress summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-primary">{myCourses.length}</p><p className="text-xs text-muted-foreground">Cursos iniciados</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{courses.filter(c => c.my_completed).length}</p><p className="text-xs text-muted-foreground">Completados</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-yellow-600">{totalXPEarned}</p><p className="text-xs text-muted-foreground">XP ganados</p></CardContent></Card>
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        icon={BookOpen}
+        title="Centro de Capacitación"
+        description="Cursos, módulos y certificados para tu equipo"
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-sm text-yellow-500 font-medium">
+              <Zap className="w-4 h-4" />{totalXPEarned} XP ganados
+            </div>
+            <Dialog open={showCreate} onOpenChange={setShowCreate}>
+              <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Crear Curso</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Nuevo Curso</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div><Label>Título</Label><Input placeholder="Nombre del curso" /></div>
+                  <div><Label>Descripción</Label><Input placeholder="¿Qué aprenderán?" /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label>Categoría</Label>
+                      <Select defaultValue="general"><SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["sales","products","compliance","operations","leadership","onboarding","general"].map(c =>
+                            <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label>Nivel</Label>
+                      <Select defaultValue="beginner"><SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="beginner">Principiante</SelectItem>
+                          <SelectItem value="intermediate">Intermedio</SelectItem>
+                          <SelectItem value="advanced">Avanzado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label>Duración (min)</Label><Input type="number" defaultValue={60} /></div>
+                    <div><Label>XP de recompensa</Label><Input type="number" defaultValue={100} /></div>
+                  </div>
+                  <Button className="w-full" onClick={() => { toast.success("Curso creado"); setShowCreate(false); }}>Crear Curso</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} color={k.color} />
+        ))}
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

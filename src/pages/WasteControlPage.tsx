@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Trash2, Plus, AlertTriangle, CheckCircle, BarChart3, Package } from "lucide-react";
+import { Trash2, Plus, AlertTriangle, CheckCircle, BarChart3, Package, Loader2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface WasteCategory {
   id: string;
@@ -70,6 +73,7 @@ const EMPTY_RECORD = {
 };
 
 export default function WasteControlPage() {
+  usePageTitle("Control de Mermas");
   const { orgId } = useOrganization();
 
   const [categories, setCategories]   = useState<WasteCategory[]>([]);
@@ -175,26 +179,26 @@ export default function WasteControlPage() {
     .filter(r => r.date.startsWith(new Date().toISOString().substring(0, 7)))
     .reduce((s, r) => s + Number(r.total_cost), 0);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Trash2 className="w-8 h-8 text-red-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Control de Mermas</h1>
-            <p className="text-sm text-gray-500">Registro y análisis de pérdidas, mermas y desperdicios</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {categories.length === 0 && (
-            <Button variant="outline" onClick={seedCategories} disabled={seeding}>
-              {seeding ? "Cargando..." : "Cargar categorías"}
-            </Button>
-          )}
-          <Dialog open={recordOpen} onOpenChange={setRecordOpen}>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Trash2}
+        title="Control de Mermas"
+        description="Registro y análisis de pérdidas, mermas y desperdicios"
+        actions={
+          <div className="flex gap-2">
+            {categories.length === 0 && (
+              <Button variant="outline" onClick={seedCategories} disabled={seeding}>
+                {seeding ? "Cargando..." : "Cargar categorías"}
+              </Button>
+            )}
+            <Dialog open={recordOpen} onOpenChange={setRecordOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setRecordForm({ ...EMPTY_RECORD })}>
                 <Plus className="w-4 h-4 mr-2" /> Registrar merma
@@ -271,27 +275,15 @@ export default function WasteControlPage() {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total pérdidas</p>
-          <p className="text-3xl font-bold text-red-600 mt-1">{fmt(totalCost)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Este mes</p>
-          <p className="text-3xl font-bold text-orange-600 mt-1">{fmt(thisMonthCost)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Sin aprobar</p></div>
-          <p className="text-3xl font-bold text-yellow-600">{pendingApproval}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total registros</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{records.length}</p>
-        </CardContent></Card>
+        <KPICard label="Total pérdidas" value={fmt(totalCost)} icon={Trash2} color="destructive" />
+        <KPICard label="Este mes" value={fmt(thisMonthCost)} icon={Package} color="warning" />
+        <KPICard label="Sin aprobar" value={pendingApproval} icon={AlertTriangle} color="warning" sub="pendientes de revisión" />
+        <KPICard label="Total registros" value={records.length} icon={BarChart3} color="primary" />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

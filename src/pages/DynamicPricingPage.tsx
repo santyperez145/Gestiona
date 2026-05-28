@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   Zap, TrendingUp, TrendingDown, Clock, BarChart3, Brain,
-  Plus, Play, Settings, AlertTriangle, Target, DollarSign, RefreshCw
+  Plus, Play, Settings, AlertTriangle, Target, DollarSign, RefreshCw, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 interface PricingRule {
   id: string;
@@ -76,6 +79,7 @@ const CONFIDENCE_COLORS: Record<string, string> = {
 
 
 export default function DynamicPricingPage() {
+  usePageTitle("Precios Dinámicos");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"rules" | "demand" | "events" | "simulator">("rules");
   const [rules, setRules] = useState<PricingRule[]>([]);
@@ -172,53 +176,60 @@ export default function DynamicPricingPage() {
     : parseFloat(simDemand) < 20 ? 6.2
     : 0;
 
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-500" /> Precios Dinámicos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Reglas automáticas de precios por tiempo, demanda, stock e IA</p>
-        </div>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nueva Regla</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Crear Regla de Precio Dinámico</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label>Nombre</Label><Input placeholder="Ej: Promoción nocturna -20%" /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Tipo</Label>
-                  <Select defaultValue="time_of_day">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(RULE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v.icon} {v.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Prioridad</Label><Input type="number" defaultValue={10} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Acción</Label>
-                  <Select defaultValue="pct_decrease">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ACTION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Valor</Label><Input type="number" placeholder="15" /></div>
-              </div>
-              <Button className="w-full" onClick={() => { toast.success("Regla creada"); setShowNew(false); }}>Crear Regla</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+  const kpis = useMemo(() => [
+    { label: "Reglas Activas", value: rules.filter(r => r.is_active).length, icon: Zap, color: "primary" as const },
+    { label: "Total Disparos", value: rules.reduce((s, r) => s + r.trigger_count, 0), icon: BarChart3, color: "blue" as const },
+    { label: "Alta Demanda", value: demandSignals.filter(d => d.demand_score > 50).length, icon: TrendingUp, color: "success" as const },
+    { label: "Ajustes Hoy", value: priceEvents.length, icon: DollarSign, color: "warning" as const },
+  ], [rules, demandSignals, priceEvents]);
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-primary">{rules.filter(r => r.is_active).length}</p><p className="text-xs text-muted-foreground">Reglas Activas</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{rules.reduce((s, r) => s + r.trigger_count, 0)}</p><p className="text-xs text-muted-foreground">Total Disparos</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{demandSignals.filter(d => d.demand_score > 50).length}</p><p className="text-xs text-muted-foreground">Alta Demanda</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-orange-600">{priceEvents.length}</p><p className="text-xs text-muted-foreground">Ajustes Hoy</p></CardContent></Card>
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        icon={Zap}
+        title="Precios Dinámicos"
+        description="Reglas automáticas de precios por tiempo, demanda, stock e IA"
+        actions={
+          <Dialog open={showNew} onOpenChange={setShowNew}>
+            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nueva Regla</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Crear Regla de Precio Dinámico</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label>Nombre</Label><Input placeholder="Ej: Promoción nocturna -20%" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Tipo</Label>
+                    <Select defaultValue="time_of_day">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(RULE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v.icon} {v.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Prioridad</Label><Input type="number" defaultValue={10} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Acción</Label>
+                    <Select defaultValue="pct_decrease">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(ACTION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Valor</Label><Input type="number" placeholder="15" /></div>
+                </div>
+                <Button className="w-full" onClick={() => { toast.success("Regla creada"); setShowNew(false); }}>Crear Regla</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map(k => (
+          <KPICard key={k.label} label={k.label} value={k.value} icon={k.icon} color={k.color} />
+        ))}
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

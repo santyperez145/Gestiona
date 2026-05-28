@@ -1,14 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Shield, Search, Filter, Download, RefreshCcw, Eye, AlertTriangle,
-  Info, AlertCircle, ZapOff, CheckCircle2, User, Clock, Globe
+  Info, AlertCircle, ZapOff, CheckCircle2, User, Clock, Globe, Loader2,
+  Activity, Users
 } from "lucide-react";
 
 /* ─────────────────────────── types ─────────────────────────── */

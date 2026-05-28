@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -12,8 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Eye, TrendingUp, TrendingDown, AlertTriangle, Plus,
-  Globe, Bell, BarChart3, Shield, Target, Zap, ExternalLink
+  Globe, Bell, BarChart3, Shield, Target, Zap, ExternalLink, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Competitor {
   id: string;
@@ -95,6 +98,7 @@ const SWOT_CONFIG: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export default function CompetitorIntelligencePage() {
+  usePageTitle("Inteligencia Competitiva");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "signals" | "pricing" | "swot">("overview");
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -178,48 +182,70 @@ export default function CompetitorIntelligencePage() {
   const unread = signals.filter(s => !s.is_read).length;
   const filteredSignals = signals.filter(s => filterImpact === "all" || s.impact === filterImpact);
 
+  const kpis = useMemo(() => ({
+    tracked: competitors.filter(c => c.is_tracked).length,
+    total: competitors.length,
+    unread,
+    highImpact: signals.filter(s => s.impact === "high" && !s.is_read).length,
+    avgMarketShare: competitors.length > 0
+      ? (competitors.reduce((a, c) => a + c.market_share_pct, 0) / competitors.length).toFixed(1)
+      : "0",
+  }), [competitors, signals, unread]);
+
   const markRead = async (id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, is_read: true } : s));
     await supabase.from("market_signals").update({ is_read: true }).eq("id", id);
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Eye className="w-6 h-6 text-primary" /> Inteligencia Competitiva
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Monitoreo de precios, señales de mercado y análisis SWOT</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {unread > 0 && (
-            <Badge className="bg-red-500 text-white">{unread} alertas nuevas</Badge>
-          )}
-          <Dialog open={showAdd} onOpenChange={setShowAdd}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Agregar Competidor</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nuevo Competidor</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-2">
-                <div><Label>Nombre</Label><Input placeholder="Nombre de la empresa" /></div>
-                <div><Label>Sitio Web</Label><Input placeholder="empresa.com" /></div>
-                <div><Label>Tipo</Label>
-                  <Select defaultValue="direct">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="direct">Competidor Directo</SelectItem>
-                      <SelectItem value="indirect">Competidor Indirecto</SelectItem>
-                      <SelectItem value="substitute">Sustituto</SelectItem>
-                      <SelectItem value="potential">Potencial</SelectItem>
-                    </SelectContent>
-                  </Select>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Eye}
+        title="Inteligencia Competitiva"
+        description="Monitoreo de precios, señales de mercado y análisis SWOT"
+        actions={
+          <>
+            {unread > 0 && (
+              <Badge className="bg-destructive text-destructive-foreground">{unread} alertas nuevas</Badge>
+            )}
+            <Dialog open={showAdd} onOpenChange={setShowAdd}>
+              <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Agregar Competidor</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Nuevo Competidor</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div><Label>Nombre</Label><Input placeholder="Nombre de la empresa" /></div>
+                  <div><Label>Sitio Web</Label><Input placeholder="empresa.com" /></div>
+                  <div><Label>Tipo</Label>
+                    <Select defaultValue="direct">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="direct">Competidor Directo</SelectItem>
+                        <SelectItem value="indirect">Competidor Indirecto</SelectItem>
+                        <SelectItem value="substitute">Sustituto</SelectItem>
+                        <SelectItem value="potential">Potencial</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Precio Promedio (ARS)</Label><Input type="number" placeholder="10000" /></div>
+                  <Button className="w-full" onClick={() => { toast.success("Competidor agregado"); setShowAdd(false); }}>Agregar</Button>
                 </div>
-                <div><Label>Precio Promedio (ARS)</Label><Input type="number" placeholder="10000" /></div>
-                <Button className="w-full" onClick={() => { toast.success("Competidor agregado"); setShowAdd(false); }}>Agregar</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Competidores rastreados" value={kpis.tracked} sub={`${kpis.total} en total`} icon={Eye} color="primary" />
+        <KPICard label="Alertas sin leer" value={kpis.unread} sub="señales de mercado" icon={Bell} color={kpis.unread > 0 ? "destructive" : "success"} />
+        <KPICard label="Alto impacto" value={kpis.highImpact} sub="señales críticas" icon={AlertTriangle} color="warning" />
+        <KPICard label="Market share promedio" value={`${kpis.avgMarketShare}%`} sub="competidores" icon={BarChart3} color="blue" />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

@@ -41,7 +41,11 @@ import {
   Download,
   UserPlus,
   Zap,
+  Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -344,6 +348,7 @@ function PartnerCard({ partner, onEdit, onDelete, onApprove, onPayout }: Partner
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AffiliateProgramPage() {
+  usePageTitle("Programa de Afiliados");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -429,42 +434,29 @@ export default function AffiliateProgramPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <UserPlus className="w-6 h-6 text-primary" />
-            Programa de Afiliados
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestioná socios y comisiones por referidos</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="w-4 h-4 mr-1.5" /> Exportar
-          </Button>
-          <Button size="sm" onClick={() => { setEditingPartner(null); setFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nuevo afiliado
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={UserPlus}
+        title="Programa de Afiliados"
+        description="Gestioná socios y comisiones por referidos"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download className="w-4 h-4 mr-1.5" /> Exportar
+            </Button>
+            <Button size="sm" onClick={() => { setEditingPartner(null); setFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nuevo afiliado
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Afiliados activos", value: kpis.active, icon: Users, color: "text-emerald-400" },
-          { label: "Revenue generado", value: fmtCurrency(kpis.totalRev), icon: TrendingUp, color: "text-primary" },
-          { label: "Comisiones totales", value: fmtCurrency(kpis.totalComm), icon: DollarSign, color: "text-violet-400" },
-          { label: "Pagos pendientes", value: fmtCurrency(kpis.pendingPayout), icon: Banknote, color: "text-amber-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Afiliados activos" value={kpis.active} icon={Users} color="success" />
+        <KPICard label="Revenue generado" value={fmtCurrency(kpis.totalRev)} icon={TrendingUp} color="primary" />
+        <KPICard label="Comisiones totales" value={fmtCurrency(kpis.totalComm)} icon={DollarSign} color="purple" />
+        <KPICard label="Pagos pendientes" value={fmtCurrency(kpis.pendingPayout)} icon={Banknote} color="warning" />
       </div>
 
       <Tabs defaultValue="partners">
@@ -493,7 +485,7 @@ export default function AffiliateProgramPage() {
             </Select>
           </div>
 
-          {loading ? <div className="flex justify-center py-12"><RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          {loading ? <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
           : filteredPartners.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <UserPlus className="w-10 h-10 mx-auto mb-3 opacity-30" />
