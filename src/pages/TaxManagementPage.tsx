@@ -13,8 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   Receipt, Plus, TrendingUp, AlertCircle, CheckCircle,
-  Clock, FileText, Building2, DollarSign, Percent, Scale
+  Clock, FileText, Building2, DollarSign, Percent, Scale, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface TaxRate {
   id: string;
@@ -79,12 +82,12 @@ const TAX_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   ganancias:   { label: "Ganancias",   color: "bg-orange-100 text-orange-800" },
   monotributo: { label: "Monotributo", color: "bg-green-100 text-green-800" },
   sellos:      { label: "Sellos",      color: "bg-yellow-100 text-yellow-800" },
-  municipal:   { label: "Municipal",   color: "bg-gray-100 text-gray-800" },
+  municipal:   { label: "Municipal",   color: "bg-muted/40 text-foreground" },
   otro:        { label: "Otro",        color: "bg-slate-100 text-slate-800" },
 };
 
 const DECL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  draft:    { label: "Borrador", color: "bg-gray-100 text-gray-700",    icon: <FileText className="w-3 h-3" /> },
+  draft:    { label: "Borrador", color: "bg-muted/40 text-foreground/80",    icon: <FileText className="w-3 h-3" /> },
   filed:    { label: "Presentada",color: "bg-blue-100 text-blue-800",   icon: <CheckCircle className="w-3 h-3" /> },
   paid:     { label: "Pagada",   color: "bg-green-100 text-green-800",  icon: <CheckCircle className="w-3 h-3" /> },
   amended:  { label: "Rectificada",color:"bg-orange-100 text-orange-800",icon: <AlertCircle className="w-3 h-3" /> },
@@ -111,6 +114,7 @@ const EMPTY_RATE = {
 };
 
 export default function TaxManagementPage() {
+  usePageTitle("Gestión Impositiva");
   const { orgId } = useOrganization();
 
   const [taxRates, setTaxRates]         = useState<TaxRate[]>([]);
@@ -284,20 +288,19 @@ export default function TaxManagementPage() {
     withSuffered: withholdings.filter(w => w.direction === "suffered").reduce((s, w) => s + Number(w.amount), 0),
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Receipt className="w-8 h-8 text-indigo-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión Impositiva</h1>
-            <p className="text-sm text-gray-500">IVA, IIBB, retenciones y declaraciones AFIP</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Receipt}
+        title="Gestión Impositiva"
+        description="IVA, IIBB, retenciones y declaraciones AFIP"
+        actions={<div className="flex gap-2">
           {taxRates.length === 0 && (
             <Button variant="outline" onClick={seedRates} disabled={seeding}>
               {seeding ? "Cargando..." : "🇦🇷 Cargar alícuotas AR"}
@@ -518,47 +521,15 @@ export default function TaxManagementPage() {
               </DialogContent>
             </Dialog>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="w-4 h-4 text-orange-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Declaraciones pendientes</p>
-            </div>
-            <p className="text-3xl font-bold text-orange-600">{kpis.pendingDecls}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-red-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Débito fiscal {yearFilter}</p>
-            </div>
-            <p className="text-3xl font-bold text-red-600">{fmt(kpis.totalCollected)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-green-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Crédito fiscal {yearFilter}</p>
-            </div>
-            <p className="text-3xl font-bold text-green-600">{fmt(kpis.totalPaid)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Scale className="w-4 h-4 text-indigo-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Retenciones sufridas</p>
-            </div>
-            <p className="text-3xl font-bold text-indigo-600">{fmt(kpis.withSuffered)}</p>
-          </CardContent>
-        </Card>
+        <KPICard label="Declaraciones pendientes" value={kpis.pendingDecls} sub="en borrador" icon={AlertCircle} color="warning" />
+        <KPICard label={`Débito fiscal ${yearFilter}`} value={fmt(kpis.totalCollected)} sub="IVA vendido" icon={TrendingUp} color="destructive" />
+        <KPICard label={`Crédito fiscal ${yearFilter}`} value={fmt(kpis.totalPaid)} sub="IVA comprado" icon={DollarSign} color="success" />
+        <KPICard label="Retenciones sufridas" value={fmt(kpis.withSuffered)} sub="acumuladas" icon={Scale} color="blue" />
       </div>
 
       {/* Tabs */}
@@ -594,7 +565,7 @@ export default function TaxManagementPage() {
           </div>
 
           {filteredDecls.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay declaraciones para los filtros seleccionados</p>
               {taxRates.length === 0 && <p className="text-sm mt-2">Primero cargá las alícuotas usando el botón "Cargar alícuotas AR"</p>}
@@ -604,14 +575,14 @@ export default function TaxManagementPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Impuesto</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Período</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Base imponible</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Débito</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Crédito</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Saldo</th>
-                    <th className="text-center py-2 px-3 text-xs text-gray-500 font-medium">Estado</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Venc.</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Impuesto</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Período</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Base imponible</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Débito</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Crédito</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Saldo</th>
+                    <th className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">Estado</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Venc.</th>
                     <th className="py-2 px-3"></th>
                   </tr>
                 </thead>
@@ -621,17 +592,17 @@ export default function TaxManagementPage() {
                     const tc = TAX_TYPE_CONFIG[d.tax_rates?.tax_type ?? "otro"] ?? TAX_TYPE_CONFIG.otro;
                     const isOverdue = d.due_date && new Date(d.due_date) < new Date() && d.status === "draft";
                     return (
-                      <tr key={d.id} className="border-b hover:bg-gray-50">
+                      <tr key={d.id} className="border-b hover:bg-muted/20">
                         <td className="py-2 px-3">
                           <div className="flex items-center gap-2">
                             <Badge className={`text-xs ${tc.color}`}>{tc.label}</Badge>
-                            <span className="text-gray-900">{d.tax_rates?.name ?? "—"}</span>
+                            <span className="text-foreground">{d.tax_rates?.name ?? "—"}</span>
                           </div>
                         </td>
-                        <td className="py-2 px-3 text-gray-600">
+                        <td className="py-2 px-3 text-muted-foreground">
                           {d.period_type === "annual" ? d.year : `${MONTHS[d.period - 1]} ${d.year}`}
                         </td>
-                        <td className="py-2 px-3 text-right text-gray-600">{fmt(d.taxable_base)}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">{fmt(d.taxable_base)}</td>
                         <td className="py-2 px-3 text-right text-red-600 font-medium">{fmt(d.tax_collected)}</td>
                         <td className="py-2 px-3 text-right text-green-600 font-medium">{fmt(d.tax_paid)}</td>
                         <td className={`py-2 px-3 text-right font-bold ${Number(d.tax_balance) > 0 ? "text-red-700" : "text-green-700"}`}>
@@ -642,7 +613,7 @@ export default function TaxManagementPage() {
                             {sc.icon} {sc.label}
                           </Badge>
                         </td>
-                        <td className={`py-2 px-3 text-right text-xs ${isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
+                        <td className={`py-2 px-3 text-right text-xs ${isOverdue ? "text-red-600 font-semibold" : "text-muted-foreground"}`}>
                           {d.due_date ? new Date(d.due_date).toLocaleDateString("es-AR") : "—"}
                           {isOverdue && " ⚠"}
                         </td>
@@ -697,7 +668,7 @@ export default function TaxManagementPage() {
           </div>
 
           {filteredWithholdings.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <Receipt className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay retenciones registradas</p>
             </div>
@@ -706,23 +677,23 @@ export default function TaxManagementPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Fecha</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Tipo</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Dirección</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Contraparte</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">CUIT</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Base</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Alíc.%</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Monto</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Certificado</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Fecha</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Tipo</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Dirección</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Contraparte</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">CUIT</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Base</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Alíc.%</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Monto</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Certificado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredWithholdings.map(w => (
-                    <tr key={w.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-3 text-gray-600">{new Date(w.date).toLocaleDateString("es-AR")}</td>
+                    <tr key={w.id} className="border-b hover:bg-muted/20">
+                      <td className="py-2 px-3 text-muted-foreground">{new Date(w.date).toLocaleDateString("es-AR")}</td>
                       <td className="py-2 px-3">
-                        <Badge className={`text-xs ${TAX_TYPE_CONFIG[w.withholding_type]?.color ?? "bg-gray-100 text-gray-700"}`}>
+                        <Badge className={`text-xs ${TAX_TYPE_CONFIG[w.withholding_type]?.color ?? "bg-muted/40 text-foreground/80"}`}>
                           {w.withholding_type.toUpperCase()}
                         </Badge>
                       </td>
@@ -731,12 +702,12 @@ export default function TaxManagementPage() {
                           {w.direction === "suffered" ? "Sufrida" : "Aplicada"}
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-gray-900">{w.counterpart_name}</td>
-                      <td className="py-2 px-3 text-gray-500 font-mono text-xs">{w.counterpart_cuit ?? "—"}</td>
-                      <td className="py-2 px-3 text-right text-gray-600">{fmt(w.base_amount)}</td>
-                      <td className="py-2 px-3 text-right text-gray-600">{w.rate_pct}%</td>
-                      <td className="py-2 px-3 text-right font-semibold text-gray-900">{fmt(w.amount)}</td>
-                      <td className="py-2 px-3 text-gray-500 font-mono text-xs">{w.certificate_number ?? "—"}</td>
+                      <td className="py-2 px-3 text-foreground">{w.counterpart_name}</td>
+                      <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{w.counterpart_cuit ?? "—"}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{fmt(w.base_amount)}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{w.rate_pct}%</td>
+                      <td className="py-2 px-3 text-right font-semibold text-foreground">{fmt(w.amount)}</td>
+                      <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{w.certificate_number ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -748,7 +719,7 @@ export default function TaxManagementPage() {
         {/* RATES */}
         <TabsContent value="rates" className="mt-4">
           {taxRates.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <Percent className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="mb-3">No hay alícuotas cargadas</p>
               <Button variant="outline" onClick={seedRates} disabled={seeding}>
@@ -763,12 +734,12 @@ export default function TaxManagementPage() {
                   <Card key={rate.id}>
                     <CardContent className="pt-4 space-y-2">
                       <div className="flex items-start justify-between">
-                        <p className="font-semibold text-gray-900">{rate.name}</p>
+                        <p className="font-semibold text-foreground">{rate.name}</p>
                         <Badge className={`text-xs ${tc.color}`}>{tc.label}</Badge>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-2xl font-bold text-indigo-600">{rate.rate_pct}%</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                           <p>{rate.applies_to === "sales" ? "Ventas" : rate.applies_to === "purchases" ? "Compras" : "Ambos"}</p>
                           {rate.jurisdiction && <p className="text-xs">{rate.jurisdiction}</p>}
                           {rate.code && <p className="text-xs font-mono">{rate.code}</p>}
@@ -785,7 +756,7 @@ export default function TaxManagementPage() {
         {/* IIBB */}
         <TabsContent value="iibb" className="mt-4">
           {iibbRegs.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay inscripciones de IIBB</p>
               <p className="text-sm mt-1">Agregá las jurisdicciones provinciales donde tenés actividad</p>
@@ -796,13 +767,13 @@ export default function TaxManagementPage() {
                 <Card key={reg.id}>
                   <CardContent className="pt-4 space-y-2">
                     <div className="flex items-start justify-between">
-                      <p className="font-semibold text-gray-900">{reg.province}</p>
+                      <p className="font-semibold text-foreground">{reg.province}</p>
                       <Badge variant="outline" className="text-xs">{reg.regime === "local" ? "Local" : reg.regime === "convenio" ? "Convenio multilateral" : "CM"}</Badge>
                     </div>
                     <p className="text-2xl font-bold text-purple-600">{reg.rate_pct}%</p>
-                    {reg.registration_number && <p className="text-sm text-gray-500">Nro: {reg.registration_number}</p>}
-                    {reg.cuit && <p className="text-xs text-gray-400 font-mono">{reg.cuit}</p>}
-                    <div className={`text-xs font-medium ${reg.active ? "text-green-600" : "text-gray-400"}`}>
+                    {reg.registration_number && <p className="text-sm text-muted-foreground">Nro: {reg.registration_number}</p>}
+                    {reg.cuit && <p className="text-xs text-muted-foreground/70 font-mono">{reg.cuit}</p>}
+                    <div className={`text-xs font-medium ${reg.active ? "text-green-600" : "text-muted-foreground/70"}`}>
                       {reg.active ? "● Activo" : "● Inactivo"}
                     </div>
                   </CardContent>

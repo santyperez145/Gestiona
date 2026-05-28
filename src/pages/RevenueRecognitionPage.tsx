@@ -16,6 +16,9 @@ import {
   BarChart3, DollarSign, Clock, CheckCircle, FileText,
   Plus, TrendingUp, ArrowRight, AlertCircle, Layers
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface RevenueContract {
   id: string;
@@ -60,7 +63,7 @@ interface JournalEntry {
 const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  draft:     { label: "Borrador",  color: "bg-gray-100 text-gray-700" },
+  draft:     { label: "Borrador",  color: "bg-muted/40 text-muted-foreground" },
   active:    { label: "Activo",    color: "bg-green-100 text-green-700" },
   completed: { label: "Completo",  color: "bg-blue-100 text-blue-700" },
   cancelled: { label: "Cancelado", color: "bg-red-100 text-red-700" },
@@ -88,6 +91,7 @@ function ObligationRow({ ob }: { ob: Obligation }) {
 }
 
 export default function RevenueRecognitionPage() {
+  usePageTitle("Reconocimiento de Ingresos");
   const { orgId } = useOrganization();
   const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"contracts" | "waterfall" | "journal" | "config">("contracts");
@@ -197,45 +201,46 @@ export default function RevenueRecognitionPage() {
     : 1;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><DollarSign className="w-6 h-6 text-primary" /> Reconocimiento de Ingresos</h1>
-          <p className="text-muted-foreground text-sm mt-1">ASC 606 / IFRS 15 — Contratos, obligaciones de desempeño y diferidos</p>
-        </div>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nuevo Contrato</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo Contrato</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label>N° Contrato</Label><Input placeholder="CON-2026-XXX" /></div>
-              <div><Label>Título</Label><Input placeholder="Descripción del contrato" /></div>
-              <div><Label>Cliente</Label><Input placeholder="Nombre del cliente" /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Valor Total (ARS)</Label><Input type="number" placeholder="500000" /></div>
-                <div><Label>Método de Reconocimiento</Label>
-                  <Select defaultValue="over_time">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="over_time">En el tiempo</SelectItem>
-                      <SelectItem value="point_in_time">En un momento</SelectItem>
-                      <SelectItem value="milestone">Por hitos</SelectItem>
-                      <SelectItem value="percentage_completion">% Completado</SelectItem>
-                    </SelectContent>
-                  </Select>
+    <div className="space-y-6">
+      <PageHeader
+        icon={DollarSign}
+        title="Reconocimiento de Ingresos"
+        description="ASC 606 / IFRS 15 — Contratos, obligaciones de desempeño y diferidos"
+        actions={
+          <Dialog open={showNew} onOpenChange={setShowNew}>
+            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nuevo Contrato</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Nuevo Contrato</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label>N° Contrato</Label><Input placeholder="CON-2026-XXX" /></div>
+                <div><Label>Título</Label><Input placeholder="Descripción del contrato" /></div>
+                <div><Label>Cliente</Label><Input placeholder="Nombre del cliente" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Valor Total (ARS)</Label><Input type="number" placeholder="500000" /></div>
+                  <div><Label>Método de Reconocimiento</Label>
+                    <Select defaultValue="over_time">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="over_time">En el tiempo</SelectItem>
+                        <SelectItem value="point_in_time">En un momento</SelectItem>
+                        <SelectItem value="milestone">Por hitos</SelectItem>
+                        <SelectItem value="percentage_completion">% Completado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                <Button className="w-full" onClick={() => { toast.success("Contrato creado"); setShowNew(false); }}>Crear Contrato</Button>
               </div>
-              <Button className="w-full" onClick={() => { toast.success("Contrato creado"); setShowNew(false); }}>Crear Contrato</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground mb-1">Valor Total Contratos</p><p className="text-2xl font-bold">${(totalContractValue / 1_000_000).toFixed(2)}M</p></CardContent></Card>
-        <Card className="border-green-200"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground mb-1">Revenue Reconocido</p><p className="text-2xl font-bold text-green-600">${(totalRecognized / 1000).toFixed(0)}K</p></CardContent></Card>
-        <Card className="border-orange-200"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground mb-1">Revenue Diferido</p><p className="text-2xl font-bold text-orange-600">${(totalDeferred / 1_000_000).toFixed(2)}M</p></CardContent></Card>
+        <KPICard label="Valor Total Contratos" value={`$${(totalContractValue / 1_000_000).toFixed(2)}M`} sub="contratos activos" icon={FileText} color="primary" />
+        <KPICard label="Revenue Reconocido" value={`$${(totalRecognized / 1000).toFixed(0)}K`} sub="reconocido a la fecha" icon={CheckCircle} color="success" />
+        <KPICard label="Revenue Diferido" value={`$${(totalDeferred / 1_000_000).toFixed(2)}M`} sub="por reconocer" icon={Clock} color="warning" />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
