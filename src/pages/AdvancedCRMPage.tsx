@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,6 +145,7 @@ function getActivityGroup(dateStr: string): string {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function AdvancedCRMPage() {
+  usePageTitle("CRM Avanzado");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"kanban" | "contacts" | "activities" | "forecast">("kanban");
   const [showNewDeal, setShowNewDeal] = useState(false);

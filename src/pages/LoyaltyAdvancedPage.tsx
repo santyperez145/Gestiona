@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,6 +109,7 @@ const DEFAULT_TIERS = [
 ];
 
 export default function LoyaltyAdvancedPage() {
+  usePageTitle("Fidelización Avanzada");
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("Programa");
   const [program, setProgram] = useState<LoyaltyProgram | null>(null);

@@ -694,7 +694,7 @@ export default function EmailCampaignsPage() {
                 <iframe
                   sandbox=""
                   srcDoc={bodyHtml ? buildBrandedEmail(bodyHtml, orgSettings.logo_url, orgSettings.business_name) : '<p style="color:#aaa;padding:16px;font-family:sans-serif">El cuerpo del email aparecerá aquí...</p>'}
-                  className="min-h-[220px] w-full rounded-[8px] border border-border bg-gray-50"
+                  className="min-h-[220px] w-full rounded-[8px] border border-border bg-muted/20"
                   style={{ minHeight: 220 }}
                   title="Vista previa del email"
                 />
@@ -785,7 +785,7 @@ export default function EmailCampaignsPage() {
           <iframe
             sandbox=""
             srcDoc={preview?.body_html || "<p style='color:#aaa;font-family:sans-serif;padding:16px'>Sin contenido</p>"}
-            className="w-full rounded-[8px] border border-border bg-white"
+            className="w-full rounded-[8px] border border-border bg-card"
             style={{ minHeight: 400 }}
             title="Vista previa de la campaña"
           />

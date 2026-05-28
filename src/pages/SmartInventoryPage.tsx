@@ -319,7 +319,7 @@ export default function SmartInventoryPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Quick wins */}
               <div className="bg-card rounded-xl border border-border/50 p-5 space-y-3">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-500" /> Quick Wins detectados</h3>
+                <h3 className="font-semibold text-foreground font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-500" /> Quick Wins detectados</h3>
                 {abcData.filter(r => r.abc_class === "A" && r.velocity === "fast" && (r.stockout_risk === "critical" || r.stockout_risk === "high")).slice(0, 5).map(r => (
                   <div key={r.id} className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
                     <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />
@@ -334,7 +334,7 @@ export default function SmartInventoryPage() {
 
               {/* Dead stock */}
               <div className="bg-card rounded-xl border border-border/50 p-5 space-y-3">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2"><TrendingDown className="w-4 h-4 text-red-500" /> Stock muerto a liquidar</h3>
+                <h3 className="font-semibold text-foreground font-semibold flex items-center gap-2"><TrendingDown className="w-4 h-4 text-red-500" /> Stock muerto a liquidar</h3>
                 {abcData.filter(r => r.velocity === "dead" && r.abc_class === "C").slice(0, 5).map(r => (
                   <div key={r.id} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
                     <Package className="w-4 h-4 text-red-400 shrink-0" />
@@ -349,7 +349,7 @@ export default function SmartInventoryPage() {
 
               {/* Revenue concentration */}
               <div className="bg-card rounded-xl border border-border/50 p-5 space-y-3 lg:col-span-2">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Concentración de revenue por clase ABC</h3>
+                <h3 className="font-semibold text-foreground font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Concentración de revenue por clase ABC</h3>
                 <div className="h-8 bg-muted/40 rounded-full overflow-hidden flex">
                   {(["A","B","C"] as const).map(cls => {
                     const rev = abcData.filter(r => r.abc_class === cls).reduce((s,r) => s + r.total_revenue, 0);

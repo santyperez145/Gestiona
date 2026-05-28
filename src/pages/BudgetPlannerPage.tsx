@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ function fmt(n: number) {
 }
 
 export default function BudgetPlannerPage() {
+  usePageTitle("Planificador de Presupuesto");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 

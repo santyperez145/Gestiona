@@ -54,18 +54,18 @@ interface CarrierPerf {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Package }> = {
-  pending:            { label: "Pendiente",        color: "bg-gray-100 text-gray-700",   icon: Clock },
-  label_created:      { label: "Etiqueta",         color: "bg-blue-100 text-blue-700",   icon: Package },
-  picked_up:          { label: "Retirado",         color: "bg-indigo-100 text-indigo-700", icon: Truck },
-  in_transit:         { label: "En Tránsito",      color: "bg-yellow-100 text-yellow-800", icon: Navigation },
-  out_for_delivery:   { label: "En Reparto",       color: "bg-orange-100 text-orange-700", icon: Zap },
-  delivered:          { label: "Entregado",        color: "bg-green-100 text-green-700", icon: CheckCircle },
-  failed:             { label: "Falló",            color: "bg-red-100 text-red-700",     icon: XCircle },
-  returned:           { label: "Devuelto",         color: "bg-purple-100 text-purple-700", icon: RotateCcw },
+  pending:            { label: "Pendiente",        color: "bg-muted/40 text-muted-foreground",    icon: Clock },
+  label_created:      { label: "Etiqueta",         color: "bg-blue-500/15 text-blue-400",         icon: Package },
+  picked_up:          { label: "Retirado",         color: "bg-indigo-500/15 text-indigo-400",     icon: Truck },
+  in_transit:         { label: "En Tránsito",      color: "bg-yellow-500/15 text-yellow-400",     icon: Navigation },
+  out_for_delivery:   { label: "En Reparto",       color: "bg-orange-500/15 text-orange-400",     icon: Zap },
+  delivered:          { label: "Entregado",        color: "bg-emerald-500/15 text-emerald-400",   icon: CheckCircle },
+  failed:             { label: "Falló",            color: "bg-red-500/15 text-red-400",           icon: XCircle },
+  returned:           { label: "Devuelto",         color: "bg-purple-500/15 text-purple-400",     icon: RotateCcw },
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, color: "bg-gray-100 text-gray-700", icon: Package };
+  const cfg = STATUS_CONFIG[status] ?? { label: status, color: "bg-muted/40 text-muted-foreground", icon: Package };
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.color}`}>
@@ -335,7 +335,7 @@ export default function LogisticsPage() {
                       <span className="font-semibold text-sm">{zone.name}</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      {zone.provinces.map(p => <span key={p} className="text-xs bg-white/70 px-1.5 py-0.5 rounded border">{p}</span>)}
+                      {zone.provinces.map(p => <span key={p} className="text-xs bg-card/70 px-1.5 py-0.5 rounded border border-border/30">{p}</span>)}
                     </div>
                   </div>
                 ))}

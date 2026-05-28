@@ -298,7 +298,7 @@ export default function CompetitorPricingPage() {
                 <div className="flex gap-2">
                   {(["all","undercut","above","parity","unknown"] as const).map(pos => (
                     <button key={pos} onClick={() => setFilterPosition(pos)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterPosition === pos ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-muted-foreground hover:border-indigo-300"}`}>
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterPosition === pos ? "bg-primary/15 text-primary border-primary/30" : "text-muted-foreground hover:border-primary/30"}`}>
                       {pos === "all" ? "Todos" : POSITION_CONFIG[pos].label}
                     </button>
                   ))}
@@ -306,7 +306,7 @@ export default function CompetitorPricingPage() {
               </div>
 
               {/* comparison table */}
-              <div className="bg-white rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border border-border/40 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/20 text-muted-foreground">
                     <tr>
@@ -382,7 +382,7 @@ export default function CompetitorPricingPage() {
               {competitors.map(c => {
                 const prodCount = compProducts.filter(p => p.competitor_id === c.id).length;
                 return (
-                  <div key={c.id} className={`bg-white rounded-xl border p-4 space-y-3 ${!c.is_active ? "opacity-60" : ""}`}>
+                  <div key={c.id} className={`bg-card rounded-xl border border-border/40 p-4 space-y-3 ${!c.is_active ? "opacity-60" : ""}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <Globe className="w-5 h-5 text-indigo-500" />
@@ -418,7 +418,7 @@ export default function CompetitorPricingPage() {
 
           {/* ── Productos ── */}
           {activeTab === "Productos" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/40 overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
@@ -437,7 +437,7 @@ export default function CompetitorPricingPage() {
                         <td className="px-4 py-3 text-muted-foreground/70 font-mono text-xs">{p.competitor_sku ?? "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{(p.products as CompetitorProduct["products"])?.name ?? <span className="text-muted-foreground/70 italic text-xs">Sin mapear</span>}</td>
                         <td className="px-4 py-3">
-                          {p.url ? <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700"><ExternalLink className="w-4 h-4" /></a> : <span className="text-gray-300">—</span>}
+                          {p.url ? <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700"><ExternalLink className="w-4 h-4" /></a> : <span className="text-muted-foreground/40">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           {latest ? (
@@ -464,7 +464,7 @@ export default function CompetitorPricingPage() {
 
           {/* ── Historial ── */}
           {activeTab === "Historial" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/40 overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-muted-foreground">
                   <tr>

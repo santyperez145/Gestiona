@@ -360,9 +360,9 @@ export default function APIKeysPage() {
                         <td className="px-4 py-3 font-medium text-foreground">{wh?.name ?? "—"}</td>
                         <td className="px-4 py-3 font-mono text-xs text-violet-400">{d.event_type}</td>
                         <td className="px-4 py-3"><Badge className={`${st.color} flex items-center gap-1 text-xs`}>{st.icon}{st.label}</Badge></td>
-                        <td className="px-4 py-3 text-gray-500">{d.attempt_count}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{d.attempt_count}</td>
                         <td className="px-4 py-3">
-                          {d.response_code && <span className={`font-mono text-sm ${d.response_code < 300 ? "text-green-600" : d.response_code < 500 ? "text-yellow-600" : "text-red-500"}`}>{d.response_code}</span>}
+                          {d.response_code && <span className={`font-mono text-sm ${d.response_code < 300 ? "text-emerald-400" : d.response_code < 500 ? "text-yellow-400" : "text-red-400"}`}>{d.response_code}</span>}
                         </td>
                         <td className="px-4 py-3 text-red-500 text-xs truncate max-w-xs">{d.error_message ?? "—"}</td>
                       </tr>
@@ -470,10 +470,10 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
         <DialogContent>
           <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500" /> API Key creada</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Esta es la única vez que verás la clave completa. Copiala y guardala en un lugar seguro.</p>
-            <div className="flex items-center gap-2 bg-gray-900 rounded-lg px-4 py-3">
-              <code className="flex-1 text-green-400 text-sm font-mono break-all">{newKeyValue}</code>
-              <button onClick={() => { navigator.clipboard.writeText(newKeyValue); toast.success("Clave copiada"); }} className="text-gray-400 hover:text-white shrink-0"><Copy className="w-4 h-4" /></button>
+            <p className="text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">⚠️ Esta es la única vez que verás la clave completa. Copiala y guardala en un lugar seguro.</p>
+            <div className="flex items-center gap-2 bg-zinc-900 rounded-lg px-4 py-3">
+              <code className="flex-1 text-emerald-400 text-sm font-mono break-all">{newKeyValue}</code>
+              <button onClick={() => { navigator.clipboard.writeText(newKeyValue); toast.success("Clave copiada"); }} className="text-muted-foreground hover:text-foreground shrink-0"><Copy className="w-4 h-4" /></button>
             </div>
           </div>
           <DialogFooter>

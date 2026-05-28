@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -277,6 +278,7 @@ function AwardForm({ open, onClose, badges, staffList, orgId, awardedBy, onSaved
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function GamificationPage() {
+  usePageTitle("Gamificación");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const orgId = activeOrg?.id ?? "";

@@ -130,7 +130,7 @@ const STATUS_CONFIG: Record<
   active: { label: "Activa", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: CheckCircle },
   past_due: { label: "Vencida", color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: AlertTriangle },
   cancelled: { label: "Cancelada", color: "bg-red-500/15 text-red-400 border-red-500/30", icon: XCircle },
-  paused: { label: "Pausada", color: "bg-gray-500/15 text-gray-400 border-gray-500/30", icon: Pause },
+  paused: { label: "Pausada", color: "bg-muted/40 text-muted-foreground border-border/40", icon: Pause },
   expired: { label: "Expirada", color: "bg-red-500/15 text-red-400 border-red-500/30", icon: XCircle },
 };
 
@@ -141,7 +141,7 @@ const INVOICE_STATUS_CONFIG: Record<
   pending: { label: "Pendiente", color: "bg-amber-500/15 text-amber-400" },
   paid: { label: "Pagada", color: "bg-emerald-500/15 text-emerald-400" },
   failed: { label: "Fallida", color: "bg-red-500/15 text-red-400" },
-  void: { label: "Anulada", color: "bg-gray-500/15 text-gray-400" },
+  void: { label: "Anulada", color: "bg-muted/40 text-muted-foreground" },
 };
 
 function fmtCurrency(amount: number, currency = "ARS") {
@@ -551,7 +551,7 @@ function PlanCard({ plan, onEdit, onToggle, onDelete, onNewSub }: PlanCardProps)
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-base">{plan.name}</h3>
             {plan.is_public && <Badge className="text-xs bg-blue-500/15 text-blue-400">Público</Badge>}
-            {!plan.active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactivo</Badge>}
+            {!plan.active && <Badge className="text-xs bg-muted/40 text-muted-foreground">Inactivo</Badge>}
           </div>
           {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
         </div>

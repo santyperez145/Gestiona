@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,7 @@ function RankMedal({ rank }: { rank: number }) {
 }
 
 export default function SalesGamificationPage() {
+  usePageTitle("Gamificación de Ventas");
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const [tab, setTab] = useState<"leaderboard" | "badges" | "challenges" | "myprofile">("leaderboard");
