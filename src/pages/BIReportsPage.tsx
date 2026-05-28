@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -9,8 +9,11 @@ import {
   BarChart3, TrendingUp, PieChart, LineChart, Plus, Download, Share2,
   Play, Search, Star, Clock, Filter, RefreshCw, Calendar,
   Users, Package, DollarSign, ChevronRight, Table, Layers,
-  Sparkles, Zap, Eye
+  Sparkles, Zap, Eye, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 
 // Mock cohort retention
@@ -103,6 +106,7 @@ type SnapshotRow = { date: string; rev_day: number; orders_day: number; aov: num
 type ReportRow = { id: string; name: string; type: string; chart: string; pinned: boolean; runs: number; last_run: string; shared: boolean };
 
 export default function BIReportsPage() {
+  usePageTitle("Business Intelligence");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "reports" | "cohort" | "drilldown">("overview");
   const [search, setSearch] = useState("");
@@ -182,33 +186,28 @@ export default function BIReportsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-primary" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">Business Intelligence</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Reportes avanzados, cohort analysis y drill-down por dimensión</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Snapshot generado")}>
-            <RefreshCw className="w-3.5 h-3.5" />Actualizar snapshot
-          </Button>
-          <Button size="sm" onClick={() => setShowNewDialog(true)} className="gap-1.5 gradient-gold text-primary-foreground">
-            <Plus className="w-3.5 h-3.5" />Nuevo Reporte
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Business Intelligence"
+        description="Reportes avanzados, cohort analysis y drill-down por dimensión"
+        actions={
+          <>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Snapshot generado")}>
+              <RefreshCw className="w-3.5 h-3.5" />Actualizar snapshot
+            </Button>
+            <Button size="sm" onClick={() => setShowNewDialog(true)} className="gap-1.5 gradient-gold text-primary-foreground">
+              <Plus className="w-3.5 h-3.5" />Nuevo Reporte
+            </Button>
+          </>
+        }
+      />
 
-      {/* Top KPIs */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="Revenue hoy"   value={`$${(todayRev / 1000).toFixed(0)}K`} trend={revTrend} color="text-emerald-400" />
-        <StatCard icon={TrendingUp} label="Revenue semana" value={`$${(weekRev / 1000).toFixed(0)}K`} sub="últimos 7 días" />
-        <StatCard icon={Users}      label="AOV promedio"   value={`$${(snapshots[0]?.aov ?? 0).toLocaleString("es-AR")}`} trend={2} />
-        <StatCard icon={Sparkles}   label="Gross Margin"   value={`${snapshots[0]?.margin ?? 0}%`} trend={1} color="text-primary" />
+        <KPICard label="Revenue hoy" value={`$${(todayRev / 1000).toFixed(0)}K`} icon={DollarSign} color="success" trend={snapshots.length > 1 ? { value: revTrend, label: "vs ayer" } : undefined} sub="ingresos del día" />
+        <KPICard label="Revenue semana" value={`$${(weekRev / 1000).toFixed(0)}K`} icon={TrendingUp} color="primary" sub="últimos 7 días" />
+        <KPICard label="AOV promedio" value={`$${(snapshots[0]?.aov ?? 0).toLocaleString("es-AR")}`} icon={Users} color="blue" sub="ticket promedio" />
+        <KPICard label="Reportes guardados" value={savedReports.length} icon={BarChart3} color="purple" sub={`${savedReports.filter(r => r.pinned).length} fijados`} />
       </div>
 
       {/* Tabs */}

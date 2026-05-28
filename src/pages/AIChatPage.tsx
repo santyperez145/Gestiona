@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ActionType = "create_product" | "create_expense" | "create_customer" | "adjust_stock" | "navigate" | "create_sale" | "create_purchase" | "query_debt" | "query_stock" | "query_product_analysis" | "query_restock" | "create_task" | "create_quote" | "query_customer" | "query_sales_summary" | "send_wa_segment" | "query_debts_summary" | "query_top_products" | "query_expense_summary" | "query_supplier";
@@ -2582,8 +2584,48 @@ export default function AIChatPage() {
     setDismissedActions(prev => new Set([...prev, msgId]));
   };
 
+  const kpis = useMemo(() => {
+    const totalMessages = messages.length;
+    const userMessages = messages.filter(m => m.role === "user").length;
+    const savedConvs = conversations.length;
+    const activeActions = messages.filter(m => m.action && !dismissedActions.has(m.id)).length;
+    return { totalMessages, userMessages, savedConvs, activeActions };
+  }, [messages, conversations, dismissedActions]);
+
   return (
-    <div className="flex gap-4 h-[calc(100vh-5rem)] max-w-5xl mx-auto relative">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Brain}
+        title="Asistente IA"
+        description="Preguntá o pedí acciones en lenguaje natural"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowHistory(v => !v)} className={`text-muted-foreground ${showHistory ? "bg-muted" : ""}`}>
+              <History className="w-3.5 h-3.5 mr-1.5" />Historial
+            </Button>
+            {messages.length >= 2 && (
+              <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
+                💾 Guardar
+              </Button>
+            )}
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />Limpiar
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Mensajes" value={kpis.totalMessages} icon={MessageSquare} color="primary" sub="en esta sesión" />
+        <KPICard label="Preguntas" value={kpis.userMessages} icon={Brain} color="blue" sub="enviadas por vos" />
+        <KPICard label="Conversaciones" value={kpis.savedConvs} icon={History} color="success" sub="guardadas" />
+        <KPICard label="Acciones activas" value={kpis.activeActions} icon={Zap} color="warning" sub="pendientes de ejecutar" />
+      </div>
+
+    <div className="flex gap-4 h-[calc(100vh-22rem)] relative">
       {/* History sidebar */}
       {showHistory && (
         <div className="w-72 shrink-0 flex flex-col bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
@@ -2633,46 +2675,6 @@ export default function AIChatPage() {
 
       {/* Main chat */}
       <div className="flex flex-col flex-1 h-full min-w-0">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 shrink-0">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <Brain className="w-7 h-7 text-primary" />Asistente IA
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Preguntá o pedí acciones en lenguaje natural</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setShowHistory(v => !v)} className={`text-muted-foreground ${showHistory ? 'bg-muted' : ''}`} title="Historial de conversaciones">
-            <History className="w-3.5 h-3.5 mr-1.5" />Historial
-          </Button>
-          {messages.length >= 2 && (
-            <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
-              💾 Guardar
-            </Button>
-          )}
-          {messages.length >= 2 && (
-            <Button variant="ghost" size="sm" className="text-muted-foreground" title="Exportar conversación como texto"
-              onClick={() => {
-                const orgName = activeOrg?.name || "Mi negocio";
-                const dateStr = new Date().toLocaleDateString("es-AR");
-                const lines = messages.map(m => `[${m.role === "user" ? "Vos" : "IA"}] ${m.content}`).join("\n\n");
-                const text = `Conversación con IA — ${orgName}\n${dateStr}\n${"=".repeat(40)}\n\n${lines}`;
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
-                a.download = `chat-ia-${new Date().toISOString().slice(0, 10)}.txt`;
-                a.click();
-              }}
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />Exportar
-            </Button>
-          )}
-          {messages.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" />Limpiar
-            </Button>
-          )}
-        </div>
-      </div>
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
@@ -2849,6 +2851,7 @@ export default function AIChatPage() {
         </p>
       </div>
       </div>{/* end main chat */}
-    </div>
+    </div>{/* end flex chat viewport */}
+    </div>{/* end space-y-6 */}
   );
 }

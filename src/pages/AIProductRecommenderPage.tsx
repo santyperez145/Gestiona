@@ -38,9 +38,13 @@ import {
   CheckCircle,
   AlertCircle,
   Download,
+  Loader2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -211,6 +215,7 @@ function RuleForm({ open, rule, products, orgId, onClose, onSaved }: RuleFormPro
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AIProductRecommenderPage() {
+  usePageTitle("AI Recomendador");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -320,49 +325,33 @@ export default function AIProductRecommenderPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
-            AI Recomendador de Productos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Cross-sell & upsell basado en co-ocurrencias de ventas + reglas manuales
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="w-4 h-4 mr-1.5" /> Exportar CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleRebuildCooccurrences} disabled={rebuilding}>
-            {rebuilding ? <RefreshCw className="w-4 h-4 animate-spin mr-1.5" /> : <Zap className="w-4 h-4 mr-1.5" />}
-            Recalcular IA
-          </Button>
-          <Button size="sm" onClick={() => { setEditingRule(null); setRuleDialogOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nueva regla
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Brain}
+        title="AI Recomendador de Productos"
+        description="Cross-sell & upsell basado en co-ocurrencias de ventas + reglas manuales"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download className="w-4 h-4 mr-1.5" /> Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRebuildCooccurrences} disabled={rebuilding}>
+              {rebuilding ? <Loader2 className="w-7 h-7 animate-spin text-primary" /> : <Zap className="w-4 h-4 mr-1.5" />}
+              Recalcular IA
+            </Button>
+            <Button size="sm" onClick={() => { setEditingRule(null); setRuleDialogOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nueva regla
+            </Button>
+          </>
+        }
+      />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        {[
-          { label: "Pares detectados", value: cooccurrences.length, icon: Brain, color: "text-primary" },
-          { label: "Reglas activas", value: enrichedRules.filter(r => r.active).length, icon: CheckCircle, color: "text-emerald-400" },
-          { label: "Impresiones", value: analytics.impressions, icon: BarChart3, color: "text-blue-400" },
-          { label: "CTR", value: `${analytics.ctr}%`, icon: Target, color: "text-amber-400" },
-          { label: "Conversión", value: `${analytics.cvr}%`, icon: TrendingUp, color: "text-violet-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Pares detectados" value={cooccurrences.length} icon={Brain} color="primary" sub="co-ocurrencias IA" />
+        <KPICard label="Reglas activas" value={enrichedRules.filter(r => r.active).length} icon={CheckCircle} color="success" sub={`de ${enrichedRules.length} totales`} />
+        <KPICard label="CTR" value={`${analytics.ctr}%`} icon={Target} color="warning" sub={`${analytics.clicks} clics`} />
+        <KPICard label="Conversión" value={`${analytics.cvr}%`} icon={TrendingUp} color="purple" sub={`${analytics.purchases} compras`} />
       </div>
 
       {/* Tabs */}

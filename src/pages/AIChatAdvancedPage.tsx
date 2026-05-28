@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
@@ -10,9 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Brain, Plus, Send, Trash2, Pin, Archive, BookOpen, Star,
-  ChevronRight, Sparkles, MessageSquare, Clock, Zap, Copy, RefreshCcw
+  ChevronRight, Sparkles, MessageSquare, Clock, Zap, Copy, RefreshCcw,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface ChatSession {
@@ -77,18 +81,18 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === "user";
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isUser ? "bg-blue-600 text-white" : "bg-indigo-100 text-indigo-700"}`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isUser ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
         {isUser ? "U" : <Brain className="w-4 h-4" />}
       </div>
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col`}>
-        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser ? "bg-blue-600 text-white rounded-tr-sm" : msg.is_error ? "bg-red-50 border border-red-200 text-red-800" : "bg-white border text-gray-800 rounded-tl-sm shadow-sm"}`}>
+        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser ? "bg-primary text-primary-foreground rounded-tr-sm" : msg.is_error ? "bg-destructive/10 border border-destructive/30 text-destructive" : "bg-card border border-border text-foreground rounded-tl-sm shadow-sm"}`}>
           <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
         </div>
         <div className={`flex items-center gap-2 mt-1 ${isUser ? "flex-row-reverse" : ""}`}>
-          <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
-          {msg.tokens_used > 0 && <span className="text-xs text-gray-300">{msg.tokens_used} tokens</span>}
+          <span className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+          {msg.tokens_used > 0 && <span className="text-xs text-muted-foreground/50">{msg.tokens_used} tokens</span>}
           {!isUser && (
-            <button onClick={() => { navigator.clipboard.writeText(msg.content); toast.success("Copiado"); }} className="text-gray-300 hover:text-gray-500">
+            <button onClick={() => { navigator.clipboard.writeText(msg.content); toast.success("Copiado"); }} className="text-muted-foreground/50 hover:text-muted-foreground">
               <Copy className="w-3 h-3" />
             </button>
           )}
@@ -99,6 +103,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 }
 
 export default function AIChatAdvancedPage() {
+  usePageTitle("Chat IA Avanzado");
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -125,6 +130,14 @@ export default function AIChatAdvancedPage() {
     if (pr.status === "fulfilled" && pr.value.data) setPrompts(pr.value.data as PromptItem[]);
     setLoading(false);
   }, [orgId, user]);
+
+  const kpis = useMemo(() => {
+    const totalSessions = sessions.length;
+    const pinnedSessions = sessions.filter(s => s.is_pinned).length;
+    const totalMessages = sessions.reduce((sum, s) => sum + s.message_count, 0);
+    const totalTokens = sessions.reduce((sum, s) => sum + s.total_tokens, 0);
+    return { totalSessions, pinnedSessions, totalMessages, totalTokens };
+  }, [sessions]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -213,12 +226,32 @@ export default function AIChatAdvancedPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] flex gap-0">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Brain}
+        title="Chat IA Avanzado"
+        description="Conversaciones con contexto de tu negocio: ventas, inventario, finanzas y más"
+        actions={
+          <Button size="sm" onClick={createSession}>
+            <Plus className="w-3 h-3 mr-1" /> Nueva conversación
+          </Button>
+        }
+      />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Conversaciones" value={kpis.totalSessions} icon={MessageSquare} color="primary" sub="sesiones activas" />
+        <KPICard label="Fijadas" value={kpis.pinnedSessions} icon={Pin} color="warning" sub="conversaciones pin" />
+        <KPICard label="Mensajes totales" value={kpis.totalMessages} icon={Zap} color="success" sub="en todas las sesiones" />
+        <KPICard label="Tokens usados" value={kpis.totalTokens.toLocaleString()} icon={Brain} color="blue" sub="uso de contexto" />
+      </div>
+
+      <div className="h-[calc(100vh-22rem)] flex gap-0 rounded-xl overflow-hidden border border-border/60">
       {/* ── Sidebar ── */}
-      <div className="w-72 shrink-0 border-r bg-gray-50 flex flex-col">
+      <div className="w-72 shrink-0 border-r bg-muted/30 flex flex-col">
         <div className="p-4 border-b space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Brain className="w-4 h-4 text-indigo-600" /> IA Chat</h2>
+            <h2 className="font-semibold flex items-center gap-2"><Brain className="w-4 h-4 text-primary" /> IA Chat</h2>
             <Button size="sm" onClick={createSession} className="h-8 px-3 text-xs"><Plus className="w-3 h-3 mr-1" /> Nueva</Button>
           </div>
           <Select value={selectedModel} onValueChange={setSelectedModel}>
@@ -229,46 +262,46 @@ export default function AIChatAdvancedPage() {
 
         {/* Sessions list */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {loading ? <p className="text-center py-8 text-xs text-gray-400">Cargando…</p> : (
+          {loading ? <p className="text-center py-8 text-xs text-muted-foreground">Cargando…</p> : (
             <>
               {sessions.map(s => (
                 <div key={s.id} onClick={() => { setActiveSession(s); loadMessages(s.id); }}
-                  className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${activeSession?.id === s.id ? "bg-indigo-100 text-indigo-900" : "hover:bg-gray-100 text-gray-700"}`}>
-                  <MessageSquare className="w-4 h-4 shrink-0 text-gray-400" />
+                  className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${activeSession?.id === s.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-foreground"}`}>
+                  <MessageSquare className="w-4 h-4 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{s.title}</p>
-                    <p className="text-xs text-gray-400">{s.message_count} msgs · {new Date(s.updated_at).toLocaleDateString("es-AR")}</p>
+                    <p className="text-xs text-muted-foreground">{s.message_count} msgs · {new Date(s.updated_at).toLocaleDateString("es-AR")}</p>
                   </div>
                   <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
-                    <button onClick={e => { e.stopPropagation(); pinSession(s); }} className={`p-0.5 rounded ${s.is_pinned ? "text-yellow-500" : "text-gray-400 hover:text-yellow-500"}`}><Pin className="w-3 h-3" /></button>
-                    <button onClick={e => { e.stopPropagation(); archiveSession(s.id); }} className="p-0.5 rounded text-gray-400 hover:text-red-400"><Archive className="w-3 h-3" /></button>
+                    <button onClick={e => { e.stopPropagation(); pinSession(s); }} className={`p-0.5 rounded ${s.is_pinned ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500"}`}><Pin className="w-3 h-3" /></button>
+                    <button onClick={e => { e.stopPropagation(); archiveSession(s.id); }} className="p-0.5 rounded text-muted-foreground hover:text-red-400"><Archive className="w-3 h-3" /></button>
                   </div>
                 </div>
               ))}
-              {sessions.length === 0 && <p className="text-center py-8 text-xs text-gray-400">Sin conversaciones. Creá una nueva.</p>}
+              {sessions.length === 0 && <p className="text-center py-8 text-xs text-muted-foreground">Sin conversaciones. Creá una nueva.</p>}
             </>
           )}
         </div>
 
         {/* Prompt library button */}
         <div className="p-3 border-t">
-          <button onClick={() => setShowPromptLib(true)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 hover:bg-gray-100 transition-colors">
-            <BookOpen className="w-4 h-4 text-indigo-500" /> Biblioteca de Prompts
+          <button onClick={() => setShowPromptLib(true)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:bg-muted/50 transition-colors">
+            <BookOpen className="w-4 h-4 text-primary" /> Biblioteca de Prompts
             <ChevronRight className="w-3 h-3 ml-auto" />
           </button>
         </div>
       </div>
 
       {/* ── Chat area ── */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-card">
         {activeSession ? (
           <>
             {/* Header */}
             <div className="px-6 py-4 border-b flex items-center gap-3">
-              <Brain className="w-5 h-5 text-indigo-600" />
+              <Brain className="w-5 h-5 text-primary" />
               <div className="flex-1">
-                <p className="font-semibold text-gray-900 text-sm">{activeSession.title}</p>
-                <p className="text-xs text-gray-400">{MODELS.find(m => m.value === activeSession.model)?.label} · {activeSession.total_tokens.toLocaleString()} tokens usados</p>
+                <p className="font-semibold text-foreground text-sm">{activeSession.title}</p>
+                <p className="text-xs text-muted-foreground">{MODELS.find(m => m.value === activeSession.model)?.label} · {activeSession.total_tokens.toLocaleString()} tokens usados</p>
               </div>
               <Badge variant="outline" className="text-xs">{activeSession.message_count} mensajes</Badge>
             </div>
@@ -277,11 +310,11 @@ export default function AIChatAdvancedPage() {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messages.length === 0 && (
                 <div className="space-y-4">
-                  <p className="text-center text-gray-400 text-sm pt-8">Empezá la conversación o usá un prompt sugerido:</p>
+                  <p className="text-center text-muted-foreground text-sm pt-8">Empezá la conversación o usá un prompt sugerido:</p>
                   <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                     {STARTER_PROMPTS.map((p, i) => (
                       <button key={i} onClick={() => setInput(p.text)}
-                        className="flex items-start gap-2 p-3 text-left border rounded-xl text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+                        className="flex items-start gap-2 p-3 text-left border rounded-xl text-xs text-foreground hover:border-primary/30 hover:bg-primary/5 transition-colors">
                         <span className="text-base">{p.icon}</span>
                         <span>{p.text.slice(0, 60)}…</span>
                       </button>
@@ -292,9 +325,9 @@ export default function AIChatAdvancedPage() {
               {messages.map(m => <MessageBubble key={m.id} msg={m} />)}
               {sending && (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center"><Brain className="w-4 h-4 text-indigo-600" /></div>
-                  <div className="bg-white border rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-                    <div className="flex gap-1"><div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" /><div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-100" /><div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-200" /></div>
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><Brain className="w-4 h-4 text-primary" /></div>
+                  <div className="bg-card border rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <div className="flex gap-1"><div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" /><div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce delay-100" /><div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce delay-200" /></div>
                   </div>
                 </div>
               )}
@@ -302,10 +335,10 @@ export default function AIChatAdvancedPage() {
             </div>
 
             {/* Input */}
-            <div className="px-6 py-4 border-t bg-gray-50">
+            <div className="px-6 py-4 border-t bg-muted/20">
               <div className="flex gap-3 items-end max-w-4xl mx-auto">
                 <textarea
-                  className="flex-1 resize-none border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 min-h-[48px] max-h-32"
+                  className="flex-1 resize-none border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[48px] max-h-32 bg-background text-foreground"
                   placeholder="Escribí tu consulta… (Enter para enviar, Shift+Enter para nueva línea)"
                   value={input}
                   onChange={e => setInput(e.target.value)}
@@ -316,22 +349,23 @@ export default function AIChatAdvancedPage() {
                   {sending ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-center text-xs text-gray-400 mt-2">La IA tiene acceso a tu contexto de negocio. Sé específico para mejores respuestas.</p>
+              <p className="text-center text-xs text-muted-foreground mt-2">La IA tiene acceso a tu contexto de negocio. Sé específico para mejores respuestas.</p>
             </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-4">
-            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center">
-              <Brain className="w-10 h-10 text-indigo-500" />
+            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center">
+              <Brain className="w-10 h-10 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Chat IA Avanzado</h2>
-              <p className="text-gray-500 text-sm mt-2 max-w-sm">Conversaciones con contexto de tu negocio: ventas, inventario, finanzas y más.</p>
+              <h2 className="text-xl font-bold text-foreground">Chat IA Avanzado</h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-sm">Conversaciones con contexto de tu negocio: ventas, inventario, finanzas y más.</p>
             </div>
             <Button onClick={createSession} className="mt-2"><Sparkles className="w-4 h-4 mr-2" /> Nueva conversación</Button>
           </div>
         )}
       </div>
+      </div>{/* end chat viewport */}
 
       {/* ── Prompt Library Dialog ── */}
       <Dialog open={showPromptLib} onOpenChange={setShowPromptLib}>
@@ -351,19 +385,19 @@ export default function AIChatAdvancedPage() {
                 <div key={p.id} className="border rounded-xl p-4 space-y-2 hover:border-indigo-300 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">{p.title}</p>
+                      <p className="font-medium text-foreground text-sm">{p.title}</p>
                       <Badge className={`${cat.color} text-xs mt-1`}>{cat.label}</Badge>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <span className="text-xs text-gray-400 flex items-center gap-1"><Zap className="w-3 h-3" />{p.use_count}x</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3" />{p.use_count}x</span>
                       <Button size="sm" variant="outline" onClick={() => usePrompt(p)}>Usar</Button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 line-clamp-2">{p.prompt}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{p.prompt}</p>
                 </div>
               );
             })}
-            {prompts.length === 0 && <p className="text-center py-8 text-gray-400 text-sm">Sin prompts guardados. Agregá tu primero.</p>}
+            {prompts.length === 0 && <p className="text-center py-8 text-muted-foreground text-sm">Sin prompts guardados. Agregá tu primero.</p>}
           </div>
         </DialogContent>
       </Dialog>

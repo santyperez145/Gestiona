@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import {
@@ -13,6 +13,8 @@ import {
   Brain, TrendingUp, Package, Megaphone, Users, DollarSign,
   Tag, Loader2, ChevronDown, ChevronUp, Clock, Sparkles, RefreshCw,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 type AnalysisType =
   | "predict_sales"
@@ -153,7 +155,7 @@ function HistoryItem({ entry, onExpand }: { entry: HistoryEntry; onExpand: () =>
   const Icon = cfg.icon;
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
       <button
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
         onClick={() => setExpanded(!expanded)}
@@ -187,6 +189,14 @@ export default function AIInsightsPage() {
   const [loadingType, setLoadingType] = useState<AnalysisType | null>(null);
   const [activeResult, setActiveResult] = useState<{ type: AnalysisType; content: string } | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const kpis = useMemo(() => {
+    const totalTypes = Object.keys(ANALYSIS_CONFIG).length;
+    const completedToday = history.length;
+    const lastType = history[0] ? ANALYSIS_CONFIG[history[0].type]?.label : "—";
+    const activeCount = !!loadingType ? 1 : 0;
+    return { totalTypes, completedToday, lastType, activeCount };
+  }, [history, loadingType]);
 
   const runAnalysis = useCallback(async (type: AnalysisType) => {
     if (!user) return;
@@ -254,21 +264,24 @@ export default function AIInsightsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Brain className="w-5 h-5 text-primary" />
+      <PageHeader
+        icon={Brain}
+        title="IA Insights"
+        description="Inteligencia artificial para tu negocio — powered by Claude"
+        actions={
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+            <Sparkles className="w-3 h-3 text-primary" />
+            <span className="text-xs font-medium text-primary">Claude Haiku</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold">IA Insights</h1>
-            <p className="text-sm text-muted-foreground">Inteligencia artificial para tu negocio — powered by Claude</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-          <Sparkles className="w-3 h-3 text-primary" />
-          <span className="text-xs font-medium text-primary">Claude Haiku</span>
-        </div>
+        }
+      />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Análisis disponibles" value={kpis.totalTypes} icon={Brain} color="primary" sub="tipos de análisis" />
+        <KPICard label="Análisis esta sesión" value={kpis.completedToday} icon={RefreshCw} color="success" sub="completados hoy" />
+        <KPICard label="Último análisis" value={kpis.completedToday > 0 ? kpis.lastType : "—"} icon={Clock} color="blue" sub="tipo más reciente" />
+        <KPICard label="En proceso" value={kpis.activeCount} icon={Loader2} color="warning" sub={kpis.activeCount > 0 ? "analizando…" : "sin análisis activo"} />
       </div>
 
       {/* Analysis grid */}
@@ -283,7 +296,7 @@ export default function AIInsightsPage() {
               key={type}
               onClick={() => runAnalysis(type)}
               disabled={!!loadingType}
-              className={`bg-[hsl(228_24%_7%)] border rounded-[10px] p-5 text-left transition-all hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${
+              className={`bg-card border rounded-[10px] p-5 text-left transition-all hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${
                 isActive ? "border-primary/50 ring-1 ring-primary/30 shadow-md" : "border-border hover:border-primary/30"
               }`}
             >
@@ -314,7 +327,7 @@ export default function AIInsightsPage() {
 
       {/* Active result */}
       {activeResult && (
-        <div className="bg-[hsl(228_24%_7%)] border border-primary/30 rounded-[10px] overflow-hidden shadow-md">
+        <div className="bg-card border border-primary/30 rounded-[10px] overflow-hidden shadow-md">
           <div className="px-5 py-3.5 border-b border-border flex items-center gap-2 bg-primary/5">
             {(() => {
               const cfg = ANALYSIS_CONFIG[activeResult.type];
