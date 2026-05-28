@@ -12,8 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
   Trophy, Star, Zap, Flame, Target, Medal, Crown, Award,
-  TrendingUp, Users, Calendar, ChevronUp, Sparkles
+  TrendingUp, Users, Calendar, ChevronUp, Sparkles, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 interface Profile {
   user_id: string;
@@ -187,18 +189,30 @@ export default function SalesGamificationPage() {
     toast.success("¡+25 XP ganados! Racha activa 🔥", { description: "Venta registrada: $15.000" });
   };
 
+  const teamTotalXP = profiles.reduce((a, p) => a + p.total_xp, 0);
+  const unlockedBadges = badges.filter(b => b.unlocked).length;
+  const activeChallenges = challenges.filter(c => c.is_active).length;
+  const topStreak = profiles.length > 0 ? Math.max(...profiles.map(p => p.current_streak)) : 0;
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-yellow-500" /> Gamificación de Ventas
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Leaderboard, logros, desafíos y ranking del equipo</p>
-        </div>
-        <Button onClick={simulateXP} className="gap-2">
-          <Sparkles className="w-4 h-4" />Simular Venta
-        </Button>
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        icon={Trophy}
+        title="Gamificación de Ventas"
+        description="Leaderboard, logros, desafíos y ranking del equipo"
+        actions={
+          <Button onClick={simulateXP} size="sm" className="gap-2 gradient-gold text-primary-foreground">
+            <Sparkles className="w-4 h-4" /> Simular Venta
+          </Button>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="XP del equipo" value={teamTotalXP.toLocaleString("es-AR")} sub="puntos totales acumulados" icon={TrendingUp} color="primary" />
+        <KPICard label="Logros desbloqueados" value={unlockedBadges} sub={`de ${badges.length} disponibles`} icon={Award} color="warning" />
+        <KPICard label="Desafíos activos" value={activeChallenges} sub="en progreso ahora" icon={Target} color="blue" />
+        <KPICard label="Racha más larga" value={`${topStreak}d`} sub="mejor racha del equipo" icon={Flame} color="success" />
       </div>
 
       {/* My mini profile */}

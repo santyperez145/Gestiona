@@ -11,9 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import {
   Star, Gift, Crown, Users, TrendingUp, Plus, Pencil, Trash2,
   Award, Coins, ArrowUpRight, ArrowDownRight, RefreshCcw, ChevronRight,
-  ShoppingBag, Zap, Trophy
+  ShoppingBag, Zap, Trophy, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface LoyaltyProgram {
@@ -83,7 +85,7 @@ const REWARD_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode;
   free_product:   { label: "Producto gratis",   icon: <Gift className="w-4 h-4" />,       color: "bg-purple-100 text-purple-700" },
   gift_card:      { label: "Gift Card",         icon: <ShoppingBag className="w-4 h-4" />,color: "bg-blue-100 text-blue-700" },
   experience:     { label: "Experiencia",       icon: <Trophy className="w-4 h-4" />,     color: "bg-pink-100 text-pink-700" },
-  other:          { label: "Otro",              icon: <Award className="w-4 h-4" />,      color: "bg-gray-100 text-gray-600" },
+  other:          { label: "Otro",              icon: <Award className="w-4 h-4" />,      color: "bg-muted/40 text-muted-foreground" },
 };
 
 const TXN_TYPE_CONFIG: Record<string, { label: string; color: string; sign: string }> = {
@@ -273,51 +275,47 @@ export default function LoyaltyAdvancedPage() {
   const totalRedeemTxns = transactions.filter(t => t.transaction_type === "redeem").length;
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Crown className="w-6 h-6 text-yellow-500" /> Programa de Fidelidad
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Puntos, tiers, recompensas y canjes avanzados</p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        icon={Crown}
+        title="Programa de Fidelidad"
+        description="Puntos, tiers, recompensas y canjes avanzados"
+        actions={
+          <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 text-xs hover:bg-muted/50 transition-colors">
+            <RefreshCcw className="w-3.5 h-3.5" /> Actualizar
+          </button>
+        }
+      />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Miembros",          value: totalMembers.toLocaleString("es-AR"),    icon: <Users className="w-5 h-5 text-blue-600" />,   bg: "bg-blue-50" },
-          { label: "Puntos vigentes",   value: totalPointsOutstanding.toLocaleString("es-AR"), icon: <Coins className="w-5 h-5 text-yellow-600" />, bg: "bg-yellow-50" },
-          { label: "Promedio/miembro",  value: avgPoints.toLocaleString("es-AR"),       icon: <TrendingUp className="w-5 h-5 text-green-600" />, bg: "bg-green-50" },
-          { label: "Canjes totales",    value: totalRedeemTxns.toLocaleString("es-AR"), icon: <Gift className="w-5 h-5 text-purple-600" />,  bg: "bg-purple-50" },
-        ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl border p-4 flex items-center gap-3">
-            <div className={`${k.bg} p-2.5 rounded-lg`}>{k.icon}</div>
-            <div>
-              <p className="text-xs text-gray-500">{k.label}</p>
-              <p className="text-xl font-bold text-gray-900">{k.value}</p>
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Miembros" value={totalMembers.toLocaleString("es-AR")} sub="en el programa" icon={Users} color="blue" />
+        <KPICard label="Puntos vigentes" value={totalPointsOutstanding.toLocaleString("es-AR")} sub="puntos acumulados" icon={Coins} color="warning" />
+        <KPICard label="Promedio / miembro" value={avgPoints.toLocaleString("es-AR")} sub="puntos por cliente" icon={TrendingUp} color="success" />
+        <KPICard label="Canjes totales" value={totalRedeemTxns.toLocaleString("es-AR")} sub="redenciones históricas" icon={Gift} color="purple" />
       </div>
 
       {/* tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted/30 rounded-xl p-1 w-fit">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === t ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
       </div>
 
-      {loading ? <div className="text-center py-16 text-gray-400">Cargando…</div> : (
+      {loading ? (
+        <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Cargando programa de fidelidad…</span>
+        </div>
+      ) : (
         <>
           {/* ── Programa ── */}
           {activeTab === "Programa" && (
-            <div className="bg-white rounded-xl border p-6 max-w-xl space-y-4">
-              <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Star className="w-4 h-4 text-yellow-500" /> Configuración del Programa</h2>
+            <div className="bg-card rounded-xl border border-border/50 p-6 max-w-xl space-y-4">
+              <h2 className="font-semibold text-foreground flex items-center gap-2"><Star className="w-4 h-4 text-yellow-500" /> Configuración del Programa</h2>
               <div><Label>Nombre del programa</Label><Input value={progForm.name} onChange={e => setProgForm(p => ({ ...p, name: e.target.value }))} /></div>
               <div><Label>Descripción</Label><Input value={progForm.description} onChange={e => setProgForm(p => ({ ...p, description: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -345,31 +343,31 @@ export default function LoyaltyAdvancedPage() {
                 {tiers.map(t => {
                   const memberCount = members.filter(m => m.tier_id === t.id).length;
                   return (
-                    <div key={t.id} className="bg-white rounded-xl border p-5 space-y-3 relative overflow-hidden">
+                    <div key={t.id} className="bg-card rounded-xl border border-border/50 p-5 space-y-3 relative overflow-hidden">
                       <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl" style={{ backgroundColor: t.color }} />
                       <div className="pl-2 flex items-start justify-between">
                         <div>
                           <span className="text-2xl">{t.icon}</span>
-                          <p className="font-bold text-gray-900 mt-1">{t.name}</p>
-                          <p className="text-xs text-gray-500">{t.min_points.toLocaleString()} – {t.max_points ? t.max_points.toLocaleString() : "∞"} pts</p>
+                          <p className="font-bold text-foreground mt-1">{t.name}</p>
+                          <p className="text-xs text-muted-foreground">{t.min_points.toLocaleString()} – {t.max_points ? t.max_points.toLocaleString() : "∞"} pts</p>
                         </div>
-                        <button onClick={() => openEditTier(t)} className="text-gray-400 hover:text-gray-600"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => openEditTier(t)} className="text-muted-foreground/60 hover:text-muted-foreground"><Pencil className="w-4 h-4" /></button>
                       </div>
                       <div className="flex items-center gap-3 pl-2">
-                        <div className="bg-gray-50 rounded px-3 py-1 text-sm font-semibold" style={{ color: t.color }}>×{t.multiplier}</div>
-                        <span className="text-xs text-gray-500">{memberCount} miembros</span>
+                        <div className="bg-muted/20 rounded px-3 py-1 text-sm font-semibold" style={{ color: t.color }}>×{t.multiplier}</div>
+                        <span className="text-xs text-muted-foreground">{memberCount} miembros</span>
                       </div>
                       {t.benefits && t.benefits.length > 0 && (
                         <ul className="pl-2 space-y-0.5">
                           {t.benefits.map((b, i) => (
-                            <li key={i} className="text-xs text-gray-600 flex items-center gap-1"><ChevronRight className="w-3 h-3" />{b}</li>
+                            <li key={i} className="text-xs text-muted-foreground flex items-center gap-1"><ChevronRight className="w-3 h-3" />{b}</li>
                           ))}
                         </ul>
                       )}
                     </div>
                   );
                 })}
-                {tiers.length === 0 && <p className="col-span-4 text-center py-12 text-gray-400">Sin tiers configurados</p>}
+                {tiers.length === 0 && <p className="col-span-4 text-center py-12 text-muted-foreground/60">Sin tiers configurados</p>}
               </div>
             </div>
           )}
@@ -385,41 +383,41 @@ export default function LoyaltyAdvancedPage() {
                   const cfg = REWARD_TYPE_CONFIG[r.reward_type] ?? REWARD_TYPE_CONFIG.other;
                   const remaining = r.stock_limit ? r.stock_limit - r.redeemed_count : null;
                   return (
-                    <div key={r.id} className={`bg-white rounded-xl border p-4 space-y-2 ${!r.is_active ? "opacity-60" : ""}`}>
+                    <div key={r.id} className={`bg-card rounded-xl border border-border/50 p-4 space-y-2 ${!r.is_active ? "opacity-60" : ""}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           <span className={`${cfg.color} p-1.5 rounded`}>{cfg.icon}</span>
                           <div>
-                            <p className="font-semibold text-gray-900">{r.name}</p>
+                            <p className="font-semibold text-foreground">{r.name}</p>
                             <Badge className={`${cfg.color} text-xs mt-0.5`}>{cfg.label}</Badge>
                           </div>
                         </div>
                         <div className="flex gap-1">
-                          <button onClick={() => openEditReward(r)} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => openEditReward(r)} className="p-1 rounded hover:bg-muted/40 text-muted-foreground"><Pencil className="w-3.5 h-3.5" /></button>
                           <button onClick={() => supabase.from("loyalty_rewards").delete().eq("id", r.id).then(load)} className="p-1 rounded hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm">
                         <span className="font-bold text-yellow-600 flex items-center gap-1"><Coins className="w-3.5 h-3.5" />{r.points_cost.toLocaleString("es-AR")} pts</span>
-                        {r.discount_value && <span className="text-gray-600">{r.reward_type === "discount_pct" ? `${r.discount_value}% off` : `$${r.discount_value}`}</span>}
+                        {r.discount_value && <span className="text-muted-foreground">{r.reward_type === "discount_pct" ? `${r.discount_value}% off` : `$${r.discount_value}`}</span>}
                       </div>
                       {remaining !== null && (
-                        <p className="text-xs text-gray-500">Stock: {remaining} restantes / {r.redeemed_count} canjeados</p>
+                        <p className="text-xs text-muted-foreground">Stock: {remaining} restantes / {r.redeemed_count} canjeados</p>
                       )}
-                      {r.valid_to && <p className="text-xs text-gray-400">Válido hasta: {r.valid_to}</p>}
+                      {r.valid_to && <p className="text-xs text-muted-foreground/60">Válido hasta: {r.valid_to}</p>}
                     </div>
                   );
                 })}
-                {rewards.length === 0 && <p className="col-span-3 text-center py-12 text-gray-400">Sin recompensas configuradas</p>}
+                {rewards.length === 0 && <p className="col-span-3 text-center py-12 text-muted-foreground/60">Sin recompensas configuradas</p>}
               </div>
             </div>
           )}
 
           {/* ── Miembros ── */}
           {activeTab === "Miembros" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
                     {["Cliente", "Tier", "Puntos actuales", "Puntos lifetime", "Últ. actividad", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -430,23 +428,23 @@ export default function LoyaltyAdvancedPage() {
                   {members.map(m => {
                     const tier = m.loyalty_tiers;
                     return (
-                      <tr key={m.id} className="hover:bg-gray-50">
+                      <tr key={m.id} className="hover:bg-muted/20">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{m.clients?.name ?? "—"}</p>
-                          <p className="text-xs text-gray-400">{m.clients?.email}</p>
+                          <p className="font-medium text-foreground">{m.clients?.name ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground/60">{m.clients?.email}</p>
                         </td>
                         <td className="px-4 py-3">
                           {tier ? (
                             <span className="flex items-center gap-1 text-xs font-medium" style={{ color: tier.color }}>
                               {tier.icon} {tier.name}
                             </span>
-                          ) : <span className="text-gray-400 text-xs">Sin tier</span>}
+                          ) : <span className="text-muted-foreground/60 text-xs">Sin tier</span>}
                         </td>
                         <td className="px-4 py-3 font-semibold text-yellow-600">
                           <span className="flex items-center gap-1"><Coins className="w-3.5 h-3.5" />{m.current_points.toLocaleString("es-AR")}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{m.lifetime_points.toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">
+                        <td className="px-4 py-3 text-muted-foreground">{m.lifetime_points.toLocaleString("es-AR")}</td>
+                        <td className="px-4 py-3 text-muted-foreground/60 text-xs">
                           {m.last_activity ? new Date(m.last_activity).toLocaleDateString("es-AR") : "—"}
                         </td>
                         <td className="px-4 py-3">
@@ -458,7 +456,7 @@ export default function LoyaltyAdvancedPage() {
                     );
                   })}
                   {members.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-12 text-gray-400">Sin miembros registrados</td></tr>
+                    <tr><td colSpan={6} className="text-center py-12 text-muted-foreground/60">Sin miembros registrados</td></tr>
                   )}
                 </tbody>
               </table>
@@ -467,9 +465,9 @@ export default function LoyaltyAdvancedPage() {
 
           {/* ── Transacciones ── */}
           {activeTab === "Transacciones" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
                     {["Fecha", "Cliente", "Tipo", "Puntos", "Saldo posterior", "Descripción"].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -478,12 +476,12 @@ export default function LoyaltyAdvancedPage() {
                 </thead>
                 <tbody className="divide-y">
                   {transactions.map(t => {
-                    const cfg = TXN_TYPE_CONFIG[t.transaction_type] ?? { label: t.transaction_type, color: "text-gray-600", sign: "" };
+                    const cfg = TXN_TYPE_CONFIG[t.transaction_type] ?? { label: t.transaction_type, color: "text-muted-foreground", sign: "" };
                     const isPos = t.points >= 0;
                     return (
-                      <tr key={t.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-500">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{(t.loyalty_members as LoyaltyTransaction["loyalty_members"])?.clients?.name ?? "—"}</td>
+                      <tr key={t.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{(t.loyalty_members as LoyaltyTransaction["loyalty_members"])?.clients?.name ?? "—"}</td>
                         <td className="px-4 py-3"><span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span></td>
                         <td className={`px-4 py-3 font-semibold ${isPos ? "text-green-600" : "text-red-500"}`}>
                           <span className="flex items-center gap-1">
@@ -491,13 +489,13 @@ export default function LoyaltyAdvancedPage() {
                             {cfg.sign}{Math.abs(t.points).toLocaleString("es-AR")}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{t.balance_after.toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{t.description}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{t.balance_after.toLocaleString("es-AR")}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{t.description}</td>
                       </tr>
                     );
                   })}
                   {transactions.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-12 text-gray-400">Sin transacciones registradas</td></tr>
+                    <tr><td colSpan={6} className="text-center py-12 text-muted-foreground/60">Sin transacciones registradas</td></tr>
                   )}
                 </tbody>
               </table>
@@ -578,7 +576,7 @@ export default function LoyaltyAdvancedPage() {
             <DialogTitle>Ajustar Puntos — {selectedMember?.clients?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">Puntos actuales: <strong className="text-yellow-600">{selectedMember?.current_points.toLocaleString("es-AR")}</strong></p>
+            <p className="text-sm text-muted-foreground">Puntos actuales: <strong className="text-yellow-600">{selectedMember?.current_points.toLocaleString("es-AR")}</strong></p>
             <div>
               <Label>Tipo de transacción</Label>
               <Select value={adjustForm.transaction_type} onValueChange={v => setAdjustForm(p => ({ ...p, transaction_type: v }))}>

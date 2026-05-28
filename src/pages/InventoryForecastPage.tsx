@@ -36,6 +36,8 @@ import {
   ArrowDown,
   Minus,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -318,57 +320,42 @@ export default function InventoryForecastPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
-            Forecast de Inventario
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Demanda proyectada con algoritmos de promedio móvil y suavizado exponencial
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap items-center">
-          <Select value={horizon} onValueChange={setHorizon}>
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Próximos 7 días</SelectItem>
-              <SelectItem value="14">Próximos 14 días</SelectItem>
-              <SelectItem value="30">Próximos 30 días</SelectItem>
-              <SelectItem value="60">Próximos 60 días</SelectItem>
-              <SelectItem value="90">Próximos 90 días</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="w-4 h-4 mr-1.5" /> Exportar
-          </Button>
-          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        icon={Brain}
+        title="Forecast de Inventario"
+        description="Demanda proyectada con promedio móvil y suavizado exponencial"
+        actions={
+          <div className="flex gap-2 flex-wrap items-center">
+            <Select value={horizon} onValueChange={setHorizon}>
+              <SelectTrigger className="w-36 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Próximos 7 días</SelectItem>
+                <SelectItem value="14">Próximos 14 días</SelectItem>
+                <SelectItem value="30">Próximos 30 días</SelectItem>
+                <SelectItem value="60">Próximos 60 días</SelectItem>
+                <SelectItem value="90">Próximos 90 días</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download className="w-4 h-4 mr-1.5" /> Exportar
+            </Button>
+            <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        {[
-          { label: "Stock crítico", value: kpis.critical, icon: AlertTriangle, color: "text-red-400", bg: "bg-red-500/5 border-red-500/20" },
-          { label: "Bajo stock", value: kpis.warning, icon: AlertTriangle, color: "text-amber-400", bg: "" },
-          { label: "Reponer ya", value: kpis.needsReorder, icon: Package, color: "text-orange-400", bg: "" },
-          { label: "Stock muerto", value: kpis.deadStock, icon: Minus, color: "text-gray-400", bg: "" },
-          { label: "Valor total stock", value: fmtCurrency(kpis.totalStockValue), icon: TrendingUp, color: "text-primary", bg: "" },
-        ].map(k => (
-          <div key={k.label} className={`rounded-xl border bg-card p-4 ${k.bg || "border-border"}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <KPICard label="Stock crítico" value={kpis.critical} sub="productos bajo lead time" icon={AlertTriangle} color="destructive" />
+        <KPICard label="Bajo stock" value={kpis.warning} sub="en zona de seguridad" icon={AlertTriangle} color="warning" />
+        <KPICard label="Reponer ya" value={kpis.needsReorder} sub="en o bajo punto de reorden" icon={Package} color="warning" />
+        <KPICard label="Stock sin movimiento" value={kpis.deadStock} sub="sin ventas en 30 días" icon={Minus} color="primary" />
+        <KPICard label="Valor total stock" value={fmtCurrency(kpis.totalStockValue)} sub="a precio de venta" icon={TrendingUp} color="success" />
       </div>
 
       {/* Filters */}
