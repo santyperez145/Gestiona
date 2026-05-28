@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   ShoppingBag, Plus, CheckCircle, XCircle, Clock,
-  ChevronDown, ChevronRight, DollarSign, AlertCircle
+  ChevronDown, ChevronRight, DollarSign, AlertCircle, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface PurchaseRequest {
   id: string;
@@ -67,6 +70,7 @@ const EMPTY_REQUEST = {
 };
 
 export default function PurchaseRequestsPage() {
+  usePageTitle("Solicitudes de Compra");
   const { orgId } = useOrganization();
 
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
@@ -165,32 +169,28 @@ export default function PurchaseRequestsPage() {
 
   const filteredRequests = statusFilter === "all" ? requests : requests.filter(r => r.status === statusFilter);
 
-  const kpis = {
+  const kpis = useMemo(() => ({
     total: requests.length,
     pending: requests.filter(r => r.status === "submitted").length,
     approved: requests.filter(r => ["approved","ordered"].includes(r.status)).length,
     totalValue: requests.filter(r => r.status === "approved").reduce((s, r) => s + Number(r.total_estimated), 0),
-  };
+  }), [requests]);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ShoppingBag className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Solicitudes de Compra</h1>
-            <p className="text-sm text-gray-500">Pedidos internos con flujo de aprobación</p>
-          </div>
-        </div>
-        <Dialog open={reqOpen} onOpenChange={setReqOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setReqForm({ ...EMPTY_REQUEST }); setReqItems([]); }}>
-              <Plus className="w-4 h-4 mr-2" /> Nueva solicitud
-            </Button>
-          </DialogTrigger>
+    <div className="space-y-6">
+      <PageHeader
+        icon={ShoppingBag}
+        title="Solicitudes de Compra"
+        description="Pedidos internos con flujo de aprobación"
+        actions={
+          <Dialog open={reqOpen} onOpenChange={setReqOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { setReqForm({ ...EMPTY_REQUEST }); setReqItems([]); }}>
+                <Plus className="w-4 h-4 mr-2" /> Nueva solicitud
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nueva solicitud de compra</DialogTitle></DialogHeader>
             <div className="space-y-4">
@@ -228,9 +228,9 @@ export default function PurchaseRequestsPage() {
                   <Label>Ítems solicitados</Label>
                   <Button size="sm" variant="outline" onClick={addItem}><Plus className="w-3 h-3 mr-1" /> Agregar ítem</Button>
                 </div>
-                {reqItems.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Sin ítems aún</p>}
+                {reqItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sin ítems aún</p>}
                 {reqItems.map((it, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-gray-50 p-2 rounded">
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-muted/20 p-2 rounded">
                     <div className="col-span-4 space-y-1">
                       <Label className="text-xs">Producto</Label>
                       <Input className="h-8 text-sm" value={it.product_name} onChange={e => updateItem(idx, "product_name", e.target.value)} placeholder="Nombre" />
@@ -257,7 +257,7 @@ export default function PurchaseRequestsPage() {
                   </div>
                 ))}
                 {reqItems.length > 0 && (
-                  <div className="text-right text-sm font-medium text-gray-700">
+                  <div className="text-right text-sm font-medium text-foreground">
                     Total estimado: {fmt(reqItems.reduce((s, it) => s + Number(it.quantity) * Number(it.estimated_price), 0))}
                   </div>
                 )}
@@ -273,21 +273,22 @@ export default function PurchaseRequestsPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Total solicitudes</p><p className="text-3xl font-bold text-gray-900 mt-1">{kpis.total}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="flex items-center gap-2 mb-1"><AlertCircle className="w-4 h-4 text-yellow-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Pendientes</p></div><p className="text-3xl font-bold text-yellow-600">{kpis.pending}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="flex items-center gap-2 mb-1"><CheckCircle className="w-4 h-4 text-green-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Aprobadas</p></div><p className="text-3xl font-bold text-green-600">{kpis.approved}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="flex items-center gap-2 mb-1"><DollarSign className="w-4 h-4 text-blue-500" /><p className="text-xs text-gray-500 uppercase tracking-wide">Valor aprobado</p></div><p className="text-3xl font-bold text-blue-600">{fmt(kpis.totalValue)}</p></CardContent></Card>
+        <KPICard label="Total solicitudes" value={kpis.total} icon={ShoppingBag} color="primary" />
+        <KPICard label="Pendientes" value={kpis.pending} icon={AlertCircle} color="warning" sub="Esperando aprobación" />
+        <KPICard label="Aprobadas" value={kpis.approved} icon={CheckCircle} color="success" sub="Aprobadas y pedidas" />
+        <KPICard label="Valor aprobado" value={fmt(kpis.totalValue)} icon={DollarSign} color="blue" sub="Total en solicitudes aprobadas" />
       </div>
 
       {/* Status filter pills */}
       <div className="flex flex-wrap gap-2">
         {["all", ...Object.keys(STATUS_CFG)].map(st => (
           <button key={st} onClick={() => setStatusFilter(st)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${statusFilter === st ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${statusFilter === st ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
             {st === "all" ? `Todas (${requests.length})` : STATUS_CFG[st]?.label}
           </button>
         ))}
@@ -295,7 +296,7 @@ export default function PurchaseRequestsPage() {
 
       {/* Requests list */}
       {filteredRequests.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>No hay solicitudes de compra</p>
         </div>
@@ -312,16 +313,16 @@ export default function PurchaseRequestsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <button onClick={() => setExpandedReq(isExp ? null : req.id)} className="text-gray-400 flex-shrink-0">
+                      <button onClick={() => setExpandedReq(isExp ? null : req.id)} className="text-muted-foreground flex-shrink-0">
                         {isExp ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       </button>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs text-gray-400">{req.request_number}</span>
-                          <span className="font-semibold text-gray-900">{req.title}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{req.request_number}</span>
+                          <span className="font-semibold text-foreground">{req.title}</span>
                           <Badge className={`text-xs ${pc.color}`}>{pc.label}</Badge>
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {req.requested_by}{req.department && ` · ${req.department}`} · {new Date(req.created_at).toLocaleDateString("es-AR")}
                           {req.needed_by && ` · Necesario: ${new Date(req.needed_by).toLocaleDateString("es-AR")}`}
                         </p>
@@ -330,7 +331,7 @@ export default function PurchaseRequestsPage() {
 
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
-                        <p className="font-semibold text-gray-900">{fmt(req.total_estimated)}</p>
+                        <p className="font-semibold text-foreground">{fmt(req.total_estimated)}</p>
                         <Badge className={`text-xs flex items-center gap-1 ${sc.color}`}>{sc.icon} {sc.label}</Badge>
                       </div>
                       <div className="flex gap-1">
@@ -361,21 +362,21 @@ export default function PurchaseRequestsPage() {
                   {isExp && (
                     <div className="mt-4 pt-4 border-t space-y-2">
                       {items.map(item => (
-                        <div key={item.id} className="flex justify-between text-sm bg-gray-50 px-3 py-1.5 rounded">
+                        <div key={item.id} className="flex justify-between text-sm bg-muted/20 px-3 py-1.5 rounded">
                           <div>
                             <span className="font-medium">{item.product_name}</span>
-                            {item.description && <span className="text-gray-400 text-xs ml-2">{item.description}</span>}
-                            {item.preferred_supplier && <span className="text-xs text-blue-600 ml-2">[{item.preferred_supplier}]</span>}
+                            {item.description && <span className="text-muted-foreground text-xs ml-2">{item.description}</span>}
+                            {item.preferred_supplier && <span className="text-xs text-blue-500 ml-2">[{item.preferred_supplier}]</span>}
                           </div>
-                          <span className="text-gray-500">x{item.quantity} {item.unit} · {fmt(item.total_estimated)}</span>
+                          <span className="text-muted-foreground">x{item.quantity} {item.unit} · {fmt(item.total_estimated)}</span>
                         </div>
                       ))}
                       {req.rejected_reason && (
-                        <p className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+                        <p className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">
                           Motivo rechazo: {req.rejected_reason}
                         </p>
                       )}
-                      {req.notes && <p className="text-sm text-gray-500 italic">{req.notes}</p>}
+                      {req.notes && <p className="text-sm text-muted-foreground italic">{req.notes}</p>}
                     </div>
                   )}
                 </CardContent>
@@ -391,7 +392,7 @@ export default function PurchaseRequestsPage() {
           <DialogHeader><DialogTitle>Rechazar solicitud</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Label>Motivo del rechazo *</Label>
-            <Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3} placeholder="Explicá el motivo..." />
+            <Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3} placeholder="Explicá el motivo..." className="bg-muted" />
             <div className="flex gap-2">
               <Button variant="ghost" className="flex-1" onClick={() => setRejectOpen(false)}>Cancelar</Button>
               <Button variant="destructive" className="flex-1" onClick={rejectRequest}>Rechazar</Button>

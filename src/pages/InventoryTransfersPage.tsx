@@ -6,8 +6,11 @@ import { toast } from "sonner";
 import {
   ArrowRightLeft, Plus, X, Save, Search, Trash2, Edit2,
   CheckCircle, Clock, Truck, XCircle, RefreshCw, Package,
-  ChevronDown, ChevronUp, MapPin, FileText, AlertTriangle
+  ChevronDown, ChevronUp, MapPin, FileText, AlertTriangle, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +74,7 @@ const emptyForm = () => ({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function InventoryTransfersPage() {
+  usePageTitle("Transferencias de Inventario");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -233,50 +237,30 @@ export default function InventoryTransfersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-500/15 flex items-center justify-center">
-              <ArrowRightLeft className="w-4.5 h-4.5 text-teal-400" />
-            </div>
-            Transferencias de Inventario
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Mover stock entre sucursales y depósitos · trazabilidad completa
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          {isAdmin && (
-            <Button className="gradient-gold text-primary-foreground gap-2" onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4" /> Nueva transferencia
+      <PageHeader
+        icon={ArrowRightLeft}
+        title="Transferencias de Inventario"
+        description="Mover stock entre sucursales y depósitos · trazabilidad completa"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button className="gradient-gold text-primary-foreground gap-2" onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4" /> Nueva transferencia
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Abiertas</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{kpis.open}</p>
-        </div>
-        <div className="bg-card border border-blue-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">En tránsito</p>
-          <p className="text-2xl font-bold mt-1 text-blue-400">{kpis.inTransit}</p>
-        </div>
-        <div className="bg-card border border-emerald-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Completadas</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">{kpis.done}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Unidades movidas</p>
-          <p className="text-2xl font-bold mt-1">{kpis.totalItems}</p>
-          <p className="text-[10px] text-muted-foreground">completadas</p>
-        </div>
+        <KPICard label="Abiertas" value={kpis.open} icon={Clock} color="warning" sub="En proceso" />
+        <KPICard label="En tránsito" value={kpis.inTransit} icon={Truck} color="blue" sub="En camino" />
+        <KPICard label="Completadas" value={kpis.done} icon={CheckCircle} color="success" sub="Finalizadas" />
+        <KPICard label="Unidades movidas" value={kpis.totalItems} icon={Package} color="primary" sub="En transferencias completadas" />
       </div>
 
       {/* Filters */}
@@ -360,9 +344,8 @@ export default function InventoryTransfersPage() {
 
       {/* Transfer list */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <ArrowRightLeft className="w-8 h-8 mx-auto mb-3 animate-pulse text-teal-400" />
-          <p className="text-sm">Cargando transferencias...</p>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

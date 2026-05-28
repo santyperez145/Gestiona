@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Warehouse, Plus, Star, Package, ChevronRight, ChevronDown, MapPin } from "lucide-react";
+import { Warehouse, Plus, Star, Package, ChevronRight, ChevronDown, MapPin, Loader2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface WarehouseData {
   id: string;
@@ -62,6 +65,7 @@ const EMPTY_ZONE = { warehouse_id: "", name: "", zone_type: "general" };
 const EMPTY_BIN = { zone_id: "", code: "", description: "", capacity: 0 };
 
 export default function MultiWarehousePage() {
+  usePageTitle("Multi-Depósito");
   const { orgId } = useOrganization();
 
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
@@ -178,23 +182,22 @@ export default function MultiWarehousePage() {
     load();
   }
 
-  const totalBins = bins.length;
-  const totalProducts = [...new Set(binStock.map(bs => bs.product_id))].length;
-  const totalWarehouseQty = binStock.reduce((s, bs) => s + Number(bs.quantity), 0);
+  const kpis = useMemo(() => ({
+    totalWarehouses: warehouses.length,
+    totalZones: zones.length,
+    totalBins: bins.length,
+    totalProducts: [...new Set(binStock.map(bs => bs.product_id))].length,
+  }), [warehouses, zones, bins, binStock]);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Warehouse className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Multi-Depósito</h1>
-            <p className="text-sm text-gray-500">Depósitos, zonas, posiciones y stock por ubicación</p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Warehouse}
+        title="Multi-Depósito"
+        description="Depósitos, zonas, posiciones y stock por ubicación"
+        actions={
         <div className="flex gap-2">
           <Dialog open={binOpen} onOpenChange={setBinOpen}>
             <DialogTrigger asChild>
@@ -320,19 +323,20 @@ export default function MultiWarehousePage() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Depósitos</p><p className="text-3xl font-bold text-gray-900 mt-1">{warehouses.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Zonas</p><p className="text-3xl font-bold text-gray-900 mt-1">{zones.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Posiciones</p><p className="text-3xl font-bold text-blue-600 mt-1">{totalBins}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500 uppercase tracking-wide">Productos ubicados</p><p className="text-3xl font-bold text-green-600 mt-1">{totalProducts}</p></CardContent></Card>
+        <KPICard label="Depósitos" value={kpis.totalWarehouses} icon={Warehouse} color="primary" />
+        <KPICard label="Zonas" value={kpis.totalZones} icon={MapPin} color="purple" />
+        <KPICard label="Posiciones" value={kpis.totalBins} icon={Package} color="blue" />
+        <KPICard label="Productos ubicados" value={kpis.totalProducts} icon={Package} color="success" sub="Productos con stock asignado" />
       </div>
 
       {/* Tree view */}
       {warehouses.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <Warehouse className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>No hay depósitos configurados</p>
         </div>
@@ -348,16 +352,16 @@ export default function MultiWarehousePage() {
               <Card key={wh.id} className="overflow-hidden">
                 <CardContent className="p-0">
                   {/* Warehouse header */}
-                  <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedWh(isWhExpanded ? null : wh.id)}>
-                    {isWhExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/40" onClick={() => setExpandedWh(isWhExpanded ? null : wh.id)}>
+                    {isWhExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                     <Warehouse className="w-5 h-5 text-blue-500" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900">{wh.name}</span>
-                        {wh.code && <span className="text-xs text-gray-400 font-mono">({wh.code})</span>}
-                        {wh.is_default && <Badge className="text-xs bg-gold-100 text-yellow-800"><Star className="w-2.5 h-2.5 inline mr-0.5" />Predeterminado</Badge>}
+                        <span className="font-semibold text-foreground">{wh.name}</span>
+                        {wh.code && <span className="text-xs text-muted-foreground font-mono">({wh.code})</span>}
+                        {wh.is_default && <Badge className="text-xs bg-yellow-500/20 text-yellow-500"><Star className="w-2.5 h-2.5 inline mr-0.5" />Predeterminado</Badge>}
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {whZones.length} zonas · {whBins.length} posiciones · {whStockTotal.toLocaleString("es-AR")} u. en stock
                         {wh.address && ` · ${wh.address}`}
                       </p>
@@ -373,7 +377,7 @@ export default function MultiWarehousePage() {
                   {isWhExpanded && (
                     <div className="border-t">
                       {whZones.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-4">Sin zonas — creá una zona primero</p>
+                        <p className="text-sm text-muted-foreground text-center py-4">Sin zonas — creá una zona primero</p>
                       ) : whZones.map(zone => {
                         const zoneBins = bins.filter(b => b.zone_id === zone.id);
                         const zoneStock = binStock.filter(bs => zoneBins.some(b => b.id === bs.bin_id)).reduce((s, bs) => s + Number(bs.quantity), 0);
@@ -382,19 +386,19 @@ export default function MultiWarehousePage() {
 
                         return (
                           <div key={zone.id} className="border-t">
-                            <div className="flex items-center gap-3 px-8 py-3 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedZone(isZoneExp ? null : zone.id)}>
-                              {isZoneExp ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
+                            <div className="flex items-center gap-3 px-8 py-3 cursor-pointer hover:bg-muted/40" onClick={() => setExpandedZone(isZoneExp ? null : zone.id)}>
+                              {isZoneExp ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
                               <MapPin className="w-4 h-4 text-purple-500" />
-                              <span className="font-medium text-gray-800 text-sm">{zone.name}</span>
+                              <span className="font-medium text-foreground text-sm">{zone.name}</span>
                               <Badge className={`text-xs ${ztc.color}`}>{ztc.label}</Badge>
-                              <span className="text-xs text-gray-400 ml-auto">{zoneBins.length} posiciones · {zoneStock.toLocaleString("es-AR")} u.</span>
+                              <span className="text-xs text-muted-foreground ml-auto">{zoneBins.length} posiciones · {zoneStock.toLocaleString("es-AR")} u.</span>
                             </div>
 
                             {/* Bins */}
                             {isZoneExp && (
-                              <div className="border-t bg-gray-50/50">
+                              <div className="border-t bg-muted/20">
                                 {zoneBins.length === 0 ? (
-                                  <p className="text-xs text-gray-400 text-center py-3">Sin posiciones</p>
+                                  <p className="text-xs text-muted-foreground text-center py-3">Sin posiciones</p>
                                 ) : (
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-4">
                                     {zoneBins.map(bin => {
@@ -403,26 +407,26 @@ export default function MultiWarehousePage() {
                                       const totalQty = binProducts.reduce((s, bs) => s + Number(bs.quantity), 0);
 
                                       return (
-                                        <div key={bin.id} className="bg-white border rounded-lg p-3">
+                                        <div key={bin.id} className="bg-card border rounded-lg p-3">
                                           <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedBin(isBinExp ? null : bin.id)}>
                                             <div className="flex items-center gap-2">
-                                              <Package className="w-3.5 h-3.5 text-gray-400" />
-                                              <span className="font-mono text-sm font-semibold text-gray-800">{bin.code}</span>
+                                              <Package className="w-3.5 h-3.5 text-muted-foreground" />
+                                              <span className="font-mono text-sm font-semibold text-foreground">{bin.code}</span>
                                               {totalQty > 0 && <Badge variant="outline" className="text-xs px-1 py-0">{totalQty.toLocaleString("es-AR")}</Badge>}
                                             </div>
                                             <div className="flex items-center gap-1">
-                                              <button className="text-blue-500 hover:text-blue-700" onClick={e => { e.stopPropagation(); setStockBinId(bin.id); setStockOpen(true); }}>
+                                              <button className="text-blue-500 hover:text-blue-400" onClick={e => { e.stopPropagation(); setStockBinId(bin.id); setStockOpen(true); }}>
                                                 <Plus className="w-3.5 h-3.5" />
                                               </button>
-                                              {isBinExp ? <ChevronDown className="w-3 h-3 text-gray-400" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
+                                              {isBinExp ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
                                             </div>
                                           </div>
                                           {isBinExp && binProducts.length > 0 && (
                                             <div className="mt-2 pt-2 border-t space-y-1">
                                               {binProducts.map(bs => (
-                                                <div key={bs.id} className="flex justify-between text-xs text-gray-600">
+                                                <div key={bs.id} className="flex justify-between text-xs text-muted-foreground">
                                                   <span className="truncate">{bs.products?.name ?? "—"}</span>
-                                                  <span className="font-semibold ml-2">{Number(bs.quantity).toLocaleString("es-AR")}</span>
+                                                  <span className="font-semibold ml-2 text-foreground">{Number(bs.quantity).toLocaleString("es-AR")}</span>
                                                 </div>
                                               ))}
                                             </div>
@@ -451,7 +455,7 @@ export default function MultiWarehousePage() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Asignar stock a posición</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">Posición: <strong>{bins.find(b => b.id === stockBinId)?.code ?? "—"}</strong></p>
+            <p className="text-sm text-muted-foreground">Posición: <strong className="text-foreground">{bins.find(b => b.id === stockBinId)?.code ?? "—"}</strong></p>
             <div className="space-y-1">
               <Label>Producto *</Label>
               <Select value={stockProductId} onValueChange={setStockProductId}>
