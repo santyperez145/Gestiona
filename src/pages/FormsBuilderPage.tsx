@@ -19,8 +19,11 @@ import {
   FormInput, Plus, Edit2, Trash2, RefreshCw, Search,
   Copy, ExternalLink, Eye, BarChart3, ArrowUp, ArrowDown,
   GripVertical, CheckSquare, List, Hash, Mail, Phone,
-  AlignLeft, Star, Calendar, Type, Minus,
+  AlignLeft, Star, Calendar, Type, Minus, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface FormField {
@@ -344,6 +347,7 @@ function ResponsesModal({ form, onClose }: { form: CustomForm; onClose: () => vo
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function FormsBuilderPage() {
+  usePageTitle("Constructor de Formularios");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [forms, setForms] = useState<CustomForm[]>([]);
@@ -388,35 +392,22 @@ export default function FormsBuilderPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FormInput className="w-6 h-6 text-primary" /> Constructor de Formularios
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Creá formularios personalizados para leads, encuestas, pedidos y más.
-          </p>
-        </div>
-        <Button onClick={() => { setEditing(null); setBuilderOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nuevo formulario
-        </Button>
-      </div>
+      <PageHeader
+        icon={FormInput}
+        title="Constructor de Formularios"
+        description="Creá formularios personalizados para leads, encuestas, pedidos y más."
+        actions={
+          <Button onClick={() => { setEditing(null); setBuilderOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo formulario
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Formularios", value: forms.length, icon: FormInput, color: "text-primary" },
-          { label: "Activos", value: activeCount, icon: CheckSquare, color: "text-emerald-400" },
-          { label: "Respuestas totales", value: totalResponses, icon: BarChart3, color: "text-blue-400" },
-          { label: "Promedio resp.", value: forms.length > 0 ? Math.round(totalResponses / forms.length) : 0, icon: Star, color: "text-yellow-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Formularios"      value={forms.length}                                                      icon={FormInput}   color="primary" />
+        <KPICard label="Activos"          value={activeCount}                                                       icon={CheckSquare} color="success" />
+        <KPICard label="Respuestas totales" value={totalResponses}                                                  icon={BarChart3}   color="blue" />
+        <KPICard label="Promedio resp."   value={forms.length > 0 ? Math.round(totalResponses / forms.length) : 0} icon={Star}        color="warning" />
       </div>
 
       <div className="flex gap-2">
@@ -428,7 +419,9 @@ export default function FormsBuilderPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
           {forms.length === 0 ? "Creá tu primer formulario." : "Sin resultados."}

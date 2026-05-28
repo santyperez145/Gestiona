@@ -19,8 +19,11 @@ import {
   Bell, Plus, Edit2, Trash2, RefreshCw, Search,
   Zap, Mail, MessageCircle, Webhook, CheckCircle2,
   Clock, AlertTriangle, TrendingUp, Play, Pause,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NotifRule {
@@ -282,6 +285,7 @@ function RuleForm({ open, onClose, editing, orgId, onSaved }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NotificationRulesPage() {
+  usePageTitle("Reglas de Notificación");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [rules, setRules] = useState<NotifRule[]>([]);
@@ -331,42 +335,29 @@ export default function NotificationRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="w-6 h-6 text-primary" /> Reglas de Notificación
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Configurá alertas automáticas por email, WhatsApp, webhooks y más.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {rules.length === 0 && !loading && (
-            <Button variant="outline" onClick={seedDefaults} disabled={seeding}>
-              {seeding ? "Creando..." : "Cargar ejemplos"}
+      <PageHeader
+        icon={Bell}
+        title="Reglas de Notificación"
+        description="Configurá alertas automáticas por email, WhatsApp, webhooks y más."
+        actions={
+          <>
+            {rules.length === 0 && !loading && (
+              <Button variant="outline" onClick={seedDefaults} disabled={seeding}>
+                {seeding ? "Creando..." : "Cargar ejemplos"}
+              </Button>
+            )}
+            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Nueva regla
             </Button>
-          )}
-          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nueva regla
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Reglas activas", value: activeCount, icon: Zap, color: "text-primary" },
-          { label: "Total reglas", value: rules.length, icon: Bell, color: "text-blue-400" },
-          { label: "Veces disparadas", value: totalFires, icon: TrendingUp, color: "text-yellow-400" },
-          { label: "Notif. enviadas", value: logs.length, icon: CheckCircle2, color: "text-emerald-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Reglas activas"    value={activeCount}   icon={Zap}         color="primary" />
+        <KPICard label="Total reglas"      value={rules.length}  icon={Bell}        color="blue" />
+        <KPICard label="Veces disparadas"  value={totalFires}    icon={TrendingUp}  color="warning" />
+        <KPICard label="Notif. enviadas"   value={logs.length}   icon={CheckCircle2} color="success" />
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -377,7 +368,9 @@ export default function NotificationRulesPage() {
 
         <TabsContent value="rules" className="space-y-2 pt-2">
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            </div>
           ) : rules.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               Sin reglas. Cargá ejemplos o creá una.

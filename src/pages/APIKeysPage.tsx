@@ -10,9 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
   Key, Plus, Copy, Eye, EyeOff, Trash2, Zap, Globe, Activity,
-  CheckCircle2, XCircle, Clock, AlertTriangle, RefreshCcw, Code2, Webhook
+  CheckCircle2, XCircle, Clock, AlertTriangle, RefreshCcw, Code2, Webhook, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface APIKey {
@@ -104,6 +107,7 @@ function generateMockKey(env: string): string {
 }
 
 export default function APIKeysPage() {
+  usePageTitle("API & Webhooks");
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("API Keys");
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
@@ -204,49 +208,42 @@ export default function APIKeysPage() {
   const failedDeliveries = deliveries.filter(d => d.status === "failed").length;
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Code2 className="w-6 h-6 text-gray-700" /> API & Webhooks
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestión de claves API, webhooks y portal de desarrolladores</p>
-        </div>
-        <div className="flex gap-2">
-          {activeTab === "API Keys" && <Button size="sm" onClick={() => { setKeyForm({ name: "", description: "", environment: "production", scopes: [], rate_limit_rpm: "1000", expires_at: "" }); setShowKeyDialog(true); }}><Plus className="w-4 h-4 mr-1" /> Crear API Key</Button>}
-          {activeTab === "Webhooks" && <Button size="sm" onClick={openNewHook}><Plus className="w-4 h-4 mr-1" /> Nuevo Webhook</Button>}
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Code2}
+        title="API & Webhooks"
+        description="Gestión de claves API, webhooks y portal de desarrolladores"
+        actions={
+          <>
+            {activeTab === "API Keys" && <Button size="sm" onClick={() => { setKeyForm({ name: "", description: "", environment: "production", scopes: [], rate_limit_rpm: "1000", expires_at: "" }); setShowKeyDialog(true); }}><Plus className="w-4 h-4 mr-1" /> Crear API Key</Button>}
+            {activeTab === "Webhooks" && <Button size="sm" onClick={openNewHook}><Plus className="w-4 h-4 mr-1" /> Nuevo Webhook</Button>}
+          </>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Keys activas",       value: activeKeys,                          icon: <Key className="w-5 h-5 text-emerald-600" />,    bg: "bg-emerald-50" },
-          { label: "Requests totales",   value: totalRequests.toLocaleString("es-AR"), icon: <Activity className="w-5 h-5 text-blue-600" />,  bg: "bg-blue-50" },
-          { label: "Webhooks activos",   value: activeWebhooks,                      icon: <Webhook className="w-5 h-5 text-purple-600" />,  bg: "bg-purple-50" },
-          { label: "Entregas fallidas",  value: failedDeliveries,                    icon: <AlertTriangle className="w-5 h-5 text-red-600" />, bg: "bg-red-50" },
-        ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl border p-4 flex items-center gap-3">
-            <div className={`${k.bg} p-2.5 rounded-lg`}>{k.icon}</div>
-            <div>
-              <p className="text-xs text-gray-500">{k.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{k.value}</p>
-            </div>
-          </div>
-        ))}
+        <KPICard label="Keys activas"      value={activeKeys}                            icon={Key}           color="success" />
+        <KPICard label="Requests totales"  value={totalRequests.toLocaleString("es-AR")} icon={Activity}      color="blue" />
+        <KPICard label="Webhooks activos"  value={activeWebhooks}                        icon={Webhook}       color="purple" />
+        <KPICard label="Entregas fallidas" value={failedDeliveries}                      icon={AlertTriangle} color="destructive" />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
       </div>
 
-      {loading ? <div className="text-center py-16 text-gray-400">Cargando…</div> : (
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
+      ) : (
         <>
           {/* ── API Keys ── */}
           {activeTab === "API Keys" && (
@@ -254,24 +251,24 @@ export default function APIKeysPage() {
               {apiKeys.map(k => {
                 const env = ENVIRONMENTS[k.environment] ?? ENVIRONMENTS.production;
                 return (
-                  <div key={k.id} className={`bg-white rounded-xl border p-4 flex items-center gap-4 ${!k.is_active ? "opacity-60" : ""}`}>
-                    <div className="p-2 bg-gray-100 rounded-lg"><Key className="w-5 h-5 text-gray-600" /></div>
+                  <div key={k.id} className={`bg-card rounded-xl border p-4 flex items-center gap-4 ${!k.is_active ? "opacity-60" : ""}`}>
+                    <div className="p-2 bg-muted rounded-lg"><Key className="w-5 h-5 text-muted-foreground" /></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900">{k.name}</p>
+                        <p className="font-semibold text-foreground">{k.name}</p>
                         <Badge className={`${env.color} text-xs`}>{env.label}</Badge>
-                        {!k.is_active && <Badge className="bg-red-100 text-red-700 text-xs">Revocada</Badge>}
+                        {!k.is_active && <Badge className="bg-destructive/15 text-destructive text-xs">Revocada</Badge>}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono text-gray-700">{k.key_prefix}</code>
-                        <button onClick={() => { navigator.clipboard.writeText(k.key_prefix); toast.success("Prefijo copiado"); }} className="text-gray-400 hover:text-gray-600"><Copy className="w-3.5 h-3.5" /></button>
+                        <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono text-muted-foreground">{k.key_prefix}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(k.key_prefix); toast.success("Prefijo copiado"); }} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
                       </div>
-                      <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                        {k.scopes.slice(0, 4).map(s => <span key={s} className="bg-gray-50 px-1.5 py-0.5 rounded">{s}</span>)}
+                      <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                        {k.scopes.slice(0, 4).map(s => <span key={s} className="bg-muted/50 px-1.5 py-0.5 rounded">{s}</span>)}
                         {k.scopes.length > 4 && <span>+{k.scopes.length - 4} más</span>}
                       </div>
                     </div>
-                    <div className="text-right text-xs text-gray-400 shrink-0">
+                    <div className="text-right text-xs text-muted-foreground shrink-0">
                       <p>{k.request_count.toLocaleString("es-AR")} requests</p>
                       <p>Límite: {k.rate_limit_rpm} rpm</p>
                       {k.last_used_at && <p>Último: {new Date(k.last_used_at).toLocaleDateString("es-AR")}</p>}
@@ -286,7 +283,7 @@ export default function APIKeysPage() {
                 );
               })}
               {apiKeys.length === 0 && (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-muted-foreground">
                   <Key className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">Sin API Keys creadas</p>
                   <p className="text-sm mt-1">Creá tu primera clave para integrar con el API</p>
@@ -303,12 +300,12 @@ export default function APIKeysPage() {
                   ? Math.round((w.success_count / (w.success_count + w.failure_count)) * 100) : 100;
                 const revealed = revealedSecrets.has(w.id);
                 return (
-                  <div key={w.id} className={`bg-white rounded-xl border p-4 ${!w.is_active ? "opacity-60" : ""}`}>
+                  <div key={w.id} className={`bg-card rounded-xl border p-4 ${!w.is_active ? "opacity-60" : ""}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-50 rounded-lg"><Webhook className="w-5 h-5 text-purple-600" /></div>
+                        <div className="p-2 bg-purple-500/10 rounded-lg"><Webhook className="w-5 h-5 text-violet-400" /></div>
                         <div>
-                          <p className="font-semibold text-gray-900">{w.name}</p>
+                          <p className="font-semibold text-foreground">{w.name}</p>
                           <a href={w.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1"><Globe className="w-3 h-3" />{w.url}</a>
                         </div>
                       </div>
@@ -322,35 +319,35 @@ export default function APIKeysPage() {
                       <div className="flex gap-1 flex-wrap">
                         {w.events.map(e => <span key={e} className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-mono">{e}</span>)}
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>✅ {w.success_count} exitosos</span>
                         <span>❌ {w.failure_count} fallidos</span>
                         <span className={`font-medium ${successRate >= 95 ? "text-green-600" : successRate >= 80 ? "text-yellow-600" : "text-red-500"}`}>{successRate}% éxito</span>
                         {w.last_triggered && <span>Último: {new Date(w.last_triggered).toLocaleDateString("es-AR")}</span>}
                       </div>
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-400">Secret:</span>
-                        <code className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                        <span className="text-muted-foreground">Secret:</span>
+                        <code className="font-mono bg-muted px-2 py-0.5 rounded text-muted-foreground">
                           {revealed ? w.secret : "••••••••••••••••"}
                         </code>
-                        <button onClick={() => setRevealedSecrets(s => { const n = new Set(s); n.has(w.id) ? n.delete(w.id) : n.add(w.id); return n; })} className="text-gray-400 hover:text-gray-600">
+                        <button onClick={() => setRevealedSecrets(s => { const n = new Set(s); n.has(w.id) ? n.delete(w.id) : n.add(w.id); return n; })} className="text-muted-foreground hover:text-foreground">
                           {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
-                        <button onClick={() => { navigator.clipboard.writeText(w.secret); toast.success("Secret copiado"); }} className="text-gray-400 hover:text-gray-600"><Copy className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { navigator.clipboard.writeText(w.secret); toast.success("Secret copiado"); }} className="text-muted-foreground hover:text-foreground"><Copy className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   </div>
                 );
               })}
-              {webhooks.length === 0 && <div className="text-center py-16 text-gray-400"><Webhook className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Sin webhooks configurados</p></div>}
+              {webhooks.length === 0 && <div className="text-center py-16 text-muted-foreground"><Webhook className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Sin webhooks configurados</p></div>}
             </div>
           )}
 
           {/* ── Entregas ── */}
           {activeTab === "Entregas" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/50 text-muted-foreground">
                   <tr>{["Fecha","Webhook","Evento","Estado","Intentos","HTTP","Error"].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y">
@@ -358,10 +355,10 @@ export default function APIKeysPage() {
                     const wh = webhooks.find(w => w.id === d.webhook_id);
                     const st = DELIVERY_STATUS_CONFIG[d.status] ?? DELIVERY_STATUS_CONFIG.pending;
                     return (
-                      <tr key={d.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-400 text-xs">{new Date(d.created_at).toLocaleString("es-AR")}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{wh?.name ?? "—"}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-purple-700">{d.event_type}</td>
+                      <tr key={d.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(d.created_at).toLocaleString("es-AR")}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{wh?.name ?? "—"}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-violet-400">{d.event_type}</td>
                         <td className="px-4 py-3"><Badge className={`${st.color} flex items-center gap-1 text-xs`}>{st.icon}{st.label}</Badge></td>
                         <td className="px-4 py-3 text-gray-500">{d.attempt_count}</td>
                         <td className="px-4 py-3">
@@ -371,7 +368,7 @@ export default function APIKeysPage() {
                       </tr>
                     );
                   })}
-                  {deliveries.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-gray-400">Sin entregas registradas</td></tr>}
+                  {deliveries.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">Sin entregas registradas</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -380,9 +377,9 @@ export default function APIKeysPage() {
           {/* ── Documentación ── */}
           {activeTab === "Documentación" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border p-6 space-y-4">
-                <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Code2 className="w-4 h-4" /> Autenticación</h2>
-                <p className="text-sm text-gray-600">Incluí tu API Key en el header de cada request:</p>
+              <div className="bg-card rounded-xl border p-6 space-y-4">
+                <h2 className="font-semibold text-foreground flex items-center gap-2"><Code2 className="w-4 h-4" /> Autenticación</h2>
+                <p className="text-sm text-muted-foreground">Incluí tu API Key en el header de cada request:</p>
                 <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs overflow-auto">{`Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx
 
 # Ejemplo con curl:
@@ -390,9 +387,9 @@ curl https://api.gestiona.app/v1/products \\
   -H "Authorization: Bearer sk_live_xxx" \\
   -H "Content-Type: application/json"`}</pre>
               </div>
-              <div className="bg-white rounded-xl border p-6 space-y-4">
-                <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Webhook className="w-4 h-4" /> Webhooks</h2>
-                <p className="text-sm text-gray-600">Validá la firma HMAC-SHA256 en cada entrega:</p>
+              <div className="bg-card rounded-xl border p-6 space-y-4">
+                <h2 className="font-semibold text-foreground flex items-center gap-2"><Webhook className="w-4 h-4" /> Webhooks</h2>
+                <p className="text-sm text-muted-foreground">Validá la firma HMAC-SHA256 en cada entrega:</p>
                 <pre className="bg-gray-900 text-blue-300 rounded-lg p-4 text-xs overflow-auto">{`const crypto = require('crypto');
 
 function verifyWebhook(payload, secret, signature) {
@@ -407,8 +404,8 @@ function verifyWebhook(payload, secret, signature) {
 const sig = req.headers['x-gestiona-signature'];
 const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
               </div>
-              <div className="bg-white rounded-xl border p-6 space-y-3 lg:col-span-2">
-                <h2 className="font-semibold text-gray-800">Endpoints disponibles</h2>
+              <div className="bg-card rounded-xl border p-6 space-y-3 lg:col-span-2">
+                <h2 className="font-semibold text-foreground">Endpoints disponibles</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[
                     { method: "GET",    path: "/v1/products",     scope: "products:read" },
@@ -418,10 +415,10 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
                     { method: "GET",    path: "/v1/clients",      scope: "clients:read" },
                     { method: "GET",    path: "/v1/reports/daily",scope: "reports:read" },
                   ].map(ep => (
-                    <div key={ep.path} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
-                      <Badge className={ep.method === "GET" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"} >{ep.method}</Badge>
-                      <code className="text-xs font-mono text-gray-700 flex-1">{ep.path}</code>
-                      <span className="text-xs text-gray-400">{ep.scope}</span>
+                    <div key={ep.path} className="flex items-center gap-3 bg-muted/30 rounded-lg px-3 py-2">
+                      <Badge className={ep.method === "GET" ? "bg-blue-500/15 text-blue-400" : "bg-success/15 text-success"} >{ep.method}</Badge>
+                      <code className="text-xs font-mono text-foreground flex-1">{ep.path}</code>
+                      <span className="text-xs text-muted-foreground">{ep.scope}</span>
                     </div>
                   ))}
                 </div>
@@ -453,7 +450,7 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
               <Label>Permisos (scopes)</Label>
               <div className="grid grid-cols-2 gap-1 mt-2 max-h-48 overflow-y-auto">
                 {ALL_SCOPES.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 rounded px-2 py-1">
+                  <label key={s} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
                     <input type="checkbox" checked={keyForm.scopes.includes(s)} onChange={() => toggleScope(s)} className="rounded" />
                     <span className="font-mono">{s}</span>
                   </label>
@@ -500,7 +497,7 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
               <Label>Eventos</Label>
               <div className="grid grid-cols-2 gap-1 mt-2 max-h-52 overflow-y-auto">
                 {WEBHOOK_EVENTS.map(e => (
-                  <label key={e} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 rounded px-2 py-1">
+                  <label key={e} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
                     <input type="checkbox" checked={hookForm.events.includes(e)} onChange={() => toggleEvent(e)} className="rounded" />
                     <span className="font-mono">{e}</span>
                   </label>

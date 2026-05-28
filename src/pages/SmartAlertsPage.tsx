@@ -8,14 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   Bell, AlertTriangle, CheckCircle, Info, Zap, Plus,
   Mail, MessageCircle, Webhook, Smartphone, Clock, Filter,
-  XCircle, Eye, Settings
+  XCircle, Eye, Settings, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface AlertRule {
   id: string;
@@ -73,6 +76,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export default function SmartAlertsPage() {
+  usePageTitle("Motor de Alertas Inteligentes");
   const { activeOrg } = useOrg();
   const [tab, setTab] = useState<"events" | "rules" | "config">("events");
   const [rules, setRules] = useState<AlertRule[]>([]);
@@ -183,71 +187,74 @@ export default function SmartAlertsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Bell className="w-6 h-6 text-primary" /> Motor de Alertas Inteligentes</h1>
-          <p className="text-muted-foreground text-sm mt-1">Reglas automáticas, notificaciones multicanal y gestión de incidentes</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {unacked > 0 && <Badge className="bg-red-500 text-white">{unacked} sin reconocer</Badge>}
-          <Dialog open={showNew} onOpenChange={setShowNew}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nueva Regla</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Crear Regla de Alerta</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-2">
-                <div><Label>Nombre</Label><Input value={newRule.name} onChange={e => setNewRule(n => ({ ...n, name: e.target.value }))} placeholder="Ej: Stock bajo de producto crítico" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Categoría</Label>
-                    <Select value={newRule.category} onValueChange={v => setNewRule(n => ({ ...n, category: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["stock","sales","financial","operations","customer","business","system"].map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label>Prioridad</Label>
-                    <Select value={newRule.priority} onValueChange={v => setNewRule(n => ({ ...n, priority: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="critical">Crítico</SelectItem>
-                        <SelectItem value="high">Alto</SelectItem>
-                        <SelectItem value="medium">Medio</SelectItem>
-                        <SelectItem value="low">Bajo</SelectItem>
-                        <SelectItem value="info">Informativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Condición</Label>
-                    <Select value={newRule.condition_op} onValueChange={v => setNewRule(n => ({ ...n, condition_op: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lt">Menor que</SelectItem>
-                        <SelectItem value="gt">Mayor que</SelectItem>
-                        <SelectItem value="lte">Menor o igual</SelectItem>
-                        <SelectItem value="gte">Mayor o igual</SelectItem>
-                        <SelectItem value="eq">Igual a</SelectItem>
-                        <SelectItem value="change_pct">Cambio % vs período anterior</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label>Umbral</Label><Input type="number" value={newRule.threshold} onChange={e => setNewRule(n => ({ ...n, threshold: e.target.value }))} /></div>
-                </div>
-                <Button className="w-full" onClick={handleCreateRule}>Crear Regla</Button>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Bell}
+        title="Motor de Alertas Inteligentes"
+        description="Reglas automáticas, notificaciones multicanal y gestión de incidentes"
+        actions={
+          <div className="flex items-center gap-2">
+            {unacked > 0 && <Badge className="bg-destructive text-destructive-foreground">{unacked} sin reconocer</Badge>}
+            <Button onClick={() => setShowNew(true)}><Plus className="w-4 h-4 mr-2" />Nueva Regla</Button>
+          </div>
+        }
+      />
+
+      {/* New Rule Dialog */}
+      <Dialog open={showNew} onOpenChange={setShowNew}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Crear Regla de Alerta</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div><Label>Nombre</Label><Input value={newRule.name} onChange={e => setNewRule(n => ({ ...n, name: e.target.value }))} placeholder="Ej: Stock bajo de producto crítico" /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Categoría</Label>
+                <Select value={newRule.category} onValueChange={v => setNewRule(n => ({ ...n, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["stock","sales","financial","operations","customer","business","system"].map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              <div><Label>Prioridad</Label>
+                <Select value={newRule.priority} onValueChange={v => setNewRule(n => ({ ...n, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="critical">Crítico</SelectItem>
+                    <SelectItem value="high">Alto</SelectItem>
+                    <SelectItem value="medium">Medio</SelectItem>
+                    <SelectItem value="low">Bajo</SelectItem>
+                    <SelectItem value="info">Informativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Condición</Label>
+                <Select value={newRule.condition_op} onValueChange={v => setNewRule(n => ({ ...n, condition_op: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lt">Menor que</SelectItem>
+                    <SelectItem value="gt">Mayor que</SelectItem>
+                    <SelectItem value="lte">Menor o igual</SelectItem>
+                    <SelectItem value="gte">Mayor o igual</SelectItem>
+                    <SelectItem value="eq">Igual a</SelectItem>
+                    <SelectItem value="change_pct">Cambio % vs período anterior</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Umbral</Label><Input type="number" value={newRule.threshold} onChange={e => setNewRule(n => ({ ...n, threshold: e.target.value }))} /></div>
+            </div>
+            <Button className="w-full" onClick={handleCreateRule}>Crear Regla</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-red-200"><CardContent className="p-4 flex gap-3 items-center"><XCircle className="w-8 h-8 text-red-500" /><div><p className="text-xs text-muted-foreground">Críticas</p><p className="text-2xl font-bold text-red-600">{stats.critical}</p></div></CardContent></Card>
-        <Card className="border-orange-200"><CardContent className="p-4 flex gap-3 items-center"><AlertTriangle className="w-8 h-8 text-orange-500" /><div><p className="text-xs text-muted-foreground">Altas</p><p className="text-2xl font-bold text-orange-600">{stats.high}</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Bell className="w-8 h-8 text-blue-500" /><div><p className="text-xs text-muted-foreground">Sin Reconocer</p><p className="text-2xl font-bold">{unacked}</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><CheckCircle className="w-8 h-8 text-green-500" /><div><p className="text-xs text-muted-foreground">Reglas Activas</p><p className="text-2xl font-bold">{stats.active_rules}</p></div></CardContent></Card>
+        <KPICard label="Críticas"       value={stats.critical}    icon={XCircle}      color="destructive" />
+        <KPICard label="Altas"          value={stats.high}        icon={AlertTriangle} color="warning" />
+        <KPICard label="Sin Reconocer"  value={unacked}           icon={Bell}          color="blue" />
+        <KPICard label="Reglas Activas" value={stats.active_rules} icon={CheckCircle}  color="success" />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>

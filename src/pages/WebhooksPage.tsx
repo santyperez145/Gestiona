@@ -6,8 +6,11 @@ import { toast } from "sonner";
 import {
   Webhook, Plus, X, Save, Trash2, Edit2, CheckCircle, XCircle,
   RefreshCw, Play, ChevronDown, ChevronUp, Copy, Eye, EyeOff,
-  Zap, AlertTriangle, Clock, Link, Shield, BarChart3, Info
+  Zap, AlertTriangle, Clock, Link, Shield, BarChart3, Info, Loader2
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,6 +116,7 @@ const emptyForm = () => ({
 
 // ── Component ────────────────────────────────────────────────────────────────
 export default function WebhooksPage() {
+  usePageTitle("Webhooks Salientes");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
@@ -302,46 +306,29 @@ export default function WebhooksPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
-              <Webhook className="w-4.5 h-4.5 text-purple-400" />
-            </div>
-            Webhooks Salientes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Conectá con Zapier, Make, n8n o cualquier HTTP endpoint
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          {isAdmin && (
-            <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
-              <Plus className="w-4 h-4" /> Nuevo webhook
+      <PageHeader
+        icon={Webhook}
+        title="Webhooks Salientes"
+        description="Conectá con Zapier, Make, n8n o cualquier HTTP endpoint"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
+                <Plus className="w-4 h-4" /> Nuevo webhook
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Activos</p>
-          <p className="text-2xl font-bold mt-1 text-purple-400">{kpis.active}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Entregas totales</p>
-          <p className="text-2xl font-bold mt-1">{kpis.totalDeliveries}</p>
-        </div>
-        <div className="bg-card border border-emerald-500/15 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Tasa de éxito</p>
-          <p className={`text-2xl font-bold mt-1 ${kpis.successRate >= 95 ? 'text-emerald-400' : kpis.successRate >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-            {kpis.successRate}%
-          </p>
-        </div>
+        <KPICard label="Activos"          value={kpis.active}                      icon={Webhook}   color="purple" />
+        <KPICard label="Entregas totales" value={kpis.totalDeliveries}             icon={BarChart3} color="blue" />
+        <KPICard label="Tasa de éxito"    value={`${kpis.successRate}%`}           icon={CheckCircle} color={kpis.successRate >= 95 ? "success" : kpis.successRate >= 80 ? "warning" : "destructive"} />
       </div>
 
       {/* Info */}
@@ -439,7 +426,7 @@ export default function WebhooksPage() {
             <div className="flex gap-2 px-5 pb-5">
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
               <Button className="flex-1 gradient-gold text-primary-foreground gap-1.5" onClick={handleSave} disabled={saving}>
-                {saving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {editing ? 'Guardar' : 'Crear webhook'}
               </Button>
             </div>
@@ -449,9 +436,8 @@ export default function WebhooksPage() {
 
       {/* Webhook list */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Webhook className="w-8 h-8 mx-auto mb-3 animate-pulse text-purple-400" />
-          <p className="text-sm">Cargando webhooks...</p>
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : webhooks.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
@@ -502,7 +488,7 @@ export default function WebhooksPage() {
                       {ALL_EVENTS.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
                     </select>
                     <Button size="sm" variant="outline" onClick={() => testWebhook(webhook)} disabled={testing === webhook.id} className="gap-1 text-xs h-7">
-                      {testing === webhook.id ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Play className="w-3 h-3" />}
+                      {testing === webhook.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                       Test
                     </Button>
                     <button onClick={() => toggleActive(webhook)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${webhook.active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/50'}`}>
