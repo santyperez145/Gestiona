@@ -65,6 +65,7 @@ const STATUS_CFG: Record<string, { label: string; color: string }> = {
 
 
 export default function VendorPortalPage() {
+  usePageTitle("Portal de Proveedores");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"vendors" | "invoices" | "catalog" | "messages">("vendors");
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -171,33 +172,34 @@ export default function VendorPortalPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Building className="w-6 h-6 text-primary" /> Portal de Proveedores</h1>
-          <p className="text-muted-foreground text-sm mt-1">Self-service para proveedores: catálogos, facturas y comunicaciones</p>
-        </div>
-        <Dialog open={showInvite} onOpenChange={setShowInvite}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Invitar Proveedor</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Invitar al Portal</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label>Email del Proveedor</Label><Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="proveedor@empresa.com" /></div>
-              <div><Label>Nombre del Proveedor</Label><Input placeholder="Empresa SA" /></div>
-              <Button className="w-full" onClick={() => { toast.success("Invitación enviada"); setShowInvite(false); }}>
-                <Mail className="w-4 h-4 mr-2" />Enviar Invitación
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Building}
+        title="Portal de Proveedores"
+        description="Self-service para proveedores: catálogos, facturas y comunicaciones"
+        actions={
+          <Dialog open={showInvite} onOpenChange={setShowInvite}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Invitar Proveedor</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Invitar al Portal</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label>Email del Proveedor</Label><Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="proveedor@empresa.com" /></div>
+                <div><Label>Nombre del Proveedor</Label><Input placeholder="Empresa SA" /></div>
+                <Button className="w-full" onClick={() => { toast.success("Invitación enviada"); setShowInvite(false); }}>
+                  <Mail className="w-4 h-4 mr-2" />Enviar Invitación
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Building className="w-8 h-8 text-blue-500" /><div><p className="text-xs text-muted-foreground">Proveedores Activos</p><p className="text-2xl font-bold">{vendors.filter(v => v.is_active).length}</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Clock className="w-8 h-8 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Facturas Pendientes</p><p className="text-xl font-bold">${(totalPending / 1000).toFixed(0)}K</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><CheckCircle className="w-8 h-8 text-green-500" /><div><p className="text-xs text-muted-foreground">Aprobadas para Pago</p><p className="text-xl font-bold">${(totalApproved / 1000).toFixed(0)}K</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex gap-3 items-center"><Package className="w-8 h-8 text-purple-500" /><div><p className="text-xs text-muted-foreground">Ítems en Catálogos</p><p className="text-2xl font-bold">{catalog.length}</p></div></CardContent></Card>
+        <KPICard label="Proveedores Activos" value={vendors.filter(v => v.is_active).length} icon={Building} color="blue" />
+        <KPICard label="Facturas Pendientes" value={`$${(totalPending / 1000).toFixed(0)}K`} icon={Clock} color="warning" />
+        <KPICard label="Aprobadas para Pago" value={`$${(totalApproved / 1000).toFixed(0)}K`} icon={CheckCircle} color="success" />
+        <KPICard label="Ítems en Catálogos" value={catalog.length} icon={Package} color="purple" />
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
