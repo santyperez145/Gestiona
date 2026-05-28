@@ -18,8 +18,11 @@ import {
 import {
   FileText, Plus, Edit2, Trash2, RefreshCw, Search, Send,
   CheckCircle2, XCircle, Clock, Package, DollarSign,
-  ChevronDown, ChevronUp, Copy, BarChart3,
+  ChevronDown, ChevronUp, Copy, BarChart3, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RFQ {
@@ -252,6 +255,7 @@ function RFQForm({ open, onClose, editing, orgId, onSaved }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SupplierQuotesPage() {
+  usePageTitle("Cotizaciones de Proveedores");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [rfqs, setRFQs] = useState<RFQ[]>([]);
@@ -313,36 +317,23 @@ export default function SupplierQuotesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary" /> Cotizaciones de Proveedores
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Enviá RFQs, comparé precios y aceptá la mejor oferta.
-          </p>
-        </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nueva RFQ
-        </Button>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Cotizaciones de Proveedores"
+        description="Enviá RFQs, comparé precios y aceptá la mejor oferta."
+        actions={
+          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nueva RFQ
+          </Button>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total RFQs", value: rfqs.length, icon: FileText, color: "text-primary" },
-          { label: "Enviadas", value: sentCount, icon: Send, color: "text-blue-400" },
-          { label: "Con respuesta", value: respondedCount, icon: Clock, color: "text-yellow-400" },
-          { label: "Aceptadas", value: acceptedCount, icon: CheckCircle2, color: "text-emerald-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Total RFQs" value={rfqs.length} icon={FileText} color="primary" />
+        <KPICard label="Enviadas" value={sentCount} icon={Send} color="blue" />
+        <KPICard label="Con respuesta" value={respondedCount} icon={Clock} color="warning" />
+        <KPICard label="Aceptadas" value={acceptedCount} icon={CheckCircle2} color="success" />
       </div>
 
       {/* Filters */}
@@ -364,7 +355,9 @@ export default function SupplierQuotesPage() {
 
       {/* RFQ list */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Sin RFQs. Creá una para solicitar cotizaciones.</div>
       ) : (

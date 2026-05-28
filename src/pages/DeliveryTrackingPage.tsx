@@ -18,8 +18,11 @@ import {
 import {
   Truck, MapPin, Package, Plus, Edit2, Trash2, RefreshCw,
   Search, CheckCircle2, Clock, XCircle, AlertTriangle, Copy,
-  Navigation, Phone, DollarSign, TrendingUp,
+  Navigation, Phone, DollarSign, TrendingUp, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Delivery {
@@ -383,6 +386,7 @@ function TrackingModal({ delivery, onClose, onUpdate }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DeliveryTrackingPage() {
+  usePageTitle("Seguimiento de Envíos");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -431,36 +435,23 @@ export default function DeliveryTrackingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" /> Seguimiento de Envíos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Gestioná entregas, repartidores, COD y tracking en tiempo real.
-          </p>
-        </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Nuevo envío
-        </Button>
-      </div>
+      <PageHeader
+        icon={Truck}
+        title="Seguimiento de Envíos"
+        description="Gestioná entregas, repartidores, COD y tracking en tiempo real."
+        actions={
+          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Nuevo envío
+          </Button>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total envíos", value: deliveries.length, icon: Package, color: "text-primary" },
-          { label: "En tránsito", value: inTransit, icon: Truck, color: "text-blue-400" },
-          { label: "Entregados hoy", value: todayDelivered, icon: CheckCircle2, color: "text-emerald-400" },
-          { label: "COD pendiente", value: fmtCurrency(pendingCOD), icon: DollarSign, color: "text-yellow-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Total envíos" value={deliveries.length} icon={Package} color="primary" />
+        <KPICard label="En tránsito" value={inTransit} icon={Truck} color="blue" />
+        <KPICard label="Entregados hoy" value={todayDelivered} icon={CheckCircle2} color="success" />
+        <KPICard label="COD pendiente" value={fmtCurrency(pendingCOD)} icon={DollarSign} color="warning" />
       </div>
 
       {/* Filters */}
@@ -491,7 +482,9 @@ export default function DeliveryTrackingPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando envíos...</div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
       ) : (
         <div className="rounded-xl border border-border/50 overflow-hidden">
           <table className="w-full text-sm">

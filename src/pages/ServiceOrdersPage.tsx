@@ -7,8 +7,11 @@ import {
   Wrench, Plus, X, Save, ChevronDown, ChevronUp, Search, RefreshCw,
   Clock, CheckCircle, AlertTriangle, User, MapPin, Phone, Calendar,
   Package, DollarSign, FileText, Star, Trash2, Edit2, Filter,
-  PlayCircle, PauseCircle, XCircle, ClipboardList, Zap
+  PlayCircle, PauseCircle, XCircle, ClipboardList, Zap, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,6 +97,7 @@ const emptyForm = () => ({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ServiceOrdersPage() {
+  usePageTitle("Órdenes de Servicio");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
@@ -263,55 +267,31 @@ export default function ServiceOrdersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
-              <Wrench className="w-4.5 h-4.5 text-orange-400" />
-            </div>
-            Órdenes de Servicio
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Field Service Management · Gestión de trabajo técnico
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          {isAdmin && (
-            <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
-              <Plus className="w-4 h-4" /> Nueva orden
+      <PageHeader
+        icon={Wrench}
+        title="Órdenes de Servicio"
+        description="Field Service Management · Gestión de trabajo técnico"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
+                <Plus className="w-4 h-4" /> Nueva orden
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Abiertas</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{kpis.open}</p>
-        </div>
-        <div className="bg-card border border-red-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">🚨 Urgentes</p>
-          <p className="text-2xl font-bold mt-1 text-red-400">{kpis.urgent}</p>
-        </div>
-        <div className="bg-card border border-emerald-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Completadas</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">{kpis.done}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Facturado</p>
-          <p className="text-lg font-bold mt-1">${kpis.revenue.toLocaleString("es-AR")}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Rating promedio</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">
-            {kpis.avgRating !== '-' ? `⭐ ${kpis.avgRating}` : '—'}
-          </p>
-        </div>
+        <KPICard label="Abiertas" value={kpis.open} icon={ClipboardList} color="warning" />
+        <KPICard label="Urgentes" value={kpis.urgent} icon={AlertTriangle} color="destructive" />
+        <KPICard label="Completadas" value={kpis.done} icon={CheckCircle} color="success" />
+        <KPICard label="Facturado" value={`$${kpis.revenue.toLocaleString("es-AR")}`} icon={DollarSign} color="primary" />
+        <KPICard label="Rating promedio" value={kpis.avgRating !== '-' ? `${kpis.avgRating}` : '—'} icon={Star} color="warning" />
       </div>
 
       {/* Filters */}
@@ -427,9 +407,8 @@ export default function ServiceOrdersPage() {
 
       {/* Order list */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Wrench className="w-8 h-8 mx-auto mb-3 animate-pulse text-orange-400" />
-          <p className="text-sm">Cargando órdenes...</p>
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
