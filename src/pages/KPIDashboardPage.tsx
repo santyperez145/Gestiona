@@ -11,9 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   BarChart3, TrendingUp, TrendingDown, Target, Bell, Plus, Pencil, Trash2,
   LayoutDashboard, Star, Settings2, Eye, EyeOff, GripVertical, AlertCircle,
-  CheckCircle2, Activity, DollarSign, ShoppingCart, Users, Package
+  CheckCircle2, Activity, DollarSign, ShoppingCart, Users, Package, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import PageHeader from "@/components/shared/PageHeader";
 
 /* ─────────────────────────── types ─────────────────────────── */
 type WidgetType = "number" | "trend" | "bar_chart" | "pie_chart" | "table" | "gauge" | "sparkline" | "comparison";
@@ -111,7 +112,7 @@ const GOAL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: R
   active:   { label: "Activa",    color: "bg-blue-100 text-blue-700",  icon: <Activity className="w-3 h-3" /> },
   achieved: { label: "Lograda",   color: "bg-green-100 text-green-700", icon: <CheckCircle2 className="w-3 h-3" /> },
   missed:   { label: "No lograda",color: "bg-red-100 text-red-700",    icon: <AlertCircle className="w-3 h-3" /> },
-  paused:   { label: "Pausada",   color: "bg-gray-100 text-gray-600",  icon: <EyeOff className="w-3 h-3" /> },
+  paused:   { label: "Pausada",   color: "bg-muted/40 text-muted-foreground",  icon: <EyeOff className="w-3 h-3" /> },
 };
 
 /* ─────────────────────────── KPI format config ─────────────────────────── */
@@ -155,18 +156,18 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
     : 0;
 
   return (
-    <div className={`bg-white border rounded-xl shadow-sm p-4 flex flex-col gap-2 group relative transition-opacity ${!widget.is_visible ? "opacity-50" : ""}`}>
+    <div className={`bg-card border border-border/50 rounded-xl shadow-sm p-4 flex flex-col gap-2 group relative transition-opacity ${!widget.is_visible ? "opacity-50" : ""}`}>
       {/* header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{dsLabel}</p>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{dsLabel}</p>
           <p className="font-semibold text-gray-800 text-sm mt-0.5">{widget.title}</p>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={onToggleVisibility} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+          <button onClick={onToggleVisibility} className="p-1 rounded hover:bg-muted/40 text-muted-foreground/70">
             {widget.is_visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={onEdit} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+          <button onClick={onEdit} className="p-1 rounded hover:bg-muted/40 text-muted-foreground/70">
             <Pencil className="w-3.5 h-3.5" />
           </button>
           <button onClick={onDelete} className="p-1 rounded hover:bg-red-50 text-red-400">
@@ -185,7 +186,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
               style={{ clipPath: `polygon(0 100%, ${gaugePercent}% 100%, ${gaugePercent}% 0%, 0 0%)` }}
             />
           </div>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{formatValue(widget.data_source, live.value)}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{formatValue(widget.data_source, live.value)}</p>
         </div>
       ) : widget.widget_type === "bar_chart" ? (
         <div className="flex items-end gap-1 h-12 mt-1">
@@ -201,7 +202,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
           />
         </svg>
       ) : (
-        <p className="text-2xl font-bold text-gray-900">{formatValue(widget.data_source, live.value)}</p>
+        <p className="text-2xl font-bold text-foreground">{formatValue(widget.data_source, live.value)}</p>
       )}
 
       {/* trend */}
@@ -214,7 +215,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
 
       {/* time range badge */}
       <div className="mt-auto">
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-muted-foreground/70">
           {TIME_RANGES.find(t => t.value === widget.time_range)?.label ?? widget.time_range}
         </span>
       </div>
@@ -228,6 +229,7 @@ type Tab = typeof TABS[number];
 
 export default function KPIDashboardPage() {
   const { orgId } = useOrganization();
+  // usePageTitle via PageHeader icon
   const [activeTab, setActiveTab] = useState<Tab>("Dashboards");
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -438,35 +440,35 @@ export default function KPIDashboardPage() {
   const dashWidgets = widgets.filter(w => w.dashboard_id === activeDashId);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <LayoutDashboard className="w-6 h-6 text-blue-600" /> KPI Dashboard
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Métricas clave, metas y alertas en tiempo real</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={openNewDash}><Plus className="w-4 h-4 mr-1" /> Dashboard</Button>
-          {activeTab === "Widgets" && <Button size="sm" onClick={openNewWidget}><Plus className="w-4 h-4 mr-1" /> Widget</Button>}
-          {activeTab === "Metas" && <Button size="sm" onClick={openNewGoal}><Plus className="w-4 h-4 mr-1" /> Meta</Button>}
-          {activeTab === "Alertas" && <Button size="sm" onClick={openNewAlert}><Plus className="w-4 h-4 mr-1" /> Alerta</Button>}
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={LayoutDashboard}
+        title="KPI Dashboard"
+        description="Métricas clave, metas y alertas en tiempo real"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={openNewDash}><Plus className="w-4 h-4 mr-1" /> Dashboard</Button>
+            {activeTab === "Widgets" && <Button size="sm" onClick={openNewWidget}><Plus className="w-4 h-4 mr-1" /> Widget</Button>}
+            {activeTab === "Metas" && <Button size="sm" onClick={openNewGoal}><Plus className="w-4 h-4 mr-1" /> Meta</Button>}
+            {activeTab === "Alertas" && <Button size="sm" onClick={openNewAlert}><Plus className="w-4 h-4 mr-1" /> Alerta</Button>}
+          </div>
+        }
+      />
 
       {/* tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted/30 rounded-lg p-1 w-fit border border-border/40">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Cargando…</div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
       ) : (
         <>
           {/* ── Dashboards tab ── */}
@@ -476,7 +478,7 @@ export default function KPIDashboardPage() {
               <div className="flex gap-2 flex-wrap">
                 {dashboards.map(d => (
                   <button key={d.id} onClick={() => setActiveDashId(d.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${activeDashId === d.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 hover:border-blue-400"}`}>
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${activeDashId === d.id ? "bg-blue-600 text-white border-blue-600" : "bg-card text-foreground/80 hover:border-blue-400"}`}>
                     {d.is_default && <Star className="w-3.5 h-3.5" />}
                     {d.name}
                     <span onClick={(e) => { e.stopPropagation(); openEditDash(d); }}
@@ -486,7 +488,7 @@ export default function KPIDashboardPage() {
                   </button>
                 ))}
                 {dashboards.length === 0 && (
-                  <p className="text-gray-500 text-sm">No hay dashboards. Creá uno para empezar.</p>
+                  <p className="text-muted-foreground text-sm">No hay dashboards. Creá uno para empezar.</p>
                 )}
               </div>
 
@@ -501,7 +503,7 @@ export default function KPIDashboardPage() {
                     />
                   ))}
                   <button onClick={openNewWidget}
-                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors min-h-[140px]">
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:border-blue-300 hover:text-blue-500 transition-colors min-h-[140px]">
                     <Plus className="w-6 h-6" />
                     <span className="text-sm font-medium">Agregar widget</span>
                   </button>
@@ -512,9 +514,9 @@ export default function KPIDashboardPage() {
 
           {/* ── Widgets tab ── */}
           {activeTab === "Widgets" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
                     {["Título", "Tipo", "Fuente de datos", "Período", "Dashboard", "Visible", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -527,12 +529,12 @@ export default function KPIDashboardPage() {
                     const ds = DATA_SOURCES.find(d => d.value === w.data_source);
                     const wt = WIDGET_TYPES.find(t => t.value === w.widget_type);
                     return (
-                      <tr key={w.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{w.title}</td>
+                      <tr key={w.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 font-medium text-foreground">{w.title}</td>
                         <td className="px-4 py-3 text-gray-600 flex items-center gap-1">{wt?.icon}{wt?.label ?? w.widget_type}</td>
                         <td className="px-4 py-3 text-gray-600">{ds?.label ?? w.data_source}</td>
-                        <td className="px-4 py-3 text-gray-500">{TIME_RANGES.find(t => t.value === w.time_range)?.label}</td>
-                        <td className="px-4 py-3"><span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{dash?.name ?? "—"}</span></td>
+                        <td className="px-4 py-3 text-muted-foreground">{TIME_RANGES.find(t => t.value === w.time_range)?.label}</td>
+                        <td className="px-4 py-3"><span className="text-xs bg-muted/40 px-2 py-0.5 rounded">{dash?.name ?? "—"}</span></td>
                         <td className="px-4 py-3">
                           <Switch checked={w.is_visible} onCheckedChange={() => toggleWidgetVisibility(w)} />
                         </td>
@@ -546,7 +548,7 @@ export default function KPIDashboardPage() {
                     );
                   })}
                   {widgets.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-12 text-gray-400">No hay widgets configurados</td></tr>
+                    <tr><td colSpan={7} className="text-center py-12 text-muted-foreground/70">No hay widgets configurados</td></tr>
                   )}
                 </tbody>
               </table>
@@ -560,11 +562,11 @@ export default function KPIDashboardPage() {
                 const pct = g.target_value > 0 ? Math.min(100, (g.current_value / g.target_value) * 100) : 0;
                 const st = GOAL_STATUS_CONFIG[g.status];
                 return (
-                  <div key={g.id} className="bg-white rounded-xl border p-4 space-y-3">
+                  <div key={g.id} className="bg-card rounded-xl border border-border/50 p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-gray-900">{g.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{g.metric} · {g.unit}</p>
+                        <p className="font-semibold text-foreground">{g.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{g.metric} · {g.unit}</p>
                       </div>
                       <Badge className={`${st.color} flex items-center gap-1 text-xs`}>{st.icon}{st.label}</Badge>
                     </div>
@@ -573,12 +575,12 @@ export default function KPIDashboardPage() {
                         <span className="text-gray-600">Progreso</span>
                         <span className="font-medium">{g.current_value.toLocaleString("es-AR")} / {g.target_value.toLocaleString("es-AR")} {g.unit}</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: g.color }} />
                       </div>
-                      <p className="text-right text-xs text-gray-500">{pct.toFixed(1)}%</p>
+                      <p className="text-right text-xs text-muted-foreground">{pct.toFixed(1)}%</p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-gray-400">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground/70">
                       <span>{g.period_start} → {g.period_end}</span>
                       <button onClick={() => openEditGoal(g)} className="hover:text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
                     </div>
@@ -586,7 +588,7 @@ export default function KPIDashboardPage() {
                 );
               })}
               {goals.length === 0 && (
-                <div className="col-span-3 text-center py-16 text-gray-400">
+                <div className="col-span-3 text-center py-16 text-muted-foreground/70">
                   <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">Sin metas definidas</p>
                   <p className="text-sm mt-1">Creá tu primera meta para trackear el progreso</p>
@@ -597,9 +599,9 @@ export default function KPIDashboardPage() {
 
           {/* ── Alertas tab ── */}
           {activeTab === "Alertas" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
                     {["Nombre", "Condición", "Umbral", "Notificación", "Activa", "Último disparo", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
@@ -608,17 +610,17 @@ export default function KPIDashboardPage() {
                 </thead>
                 <tbody className="divide-y">
                   {alerts.map(a => (
-                    <tr key={a.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{a.name}</td>
+                    <tr key={a.id} className="hover:bg-muted/20">
+                      <td className="px-4 py-3 font-medium text-foreground">{a.name}</td>
                       <td className="px-4 py-3 capitalize text-gray-600">{a.condition.replace("_", " ")}</td>
-                      <td className="px-4 py-3 font-mono text-gray-700">{a.threshold.toLocaleString("es-AR")}</td>
+                      <td className="px-4 py-3 font-mono text-foreground/80">{a.threshold.toLocaleString("es-AR")}</td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs">{a.notification_type}</Badge>
                       </td>
                       <td className="px-4 py-3">
                         <Switch checked={a.is_active} onCheckedChange={() => toggleAlert(a)} />
                       </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-muted-foreground/70 text-xs">
                         {a.last_triggered ? new Date(a.last_triggered).toLocaleDateString("es-AR") : "Nunca"}
                       </td>
                       <td className="px-4 py-3">
@@ -630,7 +632,7 @@ export default function KPIDashboardPage() {
                     </tr>
                   ))}
                   {alerts.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-12 text-gray-400">Sin alertas configuradas</td></tr>
+                    <tr><td colSpan={7} className="text-center py-12 text-muted-foreground/70">Sin alertas configuradas</td></tr>
                   )}
                 </tbody>
               </table>
@@ -687,7 +689,7 @@ export default function KPIDashboardPage() {
                 <SelectContent>
                   {Array.from(new Set(DATA_SOURCES.map(d => d.category))).map(cat => (
                     <div key={cat}>
-                      <p className="text-xs font-semibold text-gray-400 px-2 py-1 uppercase">{cat}</p>
+                      <p className="text-xs font-semibold text-muted-foreground/70 px-2 py-1 uppercase">{cat}</p>
                       {DATA_SOURCES.filter(d => d.category === cat).map(d => (
                         <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                       ))}

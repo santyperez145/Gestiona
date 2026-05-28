@@ -48,6 +48,9 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, isAfter, isBefore, addDays } from "date-fns";
 import { es } from "date-fns/locale";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -726,6 +729,7 @@ function SubRow({ sub, onEdit, onRenew, onChangeStatus, onViewInvoices }: SubRow
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SubscriptionsPage() {
+  usePageTitle("Suscripciones");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -848,44 +852,29 @@ export default function SubscriptionsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <CreditCard className="w-6 h-6 text-primary" />
-            Suscripciones & Facturación Recurrente
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Gestioná planes, suscriptores y facturación automática
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => { loadPlans(); loadSubs(); }}>
-            <RefreshCw className="w-4 h-4 mr-1.5" /> Actualizar
-          </Button>
-          <Button size="sm" onClick={() => { setEditingSub(null); setPreselectedPlanId(null); setSubDialogOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nueva suscripción
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={CreditCard}
+        title="Suscripciones & Recurrencia"
+        description="Gestioná planes, suscriptores y facturación automática"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => { loadPlans(); loadSubs(); }}>
+              <RefreshCw className="w-4 h-4 mr-1.5" /> Actualizar
+            </Button>
+            <Button size="sm" onClick={() => { setEditingSub(null); setPreselectedPlanId(null); setSubDialogOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nueva suscripción
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Activas", value: kpis.active, icon: CheckCircle, color: "text-emerald-400" },
-          { label: "En prueba", value: kpis.trial, icon: Clock, color: "text-blue-400" },
-          { label: "Vencen pronto", value: kpis.expiringSoon, icon: AlertTriangle, color: "text-amber-400" },
-          { label: "MRR estimado", value: fmtCurrency(kpis.mrr), icon: TrendingUp, color: "text-primary" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-2xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Activas" value={kpis.active} sub="suscripciones vigentes" icon={CheckCircle} color="success" />
+        <KPICard label="En prueba" value={kpis.trial} sub="período trial" icon={Clock} color="blue" />
+        <KPICard label="Vencen pronto" value={kpis.expiringSoon} sub="próximos 7 días" icon={AlertTriangle} color="warning" />
+        <KPICard label="MRR estimado" value={fmtCurrency(kpis.mrr)} sub="ingresos mensuales" icon={TrendingUp} color="primary" />
       </div>
 
       <Tabs defaultValue="subscriptions">

@@ -16,6 +16,7 @@ import {
   AlertTriangle, CheckCircle, ChevronDown, ChevronRight,
   Layers, Target, Zap
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 interface Scenario {
   id: string;
@@ -51,10 +52,10 @@ interface BreakevenResult {
 const CATEGORY_COLORS: Record<string, string> = {
   revenue:        "text-green-700 bg-green-50",
   cogs:           "text-orange-700 bg-orange-50",
-  gross_profit:   "text-blue-700 bg-blue-50",
+  gross_profit:   "text-blue-700 bg-blue-500/10",
   opex:           "text-red-700 bg-red-50",
-  ebitda:         "text-purple-700 bg-purple-50",
-  net_income:     "text-emerald-700 bg-emerald-50",
+  ebitda:         "text-purple-700 bg-purple-500/10",
+  net_income:     "text-emerald-700 bg-emerald-500/10",
 };
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -141,19 +142,19 @@ function BreakevenCalc() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-blue-200 bg-blue-500/10">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-blue-600 font-medium mb-1">Margen de Contribución</p>
             <p className="text-3xl font-bold text-blue-700">{contributionMarginPct.toFixed(1)}%</p>
           </CardContent>
         </Card>
-        <Card className="border-purple-200 bg-purple-50">
+        <Card className="border-purple-200 bg-purple-500/10">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-purple-600 font-medium mb-1">Punto de Equilibrio (ARS)</p>
             <p className="text-2xl font-bold text-purple-700">${breakevenRevenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</p>
           </CardContent>
         </Card>
-        <Card className="border-emerald-200 bg-emerald-50">
+        <Card className="border-emerald-200 bg-emerald-500/10">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-emerald-600 font-medium mb-1">Unidades de Equilibrio</p>
             <p className="text-3xl font-bold text-emerald-700">{Math.ceil(breakevenUnits).toLocaleString()}</p>
@@ -292,40 +293,41 @@ export default function FinancialScenariosPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Layers className="w-6 h-6 text-primary" /> Escenarios Financieros</h1>
-          <p className="text-muted-foreground text-sm mt-1">P&L, punto de equilibrio y modelado de escenarios</p>
-        </div>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Nuevo Escenario</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Crear Escenario</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <Label>Nombre</Label>
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Expansión LATAM" />
+    <div className="space-y-6">
+      <PageHeader
+        icon={Layers}
+        title="Escenarios Financieros"
+        description="P&L, punto de equilibrio y modelado de escenarios"
+        actions={
+          <Dialog open={showNew} onOpenChange={setShowNew}>
+            <DialogTrigger asChild>
+              <Button><Plus className="w-4 h-4 mr-2" />Nuevo Escenario</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Crear Escenario</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <Label>Nombre</Label>
+                  <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Expansión LATAM" />
+                </div>
+                <div>
+                  <Label>Tipo</Label>
+                  <Select value={newType} onValueChange={setNewType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="projection">Proyección</SelectItem>
+                      <SelectItem value="budget">Presupuesto</SelectItem>
+                      <SelectItem value="what_if">¿Qué pasa si...?</SelectItem>
+                      <SelectItem value="variance">Varianza</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleCreate}>Crear</Button>
               </div>
-              <div>
-                <Label>Tipo</Label>
-                <Select value={newType} onValueChange={setNewType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="projection">Proyección</SelectItem>
-                    <SelectItem value="budget">Presupuesto</SelectItem>
-                    <SelectItem value="what_if">¿Qué pasa si...?</SelectItem>
-                    <SelectItem value="variance">Varianza</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="w-full" onClick={handleCreate}>Crear</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* Scenario selector */}
       <div className="flex gap-2 flex-wrap">

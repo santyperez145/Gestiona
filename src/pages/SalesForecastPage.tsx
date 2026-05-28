@@ -5,7 +5,10 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, Legend, AreaChart, Area, BarChart, Bar, Cell,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, Target, AlertTriangle, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Target, AlertTriangle, Info, Loader2 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -65,6 +68,7 @@ const fmtK = (n: number) => {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function SalesForecastPage() {
+  usePageTitle("Forecast de Ventas");
   const { activeOrg } = useOrg();
   const [salesRows, setSalesRows] = useState<{ created_at: string; total_ars: number }[]>([]);
   const [goalRows, setGoalRows] = useState<{ month: string; target_ars: number }[]>([]);
@@ -190,80 +194,83 @@ export default function SalesForecastPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <Loader2 className="w-7 h-7 animate-spin text-primary" />
     </div>
   );
 
   const todayLabel = monthLabel(yyyymm(new Date()));
+  const momPct = kpis.lastActual > 0 ? ((kpis.currentActual - kpis.lastActual) / kpis.lastActual) * 100 : 0;
+  const forecastPct = kpis.currentActual > 0 ? ((kpis.nextForecast - kpis.currentActual) / kpis.currentActual) * 100 : 0;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Forecast de Ventas</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Proyección basada en regresión lineal · últimos {historyMonths} meses
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground">Historial:</label>
-            <select
-              value={historyMonths}
-              onChange={e => setHistoryMonths(Number(e.target.value))}
-              className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none"
-            >
-              <option value={6}>6 meses</option>
-              <option value={12}>12 meses</option>
-              <option value={18}>18 meses</option>
-              <option value={24}>24 meses</option>
-            </select>
+      <PageHeader
+        icon={TrendingUp}
+        title="Forecast de Ventas"
+        description={`Proyección basada en regresión lineal · últimos ${historyMonths} meses`}
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Historial:</label>
+              <select
+                value={historyMonths}
+                onChange={e => setHistoryMonths(Number(e.target.value))}
+                className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none"
+              >
+                <option value={6}>6 meses</option>
+                <option value={12}>12 meses</option>
+                <option value={18}>18 meses</option>
+                <option value={24}>24 meses</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Proyección:</label>
+              <select
+                value={forecastMonths}
+                onChange={e => setForecastMonths(Number(e.target.value))}
+                className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none"
+              >
+                <option value={1}>1 mes</option>
+                <option value={3}>3 meses</option>
+                <option value={6}>6 meses</option>
+              </select>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground">Proyección:</label>
-            <select
-              value={forecastMonths}
-              onChange={e => setForecastMonths(Number(e.target.value))}
-              className="px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs outline-none"
-            >
-              <option value={1}>1 mes</option>
-              <option value={3}>3 meses</option>
-              <option value={6}>6 meses</option>
-            </select>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Mes actual</p>
-          <p className="text-2xl font-bold font-display mt-1">{fmtK(kpis.currentActual)}</p>
-          {kpis.currentGoal > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Meta: {fmtK(kpis.currentGoal)} ({Math.round(kpis.currentActual / kpis.currentGoal * 100)}%)
-            </p>
-          )}
-        </div>
-        <div className="rounded-xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Mes pasado</p>
-          <p className="text-2xl font-bold font-display mt-1">{fmtK(kpis.lastActual)}</p>
-          <TrendChip pct={kpis.lastActual > 0 ? ((kpis.currentActual - kpis.lastActual) / kpis.lastActual) * 100 : 0} />
-        </div>
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <p className="text-xs text-muted-foreground">Próximo mes (forecast)</p>
-          <p className="text-2xl font-bold font-display text-primary mt-1">{fmtK(kpis.nextForecast)}</p>
-          <TrendChip pct={kpis.currentActual > 0 ? ((kpis.nextForecast - kpis.currentActual) / kpis.currentActual) * 100 : 0} />
-        </div>
-        <div className="rounded-xl border border-border/60 bg-card p-4">
-          <p className="text-xs text-muted-foreground">Tendencia (3M vs 3M prev)</p>
-          <div className="flex items-center gap-2 mt-1">
-            <TrendingUp className="w-5 h-5 text-muted-foreground" />
-            <TrendChip pct={trend} />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">Ajuste R²: {(r2 * 100).toFixed(0)}%</p>
-        </div>
+        <KPICard
+          label="Mes actual"
+          value={fmtK(kpis.currentActual)}
+          sub={kpis.currentGoal > 0 ? `Meta: ${fmtK(kpis.currentGoal)} (${Math.round(kpis.currentActual / kpis.currentGoal * 100)}%)` : "en curso"}
+          icon={TrendingUp}
+          color="primary"
+          trend={{ value: momPct, label: "vs mes ant." }}
+        />
+        <KPICard
+          label="Mes pasado"
+          value={fmtK(kpis.lastActual)}
+          sub="ventas cerradas"
+          icon={Target}
+          color="blue"
+        />
+        <KPICard
+          label="Forecast próx. mes"
+          value={fmtK(kpis.nextForecast)}
+          sub="proyección central"
+          icon={TrendingUp}
+          color="success"
+          trend={{ value: forecastPct, label: "vs actual" }}
+        />
+        <KPICard
+          label="Tendencia 3M"
+          value={`${trend >= 0 ? "+" : ""}${trend.toFixed(1)}%`}
+          sub={`Ajuste R²: ${(r2 * 100).toFixed(0)}%`}
+          icon={trend >= 0 ? TrendingUp : TrendingDown}
+          color={trend >= 0 ? "success" : "destructive"}
+        />
       </div>
 
       {/* R² info */}

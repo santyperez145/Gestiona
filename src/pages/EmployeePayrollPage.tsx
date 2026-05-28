@@ -17,8 +17,11 @@ import {
 } from "@/components/ui/tabs";
 import {
   Users2, Plus, Pencil, Trash2, FileText, CheckCircle2, DollarSign,
-  ChevronDown, ChevronRight, Download,
+  ChevronDown, ChevronRight, Download, Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Employee {
   id: string;
@@ -97,6 +100,7 @@ const EMPTY_EMP = {
 };
 
 export default function EmployeePayrollPage() {
+  usePageTitle("Empleados & Liquidación");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -249,41 +253,35 @@ export default function EmployeePayrollPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users2 className="w-6 h-6 text-primary" /> Empleados & Liquidación de Sueldos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Gestioná tu equipo, calculá haberes, descuentos y generá recibos de sueldo.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setPeriodOpen(true)}>
-            <FileText className="w-4 h-4 mr-1" /> Nuevo período
-          </Button>
-          <Button onClick={() => { setEditingEmp(null); setEmpForm(EMPTY_EMP); setEmpOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Empleado
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Users2}
+        title="Empleados & Liquidación"
+        description="Gestioná tu equipo, calculá haberes, descuentos y generá recibos de sueldo"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setPeriodOpen(true)}>
+              <FileText className="w-4 h-4 mr-1" /> Nuevo período
+            </Button>
+            <Button onClick={() => { setEditingEmp(null); setEmpForm(EMPTY_EMP); setEmpOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Empleado
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Empleados activos", value: activeEmployees },
-          { label: "Masa salarial mensual", value: fmt(totalMonthlyPayroll) },
-          { label: "Períodos", value: periods.length },
-          { label: "Último período", value: latestPeriod ? `${fmt(latestPeriod.total_net)} neto` : "—" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border/50 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-1">{k.label}</p>
-            <p className="text-xl font-bold truncate">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="Empleados activos" value={activeEmployees} sub="en nómina" icon={Users2} color="primary" />
+        <KPICard label="Masa salarial" value={fmt(totalMonthlyPayroll)} sub="sueldos mensuales" icon={DollarSign} color="success" />
+        <KPICard label="Períodos" value={periods.length} sub="liquidaciones" icon={FileText} color="blue" />
+        <KPICard label="Último período" value={latestPeriod ? fmt(latestPeriod.total_net) : "—"} sub={latestPeriod ? "neto liquidado" : "sin períodos"} icon={CheckCircle2} color={latestPeriod ? "success" : "warning"} />
       </div>
 
-      {loading ? <div className="text-center py-12 text-muted-foreground">Cargando...</div> : (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        </div>
+      ) : (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="employees">Empleados ({employees.length})</TabsTrigger>

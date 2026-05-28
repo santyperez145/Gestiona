@@ -7,12 +7,15 @@ import {
   FileText, Plus, X, Save, Search, Trash2, Edit2, CheckCircle,
   Clock, AlertTriangle, XCircle, RefreshCw, Download, ExternalLink,
   Calendar, DollarSign, User, Tag, Link, ChevronDown, ChevronUp,
-  Shield, RotateCcw, Sparkles
+  Shield, RotateCcw, Sparkles, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -67,6 +70,7 @@ const emptyForm = () => ({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ContractsPage() {
+  usePageTitle("Contratos");
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -199,51 +203,30 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
-              <Shield className="w-4.5 h-4.5 text-blue-400" />
-            </div>
-            Contratos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Gestión de contratos con clientes, proveedores y socios
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          {isAdmin && (
-            <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
-              <Plus className="w-4 h-4" /> Nuevo contrato
+      <PageHeader
+        icon={Shield}
+        title="Contratos"
+        description="Gestión de contratos con clientes, proveedores y socios"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
+                <Plus className="w-4 h-4" /> Nuevo contrato
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-card border border-emerald-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Contratos activos</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">{kpis.active}</p>
-        </div>
-        <div className="bg-card border border-amber-500/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">⚠ Vencen pronto</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">{kpis.expiringSoon}</p>
-          <p className="text-[10px] text-muted-foreground">próximos 30 días</p>
-        </div>
-        <div className="bg-card border border-red-500/15 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Vencidos</p>
-          <p className="text-2xl font-bold mt-1 text-red-400">{kpis.expired}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">Valor contratado</p>
-          <p className="text-lg font-bold mt-1">${kpis.totalValue.toLocaleString("es-AR")}</p>
-          <p className="text-[10px] text-muted-foreground">contratos activos</p>
-        </div>
+        <KPICard label="Contratos activos" value={kpis.active} sub="vigentes ahora" icon={CheckCircle} color="success" />
+        <KPICard label="Vencen pronto" value={kpis.expiringSoon} sub="próximos 30 días" icon={AlertTriangle} color="warning" />
+        <KPICard label="Vencidos" value={kpis.expired} sub="requieren atención" icon={XCircle} color="destructive" />
+        <KPICard label="Valor contratado" value={`$${kpis.totalValue.toLocaleString("es-AR")}`} sub="contratos activos" icon={DollarSign} color="primary" />
       </div>
 
       {/* Filters */}
@@ -369,9 +352,8 @@ export default function ContractsPage() {
 
       {/* Contract list */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Shield className="w-8 h-8 mx-auto mb-3 animate-pulse text-blue-400" />
-          <p className="text-sm">Cargando contratos...</p>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

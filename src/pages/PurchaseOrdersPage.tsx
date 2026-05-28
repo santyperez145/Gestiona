@@ -40,7 +40,11 @@ import {
   XCircle,
   Download,
   Eye,
+  Loader2,
 } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -505,6 +509,7 @@ function PORow({ order, onEdit, onAdvanceStatus, onDelete }: PORowProps) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PurchaseOrdersPage() {
+  usePageTitle("Órdenes de Compra");
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -575,40 +580,28 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <ClipboardList className="w-6 h-6 text-primary" />
-            Órdenes de Compra
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestión formal de OC a proveedores con seguimiento de recepción</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
-          </Button>
-          <Button size="sm" onClick={() => { setEditingOrder(null); setFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1.5" /> Nueva OC
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={ClipboardList}
+        title="Órdenes de Compra"
+        description="Gestión formal de OC a proveedores con seguimiento de recepción"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
+            </Button>
+            <Button size="sm" onClick={() => { setEditingOrder(null); setFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1.5" /> Nueva OC
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "OC abiertas", value: kpis.open, icon: ClipboardList, color: "text-blue-400" },
-          { label: "Valor pendiente", value: fmtCurrency(kpis.pendingValue), icon: DollarSign, color: "text-amber-400" },
-          { label: "Mes actual", value: fmtCurrency(kpis.monthTotal), icon: Truck, color: "text-primary" },
-          { label: "Recibidas", value: kpis.received, icon: CheckCircle, color: "text-emerald-400" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.color}`} />
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-            </div>
-            <p className="text-xl font-bold">{k.value}</p>
-          </div>
-        ))}
+        <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
+        <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
+        <KPICard label="Compras del mes" value={fmtCurrency(kpis.monthTotal)} sub="mes actual" icon={Truck} color="primary" />
+        <KPICard label="OC recibidas" value={kpis.received} sub="completadas" icon={CheckCircle} color="success" />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -626,7 +619,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
