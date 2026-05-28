@@ -62,7 +62,7 @@ const WASTE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   theft:          { label: "Hurto",          color: "bg-purple-100 text-purple-800" },
   expiry:         { label: "Vencimiento",    color: "bg-yellow-100 text-yellow-800" },
   production:     { label: "Producción",     color: "bg-blue-100 text-blue-800" },
-  administrative: { label: "Administrativo", color: "bg-gray-100 text-gray-700" },
+  administrative: { label: "Administrativo", color: "bg-muted/40 text-muted-foreground" },
   other:          { label: "Otro",           color: "bg-slate-100 text-slate-700" },
 };
 
@@ -313,7 +313,7 @@ export default function WasteControlPage() {
           </div>
 
           {filteredRecords.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <Trash2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No hay registros de merma</p>
             </div>
@@ -322,14 +322,14 @@ export default function WasteControlPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Fecha</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Categoría</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Producto</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Cantidad</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Costo/u</th>
-                    <th className="text-right py-2 px-3 text-xs text-gray-500 font-medium">Pérdida</th>
-                    <th className="text-left py-2 px-3 text-xs text-gray-500 font-medium">Reportado por</th>
-                    <th className="text-center py-2 px-3 text-xs text-gray-500 font-medium">Estado</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Fecha</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Categoría</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Producto</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Cantidad</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Costo/u</th>
+                    <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Pérdida</th>
+                    <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Reportado por</th>
+                    <th className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">Estado</th>
                     <th className="py-2 px-3"></th>
                   </tr>
                 </thead>
@@ -337,18 +337,18 @@ export default function WasteControlPage() {
                   {filteredRecords.map(r => {
                     const tc = WASTE_TYPE_CONFIG[r.waste_categories?.waste_type ?? "other"] ?? WASTE_TYPE_CONFIG.other;
                     return (
-                      <tr key={r.id} className="border-b hover:bg-gray-50">
-                        <td className="py-2 px-3 text-gray-600">{new Date(r.date).toLocaleDateString("es-AR")}</td>
+                      <tr key={r.id} className="border-b hover:bg-muted/20">
+                        <td className="py-2 px-3 text-muted-foreground">{new Date(r.date).toLocaleDateString("es-AR")}</td>
                         <td className="py-2 px-3">
                           {r.waste_categories ? (
                             <Badge className={`text-xs ${tc.color}`}>{r.waste_categories.name}</Badge>
-                          ) : <span className="text-gray-400 text-xs">—</span>}
+                          ) : <span className="text-muted-foreground/70 text-xs">—</span>}
                         </td>
-                        <td className="py-2 px-3 text-gray-900">{r.product_name}</td>
-                        <td className="py-2 px-3 text-right text-gray-600">{Number(r.quantity).toLocaleString("es-AR")}</td>
-                        <td className="py-2 px-3 text-right text-gray-600">{fmt(r.unit_cost)}</td>
+                        <td className="py-2 px-3 text-foreground">{r.product_name}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">{Number(r.quantity).toLocaleString("es-AR")}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">{fmt(r.unit_cost)}</td>
                         <td className="py-2 px-3 text-right font-semibold text-red-700">{fmt(r.total_cost)}</td>
-                        <td className="py-2 px-3 text-gray-500">{r.reported_by ?? "—"}</td>
+                        <td className="py-2 px-3 text-muted-foreground">{r.reported_by ?? "—"}</td>
                         <td className="py-2 px-3 text-center">
                           {r.approved
                             ? <span className="inline-flex items-center gap-1 text-xs text-green-700"><CheckCircle className="w-3 h-3" /> Aprobado</span>
@@ -385,7 +385,7 @@ export default function WasteControlPage() {
           </div>
 
           {summary.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Sin datos para el período seleccionado</p>
             </div>
@@ -396,19 +396,19 @@ export default function WasteControlPage() {
                 const maxCost = summary[0]?.total_cost ?? 1;
                 const pct = (Number(s.total_cost) / Number(maxCost)) * 100;
                 return (
-                  <div key={idx} className="bg-white border rounded-lg p-4">
+                  <div key={idx} className="bg-card border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Badge className={`text-xs ${tc.color}`}>{tc.label}</Badge>
-                        <span className="font-medium text-gray-900">{s.category_name}</span>
-                        <span className="text-xs text-gray-400">({s.record_count} registros)</span>
+                        <span className="font-medium text-foreground">{s.category_name}</span>
+                        <span className="text-xs text-muted-foreground/70">({s.record_count} registros)</span>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-red-700">{fmt(Number(s.total_cost))}</p>
-                        <p className="text-xs text-gray-400">{Number(s.total_qty).toLocaleString("es-AR")} unidades</p>
+                        <p className="text-xs text-muted-foreground/70">{Number(s.total_qty).toLocaleString("es-AR")} unidades</p>
                       </div>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="w-full bg-muted/40 rounded-full h-2">
                       <div className="bg-red-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>

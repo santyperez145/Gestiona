@@ -96,7 +96,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 const STOCK_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   available:    { label: "Disponible",    color: "bg-green-100 text-green-800" },
   out_of_stock: { label: "Sin stock",     color: "bg-red-100 text-red-800" },
-  discontinued: { label: "Discontinuado", color: "bg-gray-100 text-gray-700" },
+  discontinued: { label: "Discontinuado", color: "bg-muted/40 text-foreground/80" },
 };
 
 const EMPTY_SUPPLIER = {
@@ -580,22 +580,22 @@ export default function DropshippingPage() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <button onClick={() => setExpandedOrder(isExpanded ? null : order.id)} className="text-gray-400 hover:text-gray-700 flex-shrink-0">
+                        <button onClick={() => setExpandedOrder(isExpanded ? null : order.id)} className="text-muted-foreground/70 hover:text-foreground/80 flex-shrink-0">
                           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-sm font-semibold text-gray-900">{order.order_number}</span>
+                            <span className="font-mono text-sm font-semibold text-foreground">{order.order_number}</span>
                             <Badge className={`${cfg.color} text-xs flex items-center gap-1`}>
                               {cfg.icon} {cfg.label}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600 mt-0.5">
+                          <p className="text-sm text-muted-foreground mt-0.5">
                             <span className="font-medium">{order.customer_name}</span>
                             {order.ship_city && ` · ${order.ship_city}`}
                             {order.ship_province && `, ${order.ship_province}`}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground/70">
                             {order.dropship_suppliers?.name} · {new Date(order.created_at).toLocaleDateString("es-AR")}
                           </p>
                         </div>
@@ -603,7 +603,7 @@ export default function DropshippingPage() {
 
                       <div className="flex items-center gap-4 flex-shrink-0">
                         <div className="text-right">
-                          <p className="text-sm text-gray-500">Venta: <span className="font-semibold text-gray-900">{fmt(order.sell_total)}</span></p>
+                          <p className="text-sm text-muted-foreground">Venta: <span className="font-semibold text-foreground">{fmt(order.sell_total)}</span></p>
                           <p className="text-xs text-green-700">Ganancia: {fmt(order.profit)}</p>
                         </div>
                         {/* Status progression */}
@@ -635,22 +635,22 @@ export default function DropshippingPage() {
                     {isExpanded && (
                       <div className="mt-4 pt-4 border-t space-y-3">
                         {order.tracking_code && (
-                          <p className="text-sm text-gray-600">🚚 Tracking: <span className="font-mono">{order.tracking_code}</span></p>
+                          <p className="text-sm text-muted-foreground">🚚 Tracking: <span className="font-mono">{order.tracking_code}</span></p>
                         )}
                         {order.dropship_order_items && order.dropship_order_items.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Productos</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Productos</p>
                             <div className="space-y-1">
                               {order.dropship_order_items.map(item => (
-                                <div key={item.id} className="flex justify-between text-sm bg-gray-50 px-3 py-1.5 rounded">
-                                  <span>{item.product_name} {item.supplier_sku && <span className="text-gray-400 text-xs">({item.supplier_sku})</span>}</span>
-                                  <span className="text-gray-500">x{item.quantity} · costo: {fmt(item.supplier_price)} · venta: {fmt(item.sell_price)}</span>
+                                <div key={item.id} className="flex justify-between text-sm bg-muted/20 px-3 py-1.5 rounded">
+                                  <span>{item.product_name} {item.supplier_sku && <span className="text-muted-foreground/70 text-xs">({item.supplier_sku})</span>}</span>
+                                  <span className="text-muted-foreground">x{item.quantity} · costo: {fmt(item.supplier_price)} · venta: {fmt(item.sell_price)}</span>
                                 </div>
                               ))}
                             </div>
                           </div>
                         )}
-                        {order.notes && <p className="text-sm text-gray-500 italic">{order.notes}</p>}
+                        {order.notes && <p className="text-sm text-muted-foreground italic">{order.notes}</p>}
                       </div>
                     )}
                   </CardContent>
@@ -676,22 +676,22 @@ export default function DropshippingPage() {
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">{prod.dropship_suppliers?.name ?? "—"}</p>
-                          {prod.supplier_sku && <p className="text-xs text-gray-400 font-mono">{prod.supplier_sku}</p>}
+                          <p className="font-medium text-foreground">{prod.dropship_suppliers?.name ?? "—"}</p>
+                          {prod.supplier_sku && <p className="text-xs text-muted-foreground/70 font-mono">{prod.supplier_sku}</p>}
                         </div>
                         <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-gray-50 rounded p-2">
-                          <p className="text-xs text-gray-500">Costo</p>
+                        <div className="bg-muted/20 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Costo</p>
                           <p className="text-sm font-semibold">{fmt(prod.supplier_price)}</p>
                         </div>
                         <div className="bg-blue-50 rounded p-2">
-                          <p className="text-xs text-gray-500">Venta</p>
+                          <p className="text-xs text-muted-foreground">Venta</p>
                           <p className="text-sm font-semibold text-blue-700">{fmt(prod.sell_price)}</p>
                         </div>
                         <div className="bg-green-50 rounded p-2">
-                          <p className="text-xs text-gray-500">Margen</p>
+                          <p className="text-xs text-muted-foreground">Margen</p>
                           <p className="text-sm font-semibold text-green-700">{Number(prod.margin_pct).toFixed(1)}%</p>
                         </div>
                       </div>
@@ -721,11 +721,11 @@ export default function DropshippingPage() {
                 <Card key={sup.id}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">{sup.name}</CardTitle>
-                    {sup.contact_name && <p className="text-xs text-gray-500">{sup.contact_name}</p>}
+                    {sup.contact_name && <p className="text-xs text-muted-foreground">{sup.contact_name}</p>}
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {sup.email && <p className="text-sm text-gray-600">✉ {sup.email}</p>}
-                    {sup.phone && <p className="text-sm text-gray-600">📞 {sup.phone}</p>}
+                    {sup.email && <p className="text-sm text-muted-foreground">✉ {sup.email}</p>}
+                    {sup.phone && <p className="text-sm text-muted-foreground">📞 {sup.phone}</p>}
                     {sup.website && (
                       <a href={sup.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
                         <ExternalLink className="w-3 h-3" /> {sup.website}
@@ -736,9 +736,9 @@ export default function DropshippingPage() {
                       <Badge variant="outline" className="text-xs">{sup.avg_dispatch_days}d despacho</Badge>
                       {sup.commission_pct > 0 && <Badge variant="outline" className="text-xs text-green-700">{sup.commission_pct}% comisión</Badge>}
                     </div>
-                    {sup.payment_terms && <p className="text-xs text-gray-400">Pago: {sup.payment_terms}</p>}
+                    {sup.payment_terms && <p className="text-xs text-muted-foreground/70">Pago: {sup.payment_terms}</p>}
                     <div className="pt-1">
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground/70">
                         Productos: {products.filter(p => p.supplier_id === sup.id).length}
                         {" · "}
                         Pedidos: {orders.filter(o => o.supplier_id === sup.id).length}

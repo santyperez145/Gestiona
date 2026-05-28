@@ -45,21 +45,21 @@ interface AuditSummaryRow {
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const SEVERITY_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  debug:    { label: "Debug",    color: "bg-gray-100 text-gray-500",    icon: <Info className="w-3 h-3" /> },
-  info:     { label: "Info",     color: "bg-blue-100 text-blue-700",    icon: <Info className="w-3 h-3" /> },
-  warning:  { label: "Advertencia", color: "bg-yellow-100 text-yellow-700", icon: <AlertTriangle className="w-3 h-3" /> },
-  error:    { label: "Error",    color: "bg-red-100 text-red-700",      icon: <AlertCircle className="w-3 h-3" /> },
-  critical: { label: "Crítico",  color: "bg-red-200 text-red-900",      icon: <ZapOff className="w-3 h-3" /> },
+  debug:    { label: "Debug",    color: "bg-muted/50 text-muted-foreground",      icon: <Info className="w-3 h-3" /> },
+  info:     { label: "Info",     color: "bg-blue-500/15 text-blue-400",           icon: <Info className="w-3 h-3" /> },
+  warning:  { label: "Advertencia", color: "bg-yellow-500/15 text-yellow-400",    icon: <AlertTriangle className="w-3 h-3" /> },
+  error:    { label: "Error",    color: "bg-red-500/15 text-red-400",             icon: <AlertCircle className="w-3 h-3" /> },
+  critical: { label: "Crítico",  color: "bg-red-500/25 text-red-300",             icon: <ZapOff className="w-3 h-3" /> },
 };
 
 const ACTION_COLOR: Record<string, string> = {
-  create: "text-green-600", update: "text-blue-600", delete: "text-red-600",
-  login: "text-purple-600", logout: "text-gray-500", export: "text-orange-600",
+  create: "text-emerald-400", update: "text-blue-400", delete: "text-red-400",
+  login: "text-purple-400", logout: "text-muted-foreground", export: "text-orange-400",
 };
 
 function getActionColor(action: string) {
   const verb = action.split(".")[1] ?? action.split("_")[0];
-  return ACTION_COLOR[verb] ?? "text-gray-600";
+  return ACTION_COLOR[verb] ?? "text-muted-foreground";
 }
 
 const ENTITY_ICONS: Record<string, string> = {
@@ -71,6 +71,7 @@ const TABS = ["Línea de tiempo", "Resumen", "Exportar"] as const;
 type Tab = typeof TABS[number];
 
 export default function AuditLogPage() {
+  usePageTitle("Registro de Auditoría");
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("Línea de tiempo");
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -146,19 +147,18 @@ export default function AuditLogPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Shield className="w-6 h-6 text-slate-600" /> Registro de Auditoría
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Traza inmutable de todas las acciones del sistema</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load}><RefreshCcw className="w-4 h-4 mr-1" /> Actualizar</Button>
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4 mr-1" /> CSV</Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Shield}
+        title="Registro de Auditoría"
+        description="Traza inmutable de todas las acciones del sistema"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load}><RefreshCcw className="w-4 h-4 mr-1" /> Actualizar</Button>
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4 mr-1" /> CSV</Button>
+          </div>
+        }
+      />
 
       {/* Stats chips */}
       <div className="flex gap-3 flex-wrap">
@@ -167,33 +167,33 @@ export default function AuditLogPage() {
           if (count === 0) return null;
           return (
             <button key={sev} onClick={() => setFilterSeverity(filterSeverity === sev ? "all" : sev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterSeverity === sev ? cfg.color + " border-current" : "bg-white text-gray-600 hover:border-gray-300"}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterSeverity === sev ? cfg.color + " border-current" : "bg-card text-muted-foreground hover:border-border"}`}>
               {cfg.icon}{cfg.label} ({count})
             </button>
           );
         })}
-        <span className="text-xs text-gray-400 self-center ml-auto">{total.toLocaleString("es-AR")} eventos totales</span>
+        <span className="text-xs text-muted-foreground/70 self-center ml-auto">{total.toLocaleString("es-AR")} eventos totales</span>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted/30 rounded-lg p-1 w-fit border border-border/40">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === t ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap bg-white border rounded-xl p-4">
+      <div className="flex gap-3 flex-wrap bg-card border border-border/40 rounded-xl p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" />
           <Input placeholder="Buscar acción, entidad, email…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-64" />
         </div>
         <div className="flex gap-2">
           <Input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="w-40" />
-          <span className="self-center text-gray-400">→</span>
+          <span className="self-center text-muted-foreground/70">→</span>
           <Input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="w-40" />
         </div>
         <Select value={filterSeverity} onValueChange={setFilterSeverity}>
@@ -213,7 +213,7 @@ export default function AuditLogPage() {
         <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterSeverity("all"); setFilterEntity("all"); }}><Filter className="w-4 h-4 mr-1" /> Limpiar</Button>
       </div>
 
-      {loading ? <div className="text-center py-16 text-gray-400">Cargando…</div> : (
+      {loading ? <div className="text-center py-16 text-muted-foreground/70">Cargando…</div> : (
         <>
           {activeTab === "Línea de tiempo" && (
             <>
@@ -222,20 +222,20 @@ export default function AuditLogPage() {
                   const sev = SEVERITY_CONFIG[l.severity] ?? SEVERITY_CONFIG.info;
                   const icon = ENTITY_ICONS[l.entity_type.split(".")[0]] ?? "📋";
                   return (
-                    <div key={l.id} className="bg-white border rounded-xl px-4 py-3 flex items-start gap-3 hover:shadow-sm transition-shadow cursor-pointer group"
+                    <div key={l.id} className="bg-card border rounded-xl px-4 py-3 flex items-start gap-3 hover:shadow-sm transition-shadow cursor-pointer group"
                       onClick={() => setSelectedLog(l)}>
                       <span className="text-xl mt-0.5">{icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-mono text-sm font-medium ${getActionColor(l.action)}`}>{l.action}</span>
-                          {l.entity_label && <span className="text-sm text-gray-600 truncate">— {l.entity_label}</span>}
+                          {l.entity_label && <span className="text-sm text-muted-foreground truncate">— {l.entity_label}</span>}
                           <Badge className={`${sev.color} flex items-center gap-1 text-xs ml-auto`}>{sev.icon}{sev.label}</Badge>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground/70 flex-wrap">
                           {l.user_email && <span className="flex items-center gap-1"><User className="w-3 h-3" />{l.user_email}</span>}
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(l.created_at).toLocaleString("es-AR")}</span>
                           {l.ip_address && <span className="flex items-center gap-1"><Globe className="w-3 h-3" />{l.ip_address}</span>}
-                          {l.tags && l.tags.length > 0 && l.tags.map(tag => <span key={tag} className="bg-gray-100 px-1.5 py-0.5 rounded">{tag}</span>)}
+                          {l.tags && l.tags.length > 0 && l.tags.map(tag => <span key={tag} className="bg-muted/40 px-1.5 py-0.5 rounded">{tag}</span>)}
                         </div>
                       </div>
                       <Eye className="w-4 h-4 text-gray-300 group-hover:text-blue-400 shrink-0 mt-1" />
@@ -243,7 +243,7 @@ export default function AuditLogPage() {
                   );
                 })}
                 {logs.length === 0 && (
-                  <div className="text-center py-16 text-gray-400">
+                  <div className="text-center py-16 text-muted-foreground/70">
                     <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     <p>Sin eventos en el período seleccionado</p>
                   </div>
@@ -254,7 +254,7 @@ export default function AuditLogPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-3 pt-2">
                   <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-                  <span className="text-sm text-gray-500">Pág. {page + 1} / {totalPages}</span>
+                  <span className="text-sm text-muted-foreground">Pág. {page + 1} / {totalPages}</span>
                   <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
                 </div>
               )}
@@ -262,32 +262,32 @@ export default function AuditLogPage() {
           )}
 
           {activeTab === "Resumen" && (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-muted/20 text-muted-foreground">
                   <tr>{["Entidad","Acción","Total eventos","Usuarios únicos","Último evento"].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y">
                   {summary.map((s, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{ENTITY_ICONS[s.entity_type] ?? "📋"} {s.entity_type}</td>
+                    <tr key={i} className="hover:bg-muted/20">
+                      <td className="px-4 py-3 font-medium text-foreground">{ENTITY_ICONS[s.entity_type] ?? "📋"} {s.entity_type}</td>
                       <td className={`px-4 py-3 font-mono text-sm ${getActionColor(s.action)}`}>{s.action}</td>
                       <td className="px-4 py-3 font-semibold">{s.event_count.toLocaleString("es-AR")}</td>
-                      <td className="px-4 py-3 text-gray-600">{s.unique_users}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{new Date(s.last_event).toLocaleString("es-AR")}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{s.unique_users}</td>
+                      <td className="px-4 py-3 text-muted-foreground/70 text-xs">{new Date(s.last_event).toLocaleString("es-AR")}</td>
                     </tr>
                   ))}
-                  {summary.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-gray-400">Sin datos</td></tr>}
+                  {summary.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-muted-foreground/70">Sin datos</td></tr>}
                 </tbody>
               </table>
             </div>
           )}
 
           {activeTab === "Exportar" && (
-            <div className="bg-white rounded-xl border p-8 max-w-md space-y-4">
-              <h2 className="font-semibold text-gray-800">Exportar registros de auditoría</h2>
-              <p className="text-sm text-gray-500">Descargá todos los eventos filtrados actualmente en formato CSV.</p>
-              <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1 text-gray-600">
+            <div className="bg-card rounded-xl border p-8 max-w-md space-y-4">
+              <h2 className="font-semibold text-foreground">Exportar registros de auditoría</h2>
+              <p className="text-sm text-muted-foreground">Descargá todos los eventos filtrados actualmente en formato CSV.</p>
+              <div className="bg-muted/20 rounded-lg p-4 text-sm space-y-1 text-muted-foreground">
                 <p>Período: <strong>{filterFrom} → {filterTo}</strong></p>
                 <p>Eventos: <strong>{total.toLocaleString("es-AR")}</strong></p>
                 <p>Severidad: <strong>{filterSeverity === "all" ? "Todas" : filterSeverity}</strong></p>
@@ -310,37 +310,37 @@ export default function AuditLogPage() {
             </DialogHeader>
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded p-3">
-                  <p className="text-xs text-gray-400 mb-1">Usuario</p>
+                <div className="bg-muted/20 rounded p-3">
+                  <p className="text-xs text-muted-foreground/70 mb-1">Usuario</p>
                   <p className="font-medium">{selectedLog.user_email ?? "Sistema"}</p>
-                  <p className="text-xs text-gray-400">{selectedLog.user_role}</p>
+                  <p className="text-xs text-muted-foreground/70">{selectedLog.user_role}</p>
                 </div>
-                <div className="bg-gray-50 rounded p-3">
-                  <p className="text-xs text-gray-400 mb-1">Entidad</p>
+                <div className="bg-muted/20 rounded p-3">
+                  <p className="text-xs text-muted-foreground/70 mb-1">Entidad</p>
                   <p className="font-medium">{selectedLog.entity_type}</p>
-                  <p className="text-xs text-gray-400">{selectedLog.entity_label ?? selectedLog.entity_id}</p>
+                  <p className="text-xs text-muted-foreground/70">{selectedLog.entity_label ?? selectedLog.entity_id}</p>
                 </div>
-                <div className="bg-gray-50 rounded p-3">
-                  <p className="text-xs text-gray-400 mb-1">Fecha y hora</p>
+                <div className="bg-muted/20 rounded p-3">
+                  <p className="text-xs text-muted-foreground/70 mb-1">Fecha y hora</p>
                   <p className="font-medium">{new Date(selectedLog.created_at).toLocaleString("es-AR")}</p>
                 </div>
-                <div className="bg-gray-50 rounded p-3">
-                  <p className="text-xs text-gray-400 mb-1">IP / Severidad</p>
+                <div className="bg-muted/20 rounded p-3">
+                  <p className="text-xs text-muted-foreground/70 mb-1">IP / Severidad</p>
                   <p className="font-medium">{selectedLog.ip_address ?? "—"}</p>
                   <Badge className={`${SEVERITY_CONFIG[selectedLog.severity]?.color} text-xs mt-1`}>{selectedLog.severity}</Badge>
                 </div>
               </div>
               {selectedLog.diff && Object.keys(selectedLog.diff).length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-2">Cambios detectados</p>
-                  <div className="bg-gray-50 rounded p-3 space-y-1.5 font-mono text-xs">
+                  <p className="text-xs text-muted-foreground/70 mb-2">Cambios detectados</p>
+                  <div className="bg-muted/20 rounded p-3 space-y-1.5 font-mono text-xs">
                     {Object.entries(selectedLog.diff).map(([key, val]) => {
                       const v = val as { from: unknown; to: unknown };
                       return (
                         <div key={key} className="flex gap-2 items-start">
-                          <span className="text-gray-500 shrink-0 w-24 truncate">{key}:</span>
+                          <span className="text-muted-foreground shrink-0 w-24 truncate">{key}:</span>
                           <span className="text-red-500 line-through">{JSON.stringify(v.from)}</span>
-                          <span className="text-gray-400">→</span>
+                          <span className="text-muted-foreground/70">→</span>
                           <span className="text-green-600">{JSON.stringify(v.to)}</span>
                         </div>
                       );
@@ -350,8 +350,8 @@ export default function AuditLogPage() {
               )}
               {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-2">Metadata</p>
-                  <pre className="bg-gray-50 rounded p-3 text-xs overflow-auto max-h-40">{JSON.stringify(selectedLog.metadata, null, 2)}</pre>
+                  <p className="text-xs text-muted-foreground/70 mb-2">Metadata</p>
+                  <pre className="bg-muted/20 rounded p-3 text-xs overflow-auto max-h-40">{JSON.stringify(selectedLog.metadata, null, 2)}</pre>
                 </div>
               )}
             </div>

@@ -62,7 +62,7 @@ const DOC_TYPE_CONFIG: Record<string, { label: string; icon: string }> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  draft:    { label: "Borrador",  color: "bg-gray-100 text-gray-700" },
+  draft:    { label: "Borrador",  color: "bg-muted/40 text-muted-foreground" },
   active:   { label: "Activo",    color: "bg-green-100 text-green-800" },
   archived: { label: "Archivado", color: "bg-orange-100 text-orange-800" },
   expired:  { label: "Vencido",   color: "bg-red-100 text-red-800" },
@@ -348,14 +348,14 @@ export default function DocumentManagementPage() {
       {categories.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setCatFilter("all")}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${catFilter === "all" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`}>
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${catFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-gray-200"}`}>
             Todos ({documents.length})
           </button>
           {categories.map(cat => {
             const count = documents.filter(d => d.category_id === cat.id).length;
             return (
               <button key={cat.id} onClick={() => setCatFilter(cat.id)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${catFilter === cat.id ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200"}`}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${catFilter === cat.id ? "text-white border-transparent" : "bg-card text-muted-foreground border-gray-200"}`}
                 style={catFilter === cat.id ? { backgroundColor: cat.color, borderColor: cat.color } : {}}>
                 {cat.name} ({count})
               </button>
@@ -366,7 +366,7 @@ export default function DocumentManagementPage() {
 
       {/* Document grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground/70">
           <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>No hay documentos {searchQuery ? `que coincidan con "${searchQuery}"` : "en esta categoría"}</p>
         </div>
@@ -385,8 +385,8 @@ export default function DocumentManagementPage() {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-2xl">{tc.icon}</span>
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm truncate">{doc.title}</p>
-                        <p className="text-xs text-gray-400">v{doc.version} · {tc.label}</p>
+                        <p className="font-semibold text-foreground text-sm truncate">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground/70">v{doc.version} · {tc.label}</p>
                       </div>
                     </div>
                     <Badge className={`text-xs flex-shrink-0 ${sc.color}`}>{sc.label}</Badge>
@@ -395,17 +395,17 @@ export default function DocumentManagementPage() {
                   {doc.document_categories && (
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: doc.document_categories.color }} />
-                      <span className="text-xs text-gray-500">{doc.document_categories.name}</span>
+                      <span className="text-xs text-muted-foreground">{doc.document_categories.name}</span>
                     </div>
                   )}
 
-                  {doc.description && <p className="text-xs text-gray-500 line-clamp-2">{doc.description}</p>}
+                  {doc.description && <p className="text-xs text-muted-foreground line-clamp-2">{doc.description}</p>}
 
                   {/* Tags */}
                   {doc.tags && doc.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {doc.tags.slice(0, 4).map((tag, i) => (
-                        <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                        <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
                           <Tag className="w-2.5 h-2.5" />{tag}
                         </span>
                       ))}
@@ -414,7 +414,7 @@ export default function DocumentManagementPage() {
 
                   {/* Expiry */}
                   {doc.expiry_date && (
-                    <p className={`text-xs flex items-center gap-1 ${expired ? "text-red-600 font-semibold" : expSoon ? "text-orange-600" : "text-gray-400"}`}>
+                    <p className={`text-xs flex items-center gap-1 ${expired ? "text-red-600 font-semibold" : expSoon ? "text-orange-600" : "text-muted-foreground/70"}`}>
                       {(expired || expSoon) && <AlertTriangle className="w-3 h-3" />}
                       <Clock className="w-3 h-3" />
                       Vence: {new Date(doc.expiry_date).toLocaleDateString("es-AR")}
@@ -423,7 +423,7 @@ export default function DocumentManagementPage() {
                   )}
 
                   <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
                       <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" />{doc.view_count}</span>
                       <span className="flex items-center gap-0.5"><Download className="w-3 h-3" />{doc.download_count}</span>
                     </div>

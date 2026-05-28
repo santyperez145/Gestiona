@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   FileText, CheckCircle2, XCircle, Clock, AlertTriangle, RefreshCw,
   Settings, BarChart3, Plus, Search, Download, Eye, QrCode, Shield,
@@ -57,22 +60,9 @@ interface AfipStat {
   total_amount: number;
 }
 
-function StatCard({ icon: Icon, label, value, sub, color = "text-primary" }: any) {
-  return (
-    <div className="bg-card border border-border/40 rounded-xl p-4">
-      <div className="flex items-center gap-3 mb-2">
-        <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center`}>
-          <Icon className={`w-4 h-4 ${color}`} />
-        </div>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <p className="text-2xl font-bold font-display">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  );
-}
 
 export default function AFIPPage() {
+  usePageTitle("AFIP / Facturación Electrónica");
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const [tab, setTab] = useState<"comprobantes" | "config" | "stats" | "padron">("comprobantes");
@@ -208,33 +198,28 @@ export default function AFIPPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-blue-400" />
-            </div>
-            <h1 className="text-2xl font-display font-bold">AFIP / Facturación Electrónica</h1>
+      <PageHeader
+        icon={Shield}
+        title="AFIP / Facturación Electrónica"
+        description="Emisión de comprobantes electrónicos — conexión con AFIP WSFE"
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge className={config?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
+              {config?.is_active ? "● Activo" : "○ Inactivo"} — {config?.ambiente || "homologacion"}
+            </Badge>
+            <Button size="sm" onClick={() => setShowNewDialog(true)} className="gap-1.5 gradient-gold text-primary-foreground">
+              <Plus className="w-3.5 h-3.5" /> Emitir Comprobante
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground">Emisión de comprobantes electrónicos — conexión con AFIP WSFE</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className={config?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
-            {config?.is_active ? "● Activo" : "○ Inactivo"} — {config?.ambiente || "homologacion"}
-          </Badge>
-          <Button size="sm" onClick={() => setShowNewDialog(true)} className="gap-1.5 gradient-gold text-primary-foreground">
-            <Plus className="w-3.5 h-3.5" /> Emitir Comprobante
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Summary stats */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={FileText} label="Total hoy" value={totalsToday.total} sub="comprobantes" />
-        <StatCard icon={CheckCircle2} label="Autorizados" value={totalsToday.authorized} color="text-emerald-400" sub={`${totalsToday.total ? Math.round((totalsToday.authorized / totalsToday.total) * 100) : 0}% tasa`} />
-        <StatCard icon={XCircle} label="Rechazados" value={totalsToday.rejected} color="text-red-400" />
-        <StatCard icon={TrendingUp} label="Facturado" value={`$${(totalsToday.amount / 1000).toFixed(0)}K`} color="text-primary" sub="autorizados" />
+        <KPICard label="Total hoy" value={totalsToday.total} icon={FileText} color="primary" />
+        <KPICard label="Autorizados" value={totalsToday.authorized} icon={CheckCircle2} color="success" />
+        <KPICard label="Rechazados" value={totalsToday.rejected} icon={XCircle} color="destructive" />
+        <KPICard label="Facturado hoy" value={`$${(totalsToday.amount / 1000).toFixed(0)}K`} icon={TrendingUp} color="blue" />
       </div>
 
       {/* Tabs */}

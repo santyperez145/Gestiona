@@ -161,7 +161,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{dsLabel}</p>
-          <p className="font-semibold text-gray-800 text-sm mt-0.5">{widget.title}</p>
+          <p className="font-semibold text-foreground text-sm mt-0.5">{widget.title}</p>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={onToggleVisibility} className="p-1 rounded hover:bg-muted/40 text-muted-foreground/70">
@@ -531,8 +531,8 @@ export default function KPIDashboardPage() {
                     return (
                       <tr key={w.id} className="hover:bg-muted/20">
                         <td className="px-4 py-3 font-medium text-foreground">{w.title}</td>
-                        <td className="px-4 py-3 text-gray-600 flex items-center gap-1">{wt?.icon}{wt?.label ?? w.widget_type}</td>
-                        <td className="px-4 py-3 text-gray-600">{ds?.label ?? w.data_source}</td>
+                        <td className="px-4 py-3 text-muted-foreground flex items-center gap-1">{wt?.icon}{wt?.label ?? w.widget_type}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{ds?.label ?? w.data_source}</td>
                         <td className="px-4 py-3 text-muted-foreground">{TIME_RANGES.find(t => t.value === w.time_range)?.label}</td>
                         <td className="px-4 py-3"><span className="text-xs bg-muted/40 px-2 py-0.5 rounded">{dash?.name ?? "—"}</span></td>
                         <td className="px-4 py-3">
@@ -572,7 +572,7 @@ export default function KPIDashboardPage() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Progreso</span>
+                        <span className="text-muted-foreground">Progreso</span>
                         <span className="font-medium">{g.current_value.toLocaleString("es-AR")} / {g.target_value.toLocaleString("es-AR")} {g.unit}</span>
                       </div>
                       <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
@@ -612,7 +612,7 @@ export default function KPIDashboardPage() {
                   {alerts.map(a => (
                     <tr key={a.id} className="hover:bg-muted/20">
                       <td className="px-4 py-3 font-medium text-foreground">{a.name}</td>
-                      <td className="px-4 py-3 capitalize text-gray-600">{a.condition.replace("_", " ")}</td>
+                      <td className="px-4 py-3 capitalize text-muted-foreground">{a.condition.replace("_", " ")}</td>
                       <td className="px-4 py-3 font-mono text-foreground/80">{a.threshold.toLocaleString("es-AR")}</td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs">{a.notification_type}</Badge>
