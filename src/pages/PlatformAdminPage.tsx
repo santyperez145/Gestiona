@@ -133,6 +133,7 @@ export default function PlatformAdminPage() {
   // Org tab state
   const [orgSearch, setOrgSearch] = useState('');
   const [orgSort, setOrgSort] = useState<'created' | 'name' | 'status' | 'plan'>('created');
+  const [orgStatusFilter, setOrgStatusFilter] = useState<string>('all');
 
   // User tab state
   const [userSearch, setUserSearch] = useState('');
@@ -520,6 +521,9 @@ export default function PlatformAdminPage() {
 
   const filteredOrgs = useMemo(() => {
     let list = [...orgs];
+    if (orgStatusFilter !== 'all') {
+      list = list.filter(r => r.status === orgStatusFilter);
+    }
     if (orgSearch) {
       const q = orgSearch.toLowerCase();
       list = list.filter(r => r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q));
@@ -531,7 +535,7 @@ export default function PlatformAdminPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return list;
-  }, [orgs, orgSearch, orgSort]);
+  }, [orgs, orgSearch, orgSort, orgStatusFilter]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch) return users;
@@ -563,27 +567,27 @@ export default function PlatformAdminPage() {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs — Row 1: Business metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Organizaciones" value={stats.orgs} icon={Building2} color="primary" sub={`${stats.trialing} en trial`} />
-        <KPICard label="Usuarios totales" value={stats.users || '—'} icon={Users} color="blue" sub={`${stats.orgs} orgs`} />
-        <KPICard label="MRR" value={`$${stats.mrr.toLocaleString()}`} icon={DollarSign} color="success" sub={`ARR: $${stats.arr.toLocaleString()}`} />
-        <KPICard label="Conversión trial" value={`${stats.trialConversion}%`} icon={TrendingUp} color={stats.trialConversion >= 50 ? "success" : "warning"} sub={`${stats.active} pagos activos`} />
+        <KPICard label="Organizaciones" value={stats.orgs} icon={Building2} color="primary"
+          sub={`${stats.trialing} en trial · ${stats.active} activas`} />
+        <KPICard label="MRR" value={`$${stats.mrr.toLocaleString()}`} icon={DollarSign} color="success"
+          sub={`ARR est.: $${stats.arr.toLocaleString()}`} />
+        <KPICard label="Crecimiento 30d" value={`${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%`}
+          icon={stats.growth30d >= 0 ? TrendingUp : TrendingDown}
+          color={stats.growth30d >= 0 ? "success" : "destructive"}
+          sub="nuevas orgs vs 30d previos" />
+        <KPICard label="Conversión trial" value={`${stats.trialConversion}%`} icon={TrendingUp}
+          color={stats.trialConversion >= 50 ? "success" : "warning"}
+          sub={`ARPU: $${stats.arpu} · Churn: ${stats.churnRate}%`} />
       </div>
 
-      {/* Status row */}
+      {/* KPIs — Row 2: Health status */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard label="Activos" value={stats.active} icon={CheckCircle2} color="success" sub="pagos al día" />
         <KPICard label="En trial" value={stats.trialing} icon={Zap} color="blue" sub="períodos de prueba" />
         <KPICard label="Pago pendiente" value={stats.past_due} icon={Clock} color="warning" sub="requieren acción" />
         <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
-      </div>
-
-      {/* Growth / Churn / ARPU row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <KPICard label="Crecimiento 30d" value={`${stats.growth30d >= 0 ? '+' : ''}${stats.growth30d}%`} icon={stats.growth30d >= 0 ? TrendingUp : TrendingDown} color={stats.growth30d >= 0 ? "success" : "destructive"} sub="nuevas orgs últimos 30d" />
-        <KPICard label="Churn Rate" value={`${stats.churnRate}%`} icon={TrendingDown} color={stats.churnRate > 5 ? "destructive" : "success"} sub={`${stats.canceled} cancelaciones`} />
-        <KPICard label="ARPU" value={`$${stats.arpu}`} icon={DollarSign} color="purple" sub="revenue promedio / org" />
       </div>
 
       {/* Tabs */}
@@ -599,57 +603,192 @@ export default function PlatformAdminPage() {
 
         {/* ── OVERVIEW TAB ── */}
         <TabsContent value="overview" className="mt-4 space-y-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="font-semibold text-sm">Organizaciones recientes</h3>
-            </div>
-            {orgs.slice(0, 10).map(r => {
-              const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.paused;
-              const Icon = sc.icon;
-              return (
-                <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/20 last:border-0">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Building2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{r.name}</p>
-                    <p className="text-xs text-muted-foreground">/{r.slug} · {r.member_count} usuarios</p>
-                  </div>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${sc.color}`}>
-                    <Icon className="w-3 h-3" />{sc.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">{fmt(r.created_at)}</span>
+          {/* Health + Revenue breakdown */}
+          <div className="grid gap-4 lg:grid-cols-5">
+            {/* Subscription health */}
+            <div className="bg-card border border-border/60 rounded-[10px] p-4 space-y-3 lg:col-span-2">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Salud de suscripciones</h3>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { label: 'Activos',          value: stats.active,   color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+                  { label: 'En trial',         value: stats.trialing, color: 'bg-blue-500',    textColor: 'text-blue-400'    },
+                  { label: 'Pago pendiente',   value: stats.past_due, color: 'bg-yellow-500',  textColor: 'text-yellow-400'  },
+                  { label: 'Cancelados',       value: stats.canceled, color: 'bg-red-500',     textColor: 'text-red-400'     },
+                ].map(({ label, value, color, textColor }) => {
+                  const pct = stats.orgs > 0 ? Math.round((value / stats.orgs) * 100) : 0;
+                  return (
+                    <div key={label} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className={`font-semibold ${textColor}`}>
+                          {value} <span className="font-normal text-muted-foreground">({pct}%)</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="pt-2 border-t border-border grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-xs font-mono font-bold">{stats.churnRate}%</p>
+                  <p className="text-[10px] text-muted-foreground">Churn</p>
                 </div>
-              );
-            })}
+                <div className="border-x border-border">
+                  <p className="text-xs font-mono font-bold">{stats.trialConversion}%</p>
+                  <p className="text-[10px] text-muted-foreground">Conv. trial</p>
+                </div>
+                <div>
+                  <p className="text-xs font-mono font-bold">${stats.arpu}</p>
+                  <p className="text-[10px] text-muted-foreground">ARPU</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Plan revenue breakdown */}
+            <div className="bg-card border border-border/60 rounded-[10px] p-4 space-y-3 lg:col-span-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm flex-1">Revenue por plan</h3>
+                <span className="text-xs text-muted-foreground">
+                  MRR: <span className="font-mono font-bold text-foreground">${stats.mrr.toLocaleString()}</span>
+                </span>
+              </div>
+              {plans.filter(p => p.price_usd_monthly > 0).length === 0 ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {plans.filter(p => p.price_usd_monthly > 0).map(p => {
+                    const planOrgs = orgs.filter(o => o.plan_id === p.id && o.status === 'active');
+                    const planMrr = planOrgs.length * p.price_usd_monthly;
+                    const pct = stats.mrr > 0 ? Math.round((planMrr / stats.mrr) * 100) : 0;
+                    return (
+                      <div key={p.id} className="flex items-center gap-3">
+                        <div className="w-28 shrink-0">
+                          <p className="text-xs font-medium truncate">{p.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{planOrgs.length} org{planOrgs.length !== 1 ? 's' : ''} activas</p>
+                        </div>
+                        <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
+                          <div className="h-full bg-primary/70 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs font-mono font-medium w-24 text-right shrink-0">
+                          ${planMrr.toLocaleString()}<span className="text-muted-foreground font-normal">/mo</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">ARR estimado</span>
+                <span className="font-mono font-bold">${stats.arr.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent orgs */}
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Organizaciones recientes</h3>
+              <button
+                onClick={() => setTab('orgs')}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Ver todas <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            {loadingOrgs ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : orgs.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">No hay organizaciones aún</div>
+            ) : (
+              orgs.slice(0, 8).map(r => {
+                const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.paused;
+                const Icon = sc.icon;
+                return (
+                  <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/20 last:border-0 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Building2 className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{r.name}</p>
+                      <p className="text-xs text-muted-foreground">/{r.slug} · {r.member_count} usuario{r.member_count !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="text-right shrink-0 hidden sm:block">
+                      <p className="text-xs font-mono">{r.status === 'active' && r.plan_price > 0 ? `$${r.plan_price}/mo` : '—'}</p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[80px]">{r.plan_name}</p>
+                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${sc.color}`}>
+                      <Icon className="w-3 h-3" />{sc.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0 hidden lg:block">{fmt(r.created_at)}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </TabsContent>
 
         {/* ── ORGS TAB ── */}
         <TabsContent value="orgs" className="mt-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
-            <div className="p-4 border-b border-border flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <h2 className="font-semibold flex-1 text-sm">Organizaciones ({filteredOrgs.length})</h2>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input value={orgSearch} onChange={e => setOrgSearch(e.target.value)} placeholder="Buscar..." className="pl-8 h-8 text-sm bg-muted" />
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+            <div className="p-4 border-b border-border flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <h2 className="font-semibold flex-1 text-sm">Organizaciones ({filteredOrgs.length})</h2>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input value={orgSearch} onChange={e => setOrgSearch(e.target.value)} placeholder="Buscar..." className="pl-8 h-8 text-sm bg-muted" />
+                  </div>
+                  <select value={orgSort} onChange={e => setOrgSort(e.target.value as typeof orgSort)}
+                    className="h-8 text-xs bg-muted border border-border rounded-md px-2 text-foreground">
+                    <option value="created">Más nuevas</option>
+                    <option value="name">Nombre</option>
+                    <option value="status">Estado</option>
+                    <option value="plan">Plan</option>
+                  </select>
+                  <Button size="sm" variant="outline" className="h-8" onClick={exportOrgsCSV} title="Exportar CSV">
+                    <FileDown className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline ml-1.5">CSV</span>
+                  </Button>
+                  <Button size="sm" className="h-8" onClick={() => setCreateOrgDialog(true)}>
+                    <UserPlus className="w-3.5 h-3.5 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Nueva org</span>
+                  </Button>
                 </div>
-                <select value={orgSort} onChange={e => setOrgSort(e.target.value as typeof orgSort)}
-                  className="h-8 text-xs bg-muted border border-border rounded-md px-2 text-foreground">
-                  <option value="created">Más nuevas</option>
-                  <option value="name">Nombre</option>
-                  <option value="status">Estado</option>
-                  <option value="plan">Plan</option>
-                </select>
-                <Button size="sm" variant="outline" className="h-8" onClick={exportOrgsCSV} title="Exportar CSV">
-                  <FileDown className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline ml-1.5">CSV</span>
-                </Button>
-                <Button size="sm" className="h-8" onClick={() => setCreateOrgDialog(true)}>
-                  <UserPlus className="w-3.5 h-3.5 sm:mr-1.5" />
-                  <span className="hidden sm:inline">Nueva org</span>
-                </Button>
+              </div>
+              {/* Status filter chips */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { key: 'all',      label: 'Todas',        count: orgs.length },
+                  { key: 'active',   label: 'Activas',      count: orgs.filter(o => o.status === 'active').length },
+                  { key: 'trialing', label: 'Trial',        count: orgs.filter(o => o.status === 'trialing').length },
+                  { key: 'past_due', label: 'Pago pend.',   count: orgs.filter(o => o.status === 'past_due').length },
+                  { key: 'canceled', label: 'Canceladas',   count: orgs.filter(o => o.status === 'canceled').length },
+                  { key: 'paused',   label: 'Pausadas',     count: orgs.filter(o => o.status === 'paused').length },
+                ].filter(f => f.key === 'all' || f.count > 0).map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setOrgStatusFilter(f.key)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                      orgStatusFilter === f.key
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50'
+                    }`}
+                  >
+                    {f.label}
+                    <span className={`${orgStatusFilter === f.key ? 'opacity-75' : 'opacity-60'}`}>{f.count}</span>
+                  </button>
+                ))}
               </div>
             </div>
             {/* Mobile: card list */}
@@ -784,7 +923,7 @@ export default function PlatformAdminPage() {
               <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loadingUsers ? 'animate-spin' : ''}`} /> Recargar
             </Button>
           </div>
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
             {/* Mobile: card list */}
             <div className="sm:hidden divide-y divide-border">
               {loadingUsers
@@ -924,49 +1063,85 @@ export default function PlatformAdminPage() {
         <TabsContent value="plans" className="mt-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {loadingPlans
-              ? <div className="col-span-3 text-center p-8 text-muted-foreground">Cargando planes...</div>
-              : plans.map(p => (
-                <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-display font-bold text-lg">{p.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-0.5">{p.description || 'Sin descripción'}</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => { setEditPlanDialog({ open: true, plan: p }); setEditPlanForm({ ...p }); }}>
-                      <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Editar
-                    </Button>
-                  </div>
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio mensual</span>
-                      <span className="font-mono font-medium">${p.price_usd_monthly}/mo</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio anual</span>
-                      <span className="font-mono font-medium">${p.price_usd_yearly}/yr</span>
-                    </div>
-                    <div className="border-t border-border my-2" />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Productos</span>
-                      <span>{p.max_products ?? '∞'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ventas/mes</span>
-                      <span>{p.max_sales_per_month ?? '∞'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Usuarios</span>
-                      <span>{p.max_users ?? '∞'}</span>
-                    </div>
-                    <div className="border-t border-border my-2" />
-                    <div className="flex gap-2 flex-wrap">
-                      {p.ai_enabled && <Badge variant="outline" className="text-xs text-primary border-primary/30">IA</Badge>}
-                      {p.backups_enabled && <Badge variant="outline" className="text-xs">Backups</Badge>}
-                      {p.custom_branding && <Badge variant="outline" className="text-xs">Branding</Badge>}
-                    </div>
-                  </div>
+              ? <div className="col-span-3 text-center p-8 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />Cargando planes...
                 </div>
-              ))}
+              : plans.map((p, idx) => {
+                  const planOrgs = orgs.filter(o => o.plan_id === p.id);
+                  const activeOrgs = planOrgs.filter(o => o.status === 'active');
+                  const planMrr = activeOrgs.length * p.price_usd_monthly;
+                  const tierColors = [
+                    'from-muted/20 to-muted/5 border-border/60',
+                    'from-blue-500/10 to-blue-500/5 border-blue-500/20',
+                    'from-purple-500/10 to-purple-500/5 border-purple-500/20',
+                    'from-amber-500/10 to-amber-500/5 border-amber-500/20',
+                  ];
+                  const gradient = tierColors[idx % tierColors.length];
+                  return (
+                    <div key={p.id} className={`bg-gradient-to-br ${gradient} border rounded-[10px] p-5 space-y-4`}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h3 className="font-display font-bold text-lg">{p.name}</h3>
+                            {p.price_usd_monthly === 0 && (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground">Gratis</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{p.description || 'Sin descripción'}</p>
+                        </div>
+                        <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setEditPlanDialog({ open: true, plan: p }); setEditPlanForm({ ...p }); }}>
+                          <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Editar
+                        </Button>
+                      </div>
+
+                      {/* Usage stats */}
+                      <div className="grid grid-cols-3 gap-2 p-3 rounded-lg bg-background/40 border border-border/30">
+                        <div className="text-center">
+                          <p className="text-sm font-bold">{planOrgs.length}</p>
+                          <p className="text-[10px] text-muted-foreground">Total orgs</p>
+                        </div>
+                        <div className="text-center border-x border-border/30">
+                          <p className="text-sm font-bold text-emerald-400">{activeOrgs.length}</p>
+                          <p className="text-[10px] text-muted-foreground">Activas</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold font-mono">${planMrr.toLocaleString()}</p>
+                          <p className="text-[10px] text-muted-foreground">MRR</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Precio mensual</span>
+                          <span className="font-mono font-medium">{p.price_usd_monthly > 0 ? `$${p.price_usd_monthly}/mo` : 'Gratis'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Precio anual</span>
+                          <span className="font-mono font-medium">{p.price_usd_yearly > 0 ? `$${p.price_usd_yearly}/yr` : '—'}</span>
+                        </div>
+                        <div className="border-t border-border/50 my-2" />
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Productos</span>
+                          <span>{p.max_products ?? '∞'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Ventas/mes</span>
+                          <span>{p.max_sales_per_month ?? '∞'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Usuarios</span>
+                          <span>{p.max_users ?? '∞'}</span>
+                        </div>
+                        <div className="border-t border-border/50 my-2" />
+                        <div className="flex gap-2 flex-wrap">
+                          {p.ai_enabled && <Badge variant="outline" className="text-xs text-primary border-primary/30">IA</Badge>}
+                          {p.backups_enabled && <Badge variant="outline" className="text-xs">Backups</Badge>}
+                          {p.custom_branding && <Badge variant="outline" className="text-xs">Branding</Badge>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
           </div>
         </TabsContent>
 
@@ -975,7 +1150,7 @@ export default function PlatformAdminPage() {
           <div className="grid gap-5 lg:grid-cols-2">
 
             {/* Org lookup */}
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+            <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
                 <h3 className="font-semibold text-sm flex-1">Buscar organización</h3>
@@ -1117,7 +1292,7 @@ export default function PlatformAdminPage() {
             </div>
 
             {/* Admin audit log */}
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+            <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4 text-primary" />
