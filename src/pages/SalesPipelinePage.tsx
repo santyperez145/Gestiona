@@ -657,6 +657,65 @@ export default function SalesPipelinePage() {
     await commitMove(deal, stage, null);
   };
 
+  // Auto-enroll a deal's customer into all active drip sequences with the given trigger
+  // Looks up email by customer name. Silently no-ops if customer/email/sequence missing.
+  const autoEnrollInDrip = async (deal: Deal, trigger: "deal_lost" | "post_purchase" | "welcome") => {
+    if (!activeOrg) return;
+    try {
+      // 1. Find customer email by name (best-effort match)
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("id, email, name")
+        .eq("org_id", activeOrg.id)
+        .ilike("name", deal.customer_name)
+        .maybeSingle();
+      if (!customer?.email) return; // no email → can't drip
+
+      // 2. Find active sequences matching trigger
+      const { data: sequences } = await supabase
+        .from("drip_sequences")
+        .select("id")
+        .eq("org_id", activeOrg.id)
+        .eq("trigger_event", trigger)
+        .eq("active", true);
+      if (!sequences || sequences.length === 0) return;
+
+      // 3. For each sequence, count steps to set total_steps + next_send_at
+      for (const seq of sequences) {
+        const { count: stepCount } = await supabase
+          .from("drip_sequence_steps")
+          .select("id", { count: "exact", head: true })
+          .eq("sequence_id", seq.id);
+
+        const { data: firstStep } = await supabase
+          .from("drip_sequence_steps")
+          .select("day_offset")
+          .eq("sequence_id", seq.id)
+          .order("step_order", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        const nextSendAt = new Date();
+        nextSendAt.setDate(nextSendAt.getDate() + (firstStep?.day_offset ?? 1));
+
+        // Insert ignoring conflicts (unique sequence_id, customer_email)
+        await supabase.from("drip_enrollments").insert({
+          sequence_id:    seq.id,
+          org_id:         activeOrg.id,
+          customer_email: customer.email,
+          customer_name:  customer.name ?? deal.customer_name,
+          customer_id:    customer.id,
+          current_step:   0,
+          total_steps:    stepCount ?? 1,
+          status:         "active",
+          next_send_at:   nextSendAt.toISOString(),
+        });
+      }
+    } catch {
+      // Silent — drip enrollment is best-effort, don't block deal close
+    }
+  };
+
   const commitMove = async (deal: Deal, stage: Stage, reason: string | null) => {
     try {
       const closedAt = new Date().toISOString();
@@ -687,6 +746,15 @@ export default function SalesPipelinePage() {
           days_in_pipeline: daysInPipeline,
           closed_at:        closedAt,
         });
+
+        // ── Auto-enroll lost-deal customers in re-engagement drip ──────────
+        if (stage === "perdido" && deal.customer_name) {
+          await autoEnrollInDrip(deal, "deal_lost");
+        }
+        // ── Auto-enroll won-deal customers in post-purchase drip ───────────
+        if (stage === "cerrado" && deal.customer_name) {
+          await autoEnrollInDrip(deal, "post_purchase");
+        }
       }
       // ──────────────────────────────────────────────────────────────────────
 

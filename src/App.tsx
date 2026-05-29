@@ -71,6 +71,7 @@ const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
 const TeamChatPage           = lazy(() => import("@/pages/TeamChatPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
 const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
+const WinLossAnalyticsPage   = lazy(() => import("@/pages/WinLossAnalyticsPage"));
 const LoyaltyPage              = lazy(() => import("@/pages/LoyaltyPage"));
 const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
 const AlertsPage               = lazy(() => import("@/pages/AlertsPage"));
@@ -305,6 +306,7 @@ function ProtectedRoutes() {
               <Route path="/banco" element={<BankReconciliationPage />} />
               <Route path="/movimientos" element={<FinancialMovementsPage />} />
               <Route path="/pipeline" element={<SalesPipelinePage />} />
+              <Route path="/win-loss" element={<WinLossAnalyticsPage />} />
               <Route path="/fidelidad" element={<LoyaltyPage />} />
               <Route path="/alertas" element={<AlertsPage />} />
               <Route path="/actividad" element={<ActivityFeedPage />} />
