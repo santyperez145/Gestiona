@@ -1572,8 +1572,40 @@ export default function CustomersPage() {
 
   const handleCreate = async (data: Partial<CustomerProfile>) => {
     if (!user) return;
-    await createCustomerDB(user.id, data as Parameters<typeof createCustomerDB>[1]);
+    const created = await createCustomerDB(user.id, data as Parameters<typeof createCustomerDB>[1]);
     toast.success("Cliente creado");
+
+    // ── Fire-and-forget territory auto-assignment ─────────────────────────
+    // Builds a flat attribute blob the rule engine can match against.
+    if (created?.id && created?.org_id) {
+      (async () => {
+        try {
+          const c = created as Record<string, unknown>;
+          const address = (c.address as string | null) ?? "";
+          // crude city/province parse — works for "Calle 123, Córdoba, Córdoba"
+          const parts = address.split(",").map(p => p.trim()).filter(Boolean);
+          const attributes = {
+            city:     parts[parts.length - 2] ?? "",
+            province: parts[parts.length - 1] ?? "",
+            tag:      Array.isArray(c.tags) ? (c.tags as string[]).join(",") : "",
+            source:   "customer_create",
+          };
+          const { data: assigned } = await supabase.rpc("apply_territory_rules", {
+            p_org_id:      created.org_id,
+            p_entity_type: "customer",
+            p_entity_id:   created.id,
+            p_attributes:  attributes,
+          });
+          if (assigned) {
+            // Optional: bubble up a subtle toast (skip if you want it silent)
+            toast.message("📍 Cliente asignado por regla de territorio", { duration: 3000 });
+          }
+        } catch {
+          // Silent — territory rules are optional
+        }
+      })();
+    }
+
     await loadData();
   };
 

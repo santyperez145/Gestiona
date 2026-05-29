@@ -42,6 +42,7 @@ const allNavItems = [
   { to: "/clientes", label: "Clientes / CRM", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/pipeline", label: "Pipeline", icon: Kanban, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/win-loss", label: "Win/Loss Analytics", icon: Trophy, roles: ['admin'], section: 'ventas' },
+  { to: "/territorios", label: "Territorios", icon: Map, roles: ['admin'], section: 'ventas' },
   { to: "/contratos", label: "Contratos", icon: FileText, roles: ['admin'], section: 'ventas' },
   { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },

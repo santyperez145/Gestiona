@@ -802,6 +802,78 @@ export default function SalesPipelinePage() {
     await commitMove(deal, stage, null);
   };
 
+  // Auto-create a draft quote from a won deal. Best-effort: silently no-ops on failure.
+  // Returns the new quote_id (or null) so the caller can offer to navigate to it.
+  const autoCreateQuoteFromDeal = async (deal: Deal): Promise<string | null> => {
+    if (!activeOrg || !user) return null;
+    try {
+      // 1. Check if a quote was already created for this deal in the last 24h
+      // (deals table doesn't link to quotes; we use the title as a soft idempotency key)
+      const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+      const { count: dupCount } = await supabase
+        .from("quotes")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", activeOrg.id)
+        .eq("customer_name", deal.customer_name || "")
+        .gte("created_at", yesterday);
+      if ((dupCount ?? 0) > 0) return null;  // already exists, avoid duplicates
+
+      // 2. Generate next quote_number via RPC
+      const { data: numData } = await supabase.rpc("next_quote_number", { p_org_id: activeOrg.id });
+      const quoteNumber = (numData as string | null) || `Q-${Date.now()}`;
+
+      // 3. Look up customer for email/phone
+      let customerEmail: string | null = null;
+      let customerPhone: string | null = null;
+      if (deal.customer_name) {
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("email, phone")
+          .eq("org_id", activeOrg.id)
+          .ilike("name", deal.customer_name)
+          .maybeSingle();
+        customerEmail = customer?.email ?? null;
+        customerPhone = customer?.phone ?? null;
+      }
+
+      // 4. Build a single line-item quote from the deal title + value
+      const total = deal.value_ars || 0;
+      const item = {
+        description: deal.title,
+        qty: 1,
+        unit_price: total,
+        total,
+      };
+
+      // 5. Create the quote in "accepted" status (deal is already won)
+      const { data: inserted, error } = await supabase
+        .from("quotes")
+        .insert({
+          org_id: activeOrg.id,
+          quote_number: quoteNumber,
+          customer_name: deal.customer_name || "Sin nombre",
+          customer_email: customerEmail,
+          customer_phone: customerPhone,
+          items: [item],
+          subtotal: total,
+          discount_amount: 0,
+          total,
+          status: "accepted",
+          valid_until: null,
+          notes: `Generado automáticamente al cerrar el deal "${deal.title}" como ganado.`,
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      return (inserted?.id as string | null) ?? null;
+    } catch (e) {
+      console.error("autoCreateQuoteFromDeal failed:", e);
+      return null;
+    }
+  };
+
   // Auto-enroll a deal's customer into all active drip sequences with the given trigger
   // Looks up email by customer name. Silently no-ops if customer/email/sequence missing.
   const autoEnrollInDrip = async (deal: Deal, trigger: "deal_lost" | "post_purchase" | "welcome") => {
@@ -903,7 +975,18 @@ export default function SalesPipelinePage() {
       }
       // ──────────────────────────────────────────────────────────────────────
 
-      if (stage === "cerrado") toast.success(`🏆 Deal "${deal.title}" marcado como ganado!`);
+      if (stage === "cerrado") {
+        toast.success(`🏆 Deal "${deal.title}" marcado como ganado!`);
+        // Auto-create quote (fire-and-forget — user gets a follow-up toast if successful)
+        autoCreateQuoteFromDeal(deal).then(quoteId => {
+          if (quoteId) {
+            toast.success("📄 Presupuesto creado automáticamente", {
+              action: { label: "Ver", onClick: () => window.location.href = "/presupuestos" },
+              duration: 6000,
+            });
+          }
+        });
+      }
       if (stage === "perdido") toast.info(`Deal "${deal.title}" marcado como perdido.`);
     } catch {
       toast.error("Error al mover");
