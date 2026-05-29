@@ -103,7 +103,7 @@ function ProgressBar({ pct }: { pct: number }) {
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[hsl(228_24%_9%)] border border-border/60 rounded-xl p-3 text-xs shadow-xl">
+    <div className="bg-popover border border-border/60 rounded-xl p-3 text-xs shadow-xl">
       <p className="font-semibold mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} style={{ color: p.fill || p.color }}>
@@ -328,7 +328,7 @@ export default function SellerGoalsPage() {
         <div className="space-y-6">
           {/* Chart */}
           {chartData.length > 0 && (
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+            <div className="bg-card border border-border/60 rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-primary" />
                 Target vs Real por Vendedor
@@ -366,7 +366,7 @@ export default function SellerGoalsPage() {
           )}
 
           {/* Leaderboard */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border/40 flex items-center gap-2">
               <Trophy className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold">Leaderboard — {monthLabel}</h3>
@@ -465,7 +465,7 @@ export default function SellerGoalsPage() {
           {/* Progress detail cards for mobile */}
           <div className="sm:hidden space-y-3">
             {sellerRows.filter(r => r.goal).map(row => (
-              <div key={row.user_id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
+              <div key={row.user_id} className="bg-card border border-border/60 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold">{row.name}</p>
                   <span className="text-sm font-bold">{row.pct}%</span>

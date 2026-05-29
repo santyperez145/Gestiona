@@ -163,7 +163,7 @@ export default function SupplierPOModal({ open, onClose, supplierId }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { onClose(); setSent(false); } }}>
-      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border/60 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display">
             <Truck className="w-5 h-5 text-primary" />

@@ -71,7 +71,7 @@ export default function BarcodeScanModal({ open, onClose, onDetect, title = "Esc
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose(); }}>
-      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
+      <DialogContent className="bg-card border-border/60 max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ScanLine className="w-5 h-5 text-primary" />

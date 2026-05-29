@@ -297,7 +297,7 @@ export default function LocationsPage() {
             const stock = locationStock[loc.id] || [];
             const totalUnits = stock.reduce((s, ls) => s + ls.stock, 0);
             return (
-              <div key={loc.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-5 shadow-card">
+              <div key={loc.id} className="bg-card border border-border/60 rounded-xl p-5 shadow-card">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     {loc.is_main && <Star className="w-4 h-4 text-primary shrink-0" />}
@@ -378,7 +378,7 @@ export default function LocationsPage() {
 
       {/* Create/Edit Location Dialog */}
       <Dialog open={showForm} onOpenChange={v => { setShowForm(v); if (!v) setEditingLoc(null); }}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
+        <DialogContent className="bg-card border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">{editingLoc ? "Editar local" : "Nuevo local"}</DialogTitle>
           </DialogHeader>
@@ -392,7 +392,7 @@ export default function LocationsPage() {
 
       {/* Transfer Dialog */}
       <Dialog open={showTransfer} onOpenChange={setShowTransfer}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
+        <DialogContent className="bg-card border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Transferir stock entre locales</DialogTitle>
           </DialogHeader>

@@ -179,7 +179,7 @@ export default function SellerCommissionsPage() {
       </div>
 
       {/* Team commission config */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-5 mb-6">
+      <div className="bg-card border border-border/60 rounded-xl p-5 mb-6">
         <h2 className="font-semibold text-sm mb-4 flex items-center gap-2"><Settings className="w-4 h-4 text-primary" />Equipo y comisiones</h2>
         {loading ? (
           <p className="text-sm text-muted-foreground">Cargando…</p>
@@ -310,7 +310,7 @@ export default function SellerCommissionsPage() {
 
       {/* Config dialog */}
       <Dialog open={showConfig} onOpenChange={setShowConfig}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
+        <DialogContent className="bg-card border-border/60 max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display">Configurar comisión</DialogTitle>
           </DialogHeader>

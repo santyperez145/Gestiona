@@ -978,7 +978,7 @@ export default function PresupuestosPage() {
             const isExpired = daysUntilExpiry !== null && daysUntilExpiry < 0
               && q.status !== "accepted" && q.status !== "rejected";
             return (
-            <div key={q.id} className={`bg-[hsl(228_24%_7%)] border rounded-[10px] overflow-hidden shadow-card ${isExpiringSoon ? "border-warning/40" : isExpired ? "border-destructive/30" : "border-border/60"}`}>
+            <div key={q.id} className={`bg-card border rounded-[10px] overflow-hidden shadow-card ${isExpiringSoon ? "border-warning/40" : isExpired ? "border-destructive/30" : "border-border/60"}`}>
               <div className="px-4 py-3.5 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

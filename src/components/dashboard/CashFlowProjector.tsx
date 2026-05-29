@@ -27,7 +27,7 @@ export default function CashFlowProjector({
   const statusLabel = status === 'destructive' ? 'Déficit proyectado' : status === 'warning' ? 'Saldo ajustado' : 'Saldo saludable';
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4 md:p-5 shadow-card mb-6">
+    <div className="bg-card border border-border/60 rounded-xl p-4 md:p-5 shadow-card mb-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">

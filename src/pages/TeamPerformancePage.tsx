@@ -96,7 +96,7 @@ function TrendChip({ pct }: { pct: number }) {
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[hsl(228_24%_9%)] border border-border/60 rounded-xl p-3 text-xs shadow-xl">
+    <div className="bg-popover border border-border/60 rounded-xl p-3 text-xs shadow-xl">
       <p className="font-semibold mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} style={{ color: p.fill || p.color }}>
@@ -115,7 +115,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-4">
       {[1, 2, 3, 4].map(i => (
-        <div key={i} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5 animate-pulse">
+        <div key={i} className="bg-card border border-border/60 rounded-2xl p-5 animate-pulse">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-border/40" />
             <div className="space-y-1.5">
@@ -361,7 +361,7 @@ export default function TeamPerformancePage() {
             <div className="space-y-6">
               {/* Bar chart */}
               {chartData.length > 0 && (
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+                <div className="bg-card border border-border/60 rounded-2xl p-5">
                   <h3 className="text-sm font-semibold mb-4">Ventas por vendedor: este mes vs anterior</h3>
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
@@ -386,7 +386,7 @@ export default function TeamPerformancePage() {
                   return (
                     <div
                       key={seller.name}
-                      className={`bg-[hsl(228_24%_7%)] border rounded-2xl p-5 space-y-3 ${
+                      className={`bg-card border rounded-2xl p-5 space-y-3 ${
                         isTop ? "border-primary/40 bg-primary/[0.03]" : "border-border/60"
                       }`}
                     >
@@ -513,7 +513,7 @@ export default function TeamPerformancePage() {
                       return (
                         <div
                           key={seller.name}
-                          className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5 space-y-4"
+                          className="bg-card border border-border/60 rounded-2xl p-5 space-y-4"
                         >
                           {/* Header: name + role + status badge */}
                           <div className="flex items-start justify-between gap-2">
@@ -608,7 +608,7 @@ export default function TeamPerformancePage() {
             <div className="space-y-6">
               {/* Comparison bar chart */}
               {chartData.length > 0 && (
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+                <div className="bg-card border border-border/60 rounded-2xl p-5">
                   <h3 className="text-sm font-semibold mb-1">Comparativa mes actual vs anterior</h3>
                   <p className="text-[11px] text-muted-foreground mb-4">{monthLabel}</p>
                   <div className="h-60">
@@ -629,7 +629,7 @@ export default function TeamPerformancePage() {
 
               {/* Comparison table */}
               {stats.length > 0 ? (
-                <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl overflow-hidden">
+                <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-border/40 bg-background/30">

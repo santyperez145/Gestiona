@@ -264,7 +264,7 @@ export default function CalendarPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
         <div className="lg:col-span-2">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
             {/* Month nav */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
               <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(m => addMonths(m, -1))}>
@@ -358,7 +358,7 @@ export default function CalendarPage() {
 
         {/* Day detail panel */}
         <div className="space-y-3">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-4">
+          <div className="bg-card border border-border/60 rounded-2xl p-4">
             {selectedDate ? (
               <>
                 <h3 className="text-sm font-semibold mb-3">
@@ -408,7 +408,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Upcoming events */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-4">
+          <div className="bg-card border border-border/60 rounded-2xl p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-primary" /> Próximos 7 días
             </h3>

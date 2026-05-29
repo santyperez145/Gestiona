@@ -357,7 +357,7 @@ export default function PaymentLinksPage() {
             const publicUrl = buildPublicPaymentUrl(link.id);
             const isExpired = link.expires_at && new Date(link.expires_at) < new Date() && link.status === "pending";
             return (
-              <div key={link.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+              <div key={link.id} className="bg-card border border-border/60 rounded-[10px] p-4">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
                     {/* Header row */}

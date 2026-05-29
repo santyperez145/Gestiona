@@ -670,7 +670,7 @@ export default function InvoicesPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-5">
+        <div className="bg-card border border-border/60 rounded-[10px] p-5 space-y-5">
           <h2 className="font-semibold flex items-center gap-2"><Plus className="w-4 h-4" />Nueva factura</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -809,7 +809,7 @@ export default function InvoicesPage() {
       )}
 
       {/* Invoice list */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-2">
           <h2 className="font-semibold text-sm shrink-0">Facturas ({filteredInvoices.length})</h2>
           <div className="flex gap-1 flex-wrap">

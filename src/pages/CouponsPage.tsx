@@ -245,7 +245,7 @@ export default function CouponsPage() {
             return (
               <div
                 key={c.id}
-                className={`bg-[hsl(228_24%_7%)] border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
+                className={`bg-card border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
                   c.status === "active" ? "border-border/60" : "border-border/30 opacity-70"
                 }`}
               >

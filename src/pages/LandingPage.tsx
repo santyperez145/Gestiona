@@ -137,7 +137,7 @@ export default function LandingPage() {
           {FEATURES.map((f, i) => (
             <div
               key={f.title}
-              className="bg-[hsl(228_24%_6.5%)] p-6 hover:bg-[hsl(228_24%_8%)] transition-colors duration-200 group relative"
+              className="bg-muted/20 p-6 hover:bg-card/90 transition-colors duration-200 group relative"
             >
               {/* Number */}
               <div className="font-mono text-[9px] font-bold text-muted-foreground/25 mb-4 tracking-[0.1em]">

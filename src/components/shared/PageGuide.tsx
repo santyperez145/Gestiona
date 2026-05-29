@@ -89,7 +89,7 @@ export default function PageGuide() {
         title="Guía de esta pantalla"
         className={cn(
           "fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
-          "bg-[hsl(228_24%_7%)] border border-border/60 hover:border-primary/50 hover:shadow-xl hover:scale-105",
+          "bg-card border border-border/60 hover:border-primary/50 hover:shadow-xl hover:scale-105",
           open && "opacity-0 pointer-events-none",
         )}
         aria-label="Abrir guía"
@@ -113,7 +113,7 @@ export default function PageGuide() {
           />
 
           {/* Panel */}
-          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[360px] flex flex-col bg-[hsl(228_24%_7%)] border-l border-border/60 shadow-2xl animate-in slide-in-from-right duration-200">
+          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[360px] flex flex-col bg-card border-l border-border/60 shadow-2xl animate-in slide-in-from-right duration-200">
 
             {/* Header */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">

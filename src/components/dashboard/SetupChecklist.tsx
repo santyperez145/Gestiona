@@ -96,7 +96,7 @@ export default function SetupChecklist({
   if (allDone) return null;
 
   return (
-    <div className="mb-5 rounded-[10px] border border-primary/20 bg-[hsl(228_24%_7%)] shadow-card overflow-hidden">
+    <div className="mb-5 rounded-[10px] border border-primary/20 bg-card shadow-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60">
         <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

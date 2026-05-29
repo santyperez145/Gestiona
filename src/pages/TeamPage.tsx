@@ -165,7 +165,7 @@ export default function TeamPage() {
       />
 
       {canManage && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+        <div className="bg-card border border-border/60 rounded-[10px] p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold flex items-center gap-2"><Mail className="w-4 h-4" /> Invitar miembro</h2>
             {userLimit !== null && (
@@ -206,7 +206,7 @@ export default function TeamPage() {
         </div>
       )}
 
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+      <div className="bg-card border border-border/60 rounded-[10px] p-5">
         <h2 className="font-semibold mb-3">Miembros ({members.length})</h2>
         {loading ? <div className="text-sm text-muted-foreground">Cargando...</div> : (
           <div className="divide-y divide-border">
@@ -248,7 +248,7 @@ export default function TeamPage() {
       </div>
 
       {invites.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+        <div className="bg-card border border-border/60 rounded-[10px] p-5">
           <h2 className="font-semibold mb-3">Invitaciones pendientes ({invites.length})</h2>
           <div className="divide-y divide-border">
             {invites.map(i => (

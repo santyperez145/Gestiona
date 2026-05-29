@@ -178,7 +178,7 @@ export default function PricingPage() {
       <section className="max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-[10px] border border-border/50 bg-[hsl(228_24%_7%)] p-6 h-96 animate-pulse" />
+              <div key={i} className="rounded-[10px] border border-border/50 bg-card p-6 h-96 animate-pulse" />
             ))
           : plans.map((p, idx) => {
               const price = yearly ? p.price_usd_yearly : p.price_usd_monthly;
@@ -195,10 +195,10 @@ export default function PricingPage() {
                   className={[
                     'relative rounded-[10px] border p-6 flex flex-col overflow-hidden',
                     isCurrent
-                      ? 'border-primary/40 bg-[hsl(228_24%_8%)]'
+                      ? 'border-primary/40 bg-card/90'
                       : isPro
-                      ? 'border-primary/25 bg-[hsl(228_24%_7%)]'
-                      : 'border-border/50 bg-[hsl(228_24%_6.5%)]',
+                      ? 'border-primary/25 bg-card'
+                      : 'border-border/50 bg-muted/20',
                   ].join(' ')}
                 >
                   {/* Inner top highlight */}

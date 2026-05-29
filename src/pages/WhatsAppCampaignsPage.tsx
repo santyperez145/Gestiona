@@ -329,7 +329,7 @@ export default function WhatsAppCampaignsPage() {
             return (
               <div
                 key={camp.id}
-                className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                className="bg-card border border-border/60 rounded-[10px] p-4 flex flex-col sm:flex-row sm:items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">

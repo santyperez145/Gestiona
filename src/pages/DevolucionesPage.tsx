@@ -353,7 +353,7 @@ export default function DevolucionesPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map(r => (
-            <div key={r.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
+            <div key={r.id} className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
               <div className="px-4 py-3.5 flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
                   <RotateCcw className="w-4 h-4 text-destructive" />

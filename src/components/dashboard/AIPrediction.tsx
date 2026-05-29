@@ -44,7 +44,7 @@ export default function AIPrediction({ sales }: { sales: any[] }) {
   useEffect(() => { if (sales.length >= 5 && !pred) fetchPrediction(); /* eslint-disable-next-line */ }, [sales.length]);
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4 md:p-5 shadow-card">
+    <div className="bg-card border border-border/60 rounded-xl p-4 md:p-5 shadow-card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
           <Brain className="w-4 h-4 text-primary" /> Proyección IA — Próximos 30 días

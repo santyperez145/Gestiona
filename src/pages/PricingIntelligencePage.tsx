@@ -77,7 +77,7 @@ function ScatterTooltip({ active, payload }: any) {
   const d = payload[0]?.payload as ProductMargin;
   if (!d) return null;
   return (
-    <div className="bg-[hsl(228_24%_9%)] border border-border/60 rounded-xl p-3 text-xs shadow-xl max-w-[200px]">
+    <div className="bg-popover border border-border/60 rounded-xl p-3 text-xs shadow-xl max-w-[200px]">
       <p className="font-semibold mb-1 truncate">{d.name}</p>
       <p>Margen: <span className="font-bold">{d.marginPct.toFixed(1)}%</span></p>
       <p>Precio: <span className="font-bold">{formatARS(d.salePrice)}</span></p>
@@ -288,7 +288,7 @@ export default function PricingIntelligencePage() {
       ) : (
         <div className="space-y-6">
           {/* What-if rate simulator + target margin */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+          <div className="bg-card border border-border/60 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Zap className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold">Simulador de escenarios</h3>
@@ -349,7 +349,7 @@ export default function PricingIntelligencePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Scatter: price vs margin */}
             {products.length > 0 && (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+              <div className="bg-card border border-border/60 rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Precio vs Margen (scatter)</h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
@@ -385,7 +385,7 @@ export default function PricingIntelligencePage() {
 
             {/* Bar: margin by category */}
             {categoryData.length > 0 && (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+              <div className="bg-card border border-border/60 rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Margen promedio por categoría</h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
@@ -453,7 +453,7 @@ export default function PricingIntelligencePage() {
           </div>
 
           {/* Products table */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
             {filtered.length === 0 ? (
               <div className="text-center py-12">
                 <Percent className="w-8 h-8 mx-auto mb-2 text-muted-foreground/20" />

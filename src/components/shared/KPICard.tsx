@@ -40,7 +40,7 @@ export default function KPICard({
       className={cn(
         /* Base */
         "relative group overflow-hidden rounded-[10px]",
-        "bg-[hsl(228_24%_7%)] border border-border/60",
+        "bg-card border border-border/60",
         "shadow-kpi transition-all duration-200",
         /* Hover */
         "hover:border-border/80 hover:-translate-y-[2px]",

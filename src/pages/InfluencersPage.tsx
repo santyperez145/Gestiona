@@ -80,7 +80,7 @@ function InfluencersTab() {
       {items.length === 0 ? (
         <EmptyState icon={Users} title="Sin influencers" description="Agregá tu primer influencer para empezar a tracker comisiones." />
       ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)]">
+        <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-card">
           <table className="w-full text-sm table-compact-mobile">
             <thead className="bg-muted text-xs uppercase">
               <tr>
@@ -219,7 +219,7 @@ function SalesTab() {
         <KPICard label="Comisiones a pagar" value={fmt(totalPending)} icon={DollarSign} />
       </div>
       {sales.length === 0 ? <EmptyState icon={TrendingUp} title="Sin ventas con código aún" description="Cuando una venta use código de referido, aparecerá acá." /> : (
-        <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)]">
+        <div className="overflow-x-auto rounded-[10px] border border-border/60 bg-card">
           <table className="w-full text-sm table-compact-mobile">
             <thead className="bg-muted text-xs uppercase"><tr>
               <th className="text-left p-3">Fecha</th><th className="text-left p-3">Influencer</th><th className="text-left p-3">Código</th><th className="text-right p-3">Venta</th><th className="text-right p-3">Comisión</th><th className="text-center p-3">Estado</th>
@@ -297,7 +297,7 @@ function PayoutsTab() {
         </Dialog>
       </div>
       {payouts.length === 0 ? <EmptyState icon={DollarSign} title="Sin liquidaciones" description="Generá tu primera liquidación cuando tengas comisiones acumuladas." /> : (
-        <div className="rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)] overflow-x-auto">
+        <div className="rounded-[10px] border border-border/60 bg-card overflow-x-auto">
           <table className="w-full text-sm table-compact-mobile">
             <thead className="bg-muted text-xs uppercase"><tr>
               <th className="text-left p-3">Fecha</th><th className="text-left p-3">Influencer</th><th className="text-right p-3">Ventas</th><th className="text-right p-3">Monto</th>

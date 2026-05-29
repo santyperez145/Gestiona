@@ -125,7 +125,7 @@ export default function MarketingPage() {
                   <Sparkles className="w-4 h-4 mr-2" />Generar con IA
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-card border-border/60 max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle className="font-display">Generar Contenido con IA</DialogTitle></DialogHeader>
                 <AIContentForm onGenerate={(type, theme) => { handleGenerateAI(type, theme); setOpen(false); }} generating={generating} postTypes={postTypes} themes={themes} />
               </DialogContent>
@@ -134,7 +134,7 @@ export default function MarketingPage() {
               <DialogTrigger asChild>
                 <Button variant="outline"><Plus className="w-4 h-4 mr-2" />Manual</Button>
               </DialogTrigger>
-              <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-card border-border/60 max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle className="font-display">Crear Publicación</DialogTitle></DialogHeader>
                 <ManualPostForm userId={user?.id || ''} onSave={reload} postTypes={postTypes} />
               </DialogContent>
@@ -202,7 +202,7 @@ export default function MarketingPage() {
             </Button>
           </div>
 
-          <div className="mb-8 p-4 rounded-[10px] border border-border/60 bg-[hsl(228_24%_7%)]">
+          <div className="mb-8 p-4 rounded-[10px] border border-border/60 bg-card">
             <OfferRecommenderPanel />
           </div>
 
@@ -217,7 +217,7 @@ export default function MarketingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filtered.map(post => (
-                <div key={post.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 shadow-card hover:border-primary/30 hover:shadow-md transition-all">
+                <div key={post.id} className="bg-card border border-border/60 rounded-[10px] p-5 shadow-card hover:border-primary/30 hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-9 h-9 rounded-[6px] bg-primary/10 flex items-center justify-center text-lg shrink-0">
@@ -672,7 +672,7 @@ function UTMLinkBuilder() {
   const copy = () => { navigator.clipboard.writeText(generated); toast.success("Link UTM copiado"); };
 
   return (
-    <div className="mb-6 border border-border/60 rounded-[10px] bg-[hsl(228_24%_7%)]">
+    <div className="mb-6 border border-border/60 rounded-[10px] bg-card">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors rounded-[10px]"

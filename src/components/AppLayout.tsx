@@ -312,7 +312,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ── Idle session lock overlay ────────────────────────────── */}
       {idleLocked && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl animate-fade-in">
+          <div className="bg-card border border-border/60 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl animate-fade-in">
             <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-7 h-7 text-primary" />
             </div>

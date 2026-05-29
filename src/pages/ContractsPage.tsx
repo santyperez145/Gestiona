@@ -253,7 +253,7 @@ export default function ContractsPage() {
       {/* Form Dialog */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border/60 rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <h2 className="font-display font-bold">{editing ? 'Editar contrato' : 'Nuevo contrato'}</h2>
               <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>

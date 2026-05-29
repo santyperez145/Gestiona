@@ -149,7 +149,7 @@ export default function InfluencerExchangesPage() {
             <DialogTrigger asChild>
               <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nuevo Canje</Button>
             </DialogTrigger>
-            <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogContent className="bg-card border-border/60 max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Canje' : 'Registrar Canje'}</DialogTitle></DialogHeader>
               <ExchangeForm userId={user!.id} editItem={editItem} existingExchanges={exchanges} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
             </DialogContent>
@@ -179,7 +179,7 @@ export default function InfluencerExchangesPage() {
           .sort((a, b) => b.roi - a.roi)
           .slice(0, 8);
         return (
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
+          <div className="bg-card border border-border/60 rounded-xl p-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" />ROI por Influencer (%)</h3>
             <ResponsiveContainer width="100%" height={120}>
               <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -233,7 +233,7 @@ export default function InfluencerExchangesPage() {
       ) : (
         <>
           {/* Desktop */}
-          <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg overflow-x-auto">
+          <div className="hidden md:block bg-card border border-border/60 rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
@@ -336,7 +336,7 @@ export default function InfluencerExchangesPage() {
             {filtered.map(ex => {
               const value = Number(ex.product_value_ars) * ex.quantity;
               return (
-                <div key={ex.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
+                <div key={ex.id} className="bg-card border border-border/60 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="font-medium text-sm">{ex.influencer_name}</p>

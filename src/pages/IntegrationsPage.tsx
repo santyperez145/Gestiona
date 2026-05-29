@@ -544,7 +544,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* ── Health check panel ─────────────────────────────────────── */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden shadow-card">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden shadow-card">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
@@ -592,7 +592,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Tiendanube Card */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden shadow-card">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden shadow-card">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[6px] bg-[#2f6ee4]/10 flex items-center justify-center shrink-0">
@@ -777,7 +777,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Mercado Pago */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
+      <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
@@ -856,7 +856,7 @@ export default function IntegrationsPage() {
 
       {/* ── MercadoLibre Marketplace ─────────────────────────────── */}
       {mpLoaded && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
+        <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0">
@@ -933,7 +933,7 @@ export default function IntegrationsPage() {
 
       {/* ── Shopify ──────────────────────────────────────────────── */}
       {mpLoaded && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden shadow-card">
+        <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">

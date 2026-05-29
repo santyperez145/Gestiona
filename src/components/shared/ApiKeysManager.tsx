@@ -216,7 +216,7 @@ export default function ApiKeysManager() {
 
       {/* Create key dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
+        <DialogContent className="bg-card border-border/60 max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Key className="w-4 h-4 text-primary" />Nueva API Key
@@ -249,7 +249,7 @@ export default function ApiKeysManager() {
 
       {/* One-time key reveal dialog */}
       <Dialog open={!!revealKey} onOpenChange={open => { if (!open) setRevealKey(null); }}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
+        <DialogContent className="bg-card border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Eye className="w-4 h-4 text-emerald-400" />Tu nueva API Key

@@ -282,7 +282,7 @@ export default function InventoryAgingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Pie: capital by aging */}
             {pieData.length > 0 && (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+              <div className="bg-card border border-border/60 rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Capital por antigüedad de stock</h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
@@ -326,7 +326,7 @@ export default function InventoryAgingPage() {
             )}
 
             {/* Bucket summary */}
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl p-5">
+            <div className="bg-card border border-border/60 rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Resumen por aging</h3>
               <div className="space-y-3">
                 {(["0-30", "31-60", "61-90", "90+", "never"] as AgingBucket[]).map(b => {
@@ -395,7 +395,7 @@ export default function InventoryAgingPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
             {filtered.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="w-8 h-8 mx-auto mb-2 text-muted-foreground/20" />

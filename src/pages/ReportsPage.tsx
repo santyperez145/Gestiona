@@ -490,29 +490,29 @@ export default function ReportsPage() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 md:p-4">
+            <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-success" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Ganancia Bruta</span></div>
               <p className="text-lg md:text-xl font-bold font-mono tracking-tight text-success">{formatARS(grossProfitARS)}</p>
               <p className="text-xs text-muted-foreground">{formatUSD(grossProfitUSD)}</p>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 md:p-4">
+            <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-primary" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Facturado</span></div>
               <p className="text-lg md:text-xl font-bold font-mono tracking-tight">{formatARS(totalSalesARS)}</p>
               <p className="text-xs text-muted-foreground">{sales.length} ventas</p>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 md:p-4">
+            <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-warning" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Inventario</span></div>
               <p className="text-lg md:text-xl font-bold font-mono tracking-tight">{totalStock} uds</p>
               <p className="text-xs text-muted-foreground">{formatUSD(inventoryValueUSD)}</p>
             </div>
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 md:p-4">
+            <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-destructive" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Deudas</span></div>
               <p className="text-lg md:text-xl font-bold font-mono tracking-tight text-destructive">{formatARS(totalDebtsARS)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5">
+            <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-5">
               <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Métricas de Rendimiento</h2>
               <div className="space-y-3">
                 {[
@@ -532,7 +532,7 @@ export default function ReportsPage() {
             </div>
 
             {settings.tax_enabled ? (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5">
+              <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-5">
                 <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <Receipt className="w-4 h-4" />Impuestos (Estimación)
                 </h2>
@@ -553,7 +553,7 @@ export default function ReportsPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-5 flex items-center justify-center">
+              <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-5 flex items-center justify-center">
                 <div className="text-center">
                   <Receipt className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">Módulo de impuestos desactivado</p>
@@ -588,7 +588,7 @@ export default function ReportsPage() {
                   const d = delta(k.curr, k.prev);
                   const good = d ? (k.invert ? !d.up : d.up) : null;
                   return (
-                    <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3">
+                    <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
                       <p className="text-xs text-muted-foreground">{k.label}</p>
                       <p className="font-mono font-bold text-sm mt-0.5">{formatARS(k.curr)}</p>
                       {d && (
@@ -604,7 +604,7 @@ export default function ReportsPage() {
             );
           })()}
 
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50 font-display">Estado de Resultados</h2>
@@ -887,7 +887,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
           { label: "Valor retail (ARS)", value: formatARS(totalRetailValue), icon: TrendingUp, color: "text-success" },
           { label: "Margen no realizado", value: `${unrealizedMargin.toFixed(1)}%`, icon: Package, color: unrealizedMargin >= 30 ? "text-success" : unrealizedMargin >= 15 ? "text-warning" : "text-destructive" },
         ].map(k => (
-          <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 md:p-4">
+          <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider leading-tight">{k.label}</span>
               <k.icon className={`w-3.5 h-3.5 shrink-0 ${k.color}`} />
@@ -898,7 +898,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
       </div>
 
       {/* Additional metric */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <div className="flex flex-wrap gap-4 text-sm">
           <div>
             <span className="text-muted-foreground">Inversión inmovilizada (USD): </span>
@@ -929,7 +929,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
 
       {/* Chart */}
       {top10.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Top 10 productos por valor al costo</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={top10} layout="vertical">
@@ -973,7 +973,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
       </div>
 
       {/* Table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm table-compact-mobile">
             <thead>
@@ -1155,7 +1155,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Período: {label}</h3>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[5px] px-3 py-1.5">
+          <div className="flex items-center gap-2 bg-card border border-border/60 rounded-[5px] px-3 py-1.5">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Comisión %</span>
             <input
               type="number" min="0" max="100" step="0.5"
@@ -1190,7 +1190,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
         });
         const sellerNames = rows.map(r => r.name.split(' ')[0]);
         return (
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4">
             <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Evolución mensual por vendedor (últimos 12 meses)</p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={trendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -1221,7 +1221,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
 
       {/* Bar chart */}
       {chartData.length > 1 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Facturación por vendedor</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 8 }}>
@@ -1241,7 +1241,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
         {rows.map((r, i) => {
           const sharePct = totalARS > 0 ? (r.totalARS / totalARS) * 100 : 0;
           return (
-            <div key={r.uid} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 space-y-3">
+            <div key={r.uid} className="bg-card border border-border/60 rounded-[10px] p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: SELLER_COLORS[i % SELLER_COLORS.length] }}>
@@ -1373,7 +1373,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
 
       {/* Tax projection section */}
       {projectedTaxes.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 space-y-3">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 space-y-3">
           <div className="flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-destructive" />
             <h3 className="text-sm font-semibold">Proyección impositiva — próximos 3 meses</h3>
@@ -1414,7 +1414,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
           { label: "Total impuestos", value: formatARS(totals.total), color: "text-destructive" },
           { label: "Ganancia neta", value: formatARS(totals.netProfit), color: totals.netProfit >= 0 ? "text-success" : "text-destructive" },
         ].map(k => (
-          <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3">
+          <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
             <p className={`text-lg font-bold font-mono tracking-tight font-display ${k.color}`}>{k.value}</p>
           </div>
@@ -1493,7 +1493,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
       {monthlyData.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-10">Sin ventas registradas</p>
       ) : (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-compact-mobile">
               <thead>
@@ -1634,7 +1634,7 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
   return (
     <div className="space-y-6">
       {/* Set targets */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+      <div className="bg-card border border-border/60 rounded-[10px] p-5">
         <h3 className="font-semibold text-sm mb-4">Metas mensuales</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
@@ -1661,7 +1661,7 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
 
       {/* Current month progress */}
       {hasTargets && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5">
+        <div className="bg-card border border-border/60 rounded-[10px] p-5">
           <h3 className="font-semibold text-sm mb-4">Mes actual</h3>
           <div className="space-y-4">
             {tSales > 0 && (
@@ -1688,7 +1688,7 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
 
       {/* Monthly comparison table */}
       {monthlyActual.length > 0 && hasTargets && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 className="font-semibold text-sm">Historial vs. meta</h3>
             <Button variant="outline" size="sm" onClick={() => exportCSV(
@@ -1933,7 +1933,7 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
           { label: "Resultado neto", value: formatARS(totals.net), color: totals.net >= 0 ? "text-success" : "text-destructive" },
           { label: "Meses positivos", value: `${positiveMonths} / ${rows.length}`, color: positiveMonths === rows.length ? "text-success" : positiveMonths > rows.length / 2 ? "text-warning" : "text-destructive" },
         ].map(k => (
-          <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3">
+          <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
             <p className={`text-lg font-bold font-mono tracking-tight font-display ${k.color}`}>{k.value}</p>
           </div>
@@ -1941,7 +1941,7 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
       </div>
 
       {rows.length > 0 ? (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ingresos vs. Egresos — últimos {rows.length} meses</h3>
             <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
@@ -1975,7 +1975,7 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
       )}
 
       {rows.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 className="font-semibold text-sm">Detalle mensual</h3>
             <Button variant="outline" size="sm" onClick={() => exportCSV(
@@ -2139,7 +2139,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
     <div className="space-y-5">
       {/* Top 5 bar chart */}
       {top5.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Top 5 por Ganancia</p>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={top5} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -2182,20 +2182,20 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground font-medium">Período A:</label>
             <input type="month" value={periodA} onChange={e => setPeriodA(e.target.value)}
-              className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] px-2 py-1 text-xs" />
+              className="bg-card border border-border/60 rounded-[10px] px-2 py-1 text-xs" />
           </div>
           <span className="text-muted-foreground text-xs">vs</span>
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground font-medium">Período B:</label>
             <input type="month" value={periodB} onChange={e => setPeriodB(e.target.value)}
-              className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] px-2 py-1 text-xs" />
+              className="bg-card border border-border/60 rounded-[10px] px-2 py-1 text-xs" />
           </div>
           <span className="text-[10px] text-muted-foreground">{salesA.length} vs {salesB.length} ventas</span>
         </div>
       )}
 
       {/* Table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -2360,7 +2360,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
           { label: "Margen promedio", value: `${totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0"}%`, color: "text-warning" },
           { label: "Categorías activas", value: rows.length, color: "text-blue-400" },
         ].map(k => (
-          <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 md:p-4">
+          <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
             <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">{k.label}</p>
             <p className={`text-lg md:text-xl font-bold font-mono tracking-tight font-display ${k.color}`}>{k.value}</p>
           </div>
@@ -2368,7 +2368,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
       </div>
 
       {top8.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Ingresos por categoría — {period}</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={top8} layout="vertical">
@@ -2387,7 +2387,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
         <Button variant="outline" size="sm" onClick={exportCat}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Exportar CSV</Button>
       </div>
 
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -2629,7 +2629,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
       </div>
 
       {/* Chart */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Comparativa visual</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData} barGap={4} barCategoryGap="30%">
@@ -2643,7 +2643,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
       </div>
 
       {/* Metrics table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
@@ -2774,7 +2774,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {stockByLocation.map(loc => (
-            <div key={loc.id} className={`bg-[hsl(228_24%_7%)] border rounded-[10px] p-4 ${loc.is_main ? 'border-primary/30' : 'border-border/60'}`}>
+            <div key={loc.id} className={`bg-card border rounded-[10px] p-4 ${loc.is_main ? 'border-primary/30' : 'border-border/60'}`}>
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="font-semibold text-sm flex items-center gap-1.5">
@@ -2805,7 +2805,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
             <Users className="w-4 h-4" />Ventas por vendedor
           </h3>
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
@@ -2854,7 +2854,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
               const from = locations.find(l => l.id === t.from_location_id)?.name || "—";
               const to = locations.find(l => l.id === t.to_location_id)?.name || "—";
               return (
-                <div key={t.id} className="flex items-center gap-3 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 text-sm">
+                <div key={t.id} className="flex items-center gap-3 bg-card border border-border/60 rounded-[10px] p-3 text-sm">
                   <div className="flex-1">
                     <span className="font-medium">{from}</span>
                     <span className="text-muted-foreground mx-2">→</span>
@@ -2986,11 +2986,11 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Margen bruto promedio</p>
           <p className="text-xl font-bold font-mono tracking-tight text-primary">{avgGrossMargin.toFixed(1)}%</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Margen mes actual</p>
           <p className={`text-xl font-bold font-mono tracking-tight ${(lastMonth?.grossMargin ?? 0) >= 30 ? 'text-success' : (lastMonth?.grossMargin ?? 0) >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
             {lastMonth?.revenue > 0 ? `${lastMonth.grossMargin.toFixed(1)}%` : '—'}
@@ -3001,12 +3001,12 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
             </p>
           )}
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Mejor mes</p>
           <p className="text-xl font-bold font-mono tracking-tight text-success">{bestMonth ? `${bestMonth.grossMargin.toFixed(1)}%` : '—'}</p>
           <p className="text-[10px] text-muted-foreground">{bestMonth?.label}</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Peor mes</p>
           <p className="text-xl font-bold font-mono tracking-tight text-destructive">{worstMonth ? `${worstMonth.grossMargin.toFixed(1)}%` : '—'}</p>
           <p className="text-[10px] text-muted-foreground">{worstMonth?.label}</p>
@@ -3014,7 +3014,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       </div>
 
       {/* Gross margin % line chart */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <h4 className="text-sm font-semibold mb-3">Margen bruto mensual (%)</h4>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -3032,7 +3032,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       </div>
 
       {/* Net margin line chart */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <h4 className="text-sm font-semibold mb-1">Margen neto mensual (%) <span className="text-xs font-normal text-muted-foreground">descontando gastos operativos</span></h4>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -3050,7 +3050,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       </div>
 
       {/* Revenue + gross profit bar */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <h4 className="text-sm font-semibold mb-3">Ganancia bruta vs Gastos mensuales</h4>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -3072,7 +3072,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       </div>
 
       {/* Monthly summary table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
@@ -3137,7 +3137,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
           );
         };
         return (
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4">
             <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">Comparativa de dos períodos</h4>
             <div className="flex gap-3 mb-4 flex-wrap">
               <div className="flex items-center gap-2">
@@ -3263,7 +3263,7 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
           { label: "Ticket promedio", value: formatARS(sales.length > 0 ? grandTotal / sales.length : 0), icon: TrendingUp, color: "text-warning" },
           { label: `Concentración top ${top20Count}`, value: `${concentration.toFixed(0)}%`, icon: BarChart2, color: concentration > 80 ? "text-destructive" : concentration > 60 ? "text-warning" : "text-success" },
         ].map(k => (
-          <div key={k.label} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-3">
+          <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">{k.label}</span>
               <k.icon className={`w-3.5 h-3.5 shrink-0 ${k.color}`} />
@@ -3285,7 +3285,7 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
       </div>
 
       {/* Table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -3458,7 +3458,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
       )}
 
       {/* Bar chart */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ingreso promedio por día</p>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={byDay} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -3478,7 +3478,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
       </div>
 
       {/* Detail table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-muted-foreground text-xs">
@@ -3519,7 +3519,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
 
       {/* Weekly heatmap */}
       {byDayByWeek.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Heatmap semanal (ingresos por día)</p>
           <div className="overflow-x-auto">
             <table className="text-[10px] border-collapse w-full min-w-[360px]">
@@ -3648,7 +3648,7 @@ function ByWeekTab({ sales }: { sales: any[] }) {
       </div>
 
       {/* Bar chart */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+      <div className="bg-card border border-border/60 rounded-[10px] p-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ingresos por semana</p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={weekData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
@@ -3666,7 +3666,7 @@ function ByWeekTab({ sales }: { sales: any[] }) {
       </div>
 
       {/* Table */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">

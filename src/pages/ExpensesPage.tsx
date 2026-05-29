@@ -326,7 +326,7 @@ export default function ExpensesPage() {
                     <Plus className="w-4 h-4 mr-2" /> Nuevo Gasto
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md p-0">
+                <DialogContent className="bg-card border-border/60 max-w-md p-0">
                   <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="font-display">{editItem ? 'Editar Gasto' : 'Registrar Gasto'}</DialogTitle>
                   </DialogHeader>
@@ -403,7 +403,7 @@ export default function ExpensesPage() {
       {activeTab === 'gastos' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Chart */}
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Por Categoría</h2>
           {totals.chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -462,7 +462,7 @@ export default function ExpensesPage() {
         </div>
 
         {/* Table */}
-        <div className="lg:col-span-2 bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-card overflow-hidden">
+        <div className="lg:col-span-2 bg-card border border-border/60 rounded-[10px] shadow-card overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Listado</h2>
             <span className="text-xs text-muted-foreground">{filtered.length} resultado{filtered.length !== 1 ? "s" : ""}</span>
@@ -651,7 +651,7 @@ export default function ExpensesPage() {
 
       {/* Presupuesto tab */}
       {activeTab === 'presupuesto' && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Presupuesto por Categoría</h2>
           {totals.chartData.length === 0 ? (
             <p className="text-muted-foreground text-sm py-12 text-center">Sin datos para el período seleccionado</p>
@@ -744,7 +744,7 @@ export default function ExpensesPage() {
             </div>
           );
         })()}
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-card overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-[10px] shadow-card overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Gastos Recurrentes</h2>
             <span className="text-xs text-muted-foreground">{filtered.filter(e => e.recurring).length} recurrente{filtered.filter(e => e.recurring).length !== 1 ? "s" : ""}</span>
@@ -781,7 +781,7 @@ export default function ExpensesPage() {
       {/* Monthly trend chart */}
       {activeTab === 'tendencia' && monthlyTrend.length > 1 && (
         <div className="space-y-4 mb-6">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
             <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -810,7 +810,7 @@ export default function ExpensesPage() {
               return row;
             });
             return (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+              <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
                 <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Distribución por categoría</h2>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -835,7 +835,7 @@ export default function ExpensesPage() {
 
           {/* Month-over-month comparison table */}
           {monthlyTrendByCat.length > 1 && (
-            <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+            <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
               <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Comparativa mensual por categoría</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -1020,7 +1020,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
 
       {/* Receipt Scanner Dialog */}
       <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
+        <DialogContent className="bg-card border-border/60 max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Camera className="w-4 h-4 text-primary" />Escanear comprobante

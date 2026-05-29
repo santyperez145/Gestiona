@@ -396,15 +396,15 @@ export default function AlertsPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 text-center">
           <p className="text-2xl font-bold font-mono tracking-tight font-display text-primary">{activeRules}</p>
           <p className="text-xs text-muted-foreground mt-1">Reglas activas</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 text-center">
           <p className="text-2xl font-bold font-mono tracking-tight font-display text-warning">{firedToday}</p>
           <p className="text-xs text-muted-foreground mt-1">Disparadas hoy</p>
         </div>
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 text-center">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 text-center">
           <p className="text-2xl font-bold font-mono tracking-tight font-display text-destructive">{unreadCount}</p>
           <p className="text-xs text-muted-foreground mt-1">Sin leer</p>
         </div>
@@ -598,7 +598,7 @@ export default function AlertsPage() {
                 <select
                   value={historialTypeFilter}
                   onChange={e => setHistorialTypeFilter(e.target.value)}
-                  className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg px-2 py-1 text-xs text-foreground"
+                  className="bg-card border border-border/60 rounded-lg px-2 py-1 text-xs text-foreground"
                 >
                   <option value="all">Todos los tipos</option>
                   {types.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
@@ -635,7 +635,7 @@ export default function AlertsPage() {
         })()}
 
         {/* Table */}
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
           {(() => {
             const visibleNotifs = historialTypeFilter === 'all'
               ? notifications
@@ -704,7 +704,7 @@ export default function AlertsPage() {
       {rules.some(r => r.last_triggered_at) && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Última vez disparadas</h2>
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/30">
                 <tr>

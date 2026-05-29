@@ -289,7 +289,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
                 <DialogTrigger asChild>
                   <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"><Plus className="w-4 h-4 mr-2" />Nueva Compra</Button>
                 </DialogTrigger>
-                <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
+                <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-display">{editItem ? 'Editar Compra' : 'Registrar Compra'}</DialogTitle></DialogHeader>
                   <PurchaseForm userId={user!.id} editItem={editItem} prefilledProductName={!editItem ? prefilledProduct : ""} onSave={() => { setOpen(false); setEditItem(null); reload(); }} />
                 </DialogContent>
@@ -429,7 +429,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 
       {/* Purchase Order Generator Dialog */}
       <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border/60 max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Generar Orden de Compra</DialogTitle></DialogHeader>
           <PurchaseOrderGenerator userId={user!.id} onDone={() => setOrderOpen(false)} />
         </DialogContent>
@@ -439,7 +439,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
         supplierStats.length === 0 ? (
           <EmptyState icon={ShoppingCart} title="Sin compras registradas" description="Registrá compras con proveedor para ver el análisis aquí." />
         ) : (
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -489,7 +489,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>
-          <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="hidden md:block bg-card border border-border/60 rounded-[10px] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -569,7 +569,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 
           <div className="md:hidden space-y-3">
             {paged.map(p => (
-              <div key={p.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+              <div key={p.id} className="bg-card border border-border/60 rounded-[10px] p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{p.product_name}</p>
@@ -608,7 +608,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 
       {/* Invoice AI import modal */}
       <Dialog open={invoiceImportOpen} onOpenChange={setInvoiceImportOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border/60 max-w-3xl max-h-[90vh] overflow-y-auto">
           <InvoiceImportDialog
             mode="purchases"
             onClose={() => setInvoiceImportOpen(false)}
@@ -619,7 +619,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
 
       {/* Partial receipt dialog */}
       <Dialog open={!!receivingOrder} onOpenChange={v => { if (!v) setReceivingOrder(null); }}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm">
+        <DialogContent className="bg-card border-border/60 max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar recepción</DialogTitle>
           </DialogHeader>

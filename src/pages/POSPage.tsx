@@ -331,7 +331,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl animate-fade-in">
+      <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
@@ -572,7 +572,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Undo2 className="w-5 h-5 text-orange-400" />
@@ -1708,7 +1708,7 @@ export default function POSPage() {
             className="h-8 text-sm bg-muted"
           />
           {showRecentCustomers && recentCustomers.filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase())).length > 0 && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border/60 rounded-lg shadow-lg overflow-hidden">
               {recentCustomers
                 .filter(c => !customer || c.toLowerCase().includes(customer.toLowerCase()))
                 .slice(0, 5)
@@ -2152,7 +2152,7 @@ export default function POSPage() {
       {/* Variant Picker modal */}
       {variantPickerProduct && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setVariantPickerProduct(null)}>
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <div className="min-w-0 mr-3">
                 <p className="text-sm font-semibold truncate">{variantPickerProduct.name}</p>
@@ -2213,7 +2213,7 @@ export default function POSPage() {
       {/* Turno summary modal */}
       {showTurnoSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl">
+          <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h2 className="font-display font-bold flex items-center gap-2"><BarChart2 className="w-4 h-4 text-primary" />Resumen del turno</h2>
               <button onClick={() => setShowTurnoSummary(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -2319,7 +2319,7 @@ export default function POSPage() {
       {/* Seller prompt dialog */}
       {showSellerPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] shadow-2xl p-6 w-full max-w-sm mx-4">
+          <div className="bg-card border border-border/60 rounded-[10px] shadow-2xl p-6 w-full max-w-sm mx-4">
             <h2 className="text-lg font-bold font-display mb-1">¿Quién atiende hoy?</h2>
             <p className="text-xs text-muted-foreground mb-4">El nombre del vendedor se registrará en cada venta del turno.</p>
             <input
@@ -2665,7 +2665,7 @@ export default function POSPage() {
           onClick={() => setShowShortcutHelp(false)}
         >
           <div
-            className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-2xl shadow-2xl p-6 w-full max-w-md"
+            className="bg-card border border-border/60 rounded-2xl shadow-2xl p-6 w-full max-w-md"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

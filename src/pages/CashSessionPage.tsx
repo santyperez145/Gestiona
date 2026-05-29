@@ -349,7 +349,7 @@ export default function CashSessionPage() {
 
       {/* OPEN SESSION */}
       {!openSession && !loading && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-5 space-y-4">
           <h2 className="font-semibold flex items-center gap-2"><Unlock className="w-4 h-4 text-green-400" />Abrir caja</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -390,7 +390,7 @@ export default function CashSessionPage() {
               { l: "Otros métodos", v: formatARS(totalOther), icon: TrendingUp, color: "text-purple-400" },
               { l: "Total del turno", v: formatARS(totalAll), icon: TrendingUp, color: "text-primary" },
             ].map((s) => (
-              <div key={s.l} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+              <div key={s.l} className="bg-card border border-border/60 rounded-[10px] p-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">{s.l}</span>
                   <s.icon className="w-4 h-4 text-muted-foreground/40" />
@@ -410,7 +410,7 @@ export default function CashSessionPage() {
             const entries = Object.entries(bySeller).sort((a, b) => b[1] - a[1]);
             if (entries.length < 2) return null;
             return (
-              <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
+              <div className="bg-card border border-border/60 rounded-xl p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ventas por vendedor</p>
                 <div className="space-y-2">
                   {entries.map(([name, total]) => (
@@ -434,7 +434,7 @@ export default function CashSessionPage() {
           </div>
 
           {/* Close form */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-5 space-y-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-5 space-y-4">
             <h2 className="font-semibold flex items-center gap-2"><Lock className="w-4 h-4 text-red-400" />Cerrar caja</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -502,7 +502,7 @@ export default function CashSessionPage() {
 
       {/* Cash entries for active session */}
       {openSession && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
           <button
             className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors"
             onClick={() => setShowEntries(v => !v)}
@@ -562,7 +562,7 @@ export default function CashSessionPage() {
       )}
 
       {/* History */}
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
         <div className="px-5 py-3 border-b border-border">
           <h2 className="font-semibold text-sm">Historial de turnos</h2>
         </div>

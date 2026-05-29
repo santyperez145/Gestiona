@@ -72,7 +72,7 @@ function PriceSparklineInner({ productId, orgId, width = 72 }: Props) {
     if (!active || !payload?.length) return null;
     const p = payload[0].payload as Point;
     return (
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 px-2 py-1 rounded-lg text-[10px] shadow-xl">
+      <div className="bg-card border border-border/60 px-2 py-1 rounded-lg text-[10px] shadow-xl">
         <p className="text-muted-foreground">{p.date}</p>
         <p className="font-semibold text-foreground">{formatARS(p.price)}</p>
       </div>

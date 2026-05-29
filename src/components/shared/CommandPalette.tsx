@@ -351,7 +351,7 @@ export default function CommandPalette() {
 
       {/* ── Keyboard shortcuts help ── */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
+        <DialogContent className="bg-card border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Keyboard className="w-5 h-5 text-primary" /> Atajos de teclado
@@ -361,7 +361,7 @@ export default function CommandPalette() {
             {SHORTCUTS.map(s => (
               <div key={s.keys} className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg">
                 <span className="text-sm text-muted-foreground">{s.desc}</span>
-                <kbd className="px-2 py-1 text-[11px] font-mono bg-[hsl(228_24%_7%)] border border-border/60 rounded">{s.keys}</kbd>
+                <kbd className="px-2 py-1 text-[11px] font-mono bg-card border border-border/60 rounded">{s.keys}</kbd>
               </div>
             ))}
           </div>

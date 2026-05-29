@@ -278,7 +278,7 @@ function CustomerFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl animate-fade-in">
+      <div className="bg-card border border-border/60 rounded-[10px] w-full max-w-md shadow-2xl animate-fade-in">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-display font-bold">{initial?.id ? "Editar cliente" : "Nuevo cliente"}</h2>
           <div className="flex items-center gap-2">
@@ -1831,7 +1831,7 @@ export default function CustomersPage() {
 
       {/* Top clientes del mes */}
       {topThisMonth.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Crown className="w-4 h-4 text-primary" />
@@ -1887,7 +1887,7 @@ export default function CustomersPage() {
 
       {/* Segmentation Chart */}
       {segmentCounts.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 shadow-card">
+        <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Segmentación Automática</h2>
           <div className="flex flex-wrap gap-2 mb-4">
             {segmentCounts.map(s => (
@@ -1956,7 +1956,7 @@ export default function CustomersPage() {
 
       {/* RFM Analysis Panel */}
       {rfmData.length > 0 && (
-        <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] mb-4">
+        <div className="bg-card border border-border/60 rounded-[10px] mb-4">
           <button
             className="w-full flex items-center justify-between px-4 py-3 text-left"
             onClick={() => setShowRFM(v => !v)}

@@ -59,7 +59,7 @@ export default function BrandKnowledgePage() {
                 <Plus className="w-4 h-4 mr-2" />Nueva marca
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
+            <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editItem ? 'Editar marca' : 'Agregar marca'}</DialogTitle></DialogHeader>
               <BrandForm
                 editItem={editItem}
@@ -94,7 +94,7 @@ export default function BrandKnowledgePage() {
               <h2 className="font-display text-sm uppercase tracking-wider text-muted-foreground mb-2">{g.label}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {g.items.map(it => (
-                  <div key={it.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-lg p-4">
+                  <div key={it.id} className="bg-card border border-border/60 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <h3 className="font-semibold">{it.brand}</h3>

@@ -310,7 +310,7 @@ export default function FollowUpPage() {
                 {overdueTasks.map(task => {
                   const pCfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
                   return (
-                    <div key={task.id} className="flex items-center gap-3 p-3.5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl hover:border-border transition-colors group">
+                    <div key={task.id} className="flex items-center gap-3 p-3.5 bg-card border border-border/60 rounded-xl hover:border-border transition-colors group">
                       <span className="text-base shrink-0">{pCfg.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{task.title}</p>
@@ -357,7 +357,7 @@ export default function FollowUpPage() {
                 {staleDeals.map(deal => (
                   <div
                     key={deal.id}
-                    className="flex items-start gap-3 p-3.5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl hover:border-border transition-colors group"
+                    className="flex items-start gap-3 p-3.5 bg-card border border-border/60 rounded-xl hover:border-border transition-colors group"
                   >
                     {/* Urgency indicator */}
                     <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
@@ -432,7 +432,7 @@ export default function FollowUpPage() {
               </div>
               <div className="space-y-2">
                 {staleCustomers.map(c => (
-                  <div key={c.id} className="flex items-start gap-3 p-3.5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl hover:border-border transition-colors group">
+                  <div key={c.id} className="flex items-start gap-3 p-3.5 bg-card border border-border/60 rounded-xl hover:border-border transition-colors group">
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-blue-400">{c.name.charAt(0).toUpperCase()}</span>

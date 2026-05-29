@@ -266,7 +266,7 @@ export default function ActivityFeedPage() {
               className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all ${
                 filter === type
                   ? "border-primary/60 bg-primary/10"
-                  : "border-border/60 bg-[hsl(228_24%_7%)] hover:border-primary/30"
+                  : "border-border/60 bg-card hover:border-primary/30"
               }`}
             >
               <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center`}>
@@ -330,7 +330,7 @@ export default function ActivityFeedPage() {
                   return (
                     <div
                       key={event.id}
-                      className="flex items-start gap-3 p-3.5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl hover:border-border transition-colors"
+                      className="flex items-start gap-3 p-3.5 bg-card border border-border/60 rounded-xl hover:border-border transition-colors"
                     >
                       {/* Icon */}
                       <div className={`w-9 h-9 rounded-xl ${cfg.bg} flex items-center justify-center shrink-0 mt-0.5`}>

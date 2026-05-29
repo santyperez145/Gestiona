@@ -227,7 +227,7 @@ export default function MarketingTemplatesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((tpl) => (
-            <div key={tpl.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/30 transition-colors flex flex-col">
+            <div key={tpl.id} className="bg-card border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/30 transition-colors flex flex-col">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
@@ -284,7 +284,7 @@ export default function MarketingTemplatesPage() {
       )}
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border/60 max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">Crear template</DialogTitle>
           </DialogHeader>

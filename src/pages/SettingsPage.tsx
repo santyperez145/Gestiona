@@ -498,7 +498,7 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-4 md:space-y-6">
           {/* Brand */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />Marca del Negocio
             </h2>
@@ -693,7 +693,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Financial params */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4 md:space-y-5">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />Parámetros Financieros
             </h2>
@@ -751,7 +751,7 @@ export default function SettingsPage() {
           </div>
 
           {/* WhatsApp message templates */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-green-400" />Plantillas de WhatsApp
@@ -784,7 +784,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Notification preferences */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />Notificaciones
@@ -810,7 +810,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Push notifications */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-primary" />Notificaciones Push (PWA)
@@ -839,7 +839,7 @@ export default function SettingsPage() {
           </div>
 
           {/* SMTP Email Config */}
-          <div className="bg-[hsl(228_24%_7%)] border border-blue-500/20 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div className="bg-card border border-blue-500/20 rounded-[10px] p-4 md:p-6 space-y-4">
             <div>
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
                 <Mail className="w-4 h-4 text-blue-400" />Email SMTP Propio
@@ -973,7 +973,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Payment method discounts */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />Descuentos por Medio de Pago
             </h2>
@@ -991,7 +991,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Volume / Wholesale discount */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-primary" />Descuento Mayorista
             </h2>
@@ -1005,7 +1005,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Decant margins */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
             <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
               <Droplets className="w-4 h-4 text-primary" />Márgenes de Decants
             </h2>
@@ -1026,7 +1026,7 @@ export default function SettingsPage() {
           <SubscriptionPanel session={session} />
 
           {/* Taxes */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" />Impuestos (Argentina)</h2>
               <Switch checked={taxEnabled} onCheckedChange={setTaxEnabled} />
@@ -1044,12 +1044,12 @@ export default function SettingsPage() {
           </div>
 
           {/* System info */}
-          <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+          <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2"><Database className="w-4 h-4 text-primary" />Sistema</h2>
             <SystemInfoSection businessName={businessName} productCount={productCount} userEmail={user?.email} />
           </div>
 
-          <div className="bg-[hsl(228_24%_7%)] border border-success/30 rounded-[10px] p-4 md:p-6">
+          <div className="bg-card border border-success/30 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-2 flex items-center gap-2">
               <Shield className="w-4 h-4 text-success" />Seguridad
             </h2>
@@ -1166,7 +1166,7 @@ function SubscriptionPanel({ session }: { session: any }) {
     : XCircle;
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
       <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <CreditCard className="w-4 h-4 text-primary" />Suscripción
       </h2>
@@ -1281,7 +1281,7 @@ function USDQuoteSection({ userId, onApply }: { userId: string; onApply: (rate: 
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
       <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <DollarSign className="w-4 h-4 text-primary" />Cotización USD (tiempo real)
       </h2>
@@ -1338,7 +1338,7 @@ function ThresholdsSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
       <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <Bell className="w-4 h-4 text-primary" />Umbrales y Alertas
       </h2>
@@ -1401,7 +1401,7 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-3">
       <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
         <Tags className="w-4 h-4 text-primary" />Categorías de Gastos
       </h2>
@@ -1480,7 +1480,7 @@ function BackupExport({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
       <h2 className="font-display font-semibold text-[14px] tracking-tight mb-3 flex items-center gap-2">
         <Download className="w-4 h-4 text-primary" />Backup y Exportación
       </h2>
@@ -1542,7 +1542,7 @@ function CouponsManager({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <Ticket className="w-4 h-4 text-primary" />Cupones de Descuento
@@ -1551,7 +1551,7 @@ function CouponsManager({ userId }: { userId: string }) {
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-gold text-primary-foreground"><Plus className="w-3.5 h-3.5 mr-1" />Nuevo</Button>
           </DialogTrigger>
-          <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
+          <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Crear Cupón</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><label className="text-sm text-muted-foreground">Código</label>
@@ -1650,7 +1650,7 @@ function CloudBackupsSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <Cloud className="w-4 h-4 text-primary" />Backups en la Nube
@@ -1765,7 +1765,7 @@ function AutomatedReportsSection() {
   ] as const;
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" />Reportes y Alertas Automatizados
@@ -1780,7 +1780,7 @@ function AutomatedReportsSection() {
           return (
             <div key={job.key} className={`p-3.5 rounded-xl border border-border/40 ${job.bg}`}>
               <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[hsl(228_24%_10%)]`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-muted/40`}>
                   <Icon className={`w-4 h-4 ${job.color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1922,7 +1922,7 @@ function AfipSection() {
   const isConfigured = !!(cuit && certificate && privateKey);
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <FileCheck className="w-4 h-4 text-primary" />AFIP — Facturación Electrónica
@@ -2082,7 +2082,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
   };
 
   return (
-    <div className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
+    <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-6 space-y-4">
       <div>
         <h2 className="font-display font-semibold text-[14px] tracking-tight flex items-center gap-2">
           <MapPin className="w-4 h-4 text-primary" />Gestión de Sucursales

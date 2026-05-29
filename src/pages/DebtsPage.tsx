@@ -368,7 +368,7 @@ export default function DebtsPage() {
         if (bucketed.length === 0) return null;
         const grandTotal = bucketed.reduce((s, b) => s + b.total, 0);
         return (
-          <div className="mb-5 bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
+          <div className="mb-5 bg-card border border-border/60 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Aging de cuentas a cobrar</h3>
               {(() => {
@@ -449,7 +449,7 @@ export default function DebtsPage() {
               const [y, m] = month.split('-');
               const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
               return (
-                <div key={month} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+                <div key={month} className="bg-card border border-border/60 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground capitalize">{label}</span>
                     <span className="text-xs font-semibold text-success">{formatARS(monthTotal(items))}</span>
@@ -597,7 +597,7 @@ export default function DebtsPage() {
 
       {/* Payment Dialog */}
       <Dialog open={!!payingDebt} onOpenChange={v => { if (!v) setPayingDebt(null); }}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Registrar Pago</DialogTitle></DialogHeader>
           {payingDebt && <PaymentForm debt={payingDebt} userId={user!.id} onSave={() => { setPayingDebt(null); reload(); }} />}
         </DialogContent>
@@ -605,7 +605,7 @@ export default function DebtsPage() {
 
       {/* Payment Plan Dialog */}
       <Dialog open={!!planningDebt} onOpenChange={v => { if (!v) setPlanningDebt(null); }}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border/60 max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display flex items-center gap-2"><ListChecks className="w-5 h-5 text-primary" />Plan de pago en cuotas</DialogTitle></DialogHeader>
           {planningDebt && (() => {
             const remaining = Number(planningDebt.remaining_ars);
@@ -740,7 +740,7 @@ export default function DebtsPage() {
       {/* Desktop table — only for pending/paid tabs */}
       {(tab === "pending" || tab === "paid") && shown.length > 0 && (
         <>
-          <div className="hidden md:block bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl overflow-hidden">
+          <div className="hidden md:block bg-card border border-border/60 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -846,7 +846,7 @@ export default function DebtsPage() {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {shown.map(d => (
-              <div key={d.id} className="bg-[hsl(228_24%_7%)] border border-border/60 rounded-xl p-4">
+              <div key={d.id} className="bg-card border border-border/60 rounded-xl p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-semibold">{d.customer_name}</p>

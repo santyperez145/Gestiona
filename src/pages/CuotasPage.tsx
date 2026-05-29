@@ -269,7 +269,7 @@ export default function CuotasPage() {
 
       {/* Create installment sale dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-md">
+        <DialogContent className="bg-card border-border/60 max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar venta en cuotas</DialogTitle>
           </DialogHeader>

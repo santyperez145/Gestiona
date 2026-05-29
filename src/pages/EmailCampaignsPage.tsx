@@ -458,7 +458,7 @@ export default function EmailCampaignsPage() {
           {campaigns.map(camp => {
             const aud = audienceFor(camp.segment);
             return (
-              <Card key={camp.id} className="border-border/60 bg-[hsl(228_24%_7%)]">
+              <Card key={camp.id} className="border-border/60 bg-card">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

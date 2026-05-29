@@ -120,7 +120,7 @@ export default function DailyBriefingModal({ open, onClose, briefingData, userId
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { abortRef.current?.abort(); onClose(); } }}>
-      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-lg">
+      <DialogContent className="bg-card border-border/60 max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display">
             <Sparkles className="w-5 h-5 text-primary" />

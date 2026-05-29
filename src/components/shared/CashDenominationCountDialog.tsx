@@ -117,7 +117,7 @@ export default function CashDenominationCountDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="bg-[hsl(228_24%_7%)] border-border/60 max-w-sm max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border/60 max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display text-base">
             <Banknote className="w-4 h-4 text-primary" />
