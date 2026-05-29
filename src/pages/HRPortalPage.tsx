@@ -325,7 +325,7 @@ export default function HRPortalPage() {
                           </td>
                         </tr>
                         {isExp && (
-                          <tr key={`${e.id}-exp`} className="bg-violet-50/30">
+                          <tr key={`${e.id}-exp`} className="bg-violet-500/5">
                             <td colSpan={8} className="px-6 py-3">
                               <div className="grid grid-cols-3 gap-4 text-sm">
                                 {e.email && <span className="flex items-center gap-1 text-muted-foreground"><Mail className="w-3.5 h-3.5" />{e.email}</span>}

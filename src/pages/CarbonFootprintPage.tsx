@@ -332,7 +332,7 @@ export default function CarbonFootprintPage() {
         {/* TARGETS */}
         <TabsContent value="targets">
           <div className="space-y-4">
-            <Card className="border-green-200 bg-green-50">
+            <Card className="border-green-500/20 bg-green-500/5">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Target className="w-8 h-8 text-emerald-400" />

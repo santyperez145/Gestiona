@@ -333,7 +333,7 @@ export default function CompetitorPricingPage() {
                               <span className="text-foreground/80">{c.their_product_name}</span>
                               {c.url && <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-600"><ExternalLink className="w-3 h-3" /></a>}
                             </div>
-                            {c.their_promotion && <span className="text-xs text-orange-600 bg-orange-50 px-1 rounded">{c.their_promotion}</span>}
+                            {c.their_promotion && <span className="text-xs text-orange-400 bg-orange-500/10 px-1 rounded">{c.their_promotion}</span>}
                           </td>
                           <td className="px-4 py-3 font-medium text-foreground">
                             {c.our_price != null ? `$${c.our_price.toLocaleString("es-AR")}` : <span className="text-muted-foreground/70">—</span>}

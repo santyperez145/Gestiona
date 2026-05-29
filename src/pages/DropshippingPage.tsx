@@ -94,9 +94,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 };
 
 const STOCK_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  available:    { label: "Disponible",    color: "bg-green-100 text-green-800" },
-  out_of_stock: { label: "Sin stock",     color: "bg-red-100 text-red-800" },
-  discontinued: { label: "Discontinuado", color: "bg-muted/40 text-foreground/80" },
+  available:    { label: "Disponible",    color: "bg-green-500/15 text-green-400 border-green-500/20" },
+  out_of_stock: { label: "Sin stock",     color: "bg-red-500/15 text-red-400 border-red-500/20" },
+  discontinued: { label: "Discontinuado", color: "bg-muted/40 text-muted-foreground border-border/30" },
 };
 
 const EMPTY_SUPPLIER = {

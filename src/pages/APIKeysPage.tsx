@@ -64,9 +64,9 @@ interface WebhookDelivery {
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const ENVIRONMENTS: Record<string, { label: string; color: string }> = {
-  production:  { label: "Producción",   color: "bg-green-100 text-green-700" },
-  sandbox:     { label: "Sandbox",      color: "bg-yellow-100 text-yellow-700" },
-  development: { label: "Desarrollo",   color: "bg-blue-100 text-blue-700" },
+  production:  { label: "Producción",   color: "bg-green-500/15 text-green-400 border-green-500/20" },
+  sandbox:     { label: "Sandbox",      color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20" },
+  development: { label: "Desarrollo",   color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
 };
 
 const ALL_SCOPES = [
@@ -275,7 +275,7 @@ export default function APIKeysPage() {
                       {k.expires_at && <p className={new Date(k.expires_at) < new Date() ? "text-red-500" : ""}>Expira: {k.expires_at}</p>}
                     </div>
                     {k.is_active && (
-                      <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 shrink-0" onClick={() => revokeKey(k.id)}>
+                      <Button variant="outline" size="sm" className="text-red-400 border-red-500/30 hover:bg-red-500/10 shrink-0" onClick={() => revokeKey(k.id)}>
                         <XCircle className="w-4 h-4 mr-1" /> Revocar
                       </Button>
                     )}

@@ -322,12 +322,12 @@ export default function LogisticsPage() {
             <CardContent className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {[
-                  { name: "CABA y GBA", provinces: ["CABA", "Buenos Aires"], color: "bg-blue-50 border-blue-200" },
-                  { name: "Centro", provinces: ["Córdoba", "Santa Fe", "Entre Ríos"], color: "bg-green-50 border-green-200" },
-                  { name: "Cuyo", provinces: ["Mendoza", "San Juan", "San Luis"], color: "bg-yellow-50 border-yellow-200" },
-                  { name: "NOA", provinces: ["Tucumán", "Salta", "Jujuy", "Catamarca", "La Rioja"], color: "bg-orange-50 border-orange-200" },
-                  { name: "NEA", provinces: ["Chaco", "Corrientes", "Misiones", "Formosa"], color: "bg-purple-50 border-purple-200" },
-                  { name: "Patagonia", provinces: ["Neuquén", "Río Negro", "Chubut", "Santa Cruz", "Tierra del Fuego"], color: "bg-pink-50 border-pink-200" },
+                  { name: "CABA y GBA", provinces: ["CABA", "Buenos Aires"], color: "bg-blue-500/8 border-blue-500/20" },
+                  { name: "Centro", provinces: ["Córdoba", "Santa Fe", "Entre Ríos"], color: "bg-green-500/8 border-green-500/20" },
+                  { name: "Cuyo", provinces: ["Mendoza", "San Juan", "San Luis"], color: "bg-yellow-500/8 border-yellow-500/20" },
+                  { name: "NOA", provinces: ["Tucumán", "Salta", "Jujuy", "Catamarca", "La Rioja"], color: "bg-orange-500/8 border-orange-500/20" },
+                  { name: "NEA", provinces: ["Chaco", "Corrientes", "Misiones", "Formosa"], color: "bg-purple-500/8 border-purple-500/20" },
+                  { name: "Patagonia", provinces: ["Neuquén", "Río Negro", "Chubut", "Santa Cruz", "Tierra del Fuego"], color: "bg-pink-500/8 border-pink-500/20" },
                 ].map(zone => (
                   <div key={zone.name} className={`rounded-lg border p-4 ${zone.color}`}>
                     <div className="flex items-center gap-2 mb-2">
