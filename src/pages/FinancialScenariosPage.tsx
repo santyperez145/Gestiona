@@ -51,12 +51,12 @@ interface BreakevenResult {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  revenue:        "text-green-700 bg-green-50",
-  cogs:           "text-orange-700 bg-orange-50",
-  gross_profit:   "text-blue-700 bg-blue-500/10",
-  opex:           "text-red-700 bg-red-50",
-  ebitda:         "text-purple-700 bg-purple-500/10",
-  net_income:     "text-emerald-700 bg-emerald-500/10",
+  revenue:        "text-green-400 bg-green-500/10",
+  cogs:           "text-orange-400 bg-orange-500/10",
+  gross_profit:   "text-blue-400 bg-blue-500/10",
+  opex:           "text-red-400 bg-red-500/10",
+  ebitda:         "text-purple-400 bg-purple-500/10",
+  net_income:     "text-emerald-400 bg-emerald-500/10",
 };
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -394,12 +394,12 @@ export default function FinancialScenariosPage() {
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="py-2 pr-4 font-medium text-green-700">Ingresos</td>
-                      {cashData.map((d, i) => <td key={i} className="text-right py-2 px-2 text-green-700">{(d.inflow / 1000).toFixed(0)}K</td>)}
+                      <td className="py-2 pr-4 font-medium text-green-400">Ingresos</td>
+                      {cashData.map((d, i) => <td key={i} className="text-right py-2 px-2 text-green-400">{(d.inflow / 1000).toFixed(0)}K</td>)}
                     </tr>
                     <tr className="border-b">
-                      <td className="py-2 pr-4 font-medium text-red-700">Egresos</td>
-                      {cashData.map((d, i) => <td key={i} className="text-right py-2 px-2 text-red-700">{(d.outflow / 1000).toFixed(0)}K</td>)}
+                      <td className="py-2 pr-4 font-medium text-red-400">Egresos</td>
+                      {cashData.map((d, i) => <td key={i} className="text-right py-2 px-2 text-red-400">{(d.outflow / 1000).toFixed(0)}K</td>)}
                     </tr>
                     <tr className="border-b font-semibold bg-muted/30">
                       <td className="py-2 pr-4">Neto del Mes</td>

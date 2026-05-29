@@ -351,7 +351,7 @@ export default function PurchaseRequestsPage() {
                           </Button>
                         )}
                         {req.status === "ordered" && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-green-700 border-green-300" onClick={() => updateStatus(req.id, "received")}>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-green-400 border-green-500/30" onClick={() => updateStatus(req.id, "received")}>
                             Recibida ✓
                           </Button>
                         )}

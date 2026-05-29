@@ -347,16 +347,16 @@ export default function WasteControlPage() {
                         <td className="py-2 px-3 text-foreground">{r.product_name}</td>
                         <td className="py-2 px-3 text-right text-muted-foreground">{Number(r.quantity).toLocaleString("es-AR")}</td>
                         <td className="py-2 px-3 text-right text-muted-foreground">{fmt(r.unit_cost)}</td>
-                        <td className="py-2 px-3 text-right font-semibold text-red-700">{fmt(r.total_cost)}</td>
+                        <td className="py-2 px-3 text-right font-semibold text-red-400">{fmt(r.total_cost)}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.reported_by ?? "—"}</td>
                         <td className="py-2 px-3 text-center">
                           {r.approved
-                            ? <span className="inline-flex items-center gap-1 text-xs text-green-700"><CheckCircle className="w-3 h-3" /> Aprobado</span>
-                            : <span className="inline-flex items-center gap-1 text-xs text-yellow-700"><AlertTriangle className="w-3 h-3" /> Pendiente</span>}
+                            ? <span className="inline-flex items-center gap-1 text-xs text-green-400"><CheckCircle className="w-3 h-3" /> Aprobado</span>
+                            : <span className="inline-flex items-center gap-1 text-xs text-yellow-400"><AlertTriangle className="w-3 h-3" /> Pendiente</span>}
                         </td>
                         <td className="py-2 px-3">
                           {!r.approved && (
-                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2 text-green-700" onClick={() => approveRecord(r.id)}>
+                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2 text-green-400" onClick={() => approveRecord(r.id)}>
                               Aprobar
                             </Button>
                           )}
@@ -404,7 +404,7 @@ export default function WasteControlPage() {
                         <span className="text-xs text-muted-foreground/70">({s.record_count} registros)</span>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-red-700">{fmt(Number(s.total_cost))}</p>
+                        <p className="font-bold text-red-400">{fmt(Number(s.total_cost))}</p>
                         <p className="text-xs text-muted-foreground/70">{Number(s.total_qty).toLocaleString("es-AR")} unidades</p>
                       </div>
                     </div>

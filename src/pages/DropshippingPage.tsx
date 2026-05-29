@@ -381,7 +381,7 @@ export default function DropshippingPage() {
                       <div className="flex justify-between text-sm font-medium bg-primary/10 px-3 py-2 rounded">
                         <span>Costo proveedor: {fmt(orderTotals.supplier)}</span>
                         <span>Venta total: {fmt(orderTotals.sell)}</span>
-                        <span className="text-green-700">Ganancia: {fmt(orderTotals.sell - orderTotals.supplier)}</span>
+                        <span className="text-green-400">Ganancia: {fmt(orderTotals.sell - orderTotals.supplier)}</span>
                       </div>
                     )}
                   </div>
@@ -604,7 +604,7 @@ export default function DropshippingPage() {
                       <div className="flex items-center gap-4 flex-shrink-0">
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Venta: <span className="font-semibold text-foreground">{fmt(order.sell_total)}</span></p>
-                          <p className="text-xs text-green-700">Ganancia: {fmt(order.profit)}</p>
+                          <p className="text-xs text-green-400">Ganancia: {fmt(order.profit)}</p>
                         </div>
                         {/* Status progression */}
                         <div className="flex gap-1">
@@ -686,13 +686,13 @@ export default function DropshippingPage() {
                           <p className="text-xs text-muted-foreground">Costo</p>
                           <p className="text-sm font-semibold">{fmt(prod.supplier_price)}</p>
                         </div>
-                        <div className="bg-blue-50 rounded p-2">
+                        <div className="bg-blue-500/10 rounded p-2">
                           <p className="text-xs text-muted-foreground">Venta</p>
-                          <p className="text-sm font-semibold text-blue-700">{fmt(prod.sell_price)}</p>
+                          <p className="text-sm font-semibold text-blue-400">{fmt(prod.sell_price)}</p>
                         </div>
-                        <div className="bg-green-50 rounded p-2">
+                        <div className="bg-emerald-500/10 rounded p-2">
                           <p className="text-xs text-muted-foreground">Margen</p>
-                          <p className="text-sm font-semibold text-green-700">{Number(prod.margin_pct).toFixed(1)}%</p>
+                          <p className="text-sm font-semibold text-emerald-400">{Number(prod.margin_pct).toFixed(1)}%</p>
                         </div>
                       </div>
                       {prod.supplier_url && (
@@ -734,7 +734,7 @@ export default function DropshippingPage() {
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Badge variant="outline" className="text-xs">{sup.country} · {sup.currency}</Badge>
                       <Badge variant="outline" className="text-xs">{sup.avg_dispatch_days}d despacho</Badge>
-                      {sup.commission_pct > 0 && <Badge variant="outline" className="text-xs text-green-700">{sup.commission_pct}% comisión</Badge>}
+                      {sup.commission_pct > 0 && <Badge variant="outline" className="text-xs text-green-400 border-green-500/30">{sup.commission_pct}% comisión</Badge>}
                     </div>
                     {sup.payment_terms && <p className="text-xs text-muted-foreground/70">Pago: {sup.payment_terms}</p>}
                     <div className="pt-1">

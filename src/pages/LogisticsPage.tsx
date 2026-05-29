@@ -304,7 +304,7 @@ export default function LogisticsPage() {
                     <span className="font-semibold">{c.name}</span>
                     <Badge variant="outline" className="text-xs">{c.code}</Badge>
                     <Badge variant="outline" className="text-xs capitalize">{c.carrier_type}</Badge>
-                    {c.is_active ? <Badge className="bg-green-100 text-green-700 text-xs">Activo</Badge> : <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
+                    {c.is_active ? <Badge className="bg-green-500/15 text-green-400 border-green-500/20 text-xs">Activo</Badge> : <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Tiempo promedio: {c.avg_days} días · Peso máx: {c.max_weight_kg ? `${c.max_weight_kg} kg` : "Ilimitado"}

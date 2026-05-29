@@ -399,7 +399,7 @@ export default function CompetitorPricingPage() {
                     {c.notes && <p className="text-xs text-muted-foreground">{c.notes}</p>}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{prodCount} productos monitoreados</span>
-                      <Badge className={c.is_active ? "bg-green-100 text-green-700" : "bg-muted/40 text-muted-foreground"}>
+                      <Badge className={c.is_active ? "bg-green-500/15 text-green-400 border-green-500/20" : "bg-muted/40 text-muted-foreground border-border/30"}>
                         {c.is_active ? "Activo" : "Inactivo"}
                       </Badge>
                     </div>
@@ -484,7 +484,7 @@ export default function CompetitorPricingPage() {
                         <td className="px-4 py-3 font-semibold text-foreground">${h.price.toLocaleString("es-AR")}</td>
                         <td className="px-4 py-3 text-muted-foreground">{h.currency}</td>
                         <td className="px-4 py-3">
-                          {h.in_stock ? <Badge className="bg-green-100 text-green-700 text-xs">Sí</Badge> : <Badge className="bg-red-100 text-red-700 text-xs">No</Badge>}
+                          {h.in_stock ? <Badge className="bg-green-500/15 text-green-400 border-green-500/20 text-xs">Sí</Badge> : <Badge className="bg-red-500/15 text-red-400 border-red-500/20 text-xs">No</Badge>}
                         </td>
                         <td className="px-4 py-3 text-orange-600 text-xs">{h.promotion ?? "—"}</td>
                         <td className="px-4 py-3"><Badge variant="outline" className="text-xs capitalize">{h.source}</Badge></td>

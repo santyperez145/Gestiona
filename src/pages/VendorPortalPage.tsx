@@ -219,7 +219,7 @@ export default function VendorPortalPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{v.name}</span>
-                    {v.is_active ? <Badge className="bg-green-100 text-green-700 border-0 text-xs">Activo</Badge> : <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
+                    {v.is_active ? <Badge className="bg-green-500/15 text-green-400 border-green-500/20 text-xs">Activo</Badge> : <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                     {v.unread_messages > 0 && <Badge className="bg-blue-500 text-white text-xs">{v.unread_messages} msg</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{v.email} · Último acceso: {v.last_login ? new Date(v.last_login).toLocaleDateString("es-AR") : "Nunca"}</p>
