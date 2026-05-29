@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
@@ -8,8 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail } from 'lucide-react';
+import { User, Lock, Building2, Camera, Save, Crown, ShieldCheck, Mail, Smartphone, Shield, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { QRCodeSVG } from 'qrcode.react';
+
+// ─── MFA types ────────────────────────────────────────────────────────────────
+interface MfaFactor {
+  id: string;
+  factor_type: string;
+  friendly_name?: string;
+  status: string;
+  created_at: string;
+}
 
 const ROLE_LABEL: Record<string, string> = {
   owner: 'Dueño', admin: 'Administrador', vendedor: 'Vendedor', viewer: 'Viewer',
@@ -41,12 +51,73 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── MFA state ─────────────────────────────────────────────────────────────
+  const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([]);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  // Enrollment flow
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollData, setEnrollData] = useState<{ factorId: string; qrUri: string; secret: string } | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  // Unenroll
+  const [unenrolling, setUnenrolling] = useState<string | null>(null);
+
   const initials = (name || user?.email || '?')
     .split(' ')
     .map(w => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  // ── Load MFA factors ───────────────────────────────────────────────────────
+  const loadMfaFactors = useCallback(async () => {
+    setMfaLoading(true);
+    const { data } = await supabase.auth.mfa.listFactors();
+    setMfaFactors((data?.all ?? []) as MfaFactor[]);
+    setMfaLoading(false);
+  }, []);
+
+  useEffect(() => { loadMfaFactors(); }, [loadMfaFactors]);
+
+  // ── Start MFA enrollment ───────────────────────────────────────────────────
+  const handleEnrollMfa = async () => {
+    setEnrolling(true);
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App' });
+    setEnrolling(false);
+    if (error || !data) { toast.error(error?.message ?? 'Error al iniciar MFA'); return; }
+    setEnrollData({
+      factorId: data.id,
+      qrUri:    data.totp.qr_code,
+      secret:   data.totp.secret,
+    });
+    setTotpCode('');
+  };
+
+  // ── Verify & activate TOTP ─────────────────────────────────────────────────
+  const handleVerifyMfa = async () => {
+    if (!enrollData || totpCode.length !== 6) { toast.error('Ingresá el código de 6 dígitos'); return; }
+    setVerifying(true);
+    const { error } = await supabase.auth.mfa.challengeAndVerify({
+      factorId: enrollData.factorId,
+      code:     totpCode,
+    });
+    setVerifying(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Autenticación de dos factores activada ✓');
+    setEnrollData(null);
+    setTotpCode('');
+    await loadMfaFactors();
+  };
+
+  // ── Unenroll (disable) MFA ─────────────────────────────────────────────────
+  const handleUnenrollMfa = async (factorId: string) => {
+    setUnenrolling(factorId);
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    setUnenrolling(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success('MFA desactivado');
+    await loadMfaFactors();
+  };
 
   // ── Save display name ─────────────────────────────────────────────────────
 
@@ -299,6 +370,120 @@ export default function ProfilePage() {
               ))}
             </div>
           )}
+      </div>
+
+      {/* MFA / 2FA */}
+      <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
+        style={{ background: 'hsl(228 24% 7%)' }}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+        <div className="flex items-center justify-between">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
+            <Shield className="w-3 h-3" /> Autenticación de dos factores (2FA)
+          </p>
+          {!mfaLoading && mfaFactors.filter(f => f.status === 'verified').length > 0 && (
+            <Badge variant="outline" className="text-xs gap-1 text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+              <CheckCircle2 className="w-2.5 h-2.5" /> Activo
+            </Badge>
+          )}
+        </div>
+
+        {mfaLoading ? (
+          <p className="text-xs text-muted-foreground animate-pulse">Cargando factores...</p>
+        ) : (
+          <>
+            {/* Active factors */}
+            {mfaFactors.filter(f => f.status === 'verified').length > 0 && (
+              <div className="space-y-2">
+                {mfaFactors.filter(f => f.status === 'verified').map(factor => (
+                  <div key={factor.id} className="flex items-center justify-between rounded-[8px] border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <Smartphone className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <p className="text-sm font-medium text-emerald-300">{factor.friendly_name || 'Authenticator App'}</p>
+                        <p className="text-[10px] text-muted-foreground">TOTP · activado {new Date(factor.created_at).toLocaleDateString('es-AR')}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUnenrollMfa(factor.id)}
+                      disabled={unenrolling === factor.id}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2.5 text-xs"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      {unenrolling === factor.id ? 'Desactivando...' : 'Desactivar'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* No active MFA */}
+            {mfaFactors.filter(f => f.status === 'verified').length === 0 && !enrollData && (
+              <div className="rounded-[8px] border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-yellow-300">2FA no configurado</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Protegé tu cuenta con un código adicional de tu app de autenticación (Google Authenticator, Authy, etc.)
+                  </p>
+                </div>
+                <Button size="sm" onClick={handleEnrollMfa} disabled={enrolling} className="shrink-0 text-xs h-8">
+                  <Shield className="w-3.5 h-3.5 mr-1.5" />
+                  {enrolling ? 'Iniciando...' : 'Activar 2FA'}
+                </Button>
+              </div>
+            )}
+
+            {/* Enrollment flow — QR + verification */}
+            {enrollData && (
+              <div className="space-y-4">
+                <div className="rounded-[8px] border border-primary/20 bg-primary/5 p-4 space-y-3">
+                  <p className="text-sm font-semibold text-primary">Paso 1 — Escaneá el código QR</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Abrí tu app de autenticación (Google Authenticator, Authy, etc.) y escaneá el código QR o ingresá la clave manual.
+                  </p>
+                  <div className="flex items-center gap-5 flex-wrap">
+                    <div className="rounded-[8px] p-2 bg-white inline-block">
+                      <QRCodeSVG value={enrollData.qrUri} size={140} level="M" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Clave manual</p>
+                      <p className="font-mono text-sm tracking-widest text-foreground bg-muted px-3 py-1.5 rounded-[6px] break-all">
+                        {enrollData.secret}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Paso 2 — Ingresá el código de verificación</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Ingresá el código de 6 dígitos que muestra tu app de autenticación.
+                  </p>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={totpCode}
+                      onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="h-9 w-36 font-mono tracking-widest text-center text-lg"
+                      maxLength={6}
+                      onKeyDown={e => e.key === 'Enter' && handleVerifyMfa()}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={handleVerifyMfa} disabled={verifying || totpCode.length !== 6} className="text-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      {verifying ? 'Verificando...' : 'Activar 2FA'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEnrollData(null)} className="text-xs text-muted-foreground">
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Account info */}

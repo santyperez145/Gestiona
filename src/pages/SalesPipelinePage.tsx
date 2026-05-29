@@ -659,14 +659,37 @@ export default function SalesPipelinePage() {
 
   const commitMove = async (deal: Deal, stage: Stage, reason: string | null) => {
     try {
+      const closedAt = new Date().toISOString();
       await supabase.from("deals").update({
         stage,
         win_loss_reason: reason || null,
-        updated_at: new Date().toISOString(),
+        updated_at: closedAt,
       }).eq("id", deal.id);
       setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage, win_loss_reason: reason } : d));
       const stageLabel = STAGES.find(s => s.value === stage)?.label ?? stage;
       void fireStageAutomations(deal, stageLabel);
+
+      // ── Persist outcome for Win/Loss analytics ─────────────────────────────
+      if ((stage === "cerrado" || stage === "perdido") && activeOrg) {
+        const daysInPipeline = Math.floor(
+          (Date.now() - new Date(deal.created_at).getTime()) / 86_400_000,
+        );
+        await supabase.from("deal_outcomes").insert({
+          org_id:           activeOrg.id,
+          deal_id:          deal.id,
+          deal_title:       deal.title,
+          outcome:          stage === "cerrado" ? "won" : "lost",
+          reason:           reason ?? null,
+          deal_value:       deal.value_ars || 0,
+          currency:         "ARS",
+          customer_name:    deal.customer_name || null,
+          stage_at_close:   deal.stage,
+          days_in_pipeline: daysInPipeline,
+          closed_at:        closedAt,
+        });
+      }
+      // ──────────────────────────────────────────────────────────────────────
+
       if (stage === "cerrado") toast.success(`🏆 Deal "${deal.title}" marcado como ganado!`);
       if (stage === "perdido") toast.info(`Deal "${deal.title}" marcado como perdido.`);
     } catch {
