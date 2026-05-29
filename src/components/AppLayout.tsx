@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+﻿import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
 import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe, Warehouse, FolderOpen, LineChart, Shield, Code2, Map, Eye, Leaf, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
@@ -343,7 +343,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {config.logoUrl ? (
               <div className="relative shrink-0">
                 <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-[8px] object-cover ring-1 ring-primary/25" />
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-[1.5px] border-sidebar" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-[1.5px] border-sidebar" />
               </div>
             ) : (
               <div className="w-8 h-8 rounded-[8px] gradient-gold flex items-center justify-center shrink-0 shadow-[0_2px_12px_-2px_hsl(38_82%_52%/0.5)]">

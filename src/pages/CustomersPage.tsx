@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -524,7 +524,7 @@ function CustomerSalesTimeline({
   if (customerSales.length === 0 && customerDebts.filter((d: any) => d.status !== "paid").length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-12">
       {customerSales.length > 0 && (
         <div>
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -598,7 +598,7 @@ function CustomerSalesTimeline({
 const QUOTE_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   draft:    { label: "Borrador", color: "text-muted-foreground bg-muted/40" },
   sent:     { label: "Enviado",  color: "text-blue-400 bg-blue-500/10" },
-  accepted: { label: "Aceptado", color: "text-success bg-success/10" },
+  accepted: { label: "Aceptado", color: "text-emerald-400 bg-emerald-500/10" },
   rejected: { label: "Rechazado",color: "text-destructive bg-destructive/10" },
   expired:  { label: "Vencido",  color: "text-amber-400 bg-amber-500/10" },
 };
@@ -631,7 +631,7 @@ function CustomerQuotesTab({ customerName, orgId }: { customerName: string; orgI
   const totalSent     = quotes.filter(q => q.status === "sent").reduce((s, q) => s + Number(q.total_ars || 0), 0);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-12">
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-2">
         {[
@@ -741,7 +741,7 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
   const overdue = pendingFollowUps.filter(e => e.follow_up_date! < new Date().toISOString().slice(0, 10));
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 pb-12">
       <div className="flex items-center justify-between">
         <h3 className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Clock className="w-3 h-3" />Historial de comunicaciones
@@ -1750,7 +1750,7 @@ export default function CustomersPage() {
   }, [sales]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Form modal */}
       {formModal.open && (
         <CustomerFormModal
@@ -1970,7 +1970,7 @@ export default function CustomersPage() {
           </button>
           {showRFM && (
             <div className="border-t border-border px-4 pb-4 pt-3">
-              <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: "Recency (R)", desc: "Cuándo compraron por última vez", key: "rScore" as const, color: "text-blue-400" },
                   { label: "Frequency (F)", desc: "Con qué frecuencia compran", key: "fScore" as const, color: "text-purple-400" },
@@ -2446,7 +2446,7 @@ export default function CustomersPage() {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Mapeo de columnas</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {csvPreview.headers.map((h, i) => (
-                    <div key={i} className="space-y-1">
+                    <div key={i} className="space-y-1 pb-12">
                       <label className="text-[10px] text-muted-foreground font-medium truncate block" title={h}>{h}</label>
                       <select
                         value={csvPreview.mapping[String(i)] || ''}
@@ -2528,7 +2528,7 @@ export default function CustomersPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {filtered.map(c => {
             const isExpanded = selectedCustomer === c.name;
             return (
@@ -2630,7 +2630,7 @@ export default function CustomersPage() {
                   {c.purchaseCount > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div><span className="text-muted-foreground">Facturado: </span><span className="font-medium">{formatARS(c.totalSpent)}</span></div>
-                      <div><span className="text-muted-foreground">Ganancia: </span><span className="font-medium text-success">{formatARS(c.totalProfit)}</span></div>
+                      <div><span className="text-muted-foreground">Ganancia: </span><span className="font-medium text-emerald-400">{formatARS(c.totalProfit)}</span></div>
                       <div><span className="text-muted-foreground">Ticket prom.: </span><span className="font-medium">{formatARS(c.avgTicket)}</span></div>
                       <div><span className="text-muted-foreground">Frecuencia: </span><span className="font-medium">{c.frequency < 999 ? `c/${c.frequency}d` : "Única vez"}</span></div>
                     </div>
@@ -3010,7 +3010,7 @@ export default function CustomersPage() {
                                         <button
                                           onClick={() => payInstallment(inst.id)}
                                           disabled={payingInstallment === inst.id}
-                                          className="text-[10px] px-2 py-1 rounded-md bg-success/20 text-success hover:bg-success/30 transition-colors font-medium disabled:opacity-50"
+                                          className="text-[10px] px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors font-medium disabled:opacity-50"
                                         >
                                           {payingInstallment === inst.id ? '…' : 'Cobrar'}
                                         </button>
@@ -3331,7 +3331,7 @@ export default function CustomersPage() {
                                     <button
                                       onClick={() => payInstallment(inst.id)}
                                       disabled={payingInstallment === inst.id}
-                                      className="text-[10px] px-2 py-1 rounded-md bg-success/20 text-success hover:bg-success/30 transition-colors font-medium disabled:opacity-50"
+                                      className="text-[10px] px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors font-medium disabled:opacity-50"
                                     >
                                       {payingInstallment === inst.id ? '…' : 'Cobrar'}
                                     </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -569,7 +569,7 @@ function PlanCard({ plan, onEdit, onToggle, onDelete, onNewSub }: PlanCardProps)
       )}
 
       {plan.features && plan.features.length > 0 && (
-        <ul className="space-y-1">
+        <ul className="space-y-1 pb-12">
           {plan.features.map((f, i) => (
             <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
               <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -852,7 +852,7 @@ export default function SubscriptionsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={CreditCard}
         title="Suscripciones & Recurrencia"
@@ -929,7 +929,7 @@ export default function SubscriptionsPage() {
               <p className="text-sm mt-1">Creá un plan y comenzá a suscribir clientes</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {filteredSubs.map(sub => (
                 <SubRow
                   key={sub.id}

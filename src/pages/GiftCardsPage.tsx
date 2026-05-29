@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -181,7 +181,7 @@ export default function GiftCardsPage() {
   const totalRedeemed = transactions.filter(t => t.transaction_type === "redeem").reduce((s, t) => s + t.amount, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Gift}
         title="Gift Cards"
@@ -229,7 +229,7 @@ export default function GiftCardsPage() {
           <p className="text-sm">Sin tarjetas.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(card => {
             const sc = STATUS_CONFIG[card.status];
             const cardTxns = transactions.filter(t => t.gift_card_id === card.id);
@@ -273,7 +273,7 @@ export default function GiftCardsPage() {
                 {isExpanded && cardTxns.length > 0 && (
                   <div className="border-t border-border/30 px-4 py-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2">Historial</p>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {cardTxns.map(t => {
                         const tc = TXN_LABEL[t.transaction_type];
                         return (

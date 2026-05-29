@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -406,7 +406,7 @@ export default function EmailCampaignsPage() {
   const openRate = totalSentEmails > 0 ? `${(totalOpensEmails / totalSentEmails * 100).toFixed(1)}%` : "—";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Mail}
         title="Email Marketing"
@@ -454,7 +454,7 @@ export default function EmailCampaignsPage() {
           <p className="text-sm">Creá tu primera campaña para empezar a comunicarte con tus clientes.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {campaigns.map(camp => {
             const aud = audienceFor(camp.segment);
             return (

@@ -179,7 +179,7 @@ export default function PurchaseRequestsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
         title="Solicitudes de Compra"
@@ -252,7 +252,7 @@ export default function PurchaseRequestsPage() {
                       <Input className="h-8 text-sm" value={it.preferred_supplier} onChange={e => updateItem(idx, "preferred_supplier", e.target.value)} />
                     </div>
                     <div className="col-span-1">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500" onClick={() => setReqItems(prev => prev.filter((_, i) => i !== idx))}>✕</Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-300" onClick={() => setReqItems(prev => prev.filter((_, i) => i !== idx))}>✕</Button>
                     </div>
                   </div>
                 ))}
@@ -337,10 +337,10 @@ export default function PurchaseRequestsPage() {
                       <div className="flex gap-1">
                         {req.status === "submitted" && (
                           <>
-                            <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700" onClick={() => updateStatus(req.id, "approved", { approved_at: new Date().toISOString() })}>
+                            <Button size="sm" className="h-7 text-xs bg-emerald-600/80 hover:bg-emerald-600 text-white" onClick={() => updateStatus(req.id, "approved", { approved_at: new Date().toISOString() })}>
                               Aprobar
                             </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-300" onClick={() => { setRejectId(req.id); setRejectOpen(true); }}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs text-red-400 border-red-400/30 hover:bg-red-400/10" onClick={() => { setRejectId(req.id); setRejectOpen(true); }}>
                               Rechazar
                             </Button>
                           </>

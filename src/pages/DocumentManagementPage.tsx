@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -200,7 +200,7 @@ export default function DocumentManagementPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={FolderOpen}
         title="Gestión Documental"
@@ -220,13 +220,13 @@ export default function DocumentManagementPage() {
               </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editDoc ? "Editar documento" : "Registrar documento"}</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1">
+              <div className="space-y-3 pb-12">
+                <div className="space-y-1 pb-12">
                   <Label>Título *</Label>
                   <Input value={docForm.title} onChange={e => setDocForm(f => ({ ...f, title: e.target.value }))} placeholder="Nombre del documento" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Categoría</Label>
                     <Select value={docForm.category_id} onValueChange={v => setDocForm(f => ({ ...f, category_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
@@ -235,7 +235,7 @@ export default function DocumentManagementPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Tipo</Label>
                     <Select value={docForm.doc_type} onValueChange={v => setDocForm(f => ({ ...f, doc_type: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -244,7 +244,7 @@ export default function DocumentManagementPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Estado</Label>
                     <Select value={docForm.status} onValueChange={v => setDocForm(f => ({ ...f, status: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -255,29 +255,29 @@ export default function DocumentManagementPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Versión</Label>
                     <Input value={docForm.version} onChange={e => setDocForm(f => ({ ...f, version: e.target.value }))} placeholder="1.0" />
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>URL del archivo</Label>
                   <Input value={docForm.file_url} onChange={e => setDocForm(f => ({ ...f, file_url: e.target.value }))} placeholder="https://drive.google.com/..." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Firmado por</Label>
                     <Input value={docForm.signed_by} onChange={e => setDocForm(f => ({ ...f, signed_by: e.target.value }))} />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Vencimiento</Label>
                     <Input type="date" value={docForm.expiry_date} onChange={e => setDocForm(f => ({ ...f, expiry_date: e.target.value }))} />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Subido por</Label>
                     <Input value={docForm.uploaded_by_name} onChange={e => setDocForm(f => ({ ...f, uploaded_by_name: e.target.value }))} />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Acceso</Label>
                     <Select value={docForm.access_level} onValueChange={v => setDocForm(f => ({ ...f, access_level: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -289,11 +289,11 @@ export default function DocumentManagementPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Etiquetas (separadas por coma)</Label>
                   <Input value={docForm.tags_raw} onChange={e => setDocForm(f => ({ ...f, tags_raw: e.target.value }))} placeholder="contrato, cliente, 2026..." />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Descripción / Notas</Label>
                   <Textarea value={docForm.notes} onChange={e => setDocForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                 </div>

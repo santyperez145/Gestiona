@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -580,7 +580,7 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ClipboardList}
         title="Órdenes de Compra"
@@ -627,7 +627,7 @@ export default function PurchaseOrdersPage() {
           <p className="text-sm">Creá tu primera OC para un proveedor</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(order => (
             <PORow
               key={order.id}

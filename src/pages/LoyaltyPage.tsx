@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle, Medal } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Tier system ──────────────────────────────────────────────────────────────
@@ -211,19 +212,33 @@ export default function LoyaltyPage() {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
 
+  const redeemEntries = entries.filter(e => e.delta < 0);
+
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={Star}
         title="Programa de Fidelidad"
-        description={`Puntos por compra · ${totalPointsOutstanding.toLocaleString("es-AR")} puntos activos`}
+        description="Puntos por compra, tiers y canjes"
         badge={
           enabled
             ? { label: "Activo ✓", variant: "success" }
             : { label: "Inactivo", variant: "default" }
         }
       />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Puntos activos" value={totalPointsOutstanding.toLocaleString("es-AR")} icon={Star} color="warning"
+          sub={`${balances.length} clientes con saldo`} />
+        <KPICard label="Valor en canje" value={formatARS(totalValueOutstanding)} icon={Gift} color="primary"
+          sub="valor potencial a redimir" />
+        <KPICard label="Transacciones" value={entries.length} icon={Trophy} color="blue"
+          sub="asignaciones históricas" />
+        <KPICard label="Canjes realizados" value={redeemEntries.length} icon={ShoppingBag} color="success"
+          sub="puntos ya utilizados" />
+      </div>
 
       {/* Tab nav */}
       <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 border border-border w-fit">
@@ -396,7 +411,7 @@ export default function LoyaltyPage() {
 
       {/* Tiers display */}
       {activeTab === 'tiers' && (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {TIERS.map(tier => (
               <div key={tier.name} className={`bg-card border border-border/60 rounded-[10px] p-5 ${tier.bg}`}>
@@ -426,7 +441,7 @@ export default function LoyaltyPage() {
           </div>
           <div className="bg-card border border-border/60 rounded-[10px] p-4">
             <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Distribución de clientes por tier</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {TIERS.map(tier => {
                 const count = balances.filter(b => {
                   const t = TIERS.findLast(t2 => b.balance >= t2.min) ?? TIERS[0];

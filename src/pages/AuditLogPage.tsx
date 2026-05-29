@@ -147,7 +147,7 @@ export default function AuditLogPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Shield}
         title="Registro de Auditoría"
@@ -339,9 +339,9 @@ export default function AuditLogPage() {
                       return (
                         <div key={key} className="flex gap-2 items-start">
                           <span className="text-muted-foreground shrink-0 w-24 truncate">{key}:</span>
-                          <span className="text-red-500 line-through">{JSON.stringify(v.from)}</span>
+                          <span className="text-red-400 line-through">{JSON.stringify(v.from)}</span>
                           <span className="text-muted-foreground/70">→</span>
-                          <span className="text-green-600">{JSON.stringify(v.to)}</span>
+                          <span className="text-emerald-400">{JSON.stringify(v.to)}</span>
                         </div>
                       );
                     })}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { getDebtsDB, addDebtPaymentDB, deleteDebtDB, formatARS, formatDateAR } from "@/lib/supabaseStore";
@@ -201,7 +201,7 @@ export default function DebtsPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={AlertCircle}
         title="Deudas"
@@ -221,7 +221,7 @@ export default function DebtsPage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total pendiente" value={formatARS(totalPending)} icon={TrendingDown} color="destructive"
           sub={`${pending.length} deuda${pending.length !== 1 ? "s" : ""}`} />
         <KPICard label="Deudores" value={uniqueDebtors} icon={Users} color="warning"
@@ -283,7 +283,7 @@ export default function DebtsPage() {
                       <span className="text-xs text-muted-foreground">{daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `En ${daysUntil}d`}</span>
                       <span className="text-xs font-bold text-primary">{formatARS(Number(d.remaining_ars))}</span>
                       <a href={waDebtLink(d, activeOrg?.id)} target="_blank" rel="noopener noreferrer"
-                        className="p-1 rounded bg-success/10 hover:bg-success/20 text-success transition-colors" title="Recordatorio WhatsApp">
+                        className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors" title="Recordatorio WhatsApp">
                         <MessageCircle className="w-3 h-3" />
                       </a>
                     </div>
@@ -318,18 +318,18 @@ export default function DebtsPage() {
         const grandTotal = rows.reduce((s, r) => s + r.total, 0);
         const maxVal = Math.max(...rows.map(r => r.total), 1);
         return (
-          <div className="mb-5 bg-card border border-success/20 rounded-xl p-4">
+          <div className="mb-5 bg-card border border-emerald-500/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-success" />
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
               <h3 className="text-sm font-semibold">Proyección de cobros — próximos 30 días</h3>
-              <span className="ml-auto text-sm font-bold text-success">{formatARS(grandTotal)}</span>
+              <span className="ml-auto text-sm font-bold text-emerald-400">{formatARS(grandTotal)}</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {rows.map(r => (
                 <div key={r.label} className="flex items-center gap-2 text-xs">
                   <span className="w-24 shrink-0 text-muted-foreground">{r.label}</span>
                   <div className="flex-1 bg-muted rounded-full h-2.5 overflow-hidden">
-                    <div className="h-full rounded-full bg-success/60" style={{ width: `${(r.total / maxVal) * 100}%` }} />
+                    <div className="h-full rounded-full bg-emerald-500/60" style={{ width: `${(r.total / maxVal) * 100}%` }} />
                   </div>
                   <span className="w-24 text-right font-mono shrink-0">{formatARS(r.total)}</span>
                   <span className="w-12 text-right text-muted-foreground shrink-0">{r.count} deuda{r.count !== 1 ? "s" : ""}</span>
@@ -397,7 +397,7 @@ export default function DebtsPage() {
                 );
               })()}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {bucketed.map(b => {
                 const pct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
                 return (
@@ -441,9 +441,9 @@ export default function DebtsPage() {
           return <p className="text-sm text-muted-foreground text-center py-12">No hay cobros registrados aún.</p>;
         }
         return (
-          <div className="space-y-5">
+          <div className="space-y-5 pb-12">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{paidSorted.length} cobros · total: <span className="font-semibold text-success">{formatARS(grandTotal)}</span></p>
+              <p className="text-sm text-muted-foreground">{paidSorted.length} cobros · total: <span className="font-semibold text-emerald-400">{formatARS(grandTotal)}</span></p>
             </div>
             {Object.entries(byMonth).map(([month, items]) => {
               const [y, m] = month.split('-');
@@ -452,18 +452,18 @@ export default function DebtsPage() {
                 <div key={month} className="bg-card border border-border/60 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground capitalize">{label}</span>
-                    <span className="text-xs font-semibold text-success">{formatARS(monthTotal(items))}</span>
+                    <span className="text-xs font-semibold text-emerald-400">{formatARS(monthTotal(items))}</span>
                   </div>
                   <div className="divide-y divide-border/50">
                     {items.map(d => (
                       <div key={d.id} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/20 transition-colors">
-                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{d.customer_name}</p>
                           {d.description && <p className="text-xs text-muted-foreground truncate">{d.description}</p>}
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="font-semibold text-success">{formatARS(Number(d.amount_ars))}</p>
+                          <p className="font-semibold text-emerald-400">{formatARS(Number(d.amount_ars))}</p>
                           <p className="text-[10px] text-muted-foreground">{formatDateAR(d.updated_at || d.date)}</p>
                         </div>
                       </div>
@@ -552,7 +552,7 @@ export default function DebtsPage() {
                   <span className="text-xs font-medium max-w-[100px] truncate">{customer}</span>
                   <span className="text-xs font-bold text-destructive">{formatARS(total)}</span>
                   <Button size="sm" variant="ghost"
-                    className="h-6 px-2 text-[10px] text-success hover:text-success hover:bg-success/10 gap-0.5"
+                    className="h-6 px-2 text-[10px] text-emerald-400 hover:text-emerald-400 hover:bg-emerald-500/10 gap-0.5"
                     title={`Cobrar todo a ${customer}`}
                     onClick={async () => {
                       setBulkLoading(true);
@@ -576,7 +576,7 @@ export default function DebtsPage() {
       {selectedIds.size > 0 && tab === "pending" && (
         <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5 mb-4">
           <span className="text-sm font-medium text-primary">{selectedIds.size} seleccionada{selectedIds.size !== 1 ? "s" : ""}</span>
-          <Button size="sm" className="h-7 text-xs bg-success text-success-foreground ml-auto" disabled={bulkLoading} onClick={bulkMarkPaid}>
+          <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white ml-auto" disabled={bulkLoading} onClick={bulkMarkPaid}>
             {bulkLoading ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /></> : <CheckCircle2 className="w-3 h-3 mr-1" />}
             Marcar como pagadas
           </Button>
@@ -643,7 +643,7 @@ export default function DebtsPage() {
               localStorage.setItem(plansKey, JSON.stringify(next));
             };
             return (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-12">
                 <div className="flex items-center justify-between p-3 bg-muted rounded-xl">
                   <div>
                     <p className="font-semibold text-sm">{planningDebt.customer_name}</p>
@@ -693,7 +693,7 @@ export default function DebtsPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => toggleInstallmentPaid(idx)}
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${isPaid ? 'border-success bg-success/20 text-success' : 'border-border hover:border-primary/50'}`}
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${isPaid ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400' : 'border-border hover:border-primary/50'}`}
                               title={isPaid ? "Marcar sin pagar" : "Marcar pagado"}
                             >
                               {isPaid && <CheckCircle2 className="w-3 h-3" />}
@@ -703,7 +703,7 @@ export default function DebtsPage() {
                               {isOverdue && <span className="ml-1 text-[10px]">⚠ vencida</span>}
                             </span>
                           </div>
-                          <span className={`text-xs font-semibold ${isPaid ? 'text-success' : ''}`}>{formatARS(Math.round(amtPerInstall))}</span>
+                          <span className={`text-xs font-semibold ${isPaid ? 'text-emerald-400' : ''}`}>{formatARS(Math.round(amtPerInstall))}</span>
                         </div>
                       );
                     })}
@@ -798,13 +798,13 @@ export default function DebtsPage() {
                     <td className="px-4 py-3 text-muted-foreground text-xs max-w-[180px] truncate hidden lg:table-cell">{d.description}</td>
                     <td className="px-4 py-3 text-right font-medium">{formatARS(Number(d.amount_ars))}</td>
                     {tab === "pending" && <>
-                      <td className="px-4 py-3 text-right text-success font-medium">{formatARS(Number(d.paid_ars))}</td>
+                      <td className="px-4 py-3 text-right text-emerald-400 font-medium">{formatARS(Number(d.paid_ars))}</td>
                       <td className="px-4 py-3 text-right font-bold text-destructive text-base">{formatARS(Number(d.remaining_ars))}</td>
                     </>}
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        d.status === "paid" ? "bg-success/15 text-success" :
-                        d.status === "partial" ? "bg-warning/15 text-warning" :
+                        d.status === "paid" ? "bg-emerald-500/15 text-emerald-400" :
+                        d.status === "partial" ? "bg-yellow-500/15 text-yellow-400" :
                         "bg-destructive/15 text-destructive"
                       }`}>
                         {d.status === "paid" ? "✓ Pagada" : d.status === "partial" ? "Parcial" : "Pendiente"}
@@ -813,7 +813,7 @@ export default function DebtsPage() {
                     {tab === "pending" && (
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs border-success/30 text-success hover:bg-success/10" onClick={() => setPayingDebt(d)}>
+                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => setPayingDebt(d)}>
                             <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
                           </Button>
                           <Button size="sm" variant="outline"
@@ -853,8 +853,8 @@ export default function DebtsPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">{formatDateAR(d.date)} {d.description ? `· ${d.description}` : ""}</p>
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${
-                    d.status === "paid" ? "bg-success/15 text-success" :
-                    d.status === "partial" ? "bg-warning/15 text-warning" :
+                    d.status === "paid" ? "bg-emerald-500/15 text-emerald-400" :
+                    d.status === "partial" ? "bg-yellow-500/15 text-yellow-400" :
                     "bg-destructive/15 text-destructive"
                   }`}>
                     {d.status === "paid" ? "✓ Pagada" : d.status === "partial" ? "Parcial" : "Pendiente"}
@@ -863,7 +863,7 @@ export default function DebtsPage() {
                 {tab === "pending" && (
                   <div className="grid grid-cols-3 gap-2 text-xs mb-3 bg-muted/30 rounded-lg p-2.5">
                     <div className="text-center"><p className="text-muted-foreground mb-0.5">Total</p><p className="font-medium">{formatARS(Number(d.amount_ars))}</p></div>
-                    <div className="text-center"><p className="text-muted-foreground mb-0.5">Pagado</p><p className="font-medium text-success">{formatARS(Number(d.paid_ars))}</p></div>
+                    <div className="text-center"><p className="text-muted-foreground mb-0.5">Pagado</p><p className="font-medium text-emerald-400">{formatARS(Number(d.paid_ars))}</p></div>
                     <div className="text-center"><p className="text-muted-foreground mb-0.5">Resta</p><p className="font-bold text-destructive">{formatARS(Number(d.remaining_ars))}</p></div>
                   </div>
                 )}
@@ -936,7 +936,7 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
   const pct = debt.amount_ars > 0 ? Math.round((Number(debt.paid_ars) / Number(debt.amount_ars)) * 100) : 0;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
       {/* Summary card */}
       <div className="bg-muted/50 border border-border rounded-xl p-4 space-y-2">
         <div className="flex justify-between items-center">
@@ -949,11 +949,11 @@ function PaymentForm({ debt, userId, onSave }: { debt: any; userId: string; onSa
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Ya pagado</span>
-          <span className="text-success">{formatARS(Number(debt.paid_ars))}</span>
+          <span className="text-emerald-400">{formatARS(Number(debt.paid_ars))}</span>
         </div>
         {/* Progress bar */}
         <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-          <div className="bg-success h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+          <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
         <div className="flex justify-between font-bold pt-1 border-t border-border">
           <span>Resta pagar</span>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -328,7 +328,7 @@ export default function DigitalProductsPage() {
   ], [activeProducts, products.length, licenses.length, revokedCount, totalSold, totalRevenue]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={FileDown}
         title="Productos Digitales"

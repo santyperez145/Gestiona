@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -103,7 +103,7 @@ export default function FranchisePage() {
   const avgCompliance = units.length ? Math.round(units.reduce((s, u) => s + u.compliance_score, 0) / units.length) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Building2}
         title="Gestión de Franquicias"
@@ -145,7 +145,7 @@ export default function FranchisePage() {
         </TabsList>
 
         {/* UNITS */}
-        <TabsContent value="units" className="space-y-3">
+        <TabsContent value="units" className="space-y-3 pb-12">
           {units.map(unit => (
             <Card key={unit.id} className={`cursor-pointer hover:shadow-md transition-shadow ${!unit.is_active ? "opacity-60" : ""}`} onClick={() => setSelected(unit)}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -218,7 +218,7 @@ export default function FranchisePage() {
         </TabsContent>
 
         {/* COMPLIANCE */}
-        <TabsContent value="compliance" className="space-y-4">
+        <TabsContent value="compliance" className="space-y-4 pb-12">
           {units.filter(u => u.is_active).map(unit => (
             <Card key={unit.id} className={unit.compliance_score < 70 ? "border-red-300" : ""}>
               <CardContent className="p-4">
@@ -291,7 +291,7 @@ export default function FranchisePage() {
               <CardTitle className="text-base">{selected.unit_code} — {selected.owner_name}</CardTitle>
               <Button size="icon" variant="ghost" onClick={() => setSelected(null)}>✕</Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-xs text-muted-foreground">Ubicación</p><p>{selected.address?.city}, {selected.address?.province}</p></div>
                 <div><p className="text-xs text-muted-foreground">Apertura</p><p>{selected.opened_at ?? "—"}</p></div>

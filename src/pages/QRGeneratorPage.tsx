@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+﻿import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -222,7 +222,7 @@ export default function QRGeneratorPage() {
   const typeConfig = QR_TYPE_CONFIG[qrType];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={QrCode}
         title="Generador de QR"
@@ -240,7 +240,7 @@ export default function QRGeneratorPage() {
         <TabsContent value="generator" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Controls */}
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               <div>
                 <Label>Tipo de QR</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">

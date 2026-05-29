@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+﻿import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
@@ -486,7 +486,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={BarChart3}
@@ -748,7 +748,7 @@ export default function AnalyticsPage() {
               <div className="text-xs text-muted-foreground mt-1">Activos últimos 30d</div>
             </div>
             <div className="bg-card border border-border rounded-xl p-4 text-center">
-              <div className={`text-2xl font-bold ${derived.retentionRate >= 50 ? 'text-success' : derived.retentionRate >= 25 ? 'text-warning' : 'text-destructive'}`}>{derived.retentionRate}%</div>
+              <div className={`text-2xl font-bold ${derived.retentionRate >= 50 ? 'text-emerald-400' : derived.retentionRate >= 25 ? 'text-yellow-400' : 'text-destructive'}`}>{derived.retentionRate}%</div>
               <div className="text-xs text-muted-foreground mt-1">Retención 30d</div>
             </div>
             <div className="bg-card border border-border rounded-xl p-4 text-center">
@@ -756,7 +756,7 @@ export default function AnalyticsPage() {
               <div className="text-xs text-muted-foreground mt-1">Clientes que regresaron</div>
             </div>
             <div className="bg-card border border-border rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-success">{derived.newCustomersLast30}</div>
+              <div className="text-2xl font-bold text-emerald-400">{derived.newCustomersLast30}</div>
               <div className="text-xs text-muted-foreground mt-1">Nuevos últimos 30d</div>
             </div>
           </div>
@@ -776,7 +776,7 @@ export default function AnalyticsPage() {
                   <TrendingUp className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-semibold">Concentración de ingresos (Pareto)</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/40 rounded-lg p-3 text-center">
                     <div className={`text-2xl font-bold ${top20pct >= 80 ? "text-yellow-400" : top20pct >= 60 ? "text-orange-400" : "text-green-400"}`}>{top20pct}%</div>
                     <div className="text-xs text-muted-foreground mt-1">del revenue viene del top 20% de clientes</div>
@@ -889,7 +889,7 @@ export default function AnalyticsPage() {
 
             <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Detalle de categorías</h3>
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 {derived.categoryMix.map((cat: any, i: number) => {
                   const total = derived.categoryMix.reduce((s: number, c: any) => s + c.value, 0);
                   const pct = total > 0 ? (cat.value / total) * 100 : 0;
@@ -975,7 +975,7 @@ export default function AnalyticsPage() {
                 const quietHour = derived.hourlyBars.reduce((a: any, b: any) => b.count < a.count ? b : a, derived.hourlyBars[0]);
                 const totalWithTime = derived.hourlyBars.reduce((s: number, h: any) => s + h.count, 0);
                 return (
-                  <div className="space-y-3">
+                  <div className="space-y-3 pb-12">
                     <div className="flex justify-between items-center p-3 rounded-xl bg-primary/10 border border-primary/20">
                       <div>
                         <div className="text-xs text-muted-foreground">Hora pico</div>
@@ -1049,7 +1049,7 @@ export default function AnalyticsPage() {
               <Filter className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold">Embudo de conversión — {currentYear}</h3>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {derived.funnel.map((stage: any, i: number) => (
                 <div key={stage.name}>
                   <div className="flex items-center justify-between mb-1.5">
@@ -1092,7 +1092,7 @@ export default function AnalyticsPage() {
 
           <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="text-sm font-semibold mb-3">Cómo mejorar la conversión</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {[
                 { tip: "Seguí tus presupuestos a los 48hs de enviarlos — el 60% de las conversiones ocurren en las primeras 72hs", ok: derived.conversionRate >= 40 },
                 { tip: "Incluí un link de pago en cada presupuesto para facilitar el cierre", ok: derived.conversionRate >= 50 },
@@ -1113,7 +1113,7 @@ export default function AnalyticsPage() {
             {(["A", "B", "C"] as const).map(cls => {
               const items = derived.abcProducts.filter((p: any) => p.cls === cls);
               const rev = items.reduce((s: number, p: any) => s + p.revenue, 0);
-              const colors: Record<string, string> = { A: "border-success/30 bg-success/5 text-success", B: "border-warning/30 bg-warning/5 text-warning", C: "border-muted border-border bg-muted/10 text-muted-foreground" };
+              const colors: Record<string, string> = { A: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", B: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", C: "border-muted border-border bg-muted/10 text-muted-foreground" };
               const descriptions: Record<string, string> = { A: "Alta rotación → mantener stock", B: "Rotación media → optimizar", C: "Baja rotación → revisar o eliminar" };
               return (
                 <div key={cls} className={`rounded-xl border p-4 ${colors[cls]}`}>
@@ -1156,8 +1156,8 @@ export default function AnalyticsPage() {
                       <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
                         <td className="p-3">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            p.cls === "A" ? "bg-success/15 text-success" :
-                            p.cls === "B" ? "bg-warning/15 text-warning" :
+                            p.cls === "A" ? "bg-emerald-500/15 text-emerald-400" :
+                            p.cls === "B" ? "bg-yellow-500/15 text-yellow-400" :
                             "bg-muted text-muted-foreground"
                           }`}>{p.cls}</span>
                         </td>
@@ -1192,8 +1192,8 @@ export default function AnalyticsPage() {
             ].map(item => (
               <div key={item.cls} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                  item.cls === "A" ? "bg-success/15 text-success" :
-                  item.cls === "B" ? "bg-warning/15 text-warning" :
+                  item.cls === "A" ? "bg-emerald-500/15 text-emerald-400" :
+                  item.cls === "B" ? "bg-yellow-500/15 text-yellow-400" :
                   "bg-muted text-muted-foreground"
                 }`}>{item.cls}</span>
                 <span>{item.tip}</span>
@@ -1305,7 +1305,7 @@ export default function AnalyticsPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right font-bold text-sm">{formatARS(item.revenue)}</td>
-                          <td className="px-4 py-3 text-right text-success hidden sm:table-cell">{formatARS(item.profit)}</td>
+                          <td className="px-4 py-3 text-right text-emerald-400 hidden sm:table-cell">{formatARS(item.profit)}</td>
                           <td className="px-4 py-3 text-right">
                             <span className={`font-semibold text-sm ${item.margin >= 30 ? 'text-green-400' : item.margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>
                               {item.margin.toFixed(1)}%
@@ -1337,7 +1337,7 @@ export default function AnalyticsPage() {
               {
                 label: "Diferencia",
                 value: derived.weekTotalPrev > 0 ? `${derived.weekTotalThis > derived.weekTotalPrev ? '+' : ''}${(((derived.weekTotalThis - derived.weekTotalPrev) / derived.weekTotalPrev) * 100).toFixed(1)}%` : '—',
-                color: derived.weekTotalThis >= derived.weekTotalPrev ? 'text-success' : 'text-destructive',
+                color: derived.weekTotalThis >= derived.weekTotalPrev ? 'text-emerald-400' : 'text-destructive',
               },
             ].map(k => (
               <div key={k.label} className="bg-card border border-border rounded-xl p-3">
@@ -1391,7 +1391,7 @@ export default function AnalyticsPage() {
                       <td className="px-4 py-2.5 font-medium">{d.day}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-xs font-bold text-primary">{d.actual > 0 ? formatARS(d.actual) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">{d.prevWeek > 0 ? formatARS(d.prevWeek) : '—'}</td>
-                      <td className={`px-4 py-2.5 text-right text-xs font-bold ${diff > 0 ? 'text-success' : diff < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      <td className={`px-4 py-2.5 text-right text-xs font-bold ${diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                         {diffPct !== null ? `${diff > 0 ? '+' : ''}${diffPct.toFixed(0)}%` : '—'}
                       </td>
                       <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{d.count}</td>
@@ -1428,9 +1428,9 @@ export default function AnalyticsPage() {
                   <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                     <span className="text-green-400">▲</span> Top 5 — Mayor margen bruto
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-3 pb-12">
                     {derived.rentabilidad.top5.map((p, i) => (
-                      <div key={p.name} className="space-y-1">
+                      <div key={p.name} className="space-y-1 pb-12">
                         <div className="flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
@@ -1454,9 +1454,9 @@ export default function AnalyticsPage() {
                   <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                     <span className="text-red-400">▼</span> Bottom 5 — Menor margen bruto
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-3 pb-12">
                     {derived.rentabilidad.bottom5.map((p, i) => (
-                      <div key={p.name} className="space-y-1">
+                      <div key={p.name} className="space-y-1 pb-12">
                         <div className="flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
@@ -1479,7 +1479,7 @@ export default function AnalyticsPage() {
               {/* Category margin breakdown */}
               <div className="bg-card border border-border rounded-2xl p-5">
                 <h3 className="text-sm font-semibold mb-4">Margen por categoría</h3>
-                <div className="space-y-3">
+                <div className="space-y-3 pb-12">
                   {derived.rentabilidad.byCategory.map((c, i) => (
                     <div key={c.cat} className="grid grid-cols-[1fr_80px_80px_72px] items-center gap-3 text-xs">
                       <div className="flex items-center gap-2 min-w-0">
@@ -1487,7 +1487,7 @@ export default function AnalyticsPage() {
                         <span className="capitalize truncate font-medium">{c.cat}</span>
                       </div>
                       <span className="text-right text-muted-foreground">{formatARS(c.revenue)}</span>
-                      <span className="text-right text-success">{formatARS(c.profit)}</span>
+                      <span className="text-right text-emerald-400">{formatARS(c.profit)}</span>
                       <div className="flex items-center gap-1.5">
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${Math.min(100, c.margin)}%`, background: PALETTE[i % PALETTE.length] }} />
@@ -1499,7 +1499,7 @@ export default function AnalyticsPage() {
                   <div className="pt-2 border-t border-border grid grid-cols-[1fr_80px_80px_72px] gap-3 text-xs font-semibold">
                     <span>Total</span>
                     <span className="text-right">{formatARS(derived.rentabilidad.byCategory.reduce((s, c) => s + c.revenue, 0))}</span>
-                    <span className="text-right text-success">{formatARS(derived.rentabilidad.byCategory.reduce((s, c) => s + c.profit, 0))}</span>
+                    <span className="text-right text-emerald-400">{formatARS(derived.rentabilidad.byCategory.reduce((s, c) => s + c.profit, 0))}</span>
                     <span className="text-right text-primary">
                       {(() => {
                         const rev = derived.rentabilidad.byCategory.reduce((s, c) => s + c.revenue, 0);
@@ -1648,7 +1648,7 @@ export default function AnalyticsPage() {
                         <td className="px-4 py-2.5 text-right text-sm">{ch.count}</td>
                         <td className="px-4 py-2.5 text-right font-semibold text-sm">{formatARS(ch.total)}</td>
                         <td className="px-4 py-2.5 text-right text-sm text-muted-foreground hidden sm:table-cell">{formatARS(ch.avgTicket)}</td>
-                        <td className="px-4 py-2.5 text-right text-sm text-success hidden md:table-cell">{formatARS(ch.profit)}</td>
+                        <td className="px-4 py-2.5 text-right text-sm text-emerald-400 hidden md:table-cell">{formatARS(ch.profit)}</td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-16 bg-muted rounded-full h-1.5 hidden sm:block">
@@ -1666,7 +1666,7 @@ export default function AnalyticsPage() {
                       <td className="px-4 py-2.5 text-right text-sm">{derived.paymentChannels.reduce((s: number, c: any) => s + c.count, 0)}</td>
                       <td className="px-4 py-2.5 text-right text-sm text-primary">{formatARS(derived.paymentChannels.reduce((s: number, c: any) => s + c.total, 0))}</td>
                       <td className="px-4 py-2.5 hidden sm:table-cell" />
-                      <td className="px-4 py-2.5 text-right text-sm text-success hidden md:table-cell">{formatARS(derived.paymentChannels.reduce((s: number, c: any) => s + c.profit, 0))}</td>
+                      <td className="px-4 py-2.5 text-right text-sm text-emerald-400 hidden md:table-cell">{formatARS(derived.paymentChannels.reduce((s: number, c: any) => s + c.profit, 0))}</td>
                       <td className="px-4 py-2.5 text-right text-xs font-bold">100%</td>
                     </tr>
                   </tfoot>
@@ -1819,7 +1819,7 @@ export default function AnalyticsPage() {
                               </td>
                               <td className="px-4 py-3 text-right text-muted-foreground">{seller.count}</td>
                               <td className="px-4 py-3 text-right font-bold">{formatARS(seller.revenue)}</td>
-                              <td className="px-4 py-3 text-right text-success font-medium">{formatARS(seller.profit)}</td>
+                              <td className="px-4 py-3 text-right text-emerald-400 font-medium">{formatARS(seller.profit)}</td>
                               <td className="px-4 py-3 text-right">{formatARS(seller.avgTicket)}</td>
                               <td className="px-4 py-3 text-right">
                                 <span className={`font-semibold ${seller.margin >= 30 ? "text-green-400" : seller.margin >= 15 ? "text-yellow-400" : "text-red-400"}`}>
@@ -2120,7 +2120,7 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
   const trendLabel = trend === "up" ? "text-green-400" : trend === "down" ? "text-red-400" : "text-muted-foreground";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       {/* Info banner */}
       <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
         <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -2148,11 +2148,11 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Próximos 30 días (OLS)</p>
-          <p className="text-lg font-bold text-success">{formatARS(projectedNext30)}</p>
+          <p className="text-lg font-bold text-emerald-400">{formatARS(projectedNext30)}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">vs promedio mensual</p>
-          <p className={`text-lg font-bold flex items-center justify-center gap-1 ${trendPct >= 0 ? "text-success" : "text-destructive"}`}>
+          <p className={`text-lg font-bold flex items-center justify-center gap-1 ${trendPct >= 0 ? "text-emerald-400" : "text-destructive"}`}>
             {trendPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
             {trendPct >= 0 ? "+" : ""}{trendPct.toFixed(1)}%
           </p>
@@ -2262,7 +2262,7 @@ function ProductDemandTab({ products, sales }: { products: any[]; sales: any[] }
   const warning = demandData.filter(p => p.urgency === "warning");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
         <Package className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="text-sm">
@@ -2404,7 +2404,7 @@ function CohortTab({ sales }: { sales: any[] }) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <div className="bg-card border border-border rounded-xl p-4">
         <h3 className="text-sm font-semibold mb-1">Retención por cohorte mensual</h3>
         <p className="text-xs text-muted-foreground mb-4">% de clientes de cada cohorte que volvieron a comprar en los meses siguientes. Mes 0 = mes de primera compra.</p>
@@ -2484,7 +2484,7 @@ function DormantProductsTab({ products, sales }: { products: any[]; sales: any[]
   const totalInmovilizado = dormantData.reduce((s, p) => s + (Number(p.cost_usd) * p.stock || 0), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h3 className="font-semibold">Productos sin movimiento</h3>

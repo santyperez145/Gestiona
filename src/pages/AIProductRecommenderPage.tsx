@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -325,7 +325,7 @@ export default function AIProductRecommenderPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
         title="AI Recomendador de Productos"
@@ -375,7 +375,7 @@ export default function AIProductRecommenderPage() {
       {activeTab === "ai" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Product selector */}
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <h3 className="font-semibold text-sm">Seleccioná un producto para ver recomendaciones</h3>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -409,7 +409,7 @@ export default function AIProductRecommenderPage() {
           </div>
 
           {/* Recommendations panel */}
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
               {selectedProductId
@@ -428,7 +428,7 @@ export default function AIProductRecommenderPage() {
                 <p className="text-xs mt-1">Hacé clic en "Recalcular IA" para procesar el historial de ventas</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {aiRecs.map((rec, i) => {
                   const maxScore = aiRecs[0]?.score ?? 1;
                   const pct = Math.round((rec.score / maxScore) * 100);
@@ -464,7 +464,7 @@ export default function AIProductRecommenderPage() {
 
       {/* ── Manual Rules Tab ── */}
       {activeTab === "manual" && (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {loading ? (
             <div className="flex justify-center py-12"><RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           ) : enrichedRules.length === 0 ? (
@@ -513,7 +513,7 @@ export default function AIProductRecommenderPage() {
 
       {/* ── Analytics Tab ── */}
       {activeTab === "analytics" && (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-xl border border-border bg-card p-5 text-center">
               <p className="text-4xl font-bold text-blue-400">{analytics.impressions.toLocaleString("es-AR")}</p>

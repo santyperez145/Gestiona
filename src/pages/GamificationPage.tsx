@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -256,7 +256,7 @@ function AwardForm({ open, onClose, badges, staffList, orgId, awardedBy, onSaved
                 </SelectContent>
               </Select>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 <Input placeholder="User ID..." value={f.user_id} onChange={e => setF(p => ({ ...p, user_id: e.target.value }))} />
                 <Input placeholder="Nombre del staff..." value={f.staff_name} onChange={e => setF(p => ({ ...p, staff_name: e.target.value }))} />
               </div>
@@ -342,7 +342,7 @@ export default function GamificationPage() {
     : "—";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Trophy}
         title="Gamificación"
@@ -406,7 +406,7 @@ export default function GamificationPage() {
               El ranking se construye al otorgar badges al equipo.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {leaderboard.map((sp, i) => {
                 const levelName = getLevelName(sp.level);
                 const levelClass = getLevelColor(sp.level);

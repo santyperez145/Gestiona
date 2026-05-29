@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -215,7 +215,7 @@ export default function ProductLifecyclePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Layers}
         title="Ciclo de Vida de Producto (PLM)"
@@ -547,7 +547,7 @@ export default function ProductLifecyclePage() {
                       </div>
 
                       {/* Cards */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 pb-12">
                         {colProducts.length === 0 ? (
                           <div className="border border-dashed border-border/30 rounded-xl p-4 text-center">
                             <p className="text-xs text-muted-foreground/50">Sin items</p>
@@ -731,7 +731,7 @@ export default function ProductLifecyclePage() {
               </div>
               <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setSelected(null)}>✕</Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-muted/20 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground mb-1">BCG</p>

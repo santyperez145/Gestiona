@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/shared/PageHeader";
+import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -204,7 +204,7 @@ export default function CurrencyTrackerPage() {
   const sparkData = rates.slice(0, 14).reverse();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={DollarSign}
         title="Tipo de Cambio & Precios"
@@ -336,7 +336,7 @@ export default function CurrencyTrackerPage() {
         </TabsContent>
 
         <TabsContent value="updates" className="pt-2">
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {updates.map(u => (
               <div key={u.id} className="rounded-xl border border-border/50 bg-card p-4 flex items-center gap-4">
                 <div className="flex-1">

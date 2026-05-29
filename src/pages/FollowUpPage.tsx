@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FollowUpPage — /seguimiento
  *
  * The seller's "morning view": all the items that need attention today.
@@ -225,7 +225,7 @@ export default function FollowUpPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Bell}
         title="Centro de Seguimiento"
@@ -254,34 +254,34 @@ export default function FollowUpPage() {
       />
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
-          title="Total atención requerida"
-          value={String(totalAttention)}
+          label="Requieren atención"
+          value={totalAttention}
           icon={Bell}
-          trend={urgentCount > 0 ? `${urgentCount} urgentes` : "Sin urgentes"}
-          trendUp={urgentCount === 0}
+          color={urgentCount > 0 ? "destructive" : "success"}
+          sub={urgentCount > 0 ? `${urgentCount} urgentes` : "Sin urgentes"}
         />
         <KPICard
-          title="Deals estancados"
-          value={String(staleDeals.length)}
+          label="Deals estancados"
+          value={staleDeals.length}
           icon={TrendingUp}
-          trend={`Sin actividad +${staleThreshold}d`}
-          trendUp={staleDeals.length === 0}
+          color={staleDeals.length > 0 ? "warning" : "success"}
+          sub={`Sin actividad +${staleThreshold}d`}
         />
         <KPICard
-          title="Tareas vencidas"
-          value={String(overdueTasks.length)}
+          label="Tareas vencidas"
+          value={overdueTasks.length}
           icon={CheckSquare}
-          trend="Con fecha pasada"
-          trendUp={overdueTasks.length === 0}
+          color={overdueTasks.length > 0 ? "destructive" : "success"}
+          sub="con fecha pasada"
         />
         <KPICard
-          title="Seguimientos pendientes"
-          value={String(staleCustomers.length)}
+          label="Seguimientos CRM"
+          value={staleCustomers.length}
           icon={Users}
-          trend="CRM follow-ups"
-          trendUp={staleCustomers.length === 0}
+          color={staleCustomers.length > 0 ? "warning" : "success"}
+          sub="clientes sin contacto"
         />
       </div>
 
@@ -296,7 +296,7 @@ export default function FollowUpPage() {
           <p className="text-sm text-muted-foreground mt-1">No hay items pendientes de seguimiento</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
 
           {/* ── Overdue Tasks ──────────────────────────────────────────── */}
           {overdueTasks.length > 0 && (
@@ -306,7 +306,7 @@ export default function FollowUpPage() {
                 <h2 className="text-sm font-semibold">Tareas vencidas</h2>
                 <Badge variant="outline" className="text-[10px] text-red-400 border-red-400/30">{overdueTasks.length}</Badge>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {overdueTasks.map(task => {
                   const pCfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
                   return (
@@ -353,7 +353,7 @@ export default function FollowUpPage() {
                 <Badge variant="outline" className="text-[10px] text-orange-400 border-orange-400/30">{staleDeals.length}</Badge>
                 <span className="text-xs text-muted-foreground">(+{staleThreshold} días sin actualizar)</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {staleDeals.map(deal => (
                   <div
                     key={deal.id}
@@ -430,7 +430,7 @@ export default function FollowUpPage() {
                 <h2 className="text-sm font-semibold">Follow-ups pendientes</h2>
                 <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-400/30">{staleCustomers.length}</Badge>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {staleCustomers.map(c => (
                   <div key={c.id} className="flex items-start gap-3 p-3.5 bg-card border border-border/60 rounded-xl hover:border-border transition-colors group">
                     {/* Avatar */}
@@ -496,7 +496,7 @@ export default function FollowUpPage() {
             <DialogTitle className="text-sm">Registrar seguimiento</DialogTitle>
           </DialogHeader>
           {noteDialog && (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               <p className="text-xs text-muted-foreground truncate">{noteDialog.dealTitle}</p>
               <Textarea
                 placeholder="Ej: Llamé al cliente, está evaluando la propuesta. Seguimiento en 3 días…"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -435,7 +435,7 @@ export default function AILeadScoringPage() {
               </p>
               <div className="space-y-2.5">
                 {deal.factors.map((f, fi) => (
-                  <div key={fi} className="space-y-1">
+                  <div key={fi} className="space-y-1 pb-12">
                     <div className="flex items-center justify-between text-xs">
                       <span className="flex items-center gap-1.5">
                         {f.positive
@@ -497,7 +497,7 @@ export default function AILeadScoringPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* PageHeader */}
       <PageHeader
         icon={Brain}
@@ -621,7 +621,7 @@ export default function AILeadScoringPage() {
               <p className="text-sm mt-1">Creá deals en la página de Pipeline para ver scores.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {filtered.map((deal, idx) => renderDealCard(deal, idx))}
             </div>
           )}
@@ -642,7 +642,7 @@ export default function AILeadScoringPage() {
               <p className="text-sm mt-1">Los deals con score ≥ 65 aparecen aquí.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {hotDeals.map((deal, idx) => renderDealCard(deal, idx))}
             </div>
           )}
@@ -662,7 +662,7 @@ export default function AILeadScoringPage() {
               <p>No hay deals con vendedor asignado.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {sellerGroups.map(({ seller, count, avgScore: sellerAvg, deals: sellerDeals }) => (
                 <div key={seller} className="bg-card border border-border rounded-xl overflow-hidden">
                   {/* Seller header */}

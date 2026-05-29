@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import {
@@ -203,7 +203,7 @@ export default function SalesForecastPage() {
   const forecastPct = kpis.currentActual > 0 ? ((kpis.nextForecast - kpis.currentActual) / kpis.currentActual) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={TrendingUp}
         title="Forecast de Ventas"

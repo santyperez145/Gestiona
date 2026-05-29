@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { KPICard } from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Truck, Package, MapPin, Plus, CheckCircle, Clock, AlertCircle,
   XCircle, RotateCcw, TrendingUp, Star, Navigation, Zap, Loader2
@@ -182,7 +182,7 @@ export default function LogisticsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Truck}
         title="Logística & Envíos"
@@ -246,7 +246,7 @@ export default function LogisticsPage() {
         </TabsList>
 
         {/* SHIPMENTS */}
-        <TabsContent value="shipments" className="space-y-4">
+        <TabsContent value="shipments" className="space-y-4 pb-12">
           <div className="flex gap-2">
             <Input placeholder="Buscar tracking o N° orden..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -257,7 +257,7 @@ export default function LogisticsPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {filtered.map(s => (
               <Card key={s.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelected(s)}>
                 <CardContent className="p-4 flex items-center gap-4">
@@ -292,7 +292,7 @@ export default function LogisticsPage() {
         </TabsContent>
 
         {/* CARRIERS */}
-        <TabsContent value="carriers" className="space-y-3">
+        <TabsContent value="carriers" className="space-y-3 pb-12">
           {carriers.map(c => (
             <Card key={c.id}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -345,7 +345,7 @@ export default function LogisticsPage() {
         </TabsContent>
 
         {/* PERFORMANCE */}
-        <TabsContent value="performance" className="space-y-4">
+        <TabsContent value="performance" className="space-y-4 pb-12">
           <Card>
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4" />Performance por Transportista — Últimos 30 días</CardTitle></CardHeader>
             <CardContent>
@@ -388,7 +388,7 @@ export default function LogisticsPage() {
               <CardTitle className="text-base">Detalle de Envío</CardTitle>
               <Button size="icon" variant="ghost" onClick={() => setSelected(null)}>✕</Button>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pb-12">
               <div className="flex items-center gap-2">
                 <StatusBadge status={selected.status} />
                 <span className="text-sm font-mono">{selected.tracking_number ?? "Sin tracking"}</span>

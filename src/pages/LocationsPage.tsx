@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Check } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Location = {
@@ -209,6 +210,7 @@ export default function LocationsPage() {
   const [transfers, setTransfers] = useState<any[]>([]);
   const [locationStock, setLocationStock] = useState<Record<string, LocationStock[]>>({});
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"locations" | "transfers" | "stock">("locations");
   const [showForm, setShowForm] = useState(false);
   const [editingLoc, setEditingLoc] = useState<Location | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
@@ -264,7 +266,7 @@ export default function LocationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={MapPin}
         title="Sucursales"
@@ -283,93 +285,170 @@ export default function LocationsPage() {
         }
       />
 
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">Cargando sucursales…</div>
-      ) : locations.length === 0 ? (
-        <div className="text-center py-20">
-          <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
-          <p className="text-lg text-muted-foreground font-medium">Sin sucursales configuradas</p>
-          <p className="text-sm text-muted-foreground mt-1">Agregá tu primer local para comenzar a gestionar stock por sucursal</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {locations.map((loc) => {
-            const stock = locationStock[loc.id] || [];
-            const totalUnits = stock.reduce((s, ls) => s + ls.stock, 0);
-            return (
-              <div key={loc.id} className="bg-card border border-border/60 rounded-xl p-5 shadow-card">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    {loc.is_main && <Star className="w-4 h-4 text-primary shrink-0" />}
-                    <div>
-                      <h3 className="font-semibold">{loc.name}</h3>
-                      {loc.address && <p className="text-xs text-muted-foreground mt-0.5">{loc.address}</p>}
-                      {loc.phone && <p className="text-xs text-muted-foreground">{loc.phone}</p>}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Sucursales activas" value={locations.length} icon={MapPin} color="primary" sub={`${locations.filter(l => l.is_main).length} principal`} />
+        <KPICard label="Productos rastreados" value={Object.values(locationStock).flat().length} icon={Package} color="blue" sub="ítems con stock por sucursal" />
+        <KPICard label="Unidades totales" value={Object.values(locationStock).flat().reduce((s, ls) => s + ls.stock, 0)} icon={Star} color="success" sub="en todos los locales" />
+        <KPICard label="Transferencias" value={transfers.length} icon={ArrowLeftRight} color="purple" sub="historial reciente" />
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+        {[{ id: "locations", label: "Sucursales" }, { id: "transfers", label: "Transferencias" }, { id: "stock", label: "Stock comparativo" }].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as any)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Locations tab ─── */}
+      {tab === "locations" && (
+        loading ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">Cargando sucursales…</div>
+        ) : locations.length === 0 ? (
+          <div className="text-center py-20">
+            <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
+            <p className="text-lg text-muted-foreground font-medium">Sin sucursales configuradas</p>
+            <p className="text-sm text-muted-foreground mt-1">Agregá tu primer local para comenzar a gestionar stock por sucursal</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {locations.map((loc) => {
+              const stock = locationStock[loc.id] || [];
+              const totalUnits = stock.reduce((s, ls) => s + ls.stock, 0);
+              return (
+                <div key={loc.id} className="bg-card border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/30 transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {loc.is_main && <Star className="w-4 h-4 text-primary shrink-0" />}
+                      <div>
+                        <h3 className="font-semibold">{loc.name}</h3>
+                        {loc.address && <p className="text-xs text-muted-foreground mt-0.5">{loc.address}</p>}
+                        {loc.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{loc.phone}</p>}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => { setEditingLoc(loc); setShowForm(true); }}>
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      {!loc.is_main && (
+                        <Button variant="ghost" size="sm" onClick={() => deleteLoc(loc)}>
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => { setEditingLoc(loc); setShowForm(true); }}>
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </Button>
-                    {!loc.is_main && (
-                      <Button variant="ghost" size="sm" onClick={() => deleteLoc(loc)}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-3 text-sm border-t border-border/50 pt-3">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Package className="w-3.5 h-3.5" />
-                    <span>{totalUnits} u. en {stock.length} productos</span>
+                  <div className="flex items-center gap-3 text-sm border-t border-border/50 pt-3 mb-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Package className="w-3.5 h-3.5" />
+                      <span className="text-xs">{totalUnits} u. en {stock.length} productos</span>
+                    </div>
                   </div>
-                </div>
 
-                {stock.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {stock.slice(0, 4).map((ls) => (
-                      <div key={ls.product_id} className="flex justify-between text-xs">
-                        <span className="text-muted-foreground truncate max-w-[160px]">{ls.product_name}</span>
-                        <span className="font-mono">{ls.stock} u.</span>
-                      </div>
-                    ))}
-                    {stock.length > 4 && <p className="text-[10px] text-muted-foreground">+{stock.length - 4} productos más</p>}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {stock.length > 0 && (
+                    <div className="space-y-1">
+                      {stock.slice(0, 4).map((ls) => (
+                        <div key={ls.product_id} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground truncate max-w-[160px]">{ls.product_name}</span>
+                          <span className="font-mono font-semibold">{ls.stock} u.</span>
+                        </div>
+                      ))}
+                      {stock.length > 4 && <p className="text-[10px] text-muted-foreground">+{stock.length - 4} productos más</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
       )}
 
-      {/* Transfer history */}
-      {transfers.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <ArrowLeftRight className="w-4 h-4" />Últimas transferencias
-          </h2>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-xs">
+      {/* ─── Transfers tab ─── */}
+      {tab === "transfers" && (
+        <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
+            <h3 className="font-semibold flex items-center gap-2"><ArrowLeftRight className="w-4 h-4 text-primary" />Historial de Transferencias</h3>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowTransfer(true)} disabled={locations.length < 2}>
+              <Plus className="w-3.5 h-3.5" />Nueva transferencia
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Fecha</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Producto</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Cant.</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground hidden sm:table-cell">Desde → Hacia</th>
+                <tr className="border-b border-border/40 bg-muted/20">
+                  {["Fecha", "Producto", "Cantidad", "Desde", "Hacia"].map(h => (
+                    <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {transfers.map((t) => (
-                  <tr key={t.id} className="border-b border-border/40 hover:bg-muted/20">
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
-                    <td className="px-3 py-2 font-medium">{t.product_name}</td>
-                    <td className="px-3 py-2">{t.quantity} u.</td>
-                    <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
-                      {t.from_location?.name ?? "—"} → {t.to_location?.name ?? "—"}
-                    </td>
+                {transfers.length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Sin transferencias registradas</td></tr>
+                ) : transfers.map((t) => (
+                  <tr key={t.id} className="border-b border-border/20 hover:bg-muted/20">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
+                    <td className="px-4 py-3 font-medium text-sm">{t.product_name}</td>
+                    <td className="px-4 py-3 text-xs font-semibold">{t.quantity} u.</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{t.from_location?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-primary font-medium">{t.to_location?.name ?? "—"}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Stock comparativo tab ─── */}
+      {tab === "stock" && (
+        <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-border/40">
+            <h3 className="font-semibold flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Stock por Sucursal y Producto</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/40 bg-muted/20">
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Producto</th>
+                  {locations.map(l => (
+                    <th key={l.id} className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">{l.name}</th>
+                  ))}
+                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const productMap: Record<string, { name: string; byLoc: Record<string, number> }> = {};
+                  locations.forEach(loc => {
+                    (locationStock[loc.id] ?? []).forEach(ls => {
+                      if (!productMap[ls.product_id]) productMap[ls.product_id] = { name: ls.product_name ?? ls.product_id, byLoc: {} };
+                      productMap[ls.product_id].byLoc[loc.id] = ls.stock;
+                    });
+                  });
+                  const rows = Object.entries(productMap);
+                  if (rows.length === 0) return (
+                    <tr><td colSpan={locations.length + 2} className="px-4 py-10 text-center text-sm text-muted-foreground">Sin datos de stock por sucursal</td></tr>
+                  );
+                  return rows.map(([pid, data]) => {
+                    const total = Object.values(data.byLoc).reduce((s, v) => s + v, 0);
+                    return (
+                      <tr key={pid} className="border-b border-border/20 hover:bg-muted/20">
+                        <td className="px-4 py-3 font-medium text-sm">{data.name}</td>
+                        {locations.map(l => (
+                          <td key={l.id} className="px-4 py-3 text-right text-xs">
+                            <span className={data.byLoc[l.id] > 0 ? "font-semibold" : "text-muted-foreground"}>
+                              {data.byLoc[l.id] ?? 0}
+                            </span>
+                          </td>
+                        ))}
+                        <td className="px-4 py-3 text-right text-sm font-bold">{total}</td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>

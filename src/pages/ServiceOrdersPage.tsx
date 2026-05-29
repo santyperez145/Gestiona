@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
@@ -266,7 +266,7 @@ export default function ServiceOrdersPage() {
   }, [orders]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wrench}
         title="Órdenes de Servicio"
@@ -416,7 +416,7 @@ export default function ServiceOrdersPage() {
           <p>No hay órdenes de servicio.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(order => {
             const sc = STATUS_CFG[order.status];
             const pc = PRIORITY_CFG[order.priority];

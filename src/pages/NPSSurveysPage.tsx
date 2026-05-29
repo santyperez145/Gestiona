@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NPSSurveysPage — Net Promoter Score & Customer Satisfaction Surveys
  *
  * Salesforce Surveys equivalent for pymes.
@@ -204,7 +204,7 @@ export default function NPSSurveysPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Star}
         title="Encuestas NPS & CSAT"
@@ -292,7 +292,7 @@ export default function NPSSurveysPage() {
           <p className="text-sm">Sin encuestas. Creá tu primera encuesta NPS o CSAT.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {surveys.map(survey => {
             const isOpen = expanded === survey.id;
             const surveyResponses = responses[survey.id] || [];
@@ -379,7 +379,7 @@ export default function NPSSurveysPage() {
                     ) : surveyResponses.length === 0 ? (
                       <p className="text-xs text-muted-foreground/60 italic">Sin respuestas aún. Compartí el link para empezar a recibir feedback.</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-3 pb-12">
                         {survey.type === "nps" && nps !== null && (
                           <div className="grid grid-cols-4 gap-2">
                             <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-center">

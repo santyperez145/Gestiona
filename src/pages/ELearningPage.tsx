@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -189,7 +189,7 @@ export default function ELearningPage() {
   ], [courses, myCourses.length, totalXPEarned]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={BookOpen}
         title="Centro de Capacitación"
@@ -254,7 +254,7 @@ export default function ELearningPage() {
         </TabsList>
 
         {/* CATALOG */}
-        <TabsContent value="catalog" className="space-y-4">
+        <TabsContent value="catalog" className="space-y-4 pb-12">
           <div className="flex gap-2 flex-wrap">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Categoría" /></SelectTrigger>
@@ -315,7 +315,7 @@ export default function ELearningPage() {
         </TabsContent>
 
         {/* MY LEARNING */}
-        <TabsContent value="mylearning" className="space-y-4">
+        <TabsContent value="mylearning" className="space-y-4 pb-12">
           {myCourses.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -352,7 +352,7 @@ export default function ELearningPage() {
         </TabsContent>
 
         {/* MANAGE */}
-        <TabsContent value="manage" className="space-y-3">
+        <TabsContent value="manage" className="space-y-3 pb-12">
           {courses.map(course => (
             <Card key={course.id}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -417,7 +417,7 @@ export default function ELearningPage() {
               </div>
               <Button size="icon" variant="ghost" onClick={() => setSelectedCourse(null)}>✕</Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               <div className="flex gap-3 text-sm">
                 <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{selectedCourse.duration_min}min</span>
                 <span className="flex items-center gap-1"><Zap className="w-4 h-4 text-yellow-500" />+{selectedCourse.xp_reward} XP</span>
@@ -425,7 +425,7 @@ export default function ELearningPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold mb-2">Módulos del curso</p>
-                <div className="space-y-2">
+                <div className="space-y-2 pb-12">
                   {modules.map((mod, i) => {
                     const Icon = MODULE_ICONS[mod.module_type] ?? FileText;
                     return (

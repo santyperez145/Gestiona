@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -261,7 +261,7 @@ function CustomerCard({
             </p>
             <div className="space-y-2.5">
               {c.factors.map((f, fi) => (
-                <div key={fi} className="space-y-1">
+                <div key={fi} className="space-y-1 pb-12">
                   <div className="flex justify-between text-xs">
                     <span className="font-medium flex items-center gap-1.5">
                       {f.bad
@@ -344,7 +344,7 @@ function CustomerList({
     );
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 pb-12">
       {list.map((c, idx) => (
         <CustomerCard
           key={c.id}
@@ -496,7 +496,7 @@ export default function ChurnPredictionPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* PageHeader */}
       <PageHeader
         icon={TrendingDown}
@@ -692,7 +692,7 @@ export default function ChurnPredictionPage() {
               <p>¡Excelente! No se detectan clientes en riesgo en este momento.</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 pb-12">
               {groupedByAction.map(([actionLabel, customers]) => (
                 <div key={actionLabel} className="bg-card border border-border rounded-xl overflow-hidden">
                   {/* Action group header */}

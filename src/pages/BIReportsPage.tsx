@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -512,7 +512,7 @@ export default function BIReportsPage() {
         <div className="space-y-4">
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4"><Zap className="w-4 h-4 text-primary" />Drill-down por Dimensión</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { icon: Package, label: "Por Producto", desc: "Revenue, margen y velocidad por SKU" },
                 { icon: Users, label: "Por Cliente", desc: "LTV, frecuencia, AOV por segmento" },

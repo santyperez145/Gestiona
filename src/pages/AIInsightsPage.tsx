@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+﻿import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import {
@@ -263,7 +263,7 @@ export default function AIInsightsPage() {
   }, [user]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
         title="IA Insights"
@@ -349,7 +349,7 @@ export default function AIInsightsPage() {
 
       {/* History */}
       {history.length > 1 && (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Historial de sesión
           </h2>

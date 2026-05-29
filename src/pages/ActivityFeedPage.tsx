@@ -235,7 +235,7 @@ export default function ActivityFeedPage() {
   }, {});
 
   return (
-    <div>
+    <div className="space-y-4 pb-12">
       <PageHeader
         icon={Activity}
         title="Feed de Actividad"
@@ -255,7 +255,7 @@ export default function ActivityFeedPage() {
       />
 
       {/* Summary strip */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {(Object.entries(EVENT_CONFIG) as [EventType, typeof EVENT_CONFIG[EventType]][]).map(([type, cfg]) => {
           const Icon = cfg.icon;
           const count = totalByType[type] || 0;
@@ -280,7 +280,7 @@ export default function ActivityFeedPage() {
       </div>
 
       {/* Filter chips */}
-      <div className="flex gap-2 flex-wrap mb-4">
+      <div className="flex gap-2 flex-wrap">
         {FILTER_OPTIONS.map(opt => (
           <button
             key={opt.value}

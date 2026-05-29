@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DailyBriefingModal — AI-powered daily business morning briefing.
  *
  * On open, sends today's stats (sales, stock alerts, debts, top product)
@@ -162,13 +162,13 @@ export default function DailyBriefingModal({ open, onClose, briefingData, userId
           </div>
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Bajo stock</p>
-            <p className={`text-sm font-bold font-mono ${briefingData.lowStockCount > 0 ? "text-yellow-400" : "text-success"}`}>
+            <p className={`text-sm font-bold font-mono ${briefingData.lowStockCount > 0 ? "text-yellow-400" : "text-emerald-400"}`}>
               {briefingData.lowStockCount}
             </p>
           </div>
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Deudas</p>
-            <p className={`text-sm font-bold font-mono ${briefingData.pendingDebtsCount > 0 ? "text-destructive" : "text-success"}`}>
+            <p className={`text-sm font-bold font-mono ${briefingData.pendingDebtsCount > 0 ? "text-destructive" : "text-emerald-400"}`}>
               {briefingData.pendingDebtsCount}
             </p>
           </div>

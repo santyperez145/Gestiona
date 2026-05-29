@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+﻿import { useState, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { updateProductDB, formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -165,8 +165,8 @@ export default function ProductsPriceImport({ products, onDone }: Props) {
   if (step === 'preview') return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 text-sm">
-        <span className="text-success font-medium">✓ {matchedRows.length} encontrados</span>
-        {unmatchedRows.length > 0 && <span className="text-warning">{unmatchedRows.length} no coinciden</span>}
+        <span className="text-emerald-400 font-medium">✓ {matchedRows.length} encontrados</span>
+        {unmatchedRows.length > 0 && <span className="text-yellow-400">{unmatchedRows.length} no coinciden</span>}
       </div>
 
       <div className="max-h-64 overflow-y-auto border border-border rounded-lg">
@@ -191,7 +191,7 @@ export default function ProductsPriceImport({ products, onDone }: Props) {
                   <td className="px-3 py-2 text-right text-muted-foreground">{formatARS(r.currentPrice)}</td>
                   <td className="px-3 py-2 text-right font-semibold">{formatARS(r.newPrice)}</td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
-                    <span className={`font-semibold ${diff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    <span className={`font-semibold ${diff >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                       {diff >= 0 ? '+' : ''}{diff.toFixed(1)}%
                     </span>
                   </td>
@@ -220,7 +220,7 @@ export default function ProductsPriceImport({ products, onDone }: Props) {
 
   return (
     <div className="text-center py-6">
-      <Check className="w-10 h-10 text-success mx-auto mb-2" />
+      <Check className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
       <p className="font-semibold">Precios actualizados</p>
       <Button variant="outline" size="sm" className="mt-3" onClick={() => { setStep('idle'); setRows([]); }}>Importar otro archivo</Button>
     </div>

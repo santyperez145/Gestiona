@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag } from "lucide-react";
+import { Store, Download, Upload, RefreshCw, CheckCircle2, AlertCircle, Link2, ShoppingBag, Package, Image as ImageIcon, MousePointerClick } from "lucide-react";
+import KPICard from "@/components/shared/KPICard";
 import PageHeader from "@/components/shared/PageHeader";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -306,13 +307,21 @@ export default function TiendanubeExportPage() {
   if (loading) return <TableSkeleton rows={6} cols={3} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ShoppingBag}
         title="Exportar a Tiendanube"
         description="Sincronizá tus productos con tu ecommerce automáticamente."
         badge={integration ? { label: "Conectado", variant: "success" } : undefined}
       />
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Productos" value={products.length} icon={Package} color="primary" sub="en tu catálogo" />
+        <KPICard label="Con imágenes" value={products.filter(p => p.image_url || (p.image_urls && p.image_urls.length > 0)).length} icon={ImageIcon} color="blue" sub="listos para publicar" />
+        <KPICard label="Ya sincronizados" value={products.filter(p => p.tiendanube_product_id).length} icon={CheckCircle2} color="success" sub="en Tiendanube" />
+        <KPICard label="Seleccionados" value={selected.size} icon={MousePointerClick} color={selected.size > 0 ? "warning" : "primary"} sub={selected.size > 0 ? "para exportar" : "ninguno seleccionado"} />
+      </div>
 
       <Tabs defaultValue={integration ? "sync" : "config"} className="w-full">
         <TabsList>
@@ -322,7 +331,7 @@ export default function TiendanubeExportPage() {
           <TabsTrigger value="logs"><RefreshCw className="w-4 h-4 mr-1" /> Historial</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="config" className="space-y-4">
+        <TabsContent value="config" className="space-y-4 pb-12">
           <Card>
             <CardHeader>
               <CardTitle>Credenciales de Tiendanube</CardTitle>
@@ -331,7 +340,7 @@ export default function TiendanubeExportPage() {
                 Si todavía no tenés app, podés crear una en <a className="underline text-primary" href="https://partners.tiendanube.com" target="_blank" rel="noreferrer">partners.tiendanube.com</a>.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Store ID *</Label>
@@ -420,7 +429,7 @@ export default function TiendanubeExportPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sync" className="space-y-4">
+        <TabsContent value="sync" className="space-y-4 pb-12">
           <Card>
             <CardHeader>
               <CardTitle>Sincronizar productos vía API</CardTitle>
@@ -428,7 +437,7 @@ export default function TiendanubeExportPage() {
                 Crea o actualiza los productos seleccionados en tu tienda. Los productos ya sincronizados se actualizan; los nuevos se crean.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pb-12">
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => handleSync(true)} disabled={syncing}>
                   <Upload className="w-4 h-4 mr-1" />
@@ -485,7 +494,7 @@ export default function TiendanubeExportPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="csv" className="space-y-4">
+        <TabsContent value="csv" className="space-y-4 pb-12">
           <Card>
             <CardHeader>
               <CardTitle>Exportar CSV para Tiendanube</CardTitle>
@@ -506,7 +515,7 @@ export default function TiendanubeExportPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="logs" className="space-y-4">
+        <TabsContent value="logs" className="space-y-4 pb-12">
           <Card>
             <CardHeader>
               <CardTitle>Historial de sincronización</CardTitle>

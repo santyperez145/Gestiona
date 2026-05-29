@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Mail, Trash2, Users, Copy, Crown } from 'lucide-react';
+import { Mail, Trash2, Users, Copy, Crown, UserCheck, ShieldCheck, Clock } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
+import KPICard from '@/components/shared/KPICard';
 import type { OrgRole } from '@/lib/orgContext';
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -151,18 +152,29 @@ export default function TeamPage() {
     toast.success('Enlace copiado');
   };
 
+  const adminCount = members.filter(m => m.role === 'admin' || m.role === 'owner').length;
+  const vendedorCount = members.filter(m => m.role === 'vendedor').length;
+  const pendingCount = invites.length;
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
         title="Equipo"
         description="Invitá colaboradores y gestioná roles."
-        badge={
-          userLimit !== null
-            ? { label: `${members.length}/${userLimit} usuarios`, variant: members.length >= userLimit ? "destructive" : "default" }
-            : { label: `${members.length} miembros`, variant: "default" }
-        }
       />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Total miembros" value={members.length} icon={Users} color="primary"
+          sub={userLimit !== null ? `límite: ${userLimit}` : "sin límite"} />
+        <KPICard label="Admins / Owners" value={adminCount} icon={Crown} color="blue"
+          sub={`${vendedorCount} vendedores`} />
+        <KPICard label="Vendedores" value={vendedorCount} icon={UserCheck} color="success"
+          sub={`${members.filter(m => m.role === 'viewer').length} solo lectura`} />
+        <KPICard label="Invitaciones pendientes" value={pendingCount} icon={Clock}
+          color={pendingCount > 0 ? "warning" : "primary"} sub="esperando aceptación" />
+      </div>
 
       {canManage && (
         <div className="bg-card border border-border/60 rounded-[10px] p-5">

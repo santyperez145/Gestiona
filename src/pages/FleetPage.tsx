@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -12,8 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { KPICard } from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Car, Plus, Wrench, Fuel, MapPin, AlertTriangle,
   CheckCircle, Clock, ChevronDown, ChevronRight, DollarSign, Loader2
@@ -298,7 +298,7 @@ export default function FleetPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Car}
         title="Flota Vehicular"
@@ -314,29 +314,29 @@ export default function FleetPage() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Nuevo vehículo</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Nombre *</Label>
                     <Input value={vehicleForm.name} onChange={e => setVehicleForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Camioneta Ranger - Reparto Norte" />
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Patente</Label>
                       <Input value={vehicleForm.plate} onChange={e => setVehicleForm(f => ({ ...f, plate: e.target.value.toUpperCase() }))} placeholder="AA123BB" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Marca</Label>
                       <Input value={vehicleForm.brand} onChange={e => setVehicleForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ford" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Modelo</Label>
                       <Input value={vehicleForm.model} onChange={e => setVehicleForm(f => ({ ...f, model: e.target.value }))} placeholder="Ranger" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Año</Label>
                       <Input type="number" value={vehicleForm.year} onChange={e => setVehicleForm(f => ({ ...f, year: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Combustible</Label>
                       <Select value={vehicleForm.fuel_type} onValueChange={v => setVehicleForm(f => ({ ...f, fuel_type: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -345,26 +345,26 @@ export default function FleetPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Odómetro (km)</Label>
                       <Input type="number" value={vehicleForm.odometer_km} onChange={e => setVehicleForm(f => ({ ...f, odometer_km: Number(e.target.value) }))} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Venc. seguro</Label>
                       <Input type="date" value={vehicleForm.insurance_expiry} onChange={e => setVehicleForm(f => ({ ...f, insurance_expiry: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Venc. VTV</Label>
                       <Input type="date" value={vehicleForm.vtv_expiry} onChange={e => setVehicleForm(f => ({ ...f, vtv_expiry: e.target.value }))} />
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Responsable asignado</Label>
                     <Input value={vehicleForm.assigned_to_name} onChange={e => setVehicleForm(f => ({ ...f, assigned_to_name: e.target.value }))} placeholder="Nombre del conductor/encargado" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Notas</Label>
                     <Textarea value={vehicleForm.notes} onChange={e => setVehicleForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                   </div>
@@ -384,8 +384,8 @@ export default function FleetPage() {
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Registrar mantenimiento</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Vehículo *</Label>
                     <Select value={maintForm.vehicle_id} onValueChange={v => setMaintForm(f => ({ ...f, vehicle_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar vehículo" /></SelectTrigger>
@@ -395,7 +395,7 @@ export default function FleetPage() {
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Tipo</Label>
                       <Select value={maintForm.maintenance_type} onValueChange={v => setMaintForm(f => ({ ...f, maintenance_type: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -412,7 +412,7 @@ export default function FleetPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Estado</Label>
                       <Select value={maintForm.status} onValueChange={v => setMaintForm(f => ({ ...f, status: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -424,25 +424,25 @@ export default function FleetPage() {
                       </Select>
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Título *</Label>
                     <Input value={maintForm.title} onChange={e => setMaintForm(f => ({ ...f, title: e.target.value }))} placeholder="Service 10.000 km" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Fecha programada</Label>
                       <Input type="date" value={maintForm.scheduled_date} onChange={e => setMaintForm(f => ({ ...f, scheduled_date: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Costo</Label>
                       <Input type="number" min={0} value={maintForm.cost} onChange={e => setMaintForm(f => ({ ...f, cost: Number(e.target.value) }))} />
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Proveedor / Taller</Label>
                     <Input value={maintForm.provider_name} onChange={e => setMaintForm(f => ({ ...f, provider_name: e.target.value }))} placeholder="Taller Central..." />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Descripción</Label>
                     <Textarea value={maintForm.description} onChange={e => setMaintForm(f => ({ ...f, description: e.target.value }))} rows={2} />
                   </div>
@@ -462,8 +462,8 @@ export default function FleetPage() {
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Registrar carga de combustible</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Vehículo *</Label>
                     <Select value={fuelForm.vehicle_id} onValueChange={v => setFuelForm(f => ({ ...f, vehicle_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar vehículo" /></SelectTrigger>
@@ -473,19 +473,19 @@ export default function FleetPage() {
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Fecha</Label>
                       <Input type="date" value={fuelForm.date} onChange={e => setFuelForm(f => ({ ...f, date: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Litros *</Label>
                       <Input type="number" min={0} step={0.01} value={fuelForm.liters} onChange={e => setFuelForm(f => ({ ...f, liters: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Precio x litro</Label>
                       <Input type="number" min={0} step={0.01} value={fuelForm.price_per_liter} onChange={e => setFuelForm(f => ({ ...f, price_per_liter: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Odómetro (km)</Label>
                       <Input type="number" min={0} value={fuelForm.odometer_km} onChange={e => setFuelForm(f => ({ ...f, odometer_km: Number(e.target.value) }))} />
                     </div>
@@ -495,7 +495,7 @@ export default function FleetPage() {
                       Total: {fmt(Number(fuelForm.liters) * Number(fuelForm.price_per_liter))}
                     </div>
                   )}
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Estación</Label>
                     <Input value={fuelForm.station_name} onChange={e => setFuelForm(f => ({ ...f, station_name: e.target.value }))} placeholder="YPF, Shell, Axion..." />
                   </div>
@@ -515,8 +515,8 @@ export default function FleetPage() {
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Registrar viaje</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Vehículo *</Label>
                     <Select value={tripForm.vehicle_id} onValueChange={v => setTripForm(f => ({ ...f, vehicle_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar vehículo" /></SelectTrigger>
@@ -525,28 +525,28 @@ export default function FleetPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Conductor *</Label>
                     <Input value={tripForm.driver_name} onChange={e => setTripForm(f => ({ ...f, driver_name: e.target.value }))} placeholder="Nombre del conductor" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Propósito</Label>
                     <Input value={tripForm.purpose} onChange={e => setTripForm(f => ({ ...f, purpose: e.target.value }))} placeholder="Entrega, visita cliente..." />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Origen</Label>
                       <Input value={tripForm.origin} onChange={e => setTripForm(f => ({ ...f, origin: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Destino</Label>
                       <Input value={tripForm.destination} onChange={e => setTripForm(f => ({ ...f, destination: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Km inicio</Label>
                       <Input type="number" value={tripForm.start_odometer} onChange={e => setTripForm(f => ({ ...f, start_odometer: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Km fin</Label>
                       <Input type="number" value={tripForm.end_odometer} onChange={e => setTripForm(f => ({ ...f, end_odometer: Number(e.target.value) }))} />
                     </div>
@@ -623,14 +623,14 @@ export default function FleetPage() {
                         <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-2">
+                    <CardContent className="space-y-2 pb-12">
                       <div className="flex flex-wrap gap-2">
                         {v.brand && <Badge variant="outline" className="text-xs">{v.brand} {v.model} {v.year}</Badge>}
                         <Badge variant="outline" className="text-xs">{FUEL_LABELS[v.fuel_type]}</Badge>
                         <Badge variant="outline" className="text-xs">{Number(v.odometer_km).toLocaleString("es-AR")} km</Badge>
                       </div>
                       {v.assigned_to_name && <p className="text-sm text-muted-foreground">👤 {v.assigned_to_name}</p>}
-                      <div className="space-y-1">
+                      <div className="space-y-1 pb-12">
                         {v.insurance_expiry && (
                           <p className={`text-xs flex items-center gap-1 ${insExpired ? "text-red-600 font-semibold" : insSoon ? "text-orange-600" : "text-muted-foreground"}`}>
                             {(insExpired || insSoon) && <AlertTriangle className="w-3 h-3" />}

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -304,10 +304,10 @@ export default function TiendanubeExcelImport() {
 
           {done ? (
             <div className="flex flex-col items-center gap-3 py-4">
-              <CheckCircle2 className="w-10 h-10 text-success" />
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
               <p className="font-semibold">Importación completada</p>
               <div className="flex gap-3">
-                <Badge className="bg-success/15 text-success border-success/20">{done.products} productos</Badge>
+                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20">{done.products} productos</Badge>
                 <Badge className="bg-primary/15 text-primary border-primary/20">{done.variants} variantes</Badge>
               </div>
               <Button variant="outline" size="sm" onClick={reset} className="mt-2 h-7 text-xs">

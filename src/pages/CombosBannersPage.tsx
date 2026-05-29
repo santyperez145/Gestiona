@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { listCombos, createCombo, updateCombo, deleteCombo, listBanners, createBanner, updateBanner, deleteBanner } from "@/lib/marketingExtraDB";
@@ -20,7 +20,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 export default function CombosBannersPage() {
   usePageTitle("Combos & Banners");
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Sparkles}
         title="Combos & Banners"
@@ -104,7 +104,7 @@ function BundlesTab() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           {bundles.length} kit{bundles.length !== 1 ? "s" : ""} · Los kits agrupan productos para venderlos como una sola SKU
@@ -287,7 +287,7 @@ function BundleForm({ orgId, products, editItem, onSave }: {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4 pb-12">
       <div className="grid grid-cols-1 gap-3">
         <div>
           <label className="text-xs text-muted-foreground">Nombre del kit *</label>
@@ -433,7 +433,7 @@ function CombosTab() {
                 <div>
                   <span className="text-muted-foreground line-through text-xs">{formatARS(Number(c.original_price_ars))}</span>
                   <span className="ml-2 font-bold text-primary">{formatARS(Number(c.combo_price_ars))}</span>
-                  <span className="ml-2 text-xs text-success">Ahorro {formatARS(Number(c.savings_ars))}</span>
+                  <span className="ml-2 text-xs text-emerald-400">Ahorro {formatARS(Number(c.savings_ars))}</span>
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditItem(c); setOpen(true); }}><Edit className="w-3.5 h-3.5" /></Button>
@@ -485,7 +485,7 @@ function ComboForm({ products, editItem, userId, onSave }: { products: any[]; ed
   };
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className="space-y-3 pb-12">
       <div>
         <label className="text-xs text-muted-foreground">Nombre del combo *</label>
         <Input value={name} onChange={e => setName(e.target.value)} className="bg-muted border-border" placeholder="Combo Verano" />
@@ -516,7 +516,7 @@ function ComboForm({ products, editItem, userId, onSave }: { products: any[]; ed
           <Input type="number" value={comboPrice} onChange={e => setComboPrice(e.target.value)} className="bg-muted border-border" />
         </div>
       </div>
-      {savings > 0 && <p className="text-xs text-success">Ahorro: {formatARS(savings)} ({((savings / original) * 100).toFixed(0)}%)</p>}
+      {savings > 0 && <p className="text-xs text-emerald-400">Ahorro: {formatARS(savings)} ({((savings / original) * 100).toFixed(0)}%)</p>}
       <Button type="submit" disabled={saving} className="w-full gradient-gold text-primary-foreground font-semibold">
         {saving ? 'Guardando...' : 'Guardar combo'}
       </Button>
@@ -610,7 +610,7 @@ function BannerForm({ editItem, userId, onSave }: { editItem?: any; userId: stri
   };
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className="space-y-3 pb-12">
       <div>
         <label className="text-xs text-muted-foreground">Título *</label>
         <Input value={title} onChange={e => setTitle(e.target.value)} className="bg-muted border-border" />

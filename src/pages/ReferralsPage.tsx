@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Users, Plus, Copy, Check, TrendingUp, Gift, Settings2, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Referral = {
@@ -133,14 +134,14 @@ export default function ReferralsPage() {
   }, [referrals]);
 
   const STATUS_STYLES: Record<string, string> = {
-    pending: "bg-warning/15 text-warning",
-    credited: "bg-success/15 text-success",
-    cancelled: "bg-muted text-muted-foreground",
+    pending:   "bg-yellow-500/15 text-yellow-400",
+    credited:  "bg-emerald-500/15 text-emerald-400",
+    cancelled: "bg-muted/40 text-muted-foreground",
   };
   const STATUS_LABELS: Record<string, string> = { pending: "Pendiente", credited: "Acreditado", cancelled: "Cancelado" };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
         title="Programa de Referidos"
@@ -154,7 +155,7 @@ export default function ReferralsPage() {
       />
 
       {/* Settings panel */}
-      <div className="mb-6 bg-card border border-border/60 rounded-xl p-5">
+      <div className="bg-card border border-border/60 rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold flex items-center gap-2"><Settings2 className="w-4 h-4 text-primary" />Configuración del programa</h2>
           <button
@@ -162,7 +163,7 @@ export default function ReferralsPage() {
             className="flex items-center gap-2 text-sm"
           >
             {settings.referral_enabled
-              ? <><ToggleRight className="w-6 h-6 text-success" /><span className="text-success font-medium">Activo</span></>
+              ? <><ToggleRight className="w-6 h-6 text-emerald-400" /><span className="text-emerald-400 font-medium">Activo</span></>
               : <><ToggleLeft className="w-6 h-6 text-muted-foreground" /><span className="text-muted-foreground">Inactivo</span></>}
           </button>
         </div>
@@ -201,21 +202,11 @@ export default function ReferralsPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total referidos", value: stats.total, icon: Users, color: "text-primary" },
-          { label: "Acreditados", value: stats.credited, icon: Check, color: "text-success" },
-          { label: "Pendientes", value: stats.pending, icon: Gift, color: "text-warning" },
-          { label: "Bonos entregados", value: formatARS(stats.totalBonusARS), icon: TrendingUp, color: "text-primary" },
-        ].map((kpi) => (
-          <div key={kpi.label} className="bg-card border border-border/60 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-1.5">
-              <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
-            </div>
-            <p className="text-xl font-bold">{kpi.value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KPICard label="Total referidos" value={stats.total} icon={Users} color="primary" />
+        <KPICard label="Acreditados" value={stats.credited} icon={Check} color="success" sub={`${stats.pending} pendientes`} />
+        <KPICard label="Pendientes" value={stats.pending} icon={Gift} color="warning" sub="esperando acreditar" />
+        <KPICard label="Bonos entregados" value={formatARS(stats.totalBonusARS)} icon={TrendingUp} color="blue" sub="ARS otorgados" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -296,7 +287,7 @@ export default function ReferralsPage() {
                           className="flex items-center gap-1 font-mono bg-muted/50 hover:bg-muted rounded px-1.5 py-0.5 transition-colors"
                         >
                           {ref.referral_code}
-                          {copiedId === ref.id ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                          {copiedId === ref.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
                         </button>
                       </td>
                       <td className="px-3 py-2.5">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
   Layers, Target, Zap
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Scenario {
@@ -122,7 +123,7 @@ function BreakevenCalc() {
   const safetyMargin = ((500000 - breakevenRevenue) / 500000 * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Costos Fijos Mensuales (ARS)</Label>
@@ -161,7 +162,7 @@ function BreakevenCalc() {
       <Card>
         <CardHeader><CardTitle className="text-sm">Margen de Seguridad</CardTitle></CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>$0</span>
               <span className="text-purple-400">Equilibrio: ${(breakevenRevenue / 1000).toFixed(0)}K</span>
@@ -289,7 +290,7 @@ export default function FinancialScenariosPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Layers}
         title="Escenarios Financieros"
@@ -324,6 +325,14 @@ export default function FinancialScenariosPage() {
           </Dialog>
         }
       />
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Escenarios" value={scenarios.length} icon={Layers} color="primary" sub={scenarios.filter(s => s.is_baseline).length > 0 ? "con baseline" : "sin baseline"} />
+        <KPICard label="Tipo activo" value={activeScenario?.scenario_type ?? "—"} icon={Target} color="blue" sub={activeScenario?.name ?? "Ninguno"} />
+        <KPICard label="Inflación asumida" value={activeScenario ? `${activeScenario.assumptions.inflation_rate ?? 0}%` : "—"} icon={TrendingUp} color={(activeScenario?.assumptions.inflation_rate ?? 0) > 50 ? "destructive" : "warning"} sub="parámetro del escenario" />
+        <KPICard label="Crecimiento" value={activeScenario ? `${activeScenario.assumptions.growth_rate ?? 0}%` : "—"} icon={BarChart2} color={(activeScenario?.assumptions.growth_rate ?? 0) >= 0 ? "success" : "destructive"} sub="parámetro del escenario" />
+      </div>
 
       {/* Scenario selector */}
       <div className="flex gap-2 flex-wrap">
@@ -441,7 +450,7 @@ export default function FinancialScenariosPage() {
         </TabsContent>
 
         {/* VARIANCE */}
-        <TabsContent value="variance" className="space-y-4">
+        <TabsContent value="variance" className="space-y-4 pb-12">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Comparar vs:</span>
             <Select value={compareScenarioId} onValueChange={setCompareScenarioId}>

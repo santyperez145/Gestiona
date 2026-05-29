@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
@@ -35,14 +35,14 @@ type Task = {
 const PRIORITY_CONFIG = {
   urgent: { label: "Urgente", color: "text-destructive bg-destructive/10", icon: Flame, order: 0 },
   high:   { label: "Alta",    color: "text-orange-400 bg-orange-500/10",   icon: ChevronUp, order: 1 },
-  medium: { label: "Media",   color: "text-warning bg-warning/10",         icon: Circle, order: 2 },
+  medium: { label: "Media",   color: "text-yellow-400 bg-yellow-500/10",         icon: Circle, order: 2 },
   low:    { label: "Baja",    color: "text-muted-foreground bg-muted/40",  icon: ChevronDown, order: 3 },
 };
 
 const STATUS_CONFIG = {
   pending:     { label: "Pendiente",    color: "text-muted-foreground" },
   in_progress: { label: "En progreso",  color: "text-blue-400" },
-  done:        { label: "Completada",   color: "text-success" },
+  done:        { label: "Completada",   color: "text-emerald-400" },
   cancelled:   { label: "Cancelada",    color: "text-muted-foreground line-through" },
 };
 
@@ -202,7 +202,7 @@ export default function TasksPage() {
   const doneToday = tasks.filter(t => t.completed_at?.slice(0, 10) === today);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={CheckSquare}
@@ -344,7 +344,7 @@ export default function TasksPage() {
             const colColors: Record<string, string> = {
               pending: "border-muted-foreground/20",
               in_progress: "border-blue-500/30",
-              done: "border-success/30",
+              done: "border-emerald-500/30",
             };
             return (
               <div
@@ -412,7 +412,7 @@ export default function TasksPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(task => {
             const isOverdue = task.status !== "done" && task.status !== "cancelled" && task.due_date && task.due_date < today;
             const pc = PRIORITY_CONFIG[task.priority];
@@ -432,7 +432,7 @@ export default function TasksPage() {
                 <button
                   onClick={() => updateStatus(task, task.status === "done" ? "pending" : "done")}
                   className={`mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    task.status === "done" ? "bg-success border-success text-white" : "border-border hover:border-success"
+                    task.status === "done" ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-emerald-500"
                   }`}
                 >
                   {task.status === "done" && <Check className="w-3 h-3" />}
@@ -525,7 +525,7 @@ export default function TasksPage() {
                               <div key={sub.id} className="flex items-center gap-2">
                                 <button
                                   onClick={() => updateStatus(sub, sub.status === "done" ? "pending" : "done")}
-                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${sub.status === "done" ? "bg-success border-success" : "border-border hover:border-success"}`}
+                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${sub.status === "done" ? "bg-emerald-500 border-emerald-500" : "border-border hover:border-emerald-500"}`}
                                 >
                                   {sub.status === "done" && <Check className="w-2 h-2 text-white" />}
                                 </button>
@@ -591,7 +591,7 @@ export default function TasksPage() {
         const monthLabel = calMonth.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
         const PRIORITY_DOT: Record<string, string> = { urgent: "bg-red-500", high: "bg-orange-400", medium: "bg-yellow-400", low: "bg-green-400" };
         return (
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             {/* Month nav */}
             <div className="flex items-center justify-between">
               <button
@@ -660,7 +660,7 @@ export default function TasksPage() {
           <DialogHeader>
             <DialogTitle className="font-display">Nueva tarea</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-4 pb-12">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Título *</label>
               <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder="Ej: Llamar al proveedor, hacer pedido, etc." autoFocus />

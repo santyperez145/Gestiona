@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
@@ -364,13 +364,13 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
 
           <div className="border-t border-dashed border-border pt-3 space-y-1">
             {couponDiscount > 0 && (
-              <div className="flex justify-between text-xs text-success">
+              <div className="flex justify-between text-xs text-emerald-400">
                 <span>Descuento cupón</span>
                 <span className="font-mono">-{formatARS(couponDiscount)}</span>
               </div>
             )}
             {globalDiscountARS > 0 && (
-              <div className="flex justify-between text-xs text-success">
+              <div className="flex justify-between text-xs text-emerald-400">
                 <span>Descuento adicional</span>
                 <span className="font-mono">-{formatARS(globalDiscountARS)}</span>
               </div>
@@ -476,7 +476,7 @@ ${note ? `<div class="divider"></div><div style="font-size:10px;padding:3px 0"><
               </Button>
             </div>
           ) : (
-            <p className="text-xs text-success text-center">✓ Recibo enviado a {emailTo}</p>
+            <p className="text-xs text-emerald-400 text-center">✓ Recibo enviado a {emailTo}</p>
           )}
 
           <Button className="w-full gradient-gold text-primary-foreground gap-1.5" onClick={onNewSale}>
@@ -598,7 +598,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
               ) : filtered.length === 0 ? (
                 <p className="text-center text-sm text-muted-foreground py-6">Sin ventas recientes</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pb-12">
                   {filtered.slice(0, 20).map((s: any) => (
                     <button
                       key={s.id}
@@ -620,7 +620,7 @@ function QuickReturnModal({ userId, orgId, onClose }: { userId: string; orgId: s
               )}
             </>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               <div className="bg-muted rounded-[10px] p-3 flex items-center gap-3">
                 <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground shrink-0">
                   <X className="w-4 h-4" />
@@ -1545,7 +1545,7 @@ export default function POSPage() {
             </button>
           )}
           {cart.length > 0 && (
-            <button onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-warning flex items-center gap-1" title="Guardar carrito para después">
+            <button onClick={saveCurrentOrder} className="text-xs text-muted-foreground hover:text-yellow-400 flex items-center gap-1" title="Guardar carrito para después">
               <Undo2 className="w-3 h-3" />Guardar
             </button>
           )}
@@ -1822,7 +1822,7 @@ export default function POSPage() {
         />
 
         {/* Payment section */}
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Método de pago</span>
             <button
@@ -1843,7 +1843,7 @@ export default function POSPage() {
               <PayMethodGrid value={payMethod} onChange={setPayMethod} />
               {/* Cash calculator */}
               {payMethod === "efectivo" && (
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Input
                     type="number" placeholder="Monto recibido ($)"
                     value={cashGiven}
@@ -1865,7 +1865,7 @@ export default function POSPage() {
             </>
           ) : (
             /* Split payment mode */
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {/* Method 1 */}
               <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Método 1</span>
@@ -1919,7 +1919,7 @@ export default function POSPage() {
             </Button>
           </div>
           {couponResult?.valid && (
-            <div className="flex items-center justify-between text-xs bg-success/10 text-success px-3 py-1.5 rounded-lg border border-success/20">
+            <div className="flex items-center justify-between text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20">
               <span className="flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5" />
                 {couponResult.coupon.code} — {couponResult.coupon.discount_type === "percentage"
@@ -1948,7 +1948,7 @@ export default function POSPage() {
               Descuento adicional
             </span>
             {showDiscount && globalDiscountARS > 0 && (
-              <span className="text-success font-mono">-{formatARS(globalDiscountARS)}</span>
+              <span className="text-emerald-400 font-mono">-{formatARS(globalDiscountARS)}</span>
             )}
           </button>
 
@@ -1987,7 +1987,7 @@ export default function POSPage() {
                 max={discountType === "percent" ? 100 : undefined}
               />
               {globalDiscountARS > 0 && (
-                <div className="text-xs text-center text-success font-medium">
+                <div className="text-xs text-center text-emerald-400 font-medium">
                   Descuento: -{formatARS(globalDiscountARS)}
                 </div>
               )}
@@ -2013,7 +2013,7 @@ export default function POSPage() {
                   <Layers className="w-3.5 h-3.5" />
                   Desc. por categoría
                 </span>
-                {catDiscountARS > 0 && <span className="text-success font-mono">-{formatARS(catDiscountARS)}</span>}
+                {catDiscountARS > 0 && <span className="text-emerald-400 font-mono">-{formatARS(catDiscountARS)}</span>}
               </button>
               {showCatDiscount && (
                 <div className="bg-muted/40 rounded-[10px] p-2.5 space-y-2">
@@ -2050,19 +2050,19 @@ export default function POSPage() {
             </div>
           )}
           {catDiscountARS > 0 && (
-            <div className="flex items-center justify-between text-xs text-success">
+            <div className="flex items-center justify-between text-xs text-emerald-400">
               <span>Desc. categoría</span>
               <span className="font-mono">-{formatARS(catDiscountARS)}</span>
             </div>
           )}
           {couponDiscount > 0 && (
-            <div className="flex items-center justify-between text-xs text-success">
+            <div className="flex items-center justify-between text-xs text-emerald-400">
               <span>Descuento cupón</span>
               <span className="font-mono">-{formatARS(couponDiscount)}</span>
             </div>
           )}
           {globalDiscountARS > 0 && (
-            <div className="flex items-center justify-between text-xs text-success">
+            <div className="flex items-center justify-between text-xs text-emerald-400">
               <span>Desc. adicional</span>
               <span className="font-mono">-{formatARS(globalDiscountARS)}</span>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -302,7 +302,7 @@ export default function CashSessionPage() {
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={Banknote}
@@ -381,7 +381,7 @@ export default function CashSessionPage() {
 
       {/* CLOSE SESSION + LIVE STATS */}
       {openSession && (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-12">
           {/* Live stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -412,7 +412,7 @@ export default function CashSessionPage() {
             return (
               <div className="bg-card border border-border/60 rounded-xl p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ventas por vendedor</p>
-                <div className="space-y-2">
+                <div className="space-y-2 pb-12">
                   {entries.map(([name, total]) => (
                     <div key={name} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{name}</span>

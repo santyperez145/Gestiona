@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -201,7 +201,7 @@ export default function RevenueRecognitionPage() {
     : 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={DollarSign}
         title="Reconocimiento de Ingresos"
@@ -252,7 +252,7 @@ export default function RevenueRecognitionPage() {
         </TabsList>
 
         {/* CONTRACTS */}
-        <TabsContent value="contracts" className="space-y-3">
+        <TabsContent value="contracts" className="space-y-3 pb-12">
           {contracts.map(contract => {
             const recognized = contract.obligations.reduce((s, o) => s + o.recognized_amount, 0);
             const pct = contract.total_value > 0 ? (recognized / contract.total_value) * 100 : 0;
@@ -377,7 +377,7 @@ export default function RevenueRecognitionPage() {
         <TabsContent value="config">
           <Card className="max-w-lg">
             <CardHeader><CardTitle className="text-sm">Estándar Contable</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               {[
                 { key: "ASC606", label: "ASC 606 (US GAAP)", desc: "Para empresas con reportes bajo normas americanas" },
                 { key: "IFRS15", label: "IFRS 15 (Internacional)", desc: "Para empresas argentinas con reportes internacionales" },
@@ -406,14 +406,14 @@ export default function RevenueRecognitionPage() {
               </div>
               <Button size="icon" variant="ghost" onClick={() => setSelected(null)}>✕</Button>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pb-12">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-xs text-muted-foreground">Valor Total</p><p className="font-bold">${selected.total_value.toLocaleString()}</p></div>
                 <div><p className="text-xs text-muted-foreground">Período</p><p>{selected.start_date} → {selected.end_date ?? "Indefinido"}</p></div>
               </div>
               <div>
                 <p className="text-sm font-semibold mb-2">Obligaciones de Desempeño</p>
-                <div className="space-y-2">
+                <div className="space-y-2 pb-12">
                   {selected.obligations.map(ob => <ObligationRow key={ob.id} ob={ob} />)}
                 </div>
               </div>

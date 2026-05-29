@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -314,7 +314,7 @@ export default function WarrantyClaimsPage() {
   const coveredCount = claims.filter(c => c.covered_by_warranty).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Shield}
         title="Garantías & Reparaciones"
@@ -354,7 +354,7 @@ export default function WarrantyClaimsPage() {
           <Loader2 className="w-7 h-7 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(claim => {
             const cfg = STATUS_CFG[claim.status];
             const isOpen = expanded.has(claim.id);

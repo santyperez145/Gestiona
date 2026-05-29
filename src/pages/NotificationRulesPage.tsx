@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -251,7 +251,7 @@ function RuleForm({ open, onClose, editing, orgId, onSaved }: {
                   </div>
                 )}
                 {(a.type === "email" || a.type === "whatsapp") && (
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Input placeholder="Destinatario..." value={a.to || ""} onChange={e => updAction(i, "to", e.target.value)} className="text-xs h-8" />
                     {a.type === "email" && <Input placeholder="Asunto..." value={a.subject || ""} onChange={e => updAction(i, "subject", e.target.value)} className="text-xs h-8" />}
                     <Textarea placeholder="Mensaje..." value={a.message || a.body || ""} onChange={e => updAction(i, a.type === "email" ? "body" : "message", e.target.value)} rows={2} className="text-xs" />
@@ -334,7 +334,7 @@ export default function NotificationRulesPage() {
   const totalFires = rules.reduce((s, r) => s + r.fire_count, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Bell}
         title="Reglas de Notificación"

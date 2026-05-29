@@ -168,7 +168,7 @@ export default function FinancialMovementsPage() {
   const clearFilters = () => { setDirFilter("all"); setTypeFilter("all"); setSearch(""); setDateFrom(""); setDateTo(""); };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wallet}
         title="Movimientos financieros"
@@ -190,25 +190,25 @@ export default function FinancialMovementsPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KPICard
-          title="Total ingresos"
+          label="Total ingresos"
           value={formatARS(totalIncome)}
           icon={TrendingUp}
-          color="text-emerald-400"
-          subtitle={`${filtered.filter(m => m.direction === "income").length} movimientos`}
+          color="success"
+          sub={`${filtered.filter(m => m.direction === "income").length} movimientos`}
         />
         <KPICard
-          title="Total egresos"
+          label="Total egresos"
           value={formatARS(totalExpense)}
           icon={TrendingDown}
-          color="text-red-400"
-          subtitle={`${filtered.filter(m => m.direction === "expense").length} movimientos`}
+          color="destructive"
+          sub={`${filtered.filter(m => m.direction === "expense").length} movimientos`}
         />
         <KPICard
-          title="Balance neto"
+          label="Balance neto"
           value={formatARS(netBalance)}
           icon={Wallet}
-          color={netBalance >= 0 ? "text-primary" : "text-red-400"}
-          subtitle={filtered.length + " registros totales"}
+          color={netBalance >= 0 ? "primary" : "destructive"}
+          sub={filtered.length + " registros totales"}
         />
       </div>
 

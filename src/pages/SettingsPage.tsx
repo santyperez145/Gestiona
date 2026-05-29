@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useStorageEstimate } from "@/hooks/useStorageEstimate";
 import { usePermissionStatus } from "@/hooks/usePermissionStatus";
 import PriceListsManager from "@/components/settings/PriceListsManager";
@@ -30,21 +30,21 @@ function SystemInfoSection({ businessName, productCount, userEmail }: { business
   const perms = usePermissionStatus(["notifications", "camera", "microphone", "geolocation"]);
 
   const permLabel = (s: string) => s === "granted" ? "✓ Activo" : s === "denied" ? "✗ Bloqueado" : s === "prompt" ? "Sin respuesta" : "—";
-  const permColor = (s: string) => s === "granted" ? "text-success" : s === "denied" ? "text-destructive" : "text-muted-foreground";
+  const permColor = (s: string) => s === "granted" ? "text-emerald-400" : s === "denied" ? "text-destructive" : "text-muted-foreground";
 
   return (
     <div className="space-y-2 text-sm">
       <div className="flex justify-between"><span className="text-muted-foreground">Negocio:</span><span className="font-medium">{businessName}</span></div>
       <div className="flex justify-between"><span className="text-muted-foreground">Productos:</span><span className="font-medium">{productCount}</span></div>
       {!storage.loading && storage.quota > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1 pb-12">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Caché local:</span>
             <span className="font-medium">{storage.usedHuman} / {storage.quotaHuman}</span>
           </div>
           <div className="w-full bg-muted rounded-full h-1">
             <div
-              className={`h-1 rounded-full transition-all ${storage.percent > 80 ? "bg-destructive" : storage.percent > 60 ? "bg-warning" : "bg-success"}`}
+              className={`h-1 rounded-full transition-all ${storage.percent > 80 ? "bg-destructive" : storage.percent > 60 ? "bg-yellow-500" : "bg-emerald-500"}`}
               style={{ width: `${Math.min(100, storage.percent)}%` }}
             />
           </div>
@@ -55,10 +55,10 @@ function SystemInfoSection({ businessName, productCount, userEmail }: { business
           )}
         </div>
       )}
-      <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-success">Cloud ☁️</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-success">Activo ✓</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-success">Activo ✓</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-success">Activo ✓</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Almacenamiento:</span><span className="font-medium text-emerald-400">Cloud ☁️</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Auth:</span><span className="font-medium text-emerald-400">Activo ✓</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">IA:</span><span className="font-medium text-emerald-400">Activo ✓</span></div>
+      <div className="flex justify-between"><span className="text-muted-foreground">Auditoría:</span><span className="font-medium text-emerald-400">Activo ✓</span></div>
       {perms.notifications !== "unsupported" && (
         <div className="flex justify-between"><span className="text-muted-foreground">Notificaciones:</span><span className={`font-medium text-xs ${permColor(perms.notifications)}`}>{permLabel(perms.notifications)}</span></div>
       )}
@@ -486,7 +486,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div>
+    <div className="pb-12">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl md:text-3xl font-display font-bold">Ajustes</h1>
         <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -717,7 +717,7 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { l: 'Oficial', v: liveRates.oficial, color: 'text-blue-400' },
-                      { l: 'Blue', v: liveRates.blue, color: 'text-success' },
+                      { l: 'Blue', v: liveRates.blue, color: 'text-emerald-400' },
                       { l: 'CCL', v: liveRates.ccl, color: 'text-amber-400' },
                     ].map(r => (
                       <button key={r.l} type="button"
@@ -1032,7 +1032,7 @@ export default function SettingsPage() {
               <Switch checked={taxEnabled} onCheckedChange={setTaxEnabled} />
             </div>
             {taxEnabled ? (
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 <div><label className="text-sm text-muted-foreground">IVA (%)</label><Input type="number" step="0.1" value={taxIva} onChange={e => setTaxIva(e.target.value)} className="bg-muted border-border mt-1" /></div>
                 <div><label className="text-sm text-muted-foreground">Ingresos Brutos (%)</label><Input type="number" step="0.1" value={taxIibb} onChange={e => setTaxIibb(e.target.value)} className="bg-muted border-border mt-1" /></div>
                 <div><label className="text-sm text-muted-foreground">Monotributo mensual (ARS)</label><Input type="number" value={taxMonotributo} onChange={e => setTaxMonotributo(e.target.value)} className="bg-muted border-border mt-1" /></div>
@@ -1049,9 +1049,9 @@ export default function SettingsPage() {
             <SystemInfoSection businessName={businessName} productCount={productCount} userEmail={user?.email} />
           </div>
 
-          <div className="bg-card border border-success/30 rounded-[10px] p-4 md:p-6">
+          <div className="bg-card border border-emerald-500/30 rounded-[10px] p-4 md:p-6">
             <h2 className="font-display font-semibold text-[14px] tracking-tight mb-2 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-success" />Seguridad
+              <Shield className="w-4 h-4 text-emerald-400" />Seguridad
             </h2>
             <p className="text-sm text-muted-foreground">
               Datos protegidos con autenticación, cifrado y auditoría. Cada usuario solo ve sus propios datos. Sistema multi-tenant con aislamiento completo.
@@ -1553,7 +1553,7 @@ function CouponsManager({ userId }: { userId: string }) {
           </DialogTrigger>
           <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Crear Cupón</DialogTitle></DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               <div><label className="text-sm text-muted-foreground">Código</label>
                 <Input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="EXENTRY10" className="bg-muted border-border mt-1" /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -1578,7 +1578,7 @@ function CouponsManager({ userId }: { userId: string }) {
       {coupons.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">No hay cupones creados. Creá uno para compartir con tus clientes.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {coupons.map(c => (
             <div key={c.id} className={`flex items-center justify-between p-3 rounded-lg border ${c.active ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50 opacity-60'}`}>
               <div>
@@ -1992,7 +1992,7 @@ function AfipSection() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 pb-12">
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Certificado AFIP (PEM)</label>
           <Textarea
@@ -2091,7 +2091,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
       </div>
 
       {/* Add form */}
-      <div className="space-y-2">
+      <div className="space-y-2 pb-12">
         <div className="flex gap-2">
           <Input
             value={newName}
@@ -2118,7 +2118,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
       ) : locations.length === 0 ? (
         <p className="text-xs text-muted-foreground">No hay sucursales registradas. Creá la primera arriba.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {locations.map(loc => (
             <div key={loc.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${loc.is_active ? 'bg-muted/30 border-border' : 'bg-muted/10 border-border/50 opacity-60'}`}>
               <MapPin className={`w-3.5 h-3.5 shrink-0 ${loc.is_active ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -2126,7 +2126,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                   <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 text-xs bg-background border-border" />
                   <Input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Dirección" className="h-7 text-xs bg-background border-border" />
-                  <button onClick={() => handleSaveEdit(loc.id)} disabled={saving} className="text-success hover:text-success/80 transition-colors shrink-0">
+                  <button onClick={() => handleSaveEdit(loc.id)} disabled={saving} className="text-emerald-400 hover:text-emerald-400/80 transition-colors shrink-0">
                     <Check className="w-4 h-4" />
                   </button>
                   <button onClick={() => setEditId(null)} className="text-muted-foreground hover:text-foreground shrink-0">
@@ -2148,7 +2148,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
                   ><Edit2 className="w-3 h-3" /></button>
                   <button
                     onClick={() => handleToggle(loc)}
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-[5px] transition-colors ${loc.is_active ? 'bg-success/15 text-success hover:bg-success/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-[5px] transition-colors ${loc.is_active ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                     title={loc.is_active ? 'Desactivar' : 'Activar'}
                   >{loc.is_active ? 'Activa' : 'Inactiva'}</button>
                   <button

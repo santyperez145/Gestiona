@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { KPICard } from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -253,7 +253,7 @@ export default function HRPortalPage() {
   const deptMap = employees.reduce<Record<string, number>>((acc, e) => { acc[e.department] = (acc[e.department] ?? 0) + 1; return acc; }, {});
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
         title="Portal RRHH"
@@ -434,7 +434,7 @@ export default function HRPortalPage() {
 
           {/* ── Tipos de licencia ── */}
           {activeTab === "Tipos de licencia" && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {leaveTypes.length === 0 && (
                 <Button variant="outline" size="sm" onClick={seedLeaveTypes}><RefreshCcw className="w-4 h-4 mr-1" /> Cargar tipos predeterminados</Button>
               )}
@@ -504,7 +504,7 @@ export default function HRPortalPage() {
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Nueva Solicitud de Licencia</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div>
               <Label>Empleado *</Label>
               <Select value={leaveForm.employee_id} onValueChange={v => setLeaveForm(p => ({ ...p, employee_id: v }))}>
@@ -548,7 +548,7 @@ export default function HRPortalPage() {
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingReview ? "Editar Evaluación" : "Nueva Evaluación"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div>
               <Label>Empleado *</Label>
               <Select value={reviewForm.employee_id} onValueChange={v => setReviewForm(p => ({ ...p, employee_id: v }))}>
@@ -594,7 +594,7 @@ export default function HRPortalPage() {
       <Dialog open={showLeaveTypeDialog} onOpenChange={setShowLeaveTypeDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Nuevo tipo de licencia</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div><Label>Nombre *</Label><Input value={ltForm.name} onChange={e => setLtForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Máx. días/año</Label><Input type="number" value={ltForm.max_days_per_year} onChange={e => setLtForm(p => ({ ...p, max_days_per_year: e.target.value }))} /></div>

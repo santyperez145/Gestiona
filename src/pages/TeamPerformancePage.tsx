@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TeamPerformancePage — /rendimiento-equipo
  *
  * Shows performance metrics for every seller:
@@ -113,7 +113,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       {[1, 2, 3, 4].map(i => (
         <div key={i} className="bg-card border border-border/60 rounded-2xl p-5 animate-pulse">
           <div className="flex items-center gap-3 mb-4">
@@ -287,61 +287,61 @@ export default function TeamPerformancePage() {
   const monthLabel = MONTHS.find(m => m.value === selectedMonth)?.label ?? selectedMonth;
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
         title="Rendimiento del Equipo"
         description={`Performance individual por vendedor — ${monthLabel}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-44 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map(m => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={load} title="Refrescar datos">
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="ml-1.5 text-xs">Refrescar</span>
+            </Button>
+          </div>
+        }
       />
 
-      {/* Month selector + refresh — always visible above tabs */}
-      <div className="flex items-center gap-2 mb-5">
-        <Calendar className="w-4 h-4 text-muted-foreground" />
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-44 h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MONTHS.map(m => (
-              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="sm" onClick={load} title="Refrescar datos">
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span className="ml-1.5 text-xs">Refrescar</span>
-        </Button>
-      </div>
-
       {/* KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
-          title="Ventas totales equipo"
+          label="Ventas totales equipo"
           value={formatARS(teamKPIs.totalARS)}
           icon={DollarSign}
-          trend={`${teamKPIs.teamTrend >= 0 ? "+" : ""}${teamKPIs.teamTrend.toFixed(1)}% vs mes anterior`}
-          trendUp={teamKPIs.teamTrend >= 0}
+          color="primary"
+          sub={`${teamKPIs.teamTrend >= 0 ? "+" : ""}${teamKPIs.teamTrend.toFixed(1)}% vs mes anterior`}
         />
         <KPICard
-          title="Mejor vendedor"
+          label="Mejor vendedor"
           value={teamKPIs.topSeller?.name?.split(" ")[0] ?? "—"}
           icon={Trophy}
-          trend={teamKPIs.topSeller ? formatARS(teamKPIs.topSeller.salesARS) : "—"}
-          trendUp={true}
+          color="warning"
+          sub={teamKPIs.topSeller ? formatARS(teamKPIs.topSeller.salesARS) : "sin ventas registradas"}
         />
         <KPICard
-          title="Vendedores con meta"
+          label="Vendedores con meta"
           value={`${teamKPIs.atGoal} / ${stats.filter(s => s.goalARS > 0).length}`}
           icon={BarChart3}
-          trend="Alcanzaron 100%+"
-          trendUp={teamKPIs.atGoal > 0}
+          color={teamKPIs.atGoal > 0 ? "success" : "primary"}
+          sub="alcanzaron 100%+"
         />
         <KPICard
-          title="Comisiones totales"
+          label="Comisiones totales"
           value={formatARS(teamKPIs.totalComm)}
           icon={DollarSign}
-          trend="Comisión sobre ventas reales"
-          trendUp={teamKPIs.totalComm > 0}
+          color={teamKPIs.totalComm > 0 ? "success" : "primary"}
+          sub="sobre ventas reales"
         />
       </div>
 
@@ -358,7 +358,7 @@ export default function TeamPerformancePage() {
           {loading ? (
             <LoadingSkeleton />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 pb-12">
               {/* Bar chart */}
               {chartData.length > 0 && (
                 <div className="bg-card border border-border/60 rounded-2xl p-5">
@@ -482,7 +482,7 @@ export default function TeamPerformancePage() {
           {loading ? (
             <LoadingSkeleton />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {stats.length === 0 ? (
                 <div className="text-center py-16">
                   <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
@@ -605,7 +605,7 @@ export default function TeamPerformancePage() {
           {loading ? (
             <LoadingSkeleton />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 pb-12">
               {/* Comparison bar chart */}
               {chartData.length > 0 && (
                 <div className="bg-card border border-border/60 rounded-2xl p-5">

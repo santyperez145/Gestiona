@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,7 @@ export default function SmartInventoryPage() {
   const deadStock = abcData.filter(r => r.velocity === "dead").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
         title="Inventario Inteligente"
@@ -201,7 +201,7 @@ export default function SmartInventoryPage() {
         <>
           {/* ── ABC Analysis ── */}
           {activeTab === "Análisis ABC" && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {/* ABC visual summary */}
               <div className="grid grid-cols-3 gap-4">
                 {(["A","B","C"] as const).map(cls => {
@@ -280,7 +280,7 @@ export default function SmartInventoryPage() {
 
           {/* ── Demand Signals ── */}
           {activeTab === "Señales de demanda" && (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {signals.length === 0 && (
                 <div className="bg-card rounded-xl border border-border/50 p-12 text-center text-muted-foreground/70">
                   <Activity className="w-12 h-12 mx-auto mb-3 opacity-30" />

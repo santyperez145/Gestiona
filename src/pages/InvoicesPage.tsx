@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+﻿import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useClipboard } from "@/hooks/useClipboard";
@@ -624,7 +624,7 @@ export default function InvoicesPage() {
   const defaultTipoCbte = afipSettings?.afip_tipo_emisor === "responsable_inscripto" ? "6" : "11";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={Receipt}
@@ -727,7 +727,7 @@ export default function InvoicesPage() {
                 <Plus className="w-3 h-3 mr-1" />Agregar ítem
               </Button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               <div className="hidden md:grid grid-cols-12 gap-2 text-[10px] text-muted-foreground uppercase px-1">
                 <div className="col-span-6">Descripción</div>
                 <div className="col-span-2 text-right">Cant.</div>

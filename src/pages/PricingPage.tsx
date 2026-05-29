@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -17,9 +17,9 @@ const FALLBACK_FEATURES: Record<string, string[]> = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  active:   { label: 'Activo',         color: 'bg-success/15 text-success border-success/20' },
+  active:   { label: 'Activo',         color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
   trialing: { label: 'Trial activo',   color: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
-  past_due: { label: 'Pago pendiente', color: 'bg-warning/15 text-warning border-warning/20' },
+  past_due: { label: 'Pago pendiente', color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20' },
   canceled: { label: 'Cancelado',      color: 'bg-destructive/15 text-destructive border-destructive/20' },
   paused:   { label: 'Pausado',        color: 'bg-muted text-muted-foreground border-border' },
 };
@@ -113,9 +113,9 @@ export default function PricingPage() {
       {/* Subscription status banner */}
       {user && subStatus && subStatus !== 'canceled' && (
         <div className={`border-b px-6 py-2 text-center text-[12px] flex items-center justify-center gap-1.5 ${
-          subStatus === 'past_due' ? 'bg-warning/8 border-warning/20 text-warning' :
+          subStatus === 'past_due' ? 'bg-yellow-500/8 border-yellow-500/20 text-yellow-400' :
           subStatus === 'trialing' ? 'bg-blue-500/8 border-blue-500/20 text-blue-400' :
-          'bg-success/8 border-success/20 text-success'
+          'bg-emerald-500/8 border-emerald-500/20 text-emerald-400'
         }`}>
           {subStatus === 'past_due' && <AlertTriangle className="w-3.5 h-3.5" />}
           {subStatus === 'trialing' && <Sparkles className="w-3.5 h-3.5" />}

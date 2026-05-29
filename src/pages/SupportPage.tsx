@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -306,7 +306,7 @@ export default function SupportPage() {
   // Render
   // ─────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={Headphones}
@@ -439,7 +439,7 @@ export default function SupportPage() {
           <p className="text-sm">{tickets.length === 0 ? "No hay tickets de soporte" : "Sin resultados"}</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(ticket => {
             const sc = STATUS_CONFIG[ticket.status];
             const pc = PRIORITY_CONFIG[ticket.priority];
@@ -550,7 +550,7 @@ export default function SupportPage() {
                     )}
 
                     {/* Message thread */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 pb-12">
                       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                         <MessageSquare className="w-3 h-3" />Thread ({ticketMsgs.length})
                       </p>
@@ -589,7 +589,7 @@ export default function SupportPage() {
 
                     {/* Reply box */}
                     {canManage && ticket.status !== "closed" && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 pb-12">
                         <textarea
                           className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                           placeholder={replyInternal ? "Nota interna (no visible al cliente)..." : "Responder al cliente..."}

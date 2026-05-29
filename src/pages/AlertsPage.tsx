@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { safeChannel } from "@/lib/realtimeChannel";
 import {
   Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
@@ -6,6 +6,7 @@ import {
   Clock, Zap, Info, ShieldCheck, CalendarX2, Mail, ChevronDown, ChevronUp,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -307,7 +308,7 @@ export default function AlertsPage() {
   const firedToday = rules.filter(r => r.last_triggered_at && new Date(r.last_triggered_at) > new Date(Date.now() - 86400000)).length;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Zap}
         title="Alertas inteligentes"
@@ -328,6 +329,14 @@ export default function AlertsPage() {
           </div>
         }
       />
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Reglas activas" value={activeRules} icon={Zap} color="primary" sub={`${rules.length} en total`} />
+        <KPICard label="Disparadas hoy" value={firedToday} icon={Bell} color={firedToday > 0 ? "warning" : "success"} sub="últimas 24 horas" />
+        <KPICard label="No leídas" value={unreadCount} icon={AlertTriangle} color={unreadCount > 0 ? "destructive" : "success"} sub={`${notifications.length} notificaciones`} />
+        <KPICard label="Con riesgo" value={totalAtRisk} icon={ShieldCheck} color={totalAtRisk > 0 ? "destructive" : "success"} sub="productos en alerta" />
+      </div>
 
       {/* Expiring Products Live Panel */}
       {totalAtRisk > 0 && (
@@ -401,7 +410,7 @@ export default function AlertsPage() {
           <p className="text-xs text-muted-foreground mt-1">Reglas activas</p>
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-4 text-center">
-          <p className="text-2xl font-bold font-mono tracking-tight font-display text-warning">{firedToday}</p>
+          <p className="text-2xl font-bold font-mono tracking-tight font-display text-yellow-400">{firedToday}</p>
           <p className="text-xs text-muted-foreground mt-1">Disparadas hoy</p>
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-4 text-center">
@@ -738,7 +747,7 @@ export default function AlertsPage() {
                       </td>
                       <td className="px-4 py-2.5 text-right hidden md:table-cell">
                         {wasToday
-                          ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-warning/20 text-warning font-semibold">Hoy</span>
+                          ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-semibold">Hoy</span>
                           : <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Anterior</span>
                         }
                       </td>

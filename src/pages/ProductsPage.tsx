@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useMemo } from "react";
 import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -37,8 +37,8 @@ import { BarcodePrintSheet } from "@/components/shared/BarcodeLabel";
 const CATEGORY_COLORS: Record<string, string> = {
   perfume_arabe: 'bg-primary/15 text-primary',
   'perfume_diseñador': 'bg-accent/20 text-accent',
-  vaper: 'bg-success/15 text-success',
-  electronico: 'bg-warning/15 text-warning',
+  vaper: 'bg-emerald-500/15 text-emerald-400',
+  electronico: 'bg-yellow-500/15 text-yellow-400',
 };
 const GENDER_ICONS: Record<string, string> = { masculino: '♂', femenino: '♀', unisex: '⚥' };
 const PAGE_SIZE = 30;
@@ -516,7 +516,7 @@ export default function ProductsPage() {
   const outOfStockCount = products.filter(p => p.stock <= 0).length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <PageHeader
         icon={Package}
         title="Productos"
@@ -751,7 +751,7 @@ export default function ProductsPage() {
                 {grouped2.map(b => (
                   <div key={b.label}>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{b.label} ({b.items.length})</h4>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {b.items.slice(0, 8).map(p => {
                         const totalProducts = b.items.reduce((s, x) => s + x.valueARS, 0);
                         const pct = totalProducts > 0 ? (p.valueARS / totalProducts) * 100 : 0;
@@ -848,7 +848,7 @@ export default function ProductsPage() {
           </Select>
           <button
             onClick={() => { setFilterDiscount(v => !v); setPage(0); }}
-            className={`h-9 px-3 text-xs rounded-lg border transition-colors font-medium shrink-0 ${filterDiscount ? 'bg-warning/20 text-warning border-warning/40' : 'bg-muted text-muted-foreground border-border hover:text-foreground'}`}
+            className={`h-9 px-3 text-xs rounded-lg border transition-colors font-medium shrink-0 ${filterDiscount ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' : 'bg-muted text-muted-foreground border-border hover:text-foreground'}`}
           >
             <Tag className="w-3.5 h-3.5 inline mr-1" />Con oferta
           </button>
@@ -889,7 +889,7 @@ export default function ProductsPage() {
                 <p className="text-xs font-medium leading-tight line-clamp-2 mb-1">{p.name}</p>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs font-bold text-primary">{formatARS(Number(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? p.discount_price_ars : p.sale_price_ars))}</span>
-                  <span className={`text-[10px] font-medium ${p.stock > 0 ? 'text-success' : 'text-destructive'}`}>×{p.stock}</span>
+                  <span className={`text-[10px] font-medium ${p.stock > 0 ? 'text-emerald-400' : 'text-destructive'}`}>×{p.stock}</span>
                 </div>
               </div>
             </div>
@@ -969,7 +969,7 @@ export default function ProductsPage() {
                               <span className="truncate">{p.name}</span>
                               {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                               {variantCounts[p.id] > 0 && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>
                                   <Layers className="w-2.5 h-2.5" />{variantCounts[p.id]}
                                 </span>
                               )}
@@ -993,7 +993,7 @@ export default function ProductsPage() {
                          <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${CATEGORY_COLORS[p.category] || ''}`}>{getCategoryLabel(p.category)}</span></td>
                          <td className="p-3 text-right text-xs">{formatUSD(Number(p.total_cost_usd))}</td>
                          <td className="p-3 text-right font-medium text-xs">{Number(p.sale_price_ars) > 0 ? formatARS(Number(p.sale_price_ars)) : '—'}</td>
-                         <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-warning">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
+                         <td className="p-3 text-right text-xs">{p.discount_price_ars ? <span className="text-yellow-400">{formatARS(Number(p.discount_price_ars))}</span> : '—'}</td>
                          <td className="p-3 hidden lg:table-cell">
                            <PriceSparkline productId={p.id} orgId={activeOrg?.id} width={72} />
                          </td>
@@ -1002,7 +1002,7 @@ export default function ProductsPage() {
                              const margin = Number(p.sale_price_ars) > 0 ? (Number(p.profit_per_unit_ars) / Number(p.sale_price_ars)) * 100 : 0;
                              const isLowMargin = margin < 30 && margin > 0;
                              return (
-                               <span className={`text-xs flex items-center justify-end gap-1 ${Number(p.profit_per_unit_ars) > 0 ? (isLowMargin ? 'text-warning' : 'text-success') : 'text-destructive'}`}>
+                               <span className={`text-xs flex items-center justify-end gap-1 ${Number(p.profit_per_unit_ars) > 0 ? (isLowMargin ? 'text-yellow-400' : 'text-emerald-400') : 'text-destructive'}`}>
                                  {isLowMargin && <AlertTriangle className="w-3 h-3" />}
                                  {formatARS(Number(p.profit_per_unit_ars))}
                                  <span className="text-[10px] text-muted-foreground">({Math.round(margin)}%)</span>
@@ -1036,7 +1036,7 @@ export default function ProductsPage() {
                                ) : p.stock <= 3 ? (
                                  <span className="text-destructive font-bold flex items-center justify-end gap-1 group-hover:text-primary transition-colors"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
                                ) : (
-                                 <span className="text-success font-medium group-hover:text-primary transition-colors">{p.stock}</span>
+                                 <span className="text-emerald-400 font-medium group-hover:text-primary transition-colors">{p.stock}</span>
                                )}
                              </button>
                            )}
@@ -1052,12 +1052,12 @@ export default function ProductsPage() {
                                  if (e.key === "Enter") saveInlineThreshold(p.id, editingThreshold.value);
                                  if (e.key === "Escape") setEditingThreshold(null);
                                }}
-                               className="w-14 text-right text-xs border border-warning/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-warning/60"
+                               className="w-14 text-right text-xs border border-yellow-500/40 rounded bg-background px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-warning/60"
                              />
                            ) : (
                              <button
                                onClick={() => setEditingThreshold({ id: p.id, value: String((p as any).low_stock_threshold ?? 3) })}
-                               className="text-xs text-muted-foreground hover:text-warning transition-colors"
+                               className="text-xs text-muted-foreground hover:text-yellow-400 transition-colors"
                                title="Click para editar umbral de alerta"
                              >
                                {(p as any).low_stock_threshold ?? 3}
@@ -1070,7 +1070,7 @@ export default function ProductsPage() {
                              if (p.stock <= 0) return <span className="text-xs text-muted-foreground">—</span>;
                              if (vel === 0) return <span className="text-xs text-muted-foreground" title="Sin ventas en 60 días">∞</span>;
                              const days = Math.round(p.stock / vel);
-                             const color = days <= 7 ? 'text-destructive font-bold' : days <= 21 ? 'text-warning font-medium' : 'text-success';
+                             const color = days <= 7 ? 'text-destructive font-bold' : days <= 21 ? 'text-yellow-400 font-medium' : 'text-emerald-400';
                              return (
                                <span className={`text-xs ${color}`} title={`${(vel * 30).toFixed(1)} uds/mes · stock para ~${days} días`}>
                                  {days}d
@@ -1083,7 +1083,7 @@ export default function ProductsPage() {
                              const last = lastSaleDate[p.id];
                              if (!last) return <span className="text-xs text-muted-foreground" title="Sin ventas registradas en 60 días">+60d</span>;
                              const daysSince = Math.floor((today.getTime() - new Date(last + 'T12:00:00').getTime()) / 86400000);
-                             const color = daysSince >= 30 ? 'text-destructive font-bold' : daysSince >= 14 ? 'text-warning' : 'text-muted-foreground';
+                             const color = daysSince >= 30 ? 'text-destructive font-bold' : daysSince >= 14 ? 'text-yellow-400' : 'text-muted-foreground';
                              return <span className={`text-xs ${color}`} title={`Última venta: ${last}`}>{daysSince}d</span>;
                            })()}
                          </td>
@@ -1102,7 +1102,7 @@ export default function ProductsPage() {
                                title={p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "Quitar descuento" : "Aplicar descuento rápido"}
                                onClick={() => toggleQuickDiscount(p)}
                              >
-                               <Tag className={`w-3.5 h-3.5 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-warning" : "text-muted-foreground"}`} />
+                               <Tag className={`w-3.5 h-3.5 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-yellow-400" : "text-muted-foreground"}`} />
                              </Button>
                            )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
@@ -1169,7 +1169,7 @@ export default function ProductsPage() {
                             title={p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "Quitar descuento" : "Aplicar descuento rápido"}
                             onClick={() => toggleQuickDiscount(p)}
                           >
-                            <Tag className={`w-3 h-3 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-warning" : "text-muted-foreground"}`} />
+                            <Tag className={`w-3 h-3 ${p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? "text-yellow-400" : "text-muted-foreground"}`} />
                           </Button>
                         )}
                         {canDelete && (
@@ -1186,7 +1186,7 @@ export default function ProductsPage() {
                       <div><span className="text-muted-foreground block">Costo</span><span>{formatUSD(Number(p.total_cost_usd))}</span></div>
                       <div><span className="text-muted-foreground block">Venta</span><span>{formatARS(Number(p.sale_price_ars))}</span></div>
                       <div><span className="text-muted-foreground block">Ganancia</span>
-                        <span className={Number(p.profit_per_unit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(p.profit_per_unit_ars))}</span>
+                        <span className={Number(p.profit_per_unit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(Number(p.profit_per_unit_ars))}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
@@ -1194,7 +1194,7 @@ export default function ProductsPage() {
                         <span className="text-xs text-muted-foreground">Stock:</span>
                         {p.stock <= 0 ? <span className="text-xs text-muted-foreground">Sin stock</span> : p.stock <= 3 ? (
                           <span className="text-destructive text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{p.stock}</span>
-                        ) : <span className="text-success text-xs font-medium">{p.stock} uds</span>}
+                        ) : <span className="text-emerald-400 text-xs font-medium">{p.stock} uds</span>}
                       </div>
                       <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -1528,7 +1528,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   };
 
   return (
-    <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
+    <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4 pb-12">
       {/* Image upload (multi) */}
       <div>
         <div className="flex items-center justify-between">
@@ -1658,8 +1658,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       </div>
       {/* ── Smart suggestions panel ── */}
       {category === 'vaper' && (
-        <div className="rounded-xl border border-success/30 bg-success/5 p-3 space-y-2.5">
-          <p className="text-xs font-semibold text-success flex items-center gap-1.5">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2.5">
+          <p className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />Creación inteligente — Vaper
           </p>
           {/* Subtype */}
@@ -1670,7 +1670,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 const key = t === 'Desechable' ? 'desechable' : t === 'Pod / Cartucho' ? 'pod' : t === 'Líquido' ? 'liquido' : 'mod';
                 return (
                   <button key={t} type="button"
-                    className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${vaperSubtype === key ? 'bg-success/30 border-success text-success' : 'border-border/60 text-muted-foreground hover:border-success/40 hover:text-success'}`}
+                    className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${vaperSubtype === key ? 'bg-emerald-500/30 border-emerald-500 text-emerald-400' : 'border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400'}`}
                     onClick={() => {
                       setVaperSubtype(key);
                       if (key === 'desechable') { setContentMl(''); setVariantType('sabor'); }
@@ -1692,7 +1692,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <div className="flex flex-wrap gap-1.5">
                   {[600, 1000, 1500, 2000, 4000, 5000, 6000, 10000].map(p => (
                     <button key={p} type="button"
-                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                       onClick={() => {
                         const suffix = `${p} PUFFS`;
                         setName(prev => {
@@ -1709,7 +1709,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <div className="flex flex-wrap gap-1.5">
                   {['Sin nicotina', '20mg Salt', '50mg Salt', '3mg', '6mg'].map(nic => (
                     <button key={nic} type="button"
-                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                       onClick={() => setDescription(prev => prev ? `${prev} · ${nic}` : nic)}
                     >{nic}</button>
                   ))}
@@ -1725,7 +1725,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               <div className="flex flex-wrap gap-1.5">
                 {['1.8', '2', '2.5', '3', '5', '8', '10'].map(ml => (
                   <button key={ml} type="button"
-                    className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                    className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                     onClick={() => setContentMl(ml)}
                   >{ml}ml</button>
                 ))}
@@ -1741,7 +1741,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <div className="flex flex-wrap gap-1.5">
                   {['10', '30', '60', '100', '120'].map(ml => (
                     <button key={ml} type="button"
-                      className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-success/30 border-success text-success' : 'border-border/60 text-muted-foreground hover:border-success/40 hover:text-success'}`}
+                      className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${contentMl === ml ? 'bg-emerald-500/30 border-emerald-500 text-emerald-400' : 'border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400'}`}
                       onClick={() => {
                         setContentMl(ml);
                         setName(prev => {
@@ -1758,7 +1758,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 <div className="flex flex-wrap gap-1.5">
                   {['0mg', '3mg', '6mg', '12mg', '18mg', '20mg Sal', '25mg Sal', '50mg Sal'].map(nic => (
                     <button key={nic} type="button"
-                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                      className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                       onClick={() => setDescription(prev => prev ? `${prev} · ${nic}` : nic)}
                     >{nic}</button>
                   ))}
@@ -1774,7 +1774,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               <div className="flex flex-wrap gap-1.5">
                 {['40W', '60W', '80W', '100W', '160W', '220W'].map(w => (
                   <button key={w} type="button"
-                    className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-success/40 hover:text-success transition-all"
+                    className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                     onClick={() => setName(prev => prev ? `${prev} ${w}` : w)}
                   >{w}</button>
                 ))}
@@ -1824,8 +1824,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       )}
 
       {category === 'electronico' && (
-        <div className="rounded-xl border border-warning/20 bg-warning/5 p-3 space-y-2.5">
-          <p className="text-xs font-semibold text-warning flex items-center gap-1.5">
+        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 space-y-2.5">
+          <p className="text-xs font-semibold text-yellow-400 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />Creación inteligente — Electrónico
           </p>
           <div>
@@ -1833,7 +1833,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             <div className="flex flex-wrap gap-1.5">
               {['Auricular', 'Cargador', 'Cable', 'Smartwatch', 'Powerbank', 'Teclado', 'Mouse', 'Parlante', 'Cámara'].map(t => (
                 <button key={t} type="button"
-                  className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-warning/40 hover:text-warning transition-all"
+                  className="text-[10px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:border-yellow-500/40 hover:text-yellow-400 transition-all"
                   onClick={() => {
                     setName(prev => prev ? prev : t.toUpperCase());
                     setVariantType('color');
@@ -1939,8 +1939,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       )}
 
       {isVaper && (
-        <div className="rounded-lg border border-success/30 bg-success/5 p-3">
-          <label className="text-sm font-medium text-success flex items-center gap-1.5 mb-1.5">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <label className="text-sm font-medium text-emerald-400 flex items-center gap-1.5 mb-1.5">
             <DollarSign className="w-3.5 h-3.5" /> Precio pack 2X (marketing)
           </label>
           <Input
@@ -2043,9 +2043,9 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/40 hover:bg-muted/70 transition-colors text-sm font-medium"
         >
           <span className="flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-success" />
+            <Layers className="w-3.5 h-3.5 text-emerald-400" />
             {variantLabel}
-            {variants.length > 0 && <span className="text-xs text-success font-bold">({variants.length})</span>}
+            {variants.length > 0 && <span className="text-xs text-emerald-400 font-bold">({variants.length})</span>}
           </span>
           <span className="text-xs text-muted-foreground">{showVariants ? '▲' : '▼'}</span>
         </button>
@@ -2054,7 +2054,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         <div className="bg-muted/50 rounded-lg p-3 border border-border space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-success" />{variantLabel}</label>
+              <label className="text-sm font-medium flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-emerald-400" />{variantLabel}</label>
               <select
                 value={variantType}
                 onChange={e => setVariantType(e.target.value)}
@@ -2072,7 +2072,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             </button>
           </div>
           {showBulkImport && (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               <Input value={bulkVariants} onChange={e => setBulkVariants(e.target.value)} placeholder="Menta, Frutilla, Uva Ice, Sandía..." className="bg-muted border-border text-xs" />
               <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => {
                 const names = bulkVariants.split(',').map(n => n.trim()).filter(Boolean);
@@ -2127,7 +2127,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 </div>
               ))}
               <p className="text-[10px] text-muted-foreground mt-1">
-                Stock total (suma de variantes): <span className="font-bold text-success">{variants.reduce((s, v) => s + (v.stock || 0), 0)}</span>
+                Stock total (suma de variantes): <span className="font-bold text-emerald-400">{variants.reduce((s, v) => s + (v.stock || 0), 0)}</span>
               </p>
             </div>
           )}
@@ -2164,15 +2164,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       {cost > 0 && salePrice > 0 && (
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Costo base:</span><span>{formatUSD(cost)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-warning">{formatUSD(customsFee)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-yellow-400">{formatUSD(customsFee)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Costo total:</span><span>{formatUSD(totalCostUSD)} = {formatARS(totalCostARS)}</span></div>
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Ganancia/u:</span>
-            <span className={profitPerUnitARS > 0 ? 'text-success' : 'text-destructive'}>{formatARS(profitPerUnitARS)} ({formatUSD(profitPerUnitUSD)})</span>
+            <span className={profitPerUnitARS > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(profitPerUnitARS)} ({formatUSD(profitPerUnitUSD)})</span>
           </div>
           {parseFloat(discountPriceARS) > 0 && (
             <div className="flex justify-between text-xs border-t border-border pt-1">
               <span className="text-muted-foreground">Ganancia c/desc:</span>
-              <span className={parseFloat(discountPriceARS) - totalCostARS > 0 ? 'text-success' : 'text-destructive'}>
+              <span className={parseFloat(discountPriceARS) - totalCostARS > 0 ? 'text-emerald-400' : 'text-destructive'}>
                 {formatARS(parseFloat(discountPriceARS) - totalCostARS)}
               </span>
             </div>
@@ -2331,7 +2331,7 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       {/* Mode switcher */}
       <div className="flex rounded-lg overflow-hidden border border-border/50 p-0.5 gap-0.5 bg-muted/30">
         <button
@@ -2485,7 +2485,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
         ) : history.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Sin cambios de precio registrados aún.<br />Los cambios futuros aparecerán acá automáticamente.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {history.map((h: any) => {
               const pct = Number(h.change_pct);
               const up = pct > 0;
@@ -2498,7 +2498,7 @@ export function PriceHistoryModal({ productId, productName, open, onClose }: {
                     </p>
                   </div>
                   {h.change_pct != null && (
-                    <span className={`font-bold shrink-0 ${up ? "text-success" : "text-destructive"}`}>
+                    <span className={`font-bold shrink-0 ${up ? "text-emerald-400" : "text-destructive"}`}>
                       {up ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
                     </span>
                   )}

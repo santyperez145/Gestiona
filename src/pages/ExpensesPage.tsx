@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   getExpensesDB, addExpenseDB, updateExpenseDB, deleteExpenseDB,
@@ -301,7 +301,7 @@ export default function ExpensesPage() {
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wallet}
         title="Gastos Operativos"
@@ -342,7 +342,7 @@ export default function ExpensesPage() {
       />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard icon={TrendingDown} label="Total del período" value={formatARS(totals.total)} color="destructive" sub={`${filtered.length} gastos`} trend={prevMonthTotal ? { value: ((totals.total - prevMonthTotal) / prevMonthTotal) * 100, label: "vs mes ant." } : undefined} />
         <KPICard icon={Wallet} label="Promedio por gasto" value={filtered.length > 0 ? formatARS(totals.total / filtered.length) : "$0"} color="primary" />
         <KPICard icon={Repeat} label="Recurrentes" value={totals.recurring} color="warning" sub="se auto-generan" />
@@ -401,7 +401,7 @@ export default function ExpensesPage() {
 
       {/* Gastos tab: main table */}
       {activeTab === 'gastos' && (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chart */}
         <div className="bg-card border border-border/60 rounded-[10px] p-4 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Por Categoría</h2>
@@ -451,7 +451,7 @@ export default function ExpensesPage() {
                   )}
                   {budget > 0 && (
                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-warning' : 'bg-primary'}`}
+                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-yellow-500' : 'bg-primary'}`}
                         style={{ width: `${pct}%` }} />
                     </div>
                   )}
@@ -521,7 +521,7 @@ export default function ExpensesPage() {
                               <p className="text-[10px] text-amber-400/80 mt-0.5 truncate">{e.vendor}</p>
                             )}
                             {e.recurring && e.recurring_next_date && (
-                              <p className="text-[10px] text-warning/70 mt-0.5">
+                              <p className="text-[10px] text-yellow-400/70 mt-0.5">
                                 próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                               </p>
                             )}
@@ -566,7 +566,7 @@ export default function ExpensesPage() {
                             <span className="text-[10px] px-1.5 py-0.5 rounded-[5px] font-medium" style={{ background: `${catCfg?.color}22`, color: catCfg?.color }}>
                               {getExpenseCategoryLabel(e.category, settings)}
                             </span>
-                            {e.recurring && <Repeat className="w-3 h-3 text-warning" />}
+                            {e.recurring && <Repeat className="w-3 h-3 text-yellow-400" />}
                           </div>
                           <div className="flex items-center gap-1.5">
                             <p className="text-xs text-muted-foreground truncate">{e.description || 'Sin descripción'}</p>
@@ -579,7 +579,7 @@ export default function ExpensesPage() {
                           <p className="text-[10px] text-muted-foreground/60">
                             {formatDateAR(e.date)}
                             {e.recurring && e.recurring_next_date && (
-                              <span className="ml-2 text-warning/70">
+                              <span className="ml-2 text-yellow-400/70">
                                 próx. {new Date(e.recurring_next_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                               </span>
                             )}
@@ -656,7 +656,7 @@ export default function ExpensesPage() {
           {totals.chartData.length === 0 ? (
             <p className="text-muted-foreground text-sm py-12 text-center">Sin datos para el período seleccionado</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {totals.chartData.map(c => {
                 const budget = budgets[c.cat] || 0;
                 const pct = budget > 0 ? Math.min(100, (c.value / budget) * 100) : 0;
@@ -691,7 +691,7 @@ export default function ExpensesPage() {
                       </div>
                     )}
                     <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-warning' : 'bg-primary'}`}
+                      <div className={`h-full rounded-full transition-all ${over ? 'bg-destructive' : pct >= 80 ? 'bg-yellow-500' : 'bg-primary'}`}
                         style={{ width: budget > 0 ? `${pct}%` : '0%' }} />
                     </div>
                     {budget > 0 && (
@@ -725,7 +725,7 @@ export default function ExpensesPage() {
                 <h3 className="text-sm font-semibold text-amber-400">📅 Próximos vencimientos (30 días)</h3>
                 <span className="text-xs font-bold text-amber-400">{formatARS(totalUpcoming)}</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {upcoming.slice(0, 6).map(e => {
                   const daysUntil = Math.ceil((new Date(e.recurring_next_date!).getTime() - Date.now()) / 86400000);
                   return (
@@ -864,7 +864,7 @@ export default function ExpensesPage() {
                         <td key={m.key} className="py-2 px-2 text-right">
                           <div>{formatARS(m.total).replace('$', '').trim()}</div>
                           {m.delta !== null && (
-                            <div className={`text-[10px] font-medium ${m.delta > 0 ? 'text-destructive' : 'text-success'}`}>
+                            <div className={`text-[10px] font-medium ${m.delta > 0 ? 'text-destructive' : 'text-emerald-400'}`}>
                               {m.delta > 0 ? '▲' : '▼'}{Math.abs(m.delta).toFixed(0)}%
                             </div>
                           )}
@@ -1093,7 +1093,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
       <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium flex items-center gap-1.5"><Repeat className="w-4 h-4 text-warning" />Gasto recurrente</p>
+            <p className="text-sm font-medium flex items-center gap-1.5"><Repeat className="w-4 h-4 text-yellow-400" />Gasto recurrente</p>
             <p className="text-xs text-muted-foreground">Se genera automáticamente en la próxima fecha</p>
           </div>
           <Switch checked={recurring} onCheckedChange={setRecurring} />
@@ -1127,13 +1127,13 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
       </div>
 
       {/* Receipt upload */}
-      <div className="space-y-2">
+      <div className="space-y-2 pb-12">
         <label className="text-sm text-muted-foreground flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />Recibo / Comprobante</label>
         {receiptUrl ? (
           <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg p-2">
             <img src={receiptUrl} alt="recibo" className="w-12 h-12 object-cover rounded" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-success font-medium">Recibo adjuntado</p>
+              <p className="text-xs text-emerald-400 font-medium">Recibo adjuntado</p>
               <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-[10px] text-primary flex items-center gap-1 hover:underline">
                 <ExternalLink className="w-3 h-3" />Ver original
               </a>

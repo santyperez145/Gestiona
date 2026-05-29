@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -192,7 +192,7 @@ export default function MultiWarehousePage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Warehouse}
         title="Multi-Depósito"
@@ -207,8 +207,8 @@ export default function MultiWarehousePage() {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader><DialogTitle>Nueva posición (bin)</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1">
+              <div className="space-y-3 pb-12">
+                <div className="space-y-1 pb-12">
                   <Label>Zona *</Label>
                   <Select value={binForm.zone_id} onValueChange={v => setBinForm(f => ({ ...f, zone_id: v }))}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar zona" /></SelectTrigger>
@@ -221,16 +221,16 @@ export default function MultiWarehousePage() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Código *</Label>
                     <Input value={binForm.code} onChange={e => setBinForm(f => ({ ...f, code: e.target.value }))} placeholder="A-01-01" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Capacidad (u)</Label>
                     <Input type="number" min={0} value={binForm.capacity} onChange={e => setBinForm(f => ({ ...f, capacity: Number(e.target.value) }))} />
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Descripción</Label>
                   <Input value={binForm.description} onChange={e => setBinForm(f => ({ ...f, description: e.target.value }))} />
                 </div>
@@ -249,8 +249,8 @@ export default function MultiWarehousePage() {
             </DialogTrigger>
             <DialogContent className="max-w-sm">
               <DialogHeader><DialogTitle>Nueva zona</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1">
+              <div className="space-y-3 pb-12">
+                <div className="space-y-1 pb-12">
                   <Label>Depósito *</Label>
                   <Select value={zoneForm.warehouse_id} onValueChange={v => setZoneForm(f => ({ ...f, warehouse_id: v }))}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar depósito" /></SelectTrigger>
@@ -259,11 +259,11 @@ export default function MultiWarehousePage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Nombre *</Label>
                   <Input value={zoneForm.name} onChange={e => setZoneForm(f => ({ ...f, name: e.target.value }))} placeholder="Zona A, Zona Frío..." />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Tipo</Label>
                   <Select value={zoneForm.zone_type} onValueChange={v => setZoneForm(f => ({ ...f, zone_type: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -287,27 +287,27 @@ export default function MultiWarehousePage() {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader><DialogTitle>Nuevo depósito</DialogTitle></DialogHeader>
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Nombre *</Label>
                     <Input value={whForm.name} onChange={e => setWhForm(f => ({ ...f, name: e.target.value }))} placeholder="Depósito Central" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Código</Label>
                     <Input value={whForm.code} onChange={e => setWhForm(f => ({ ...f, code: e.target.value }))} placeholder="DEP-01" />
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Dirección</Label>
                   <Input value={whForm.address} onChange={e => setWhForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle, número..." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Responsable</Label>
                     <Input value={whForm.manager} onChange={e => setWhForm(f => ({ ...f, manager: e.target.value }))} />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Teléfono</Label>
                     <Input value={whForm.phone} onChange={e => setWhForm(f => ({ ...f, phone: e.target.value }))} />
                   </div>
@@ -341,7 +341,7 @@ export default function MultiWarehousePage() {
           <p>No hay depósitos configurados</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {warehouses.map(wh => {
             const whZones = zones.filter(z => z.warehouse_id === wh.id);
             const whBins = bins.filter(b => b.warehouse_id === wh.id);
@@ -454,9 +454,9 @@ export default function MultiWarehousePage() {
       <Dialog open={stockOpen} onOpenChange={setStockOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Asignar stock a posición</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <p className="text-sm text-muted-foreground">Posición: <strong className="text-foreground">{bins.find(b => b.id === stockBinId)?.code ?? "—"}</strong></p>
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label>Producto *</Label>
               <Select value={stockProductId} onValueChange={setStockProductId}>
                 <SelectTrigger><SelectValue placeholder="Buscar producto" /></SelectTrigger>
@@ -465,7 +465,7 @@ export default function MultiWarehousePage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label>Cantidad</Label>
               <Input type="number" min={0} value={stockQty} onChange={e => setStockQty(Number(e.target.value))} />
             </div>

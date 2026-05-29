@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -221,7 +221,7 @@ function SegForm({ open, segment, orgId, onClose, onSaved }: SegFormProps) {
           </div>
 
           {isDynamic && (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               <div className="flex items-center justify-between">
                 <Label>Reglas de inclusión</Label>
                 <Button size="sm" variant="outline" onClick={addRule}>
@@ -343,7 +343,7 @@ function SegCard({ segment, campaigns, onEdit, onDelete, onSync, onNewCampaign }
           {segCampaigns.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1.5">Campañas:</p>
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 {segCampaigns.slice(0, 3).map(c => {
                   const ch = CHANNEL_CONFIG[c.channel];
                   const sc = STATUS_CONFIG[c.status];
@@ -553,7 +553,7 @@ export default function CustomerSegmentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Layers}
         title="Segmentos de Clientes"

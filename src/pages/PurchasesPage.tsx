@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
@@ -258,7 +258,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ShoppingCart}
         title="Compras"
@@ -300,7 +300,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total invertido USD" value={formatUSD(totalUSD)} icon={DollarSign} color="primary" sub={`${filtered.length} compras`} />
         <KPICard label="Total invertido ARS" value={formatARS(totalARS)} icon={TrendingDown} color="destructive" />
         <KPICard label="Prom. por compra" value={filtered.length > 0 ? formatUSD(totalUSD / filtered.length) : "$0"} icon={Package} color="blue" />
@@ -337,11 +337,11 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
         const stages = [
           { label: "Pedidos pendientes", count: pending.length, value: pending.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: "📋" },
           { label: "En camino", count: inTransit.length, value: inTransit.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: "🚚" },
-          { label: "Recibidos (30d)", count: received30.length, value: received30.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-success/30 bg-success/5 text-success", icon: "✅" },
+          { label: "Recibidos (30d)", count: received30.length, value: received30.reduce((s, p) => s + Number(p.total_usd), 0), color: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: "✅" },
         ];
         if (stages.every(s => s.count === 0)) return null;
         return (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-3">
             {stages.map(s => (
               <div key={s.label} className={`rounded-[10px] border p-3 ${s.color}`}>
                 <div className="text-lg mb-1">{s.icon}</div>
@@ -544,7 +544,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
                             </Button>
                           )}
                           {canEdit && p.is_scheduled && (
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-success hover:text-success hover:bg-success/10" title="Registrar recepción (puede ser parcial)" onClick={() => setReceivingOrder({ purchase: p, qty: String(p.quantity) })}>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-emerald-400 hover:text-emerald-400 hover:bg-emerald-500/10" title="Registrar recepción (puede ser parcial)" onClick={() => setReceivingOrder({ purchase: p, qty: String(p.quantity) })}>
                               <CalendarClock className="w-3.5 h-3.5 mr-1" />Recibido
                             </Button>
                           )}
@@ -624,7 +624,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
             <DialogTitle className="font-display">Registrar recepción</DialogTitle>
           </DialogHeader>
           {receivingOrder && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               <div className="bg-muted/40 rounded-lg p-3 text-sm">
                 <p className="font-medium">{receivingOrder.purchase.product_name}</p>
                 <p className="text-muted-foreground text-xs mt-0.5">Pedido: {receivingOrder.purchase.quantity} uds · {formatUSD(Number(receivingOrder.purchase.total_usd))}</p>
@@ -641,7 +641,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
                   autoFocus
                 />
                 {Number(receivingOrder.qty) < Number(receivingOrder.purchase.quantity) && Number(receivingOrder.qty) > 0 && (
-                  <p className="text-xs text-warning">Recepción parcial — se actualizará el stock con {receivingOrder.qty} uds.</p>
+                  <p className="text-xs text-yellow-400">Recepción parcial — se actualizará el stock con {receivingOrder.qty} uds.</p>
                 )}
               </div>
               <div className="flex gap-2">
@@ -776,10 +776,10 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
   if (!settings) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
       <div className="flex items-center justify-between bg-muted/50 border border-border rounded-lg p-3">
         <div>
-          <p className="text-sm font-medium flex items-center gap-1.5"><Clock className="w-4 h-4 text-warning" />Compra programada</p>
+          <p className="text-sm font-medium flex items-center gap-1.5"><Clock className="w-4 h-4 text-yellow-400" />Compra programada</p>
           <p className="text-[11px] text-muted-foreground">No descuenta stock; aparece en el flujo de caja proyectado.</p>
         </div>
         <Switch checked={isScheduled} onCheckedChange={setIsScheduled} />
@@ -848,7 +848,7 @@ function PurchaseForm({ userId, editItem, prefilledProductName, onSave }: { user
         <div className="bg-muted rounded-lg p-4 space-y-1 text-sm animate-in fade-in duration-200">
           <div className="flex justify-between"><span className="text-muted-foreground">Costo unitario:</span><span>{formatUSD(unitCost)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal ({qty} uds):</span><span>{formatUSD(unitCost * qty)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-warning">{formatUSD(customsFee)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">+{customsPercent}% Pasero:</span><span className="text-yellow-400">{formatUSD(customsFee)}</span></div>
           <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total USD:</span><span>{formatUSD(totalUSD)}</span></div>
           <div className="flex justify-between font-bold"><span>Total ARS:</span><span className="text-primary">{formatARS(totalARS)}</span></div>
           <div className="flex justify-between text-xs border-t border-border pt-1"><span className="text-muted-foreground">Costo/u con pasero:</span><span>{formatUSD(qty > 0 ? totalUSD / qty : 0)}</span></div>
@@ -961,7 +961,7 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <p className="text-sm text-muted-foreground">Seleccioná los productos y cantidades para generar el Excel de orden de compra.</p>
 
       {/* Auto-restock section */}

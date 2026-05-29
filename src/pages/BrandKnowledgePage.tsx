@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { listBrandKnowledge, createBrandKnowledge, updateBrandKnowledge, deleteBrandKnowledge } from "@/lib/marketingExtraDB";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Brain, Plus, Edit, Trash2 } from "lucide-react";
+import { Brain, Plus, Edit, Trash2, BookOpen, Tag, Globe } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const CATEGORIES = [
@@ -39,6 +40,8 @@ export default function BrandKnowledgePage() {
 
   const filtered = filter === 'all' ? items : items.filter(i => i.category === filter);
   const grouped = CATEGORIES.map(c => ({ ...c, items: filtered.filter(i => i.category === c.code) })).filter(g => g.items.length > 0);
+  const categoriesUsed = new Set(items.map(i => i.category)).size;
+  const publicItems = items.filter(i => i.is_public).length;
 
   const handleDelete = async (id: string) => {
     await deleteBrandKnowledge(id);
@@ -47,7 +50,7 @@ export default function BrandKnowledgePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
         title="Base de conocimiento de marcas"
@@ -70,6 +73,14 @@ export default function BrandKnowledgePage() {
         }
       />
 
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Marcas registradas" value={items.length} icon={Brain} color="primary" sub="en base de conocimiento" />
+        <KPICard label="Categorías" value={categoriesUsed} icon={Tag} color="blue" sub={`de ${CATEGORIES.length} disponibles`} />
+        <KPICard label="Mostrando" value={filtered.length} icon={BookOpen} color={filtered.length < items.length ? "warning" : "success"} sub={filter === 'all' ? "todas las marcas" : "filtradas"} />
+        <KPICard label="Públicas" value={publicItems} icon={Globe} color={publicItems > 0 ? "success" : "primary"} sub="visibles en catálogo" />
+      </div>
+
       <div className="mb-4">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="bg-muted border-border w-full sm:w-64"><SelectValue /></SelectTrigger>
@@ -88,7 +99,7 @@ export default function BrandKnowledgePage() {
           <p>Sin marcas cargadas. La IA usará reglas genéricas hasta que agregues conocimiento.</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
           {grouped.map(g => (
             <div key={g.code}>
               <h2 className="font-display text-sm uppercase tracking-wider text-muted-foreground mb-2">{g.label}</h2>
@@ -154,7 +165,7 @@ function BrandForm({ editItem, onSave }: { editItem?: any; onSave: () => void })
   };
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className="space-y-3 pb-12">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground">Marca *</label>

@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { KPICard } from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   RotateCcw, Plus, CheckCircle2, XCircle, Clock, Package,
   Pencil, Trash2, RefreshCcw, DollarSign, AlertCircle, Search, Loader2
@@ -155,7 +155,7 @@ export default function ReturnsPortalPage() {
   const totalRefunds = returns.filter(r => r.resolution === "refund" && r.refund_amount).reduce((s, r) => s + (r.refund_amount ?? 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={RotateCcw}
         title="Portal de Devoluciones RMA"
@@ -222,8 +222,8 @@ export default function ReturnsPortalPage() {
                             <div className="flex gap-1">
                               {r.status === "pending" && (
                                 <>
-                                  <Button size="sm" variant="outline" className="text-green-600 border-green-300 text-xs" onClick={() => { setShowApproveDialog(r); setApproveForm({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment" }); }}>Aprobar</Button>
-                                  <Button size="sm" variant="outline" className="text-red-500 border-red-200 text-xs" onClick={() => { setShowRejectDialog(r); setRejectReason(""); }}>Rechazar</Button>
+                                  <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs" onClick={() => { setShowApproveDialog(r); setApproveForm({ resolution: "refund", resolution_notes: "", refund_amount: "", refund_method: "original_payment" }); }}>Aprobar</Button>
+                                  <Button size="sm" variant="outline" className="text-red-400 border-red-400/30 hover:bg-red-400/10 text-xs" onClick={() => { setShowRejectDialog(r); setRejectReason(""); }}>Rechazar</Button>
                                 </>
                               )}
                               {r.status === "approved" && <Button size="sm" variant="outline" className="text-xs" onClick={() => resolveReturn(r.id)}>Resolver</Button>}
@@ -248,7 +248,7 @@ export default function ReturnsPortalPage() {
                   <div key={r.id} className={`bg-card rounded-xl border p-4 flex items-center justify-between ${!r.is_active ? "opacity-50" : ""}`}>
                     <div>
                       <p className="font-medium text-foreground">{r.name}</p>
-                      {r.requires_photo && <p className="text-xs text-orange-500 mt-0.5">Requiere foto</p>}
+                      {r.requires_photo && <p className="text-xs text-orange-400 mt-0.5">Requiere foto</p>}
                     </div>
                     <button onClick={() => supabase.from("return_reasons").delete().eq("id", r.id).then(load)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                   </div>

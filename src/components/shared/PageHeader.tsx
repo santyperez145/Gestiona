@@ -14,8 +14,8 @@ interface PageHeaderProps {
 
 const BADGE: Record<BadgeVariant, string> = {
   default:     "bg-primary/12 text-primary border border-primary/20",
-  success:     "bg-success/12 text-success border border-success/20",
-  warning:     "bg-warning/12 text-warning border border-warning/20",
+  success:     "bg-emerald-500/12 text-emerald-400 border border-emerald-500/20",
+  warning:     "bg-yellow-500/12 text-yellow-400 border border-yellow-500/20",
   destructive: "bg-destructive/12 text-destructive border border-destructive/20",
 };
 

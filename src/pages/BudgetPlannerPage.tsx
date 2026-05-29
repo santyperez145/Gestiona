@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -425,21 +425,21 @@ export default function BudgetPlannerPage() {
                   {totalBudgetedExpenses > 0 ? (
                     <>
                       <div className="flex items-end gap-3 mb-2">
-                        <span className={`text-3xl font-bold ${expensePct >= 90 ? "text-destructive" : expensePct >= 70 ? "text-warning" : "text-success"}`}>
+                        <span className={`text-3xl font-bold ${expensePct >= 90 ? "text-destructive" : expensePct >= 70 ? "text-yellow-400" : "text-emerald-400"}`}>
                           {expensePct.toFixed(1)}%
                         </span>
                         <span className="text-sm text-muted-foreground mb-1">ejecutado</span>
                       </div>
                       <div className="h-4 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${expensePct >= 90 ? "bg-destructive" : expensePct >= 70 ? "bg-warning" : "bg-success"}`}
+                          className={`h-full rounded-full transition-all duration-500 ${expensePct >= 90 ? "bg-destructive" : expensePct >= 70 ? "bg-yellow-500" : "bg-emerald-500"}`}
                           style={{ width: `${Math.min(expensePct, 100)}%` }}
                         />
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground mt-2">
                         <span>Real: <strong>{fmt(totalActualExpenses)}</strong></span>
                         <span>Presupuestado: <strong>{fmt(totalBudgetedExpenses)}</strong></span>
-                        <span className={totalBudgetedExpenses - totalActualExpenses < 0 ? "text-destructive" : "text-success"}>
+                        <span className={totalBudgetedExpenses - totalActualExpenses < 0 ? "text-destructive" : "text-emerald-400"}>
                           {totalBudgetedExpenses - totalActualExpenses >= 0 ? "Disponible: " : "Excedido: "}
                           <strong>{fmt(Math.abs(totalBudgetedExpenses - totalActualExpenses))}</strong>
                         </span>
@@ -482,21 +482,21 @@ export default function BudgetPlannerPage() {
                 {/* Income vs Expense summary */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-2xl border border-border/50 bg-card p-5">
-                    <h3 className="text-sm font-semibold text-success mb-3 flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-1.5">
                       <TrendingUp className="w-4 h-4" /> Ingresos
                     </h3>
                     <div className="space-y-2">
                       {incomeCats.map(cat => (
                         <div key={cat.id} className="flex justify-between text-xs">
                           <span className="text-muted-foreground">{cat.icon} {cat.name}</span>
-                          <span className="font-semibold text-success">{fmt(spendingMap[cat.id] || 0)}</span>
+                          <span className="font-semibold text-emerald-400">{fmt(spendingMap[cat.id] || 0)}</span>
                         </div>
                       ))}
                       {incomeCats.length === 0 && <p className="text-xs text-muted-foreground">Sin categorías de ingreso.</p>}
                     </div>
                     <div className="mt-3 pt-2 border-t border-border/40 flex justify-between text-xs font-semibold">
                       <span>Total</span>
-                      <span className="text-success">{fmt(totalActualIncome)}</span>
+                      <span className="text-emerald-400">{fmt(totalActualIncome)}</span>
                     </div>
                   </div>
                   <div className="rounded-2xl border border-border/50 bg-card p-5">

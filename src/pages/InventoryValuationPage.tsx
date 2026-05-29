@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { KPICard } from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -134,7 +134,7 @@ export default function InventoryValuationPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Layers}
         title="Valuación de Inventario"
@@ -182,7 +182,7 @@ export default function InventoryValuationPage() {
         </TabsList>
 
         {/* VALUATION TABLE */}
-        <TabsContent value="valuation" className="space-y-3">
+        <TabsContent value="valuation" className="space-y-3 pb-12">
           <div className="flex gap-2 items-center">
             <Input placeholder="Buscar producto o SKU..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
             <Select value={sortBy} onValueChange={v => setSortBy(v as typeof sortBy)}>
@@ -255,7 +255,7 @@ export default function InventoryValuationPage() {
         </TabsContent>
 
         {/* LAYERS */}
-        <TabsContent value="layers" className="space-y-3">
+        <TabsContent value="layers" className="space-y-3 pb-12">
           <p className="text-sm text-muted-foreground">Capas de costo activas (stock disponible con su costo de adquisición)</p>
           <Card>
             <CardContent className="p-0 overflow-x-auto">
@@ -321,7 +321,7 @@ export default function InventoryValuationPage() {
         <TabsContent value="config">
           <Card className="max-w-md">
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Calculator className="w-4 h-4" />Método de Valuación</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               {[
                 { value: "average", label: "Costo Promedio Ponderado", desc: "El más usado en Argentina. Promedia el costo de todas las unidades." },
                 { value: "fifo", label: "FIFO (First In, First Out)", desc: "Primero en entrar, primero en salir. El stock más antiguo se registra como vendido primero." },

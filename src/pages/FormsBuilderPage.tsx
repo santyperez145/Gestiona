@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -276,7 +276,7 @@ function FormBuilderDialog({ open, onClose, editing, orgId, onSaved }: {
                 })}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {fields.map((f, i) => (
                 <FieldEditor key={f.id} field={f}
                   onChange={nf => updateField(i, nf)}
@@ -391,7 +391,7 @@ export default function FormsBuilderPage() {
   const activeCount = forms.filter(f => f.status === "active").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={FormInput}
         title="Constructor de Formularios"

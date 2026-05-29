@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PricingIntelligencePage — /precios-inteligentes
  *
  * Shows margin analysis per product, identifies underpriced or low-margin
@@ -237,7 +237,7 @@ export default function PricingIntelligencePage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Percent}
         title="Precios Inteligentes"
@@ -250,34 +250,34 @@ export default function PricingIntelligencePage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
-          title="Margen promedio"
+          label="Margen promedio"
           value={`${kpis.avgMargin.toFixed(1)}%`}
           icon={Percent}
-          trend={kpis.avgMargin >= 30 ? "Por encima del objetivo" : "Por debajo del objetivo"}
-          trendUp={kpis.avgMargin >= 30}
+          color={kpis.avgMargin >= 30 ? "success" : kpis.avgMargin >= 15 ? "warning" : "destructive"}
+          sub={kpis.avgMargin >= 30 ? "por encima del objetivo" : "por debajo del objetivo"}
         />
         <KPICard
-          title="Productos críticos"
-          value={String(kpis.critical)}
+          label="Productos críticos"
+          value={kpis.critical}
           icon={AlertTriangle}
-          trend="Margen < 10%"
-          trendUp={kpis.critical === 0}
+          color={kpis.critical === 0 ? "success" : "destructive"}
+          sub="margen < 10%"
         />
         <KPICard
-          title="Contribución margen 30d"
+          label="Contribución margen 30d"
           value={formatARS(kpis.totalMarginContrib)}
           icon={TrendingUp}
-          trend="Ganancia × unidades vendidas"
-          trendUp={kpis.totalMarginContrib > 0}
+          color="blue"
+          sub="ganancia × unidades vendidas"
         />
         <KPICard
-          title="Tipo de cambio vigente"
+          label="Tipo de cambio"
           value={`$${exchangeRate.toLocaleString("es-AR")}`}
           icon={DollarSign}
-          trend="USD → ARS en configuración"
-          trendUp={true}
+          color="primary"
+          sub="USD → ARS configurado"
         />
       </div>
 
@@ -286,7 +286,7 @@ export default function PricingIntelligencePage() {
           <RefreshCw className="w-4 h-4 animate-spin" /> Cargando análisis…
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
           {/* What-if rate simulator + target margin */}
           <div className="bg-card border border-border/60 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">

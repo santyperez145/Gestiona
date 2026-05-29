@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -252,7 +252,7 @@ export default function EmployeePayrollPage() {
   const latestPeriod = periods[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users2}
         title="Empleados & Liquidación"
@@ -295,7 +295,7 @@ export default function EmployeePayrollPage() {
                 <p className="text-sm">Sin empleados. Agregá tu equipo.</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {employees.map(emp => {
                   const st = EMP_STATUS[emp.status];
                   return (

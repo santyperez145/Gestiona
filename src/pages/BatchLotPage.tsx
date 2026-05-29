@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -187,9 +187,9 @@ export default function BatchLotPage() {
   const totalValue = kpis.totalVal;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
-        icon={<Layers className="w-6 h-6" />}
+        icon={Layers}
         title="Lotes & Vencimientos"
         description="Trazabilidad completa por lote: fechas de vencimiento, movimientos y cuarentenas."
         actions={
@@ -256,7 +256,7 @@ export default function BatchLotPage() {
           <p className="text-sm">Sin lotes registrados.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filteredBatches.map(batch => {
             const prod = products.find(p => p.id === batch.product_id);
             const days = daysToExpiry(batch.expiry_date);
@@ -313,7 +313,7 @@ export default function BatchLotPage() {
                     {batchMvts.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-1.5">Historial de movimientos</p>
-                        <div className="space-y-1">
+                        <div className="space-y-1 pb-12">
                           {batchMvts.slice(0, 8).map(m => (
                             <div key={m.id} className="flex items-center gap-3 text-xs">
                               <span className={`font-medium ${m.movement_type === "in" || m.movement_type === "return" ? "text-emerald-400" : "text-destructive"}`}>

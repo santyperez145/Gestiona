@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -214,7 +214,7 @@ export default function FixedAssetsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Landmark}
         title="Activos Fijos"
@@ -228,13 +228,13 @@ export default function FixedAssetsPage() {
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuevo activo fijo</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1">
+            <div className="space-y-3 pb-12">
+              <div className="space-y-1 pb-12">
                 <Label>Nombre *</Label>
                 <Input value={assetForm.name} onChange={e => setAssetForm(f => ({ ...f, name: e.target.value }))} placeholder="Computadora Dell, Escritorio..." />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Categoría</Label>
                   <Select value={assetForm.category} onValueChange={v => setAssetForm(f => ({ ...f, category: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -243,7 +243,7 @@ export default function FixedAssetsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Método depreciación</Label>
                   <Select value={assetForm.depreciation_method} onValueChange={v => setAssetForm(f => ({ ...f, depreciation_method: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -253,19 +253,19 @@ export default function FixedAssetsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Costo de adquisición</Label>
                   <Input type="number" min={0} value={assetForm.purchase_cost} onChange={e => setAssetForm(f => ({ ...f, purchase_cost: Number(e.target.value) }))} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Valor residual</Label>
                   <Input type="number" min={0} value={assetForm.salvage_value} onChange={e => setAssetForm(f => ({ ...f, salvage_value: Number(e.target.value) }))} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Vida útil (años)</Label>
                   <Input type="number" min={1} value={assetForm.useful_life_years} onChange={e => setAssetForm(f => ({ ...f, useful_life_years: Number(e.target.value) }))} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Fecha adquisición</Label>
                   <Input type="date" value={assetForm.purchase_date} onChange={e => setAssetForm(f => ({ ...f, purchase_date: e.target.value }))} />
                 </div>
@@ -277,24 +277,24 @@ export default function FixedAssetsPage() {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Ubicación</Label>
                   <Input value={assetForm.location} onChange={e => setAssetForm(f => ({ ...f, location: e.target.value }))} placeholder="Oficina, Depósito..." />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Responsable</Label>
                   <Input value={assetForm.assigned_to} onChange={e => setAssetForm(f => ({ ...f, assigned_to: e.target.value }))} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Proveedor</Label>
                   <Input value={assetForm.supplier_name} onChange={e => setAssetForm(f => ({ ...f, supplier_name: e.target.value }))} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Venc. garantía</Label>
                   <Input type="date" value={assetForm.warranty_expiry} onChange={e => setAssetForm(f => ({ ...f, warranty_expiry: e.target.value }))} />
                 </div>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 <Label>Descripción / Notas</Label>
                 <Textarea value={assetForm.notes} onChange={e => setAssetForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
               </div>
@@ -367,7 +367,7 @@ export default function FixedAssetsPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 pb-12">
                   <div className="grid grid-cols-2 gap-2 text-center">
                     <div className="bg-muted/20 rounded p-2">
                       <p className="text-xs text-muted-foreground">Costo</p>
@@ -413,14 +413,14 @@ export default function FixedAssetsPage() {
                         </DialogTrigger>
                         <DialogContent className="max-w-sm">
                           <DialogHeader><DialogTitle>Registrar amortización mensual</DialogTitle></DialogHeader>
-                          <div className="space-y-3">
+                          <div className="space-y-3 pb-12">
                             <p className="text-sm text-muted-foreground"><strong>{asset.name}</strong></p>
                             <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1">
+                              <div className="space-y-1 pb-12">
                                 <Label>Año</Label>
                                 <Input type="number" value={deprYear} onChange={e => setDeprYear(Number(e.target.value))} />
                               </div>
-                              <div className="space-y-1">
+                              <div className="space-y-1 pb-12">
                                 <Label>Mes</Label>
                                 <Select value={String(deprMonth)} onValueChange={v => setDeprMonth(Number(v))}>
                                   <SelectTrigger><SelectValue /></SelectTrigger>

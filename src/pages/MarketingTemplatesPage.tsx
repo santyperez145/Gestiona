@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, Plus, Copy, Heart, Download, Globe, Lock, Search, Tag, ArrowUpRight } from "lucide-react";
+import { Sparkles, Plus, Copy, Heart, Download, Globe, Lock, Search, Tag, ArrowUpRight, BarChart3 } from "lucide-react";
+import KPICard from "@/components/shared/KPICard";
 import PageHeader from "@/components/shared/PageHeader";
 import { addMarketingPostDB } from "@/lib/supabaseStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -79,7 +80,7 @@ function TemplateForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Título *</label>
         <Input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Ej: Post de oferta de fin de semana" />
@@ -111,7 +112,7 @@ function TemplateForm({
       <label className="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" checked={form.is_public} onChange={e => set("is_public", e.target.checked)} className="rounded" />
         <span className="text-sm">Compartir con la comunidad (público)</span>
-        {form.is_public && <Globe className="w-4 h-4 text-success" />}
+        {form.is_public && <Globe className="w-4 h-4 text-emerald-400" />}
       </label>
       <div className="flex gap-2 pt-2">
         <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold" disabled={saving}>
@@ -180,7 +181,7 @@ export default function MarketingTemplatesPage() {
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <PageHeader
         icon={Sparkles}
         title="Marketplace de Templates"
@@ -192,8 +193,16 @@ export default function MarketingTemplatesPage() {
         }
       />
 
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Comunidad" value={templates.length} icon={Globe} color="primary" sub="templates públicos" />
+        <KPICard label="Mis templates" value={myTemplates.length} icon={Lock} color="blue" sub="propios" />
+        <KPICard label="Total likes" value={templates.reduce((s, t) => s + t.likes, 0)} icon={Heart} color="success" sub="en toda la comunidad" />
+        <KPICard label="Total usos" value={templates.reduce((s, t) => s + t.uses_count, 0)} icon={BarChart3} color="warning" sub="veces usado" />
+      </div>
+
       {/* Tabs */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2">
         <Button variant={tab === "marketplace" ? "default" : "outline"} size="sm" onClick={() => setTab("marketplace")}>
           <Globe className="w-3.5 h-3.5 mr-1.5" />Comunidad ({templates.length})
         </Button>
@@ -203,7 +212,7 @@ export default function MarketingTemplatesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar templates…" className="pl-9 h-8 text-sm" />
@@ -232,7 +241,7 @@ export default function MarketingTemplatesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="text-sm font-semibold truncate">{tpl.title}</span>
-                    {tpl.is_public ? <Globe className="w-3 h-3 text-success shrink-0" /> : <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                    {tpl.is_public ? <Globe className="w-3 h-3 text-emerald-400 shrink-0" /> : <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] bg-muted rounded-full px-1.5 py-0.5 text-muted-foreground">

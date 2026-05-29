@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Map, Users, TrendingUp, Heart, AlertTriangle, Plus, Search,
   MessageCircle, Mail, Phone, ShoppingCart, Star, RefreshCw,
-  Smile, Meh, Frown, Zap, CheckCircle2, ChevronDown, ChevronUp, Loader2
+  Smile, Meh, Frown, Zap, CheckCircle2, ChevronDown, ChevronUp, Loader2, DollarSign
 } from "lucide-react";
 
 const STAGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -204,6 +205,14 @@ export default function CustomerJourneyPage() {
         }
       />
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="Total clientes" value={customers.length} icon={Users} color="primary" sub={`${stages.length} etapas activas`} />
+        <KPICard label="Embajadores" value={customers.filter(c => c.stage === "advocacy").length} icon={Star} color="success" sub="alto LTV y frecuencia" />
+        <KPICard label="En riesgo de baja" value={customers.filter(c => c.stage === "churn_risk").length} icon={AlertTriangle} color="destructive" sub="requieren atención" />
+        <KPICard label="Revenue total" value={`$${(customers.reduce((s, c) => s + c.ltv, 0) / 1000).toFixed(0)}K`} icon={DollarSign} color="blue" sub="LTV acumulado" />
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
         {TABS.map(t => (
@@ -251,30 +260,39 @@ export default function CustomerJourneyPage() {
             </div>
           )}
 
-          {/* Sankey-like flow description */}
+          {/* Stage distribution flow */}
+          {customers.length > 0 && (
           <div className="bg-card border border-border/40 rounded-xl p-5">
-            <h3 className="font-semibold mb-4">Transiciones de Etapa (últimos 30 días)</h3>
+            <h3 className="font-semibold mb-4">Distribución por Etapa</h3>
             <div className="space-y-2">
               {[
-                { from: "Descubrimiento", to: "Evaluación",     count: 34, pct: 24 },
-                { from: "Evaluación",     to: "Primera Compra", count: 21, pct: 24 },
-                { from: "Primera Compra", to: "Cliente Activo", count: 58, pct: 23 },
-                { from: "Cliente Activo", to: "Embajador",      count: 12, pct: 3  },
-                { from: "Cliente Activo", to: "Riesgo de Baja", count: 8,  pct: 2  },
-              ].map(t => (
-                <div key={`${t.from}-${t.to}`} className="flex items-center gap-3 text-sm">
-                  <span className="text-muted-foreground text-xs w-32 shrink-0">{t.from}</span>
-                  <div className="flex-1 h-5 bg-muted/30 rounded-full relative overflow-hidden">
-                    <div className="h-full bg-primary/30 rounded-full" style={{ width: `${t.pct * 3}%` }} />
-                    <div className="absolute inset-y-0 left-3 flex items-center">
-                      <span className="text-[10px] font-semibold">{t.count} clientes ({t.pct}%)</span>
+                { type: "decision",      label: "Primera Compra" },
+                { type: "consideration", label: "Evaluación" },
+                { type: "retention",     label: "Cliente Activo" },
+                { type: "advocacy",      label: "Embajador" },
+                { type: "churn_risk",    label: "Riesgo de Baja" },
+                { type: "awareness",     label: "Descubrimiento" },
+              ].map(({ type, label }) => {
+                const count = customers.filter(c => c.stage === type).length;
+                if (count === 0) return null;
+                const pct = customers.length > 0 ? Math.round((count / customers.length) * 100) : 0;
+                const c = STAGE_COLORS[type] ?? STAGE_COLORS.awareness;
+                return (
+                  <div key={type} className="flex items-center gap-3 text-sm">
+                    <span className="text-muted-foreground text-xs w-32 shrink-0">{label}</span>
+                    <div className="flex-1 h-5 bg-muted/30 rounded-full relative overflow-hidden">
+                      <div className={`h-full rounded-full ${c.bg.replace("/10", "/40")}`} style={{ width: `${pct}%` }} />
+                      <div className="absolute inset-y-0 left-3 flex items-center">
+                        <span className={`text-[10px] font-semibold ${c.text}`}>{count} clientes ({pct}%)</span>
+                      </div>
                     </div>
+                    <span className={`text-xs w-10 text-right font-bold ${c.text}`}>{pct}%</span>
                   </div>
-                  <span className="text-muted-foreground text-xs w-28 shrink-0 text-right">{t.to}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
+          )}
         </div>
       )}
 

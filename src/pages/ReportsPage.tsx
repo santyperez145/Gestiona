@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, saveSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileSpreadsheet, TrendingUp, TrendingDown, Package, DollarSign, Users, FileText, Receipt, FileDown, ArrowUpDown, Boxes, Shield, BarChart2, MapPin, Printer, Sparkles, Mail, Calendar, Check, RefreshCw, Bell, Toggle, Send, Clock, FolderOpen } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useFileSystemAccess } from "@/hooks/useFileSystemAccess";
@@ -442,7 +443,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={BarChart2}
         title="Reportes & Análisis"
@@ -464,6 +465,14 @@ export default function ReportsPage() {
           </div>
         }
       />
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Ingresos del período" value={formatARS(periodRevenue)} icon={TrendingUp} color="primary" sub={filtered.label} />
+        <KPICard label="Ganancia bruta" value={formatARS(periodGrossProfit)} icon={DollarSign} color={periodGrossProfit > 0 ? "success" : "destructive"} sub={`${grossMarginPct.toFixed(1)}% margen`} />
+        <KPICard label="Resultado neto" value={formatARS(netIncome)} icon={BarChart2} color={netIncome > 0 ? "success" : "destructive"} sub={`${netMarginPct.toFixed(1)}% margen neto`} />
+        <KPICard label="Ventas registradas" value={filtered.sales.length} icon={Receipt} color="blue" sub={`${filtered.purchases.length} compras`} />
+      </div>
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="mb-4 flex-wrap">
@@ -488,11 +497,11 @@ export default function ReportsPage() {
           <TabsTrigger value="scheduled">✉️ Programados</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6 pb-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
-              <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-success" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Ganancia Bruta</span></div>
-              <p className="text-lg md:text-xl font-bold font-mono tracking-tight text-success">{formatARS(grossProfitARS)}</p>
+              <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-emerald-400" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Ganancia Bruta</span></div>
+              <p className="text-lg md:text-xl font-bold font-mono tracking-tight text-emerald-400">{formatARS(grossProfitARS)}</p>
               <p className="text-xs text-muted-foreground">{formatUSD(grossProfitUSD)}</p>
             </div>
             <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
@@ -501,7 +510,7 @@ export default function ReportsPage() {
               <p className="text-xs text-muted-foreground">{sales.length} ventas</p>
             </div>
             <div className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
-              <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-warning" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Inventario</span></div>
+              <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-yellow-400" /><span className="text-[10px] md:text-xs text-muted-foreground uppercase">Inventario</span></div>
               <p className="text-lg md:text-xl font-bold font-mono tracking-tight">{totalStock} uds</p>
               <p className="text-xs text-muted-foreground">{formatUSD(inventoryValueUSD)}</p>
             </div>
@@ -514,13 +523,13 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <div className="bg-card border border-border/60 rounded-[10px] p-4 md:p-5">
               <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Métricas de Rendimiento</h2>
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 {[
-                  ['Margen Bruto', totalSalesARS > 0 ? `${((grossProfitARS / totalSalesARS) * 100).toFixed(1)}%` : '0%', 'text-success'],
+                  ['Margen Bruto', totalSalesARS > 0 ? `${((grossProfitARS / totalSalesARS) * 100).toFixed(1)}%` : '0%', 'text-emerald-400'],
                   ['ROI', `${roi.toFixed(1)}%`, 'text-primary'],
-                  ['Inversión Total', `${formatUSD(totalPurchasesUSD)} (${formatARS(totalPurchasesARS)})`, 'text-warning'],
+                  ['Inversión Total', `${formatUSD(totalPurchasesUSD)} (${formatARS(totalPurchasesARS)})`, 'text-yellow-400'],
                   ['Ticket Promedio', formatARS(sales.length > 0 ? totalSalesARS / sales.length : 0), ''],
-                  ['Ganancia Promedio/Venta', formatARS(sales.length > 0 ? grossProfitARS / sales.length : 0), 'text-success'],
+                  ['Ganancia Promedio/Venta', formatARS(sales.length > 0 ? grossProfitARS / sales.length : 0), 'text-emerald-400'],
                   ['TC Actual', `$${Number(settings.exchange_rate).toLocaleString('es-AR')}`, ''],
                 ].map(([label, value, color]) => (
                   <div key={label as string} className="flex justify-between items-center py-2 border-b border-border">
@@ -536,14 +545,14 @@ export default function ReportsPage() {
                 <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <Receipt className="w-4 h-4" />Impuestos (Estimación)
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-3 pb-12">
                   {[
-                    ['Ganancia Bruta', formatARS(grossProfitARS), 'text-success'],
+                    ['Ganancia Bruta', formatARS(grossProfitARS), 'text-emerald-400'],
                     [`IVA (${settings.tax_iva_percent}%)`, `-${formatARS(taxes.iva)}`, 'text-destructive'],
                     [`IIBB (${settings.tax_iibb_percent}%)`, `-${formatARS(taxes.iibb)}`, 'text-destructive'],
-                    ...(Number(settings.tax_monotributo_monthly) > 0 ? [['Monotributo/mes', formatARS(Number(settings.tax_monotributo_monthly)), 'text-warning']] : []),
+                    ...(Number(settings.tax_monotributo_monthly) > 0 ? [['Monotributo/mes', formatARS(Number(settings.tax_monotributo_monthly)), 'text-yellow-400']] : []),
                     ['Total Impuestos', `-${formatARS(taxes.totalTax)}`, 'text-destructive'],
-                    ['Ganancia Neta (post-imp)', formatARS(taxes.netProfit), taxes.netProfit > 0 ? 'text-success' : 'text-destructive'],
+                    ['Ganancia Neta (post-imp)', formatARS(taxes.netProfit), taxes.netProfit > 0 ? 'text-emerald-400' : 'text-destructive'],
                   ].map(([label, value, color]) => (
                     <div key={label as string} className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-sm text-muted-foreground">{label}</span>
@@ -564,7 +573,7 @@ export default function ReportsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="income" className="space-y-4">
+        <TabsContent value="income" className="space-y-4 pb-12">
           {/* ── Comparativa rápida con período anterior ── */}
           {prevFiltered && period !== 'all' && (() => {
             const prevRev = prevFiltered.sales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
@@ -878,14 +887,14 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
   const PALETTE = ["hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)", "hsl(280,60%,55%)", "hsl(0,65%,55%)", "hsl(60,70%,50%)", "hsl(25,70%,50%)", "hsl(320,60%,50%)", "hsl(180,60%,45%)", "hsl(100,55%,40%)"];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Unidades en stock", value: totalUnits.toLocaleString("es-AR"), icon: Boxes, color: "text-primary" },
-          { label: "Valor al costo (ARS)", value: formatARS(totalCostValue), icon: DollarSign, color: "text-warning" },
-          { label: "Valor retail (ARS)", value: formatARS(totalRetailValue), icon: TrendingUp, color: "text-success" },
-          { label: "Margen no realizado", value: `${unrealizedMargin.toFixed(1)}%`, icon: Package, color: unrealizedMargin >= 30 ? "text-success" : unrealizedMargin >= 15 ? "text-warning" : "text-destructive" },
+          { label: "Valor al costo (ARS)", value: formatARS(totalCostValue), icon: DollarSign, color: "text-yellow-400" },
+          { label: "Valor retail (ARS)", value: formatARS(totalRetailValue), icon: TrendingUp, color: "text-emerald-400" },
+          { label: "Margen no realizado", value: `${unrealizedMargin.toFixed(1)}%`, icon: Package, color: unrealizedMargin >= 30 ? "text-emerald-400" : unrealizedMargin >= 15 ? "text-yellow-400" : "text-destructive" },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
             <div className="flex items-center justify-between mb-1">
@@ -902,11 +911,11 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
         <div className="flex flex-wrap gap-4 text-sm">
           <div>
             <span className="text-muted-foreground">Inversión inmovilizada (USD): </span>
-            <span className="font-bold text-warning">{formatUSD(totalCostUSD)}</span>
+            <span className="font-bold text-yellow-400">{formatUSD(totalCostUSD)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Ganancia potencial: </span>
-            <span className="font-bold text-success">{formatARS(totalRetailValue - totalCostValue)}</span>
+            <span className="font-bold text-emerald-400">{formatARS(totalRetailValue - totalCostValue)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Sin stock: </span>
@@ -1023,11 +1032,11 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
                     </td>
                     <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden lg:table-cell font-mono">{formatARS(r.costARS)}</td>
                     <td className="px-3 py-2.5 text-right text-xs font-mono">{formatARS(Number(r.sale_price_ars) || 0)}</td>
-                    <td className={`px-3 py-2.5 text-right text-xs font-bold ${r.margin >= 30 ? "text-success" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>
+                    <td className={`px-3 py-2.5 text-right text-xs font-bold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>
                       {r.margin.toFixed(1)}%
                     </td>
-                    <td className="px-3 py-2.5 text-right text-xs font-mono text-warning">{formatARS(r.costValue)}</td>
-                    <td className="px-3 py-2.5 text-right text-xs font-mono text-success">{formatARS(r.retailValue)}</td>
+                    <td className="px-3 py-2.5 text-right text-xs font-mono text-yellow-400">{formatARS(r.costValue)}</td>
+                    <td className="px-3 py-2.5 text-right text-xs font-mono text-emerald-400">{formatARS(r.retailValue)}</td>
                     <td className="px-3 py-2.5 text-right">
                       {r.days_remaining !== null ? (
                         <span className={`px-2 py-0.5 rounded-[5px] text-xs font-medium ${
@@ -1054,8 +1063,8 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
                   <td className="hidden lg:table-cell" />
                   <td />
                   <td className="px-3 py-2.5 text-right">{unrealizedMargin.toFixed(1)}%</td>
-                  <td className="px-3 py-2.5 text-right text-warning font-mono">{formatARS(totalCostValue)}</td>
-                  <td className="px-3 py-2.5 text-right text-success font-mono">{formatARS(totalRetailValue)}</td>
+                  <td className="px-3 py-2.5 text-right text-yellow-400 font-mono">{formatARS(totalCostValue)}</td>
+                  <td className="px-3 py-2.5 text-right text-emerald-400 font-mono">{formatARS(totalRetailValue)}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -1151,7 +1160,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Período: {label}</h3>
         <div className="flex items-center gap-3">
@@ -1258,9 +1267,9 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
                 <div className="h-1.5 rounded-full transition-all" style={{ width: `${sharePct}%`, background: SELLER_COLORS[i % SELLER_COLORS.length] }} />
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><p className="text-muted-foreground">Facturado</p><p className="font-bold text-success">{formatARS(r.totalARS)}</p></div>
+                <div><p className="text-muted-foreground">Facturado</p><p className="font-bold text-emerald-400">{formatARS(r.totalARS)}</p></div>
                 <div><p className="text-muted-foreground">Ganancia</p><p className="font-bold">{formatARS(r.profit)}</p></div>
-                <div><p className="text-muted-foreground">Margen</p><p className={`font-bold ${r.margin >= 30 ? "text-success" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>{r.margin.toFixed(1)}%</p></div>
+                <div><p className="text-muted-foreground">Margen</p><p className={`font-bold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>{r.margin.toFixed(1)}%</p></div>
                 <div><p className="text-muted-foreground">Unidades</p><p className="font-bold">{r.count}</p></div>
                 <div><p className="text-muted-foreground">Clientes</p><p className="font-bold">{r.customersCount}</p></div>
                 <div><p className="text-muted-foreground">Ticket prom.</p><p className="font-bold">{formatARS(r.avgTicket)}</p></div>
@@ -1357,12 +1366,12 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
   }, [monthlyData, taxEnabled, ivaRate, iibbRate, monotributoMonthly]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {!taxEnabled && (
-        <div className="bg-warning/10 border border-warning/30 rounded-[10px] p-4 flex items-start gap-3">
-          <TrendingUp className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-[10px] p-4 flex items-start gap-3">
+          <TrendingUp className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-warning">Impuestos desactivados</p>
+            <p className="text-sm font-medium text-yellow-400">Impuestos desactivados</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Activá los impuestos en Ajustes → Impuestos para ver el impacto real en tu rentabilidad.
               Las tasas configuradas son: IVA {ivaRate}%, IIBB {iibbRate}%, Monotributo ${monotributoMonthly.toLocaleString("es-AR")}/mes.
@@ -1385,7 +1394,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{p.label}</p>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">Facturación est.</span><span>{formatARS(p.revenue)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Ganancia est.</span><span className="text-success">{formatARS(p.profit)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Ganancia est.</span><span className="text-emerald-400">{formatARS(p.profit)}</span></div>
                   {taxEnabled && <>
                     <div className="flex justify-between"><span className="text-muted-foreground">IVA ({ivaRate}%)</span><span className="text-destructive">-{formatARS(p.iva)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">IIBB ({iibbRate}%)</span><span className="text-destructive">-{formatARS(p.iibb)}</span></div>
@@ -1397,7 +1406,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
                   </div>
                   <div className="flex justify-between font-bold">
                     <span>Ganancia neta</span>
-                    <span className={p.netProfit >= 0 ? "text-success" : "text-destructive"}>{formatARS(p.netProfit)}</span>
+                    <span className={p.netProfit >= 0 ? "text-emerald-400" : "text-destructive"}>{formatARS(p.netProfit)}</span>
                   </div>
                 </div>
               </div>
@@ -1410,9 +1419,9 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Facturación total", value: formatARS(totals.revenue), color: "text-primary" },
-          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-success" },
+          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-emerald-400" },
           { label: "Total impuestos", value: formatARS(totals.total), color: "text-destructive" },
-          { label: "Ganancia neta", value: formatARS(totals.netProfit), color: totals.netProfit >= 0 ? "text-success" : "text-destructive" },
+          { label: "Ganancia neta", value: formatARS(totals.netProfit), color: totals.netProfit >= 0 ? "text-emerald-400" : "text-destructive" },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
@@ -1505,7 +1514,7 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
                   <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">IIBB {iibbRate}%</th>
                   {monotributoMonthly > 0 && <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-orange-400">Monotributo</th>}
                   <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-destructive">Total imp.</th>
-                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-success">G. Neta</th>
+                  <th className="px-3 py-2.5 text-right text-xs text-muted-foreground uppercase tracking-wide text-emerald-400">G. Neta</th>
                 </tr>
               </thead>
               <tbody>
@@ -1513,12 +1522,12 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
                   <tr key={row.key} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}>
                     <td className="px-3 py-2.5 font-medium">{row.label}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(row.revenue)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(row.profit)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(row.profit)}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.iva)}` : '—'}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.iibb)}` : '—'}</td>
                     {monotributoMonthly > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(row.monotributo)}` : '—'}</td>}
                     <td className="px-3 py-2.5 text-right font-mono text-xs font-bold text-destructive">{taxEnabled ? `-${formatARS(row.total)}` : '—'}</td>
-                    <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${row.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(row.netProfit)}</td>
+                    <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${row.netProfit >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>{formatARS(row.netProfit)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1526,12 +1535,12 @@ function TaxesTab({ sales, settings }: { sales: any[]; settings: any }) {
                 <tr className="border-t-2 border-border bg-muted/40 font-bold">
                   <td className="px-3 py-2.5">TOTAL</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(totals.revenue)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(totals.profit)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(totals.profit)}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.iva)}` : '—'}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.iibb)}` : '—'}</td>
                   {monotributoMonthly > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-orange-400">{taxEnabled ? `-${formatARS(totals.monotributo)}` : '—'}</td>}
                   <td className="px-3 py-2.5 text-right font-mono text-xs font-bold text-destructive">{taxEnabled ? `-${formatARS(totals.total)}` : '—'}</td>
-                  <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${totals.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(totals.netProfit)}</td>
+                  <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${totals.netProfit >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>{formatARS(totals.netProfit)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -1617,7 +1626,7 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
     return (
       <div className="space-y-0.5">
         <div className="flex justify-between text-[10px]">
-          <span className={over ? "text-success font-bold" : "text-muted-foreground"}>{pct.toFixed(0)}%</span>
+          <span className={over ? "text-emerald-400 font-bold" : "text-muted-foreground"}>{pct.toFixed(0)}%</span>
           <span className="text-muted-foreground">{formatARS(actual)} / {formatARS(target)}</span>
         </div>
         <div className="w-full bg-muted rounded-full h-1.5">
@@ -1632,15 +1641,15 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
   const currentMonth = monthlyActual.find(m => m.key === curKey) || { sales: 0, profit: 0, expenses: 0 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Set targets */}
       <div className="bg-card border border-border/60 rounded-[10px] p-5">
         <h3 className="font-semibold text-sm mb-4">Metas mensuales</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { key: "sales_ars" as const, label: "Meta de ventas (ARS)", color: "text-primary" },
-            { key: "profit_ars" as const, label: "Meta de ganancia (ARS)", color: "text-success" },
-            { key: "expenses_ars" as const, label: "Límite de gastos (ARS)", color: "text-warning" },
+            { key: "profit_ars" as const, label: "Meta de ganancia (ARS)", color: "text-emerald-400" },
+            { key: "expenses_ars" as const, label: "Límite de gastos (ARS)", color: "text-yellow-400" },
           ].map(f => (
             <div key={f.key}>
               <label className={`text-xs font-medium mb-1 block ${f.color}`}>{f.label}</label>
@@ -1663,7 +1672,7 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
       {hasTargets && (
         <div className="bg-card border border-border/60 rounded-[10px] p-5">
           <h3 className="font-semibold text-sm mb-4">Mes actual</h3>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             {tSales > 0 && (
               <div>
                 <p className="text-xs text-muted-foreground mb-1.5">Ventas</p>
@@ -1720,14 +1729,14 @@ function BudgetTab({ sales, expenses, settings, userId }: { sales: any[]; expens
                     <tr key={row.key} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/10'}`}>
                       <td className="px-3 py-2.5 font-medium">{row.label}</td>
                       {tSales > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs">{formatARS(row.sales)}</td>}
-                      {tSales > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${salesPct !== null && salesPct >= 100 ? 'text-success' : salesPct !== null && salesPct >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                      {tSales > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${salesPct !== null && salesPct >= 100 ? 'text-emerald-400' : salesPct !== null && salesPct >= 75 ? 'text-yellow-400' : 'text-destructive'}`}>
                         {salesPct !== null ? `${salesPct.toFixed(0)}%` : '—'}
                       </td>}
-                      {tProfit > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-success">{formatARS(row.profit)}</td>}
-                      {tProfit > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${profitPct !== null && profitPct >= 100 ? 'text-success' : profitPct !== null && profitPct >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                      {tProfit > 0 && <td className="px-3 py-2.5 text-right font-mono text-xs text-emerald-400">{formatARS(row.profit)}</td>}
+                      {tProfit > 0 && <td className={`px-3 py-2.5 text-right text-xs font-bold ${profitPct !== null && profitPct >= 100 ? 'text-emerald-400' : profitPct !== null && profitPct >= 75 ? 'text-yellow-400' : 'text-destructive'}`}>
                         {profitPct !== null ? `${profitPct.toFixed(0)}%` : '—'}
                       </td>}
-                      {tExpenses > 0 && <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${expOver ? 'text-destructive' : 'text-success'}`}>{formatARS(row.expenses)}</td>}
+                      {tExpenses > 0 && <td className={`px-3 py-2.5 text-right font-mono text-xs font-bold ${expOver ? 'text-destructive' : 'text-emerald-400'}`}>{formatARS(row.expenses)}</td>}
                     </tr>
                   );
                 })}
@@ -1760,10 +1769,10 @@ const ENTITY_LABELS: Record<string, string> = {
   exchange: 'Canje', expense: 'Gasto',
 };
 const ACTION_COLORS: Record<string, string> = {
-  create: 'text-success bg-success/10',
+  create: 'text-emerald-400 bg-emerald-500/10',
   update: 'text-primary bg-primary/10',
   delete: 'text-destructive bg-destructive/10',
-  settings_change: 'text-warning bg-warning/10',
+  settings_change: 'text-yellow-400 bg-yellow-500/10',
   price_change: 'text-orange-400 bg-orange-500/10',
   role_change: 'text-purple-400 bg-purple-500/10',
 };
@@ -1820,7 +1829,7 @@ function AuditTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           <Input placeholder="Buscar en log…" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="w-48 h-8 text-sm" />
@@ -1925,13 +1934,13 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
   const tooltipStyle = { background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Ingresos totales", value: formatARS(totals.revenue), color: "text-success" },
+          { label: "Ingresos totales", value: formatARS(totals.revenue), color: "text-emerald-400" },
           { label: "Egresos totales", value: formatARS(totals.outflow), color: "text-destructive" },
-          { label: "Resultado neto", value: formatARS(totals.net), color: totals.net >= 0 ? "text-success" : "text-destructive" },
-          { label: "Meses positivos", value: `${positiveMonths} / ${rows.length}`, color: positiveMonths === rows.length ? "text-success" : positiveMonths > rows.length / 2 ? "text-warning" : "text-destructive" },
+          { label: "Resultado neto", value: formatARS(totals.net), color: totals.net >= 0 ? "text-emerald-400" : "text-destructive" },
+          { label: "Meses positivos", value: `${positiveMonths} / ${rows.length}`, color: positiveMonths === rows.length ? "text-emerald-400" : positiveMonths > rows.length / 2 ? "text-yellow-400" : "text-destructive" },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{k.label}</p>
@@ -2136,7 +2145,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       {/* Top 5 bar chart */}
       {top5.length > 0 && (
         <div className="bg-card border border-border/60 rounded-[10px] p-4">
@@ -2235,7 +2244,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
                       <td className="px-4 py-2.5 font-medium text-sm max-w-[160px] truncate" title={r.name}>{r.name}</td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs text-primary/80">{formatARS(r.profit)}</td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs text-muted-foreground">{formatARS(rAny.profitB || 0)}</td>
-                      <td className={`px-3 py-2.5 text-right font-semibold text-xs ${profitDiff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      <td className={`px-3 py-2.5 text-right font-semibold text-xs ${profitDiff >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                         {profitDiff >= 0 ? '▲' : '▼'}{formatARS(Math.abs(profitDiff))}
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs">
@@ -2243,7 +2252,7 @@ function ProductProfitabilityTab({ sales, allSales }: { sales: any[]; allSales: 
                           {r.margin.toFixed(1)}%
                         </span>
                       </td>
-                      <td className={`px-3 py-2.5 text-right text-xs font-semibold ${marginDiff >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      <td className={`px-3 py-2.5 text-right text-xs font-semibold ${marginDiff >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                         {marginDiff >= 0 ? '+' : ''}{marginDiff.toFixed(1)}pp
                       </td>
                     </tr>
@@ -2352,12 +2361,12 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Ingresos totales", value: formatARS(totals.revenue), color: "text-primary" },
-          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-success" },
-          { label: "Margen promedio", value: `${totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0"}%`, color: "text-warning" },
+          { label: "Ganancia bruta", value: formatARS(totals.profit), color: "text-emerald-400" },
+          { label: "Margen promedio", value: `${totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : "0"}%`, color: "text-yellow-400" },
           { label: "Categorías activas", value: rows.length, color: "text-blue-400" },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
@@ -2417,7 +2426,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
                     <td className="px-4 py-3 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">{formatARS(r.profit)}</td>
                     <td className="px-4 py-3 text-right text-xs">
-                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-warning" : "text-destructive"}`}>{r.margin.toFixed(1)}%</span>
+                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : "text-destructive"}`}>{r.margin.toFixed(1)}%</span>
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground">{r.units}</td>
                     <td className="px-4 py-3 text-right text-xs">
@@ -2479,7 +2488,7 @@ function SuppliersTab({ purchases }: { purchases: any[] }) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold">Compras por proveedor</h3>
@@ -2509,14 +2518,14 @@ function SuppliersTab({ purchases }: { purchases: any[] }) {
                 <tr key={s.name} className="border-b border-border last:border-0 hover:bg-muted/20">
                   <td className="p-3 font-medium">{s.name}</td>
                   <td className="p-3 text-right text-muted-foreground">{s.count}</td>
-                  <td className="p-3 text-right font-semibold text-warning">U$S {s.totalUSD.toFixed(0)}</td>
+                  <td className="p-3 text-right font-semibold text-yellow-400">U$S {s.totalUSD.toFixed(0)}</td>
                   <td className="p-3 text-right text-muted-foreground">{s.totalARS > 0 ? `$${Math.round(s.totalARS).toLocaleString('es-AR')}` : "—"}</td>
                   <td className="p-3 text-right text-muted-foreground">U$S {(s.totalUSD / s.count).toFixed(0)}</td>
                   <td className="p-3 text-right text-muted-foreground">{s.lastDate ? new Date(s.lastDate).toLocaleDateString('es-AR') : "—"}</td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-warning rounded-full" style={{ width: `${share}%` }} />
+                        <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${share}%` }} />
                       </div>
                       <span className="text-xs text-muted-foreground w-8 text-right">{share.toFixed(0)}%</span>
                     </div>
@@ -2597,7 +2606,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
   const ttStyle = { background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Period pickers */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-primary/30 rounded-[10px] p-4 space-y-2">
@@ -2766,7 +2775,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Location stock overview */}
       <div>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -2824,7 +2833,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
                       <td className="p-3 font-medium">{s.name}</td>
                       <td className="p-3 text-right text-muted-foreground">{s.count}</td>
                       <td className="p-3 text-right font-semibold">{formatARS(s.total)}</td>
-                      <td className="p-3 text-right text-success">{formatARS(s.profit)}</td>
+                      <td className="p-3 text-right text-emerald-400">{formatARS(s.profit)}</td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -2849,7 +2858,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
             <ArrowUpDown className="w-4 h-4" />Transferencias recientes entre sucursales
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {transfers.slice(0, 10).map(t => {
               const from = locations.find(l => l.id === t.from_location_id)?.name || "—";
               const to = locations.find(l => l.id === t.to_location_id)?.name || "—";
@@ -2964,7 +2973,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50 font-display">Tendencia de Márgenes</h3>
         <div className="flex items-center gap-2">
@@ -2992,18 +3001,18 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Margen mes actual</p>
-          <p className={`text-xl font-bold font-mono tracking-tight ${(lastMonth?.grossMargin ?? 0) >= 30 ? 'text-success' : (lastMonth?.grossMargin ?? 0) >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
+          <p className={`text-xl font-bold font-mono tracking-tight ${(lastMonth?.grossMargin ?? 0) >= 30 ? 'text-emerald-400' : (lastMonth?.grossMargin ?? 0) >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
             {lastMonth?.revenue > 0 ? `${lastMonth.grossMargin.toFixed(1)}%` : '—'}
           </p>
           {prevMonth?.revenue > 0 && (
-            <p className={`text-[10px] mt-0.5 ${trend >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <p className={`text-[10px] mt-0.5 ${trend >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
               {trend >= 0 ? '▲' : '▼'} {Math.abs(trend).toFixed(1)}pp vs anterior
             </p>
           )}
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
           <p className="text-xs text-muted-foreground mb-1">Mejor mes</p>
-          <p className="text-xl font-bold font-mono tracking-tight text-success">{bestMonth ? `${bestMonth.grossMargin.toFixed(1)}%` : '—'}</p>
+          <p className="text-xl font-bold font-mono tracking-tight text-emerald-400">{bestMonth ? `${bestMonth.grossMargin.toFixed(1)}%` : '—'}</p>
           <p className="text-[10px] text-muted-foreground">{bestMonth?.label}</p>
         </div>
         <div className="bg-card border border-border/60 rounded-[10px] p-3 text-center">
@@ -3092,14 +3101,14 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
                 <td className="px-4 py-2.5 text-right text-xs">{fmtARS(row.revenue)}</td>
                 <td className="px-4 py-2.5 text-right text-xs text-amber-400">{fmtARS(row.grossProfit)}</td>
                 <td className="px-4 py-2.5 text-right text-xs text-destructive">{row.expenses > 0 ? `-${fmtARS(row.expenses)}` : '—'}</td>
-                <td className={`px-4 py-2.5 text-right text-xs font-medium ${row.net >= 0 ? 'text-success' : 'text-destructive'}`}>{fmtARS(row.net)}</td>
+                <td className={`px-4 py-2.5 text-right text-xs font-medium ${row.net >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>{fmtARS(row.net)}</td>
                 <td className="px-4 py-2.5 text-right text-xs">
-                  <span className={`font-semibold ${row.grossMargin >= 30 ? 'text-success' : row.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
+                  <span className={`font-semibold ${row.grossMargin >= 30 ? 'text-emerald-400' : row.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>
                     {row.revenue > 0 ? `${row.grossMargin.toFixed(1)}%` : '—'}
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right text-xs">
-                  <span className={`font-semibold ${row.netMargin >= 10 ? 'text-success' : row.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>
+                  <span className={`font-semibold ${row.netMargin >= 10 ? 'text-emerald-400' : row.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>
                     {row.revenue > 0 ? `${row.netMargin.toFixed(1)}%` : '—'}
                   </span>
                 </td>
@@ -3131,7 +3140,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
           const diff = a - b;
           const diffPct = b !== 0 ? (diff / Math.abs(b)) * 100 : null;
           return diff === 0 ? <span className="text-muted-foreground text-xs">=</span> : (
-            <span className={`text-xs font-semibold ${diff > 0 ? 'text-success' : 'text-destructive'}`}>
+            <span className={`text-xs font-semibold ${diff > 0 ? 'text-emerald-400' : 'text-destructive'}`}>
               {diff > 0 ? '▲' : '▼'} {pct ? `${Math.abs(diff).toFixed(1)}pp` : diffPct !== null ? `${Math.abs(diffPct).toFixed(0)}%` : '—'}
             </span>
           );
@@ -3179,13 +3188,13 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
                   ))}
                   <tr>
                     <td className="py-2 pr-4 text-muted-foreground">Margen bruto %</td>
-                    <td className={`py-2 px-3 text-right font-semibold ${dataA.grossMargin >= 30 ? 'text-success' : dataA.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.grossMargin.toFixed(1)}%</td>
+                    <td className={`py-2 px-3 text-right font-semibold ${dataA.grossMargin >= 30 ? 'text-emerald-400' : dataA.grossMargin >= 15 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.grossMargin.toFixed(1)}%</td>
                     <td className={`py-2 px-3 text-right font-semibold text-muted-foreground`}>{dataB.grossMargin.toFixed(1)}%</td>
                     <td className="py-2 pl-3 text-right"><Delta a={dataA.grossMargin} b={dataB.grossMargin} pct /></td>
                   </tr>
                   <tr>
                     <td className="py-2 pr-4 text-muted-foreground">Margen neto %</td>
-                    <td className={`py-2 px-3 text-right font-semibold ${dataA.netMargin >= 15 ? 'text-success' : dataA.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.netMargin.toFixed(1)}%</td>
+                    <td className={`py-2 px-3 text-right font-semibold ${dataA.netMargin >= 15 ? 'text-emerald-400' : dataA.netMargin >= 0 ? 'text-amber-400' : 'text-destructive'}`}>{dataA.netMargin.toFixed(1)}%</td>
                     <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{dataB.netMargin.toFixed(1)}%</td>
                     <td className="py-2 pl-3 text-right"><Delta a={dataA.netMargin} b={dataB.netMargin} pct /></td>
                   </tr>
@@ -3254,14 +3263,14 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Clientes únicos", value: rows.length.toLocaleString("es-AR"), icon: Users, color: "text-primary" },
-          { label: "Revenue por cliente", value: formatARS(rows.length > 0 ? grandTotal / rows.length : 0), icon: DollarSign, color: "text-success" },
-          { label: "Ticket promedio", value: formatARS(sales.length > 0 ? grandTotal / sales.length : 0), icon: TrendingUp, color: "text-warning" },
-          { label: `Concentración top ${top20Count}`, value: `${concentration.toFixed(0)}%`, icon: BarChart2, color: concentration > 80 ? "text-destructive" : concentration > 60 ? "text-warning" : "text-success" },
+          { label: "Revenue por cliente", value: formatARS(rows.length > 0 ? grandTotal / rows.length : 0), icon: DollarSign, color: "text-emerald-400" },
+          { label: "Ticket promedio", value: formatARS(sales.length > 0 ? grandTotal / sales.length : 0), icon: TrendingUp, color: "text-yellow-400" },
+          { label: `Concentración top ${top20Count}`, value: `${concentration.toFixed(0)}%`, icon: BarChart2, color: concentration > 80 ? "text-destructive" : concentration > 60 ? "text-yellow-400" : "text-emerald-400" },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3">
             <div className="flex items-center justify-between mb-1">
@@ -3318,7 +3327,7 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
                     <span className="px-2 py-0.5 rounded-[5px] text-xs font-medium bg-muted text-muted-foreground">{r.count}</span>
                   </td>
                   <td className="px-3 py-2.5 text-right text-xs font-mono text-primary">{formatARS(r.total)}</td>
-                  <td className="px-3 py-2.5 text-right text-xs font-mono text-success">{formatARS(r.profit)}</td>
+                  <td className="px-3 py-2.5 text-right text-xs font-mono text-emerald-400">{formatARS(r.profit)}</td>
                   <td className="px-3 py-2.5 text-right text-xs font-mono">{formatARS(r.avgTicket)}</td>
                   <td className="px-3 py-2.5 text-right text-xs text-muted-foreground hidden md:table-cell">{r.share.toFixed(1)}%</td>
                   <td className="px-3 py-2.5 text-right text-xs text-muted-foreground">
@@ -3333,7 +3342,7 @@ function CustomersTab({ sales, period }: { sales: any[]; period: string }) {
                   <td className="px-3 py-2.5" colSpan={2}>TOTAL ({rows.length} clientes)</td>
                   <td className="px-3 py-2.5 text-center">{sales.length}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-primary">{formatARS(grandTotal)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-success">{formatARS(grandProfit)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-emerald-400">{formatARS(grandProfit)}</td>
                   <td className="px-3 py-2.5 text-right font-mono">{formatARS(sales.length > 0 ? grandTotal / sales.length : 0)}</td>
                   <td className="hidden md:table-cell" />
                   <td />
@@ -3500,7 +3509,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
                     {isTop && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-[5px] bg-primary/20 text-primary font-bold">MEJOR</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-primary text-xs">{formatARS(d.avgRevenue)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-success text-xs">{formatARS(d.avgProfit)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-emerald-400 text-xs">{formatARS(d.avgProfit)}</td>
                   <td className="px-4 py-2.5 text-right text-muted-foreground text-xs">{d.salesCount}</td>
                   <td className="px-4 py-2.5 hidden md:table-cell">
                     <div className="flex items-center gap-2">
@@ -3697,7 +3706,7 @@ function ByWeekTab({ sales }: { sales: any[] }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right font-bold">{w.revenue > 0 ? formatARS(w.revenue) : <span className="text-muted-foreground text-xs">—</span>}</td>
-                  <td className="px-4 py-3 text-right text-success hidden md:table-cell">{w.profit > 0 ? formatARS(w.profit) : <span className="text-muted-foreground text-xs">—</span>}</td>
+                  <td className="px-4 py-3 text-right text-emerald-400 hidden md:table-cell">{w.profit > 0 ? formatARS(w.profit) : <span className="text-muted-foreground text-xs">—</span>}</td>
                   <td className="px-4 py-3 text-right hidden md:table-cell">
                     <span className={`font-semibold ${margin >= 30 ? 'text-green-400' : margin >= 15 ? 'text-yellow-400' : 'text-red-400'}`}>
                       {w.revenue > 0 ? `${margin.toFixed(1)}%` : '—'}
@@ -3964,7 +3973,7 @@ function ForecastTab({ sales }: { sales: any[] }) {
   const slopeSign = slope >= 0 ? "+" : "-";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-border bg-card">
         <div className="flex items-center gap-2">

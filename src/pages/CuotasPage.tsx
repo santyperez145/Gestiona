@@ -150,7 +150,7 @@ export default function CuotasPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={CreditCard}
         title="Cuotas"
@@ -248,7 +248,7 @@ export default function CuotasPage() {
                     <td className="px-3 py-2.5 text-xs text-muted-foreground">{inst.installment_number}/{inst.sale?.installments || "?"}</td>
                     <td className="px-3 py-2.5 font-mono font-semibold text-xs">{formatARS(Number(inst.amount_ars))}</td>
                     <td className="px-3 py-2.5">
-                      <span className={`inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-semibold ${inst.paid ? "bg-success/15 text-success" : isOverdue ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"}`}>
+                      <span className={`inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-semibold ${inst.paid ? "bg-emerald-500/15 text-emerald-400" : isOverdue ? "bg-destructive/15 text-destructive" : "bg-yellow-500/15 text-yellow-400"}`}>
                         {inst.paid ? <><Check className="w-2.5 h-2.5" />Cobrada</> : isOverdue ? "Vencida" : "Pendiente"}
                       </span>
                     </td>

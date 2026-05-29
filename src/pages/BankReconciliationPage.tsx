@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -294,7 +294,7 @@ export default function BankReconciliationPage() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={Landmark}
@@ -318,11 +318,11 @@ export default function BankReconciliationPage() {
 
       {/* Date range + filters */}
       <div className="flex flex-wrap gap-3 items-end">
-        <div className="space-y-1">
+        <div className="space-y-1 pb-12">
           <Label className="text-xs text-muted-foreground">Desde</Label>
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 w-36" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 pb-12">
           <Label className="text-xs text-muted-foreground">Hasta</Label>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 w-36" />
         </div>
@@ -476,7 +476,7 @@ export default function BankReconciliationPage() {
                   {matchTx.type === "credit" ? "+" : "-"}{formatARS(matchTx.amount_ars)}
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 <Label className="text-xs text-muted-foreground">Posibles coincidencias (±10%)</Label>
                 {matchCandidates.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No se encontraron coincidencias (±15%).</p>

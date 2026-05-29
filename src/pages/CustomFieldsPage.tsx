@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CustomFieldsPage — Custom field definitions for CRM (customers & products)
  *
  * Salesforce Custom Objects / Fields equivalent.
@@ -23,6 +23,7 @@ import {
   ToggleLeft, List, GripVertical, ChevronRight, Users, Package,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -205,7 +206,7 @@ export default function CustomFieldsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Settings2}
         title="Campos Personalizados"
@@ -219,6 +220,14 @@ export default function CustomFieldsPage() {
           ) : undefined
         }
       />
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Campos totales" value={fields.length} icon={Settings2} color="primary" sub="definidos" />
+        <KPICard label="En Clientes" value={grouped.customer.length} icon={Users} color="blue" sub="campos personalizados" />
+        <KPICard label="En Productos" value={grouped.product.length} icon={Package} color="purple" sub="campos personalizados" />
+        <KPICard label="Requeridos" value={fields.filter(f => f.required).length} icon={Hash} color={fields.filter(f => f.required).length > 0 ? "warning" : "success"} sub="obligatorios" />
+      </div>
 
       {/* Form */}
       {showForm && (
@@ -316,7 +325,7 @@ export default function CustomFieldsPage() {
           <p className="text-sm">Sin campos personalizados. Creá el primero para extender tus registros.</p>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-5 pb-12">
           {(Object.keys(grouped) as EntityType[]).map(entity => {
             const entityFields = grouped[entity];
             if (entityFields.length === 0) return null;

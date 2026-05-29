@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -446,9 +446,9 @@ export default function PriceListsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
-        icon={<Tag className="w-6 h-6" />}
+        icon={Tag}
         title="Listas de Precios"
         description="Precios segmentados por cliente, moneda y cantidad"
         actions={
@@ -481,7 +481,7 @@ export default function PriceListsPage() {
           <p className="text-sm">Creá listas para diferentes segmentos o monedas</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {lists.map(list => (
             <div key={list.id} className={`rounded-xl border bg-card overflow-hidden transition-all ${!list.active ? "opacity-60" : ""}`}>
               <div

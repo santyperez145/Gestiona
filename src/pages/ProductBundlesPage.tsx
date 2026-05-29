@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
@@ -197,9 +197,9 @@ export default function ProductBundlesPage() {
   }, [bundles]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
-        icon={<Layers className="w-6 h-6" />}
+        icon={Layers}
         title="Bundles / Kits"
         description="Productos agrupados que se venden como uno · stock se deduce de cada componente"
         actions={
@@ -296,7 +296,7 @@ export default function ProductBundlesPage() {
           <p className="text-sm mt-1">Creá tu primer kit o combo de productos.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {filteredBundles.map(bundle => {
             const isExpanded = expandedId === bundle.id;
             const compCost = componentCost(bundle.items);

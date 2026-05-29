@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { AlertTriangle, Wrench, X, CheckCircle2 } from "lucide-react";
 import { detectConsistencyIssues } from "@/lib/cashFlow";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,24 +48,24 @@ export default function ConsistencyAlerts({
   };
 
   return (
-    <div className="bg-warning/5 border border-warning/30 rounded-xl p-4 mb-6 relative">
+    <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-xl p-4 mb-6 relative">
       <button onClick={() => setDismissed(true)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
         <X className="w-4 h-4" />
       </button>
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-warning/15 flex items-center justify-center shrink-0">
-          <AlertTriangle className="w-5 h-5 text-warning" />
+        <div className="w-9 h-9 rounded-lg bg-yellow-500/15 flex items-center justify-center shrink-0">
+          <AlertTriangle className="w-5 h-5 text-yellow-400" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-display font-semibold text-sm mb-1">Auditoría detectó {issues.length} inconsistencia{issues.length > 1 ? 's' : ''}</h3>
           <ul className="text-xs text-muted-foreground space-y-0.5 mb-3">
             {issues.map((i, idx) => (
               <li key={idx} className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3 h-3 text-warning shrink-0" /> {i.label}
+                <CheckCircle2 className="w-3 h-3 text-yellow-400 shrink-0" /> {i.label}
               </li>
             ))}
           </ul>
-          <Button size="sm" onClick={handleRepair} disabled={repairing} className="bg-warning text-warning-foreground hover:bg-warning/90 h-8">
+          <Button size="sm" onClick={handleRepair} disabled={repairing} className="bg-yellow-500 text-yellow-400-foreground hover:bg-yellow-500/90 h-8">
             <Wrench className="w-3.5 h-3.5 mr-1.5" />
             {repairing ? 'Reparando...' : 'Reparar automáticamente'}
           </Button>

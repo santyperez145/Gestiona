@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -198,7 +198,7 @@ export default function CompetitorIntelligencePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Eye}
         title="Inteligencia Competitiva"
@@ -260,7 +260,7 @@ export default function CompetitorIntelligencePage() {
         </TabsList>
 
         {/* OVERVIEW */}
-        <TabsContent value="overview" className="space-y-3">
+        <TabsContent value="overview" className="space-y-3 pb-12">
           {competitors.map(c => (
             <Card key={c.id}>
               <CardContent className="p-4 flex items-start gap-4">
@@ -294,7 +294,7 @@ export default function CompetitorIntelligencePage() {
         </TabsContent>
 
         {/* SIGNALS */}
-        <TabsContent value="signals" className="space-y-4">
+        <TabsContent value="signals" className="space-y-4 pb-12">
           <div className="flex gap-2">
             <Select value={filterImpact} onValueChange={setFilterImpact}>
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -314,7 +314,7 @@ export default function CompetitorIntelligencePage() {
               </Button>
             )}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {filteredSignals.map(signal => (
               <Card key={signal.id} className={signal.is_read ? "opacity-60" : "border-primary/30"}>
                 <CardContent className="p-4 flex items-start gap-3">
@@ -382,7 +382,7 @@ export default function CompetitorIntelligencePage() {
                   <CardHeader className="pb-2">
                     <CardTitle className={`text-sm ${cfg.color}`}>{cfg.label}</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-2 pb-12">
                     {items.map((item, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm">
                         <div className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${cfg.bg} ${cfg.color}`}>

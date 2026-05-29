@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,8 +83,8 @@ export default function ResetPasswordPage() {
     return (
       <AuthShell>
         <div className="text-center">
-          <div className="flex items-center justify-center w-12 h-12 rounded-[8px] bg-success/10 border border-success/20 mx-auto mb-5">
-            <CheckCircle className="w-5 h-5 text-success" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-[8px] bg-emerald-500/10 border border-emerald-500/20 mx-auto mb-5">
+            <CheckCircle className="w-5 h-5 text-emerald-400" />
           </div>
           <h1 className="font-display text-[1.25rem] font-bold tracking-tight mb-2">¡Contraseña actualizada!</h1>
           <p className="text-[12px] text-muted-foreground/55">Redirigiendo al sistema...</p>

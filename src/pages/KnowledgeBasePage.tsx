@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KnowledgeBasePage — Internal Knowledge Base / Help Center
  *
  * Salesforce Knowledge equivalent.
@@ -201,7 +201,7 @@ export default function KnowledgeBasePage() {
   }, [filtered]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={BookOpen}
         title="Base de Conocimiento"
@@ -349,7 +349,7 @@ export default function KnowledgeBasePage() {
           <p className="text-sm">{articles.length === 0 ? "Sin artículos. Creá el primero." : "Sin resultados."}</p>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-5 pb-12">
           {Object.entries(grouped).map(([cat, catArticles]) => (
             <div key={cat}>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{cat} ({catArticles.length})</p>

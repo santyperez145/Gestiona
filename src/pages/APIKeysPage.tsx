@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -208,7 +208,7 @@ export default function APIKeysPage() {
   const failedDeliveries = deliveries.filter(d => d.status === "failed").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Code2}
         title="API & Webhooks"
@@ -247,7 +247,7 @@ export default function APIKeysPage() {
         <>
           {/* ── API Keys ── */}
           {activeTab === "API Keys" && (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {apiKeys.map(k => {
                 const env = ENVIRONMENTS[k.environment] ?? ENVIRONMENTS.production;
                 return (
@@ -294,7 +294,7 @@ export default function APIKeysPage() {
 
           {/* ── Webhooks ── */}
           {activeTab === "Webhooks" && (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {webhooks.map(w => {
                 const successRate = w.success_count + w.failure_count > 0
                   ? Math.round((w.success_count / (w.success_count + w.failure_count)) * 100) : 100;
@@ -416,7 +416,7 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
                     { method: "GET",    path: "/v1/reports/daily",scope: "reports:read" },
                   ].map(ep => (
                     <div key={ep.path} className="flex items-center gap-3 bg-muted/30 rounded-lg px-3 py-2">
-                      <Badge className={ep.method === "GET" ? "bg-blue-500/15 text-blue-400" : "bg-success/15 text-success"} >{ep.method}</Badge>
+                      <Badge className={ep.method === "GET" ? "bg-blue-500/15 text-blue-400" : "bg-emerald-500/15 text-emerald-400"} >{ep.method}</Badge>
                       <code className="text-xs font-mono text-foreground flex-1">{ep.path}</code>
                       <span className="text-xs text-muted-foreground">{ep.scope}</span>
                     </div>
@@ -432,7 +432,7 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
       <Dialog open={showKeyDialog} onOpenChange={setShowKeyDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Crear API Key</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div><Label>Nombre *</Label><Input value={keyForm.name} onChange={e => setKeyForm(p => ({ ...p, name: e.target.value }))} placeholder="ej. Integración Shopify" /></div>
             <div><Label>Descripción</Label><Input value={keyForm.description} onChange={e => setKeyForm(p => ({ ...p, description: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -469,7 +469,7 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
       <Dialog open={showSecretDialog} onOpenChange={setShowSecretDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500" /> API Key creada</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <p className="text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">⚠️ Esta es la única vez que verás la clave completa. Copiala y guardala en un lugar seguro.</p>
             <div className="flex items-center gap-2 bg-zinc-900 rounded-lg px-4 py-3">
               <code className="flex-1 text-emerald-400 text-sm font-mono break-all">{newKeyValue}</code>
@@ -486,7 +486,7 @@ const valid = verifyWebhook(req.body, SECRET, sig);`}</pre>
       <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingWebhook ? "Editar Webhook" : "Nuevo Webhook"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div><Label>Nombre *</Label><Input value={hookForm.name} onChange={e => setHookForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div><Label>URL *</Label><Input value={hookForm.url} onChange={e => setHookForm(p => ({ ...p, url: e.target.value }))} placeholder="https://mi-servidor.com/webhook" /></div>
             <div className="grid grid-cols-2 gap-3">

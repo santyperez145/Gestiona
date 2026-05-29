@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,7 +118,7 @@ export default function OfferRecommenderPanel() {
               </div>
               <p className="text-xs text-muted-foreground">{r.razon}</p>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                {r.descuento_sugerido_percent && <div><div className="text-muted-foreground">Descuento</div><div className="font-bold text-success">-{r.descuento_sugerido_percent}%</div></div>}
+                {r.descuento_sugerido_percent && <div><div className="text-muted-foreground">Descuento</div><div className="font-bold text-emerald-400">-{r.descuento_sugerido_percent}%</div></div>}
                 {r.precio_sugerido_ars && <div><div className="text-muted-foreground">Precio</div><div className="font-bold">{fmt(r.precio_sugerido_ars)}</div></div>}
                 {r.duracion_horas && <div><div className="text-muted-foreground">Duración</div><div className="font-bold">{r.duracion_horas}h</div></div>}
               </div>
@@ -142,7 +142,7 @@ export default function OfferRecommenderPanel() {
                 <p className="text-xs text-muted-foreground mt-1">{c.razon}</p>
                 <div className="flex justify-between mt-3 text-sm">
                   <span>Precio combo: <strong>{fmt(c.precio_combo_ars)}</strong></span>
-                  {c.ahorro_ars && <span className="text-success">Ahorro: {fmt(c.ahorro_ars)}</span>}
+                  {c.ahorro_ars && <span className="text-emerald-400">Ahorro: {fmt(c.ahorro_ars)}</span>}
                 </div>
               </Card>
             ))}

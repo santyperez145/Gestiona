@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -186,7 +186,7 @@ export default function WasteControlPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Trash2}
         title="Control de Mermas"
@@ -206,8 +206,8 @@ export default function WasteControlPage() {
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>Registrar merma / pérdida</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1">
+              <div className="space-y-3 pb-12">
+                <div className="space-y-1 pb-12">
                   <Label>Categoría</Label>
                   <Select value={recordForm.category_id} onValueChange={v => setRecordForm(f => ({ ...f, category_id: v }))}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar categoría" /></SelectTrigger>
@@ -219,7 +219,7 @@ export default function WasteControlPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Producto del sistema</Label>
                   <Select value={recordForm.product_id} onValueChange={selectProduct}>
                     <SelectTrigger><SelectValue placeholder="Buscar producto (opcional)" /></SelectTrigger>
@@ -228,20 +228,20 @@ export default function WasteControlPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Nombre del producto *</Label>
                   <Input value={recordForm.product_name} onChange={e => setRecordForm(f => ({ ...f, product_name: e.target.value }))} placeholder="Nombre del artículo" />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Cantidad *</Label>
                     <Input type="number" min={0} step={0.001} value={recordForm.quantity} onChange={e => setRecordForm(f => ({ ...f, quantity: Number(e.target.value) }))} />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Costo unitario</Label>
                     <Input type="number" min={0} value={recordForm.unit_cost} onChange={e => setRecordForm(f => ({ ...f, unit_cost: Number(e.target.value) }))} />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Fecha</Label>
                     <Input type="date" value={recordForm.date} onChange={e => setRecordForm(f => ({ ...f, date: e.target.value }))} />
                   </div>
@@ -252,20 +252,20 @@ export default function WasteControlPage() {
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Reportado por</Label>
                     <Input value={recordForm.reported_by} onChange={e => setRecordForm(f => ({ ...f, reported_by: e.target.value }))} placeholder="Nombre del empleado" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Ubicación</Label>
                     <Input value={recordForm.location} onChange={e => setRecordForm(f => ({ ...f, location: e.target.value }))} placeholder="Depósito, Sala fría..." />
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Motivo</Label>
                   <Input value={recordForm.reason} onChange={e => setRecordForm(f => ({ ...f, reason: e.target.value }))} placeholder="Descripción del motivo..." />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Notas adicionales</Label>
                   <Textarea value={recordForm.notes} onChange={e => setRecordForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                 </div>
@@ -373,11 +373,11 @@ export default function WasteControlPage() {
         {/* SUMMARY */}
         <TabsContent value="summary" className="mt-4 space-y-4">
           <div className="flex flex-wrap gap-3 items-end">
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label className="text-xs">Desde</Label>
               <Input type="date" className="h-8 w-36" value={fromDate} onChange={e => setFromDate(e.target.value)} />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label className="text-xs">Hasta</Label>
               <Input type="date" className="h-8 w-36" value={toDate} onChange={e => setToDate(e.target.value)} />
             </div>
@@ -390,7 +390,7 @@ export default function WasteControlPage() {
               <p>Sin datos para el período seleccionado</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {summary.map((s, idx) => {
                 const tc = WASTE_TYPE_CONFIG[s.waste_type] ?? WASTE_TYPE_CONFIG.other;
                 const maxCost = summary[0]?.total_cost ?? 1;

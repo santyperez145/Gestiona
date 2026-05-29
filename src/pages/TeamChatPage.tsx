@@ -200,8 +200,8 @@ export default function TeamChatPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Chat de Equipo"
-        subtitle="Mensajes en tiempo real entre miembros del negocio"
-        icon={<Users className="w-5 h-5 text-primary" />}
+        description="Mensajes en tiempo real entre miembros del negocio"
+        icon={Users}
       />
 
       {/* Online users + status */}

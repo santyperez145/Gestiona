@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import {
   History, RefreshCw, CheckCircle2, XCircle, SkipForward, Kanban,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -80,8 +81,8 @@ const TRIGGER_ICONS: Record<TriggerType, React.ReactNode> = {
   low_stock: <Package className="w-4 h-4" />,
   birthday: <span>🎂</span>,
   stock_out: <Package className="w-4 h-4 text-destructive" />,
-  new_customer: <Users className="w-4 h-4 text-success" />,
-  big_sale: <TrendingUp className="w-4 h-4 text-success" />,
+  new_customer: <Users className="w-4 h-4 text-emerald-400" />,
+  big_sale: <TrendingUp className="w-4 h-4 text-emerald-400" />,
   deal_stage_change: <Kanban className="w-4 h-4 text-primary" />,
 };
 
@@ -313,7 +314,7 @@ function FlowForm({
     form.action_type === "create_purchase_order" && !STOCK_TRIGGERS.includes(form.trigger_type);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
       {/* Name */}
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Nombre del flujo</label>
@@ -641,7 +642,7 @@ export default function AutomationFlowsPage() {
   const successRuns = runs.filter(r => r.status === "success").length;
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Zap}
         title="Automatizaciones"
@@ -672,24 +673,20 @@ export default function AutomationFlowsPage() {
         }
       />
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold font-display text-primary">{flows.length}</p>
-          <p className="text-xs text-muted-foreground mt-1">Flujos totales</p>
-        </div>
-        <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold font-display text-success">{activeCount}</p>
-          <p className="text-xs text-muted-foreground mt-1">Activos</p>
-        </div>
-        <div className="bg-card border border-border/60 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold font-display text-blue-400">{totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0}%</p>
-          <p className="text-xs text-muted-foreground mt-1">Éxito ({successRuns}/{totalRuns})</p>
-        </div>
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Flujos totales" value={flows.length} icon={Zap} color="primary"
+          sub={`${flows.filter(f => !f.active).length} pausados`} />
+        <KPICard label="Activos" value={activeCount} icon={Play} color="success"
+          sub="ejecutándose a las 08:00" />
+        <KPICard label="Ejecuciones" value={totalRuns} icon={RefreshCw} color="blue"
+          sub="históricas" />
+        <KPICard label="Tasa de éxito" value={`${totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0}%`} icon={BarChart3} color={totalRuns > 0 && successRuns / totalRuns >= 0.8 ? "success" : "warning"}
+          sub={`${successRuns}/${totalRuns} exitosas`} />
       </div>
 
       {/* Info banner */}
-      <div className="mb-6 p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3">
+      <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3">
         <Zap className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="text-sm space-y-1">
           <p className="font-medium">Cómo funcionan las automatizaciones</p>
@@ -708,7 +705,7 @@ export default function AutomationFlowsPage() {
       </div>
 
       {/* Template gallery */}
-      <div className="mb-6">
+      <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Plantillas sugeridas</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {FLOW_TEMPLATES.map((tpl) => (
@@ -760,7 +757,7 @@ export default function AutomationFlowsPage() {
                     <h3 className="font-semibold text-sm leading-tight">{flow.name}</h3>
                     <Badge
                       variant="outline"
-                      className={`text-[10px] h-4 mt-0.5 ${flow.active ? "border-success/40 text-success bg-success/5" : "border-border text-muted-foreground"}`}
+                      className={`text-[10px] h-4 mt-0.5 ${flow.active ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/5" : "border-border text-muted-foreground"}`}
                     >
                       {flow.active ? "Activo" : "Pausado"}
                     </Badge>
@@ -784,8 +781,8 @@ export default function AutomationFlowsPage() {
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => toggleActive(flow)} title={flow.active ? "Pausar" : "Activar"}>
                     {flow.active
-                      ? <Pause className="w-3.5 h-3.5 text-warning" />
-                      : <Zap className="w-3.5 h-3.5 text-success" />}
+                      ? <Pause className="w-3.5 h-3.5 text-yellow-400" />
+                      : <Zap className="w-3.5 h-3.5 text-emerald-400" />}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => deleteFlow(flow.id)}>
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -857,14 +854,14 @@ export default function AutomationFlowsPage() {
             <span className="text-xs ml-1">{showHistory ? "▲" : "▼"}</span>
           </button>
           {showHistory && (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {runs.map(run => {
                 const flow = flows.find(f => f.id === run.flow_id);
                 const StatusIcon =
                   run.status === "success" ? CheckCircle2 :
                   run.status === "error" ? XCircle : SkipForward;
                 const statusColor =
-                  run.status === "success" ? "text-success" :
+                  run.status === "success" ? "text-emerald-400" :
                   run.status === "error" ? "text-destructive" : "text-muted-foreground";
                 return (
                   <div key={run.id} className="flex items-start gap-3 bg-card border border-border/60 rounded-xl px-4 py-3">
@@ -873,7 +870,7 @@ export default function AutomationFlowsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium truncate">{flow?.name ?? "Flujo eliminado"}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                          run.status === "success" ? "bg-success/10 text-success" :
+                          run.status === "success" ? "bg-emerald-500/10 text-emerald-400" :
                           run.status === "error" ? "bg-destructive/10 text-destructive" :
                           "bg-muted text-muted-foreground"
                         }`}>

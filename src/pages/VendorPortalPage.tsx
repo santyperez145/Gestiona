@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -172,7 +172,7 @@ export default function VendorPortalPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Building}
         title="Portal de Proveedores"
@@ -211,7 +211,7 @@ export default function VendorPortalPage() {
         </TabsList>
 
         {/* VENDORS */}
-        <TabsContent value="vendors" className="space-y-3">
+        <TabsContent value="vendors" className="space-y-3 pb-12">
           {vendors.map(v => (
             <Card key={v.id} className={`cursor-pointer hover:shadow-md transition-shadow ${!v.is_active ? "opacity-50" : ""}`} onClick={() => setSelected(v)}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -242,7 +242,7 @@ export default function VendorPortalPage() {
         </TabsContent>
 
         {/* INVOICES */}
-        <TabsContent value="invoices" className="space-y-3">
+        <TabsContent value="invoices" className="space-y-3 pb-12">
           {invoices.map(inv => (
             <Card key={inv.id} className={inv.status === "pending" && new Date(inv.due_date) < new Date() ? "border-red-300" : ""}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -314,7 +314,7 @@ export default function VendorPortalPage() {
         </TabsContent>
 
         {/* MESSAGES */}
-        <TabsContent value="messages" className="space-y-4">
+        <TabsContent value="messages" className="space-y-4 pb-12">
           <div className="text-sm text-muted-foreground mb-2">Canal de comunicación directa con proveedores</div>
           {vendors.filter(v => v.is_active).map(v => (
             <Card key={v.id}>

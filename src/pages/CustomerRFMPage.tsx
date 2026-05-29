@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
@@ -105,6 +105,7 @@ export default function CustomerRFMPage() {
   const { activeOrg } = useOrg();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"overview" | "clientes">("overview");
   const [search, setSearch] = useState("");
   const [segFilter, setSegFilter] = useState<Segment | "all">("all");
   const [sort, setSort] = useState<"monetary" | "frequency" | "recency" | "rfm">("rfm");
@@ -263,7 +264,7 @@ export default function CustomerRFMPage() {
     : "—";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* PageHeader */}
       <PageHeader
         icon={Users}
@@ -281,36 +282,25 @@ export default function CustomerRFMPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KPICard
-          label="Campeones"
-          value={championsCount}
-          sub="máximo valor y frecuencia"
-          icon={Crown}
-          color="warning"
-        />
-        <KPICard
-          label="En riesgo"
-          value={atRiskCount}
-          sub="acción urgente requerida"
-          icon={AlertTriangle}
-          color="destructive"
-        />
-        <KPICard
-          label="Revenue total"
-          value={fmt(totalRevenue)}
-          sub="todos los clientes"
-          icon={DollarSign}
-          color="success"
-        />
-        <KPICard
-          label="Score RFM promedio"
-          value={avgRFMScore}
-          sub="escala 1-5 por dimensión"
-          icon={BarChart3}
-          color="blue"
-        />
+        <KPICard label="Campeones"         value={championsCount} sub="máximo valor y frecuencia"    icon={Crown}         color="warning"     />
+        <KPICard label="En riesgo"         value={atRiskCount}    sub="acción urgente requerida"      icon={AlertTriangle} color="destructive" />
+        <KPICard label="Revenue total"     value={fmt(totalRevenue)} sub="todos los clientes"         icon={DollarSign}    color="success"     />
+        <KPICard label="Score RFM promedio" value={avgRFMScore}   sub={`${rfmData.length} clientes`}  icon={BarChart3}     color="blue"        />
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+        {[{ id: "overview", label: "Resumen & Segmentos" }, { id: "clientes", label: `Clientes (${rfmData.length})` }].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as any)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Overview tab ─── */}
+      {tab === "overview" && (
+      <div className="space-y-4 pb-12">
       {/* Charts row */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Pie */}
@@ -394,6 +384,12 @@ export default function CustomerRFMPage() {
         </div>
       </div>
 
+      </div>
+      )}
+
+      {/* ─── Clientes tab ─── */}
+      {tab === "clientes" && (
+      <div className="space-y-4 pb-12">
       {/* Segment filter pills */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
@@ -531,6 +527,8 @@ export default function CustomerRFMPage() {
           )}
         </div>
       </div>
+      </div>
+      )}
     </div>
   );
 }

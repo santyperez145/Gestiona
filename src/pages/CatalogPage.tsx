@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
@@ -7,7 +7,8 @@ import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, Package, Tag, Download, Share2, QrCode } from "lucide-react";
+import { Search, Package, Tag, Download, Share2, QrCode, Layers, Percent } from "lucide-react";
+import KPICard from "@/components/shared/KPICard";
 import { QRCodeSVG } from "qrcode.react";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
@@ -854,7 +855,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const businessName = settings?.business_name || '';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       {/* Hidden QR for printing */}
       <div className="hidden">
         <QRCodeSVG
@@ -890,22 +891,15 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
 
       {/* Stats bar */}
       {products.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          {[
-            { label: "Productos", value: products.length, color: "text-foreground" },
-            { label: "Categorías", value: [...new Set(products.map(p => p.category))].length, color: "text-foreground" },
-            { label: "Marcas", value: [...new Set(products.map(p => p.brand).filter(Boolean))].length, color: "text-foreground" },
-            { label: "En oferta", value: products.filter(p => p.discount_price_ars && p.discount_price_ars < p.sale_price_ars).length, color: "text-primary" },
-          ].map(stat => (
-            <div key={stat.label} className="bg-card border border-border/60 rounded-xl px-4 py-3 text-center">
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KPICard label="Productos" value={products.length} icon={Package} color="primary" sub={`${filtered.length} mostrando`} />
+          <KPICard label="Categorías" value={[...new Set(products.map(p => p.category))].length} icon={Layers} color="blue" sub="tipos distintos" />
+          <KPICard label="Marcas" value={[...new Set(products.map(p => p.brand).filter(Boolean))].length} icon={Tag} color="purple" sub="en catálogo" />
+          <KPICard label="En oferta" value={products.filter(p => p.discount_price_ars && p.discount_price_ars < p.sale_price_ars).length} icon={Percent} color={products.filter(p => p.discount_price_ars && p.discount_price_ars < p.sale_price_ars).length > 0 ? "success" : "primary"} sub="con descuento activo" />
         </div>
       )}
 
-      <div className="flex flex-col gap-3 mb-6">
+      <div className="flex flex-col gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar producto o marca..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted border-border" />

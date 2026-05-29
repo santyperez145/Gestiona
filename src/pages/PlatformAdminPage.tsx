@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+﻿import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
 import { Navigate } from 'react-router-dom';
@@ -620,7 +620,7 @@ export default function PlatformAdminPage() {
                 ].map(({ label, value, color, textColor }) => {
                   const pct = stats.orgs > 0 ? Math.round((value / stats.orgs) * 100) : 0;
                   return (
-                    <div key={label} className="space-y-1">
+                    <div key={label} className="space-y-1 pb-12">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{label}</span>
                         <span className={`font-semibold ${textColor}`}>
@@ -1195,7 +1195,7 @@ export default function PlatformAdminPage() {
                     <h4 className="font-semibold text-sm">{selectedOrg.name}</h4>
                     <div className="flex gap-2">
                       {selectedOrg.status === 'paused' ? (
-                        <Button size="sm" variant="outline" className="h-7 text-xs border-success/40 text-success hover:bg-success/10"
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
                           onClick={() => handleReactivateOrg(selectedOrg)}
                           disabled={suspendingOrgId === selectedOrg.id}>
                           <Play className={`w-3 h-3 mr-1 ${suspendingOrgId === selectedOrg.id ? 'animate-spin' : ''}`} />
@@ -1229,7 +1229,7 @@ export default function PlatformAdminPage() {
                     </div>
                   ) : null}
                   {orgActivity?.recentSales?.length > 0 && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Últimas ventas</p>
                       {orgActivity.recentSales.map((s: any) => (
                         <div key={s.id} className="flex items-center justify-between text-xs">
@@ -1248,7 +1248,7 @@ export default function PlatformAdminPage() {
                       </p>
                       {loadingMembers && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {orgMembers.map(m => (
                         <div key={m.user_id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/20">
                           <div className="flex-1 min-w-0">

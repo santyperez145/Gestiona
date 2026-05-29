@@ -146,12 +146,19 @@ export default function EcommerceStorePage() {
     { id: "settings",  label: "Configuración" },
   ];
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayOrders = useMemo(() => orders.filter(o => o.created_at.slice(0, 10) === todayStr), [orders, todayStr]);
+  const todayRevenue = useMemo(() => todayOrders.reduce((sum, o) => sum + Number(o.total), 0), [todayOrders]);
+  const conversionPct = funnelData[3]?.pct ?? 0;
+  const activeCartsCount = funnelData[1]?.value ?? 0;
+  const abandonedCount = funnelData.find(f => f.label === "Órdenes completadas") ? (funnelData[1]?.value ?? 0) - (funnelData[3]?.value ?? 0) : 0;
+
   const kpis = useMemo(() => [
-    { label: "Revenue hoy",      value: "$48.4K", sub: "+12% vs ayer",    icon: DollarSign,    color: "success"  as const },
-    { label: "Órdenes hoy",      value: String(orders.length || 0), sub: `${orders.length} este mes`, icon: ShoppingCart, color: "primary"  as const },
-    { label: "Conversión",       value: "5.5%",   sub: "-1% vs semana",   icon: TrendingUp,    color: "warning"  as const },
-    { label: "Carritos activos", value: "23",     sub: "3 abandonados",   icon: Users,         color: "blue"     as const },
-  ], [orders.length]);
+    { label: "Revenue hoy",      value: todayRevenue > 0 ? `$${(todayRevenue / 1000).toFixed(0)}K` : "$0", sub: `${todayOrders.length} órd. hoy`, icon: DollarSign,    color: "success"  as const },
+    { label: "Órdenes totales",  value: String(orders.length || 0),  sub: `${todayOrders.length} hoy`,      icon: ShoppingCart, color: "primary"  as const },
+    { label: "Conversión",       value: `${conversionPct}%`,          sub: `${funnelData[0]?.value ?? 0} sesiones totales`, icon: TrendingUp, color: "warning" as const },
+    { label: "Carritos c/items", value: activeCartsCount,             sub: `${Math.max(0, abandonedCount)} abandonados`, icon: Users, color: "blue" as const },
+  ], [todayRevenue, todayOrders.length, orders.length, conversionPct, funnelData, activeCartsCount, abandonedCount]);
 
   return (
     <div className="space-y-6 pb-12">

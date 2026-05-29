@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -515,7 +515,7 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Link2}
         title="Integraciones"
@@ -602,7 +602,7 @@ export default function IntegrationsPage() {
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold">Tiendanube</h2>
                 {conn ? (
-                  <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Conectado</Badge>
+                  <Badge className="text-[10px] h-4 px-1.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">Conectado</Badge>
                 ) : (
                   <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin conectar</Badge>
                 )}
@@ -644,7 +644,7 @@ export default function IntegrationsPage() {
           <div className="px-5 py-4 space-y-4">
             {/* Store info */}
             <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-              <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{conn.store_name}</p>
                 {conn.store_url && (
@@ -755,7 +755,7 @@ export default function IntegrationsPage() {
                 </Button>
               </div>
               {conn?.webhook_id && (
-                <div className="flex items-center gap-1.5 text-[10px] text-success">
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
                   <CheckCircle2 className="w-3 h-3" />
                   Webhooks activos
                 </div>
@@ -787,7 +787,7 @@ export default function IntegrationsPage() {
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold">Mercado Pago</h2>
                 {mpEnabled && mpToken ? (
-                  <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Activo</Badge>
+                  <Badge className="text-[10px] h-4 px-1.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">Activo</Badge>
                 ) : (
                   <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
                 )}
@@ -866,7 +866,7 @@ export default function IntegrationsPage() {
                 <div className="flex items-center gap-2">
                   <h2 className="font-semibold">MercadoLibre</h2>
                   {mlEnabled && mlToken ? (
-                    <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Activo</Badge>
+                    <Badge className="text-[10px] h-4 px-1.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">Activo</Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
                   )}
@@ -943,7 +943,7 @@ export default function IntegrationsPage() {
                 <div className="flex items-center gap-2">
                   <h2 className="font-semibold">Shopify</h2>
                   {shopifyEnabled && shopifyUrl ? (
-                    <Badge className="text-[10px] h-4 px-1.5 bg-success/15 text-success border-success/20">Activo</Badge>
+                    <Badge className="text-[10px] h-4 px-1.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">Activo</Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
                   )}
@@ -1038,7 +1038,7 @@ export default function IntegrationsPage() {
         </div>
 
         {apiKey ? (
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             <label className="text-xs font-medium text-muted-foreground">Tu API Key</label>
             <div className="flex gap-2">
               <div className="flex-1 font-mono text-xs bg-muted/30 rounded-lg border border-border px-3 py-2 overflow-hidden">
@@ -1131,7 +1131,7 @@ export default function IntegrationsPage() {
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           <label className="text-xs font-medium text-muted-foreground">Eventos a enviar</label>
           <div className="flex flex-wrap gap-2">
             {["sale.created", "stock.low", "debt.overdue"].map(ev => (
@@ -1492,7 +1492,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
       </div>
 
       {/* Config fields */}
-      <div className="space-y-3">
+      <div className="space-y-3 pb-12">
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">URL de Evolution API</label>
           <Input

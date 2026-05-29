@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -434,7 +434,7 @@ export default function DeliveryTrackingPage() {
   const inTransit = deliveries.filter(d => ["in_transit","out_for_delivery","picked_up","assigned"].includes(d.status)).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Truck}
         title="Seguimiento de Envíos"

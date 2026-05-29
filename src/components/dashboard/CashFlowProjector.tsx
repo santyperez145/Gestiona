@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Banknote, ChevronDown, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { projectCashFlow, type CashFlowWindow } from "@/lib/cashFlow";
@@ -60,7 +60,7 @@ export default function CashFlowProjector({
             }`}
           >
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{w.days} días</p>
-            <p className={`text-base sm:text-lg font-bold font-display ${w.endingBalance >= initialCash ? 'text-success' : w.endingBalance >= 0 ? 'text-warning' : 'text-destructive'}`}>
+            <p className={`text-base sm:text-lg font-bold font-display ${w.endingBalance >= initialCash ? 'text-emerald-400' : w.endingBalance >= 0 ? 'text-yellow-400' : 'text-destructive'}`}>
               {formatARS(w.endingBalance)}
             </p>
             <p className="text-[10px] text-muted-foreground">Neto: {w.net >= 0 ? '+' : ''}{formatARS(w.net)}</p>
@@ -69,17 +69,17 @@ export default function CashFlowProjector({
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 text-center">
-        <div className="bg-success/5 rounded-lg p-2.5">
-          <p className="text-[10px] uppercase text-muted-foreground flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3 text-success" /> Entradas</p>
-          <p className="text-sm font-bold text-success">{formatARS(active.inflows)}</p>
+        <div className="bg-emerald-500/5 rounded-lg p-2.5">
+          <p className="text-[10px] uppercase text-muted-foreground flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-400" /> Entradas</p>
+          <p className="text-sm font-bold text-emerald-400">{formatARS(active.inflows)}</p>
         </div>
         <div className="bg-destructive/5 rounded-lg p-2.5">
           <p className="text-[10px] uppercase text-muted-foreground flex items-center justify-center gap-1"><TrendingDown className="w-3 h-3 text-destructive" /> Salidas</p>
           <p className="text-sm font-bold text-destructive">{formatARS(Math.abs(active.outflows))}</p>
         </div>
-        <div className={`${status === 'destructive' ? 'bg-destructive/10' : status === 'warning' ? 'bg-warning/10' : 'bg-success/10'} rounded-lg p-2.5`}>
+        <div className={`${status === 'destructive' ? 'bg-destructive/10' : status === 'warning' ? 'bg-yellow-500/10' : 'bg-emerald-500/10'} rounded-lg p-2.5`}>
           <p className="text-[10px] uppercase text-muted-foreground flex items-center justify-center gap-1"><Activity className="w-3 h-3" /> Estado</p>
-          <p className={`text-xs font-bold ${status === 'destructive' ? 'text-destructive' : status === 'warning' ? 'text-warning' : 'text-success'}`}>
+          <p className={`text-xs font-bold ${status === 'destructive' ? 'text-destructive' : status === 'warning' ? 'text-yellow-400' : 'text-emerald-400'}`}>
             {statusLabel}
           </p>
         </div>
@@ -115,7 +115,7 @@ export default function CashFlowProjector({
             <div key={i} className="flex items-center justify-between text-xs py-1 px-2 hover:bg-muted/30 rounded">
               <span className="text-muted-foreground shrink-0 mr-2">{m.date}</span>
               <span className="flex-1 truncate text-[11px]">{m.label}</span>
-              <span className={`shrink-0 font-semibold ${m.amount >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <span className={`shrink-0 font-semibold ${m.amount >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                 {m.amount >= 0 ? '+' : ''}{formatARS(m.amount)}
               </span>
             </div>

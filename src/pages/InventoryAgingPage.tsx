@@ -1,4 +1,4 @@
-/**
+﻿/**
  * InventoryAgingPage — /inventario-aging
  *
  * Shows which products have not sold recently, how much capital is locked up
@@ -228,7 +228,7 @@ export default function InventoryAgingPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Archive}
         title="Aging de Inventario"
@@ -241,7 +241,7 @@ export default function InventoryAgingPage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           label="Productos en riesgo"
           value={String(kpis.atRisk)}
@@ -277,7 +277,7 @@ export default function InventoryAgingPage() {
           <RefreshCw className="w-4 h-4 animate-spin" /> Cargando inventario…
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
           {/* Charts row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Pie: capital by aging */}
@@ -328,7 +328,7 @@ export default function InventoryAgingPage() {
             {/* Bucket summary */}
             <div className="bg-card border border-border/60 rounded-2xl p-5">
               <h3 className="text-sm font-semibold mb-4">Resumen por aging</h3>
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 {(["0-30", "31-60", "61-90", "90+", "never"] as AgingBucket[]).map(b => {
                   const cfg = BUCKET_CONFIG[b];
                   const inBucket = products.filter(p => p.bucket === b);

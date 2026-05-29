@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -211,9 +211,9 @@ export default function CashFlowPage() {
         <DialogHeader>
           <DialogTitle>Nuevo movimiento de caja</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label>Tipo</Label>
               <Select
                 value={entryForm.entry_type}
@@ -232,7 +232,7 @@ export default function CashFlowPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label>Categoría</Label>
               <Select
                 value={entryForm.category}
@@ -251,7 +251,7 @@ export default function CashFlowPage() {
               </Select>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 pb-12">
             <Label>Descripción *</Label>
             <Input
               value={entryForm.description}
@@ -260,7 +260,7 @@ export default function CashFlowPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label>Monto *</Label>
               <Input
                 type="number"
@@ -269,7 +269,7 @@ export default function CashFlowPage() {
                 onChange={e => setEntryForm(f => ({ ...f, amount: Number(e.target.value) }))}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <Label>Fecha</Label>
               <Input
                 type="date"
@@ -296,7 +296,7 @@ export default function CashFlowPage() {
           </div>
           {entryForm.is_recurring && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 <Label>Frecuencia</Label>
                 <Select
                   value={entryForm.recurrence_type}
@@ -313,7 +313,7 @@ export default function CashFlowPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 <Label>Fin de recurrencia</Label>
                 <Input
                   type="date"
@@ -323,7 +323,7 @@ export default function CashFlowPage() {
               </div>
             </div>
           )}
-          <div className="space-y-1">
+          <div className="space-y-1 pb-12">
             <Label>Cuenta bancaria</Label>
             <Input
               value={entryForm.bank_account}
@@ -331,7 +331,7 @@ export default function CashFlowPage() {
               placeholder="Banco Nación, Mercado Pago..."
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 pb-12">
             <Label>Notas</Label>
             <Textarea
               value={entryForm.notes}
@@ -357,7 +357,7 @@ export default function CashFlowPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 pb-12">
       {/* ── Page Header ──────────────────────────────────────────── */}
       <PageHeader
         icon={BarChart3}
@@ -494,7 +494,7 @@ export default function CashFlowPage() {
                             {new Date(e.date + "T12:00:00").toLocaleDateString("es-AR")}
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`inline-flex items-center gap-1 text-xs font-medium ${isIn ? "text-success" : "text-destructive"}`}>
+                            <span className={`inline-flex items-center gap-1 text-xs font-medium ${isIn ? "text-emerald-400" : "text-destructive"}`}>
                               {isIn
                                 ? <TrendingUp className="w-3 h-3" />
                                 : <TrendingDown className="w-3 h-3" />}
@@ -503,7 +503,7 @@ export default function CashFlowPage() {
                           </td>
                           <td className="py-3 px-4 text-muted-foreground text-xs">{catLabel}</td>
                           <td className="py-3 px-4 font-medium">{e.description}</td>
-                          <td className={`py-3 px-4 text-right font-semibold ${isIn ? "text-success" : "text-destructive"}`}>
+                          <td className={`py-3 px-4 text-right font-semibold ${isIn ? "text-emerald-400" : "text-destructive"}`}>
                             {isIn ? "+" : "-"}{fmtFull(e.amount)}
                           </td>
                           <td className="py-3 px-4 text-muted-foreground text-xs">
@@ -570,7 +570,7 @@ export default function CashFlowPage() {
                         <div className="flex-1 space-y-0.5">
                           {Number(s.inflow) > 0 && (
                             <div
-                              className="h-2 bg-success/40 rounded"
+                              className="h-2 bg-emerald-500/40 rounded"
                               style={{ width: `${inflowPct}%` }}
                               title={`Ingresos: ${fmtFull(Number(s.inflow))}`}
                             />
@@ -583,7 +583,7 @@ export default function CashFlowPage() {
                             />
                           )}
                         </div>
-                        <span className={`w-24 text-right font-medium flex-shrink-0 ${isPos ? "text-success" : "text-destructive"}`}>
+                        <span className={`w-24 text-right font-medium flex-shrink-0 ${isPos ? "text-emerald-400" : "text-destructive"}`}>
                           {isPos ? "+" : ""}{fmt(Number(s.net))}
                         </span>
                         <span className="w-28 text-right text-muted-foreground flex-shrink-0">
@@ -595,7 +595,7 @@ export default function CashFlowPage() {
                 </div>
                 <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-2 bg-success/40 rounded inline-block" /> Ingresos
+                    <span className="w-3 h-2 bg-emerald-500/40 rounded inline-block" /> Ingresos
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-3 h-2 bg-destructive/40 rounded inline-block" /> Egresos
@@ -684,7 +684,7 @@ export default function CashFlowPage() {
                             </td>
                             <td className="py-2 px-4">{e.description}</td>
                             <td className="py-2 px-4 text-muted-foreground text-xs">{catLabel}</td>
-                            <td className={`py-2 px-4 text-right font-semibold ${isIn ? "text-success" : "text-destructive"}`}>
+                            <td className={`py-2 px-4 text-right font-semibold ${isIn ? "text-emerald-400" : "text-destructive"}`}>
                               {isIn ? "+" : "-"}{fmt(e.amount)}
                             </td>
                           </tr>
@@ -718,23 +718,23 @@ export default function CashFlowPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-success" />
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
                     Ingresos por categoría
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 pb-12">
                   {inflowByCategory.length === 0 ? (
                     <p className="text-xs text-muted-foreground py-4 text-center">Sin ingresos registrados</p>
                   ) : (
                     inflowByCategory.map(c => (
-                      <div key={c.key} className="space-y-1">
+                      <div key={c.key} className="space-y-1 pb-12">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">{c.label}</span>
-                          <span className="font-semibold text-success">{fmt(c.total)}</span>
+                          <span className="font-semibold text-emerald-400">{fmt(c.total)}</span>
                         </div>
                         <div className="h-2 bg-muted/40 rounded overflow-hidden">
                           <div
-                            className="h-full bg-success/60 rounded transition-all"
+                            className="h-full bg-emerald-500/60 rounded transition-all"
                             style={{ width: `${(c.total / maxCatValue) * 100}%` }}
                           />
                         </div>
@@ -752,12 +752,12 @@ export default function CashFlowPage() {
                     Egresos por categoría
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 pb-12">
                   {outflowByCategory.length === 0 ? (
                     <p className="text-xs text-muted-foreground py-4 text-center">Sin egresos registrados</p>
                   ) : (
                     outflowByCategory.map(c => (
-                      <div key={c.key} className="space-y-1">
+                      <div key={c.key} className="space-y-1 pb-12">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">{c.label}</span>
                           <span className="font-semibold text-destructive">{fmt(c.total)}</span>

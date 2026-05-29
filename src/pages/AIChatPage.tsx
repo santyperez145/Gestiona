@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -247,7 +247,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
 
   if (done) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+      <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
         <CheckCircle2 className="w-4 h-4" />Acción completada
       </div>
     );
@@ -336,8 +336,8 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
       }
     };
     return (
-      <div className="mt-2 p-3 rounded-lg border border-warning/20 bg-warning/5 space-y-2">
-        <p className="text-xs font-medium text-warning flex items-center gap-1.5">
+      <div className="mt-2 p-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5 space-y-2">
+        <p className="text-xs font-medium text-yellow-400 flex items-center gap-1.5">
           <TrendingDown className="w-3.5 h-3.5" />Registrar gasto
         </p>
         <Input value={eDesc} onChange={e => setEDesc(e.target.value)} placeholder="Descripción *" className="h-7 text-xs" />
@@ -354,7 +354,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
           </select>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" className="h-7 text-xs bg-warning text-warning-foreground flex-1" disabled={!eDesc.trim() || !eAmount || loading} onClick={handleCreate}>
+          <Button size="sm" className="h-7 text-xs bg-yellow-500 text-white flex-1" disabled={!eDesc.trim() || !eAmount || loading} onClick={handleCreate}>
             {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Guardar
           </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
@@ -447,8 +447,8 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
       }
     };
     return (
-      <div className="mt-2 p-3 rounded-lg border border-success/20 bg-success/5 space-y-2">
-        <p className="text-xs font-medium text-success flex items-center gap-1.5">
+      <div className="mt-2 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+        <p className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5" />Crear cliente
         </p>
         <Input value={cName} onChange={e => setCName(e.target.value)} placeholder="Nombre completo *" className="h-7 text-xs" />
@@ -457,7 +457,7 @@ function ActionCard({ action, userId, onDone }: { action: AIAction; userId: stri
           <Input value={cEmail} onChange={e => setCEmail(e.target.value)} placeholder="Email (opc.)" className="h-7 text-xs" />
         </div>
         <div className="flex gap-2">
-          <Button size="sm" className="h-7 text-xs bg-success text-success-foreground flex-1" disabled={!cName.trim() || loading} onClick={handleCreate}>
+          <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white flex-1" disabled={!cName.trim() || loading} onClick={handleCreate}>
             {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}Crear
           </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
@@ -483,7 +483,7 @@ function AdjustStockCard({ userId, onDone }: { userId: string; onDone: () => voi
 
   if (done) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+      <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
         <CheckCircle2 className="w-4 h-4" />Stock actualizado
       </div>
     );
@@ -558,7 +558,7 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
 
   if (done) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+      <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
         <CheckCircle2 className="w-4 h-4" />Venta registrada
       </div>
     );
@@ -600,8 +600,8 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
   };
 
   return (
-    <div className="mt-2 p-3 rounded-lg border border-success/20 bg-success/5 space-y-2">
-      <p className="text-xs font-medium text-success flex items-center gap-1.5">
+    <div className="mt-2 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+      <p className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
         <ShoppingCart className="w-3.5 h-3.5" />Registrar venta
       </p>
       {loadingProducts ? (
@@ -623,10 +623,10 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
         <Input value={customer} onChange={e => setCustomer(e.target.value)} placeholder="Cliente (opc.)" className="h-7 text-xs flex-1" />
       </div>
       {selectedProduct && (
-        <p className="text-xs text-muted-foreground">Total: <span className="font-semibold text-success">${total.toLocaleString('es-AR')}</span></p>
+        <p className="text-xs text-muted-foreground">Total: <span className="font-semibold text-emerald-400">${total.toLocaleString('es-AR')}</span></p>
       )}
       <div className="flex gap-2">
-        <Button size="sm" className="h-7 text-xs bg-success text-success-foreground flex-1" disabled={!selectedId || !quantity || loading} onClick={handleCreate}>
+        <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white flex-1" disabled={!selectedId || !quantity || loading} onClick={handleCreate}>
           {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ShoppingCart className="w-3 h-3 mr-1" />}Registrar
         </Button>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onDone}><X className="w-3 h-3" /></Button>
@@ -1002,7 +1002,7 @@ function QueryProductAnalysisCard({ userId, initialName, onDone }: { userId: str
         const { prod, units30, rev30, profit30, margin30, units60prev, unitGrowth, daysSinceLastSale, salesCount } = result;
         const trendIcon = unitGrowth > 10 ? "📈" : unitGrowth < -10 ? "📉" : "➡️";
         return (
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-base">{prod.name}</p>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${prod.stock <= 0 ? 'bg-red-500/15 text-red-400' : prod.stock <= 3 ? 'bg-orange-500/15 text-orange-400' : 'bg-green-500/15 text-green-400'}`}>
@@ -1258,7 +1258,7 @@ function DebtsSummaryCard({ userId, onDone }: { userId: string; onDone: () => vo
             ))}
           </div>
           {result.topDebtors.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Top deudores</p>
               {result.topDebtors.map(([name, amount]: [string, number], i: number) => (
                 <div key={i} className="flex items-center justify-between text-xs border-t border-border/40 pt-1">
@@ -1407,7 +1407,7 @@ function SalesSummaryCard({ userId, initialPeriod, onDone }: {
 
           {/* Payment methods */}
           {Object.keys(result.methodMap).length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1 pb-12">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Por método de pago</p>
               {Object.entries(result.methodMap as Record<string, number>)
                 .sort((a, b) => b[1] - a[1])
@@ -1496,7 +1496,7 @@ function SendWaSegmentCard({ userId, initialSegment, onDone }: {
 
   if (done) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+      <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
         <CheckCircle2 className="w-4 h-4" />{sent} mensajes enviados a clientes {segment}
       </div>
     );
@@ -1600,7 +1600,7 @@ function CreateTaskCard({ userId, onDone }: { userId: string; onDone: () => void
 
   if (done) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-success">
+      <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
         <CheckCircle2 className="w-4 h-4" />Tarea creada correctamente
       </div>
     );
@@ -1711,7 +1711,7 @@ function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmoun
   if (done) {
     return (
       <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-        <div className="flex items-center gap-2 text-xs text-success">
+        <div className="flex items-center gap-2 text-xs text-emerald-400">
           <CheckCircle2 className="w-4 h-4" />
           <span>Presupuesto <span className="font-bold">{createdNumber}</span> creado</span>
         </div>
@@ -1766,7 +1766,7 @@ function CreateQuoteCard({ userId, initialCustomer, initialProduct, initialAmoun
         <Input value={custName} onChange={e => setCustName(e.target.value)} placeholder="Cliente *" className="h-7 text-xs" autoFocus />
         <Input value={custEmail} onChange={e => setCustEmail(e.target.value)} placeholder="Email (opcional)" className="h-7 text-xs" type="email" />
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1 pb-12">
         <p className="text-[10px] text-muted-foreground font-medium">Ítems</p>
         {items.map((it, i) => (
           <div key={i} className="flex gap-1.5 items-center">
@@ -1858,14 +1858,14 @@ function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
   return (
     <div className="rounded-xl border border-border bg-card/60 p-3 space-y-3 text-sm">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-warning uppercase tracking-wider flex items-center gap-1.5">
+        <p className="text-xs font-semibold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
           <TrendingDown className="w-3.5 h-3.5" />Resumen de gastos
         </p>
         <div className="flex gap-1">
           {(["month", "week"] as const).map(p => (
             <button key={p}
               onClick={() => { setPeriod(p); load(p); }}
-              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${period === p ? "bg-warning/20 text-warning border-warning/40" : "border-border text-muted-foreground hover:border-warning/30"}`}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${period === p ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" : "border-border text-muted-foreground hover:border-yellow-500/30"}`}
             >{PERIOD_LABELS[p]}</button>
           ))}
         </div>
@@ -1882,7 +1882,7 @@ function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
           <div className="grid grid-cols-2 gap-1.5">
             <div className="bg-muted/40 rounded-lg px-2.5 py-2">
               <p className="text-[10px] text-muted-foreground">Total</p>
-              <p className="font-bold text-sm text-warning">{formatARS(result.total)}</p>
+              <p className="font-bold text-sm text-yellow-400">{formatARS(result.total)}</p>
             </div>
             <div className="bg-muted/40 rounded-lg px-2.5 py-2">
               <p className="text-[10px] text-muted-foreground">Gastos</p>
@@ -1910,7 +1910,7 @@ function ExpenseSummaryCard({ userId, initialPeriod, onDone }: {
                       <span className="font-semibold">{formatARS(val)} <span className="text-muted-foreground text-[10px]">({pct}%)</span></span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-warning/60 rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-yellow-500/60 rounded-full" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -1987,7 +1987,7 @@ function TopProductsCard({ userId, initialSort, onDone }: {
       ) : products.length === 0 ? (
         <p className="text-xs text-muted-foreground">Sin datos de ventas aún.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {products.map((p, i) => {
             const val = p[sortBy];
             const barW = Math.round((val / maxVal) * 100);
@@ -2096,7 +2096,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
       </p>
 
       {!result ? (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -2125,7 +2125,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -2153,7 +2153,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
             </div>
             <div className={`rounded-lg px-2.5 py-2 ${result.pending > 0 ? "bg-red-500/10" : "bg-muted/40"}`}>
               <p className="text-[10px] text-muted-foreground">Deuda pendiente</p>
-              <p className={`font-bold text-sm ${result.pending > 0 ? "text-red-400" : "text-success"}`}>
+              <p className={`font-bold text-sm ${result.pending > 0 ? "text-red-400" : "text-emerald-400"}`}>
                 {result.pending > 0 ? formatARS(result.pending) : "Sin deuda"}
               </p>
             </div>
@@ -2593,7 +2593,7 @@ export default function AIChatPage() {
   }, [messages, conversations, dismissedActions]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
         title="Asistente IA"

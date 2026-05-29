@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -184,7 +184,7 @@ export default function DynamicPricingPage() {
   ], [rules, demandSignals, priceEvents]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Zap}
         title="Precios Dinámicos"
@@ -241,7 +241,7 @@ export default function DynamicPricingPage() {
         </TabsList>
 
         {/* RULES */}
-        <TabsContent value="rules" className="space-y-3">
+        <TabsContent value="rules" className="space-y-3 pb-12">
           {rules.sort((a, b) => a.priority - b.priority).map(rule => {
             const typeInfo = RULE_TYPE_LABELS[rule.rule_type] ?? { label: rule.rule_type, icon: "⚡" };
             return (
@@ -271,7 +271,7 @@ export default function DynamicPricingPage() {
         </TabsContent>
 
         {/* DEMAND */}
-        <TabsContent value="demand" className="space-y-3">
+        <TabsContent value="demand" className="space-y-3 pb-12">
           <p className="text-sm text-muted-foreground">Señales en tiempo real para ajuste automático de precios</p>
           {demandSignals.map((d, i) => (
             <Card key={i}>
@@ -343,7 +343,7 @@ export default function DynamicPricingPage() {
         <TabsContent value="simulator">
           <Card className="max-w-md">
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Brain className="w-4 h-4" />Simulador de Precio Óptimo</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               <div>
                 <Label>Precio Actual (ARS)</Label>
                 <Input type="number" value={simPrice} onChange={e => setSimPrice(e.target.value)} className="mt-1" />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CalendarPage — /calendario
  *
  * Unified business calendar showing tasks, deal close dates,
@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { useNavigate } from "react-router-dom";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -237,7 +238,7 @@ export default function CalendarPage() {
   }, [events, currentMonth]);
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Calendar}
         title="Calendario de Negocios"
@@ -247,8 +248,16 @@ export default function CalendarPage() {
         }
       />
 
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Eventos este mes" value={totalThisMonth.length} icon={Calendar} color="primary" sub={`en ${MONTHS_ES[currentMonth.getMonth()]}`} />
+        <KPICard label="Tareas" value={totalThisMonth.filter(e => e.type === "task").length} icon={CheckSquare} color="purple" sub="pendientes" />
+        <KPICard label="Cobros" value={totalThisMonth.filter(e => e.type === "debt").length} icon={AlertCircle} color={totalThisMonth.filter(e => e.type === "debt").length > 0 ? "destructive" : "success"} sub="deudas por cobrar" />
+        <KPICard label="Deals & Follow-ups" value={totalThisMonth.filter(e => e.type === "deal" || e.type === "followup").length} icon={TrendingUp} color="warning" sub="en seguimiento" />
+      </div>
+
       {/* Legend */}
-      <div className="flex gap-3 flex-wrap mb-5">
+      <div className="flex gap-3 flex-wrap">
         {(Object.entries(EVENT_CONFIG) as [EventType, typeof EVENT_CONFIG[EventType]][]).map(([type, cfg]) => {
           const count = totalThisMonth.filter(e => e.type === type).length;
           if (count === 0) return null;
@@ -357,7 +366,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Day detail panel */}
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           <div className="bg-card border border-border/60 rounded-2xl p-4">
             {selectedDate ? (
               <>
@@ -367,7 +376,7 @@ export default function CalendarPage() {
                 {selectedEvents.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-6">Sin eventos este día</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 pb-12">
                     {selectedEvents.map(ev => {
                       const cfg = EVENT_CONFIG[ev.type];
                       const Icon = cfg.icon;
@@ -424,7 +433,7 @@ export default function CalendarPage() {
                 return <p className="text-xs text-muted-foreground text-center py-4">Sin eventos próximos</p>;
               }
               return (
-                <div className="space-y-2">
+                <div className="space-y-2 pb-12">
                   {upcoming.slice(0, 8).map(ev => {
                     const cfg = EVENT_CONFIG[ev.type];
                     const Icon = cfg.icon;

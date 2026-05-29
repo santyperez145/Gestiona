@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -253,7 +253,7 @@ export default function CompetitorPricingPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={BarChart3}
         title="Inteligencia de Precios"
@@ -288,7 +288,7 @@ export default function CompetitorPricingPage() {
       <>
           {/* ── Comparativa ── */}
           {activeTab === "Comparativa" && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {/* filters */}
               <div className="flex gap-3 flex-wrap">
                 <div className="relative">
@@ -504,7 +504,7 @@ export default function CompetitorPricingPage() {
       <Dialog open={showCompDialog} onOpenChange={setShowCompDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingComp ? "Editar Competidor" : "Nuevo Competidor"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div><Label>Nombre *</Label><Input value={compForm.name} onChange={e => setCompForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div><Label>Sitio web</Label><Input value={compForm.website} onChange={e => setCompForm(p => ({ ...p, website: e.target.value }))} placeholder="https://" /></div>
             <div><Label>Notas</Label><Input value={compForm.notes} onChange={e => setCompForm(p => ({ ...p, notes: e.target.value }))} /></div>
@@ -524,7 +524,7 @@ export default function CompetitorPricingPage() {
       <Dialog open={showProdDialog} onOpenChange={setShowProdDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingProd ? "Editar Producto Rival" : "Nuevo Producto Rival"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div>
               <Label>Competidor *</Label>
               <Select value={prodForm.competitor_id} onValueChange={v => setProdForm(p => ({ ...p, competitor_id: v }))}>
@@ -557,7 +557,7 @@ export default function CompetitorPricingPage() {
       <Dialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Registrar precio de competidor</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Precio *</Label><Input type="number" step="0.01" value={priceForm.price} onChange={e => setPriceForm(p => ({ ...p, price: e.target.value }))} /></div>
               <div>

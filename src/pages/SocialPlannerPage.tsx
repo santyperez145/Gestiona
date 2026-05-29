@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -288,7 +288,7 @@ export default function SocialPlannerPage() {
   ], [posts.length, publishedCount, scheduledCount, totalEngagement]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Share2}
         title="Planner de Redes Sociales"
@@ -348,7 +348,7 @@ export default function SocialPlannerPage() {
                 <p className="text-sm">Sin posts. Creá uno o convertí una idea.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 {filteredPosts.map(post => {
                   const sc = STATUS_CONFIG[post.status];
                   const StatusIcon = sc.icon;

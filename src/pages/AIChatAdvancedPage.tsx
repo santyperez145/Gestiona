@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAuth } from "@/lib/auth";
@@ -226,7 +226,7 @@ export default function AIChatAdvancedPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
         title="Chat IA Avanzado"
@@ -309,7 +309,7 @@ export default function AIChatAdvancedPage() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messages.length === 0 && (
-                <div className="space-y-4">
+                <div className="space-y-4 pb-12">
                   <p className="text-center text-muted-foreground text-sm pt-8">Empezá la conversación o usá un prompt sugerido:</p>
                   <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                     {STARTER_PROMPTS.map((p, i) => (
@@ -373,7 +373,7 @@ export default function AIChatAdvancedPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><BookOpen className="w-5 h-5" /> Biblioteca de Prompts</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div className="flex justify-end">
               <Button size="sm" variant="outline" onClick={() => { setPromptForm({ title: "", prompt: "", category: "general" }); setShowNewPrompt(true); }}>
                 <Plus className="w-4 h-4 mr-1" /> Agregar prompt
@@ -406,7 +406,7 @@ export default function AIChatAdvancedPage() {
       <Dialog open={showNewPrompt} onOpenChange={setShowNewPrompt}>
         <DialogContent>
           <DialogHeader><DialogTitle>Guardar Prompt</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div><Label>Título *</Label><Input value={promptForm.title} onChange={e => setPromptForm(p => ({ ...p, title: e.target.value }))} /></div>
             <div>
               <Label>Categoría</Label>

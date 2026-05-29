@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
@@ -304,7 +304,7 @@ export default function WebhooksPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={Webhook}
@@ -362,7 +362,7 @@ export default function WebhooksPage() {
               {/* Event selector */}
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block">Eventos a escuchar *</label>
-                <div className="space-y-3">
+                <div className="space-y-3 pb-12">
                   {EVENTS.map(group => (
                     <div key={group.group}>
                       <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide mb-1">{group.group}</p>
@@ -446,7 +446,7 @@ export default function WebhooksPage() {
           <p className="text-sm mt-1">Conectá con Zapier, Make o n8n para automatizar tu negocio.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {webhooks.map(webhook => {
             const isExpanded = expandedId === webhook.id;
             const successRate = webhook.total_deliveries > 0
@@ -533,7 +533,7 @@ export default function WebhooksPage() {
                       {(deliveries[webhook.id] ?? []).length === 0 ? (
                         <p className="text-xs text-muted-foreground/50 italic">Sin entregas registradas. Usá el botón Test para enviar un payload de prueba.</p>
                       ) : (
-                        <div className="space-y-1">
+                        <div className="space-y-1 pb-12">
                           {(deliveries[webhook.id] ?? []).map(d => (
                             <div key={d.id} className="flex items-center gap-3 text-xs bg-card rounded-lg px-3 py-2">
                               {statusIcon(d.status)}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -300,7 +300,7 @@ export default function DropshippingPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={PackageSearch}
         title="Dropshipping"
@@ -315,9 +315,9 @@ export default function DropshippingPage() {
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Nuevo pedido dropshipping</DialogTitle></DialogHeader>
-                <div className="space-y-4">
+                <div className="space-y-4 pb-12">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Proveedor *</Label>
                       <Select value={orderForm.supplier_id} onValueChange={v => setOrderForm(f => ({ ...f, supplier_id: v }))}>
                         <SelectTrigger><SelectValue placeholder="Seleccionar proveedor" /></SelectTrigger>
@@ -326,15 +326,15 @@ export default function DropshippingPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Cliente *</Label>
                       <Input value={orderForm.customer_name} onChange={e => setOrderForm(f => ({ ...f, customer_name: e.target.value }))} placeholder="Nombre del cliente" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Teléfono</Label>
                       <Input value={orderForm.customer_phone} onChange={e => setOrderForm(f => ({ ...f, customer_phone: e.target.value }))} placeholder="+54 9 11..." />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Provincia</Label>
                       <Input value={orderForm.ship_province} onChange={e => setOrderForm(f => ({ ...f, ship_province: e.target.value }))} placeholder="Buenos Aires" />
                     </div>
@@ -344,7 +344,7 @@ export default function DropshippingPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 pb-12">
                     <div className="flex items-center justify-between">
                       <Label>Productos</Label>
                       <Button size="sm" variant="outline" onClick={addOrderItem}><Plus className="w-3 h-3 mr-1" /> Agregar</Button>
@@ -386,7 +386,7 @@ export default function DropshippingPage() {
                     )}
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Notas</Label>
                     <Textarea value={orderForm.notes} onChange={e => setOrderForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                   </div>
@@ -407,8 +407,8 @@ export default function DropshippingPage() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Nuevo producto dropshipping</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Proveedor *</Label>
                     <Select value={productForm.supplier_id} onValueChange={v => setProductForm(f => ({ ...f, supplier_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar proveedor" /></SelectTrigger>
@@ -418,11 +418,11 @@ export default function DropshippingPage() {
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>SKU del proveedor</Label>
                       <Input value={productForm.supplier_sku} onChange={e => setProductForm(f => ({ ...f, supplier_sku: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Estado stock</Label>
                       <Select value={productForm.stock_status} onValueChange={v => setProductForm(f => ({ ...f, stock_status: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -433,25 +433,25 @@ export default function DropshippingPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Precio proveedor</Label>
                       <Input type="number" min={0} value={productForm.supplier_price} onChange={e => setProductForm(f => ({ ...f, supplier_price: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Precio de venta</Label>
                       <Input type="number" min={0} value={productForm.sell_price} onChange={e => setProductForm(f => ({ ...f, sell_price: Number(e.target.value) }))} />
                     </div>
                   </div>
                   {productForm.supplier_price > 0 && productForm.sell_price > 0 && (
-                    <div className="bg-success/10 rounded p-2 text-sm text-success">
+                    <div className="bg-emerald-500/10 rounded p-2 text-sm text-emerald-400">
                       Margen estimado: {(((productForm.sell_price - productForm.supplier_price) / productForm.sell_price) * 100).toFixed(1)}%
                     </div>
                   )}
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>URL del proveedor</Label>
                     <Input value={productForm.supplier_url} onChange={e => setProductForm(f => ({ ...f, supplier_url: e.target.value }))} placeholder="https://..." />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Notas</Label>
                     <Textarea value={productForm.notes} onChange={e => setProductForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                   </div>
@@ -471,33 +471,33 @@ export default function DropshippingPage() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Nuevo proveedor dropshipping</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Nombre *</Label>
                     <Input value={supplierForm.name} onChange={e => setSupplierForm(f => ({ ...f, name: e.target.value }))} placeholder="Nombre del proveedor" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Contacto</Label>
                       <Input value={supplierForm.contact_name} onChange={e => setSupplierForm(f => ({ ...f, contact_name: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Email</Label>
                       <Input type="email" value={supplierForm.email} onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Teléfono</Label>
                       <Input value={supplierForm.phone} onChange={e => setSupplierForm(f => ({ ...f, phone: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Sitio web</Label>
                       <Input value={supplierForm.website} onChange={e => setSupplierForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>País</Label>
                       <Input value={supplierForm.country} onChange={e => setSupplierForm(f => ({ ...f, country: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Moneda</Label>
                       <Select value={supplierForm.currency} onValueChange={v => setSupplierForm(f => ({ ...f, currency: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -509,20 +509,20 @@ export default function DropshippingPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Días despacho promedio</Label>
                       <Input type="number" min={0} value={supplierForm.avg_dispatch_days} onChange={e => setSupplierForm(f => ({ ...f, avg_dispatch_days: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Comisión %</Label>
                       <Input type="number" min={0} step={0.01} value={supplierForm.commission_pct} onChange={e => setSupplierForm(f => ({ ...f, commission_pct: Number(e.target.value) }))} />
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Términos de pago</Label>
                     <Input value={supplierForm.payment_terms} onChange={e => setSupplierForm(f => ({ ...f, payment_terms: e.target.value }))} placeholder="prepago, net30..." />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Notas</Label>
                     <Textarea value={supplierForm.notes} onChange={e => setSupplierForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                   </div>
@@ -571,7 +571,7 @@ export default function DropshippingPage() {
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {filteredOrders.map(order => {
               const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
               const isExpanded = expandedOrder === order.id;
@@ -640,7 +640,7 @@ export default function DropshippingPage() {
                         {order.dropship_order_items && order.dropship_order_items.length > 0 && (
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Productos</p>
-                            <div className="space-y-1">
+                            <div className="space-y-1 pb-12">
                               {order.dropship_order_items.map(item => (
                                 <div key={item.id} className="flex justify-between text-sm bg-muted/20 px-3 py-1.5 rounded">
                                   <span>{item.product_name} {item.supplier_sku && <span className="text-muted-foreground/70 text-xs">({item.supplier_sku})</span>}</span>
@@ -723,7 +723,7 @@ export default function DropshippingPage() {
                     <CardTitle className="text-base">{sup.name}</CardTitle>
                     {sup.contact_name && <p className="text-xs text-muted-foreground">{sup.contact_name}</p>}
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-2 pb-12">
                     {sup.email && <p className="text-sm text-muted-foreground">✉ {sup.email}</p>}
                     {sup.phone && <p className="text-sm text-muted-foreground">📞 {sup.phone}</p>}
                     {sup.website && (

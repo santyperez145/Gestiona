@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+﻿import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { addProductDB, addPurchaseDB, getSettingsDB } from "@/lib/supabaseStore";
@@ -461,7 +461,7 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
                   <tr
                     key={i}
                     className={`border-t border-border/50 transition-colors
-                      ${it._saved ? "opacity-50 bg-success/5" : ""}
+                      ${it._saved ? "opacity-50 bg-emerald-500/5" : ""}
                       ${it._error ? "bg-destructive/5" : ""}
                       ${it._selected && !it._saved ? "bg-primary/3" : ""}
                     `}
@@ -469,7 +469,7 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
                     {/* Checkbox */}
                     <td className="px-2 py-1.5 text-center">
                       {it._saved ? (
-                        <CheckCircle2 className="w-4 h-4 text-success mx-auto" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mx-auto" />
                       ) : (
                         <input
                           type="checkbox"
@@ -596,7 +596,7 @@ export default function InvoiceImportDialog({ mode, onClose, onImported }: Invoi
           <div className="flex items-center justify-between gap-3 pt-1 border-t border-border/50">
             <div className="text-xs text-muted-foreground">
               {allSaved ? (
-                <span className="flex items-center gap-1.5 text-success">
+                <span className="flex items-center gap-1.5 text-emerald-400">
                   <CheckCircle2 className="w-4 h-4" />
                   Todo importado correctamente
                 </span>

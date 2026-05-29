@@ -30,9 +30,9 @@ type Cheque = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending:    { label: "Pendiente",  color: "bg-warning/15 text-warning" },
+  pending:    { label: "Pendiente",  color: "bg-yellow-500/15 text-yellow-400" },
   deposited:  { label: "Depositado", color: "bg-blue-500/15 text-blue-400" },
-  cleared:    { label: "Acreditado", color: "bg-success/15 text-success" },
+  cleared:    { label: "Acreditado", color: "bg-emerald-500/15 text-emerald-400" },
   bounced:    { label: "Rebotado",   color: "bg-destructive/15 text-destructive" },
   cancelled:  { label: "Cancelado",  color: "bg-muted/50 text-muted-foreground" },
 };
@@ -134,7 +134,7 @@ export default function ChequesPage() {
   const upcoming30Total = upcoming30.reduce((s, c) => s + Number(c.amount_ars), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={FileText}
         title="Cheques Diferidos"
@@ -164,7 +164,7 @@ export default function ChequesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="flex gap-2 flex-wrap">
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="h-8 w-40 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -234,7 +234,7 @@ export default function ChequesPage() {
                 return (
                   <tr key={c.id} className={`border-b border-border/40 transition-colors ${isOverdue ? "bg-destructive/5" : "hover:bg-muted/20"}`}>
                     <td className="px-3 py-2.5">
-                      <span className={`inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-semibold ${c.type === "received" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+                      <span className={`inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-semibold ${c.type === "received" ? "bg-emerald-500/15 text-emerald-400" : "bg-yellow-500/15 text-yellow-400"}`}>
                         {c.type === "received" ? <><Banknote className="w-2.5 h-2.5" />Recibido</> : <><FileText className="w-2.5 h-2.5" />Emitido</>}
                       </span>
                     </td>

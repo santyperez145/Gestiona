@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useBusinessConfig } from "@/lib/useBusinessConfig";
@@ -199,7 +199,7 @@ export default function PLDashboardPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* ── PageHeader ──────────────────────────────────────────────────────── */}
       <PageHeader
         icon={TrendingUp}
@@ -260,7 +260,7 @@ export default function PLDashboardPage() {
         </TabsList>
 
         {/* ── Tab: Mensual ──────────────────────────────────────────────────── */}
-        <TabsContent value="mensual" className="space-y-5">
+        <TabsContent value="mensual" className="space-y-5 pb-12">
           {/* Month selector + range selector */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1">
@@ -294,7 +294,7 @@ export default function PLDashboardPage() {
           {currentPL && (
             <div className="rounded-xl border border-border/60 bg-card p-6">
               <h3 className="text-sm font-semibold mb-5">Estado de resultados — {currentPL.label}</h3>
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 {[
                   { label: "Ingresos por ventas", value: currentPL.revenue, indent: 0, bold: false, color: "text-foreground" },
                   { label: "Costo de mercadería vendida (COGS)", value: -currentPL.cogs, indent: 1, bold: false, color: "text-orange-400" },
@@ -412,7 +412,7 @@ export default function PLDashboardPage() {
         </TabsContent>
 
         {/* ── Tab: YTD ──────────────────────────────────────────────────────── */}
-        <TabsContent value="ytd" className="space-y-5">
+        <TabsContent value="ytd" className="space-y-5 pb-12">
           {/* YTD summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
@@ -455,14 +455,14 @@ export default function PLDashboardPage() {
         </TabsContent>
 
         {/* ── Tab: Gastos ───────────────────────────────────────────────────── */}
-        <TabsContent value="gastos" className="space-y-5">
+        <TabsContent value="gastos" className="space-y-5 pb-12">
           {/* Monthly breakdown */}
           {expenseByCategory.length > 0 && (
             <div className="rounded-xl border border-border/60 bg-card p-5">
               <h3 className="text-sm font-semibold mb-4">
                 Gastos por categoría — {currentPL?.label ?? "Mes actual"}
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {expenseByCategory.map((c, i) => {
                   const total = expenseByCategory.reduce((s, e) => s + e.total, 0);
                   const widthPct = total > 0 ? (c.total / total) * 100 : 0;
@@ -487,7 +487,7 @@ export default function PLDashboardPage() {
               <h3 className="text-sm font-semibold mb-4">
                 Gastos por categoría — YTD {new Date().getFullYear()}
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {expenseByCategoryYtd.map((c, i) => {
                   const total = expenseByCategoryYtd.reduce((s, e) => s + e.total, 0);
                   const widthPct = total > 0 ? (c.total / total) * 100 : 0;
@@ -514,7 +514,7 @@ export default function PLDashboardPage() {
         </TabsContent>
 
         {/* ── Tab: Comparación ─────────────────────────────────────────────── */}
-        <TabsContent value="comparacion" className="space-y-5">
+        <TabsContent value="comparacion" className="space-y-5 pb-12">
           {currentPL && prevPL ? (
             <>
               {/* Side-by-side summary */}
@@ -525,7 +525,7 @@ export default function PLDashboardPage() {
                 ].map(({ title, pl, muted }) => (
                   <div key={title} className={`rounded-xl border bg-card p-5 ${muted ? "opacity-70 border-border/40" : "border-primary/30"}`}>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{title}</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2 pb-12">
                       {[
                         { label: "Ingresos", value: pl.revenue, color: "text-foreground" },
                         { label: "COGS", value: pl.cogs, color: "text-orange-400" },

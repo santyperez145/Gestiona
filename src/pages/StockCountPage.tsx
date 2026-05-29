@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -282,7 +282,7 @@ export default function StockCountPage() {
   const changedCount = rows.filter(r => r.counted !== "" && Number(r.counted) !== r.product.stock).length;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={ClipboardList}

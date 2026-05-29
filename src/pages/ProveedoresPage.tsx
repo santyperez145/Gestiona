@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { addSupplierPaymentDB, formatARS } from "@/lib/supabaseStore";
 import SupplierPOModal from "@/components/shared/SupplierPOModal";
@@ -282,7 +283,7 @@ export default function ProveedoresPage() {
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Truck}
         title="Proveedores"
@@ -311,6 +312,19 @@ export default function ProveedoresPage() {
           </div>
         }
       />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Proveedores activos" value={suppliers.filter(s => s.active).length} icon={Truck} color="primary"
+          sub={`${suppliers.length} en total`} />
+        <KPICard label="Deuda pendiente" value={formatARS(totalPending)} icon={DollarSign}
+          color={pendingDebts.length > 0 ? "destructive" : "success"}
+          sub={`${pendingDebts.length} deuda${pendingDebts.length !== 1 ? "s" : ""} abiertas`} />
+        <KPICard label="Total compras" value={allPurchases.length} icon={ShoppingCart} color="blue"
+          sub="órdenes históricas" />
+        <KPICard label="Deudas pagadas" value={debts.filter(d => d.status === "paid").length} icon={CheckCircle2} color="success"
+          sub={`${debts.length} en total`} />
+      </div>
 
       {/* Tab nav */}
       <div className="flex gap-1 bg-muted/40 rounded-xl p-1 border border-border w-fit">
@@ -361,7 +375,7 @@ export default function ProveedoresPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted/30 rounded-xl animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
@@ -372,7 +386,7 @@ export default function ProveedoresPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(s => (
             <div key={s.id} className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
               <div className="px-4 py-3.5 flex items-start gap-3">
@@ -417,7 +431,7 @@ export default function ProveedoresPage() {
                         onKeyDown={e => { if (e.key === 'Escape') setEditingNote(null); }}
                       />
                       <div className="flex gap-2">
-                        <button onClick={() => saveNote(s.id, editingNote.value)} className="flex items-center gap-1 text-xs text-success hover:text-success/80 px-2 py-1 rounded bg-success/10 transition-colors">
+                        <button onClick={() => saveNote(s.id, editingNote.value)} className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-400/80 px-2 py-1 rounded bg-emerald-500/10 transition-colors">
                           <Check className="w-3 h-3" />Guardar
                         </button>
                         <button onClick={() => setEditingNote(null)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors">
@@ -483,7 +497,7 @@ export default function ProveedoresPage() {
                   ) : (purchases[s.id] || []).length === 0 ? (
                     <p className="text-xs text-muted-foreground/60">No hay compras vinculadas a este proveedor.</p>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {(purchases[s.id] || []).map(p => (
                         <div key={p.id} className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">{new Date(p.date).toLocaleDateString("es-AR")}</span>
@@ -553,7 +567,7 @@ export default function ProveedoresPage() {
 
       {/* ── Aging AP Tab ── */}
       {activeTab === 'aging' && (<>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             {/* KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="bg-card border border-border/60 rounded-xl p-3">
@@ -566,7 +580,7 @@ export default function ProveedoresPage() {
               </div>
               <div className="bg-card border border-border/60 rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Vencen esta semana</p>
-                <p className={`text-xl font-bold font-display ${debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length > 0 ? 'text-warning' : ''}`}>
+                <p className={`text-xl font-bold font-display ${debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length > 0 ? 'text-yellow-400' : ''}`}>
                   {debts.filter(d => d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date(Date.now() + 7 * 86400000) && new Date(d.due_date) > new Date()).length}
                 </p>
               </div>
@@ -597,7 +611,7 @@ export default function ProveedoresPage() {
               return (
                 <div className="bg-card border border-border/60 rounded-xl p-4">
                   <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Aging de deudas pendientes</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2 pb-12">
                     {bucketed.map(b => {
                       const pct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
                       return (
@@ -624,7 +638,7 @@ export default function ProveedoresPage() {
             {selectedDebtIds.size > 0 && (
               <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5 mb-3">
                 <span className="text-sm font-medium text-primary">{selectedDebtIds.size} seleccionada{selectedDebtIds.size !== 1 ? "s" : ""}</span>
-                <Button size="sm" className="h-7 text-xs bg-success text-success-foreground ml-auto" disabled={bulkPayLoading} onClick={bulkPayDebts}>
+                <Button size="sm" className="h-7 text-xs bg-emerald-500 text-white ml-auto" disabled={bulkPayLoading} onClick={bulkPayDebts}>
                   {bulkPayLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
                   Marcar como pagadas (total)
                 </Button>
@@ -641,13 +655,13 @@ export default function ProveedoresPage() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {debts.map(d => {
                   const overdue = d.status !== 'paid' && d.due_date && new Date(d.due_date) < new Date();
                   const sc = d.status === 'paid'
-                    ? { color: 'text-success', bg: 'bg-success/10', label: 'Pagada', icon: CheckCircle2 }
+                    ? { color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Pagada', icon: CheckCircle2 }
                     : d.status === 'partial'
-                    ? { color: 'text-warning', bg: 'bg-warning/10', label: 'Parcial', icon: Clock }
+                    ? { color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Parcial', icon: Clock }
                     : { color: 'text-destructive', bg: 'bg-destructive/10', label: overdue ? 'Vencida' : 'Pendiente', icon: AlertCircle };
                   return (
                     <div key={d.id} className={`bg-card border rounded-xl p-4 space-y-2 ${overdue ? 'border-destructive/40' : 'border-border'}`}>
@@ -701,7 +715,7 @@ export default function ProveedoresPage() {
                               <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setPayDebtId(null); setPayAmount(""); }}>×</Button>
                             </div>
                           ) : (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success/40 text-success hover:bg-success/10" onClick={() => { setPayDebtId(d.id); setPayAmount(""); }}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10" onClick={() => { setPayDebtId(d.id); setPayAmount(""); }}>
                               <CreditCard className="w-3 h-3" />Registrar pago
                             </Button>
                           )}
@@ -747,7 +761,7 @@ export default function ProveedoresPage() {
         const avgOrder = totalOrders > 0 ? totalSpend / totalOrders : 0;
 
         return (
-          <div className="space-y-5">
+          <div className="space-y-5 pb-12">
             {/* KPIs */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -213,7 +213,7 @@ function RFQForm({ open, onClose, editing, orgId, onSaved }: {
                 <Plus className="w-3.5 h-3.5 mr-1" /> Ítem
               </Button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {items.map((it, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-start bg-muted/20 rounded-lg p-2">
                   <div className="col-span-4">
@@ -316,7 +316,7 @@ export default function SupplierQuotesPage() {
   const acceptedCount = rfqs.filter(r => r.status === "accepted").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={FileText}
         title="Cotizaciones de Proveedores"
@@ -361,7 +361,7 @@ export default function SupplierQuotesPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Sin RFQs. Creá una para solicitar cotizaciones.</div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(rfq => {
             const isOpen = expanded.has(rfq.id);
             const cfg = STATUS_CFG[rfq.status];

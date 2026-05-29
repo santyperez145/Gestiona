@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DripSequencesPage — Email drip sequence campaigns
  *
  * Salesforce Marketing Cloud equivalent for pymes.
@@ -296,7 +296,7 @@ export default function DripSequencesPage() {
   // Render
   // ─────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Mail}
         title="Secuencias de Email"
@@ -354,7 +354,7 @@ export default function DripSequencesPage() {
           </div>
 
           {/* Steps */}
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-muted-foreground">Pasos ({form.steps.length})</p>
               <Button size="sm" variant="outline" className="h-7 text-xs"
@@ -429,7 +429,7 @@ export default function DripSequencesPage() {
           <p className="text-sm">No hay secuencias. Creá tu primera drip campaign.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {sequences.map(seq => {
             const tc = TRIGGER_CONFIG[seq.trigger_event];
             const seqEnrolls = enrollments[seq.id] || [];
@@ -468,7 +468,7 @@ export default function DripSequencesPage() {
                     {/* Step timeline */}
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Pasos de la secuencia</p>
-                      <div className="space-y-2">
+                      <div className="space-y-2 pb-12">
                         {(seq.steps || []).map((step, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <div className="flex flex-col items-center">

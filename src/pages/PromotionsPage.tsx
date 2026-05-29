@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { KPICard } from "@/components/shared/KPICard";
+import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import {
   Zap, Plus, X, Save, Search, Trash2, Edit2, Clock, CheckCircle,
   PauseCircle, XCircle, RefreshCw, Tag, DollarSign, Users,
@@ -258,7 +258,7 @@ export default function PromotionsPage() {
   }, [promotions]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Zap}
         title="Promociones & Flash Sales"
@@ -423,7 +423,7 @@ export default function PromotionsPage() {
           <p>No hay promociones. Creá tu primera oferta.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(promo => {
             const sc = STATUS_CFG[promo.status];
             const tc = TYPE_CFG[promo.type];

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -239,7 +239,7 @@ export default function RecipesPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ChefHat}
         title="Fichas Técnicas & BOM"
@@ -322,7 +322,7 @@ export default function RecipesPage() {
                   {isExpanded && (
                     <div className="border-t border-border/30 px-4 py-3 space-y-3">
                       <p className="text-xs font-medium text-muted-foreground">Ingredientes / Materiales</p>
-                      <div className="space-y-1">
+                      <div className="space-y-1 pb-12">
                         {recipeIngrs.map(ing => {
                           const prod = products.find(p => p.id === ing.ingredient_product_id);
                           return (
@@ -447,7 +447,7 @@ export default function RecipesPage() {
                 <Label>Ingredientes / Materiales</Label>
                 <Button size="sm" variant="outline" onClick={addIngrRow}><Plus className="w-3 h-3 mr-1" />Agregar</Button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {ingrRows.map((row, i) => (
                   <div key={i} className="grid grid-cols-12 gap-1.5 items-center">
                     <div className="col-span-4">

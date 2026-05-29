@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+﻿import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -59,17 +59,17 @@ function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; or
           {sellers.length} vendedores
         </span>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 pb-12">
         {sellers.map(([name, total]) => {
           const goal = sellerGoals[name] || 0;
           const pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
-          const barColor = pct >= 100 ? "bg-success" : pct >= 60 ? "bg-primary" : pct >= 30 ? "bg-warning" : "bg-destructive/60";
+          const barColor = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-primary" : pct >= 30 ? "bg-yellow-500" : "bg-destructive/60";
           return (
             <div key={name}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-medium">{name}</span>
-                  {pct >= 100 && <span className="text-[10px] text-success font-bold">🎉 Meta</span>}
+                  {pct >= 100 && <span className="text-[10px] text-emerald-400 font-bold">🎉 Meta</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold">{formatARS(total)}</span>
@@ -84,7 +84,7 @@ function SellerGoalsWidget({ sellers, orgId }: { sellers: [string, number][]; or
                         onChange={e => setGoalInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") saveGoal(name); if (e.key === "Escape") setEditingSeller(null); }}
                       />
-                      <button className="text-[10px] text-success font-bold px-1" onClick={() => saveGoal(name)}>✓</button>
+                      <button className="text-[10px] text-emerald-400 font-bold px-1" onClick={() => saveGoal(name)}>✓</button>
                       <button className="text-[10px] text-muted-foreground px-1" onClick={() => setEditingSeller(null)}>✕</button>
                     </div>
                   ) : (
@@ -180,7 +180,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
           {isEvening && <span className="text-[9px] bg-primary/15 text-primary rounded-full px-2 py-0.5 font-bold">Cierre</span>}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold font-display text-success tabular-nums">{animatedRevenue}</span>
+          <span className="text-sm font-bold font-display text-emerald-400 tabular-nums">{animatedRevenue}</span>
           <span className="text-muted-foreground text-xs">{open ? '▲' : '▼'}</span>
         </div>
       </button>
@@ -190,8 +190,8 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
           {/* KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
             {[
-              { l: 'Facturado', v: formatARS(totalRevenue), color: 'text-success' },
-              { l: 'Ganancia', v: formatARS(totalProfit), color: totalProfit > 0 ? 'text-success' : 'text-muted-foreground' },
+              { l: 'Facturado', v: formatARS(totalRevenue), color: 'text-emerald-400' },
+              { l: 'Ganancia', v: formatARS(totalProfit), color: totalProfit > 0 ? 'text-emerald-400' : 'text-muted-foreground' },
               { l: 'Unidades vendidas', v: totalUnits, color: 'text-foreground' },
               { l: 'Fiado del día', v: formatARS(fiadoTotal), color: fiadoTotal > 0 ? 'text-destructive' : 'text-muted-foreground' },
             ].map(k => (
@@ -215,7 +215,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
                     </div>
                     <div className="text-right shrink-0 ml-2">
                       <span className="text-muted-foreground">{data.qty} u · </span>
-                      <span className="font-mono font-semibold text-success">{formatARS(data.rev)}</span>
+                      <span className="font-mono font-semibold text-emerald-400">{formatARS(data.rev)}</span>
                     </div>
                   </div>
                 ))}
@@ -223,7 +223,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
             </div>
 
             {/* Por vendedor / método de pago */}
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {Object.keys(bySeller).length > 1 && (
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Por vendedor</p>
@@ -239,7 +239,7 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
               )}
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Métodos de cobro</p>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   {Object.entries(byMethod).sort((a, b) => b[1] - a[1]).map(([method, amount]) => (
                     <div key={method} className="flex items-center justify-between text-xs">
                       <span className="capitalize text-muted-foreground">{method}</span>
@@ -314,12 +314,12 @@ function FinancialSection({ stats }: { stats: any }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
       <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
-        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Banknote className="w-4 h-4 text-success" />Flujo de Caja Proyectado</h3>
+        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><Banknote className="w-4 h-4 text-emerald-400" />Flujo de Caja Proyectado</h3>
         <div className="space-y-2.5">
-          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Ventas/mes (proy.)</span><span className="text-success font-bold">{formatARS(stats.projectedMonthlySalesARS)}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Compras/mes (prom.)</span><span className="text-warning font-bold">-{formatARS(stats.avgMonthlyPurchasesARS)}</span></div>
-          <div className="flex justify-between text-sm border-t border-border pt-2"><span className="font-medium">Flujo neto</span><span className={`font-bold ${stats.projectedCashFlowARS >= 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(stats.projectedCashFlowARS)}</span></div>
-          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Ganancia/mes (proy.)</span><span className="text-success">{formatARS(stats.projectedMonthlyProfitARS)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Ventas/mes (proy.)</span><span className="text-emerald-400 font-bold">{formatARS(stats.projectedMonthlySalesARS)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Compras/mes (prom.)</span><span className="text-yellow-400 font-bold">-{formatARS(stats.avgMonthlyPurchasesARS)}</span></div>
+          <div className="flex justify-between text-sm border-t border-border pt-2"><span className="font-medium">Flujo neto</span><span className={`font-bold ${stats.projectedCashFlowARS >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>{formatARS(stats.projectedCashFlowARS)}</span></div>
+          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Ganancia/mes (proy.)</span><span className="text-emerald-400">{formatARS(stats.projectedMonthlyProfitARS)}</span></div>
         </div>
       </div>
       <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
@@ -327,17 +327,17 @@ function FinancialSection({ stats }: { stats: any }) {
         <div className="text-center py-3"><p className="text-3xl font-black font-display text-primary">{stats.breakEvenUnits}</p><p className="text-xs text-muted-foreground mt-1">unidades/mes para cubrir gastos</p></div>
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between"><span className="text-muted-foreground">Gastos fijos est.</span><span>{formatARS(stats.avgMonthlyPurchasesARS)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Margen prom./unidad</span><span className="text-success">{formatARS(stats.avgMarginPerUnit)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Margen prom./unidad</span><span className="text-emerald-400">{formatARS(stats.avgMarginPerUnit)}</span></div>
         </div>
       </div>
       <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-card">
-        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4 text-warning" />Simulador Tipo de Cambio</h3>
-        <div className="space-y-3">
+        <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-3 flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4 text-yellow-400" />Simulador Tipo de Cambio</h3>
+        <div className="space-y-3 pb-12">
           <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TC Simulado:</span><span className="font-bold">${simRate[0].toLocaleString('es-AR')}</span></div>
           <Slider value={simRate} onValueChange={setSimRate} min={Math.round(currentRate * 0.7)} max={Math.round(currentRate * 1.5)} step={10} className="w-full" />
-          <div className="flex justify-between text-[10px] text-muted-foreground"><span>-30%</span><span className={`font-bold ${rateChange > 0 ? 'text-destructive' : rateChange < 0 ? 'text-success' : ''}`}>{rateChange > 0 ? '+' : ''}{ratePct}%</span><span>+50%</span></div>
+          <div className="flex justify-between text-[10px] text-muted-foreground"><span>-30%</span><span className={`font-bold ${rateChange > 0 ? 'text-destructive' : rateChange < 0 ? 'text-emerald-400' : ''}`}>{rateChange > 0 ? '+' : ''}{ratePct}%</span><span>+50%</span></div>
           <div className="space-y-1 text-xs">
-            <div className="flex justify-between"><span className="text-muted-foreground">Margen prom.</span><span className={avgSimMargin > 20 ? 'text-success font-bold' : 'text-destructive font-bold'}>{avgSimMargin.toFixed(1)}%</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Margen prom.</span><span className={avgSimMargin > 20 ? 'text-emerald-400 font-bold' : 'text-destructive font-bold'}>{avgSimMargin.toFixed(1)}%</span></div>
             {losers > 0 && <p className="text-destructive text-[10px] font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{losers} productos a pérdida con este TC</p>}
           </div>
         </div>
@@ -1104,23 +1104,23 @@ export default function Dashboard() {
   if (loading || !stats) return <DashboardSkeleton />;
 
   const kpiCards = [
-    { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-success", live: true },
-    { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-success" : "text-destructive" },
-    { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-success" : "text-destructive" },
-    { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-warning" },
+    { label: "Hoy (en vivo)", value: formatARS(liveTodaySales?.total ?? 0), sub: (() => { const today = liveTodaySales?.total ?? 0; const lw = lastWeekSameDaySales; if (!lw) return `${liveTodaySales?.count ?? 0} ventas`; const pct = ((today - lw) / lw) * 100; return `${liveTodaySales?.count ?? 0} ventas · vs lun. pasado ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct).toFixed(0)}%`; })(), icon: Zap, color: "text-emerald-400", live: true },
+    { label: "Ganancia Bruta", value: formatARS(stats.grossProfitARS), sub: `${formatUSD(stats.grossProfitUSD)}`, icon: TrendingUp, color: stats.grossProfitARS >= 0 ? "text-emerald-400" : "text-destructive" },
+    { label: "Ganancia Neta (mes)", value: formatARS(stats.netMonthProfitARS), sub: `Bruta - gastos${stats.taxEnabled ? ' - imp.' : ''}`, icon: Zap, color: stats.netMonthProfitARS >= 0 ? "text-emerald-400" : "text-destructive" },
+    { label: "Gastos del Mes", value: formatARS(stats.totalMonthExpenses), sub: `${stats.expensesChartData.length} categorías`, icon: Wallet, color: "text-yellow-400" },
     { label: "Facturación", value: formatARS(stats.totalSalesARS), sub: `${stats.totalSalesCount} ventas`, icon: DollarSign, color: "text-primary" },
-    { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, color: "text-warning" },
+    { label: "Inversión", value: formatUSD(stats.totalPurchasesUSD), sub: formatARS(stats.totalPurchasesARS), icon: TrendingDown, color: "text-yellow-400" },
     { label: "Deudas", value: formatARS(stats.totalDebtsARS), sub: `${stats.pendingDebts} activas`, icon: AlertCircle, color: "text-destructive" },
     { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, color: "text-primary" },
     { label: "Ticket Prom.", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, color: "text-accent" },
-    { label: "Stock Bajo", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / Agotado", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-success" },
+    { label: "Stock Bajo", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / Agotado", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-emerald-400" },
     { label: "Clientes", value: stats.uniqueCustomers, sub: "Únicos", icon: Users, color: "text-primary" },
     {
       label: "Forecast 30d (OLS)",
       value: formatARS(forecast30dTotal),
       sub: `Tendencia: ${forecastTrend === "up" ? "↑ alza" : forecastTrend === "down" ? "↓ baja" : "→ estable"} · R²=${forecastR2.toFixed(2)}`,
       icon: Target,
-      color: forecastTrend === "up" ? "text-success" : forecastTrend === "down" ? "text-destructive" : "text-muted-foreground",
+      color: forecastTrend === "up" ? "text-emerald-400" : forecastTrend === "down" ? "text-destructive" : "text-muted-foreground",
     },
   ];
 
@@ -1149,7 +1149,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div>
+    <div className="space-y-5 pb-12">
       {/* Offline/slow network banner */}
       {!online && (
         <div className="flex items-center gap-2.5 px-4 py-2.5 mb-4 rounded-xl border border-orange-500/30 bg-orange-500/8 text-sm text-orange-300">
@@ -1186,7 +1186,7 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
-          <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-success transition-colors">
+          <button onClick={shareDailyResume} title="Compartir resumen del día por WhatsApp" className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-emerald-400 transition-colors">
             <Share2 className="w-3.5 h-3.5" />Compartir
           </button>
           <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -1195,9 +1195,9 @@ export default function Dashboard() {
 
       {/* Open Cash Session Banner */}
       {openCashSession && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-success/10 border border-success/30 rounded-xl">
-          <Banknote className="w-4 h-4 text-success shrink-0" />
-          <span className="text-sm font-medium text-success">Caja abierta</span>
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+          <Banknote className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-sm font-medium text-emerald-400">Caja abierta</span>
           <span className="text-xs text-muted-foreground">
             desde {new Date(openCashSession.opened_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
           </span>
@@ -1207,9 +1207,9 @@ export default function Dashboard() {
 
       {/* Sin ventas hoy — alert after 14hs */}
       {new Date().getHours() >= 14 && (liveTodaySales?.count ?? 0) === 0 && !noSalesDismissed && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-warning/10 border border-warning/30 rounded-xl">
-          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
-          <span className="text-sm font-medium text-warning">Sin ventas hoy</span>
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />
+          <span className="text-sm font-medium text-yellow-400">Sin ventas hoy</span>
           <span className="text-xs text-muted-foreground hidden sm:block">Son las {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} y no hay ventas registradas.</span>
           <div className="ml-auto flex items-center gap-2">
             <Link to="/ventas" className="text-xs text-primary hover:underline font-medium">Registrar →</Link>
@@ -1255,7 +1255,7 @@ export default function Dashboard() {
           {rawData?.settings?.exchange_rate && dolarRates.blue > 0 && (
             <div className="ml-auto flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-muted-foreground">Tu TC:</span>
-              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-success'}`}>
+              <span className={`text-sm font-bold font-mono ${Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 ? 'text-destructive' : 'text-emerald-400'}`}>
                 ${Number(rawData.settings.exchange_rate).toLocaleString('es-AR')}
               </span>
               {Math.abs(Number(rawData.settings.exchange_rate) - dolarRates.blue) / dolarRates.blue > 0.05 && user && (
@@ -1284,9 +1284,9 @@ export default function Dashboard() {
       <div className="flex flex-wrap gap-2 mb-4 mt-3">
         {[
           { label: "Nueva Venta", icon: DollarSign, path: "/ventas", color: "text-primary" },
-          { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-success" },
+          { label: "POS", icon: ShoppingBag, path: "/caja", color: "text-emerald-400" },
           { label: "Nuevo Cliente", icon: Users, path: "/clientes", color: "text-blue-400" },
-          { label: "Inventario", icon: Package, path: "/productos", color: "text-warning" },
+          { label: "Inventario", icon: Package, path: "/productos", color: "text-yellow-400" },
           { label: "Gastos", icon: Wallet, path: "/gastos", color: "text-destructive" },
           { label: "Reportes", icon: BarChart3, path: "/reportes", color: "text-purple-400" },
         ].map(a => (
@@ -1352,7 +1352,7 @@ export default function Dashboard() {
             <div className="space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Ventas esta semana</p>
               <p className="text-lg font-bold text-foreground">{formatARS(weeklyComparison.thisTotal)}</p>
-              <p className={`text-xs font-semibold flex items-center gap-0.5 ${weeklyComparison.diff >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <p className={`text-xs font-semibold flex items-center gap-0.5 ${weeklyComparison.diff >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                 {weeklyComparison.diff >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
                 {Math.abs(weeklyComparison.diff).toFixed(1)}%
               </p>
@@ -1365,7 +1365,7 @@ export default function Dashboard() {
             <div className="space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Unidades vendidas</p>
               <p className="text-lg font-bold">{weeklyComparison.thisUnits}</p>
-              <p className={`text-xs font-semibold flex items-center gap-0.5 ${weeklyComparison.unitDiff >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <p className={`text-xs font-semibold flex items-center gap-0.5 ${weeklyComparison.unitDiff >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                 {weeklyComparison.unitDiff >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
                 {Math.abs(weeklyComparison.unitDiff).toFixed(1)}% vs semana ant.
               </p>
@@ -1384,7 +1384,7 @@ export default function Dashboard() {
             <div className="mt-3">
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${weeklyComparison.diff >= 0 ? 'bg-success' : 'bg-destructive'}`}
+                  className={`h-full rounded-full transition-all ${weeklyComparison.diff >= 0 ? 'bg-emerald-500' : 'bg-destructive'}`}
                   style={{ width: `${Math.min(100, (weeklyComparison.thisTotal / weeklyComparison.lastTotal) * 100)}%` }}
                 />
               </div>
@@ -1417,13 +1417,13 @@ export default function Dashboard() {
         const overallColor = worstScore === 2 ? 'green' : worstScore === 1 ? 'yellow' : 'red';
 
         const colorCls = {
-          green: { bg: 'bg-success/10', border: 'border-success/30', dot: 'bg-success', label: 'text-success', text: '🟢 Todo en orden' },
+          green: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', dot: 'bg-emerald-500', label: 'text-emerald-400', text: '🟢 Todo en orden' },
           yellow: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', dot: 'bg-yellow-400', label: 'text-yellow-400', text: '🟡 Algunas alertas' },
           red: { bg: 'bg-destructive/10', border: 'border-destructive/30', dot: 'bg-destructive', label: 'text-destructive', text: '🔴 Requiere atención' },
         }[overallColor];
 
         const sigLabel = (score: number, labels: [string, string, string]) => (
-          <span className={`text-[10px] font-medium ${score === 2 ? 'text-success' : score === 1 ? 'text-yellow-400' : 'text-destructive'}`}>
+          <span className={`text-[10px] font-medium ${score === 2 ? 'text-emerald-400' : score === 1 ? 'text-yellow-400' : 'text-destructive'}`}>
             {score === 2 ? '●' : score === 1 ? '●' : '●'} {labels[2 - score]}
           </span>
         );
@@ -1485,17 +1485,17 @@ export default function Dashboard() {
 
       {/* Today detail panel */}
       {showTodayDetail && todayDetail && (
-        <div className="mb-5 bg-card border border-success/30 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
+        <div className="mb-5 bg-card border border-emerald-500/30 rounded-xl p-4 shadow-card animate-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-success" />Detalle de hoy
+              <Zap className="w-4 h-4 text-emerald-400" />Detalle de hoy
             </h3>
             <button onClick={() => setShowTodayDetail(false)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-muted/40 rounded-lg p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ventas</p>
-              <p className="text-xl font-bold font-display text-success mt-0.5">{todayDetail.count}</p>
+              <p className="text-xl font-bold font-display text-emerald-400 mt-0.5">{todayDetail.count}</p>
             </div>
             <div className="bg-muted/40 rounded-lg p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket promedio</p>
@@ -1536,25 +1536,25 @@ export default function Dashboard() {
 
       {/* At-risk customers widget */}
       {atRiskCustomers.length > 0 && (
-        <div className="mb-5 mt-4 bg-card border border-warning/20 rounded-xl p-4 shadow-card">
+        <div className="mb-5 mt-4 bg-card border border-yellow-500/20 rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-warning" />Clientes en riesgo de perderse
+              <AlertTriangle className="w-4 h-4 text-yellow-400" />Clientes en riesgo de perderse
             </h3>
             <Link to="/customers" className="text-xs text-primary hover:underline">Ver CRM →</Link>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {atRiskCustomers.map(c => (
               <div key={c.name} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
-                    <Users className="w-3 h-3 text-warning" />
+                  <div className="w-6 h-6 rounded-full bg-yellow-500/15 flex items-center justify-center shrink-0">
+                    <Users className="w-3 h-3 text-yellow-400" />
                   </div>
                   <span className="text-sm font-medium truncate">{c.name}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs text-muted-foreground">{c.daysSince}d sin comprar</span>
-                  <span className="text-xs font-semibold text-warning">{formatARS(c.totalSpent)}</span>
+                  <span className="text-xs font-semibold text-yellow-400">{formatARS(c.totalSpent)}</span>
                 </div>
               </div>
             ))}
@@ -1598,21 +1598,21 @@ export default function Dashboard() {
 
       {/* Gastos del mes widget */}
       {stats.totalMonthExpenses > 0 && (
-        <div className="mb-5 mt-4 bg-card border border-warning/20 rounded-xl p-4 shadow-card">
+        <div className="mb-5 mt-4 bg-card border border-yellow-500/20 rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-              <Wallet className="w-4 h-4 text-warning" />Gastos del mes
+              <Wallet className="w-4 h-4 text-yellow-400" />Gastos del mes
             </h3>
             <Link to="/expenses" className="text-xs text-primary hover:underline">Ver gastos →</Link>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <div>
-              <p className="text-xl font-bold text-warning">{formatARS(stats.totalMonthExpenses)}</p>
+              <p className="text-xl font-bold text-yellow-400">{formatARS(stats.totalMonthExpenses)}</p>
               {stats.prevTotalMonthExpenses > 0 && (() => {
                 const delta = stats.totalMonthExpenses - stats.prevTotalMonthExpenses;
                 const pct = (delta / stats.prevTotalMonthExpenses) * 100;
                 return (
-                  <p className={`text-[10px] font-medium ${delta > 0 ? 'text-destructive' : 'text-success'}`}>
+                  <p className={`text-[10px] font-medium ${delta > 0 ? 'text-destructive' : 'text-emerald-400'}`}>
                     {delta > 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}% vs mes anterior
                   </p>
                 );
@@ -1627,7 +1627,7 @@ export default function Dashboard() {
                   <div key={cat.name} className="flex items-center gap-2 text-xs">
                     <span className="w-24 shrink-0 text-muted-foreground truncate">{cat.name}</span>
                     <div className="flex-1 bg-muted rounded-full h-1.5">
-                      <div className="h-1.5 rounded-full bg-warning/70" style={{ width: `${pct}%` }} />
+                      <div className="h-1.5 rounded-full bg-yellow-500/70" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="w-14 text-right font-medium shrink-0">{formatARS(cat.value)}</span>
                   </div>
@@ -1648,15 +1648,15 @@ export default function Dashboard() {
             <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-primary" />Flujo de caja (últimos 7 días)
             </h3>
-            <span className={`text-xs font-bold ${stats.weekNetCashFlow >= 0 ? "text-success" : "text-destructive"}`}>
+            <span className={`text-xs font-bold ${stats.weekNetCashFlow >= 0 ? "text-emerald-400" : "text-destructive"}`}>
               {stats.weekNetCashFlow >= 0 ? "+" : ""}{formatARS(stats.weekNetCashFlow)}
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {[
-              { label: "Ingresos (ventas)", value: stats.weekIncome, color: "bg-success/60" },
+              { label: "Ingresos (ventas)", value: stats.weekIncome, color: "bg-emerald-500/60" },
               { label: "Gastos operativos", value: -stats.weekExpensesAmt, color: "bg-destructive/60" },
-              { label: "Compras / proveedores", value: -stats.weekPurchasesAmt, color: "bg-warning/60" },
+              { label: "Compras / proveedores", value: -stats.weekPurchasesAmt, color: "bg-yellow-500/60" },
             ].map(row => {
               const max = Math.max(stats.weekIncome, stats.weekExpensesAmt + stats.weekPurchasesAmt, 1);
               const pct = (Math.abs(row.value) / max) * 100;
@@ -1666,7 +1666,7 @@ export default function Dashboard() {
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${row.color}`} style={{ width: `${Math.max(2, pct)}%` }} />
                   </div>
-                  <span className={`w-28 text-right font-mono font-medium shrink-0 ${row.value >= 0 ? "text-success" : "text-destructive"}`}>
+                  <span className={`w-28 text-right font-mono font-medium shrink-0 ${row.value >= 0 ? "text-emerald-400" : "text-destructive"}`}>
                     {row.value >= 0 ? "+" : ""}{formatARS(Math.abs(row.value))}
                   </span>
                 </div>
@@ -1694,7 +1694,7 @@ export default function Dashboard() {
                   <a
                     href={`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Feliz cumpleaños ${c.name}! 🎉 Desde el equipo te deseamos un excelente día.`)}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="ml-1 p-1.5 rounded-md bg-success/10 hover:bg-success/20 text-success transition-colors"
+                    className="ml-1 p-1.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors"
                     title="Saludar por WhatsApp"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
@@ -1793,7 +1793,7 @@ export default function Dashboard() {
                         <a
                           href={`https://wa.me/${d.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${d.customer_name}, te recordamos que tenés una deuda pendiente de ${formatARS(Number(d.remaining_ars))}. ¿Podemos coordinar el pago?`)}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="p-1 rounded bg-success/10 hover:bg-success/20 text-success transition-colors"
+                          className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors"
                           title="Recordatorio por WhatsApp"
                         ><MessageCircle className="w-3 h-3" /></a>
                       )}
@@ -2017,7 +2017,7 @@ export default function Dashboard() {
             {stats.yoySalesARS > 0 && (
               <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>Mismo mes {new Date().getFullYear() - 1}: {formatARS(stats.yoySalesARS)}</span>
-                <span className={`font-semibold ${stats.yoyGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <span className={`font-semibold ${stats.yoyGrowth >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                   {stats.yoyGrowth >= 0 ? '▲' : '▼'} {Math.abs(stats.yoyGrowth).toFixed(1)}% interanual
                 </span>
               </div>
@@ -2036,7 +2036,7 @@ export default function Dashboard() {
           <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                <Target className="w-4 h-4 text-success" />Meta semanal — {dayOfWeek}
+                <Target className="w-4 h-4 text-emerald-400" />Meta semanal — {dayOfWeek}
               </h3>
               <button
                 onClick={() => { setEditingWeeklyTarget(true); setWeeklyTargetInput(weeklyTarget > 0 ? String(weeklyTarget) : ""); }}
@@ -2076,12 +2076,12 @@ export default function Dashboard() {
             ) : weeklyTarget > 0 ? (
               <>
                 <div className="flex items-end justify-between mb-1.5">
-                  <span className="text-2xl font-black font-display text-success">{weekPct.toFixed(0)}%</span>
+                  <span className="text-2xl font-black font-display text-emerald-400">{weekPct.toFixed(0)}%</span>
                   <span className="text-xs text-muted-foreground">{formatARS(weekCurrent)} / {formatARS(weeklyTarget)}</span>
                 </div>
                 <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-yellow-400" : weekPct >= 75 ? "bg-green-400" : weekPct >= 50 ? "bg-blue-400" : "bg-success"}`}
+                    className={`h-full rounded-full transition-all duration-700 ${weekPct >= 100 ? "bg-yellow-400" : weekPct >= 75 ? "bg-green-400" : weekPct >= 50 ? "bg-blue-400" : "bg-emerald-500"}`}
                     style={{ width: `${weekPct}%` }}
                   />
                 </div>
@@ -2153,7 +2153,7 @@ export default function Dashboard() {
                 🏆 {topClients[0][0]}
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {topClients.map(([name, data], idx) => (
                 <div key={name} className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground w-4 shrink-0">{idx + 1}</span>
@@ -2360,9 +2360,9 @@ export default function Dashboard() {
           <div className="mb-5 bg-card border border-border rounded-xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-success" />Forecast próximos 7 días
+                <TrendingUp className="w-4 h-4 text-emerald-400" />Forecast próximos 7 días
               </h3>
-              <span className="text-[10px] text-success font-semibold bg-success/10 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full">
                 ≈ {formatARS(totalForecast)} estimado
               </span>
             </div>
@@ -2373,12 +2373,12 @@ export default function Dashboard() {
                   <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-[9px] text-muted-foreground">{formatARS(d.forecast).replace('$', '').trim()}</span>
                     <div
-                      className={`w-full rounded-t-md transition-all duration-500 ${d.isTop ? 'bg-success' : 'bg-primary/30'}`}
+                      className={`w-full rounded-t-md transition-all duration-500 ${d.isTop ? 'bg-emerald-500' : 'bg-primary/30'}`}
                       style={{ height: `${Math.max(8, heightPct * 0.65)}%` }}
                       title={`${d.label}: ~${formatARS(d.forecast)}`}
                     />
                     <div className="text-center">
-                      <span className={`text-[9px] font-medium ${d.isTop ? 'text-success' : 'text-muted-foreground/60'}`}>{d.day}</span>
+                      <span className={`text-[9px] font-medium ${d.isTop ? 'text-emerald-400' : 'text-muted-foreground/60'}`}>{d.day}</span>
                       <br />
                       <span className="text-[9px] text-muted-foreground/40">{d.date}</span>
                     </div>
@@ -2394,7 +2394,7 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-4 mt-5">
         {kpiCards.map((c, i) => (
-          <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-success/40 ring-1 ring-success/20 cursor-pointer' : 'border-border'}`}
+          <div key={c.label} className={`group bg-card border rounded-xl p-3.5 md:p-4 shadow-card hover:border-primary/25 hover:glow-gold transition-all duration-300 ${'live' in c && c.live ? 'border-emerald-500/40 ring-1 ring-success/20 cursor-pointer' : 'border-border'}`}
             style={{ animationDelay: `${i * 50}ms` }}
             onClick={() => { if ('live' in c && c.live) setShowTodayDetail(v => !v); }}
           >
@@ -2402,16 +2402,16 @@ export default function Dashboard() {
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{c.label}</span>
                 {'live' in c && c.live && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-success bg-success/10 rounded-full px-1.5 py-0.5 leading-none">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 rounded-full px-1.5 py-0.5 leading-none">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     LIVE
                   </span>
                 )}
               </div>
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                c.color === 'text-success' ? 'bg-success/10' :
+                c.color === 'text-emerald-400' ? 'bg-emerald-500/10' :
                 c.color === 'text-destructive' ? 'bg-destructive/10' :
-                c.color === 'text-warning' ? 'bg-warning/10' :
+                c.color === 'text-yellow-400' ? 'bg-yellow-500/10' :
                 c.color === 'text-accent' ? 'bg-accent/10' : 'bg-primary/10'
               } group-hover:scale-110 transition-transform duration-200`}>
                 <c.icon className={`w-4 h-4 ${c.color}`} />
@@ -2425,10 +2425,10 @@ export default function Dashboard() {
 
       {/* Realtime last sale banner */}
       {lastSale && saleEventCount > 0 && (
-        <div key={saleEventCount} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-success/25 bg-success/5 mb-4 animate-fade-in">
-          <span className="inline-block w-2 h-2 rounded-full bg-success animate-ping shrink-0" />
+        <div key={saleEventCount} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 mb-4 animate-fade-in">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
           <div className="flex-1 min-w-0 text-xs">
-            <span className="font-semibold text-success">Nueva venta en tiempo real · </span>
+            <span className="font-semibold text-emerald-400">Nueva venta en tiempo real · </span>
             <span className="text-muted-foreground">{lastSale.product} · {lastSale.customer} · </span>
             <span className="font-mono font-bold">{formatARS(lastSale.amount)}</span>
           </div>
@@ -2544,13 +2544,13 @@ export default function Dashboard() {
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-card">
           <h3 className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-4">Cobranza</h3>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Cobrado</span>
-              <span className="text-success font-semibold">{formatARS(stats.paidSalesARS)}</span>
+              <span className="text-emerald-400 font-semibold">{formatARS(stats.paidSalesARS)}</span>
             </div>
             <div className="h-2 bg-secondary rounded-full overflow-hidden">
-              <div className="h-full bg-success rounded-full transition-all duration-500" style={{ width: `${stats.totalSalesARS > 0 ? (stats.paidSalesARS / stats.totalSalesARS * 100) : 0}%` }} />
+              <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${stats.totalSalesARS > 0 ? (stats.paidSalesARS / stats.totalSalesARS * 100) : 0}%` }} />
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Por cobrar</span>
@@ -2650,13 +2650,13 @@ export default function Dashboard() {
             </h2>
             <Link to="/pipeline" className="text-xs text-primary hover:underline">Ver pipeline →</Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-2xl font-black font-display text-foreground">{pipelineStats.total}</p>
               <p className="text-xs text-muted-foreground">Total deals</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-black font-display text-success">{pipelineStats.won}</p>
+              <p className="text-2xl font-black font-display text-emerald-400">{pipelineStats.won}</p>
               <p className="text-xs text-muted-foreground">Cerrados</p>
             </div>
             <div className="text-center">
@@ -2664,7 +2664,7 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">Activos</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-black font-display text-warning">
+              <p className="text-2xl font-black font-display text-yellow-400">
                 {pipelineStats.total > 0 ? ((pipelineStats.won / pipelineStats.total) * 100).toFixed(0) : 0}%
               </p>
               <p className="text-xs text-muted-foreground">Win rate</p>
@@ -2676,7 +2676,7 @@ export default function Dashboard() {
               <div className="flex rounded-full overflow-hidden h-3">
                 {pipelineStats.won > 0 && (
                   <div
-                    className="bg-success transition-all"
+                    className="bg-emerald-500 transition-all"
                     style={{ width: `${(pipelineStats.won / pipelineStats.total) * 100}%` }}
                     title={`Cerrados: ${pipelineStats.won}`}
                   />
@@ -2698,11 +2698,11 @@ export default function Dashboard() {
               </div>
             )}
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success inline-block" />Cerrados</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Cerrados</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary/60 inline-block" />Activos</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive/40 inline-block" />Perdidos</span>
               {pipelineStats.wonValue > 0 && (
-                <span className="ml-auto font-medium text-success">{formatARS(pipelineStats.wonValue)} ganados</span>
+                <span className="ml-auto font-medium text-emerald-400">{formatARS(pipelineStats.wonValue)} ganados</span>
               )}
             </div>
           </div>
@@ -2733,11 +2733,11 @@ export default function Dashboard() {
         <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-success" />Top productos este mes
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />Top productos este mes
             </h2>
             <Link to="/ventas" className="text-[10px] text-primary hover:underline">Ver ventas →</Link>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {stats.topMonthProducts.map((p: any, i: number) => {
               const maxRev = stats.topMonthProducts[0]?.revenue || 1;
               const pct = (p.revenue / maxRev) * 100;
@@ -2753,7 +2753,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="font-semibold font-mono">{formatARS(p.revenue)}</span>
                       {trend !== null && (
-                        <span className={`text-[10px] font-medium ${trend >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        <span className={`text-[10px] font-medium ${trend >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                           {trend >= 0 ? '▲' : '▼'}{Math.abs(trend).toFixed(0)}%
                         </span>
                       )}
@@ -2774,7 +2774,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 md:mb-8">
           {stats.topMarginProducts?.length > 0 && (
             <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
-              <h2 className="text-sm font-display font-semibold mb-3 text-success uppercase tracking-wider flex items-center gap-2">
+              <h2 className="text-sm font-display font-semibold mb-3 text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" /> Top 5 Margen Más Alto
               </h2>
               <div className="space-y-2.5">
@@ -2782,7 +2782,7 @@ export default function Dashboard() {
                   <div key={p.name} className="flex items-center justify-between text-sm">
                     <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-success font-bold">{p.margin.toFixed(1)}%</span>
+                      <span className="text-emerald-400 font-bold">{p.margin.toFixed(1)}%</span>
                       <span className="text-xs text-muted-foreground">{formatARS(p.profitARS)}/u</span>
                     </div>
                   </div>
@@ -2791,8 +2791,8 @@ export default function Dashboard() {
             </div>
           )}
           {stats.lowMarginProducts?.length > 0 && (
-            <div className="bg-card border border-warning/30 rounded-lg p-4 md:p-5 shadow-card">
-              <h2 className="text-sm font-display font-semibold mb-3 text-warning uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-card border border-yellow-500/30 rounded-lg p-4 md:p-5 shadow-card">
+              <h2 className="text-sm font-display font-semibold mb-3 text-yellow-400 uppercase tracking-wider flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Margen Bajo (&lt;{stats.marginAlertPct}%) — Subir precio
               </h2>
               <div className="space-y-2.5">
@@ -2802,7 +2802,7 @@ export default function Dashboard() {
                     <div key={p.name} className="flex items-center justify-between text-sm">
                       <span className="truncate mr-2 text-muted-foreground">{i + 1}. {p.name}</span>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-warning font-bold">{p.margin.toFixed(1)}%</span>
+                        <span className="text-yellow-400 font-bold">{p.margin.toFixed(1)}%</span>
                         <span className="text-[10px] text-muted-foreground">Mín: {formatARS(suggestedPrice)}</span>
                       </div>
                     </div>
@@ -2833,11 +2833,11 @@ export default function Dashboard() {
               </div>
             )}
             {stats.lowStockProducts?.length > 0 && (
-              <div className="bg-warning/10 rounded-lg p-3">
-                <p className="text-xs font-semibold text-warning mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stock Bajo ≤{stats.lowStockThreshold} ({stats.lowStockProducts.length})</p>
+              <div className="bg-yellow-500/10 rounded-lg p-3">
+                <p className="text-xs font-semibold text-yellow-400 mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stock Bajo ≤{stats.lowStockThreshold} ({stats.lowStockProducts.length})</p>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {stats.lowStockProducts.map((p: any) => (
-                    <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name} — <span className="text-warning font-medium">{p.stock}u</span></p>
+                    <p key={p.id} className="text-xs text-muted-foreground truncate">• {p.name} — <span className="text-yellow-400 font-medium">{p.stock}u</span></p>
                   ))}
                 </div>
               </div>
@@ -2891,7 +2891,7 @@ export default function Dashboard() {
             </h2>
             <Link to="/compras" className="text-xs text-primary hover:underline">Ver compras →</Link>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {stats.restockSuggestions.map((r: any) => {
               const urgency = r.daysOfStock !== Infinity && r.daysOfStock <= 5 ? 'destructive' : r.daysOfStock <= 14 ? 'warning' : 'success';
               const barPct = r.daysOfStock !== Infinity ? Math.min((r.daysOfStock / 30) * 100, 100) : 100;
@@ -2900,17 +2900,17 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <p className="text-sm font-medium truncate max-w-[55%]" title={r.name}>{r.name}</p>
                     <div className="flex items-center gap-2 text-xs shrink-0">
-                      <span className={`px-1.5 py-0.5 rounded font-mono font-semibold ${r.stock <= 0 ? 'bg-destructive/20 text-destructive' : urgency === 'warning' ? 'bg-warning/20 text-warning' : 'bg-primary/20 text-primary'}`}>
+                      <span className={`px-1.5 py-0.5 rounded font-mono font-semibold ${r.stock <= 0 ? 'bg-destructive/20 text-destructive' : urgency === 'warning' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-primary/20 text-primary'}`}>
                         {r.stock}u stock
                       </span>
                       {r.suggestedOrder > 0 && (
-                        <span className="text-success font-semibold">→ pedir {r.suggestedOrder}u</span>
+                        <span className="text-emerald-400 font-semibold">→ pedir {r.suggestedOrder}u</span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${urgency === 'destructive' ? 'bg-destructive' : urgency === 'warning' ? 'bg-warning' : 'bg-primary'}`}
+                      <div className={`h-full rounded-full transition-all ${urgency === 'destructive' ? 'bg-destructive' : urgency === 'warning' ? 'bg-yellow-500' : 'bg-primary'}`}
                         style={{ width: `${barPct}%` }} />
                     </div>
                     <span className="text-[10px] text-muted-foreground shrink-0">
@@ -2955,11 +2955,11 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 md:mb-8">
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Crecimiento Mes a Mes</h2>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div>
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Ventas</span>
-                <span className={`font-bold flex items-center gap-1 ${stats.salesGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <span className={`font-bold flex items-center gap-1 ${stats.salesGrowth >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                   {stats.salesGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
                   {Math.abs(stats.salesGrowth).toFixed(1)}%
                 </span>
@@ -2969,7 +2969,7 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Ganancia</span>
-                <span className={`font-bold flex items-center gap-1 ${stats.profitGrowth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <span className={`font-bold flex items-center gap-1 ${stats.profitGrowth >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>
                   {stats.profitGrowth >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
                   {Math.abs(stats.profitGrowth).toFixed(1)}%
                 </span>
@@ -2984,7 +2984,7 @@ export default function Dashboard() {
             <Crown className="w-4 h-4 text-primary" />Top 5 Clientes del Mes
           </h2>
           {stats.topCustomers.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {stats.topCustomers.map((c: any, i: number) => (
                 <div key={c.name} className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
@@ -3031,14 +3031,14 @@ export default function Dashboard() {
         <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-card">
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Productos Más Vendidos</h2>
           {stats.topProducts.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               {stats.topProducts.map((p: any, i: number) => {
                 const maxRev = stats.topProducts[0]?.revenue || 1;
                 return (
                   <div key={p.name}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="font-medium truncate mr-2">{i + 1}. {p.name}</span>
-                      <span className="text-muted-foreground shrink-0 text-xs">{p.qty}u · <span className="text-success">{formatARS(p.profit)}</span></span>
+                      <span className="text-muted-foreground shrink-0 text-xs">{p.qty}u · <span className="text-emerald-400">{formatARS(p.profit)}</span></span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div className="h-full rounded-full gradient-gold" style={{ width: `${(p.revenue / maxRev) * 100}%` }} />
@@ -3072,10 +3072,10 @@ export default function Dashboard() {
                         <td className="p-3">{s.customer_name || '—'}</td>
                         <td className="p-3 text-right font-medium">{formatARS(Number(s.total_ars))}</td>
                         <td className="p-3 text-right">
-                          <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
+                          <span className={Number(s.profit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                         </td>
                         <td className="p-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'}`}>
                             {s.paid ? 'Pagado' : 'Debe'}
                           </span>
                         </td>
@@ -3093,7 +3093,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right shrink-0 ml-2">
                       <p className="text-sm font-medium">{formatARS(Number(s.total_ars))}</p>
-                      <span className={`text-xs ${s.paid ? 'text-success' : 'text-destructive'}`}>{s.paid ? 'Pagado' : 'Debe'}</span>
+                      <span className={`text-xs ${s.paid ? 'text-emerald-400' : 'text-destructive'}`}>{s.paid ? 'Pagado' : 'Debe'}</span>
                     </div>
                   </div>
                 ))}

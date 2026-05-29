@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -273,7 +273,7 @@ export default function DevolucionesPage() {
   const totalUnits = filtered.reduce((s, r) => s + r.quantity, 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <PageHeader
         icon={RotateCcw}
         title="Devoluciones"
@@ -340,7 +340,7 @@ export default function DevolucionesPage() {
 
       {/* List */}
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted/30 rounded-xl animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
@@ -351,7 +351,7 @@ export default function DevolucionesPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(r => (
             <div key={r.id} className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
               <div className="px-4 py-3.5 flex items-start gap-3">
@@ -417,7 +417,7 @@ export default function DevolucionesPage() {
                   </div>
                   {r.sale_id && (
                     <div className="flex gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-success" />
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400" />
                       <span>Venta original vinculada · stock restaurado automáticamente</span>
                     </div>
                   )}
@@ -476,7 +476,7 @@ export default function DevolucionesPage() {
                 </div>
               )}
               {selectedSale && (
-                <div className="mt-2 flex items-center gap-2 text-xs text-success bg-success/5 border border-success/20 rounded-lg px-3 py-2">
+                <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   Venta vinculada · el stock se restaurará automáticamente
                 </div>

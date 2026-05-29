@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { getExchangesDB, addExchangeDB, updateExchangeDB, deleteExchangeDB, generateInfluencerCode, formatARS as _fmt } from "@/lib/supabaseStore";
@@ -134,7 +134,7 @@ export default function InfluencerExchangesPage() {
   if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Gift}
         title="Canjes & Influencers"
@@ -279,7 +279,7 @@ export default function InfluencerExchangesPage() {
                           <span className="text-xs text-muted-foreground/50">—</span>
                         )}
                       </td>
-                      <td className="p-3 text-right font-medium text-warning">{formatARS(inversion)}</td>
+                      <td className="p-3 text-right font-medium text-yellow-400">{formatARS(inversion)}</td>
                       <td className="p-3 text-right">
                         <Input
                           type="number" min="0"
@@ -307,7 +307,7 @@ export default function InfluencerExchangesPage() {
                       </td>
                       <td className="p-3 text-center">
                         {roi !== null
-                          ? <span className={`text-xs font-semibold ${roi >= 0 ? 'text-success' : 'text-destructive'}`}>{roi >= 0 ? '+' : ''}{roi.toFixed(0)}%</span>
+                          ? <span className={`text-xs font-semibold ${roi >= 0 ? 'text-emerald-400' : 'text-destructive'}`}>{roi >= 0 ? '+' : ''}{roi.toFixed(0)}%</span>
                           : <span className="text-xs text-muted-foreground">—</span>}
                       </td>
                       <td className="p-3 text-center">
@@ -482,7 +482,7 @@ function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { us
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
 
       {/* ── Influencer existente (quick-fill) ── */}
       {!editItem && knownInfluencers.length > 0 && (
@@ -569,7 +569,7 @@ function ExchangeForm({ userId, editItem, existingExchanges = [], onSave }: { us
         <div className="bg-muted rounded-lg p-3 text-sm space-y-1.5">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Inversión (costo real):</span>
-            <span className="font-bold text-warning">{formatARS(investmentARS)}</span>
+            <span className="font-bold text-yellow-400">{formatARS(investmentARS)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Valor de venta (referencia):</span>

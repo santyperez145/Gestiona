@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -295,7 +295,7 @@ export default function TaxManagementPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Receipt}
         title="Gestión Impositiva"
@@ -315,8 +315,8 @@ export default function TaxManagementPage() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>{editDecl ? "Editar declaración" : "Nueva declaración"}</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Alícuota *</Label>
                     <Select value={declForm.tax_rate_id} onValueChange={v => setDeclForm(f => ({ ...f, tax_rate_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar alícuota" /></SelectTrigger>
@@ -326,7 +326,7 @@ export default function TaxManagementPage() {
                     </Select>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Período</Label>
                       <Select value={declForm.period_type} onValueChange={v => setDeclForm(f => ({ ...f, period_type: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -338,11 +338,11 @@ export default function TaxManagementPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Año</Label>
                       <Input type="number" value={declForm.year} onChange={e => setDeclForm(f => ({ ...f, year: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Mes/Período</Label>
                       <Select value={String(declForm.period)} onValueChange={v => setDeclForm(f => ({ ...f, period: Number(v) }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -353,15 +353,15 @@ export default function TaxManagementPage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Base imponible</Label>
                       <Input type="number" min={0} value={declForm.taxable_base} onChange={e => setDeclForm(f => ({ ...f, taxable_base: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Débito fiscal</Label>
                       <Input type="number" min={0} value={declForm.tax_collected} onChange={e => setDeclForm(f => ({ ...f, tax_collected: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Crédito fiscal</Label>
                       <Input type="number" min={0} value={declForm.tax_paid} onChange={e => setDeclForm(f => ({ ...f, tax_paid: Number(e.target.value) }))} />
                     </div>
@@ -373,16 +373,16 @@ export default function TaxManagementPage() {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Vencimiento</Label>
                       <Input type="date" value={declForm.due_date} onChange={e => setDeclForm(f => ({ ...f, due_date: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Nro declaración</Label>
                       <Input value={declForm.declaration_number} onChange={e => setDeclForm(f => ({ ...f, declaration_number: e.target.value }))} placeholder="AFIP número..." />
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Notas</Label>
                     <Textarea value={declForm.notes} onChange={e => setDeclForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                   </div>
@@ -402,9 +402,9 @@ export default function TaxManagementPage() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Registrar retención</DialogTitle></DialogHeader>
-                <div className="space-y-3">
+                <div className="space-y-3 pb-12">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Tipo</Label>
                       <Select value={withForm.withholding_type} onValueChange={v => setWithForm(f => ({ ...f, withholding_type: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -416,7 +416,7 @@ export default function TaxManagementPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Dirección</Label>
                       <Select value={withForm.direction} onValueChange={v => setWithForm(f => ({ ...f, direction: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -430,32 +430,32 @@ export default function TaxManagementPage() {
                       <Label>Nombre contraparte *</Label>
                       <Input value={withForm.counterpart_name} onChange={e => setWithForm(f => ({ ...f, counterpart_name: e.target.value }))} placeholder="Nombre proveedor o cliente" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>CUIT contraparte</Label>
                       <Input value={withForm.counterpart_cuit} onChange={e => setWithForm(f => ({ ...f, counterpart_cuit: e.target.value }))} placeholder="20-12345678-3" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Fecha</Label>
                       <Input type="date" value={withForm.date} onChange={e => setWithForm(f => ({ ...f, date: e.target.value }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Base imponible</Label>
                       <Input type="number" min={0} value={withForm.base_amount} onChange={e => setWithForm(f => ({ ...f, base_amount: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Alícuota %</Label>
                       <Input type="number" min={0} step={0.01} value={withForm.rate_pct} onChange={e => setWithForm(f => ({ ...f, rate_pct: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Monto retenido *</Label>
                       <Input type="number" min={0} value={withForm.amount} onChange={e => setWithForm(f => ({ ...f, amount: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Nro certificado</Label>
                       <Input value={withForm.certificate_number} onChange={e => setWithForm(f => ({ ...f, certificate_number: e.target.value }))} />
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Notas</Label>
                     <Textarea value={withForm.notes} onChange={e => setWithForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
                   </div>
@@ -475,13 +475,13 @@ export default function TaxManagementPage() {
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Nueva alícuota impositiva</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="space-y-3 pb-12">
+                  <div className="space-y-1 pb-12">
                     <Label>Nombre *</Label>
                     <Input value={rateForm.name} onChange={e => setRateForm(f => ({ ...f, name: e.target.value }))} placeholder="IVA 21%, IIBB CABA..." />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Tipo</Label>
                       <Select value={rateForm.tax_type} onValueChange={v => setRateForm(f => ({ ...f, tax_type: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -490,7 +490,7 @@ export default function TaxManagementPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Aplica a</Label>
                       <Select value={rateForm.applies_to} onValueChange={v => setRateForm(f => ({ ...f, applies_to: v }))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -501,11 +501,11 @@ export default function TaxManagementPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Alícuota %</Label>
                       <Input type="number" min={0} step={0.01} value={rateForm.rate_pct} onChange={e => setRateForm(f => ({ ...f, rate_pct: Number(e.target.value) }))} />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <Label>Jurisdicción</Label>
                       <Input value={rateForm.jurisdiction} onChange={e => setRateForm(f => ({ ...f, jurisdiction: e.target.value }))} placeholder="AFIP, AGIP, ARBA..." />
                     </div>

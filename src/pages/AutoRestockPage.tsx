@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -353,7 +353,7 @@ export default function AutoRestockPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeader
         icon={PackageOpen}
@@ -363,7 +363,7 @@ export default function AutoRestockPage() {
 
       {/* Controls */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div className="space-y-1">
+        <div className="space-y-1 pb-12">
           <Label className="text-xs text-muted-foreground">
             Mostrar productos con &lt; <strong>{thresholdDays} días</strong> de stock
           </Label>
@@ -374,7 +374,7 @@ export default function AutoRestockPage() {
             className="w-full"
           />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 pb-12">
           <Label className="text-xs text-muted-foreground">
             Reponer para <strong>{targetDays} días</strong> de stock
           </Label>
@@ -511,7 +511,7 @@ export default function AutoRestockPage() {
 
       {/* By supplier breakdown */}
       {!loading && bySupplier.length > 1 && (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Por proveedor</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {bySupplier.map(([name, its]) => {

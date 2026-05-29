@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
@@ -715,7 +715,7 @@ export default function PublicCatalogPage() {
                 Llevá <span className="font-bold text-violet-300">{fullSettings.volume_discount_threshold}+ unidades</span> y obtené{" "}
                 <span className="font-bold text-violet-300">{fullSettings.volume_discount_percent}% OFF</span> sobre el precio de contado
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {products.filter((pr) => Number(pr.discount_price_ars || pr.sale_price_ars) > 0).slice(0, 9).map((pr) => {
                   const base = Number(pr.discount_price_ars || pr.sale_price_ars);
                   const wholesale = Math.round(base * (1 - Number(fullSettings.volume_discount_percent) / 100));

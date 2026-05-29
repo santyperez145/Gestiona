@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -277,7 +277,7 @@ export default function PaymentLinksPage() {
   );
 
   if (loading) return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="h-8 bg-muted/40 rounded animate-pulse w-48" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted/40 rounded-[10px] animate-pulse" />)}
@@ -286,11 +286,11 @@ export default function PaymentLinksPage() {
   );
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         title="Links de Pago"
-        subtitle="Generá links de cobro con Mercado Pago y transferencia"
-        icon={<CreditCard className="w-5 h-5 text-blue-400" />}
+        description="Generá links de cobro con Mercado Pago y transferencia"
+        icon={CreditCard}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
@@ -314,7 +314,7 @@ export default function PaymentLinksPage() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Cobrado" value={formatARS(totalPaid)} icon={DollarSign} color="success" />
         <KPICard label="Pendientes" value={pendingCount} icon={Clock} color="warning" />
         <KPICard label="Pagados" value={paidCount} icon={CheckCircle2} color="success" />
@@ -350,7 +350,7 @@ export default function PaymentLinksPage() {
           <p>No hay links en este estado</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {filtered.map(link => {
             const cfg = STATUS_CONFIG[link.status] || STATUS_CONFIG.pending;
             const StatusIcon = cfg.icon;
@@ -525,7 +525,7 @@ export default function PaymentLinksPage() {
                   <Plus className="w-3 h-3" />Ítem
                 </Button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-[1fr_auto_auto_auto] gap-1.5 items-center">
                     <Input

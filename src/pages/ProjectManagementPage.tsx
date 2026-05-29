@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
@@ -276,7 +276,7 @@ export default function ProjectManagementPage() {
   }, [projects, tasks]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={FolderKanban}
         title="Gestión de Proyectos"
@@ -312,7 +312,7 @@ export default function ProjectManagementPage() {
       ) : (
         <div className={`grid gap-6 ${selectedProject ? "grid-cols-1 lg:grid-cols-[320px_1fr]" : ""}`}>
           {/* Project cards */}
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             {filteredProjects.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <FolderKanban className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -446,7 +446,7 @@ export default function ProjectManagementPage() {
                   {projectExpenses.length === 0 ? (
                     <p className="text-center py-6 text-muted-foreground text-sm">Sin gastos registrados.</p>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {projectExpenses.map(exp => (
                         <div key={exp.id} className="flex items-center gap-3 text-sm py-1.5 border-b border-border/20">
                           <span className="flex-1">{exp.description}</span>
@@ -467,7 +467,7 @@ export default function ProjectManagementPage() {
                   {timeLogs.filter(t => projectTasks.some(pt => pt.id === t.task_id)).length === 0 ? (
                     <p className="text-center py-6 text-muted-foreground text-sm">Sin horas registradas.</p>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {timeLogs.filter(t => projectTasks.some(pt => pt.id === t.task_id)).map(tl => {
                         const task = projectTasks.find(t => t.id === tl.task_id);
                         return (

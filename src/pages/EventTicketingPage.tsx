@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -447,7 +447,7 @@ function QRTicketModal({ attendee, event, onClose }: {
           <div className="bg-white rounded-2xl p-4 inline-block mx-auto shadow-lg">
             <img src={qrUrl} alt="QR Ticket" className="w-48 h-48 mx-auto" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 pb-12">
             <p className="font-mono text-xl font-bold tracking-widest text-primary">{attendee.ticket_code}</p>
             <p className="text-sm text-muted-foreground">{event.name}</p>
             <p className="text-xs text-muted-foreground">{fmtDate(event.event_date)}</p>
@@ -528,7 +528,7 @@ function EventDetail({ event, orgId, onBack, onEventUpdated }: {
   const occupancy = event.capacity > 0 ? Math.round((event.tickets_sold / event.capacity) * 100) : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       {/* Header */}
       <div className="flex items-start gap-4">
         <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">← Volver</Button>
@@ -734,7 +734,7 @@ function EventDetail({ event, orgId, onBack, onEventUpdated }: {
               {ticketTypes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sin tipos de entrada configurados.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pb-12">
                   {ticketTypes.map(tt => {
                     const ttRevenue = attendees
                       .filter(a => a.ticket_type_id === tt.id && a.status !== "cancelled")
@@ -818,7 +818,7 @@ export default function EventTicketingPage() {
   // If viewing event detail
   if (selectedEvent) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-12">
         <PageHeader
           icon={Ticket}
           title="Eventos & Tickets"
@@ -845,7 +845,7 @@ export default function EventTicketingPage() {
   }).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Ticket}
         title="Eventos & Tickets"

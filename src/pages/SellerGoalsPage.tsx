@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
@@ -264,7 +264,7 @@ export default function SellerGoalsPage() {
   const monthLabel = MONTHS.find(m => m.value === selectedMonth)?.label ?? selectedMonth;
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Target}
         title="Metas de Ventas"
@@ -289,34 +289,34 @@ export default function SellerGoalsPage() {
       />
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
-          title="Meta Total Equipo"
+          label="Meta Total Equipo"
           value={formatARS(kpis.totalTarget)}
           icon={Target}
-          trend={kpis.totalTarget > 0 ? `${kpis.teamPct}% logrado` : "Sin metas"}
-          trendUp={kpis.teamPct >= 100}
+          color="primary"
+          sub={kpis.totalTarget > 0 ? `${kpis.teamPct}% logrado` : "Sin metas asignadas"}
         />
         <KPICard
-          title="Ventas Reales"
+          label="Ventas Reales"
           value={formatARS(kpis.totalActual)}
           icon={TrendingUp}
-          trend={kpis.teamPct > 0 ? `${kpis.teamPct}% del objetivo` : "—"}
-          trendUp={kpis.teamPct >= 75}
+          color={kpis.teamPct >= 75 ? "success" : "warning"}
+          sub={kpis.teamPct > 0 ? `${kpis.teamPct}% del objetivo` : "—"}
         />
         <KPICard
-          title="% Objetivo Equipo"
+          label="Objetivo Equipo"
           value={`${kpis.teamPct}%`}
           icon={BarChart3}
-          trend={kpis.teamPct >= 100 ? "🎯 Meta superada" : kpis.teamPct >= 75 ? "En camino" : "Por debajo"}
-          trendUp={kpis.teamPct >= 75}
+          color={kpis.teamPct >= 100 ? "success" : kpis.teamPct >= 75 ? "warning" : "destructive"}
+          sub={kpis.teamPct >= 100 ? "Meta superada 🎯" : kpis.teamPct >= 75 ? "En camino" : "Por debajo"}
         />
         <KPICard
-          title="Vendedores al 100%"
+          label="Vendedores al 100%"
           value={`${kpis.achieved} / ${sellerRows.length}`}
           icon={Trophy}
-          trend={kpis.achieved > 0 ? `${kpis.achieved} cumplieron la meta` : "Ninguno aún"}
-          trendUp={kpis.achieved > 0}
+          color={kpis.achieved > 0 ? "success" : "primary"}
+          sub={kpis.achieved > 0 ? `${kpis.achieved} cumplieron la meta` : "Ninguno aún"}
         />
       </div>
 

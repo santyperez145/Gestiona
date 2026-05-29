@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS, getAuditLogsDB, getSellerGoalsDB, upsertSellerGoalDB } from "@/lib/supabaseStore";
@@ -186,7 +186,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Crown}
         title="Panel de Administración"
@@ -240,7 +240,7 @@ export default function AdminPage() {
             </div>
 
             {/* Right column */}
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {/* Role distribution */}
               <div className="bg-card border border-border/40 rounded-xl p-5">
                 <h3 className="font-semibold text-sm mb-1">Distribución de Roles</h3>
@@ -533,7 +533,7 @@ function AssignRoleDialog({ onDone }: { onDone: () => void }) {
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle className="font-display">Asignar Rol a Usuario</DialogTitle></DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 pb-12">
           <div>
             <label className="text-sm text-muted-foreground">Usuario</label>
             <Select value={selectedUser} onValueChange={setSelectedUser}>
@@ -609,7 +609,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: {
     .map(g => ({ ...g, vendor: vendors.find(v => v.userId === g.user_id) }));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-base flex items-center gap-2">
@@ -627,7 +627,7 @@ function SellerGoalsTab({ vendors, goals, ownerId, onUpdate }: {
           </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Asignar Meta Mensual</DialogTitle></DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               <div>
                 <label className="text-sm text-muted-foreground">Vendedor</label>
                 <Select value={selectedVendor} onValueChange={setSelectedVendor}>

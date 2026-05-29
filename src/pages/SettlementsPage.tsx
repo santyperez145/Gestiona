@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { listInfluencers, listPayouts, createPayout, type Influencer } from "@/lib/influencersDB";
 import { listInfluencerSalesByPeriod } from "@/lib/marketingExtraDB";
@@ -116,7 +116,7 @@ export default function SettlementsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Wallet}
         title="Liquidaciones de Influencers"
@@ -131,7 +131,7 @@ export default function SettlementsPage() {
         <KPICard label="Pagos hechos" value={payouts.length} icon={FileText} sub="Histórico" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
           <label className="text-xs text-muted-foreground">Desde</label>
           <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="bg-muted border-border" />
@@ -170,7 +170,7 @@ export default function SettlementsPage() {
           <p>No hay ventas referidas en este período</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {grouped.map(g => {
             const inf = influencers.find(i => i.id === g.influencer_id);
             return (
@@ -250,7 +250,7 @@ function PayDialog({ group, onPay }: { group: any; onPay: (method: string, notes
       </DialogTrigger>
       <DialogContent className="bg-card border-border/60">
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           <p className="text-sm text-muted-foreground">Vas a registrar el pago de <strong>{formatARS(group.total_commission)}</strong> por {group.count} ventas. Las ventas quedarán marcadas como pagadas.</p>
           <div>
             <label className="text-xs text-muted-foreground">Método de pago</label>

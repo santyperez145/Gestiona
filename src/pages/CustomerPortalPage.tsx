@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -231,7 +231,7 @@ export default function CustomerPortalPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Globe}
         title="Portal de Clientes"
@@ -245,8 +245,8 @@ export default function CustomerPortalPage() {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader><DialogTitle>Crear ticket de soporte</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1">
+              <div className="space-y-3 pb-12">
+                <div className="space-y-1 pb-12">
                   <Label>Cliente *</Label>
                   <Select value={ticketForm.customer_id} onValueChange={v => setTicketForm(f => ({ ...f, customer_id: v }))}>
                     <SelectTrigger><SelectValue placeholder="Buscar cliente" /></SelectTrigger>
@@ -255,12 +255,12 @@ export default function CustomerPortalPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Asunto *</Label>
                   <Input value={ticketForm.subject} onChange={e => setTicketForm(f => ({ ...f, subject: e.target.value }))} placeholder="Resumen del problema..." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Categoría</Label>
                     <Select value={ticketForm.category} onValueChange={v => setTicketForm(f => ({ ...f, category: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -269,7 +269,7 @@ export default function CustomerPortalPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pb-12">
                     <Label>Prioridad</Label>
                     <Select value={ticketForm.priority} onValueChange={v => setTicketForm(f => ({ ...f, priority: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -279,7 +279,7 @@ export default function CustomerPortalPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 pb-12">
                   <Label>Descripción *</Label>
                   <Textarea value={ticketForm.description} onChange={e => setTicketForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Descripción detallada del problema..." />
                 </div>
@@ -339,7 +339,7 @@ export default function CustomerPortalPage() {
               <p>No hay tickets de soporte aún</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {filteredTickets.map(ticket => {
                 const sc = STATUS_CFG[ticket.status] ?? STATUS_CFG.open;
                 const pc = PRIORITY_CFG[ticket.priority] ?? PRIORITY_CFG.normal;
@@ -397,7 +397,7 @@ export default function CustomerPortalPage() {
 
                           {/* Messages */}
                           {msgs.length > 0 && (
-                            <div className="space-y-2">
+                            <div className="space-y-2 pb-12">
                               {msgs.filter(m => !m.is_internal).map(m => (
                                 <div key={m.id} className={`flex gap-2 ${m.sender_type === "agent" ? "flex-row-reverse" : ""}`}>
                                   <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${m.sender_type === "agent" ? "bg-primary/10 text-foreground" : "bg-muted/40 text-foreground"}`}>
@@ -412,13 +412,13 @@ export default function CustomerPortalPage() {
 
                           {/* Reply box */}
                           {["open","in_progress","waiting"].includes(ticket.status) && (
-                            <div className="space-y-2">
+                            <div className="space-y-2 pb-12">
                               {replyTicketId !== ticket.id ? (
                                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setReplyTicketId(ticket.id)}>
                                   <Send className="w-3 h-3 mr-1" /> Responder
                                 </Button>
                               ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-2 pb-12">
                                   <Textarea value={replyMsg} onChange={e => setReplyMsg(e.target.value)} rows={3} placeholder="Escribí tu respuesta..." className="text-sm" />
                                   <div className="flex items-center justify-between">
                                     <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
@@ -450,7 +450,7 @@ export default function CustomerPortalPage() {
         <TabsContent value="config" className="mt-4">
           <Card>
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Settings className="w-4 h-4" /> Configuración del portal de clientes</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                 <div>
                   <p className="font-medium text-foreground">Portal habilitado</p>
@@ -479,7 +479,7 @@ export default function CustomerPortalPage() {
                 ))}
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 <Label>Mensaje de bienvenida</Label>
                 <Textarea
                   value={config.welcome_message ?? ""}
@@ -489,7 +489,7 @@ export default function CustomerPortalPage() {
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1 pb-12">
                 <Label>Color de acento</Label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={config.accent_color} onChange={e => setConfig(c => ({ ...c, accent_color: e.target.value }))} className="h-9 w-16 rounded border border-gray-200 cursor-pointer" />

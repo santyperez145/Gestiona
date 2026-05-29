@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/lib/orgContext';
@@ -236,7 +236,7 @@ export default function ProfilePage() {
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
           <Lock className="w-3 h-3" /> Cambiar contraseña
         </p>
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           <div className="space-y-1.5">
             <Label>Nueva contraseña</Label>
             <Input
@@ -306,7 +306,7 @@ export default function ProfilePage() {
         style={{ background: 'hsl(228 24% 7%)' }}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
-        <div className="space-y-0">
+        <div className="space-y-0 pb-12">
           <div className="info-row">
             <span>ID de usuario</span>
             <span className="font-mono text-[11px] text-muted-foreground/60 truncate max-w-[200px]">{user?.id}</span>

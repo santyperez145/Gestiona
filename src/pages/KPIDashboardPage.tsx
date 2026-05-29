@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   LayoutDashboard, Star, Settings2, Eye, EyeOff, GripVertical, AlertCircle,
   CheckCircle2, Activity, DollarSign, ShoppingCart, Users, Package, Loader2
 } from "lucide-react";
+import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -440,7 +441,7 @@ export default function KPIDashboardPage() {
   const dashWidgets = widgets.filter(w => w.dashboard_id === activeDashId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={LayoutDashboard}
         title="KPI Dashboard"
@@ -454,6 +455,14 @@ export default function KPIDashboardPage() {
           </div>
         }
       />
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Dashboards" value={dashboards.length} icon={LayoutDashboard} color="primary" sub={`${dashWidgets.length} widgets activos`} />
+        <KPICard label="Widgets" value={widgets.length} icon={BarChart3} color="blue" sub="en todos los dashboards" />
+        <KPICard label="Metas" value={goals.length} icon={Target} color={goals.filter(g => g.status === "achieved").length > 0 ? "success" : "warning"} sub={`${goals.filter(g => g.status === "achieved").length} alcanzadas`} />
+        <KPICard label="Alertas activas" value={alerts.filter(a => a.is_active).length} icon={Bell} color={alerts.filter(a => a.is_active).length > 0 ? "warning" : "success"} sub={`${alerts.length} en total`} />
+      </div>
 
       {/* tabs */}
       <div className="flex gap-1 bg-muted/30 rounded-lg p-1 w-fit border border-border/40">
@@ -473,7 +482,7 @@ export default function KPIDashboardPage() {
         <>
           {/* ── Dashboards tab ── */}
           {activeTab === "Dashboards" && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {/* dashboard selector */}
               <div className="flex gap-2 flex-wrap">
                 {dashboards.map(d => (
@@ -570,7 +579,7 @@ export default function KPIDashboardPage() {
                       </div>
                       <Badge className={`${st.color} flex items-center gap-1 text-xs`}>{st.icon}{st.label}</Badge>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Progreso</span>
                         <span className="font-medium">{g.current_value.toLocaleString("es-AR")} / {g.target_value.toLocaleString("es-AR")} {g.unit}</span>
@@ -645,7 +654,7 @@ export default function KPIDashboardPage() {
       <Dialog open={showDashDialog} onOpenChange={setShowDashDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingDash ? "Editar Dashboard" : "Nuevo Dashboard"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             <div><Label>Nombre *</Label><Input value={dashForm.name} onChange={e => setDashForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div><Label>Descripción</Label><Input value={dashForm.description} onChange={e => setDashForm(p => ({ ...p, description: e.target.value }))} /></div>
             <div className="flex items-center gap-3">
@@ -664,7 +673,7 @@ export default function KPIDashboardPage() {
       <Dialog open={showWidgetDialog} onOpenChange={setShowWidgetDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingWidget ? "Editar Widget" : "Nuevo Widget"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             <div><Label>Título *</Label><Input value={widgetForm.title} onChange={e => setWidgetForm(p => ({ ...p, title: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -726,7 +735,7 @@ export default function KPIDashboardPage() {
       <Dialog open={showGoalDialog} onOpenChange={setShowGoalDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingGoal ? "Editar Meta" : "Nueva Meta"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             <div><Label>Nombre *</Label><Input value={goalForm.name} onChange={e => setGoalForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Métrica</Label><Input value={goalForm.metric} onChange={e => setGoalForm(p => ({ ...p, metric: e.target.value }))} placeholder="ej. Ventas mensuales" /></div>
@@ -766,7 +775,7 @@ export default function KPIDashboardPage() {
       <Dialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Nueva Alerta KPI</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             <div><Label>Nombre *</Label><Input value={alertForm.name} onChange={e => setAlertForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div>

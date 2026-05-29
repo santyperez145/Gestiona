@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -150,7 +150,7 @@ export default function CarbonFootprintPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Leaf}
         title="Huella de Carbono"
@@ -206,7 +206,7 @@ export default function CarbonFootprintPage() {
         </TabsList>
 
         {/* DASHBOARD */}
-        <TabsContent value="dashboard" className="space-y-4">
+        <TabsContent value="dashboard" className="space-y-4 pb-12">
           {/* Scope breakdown */}
           <div className="grid grid-cols-3 gap-4">
             {([1, 2, 3] as const).map(scope => {
@@ -298,9 +298,9 @@ export default function CarbonFootprintPage() {
         </TabsContent>
 
         {/* OFFSETS */}
-        <TabsContent value="offsets" className="space-y-4">
+        <TabsContent value="offsets" className="space-y-4 pb-12">
           <Button onClick={() => setShowAddOffset(true)}><Plus className="w-4 h-4 mr-2" />Comprar Créditos</Button>
-          <div className="space-y-3">
+          <div className="space-y-3 pb-12">
             {offsets.map(offset => (
               <Card key={offset.id} className={offset.is_retired ? "opacity-50" : ""}>
                 <CardContent className="p-4 flex items-center gap-4">
@@ -331,7 +331,7 @@ export default function CarbonFootprintPage() {
 
         {/* TARGETS */}
         <TabsContent value="targets">
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             <Card className="border-green-500/20 bg-green-500/5">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -341,7 +341,7 @@ export default function CarbonFootprintPage() {
                     <p className="text-sm text-muted-foreground">Base: 2023 (estimado 45.000 kg CO₂e anuales)</p>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 pb-12">
                   {[
                     { year: 2026, target_pct: 15, current_pct: 12 },
                     { year: 2027, target_pct: 25, current_pct: null },

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +43,7 @@ type QuoteTemplate = { name: string; items: QuoteItem[]; notes?: string };
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:    { label: "Borrador",  color: "text-muted-foreground bg-muted/30 border-border" },
   sent:     { label: "Enviado",   color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-  accepted: { label: "Aceptado", color: "text-success bg-success/10 border-success/20" },
+  accepted: { label: "Aceptado", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
   rejected: { label: "Rechazado",color: "text-destructive bg-destructive/10 border-destructive/20" },
   expired:  { label: "Vencido",  color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
 };
@@ -217,7 +217,7 @@ function ProductSearch({
               </div>
               <div className="flex gap-3 mt-0.5 pl-4">
                 <span className="text-[10px] text-muted-foreground">{p.category}</span>
-                <span className={`text-[10px] font-medium ${p.stock <= 0 ? "text-destructive" : p.stock <= 3 ? "text-orange-400" : "text-success"}`}>
+                <span className={`text-[10px] font-medium ${p.stock <= 0 ? "text-destructive" : p.stock <= 3 ? "text-orange-400" : "text-emerald-400"}`}>
                   stock: {p.stock}
                 </span>
               </div>
@@ -740,7 +740,7 @@ export default function PresupuestosPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-12">
       <PageHeader
         icon={FileText}
         title="Presupuestos"
@@ -916,14 +916,14 @@ export default function PresupuestosPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-muted/30 rounded-xl animate-pulse" />)}</div>
+        <div className="space-y-3 pb-12">{[1,2,3].map(i => <div key={i} className="h-20 bg-muted/30 rounded-xl animate-pulse" />)}</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground">{search || filterStatus !== "all" ? "Sin resultados." : "Aún no hay presupuestos."}</p>
         </div>
       ) : viewByCustomer ? (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {(() => {
             const byCustomer: Record<string, { total: number; accepted: number; pending: number; quotes: typeof filtered }> = {};
             filtered.forEach(q => {
@@ -944,8 +944,8 @@ export default function PresupuestosPage() {
                       <span className="ml-2 text-xs text-muted-foreground">{data.quotes.length} presupuesto{data.quotes.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      {data.accepted > 0 && <span className="text-[10px] font-semibold text-success bg-success/10 px-1.5 py-0.5 rounded">{data.accepted} aceptado{data.accepted !== 1 ? 's' : ''}</span>}
-                      {data.pending > 0 && <span className="text-[10px] font-semibold text-warning bg-warning/10 px-1.5 py-0.5 rounded">{data.pending} pendiente{data.pending !== 1 ? 's' : ''}</span>}
+                      {data.accepted > 0 && <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">{data.accepted} aceptado{data.accepted !== 1 ? 's' : ''}</span>}
+                      {data.pending > 0 && <span className="text-[10px] font-semibold text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">{data.pending} pendiente{data.pending !== 1 ? 's' : ''}</span>}
                       <span className="font-bold text-sm text-primary">{formatARS(data.total)}</span>
                     </div>
                   </div>
@@ -967,7 +967,7 @@ export default function PresupuestosPage() {
           })()}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(q => {
             const today = new Date().toISOString().slice(0, 10);
             const daysUntilExpiry = q.valid_until
@@ -978,14 +978,14 @@ export default function PresupuestosPage() {
             const isExpired = daysUntilExpiry !== null && daysUntilExpiry < 0
               && q.status !== "accepted" && q.status !== "rejected";
             return (
-            <div key={q.id} className={`bg-card border rounded-[10px] overflow-hidden shadow-card ${isExpiringSoon ? "border-warning/40" : isExpired ? "border-destructive/30" : "border-border/60"}`}>
+            <div key={q.id} className={`bg-card border rounded-[10px] overflow-hidden shadow-card ${isExpiringSoon ? "border-yellow-500/40" : isExpired ? "border-destructive/30" : "border-border/60"}`}>
               <div className="px-4 py-3.5 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground font-mono">{q.quote_number}</span>
                     <StatusBadge status={q.status} />
                     {isExpiringSoon && (
-                      <span className="text-[10px] font-semibold text-warning bg-warning/10 rounded-full px-2 py-0.5">
+                      <span className="text-[10px] font-semibold text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">
                         Vence en {daysUntilExpiry === 0 ? "hoy" : `${daysUntilExpiry}d`}
                       </span>
                     )}
@@ -1045,7 +1045,7 @@ export default function PresupuestosPage() {
                 <div className="border-t border-border bg-muted/10 px-4 py-3 space-y-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Ítems</p>
-                    <div className="space-y-1">
+                    <div className="space-y-1 pb-12">
                       {q.items.map((it, i) => (
                         <div key={i} className="flex items-center justify-between text-xs">
                           <span className="flex-1">{it.description}</span>
@@ -1074,7 +1074,7 @@ export default function PresupuestosPage() {
                     )}
                     {q.status === "sent" && (
                       <>
-                        <Button size="sm" variant="outline" className="h-7 text-xs text-success border-success/30" onClick={() => updateStatus(q.id, "accepted")}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-emerald-400 border-emerald-500/30" onClick={() => updateStatus(q.id, "accepted")}>
                           <CheckCircle2 className="w-3 h-3 mr-1" /> Aceptado
                         </Button>
                         <Button size="sm" variant="outline" className="h-7 text-xs text-destructive border-destructive/30" onClick={() => updateStatus(q.id, "rejected")}>
@@ -1305,7 +1305,7 @@ export default function PresupuestosPage() {
                   <Plus className="w-3 h-3 mr-1" /> Ítem
                 </Button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {items.map((it, i) => (
                   <div key={i} className="flex gap-2 items-start">
                     {activeOrg ? (

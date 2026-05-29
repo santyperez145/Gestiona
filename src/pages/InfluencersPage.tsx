@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { listInfluencers, createInfluencer, updateInfluencer, deleteInfluencer, listInfluencerSales, listPayouts, createPayout, type Influencer } from '@/lib/influencersDB';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -57,7 +57,7 @@ function InfluencersTab() {
   if (loading) return <TableSkeleton rows={5} cols={6} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Influencers" value={items.length.toString()} icon={Users} />
         <KPICard label="Generado" value={fmt(totalGen)} icon={TrendingUp} />
@@ -110,7 +110,7 @@ function InfluencersTab() {
                   </td>
                   <td className="p-3 text-right">{i.commission_type === 'porcentaje' ? `${i.commission_percent}%` : fmt(i.commission_fixed_ars)}</td>
                   <td className="p-3 text-right">{fmt(Number(i.total_generated_ars))}</td>
-                  <td className="p-3 text-right text-success">{fmt(Number(i.total_commissions_ars))}</td>
+                  <td className="p-3 text-right text-emerald-400">{fmt(Number(i.total_commissions_ars))}</td>
                   <td className="p-3 text-right">
                     <Button size="icon" variant="ghost" onClick={() => { setEdit(i); setOpen(true); }}><Edit className="w-4 h-4" /></Button>
                     <ConfirmDialog
@@ -213,7 +213,7 @@ function SalesTab() {
   const totalPending = pending.reduce((s, x) => s + Number(x.commission_ars), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="grid grid-cols-2 gap-3">
         <KPICard label="Ventas atribuidas" value={sales.length.toString()} icon={TrendingUp} />
         <KPICard label="Comisiones a pagar" value={fmt(totalPending)} icon={DollarSign} />
@@ -231,8 +231,8 @@ function SalesTab() {
                   <td className="p-3 font-medium">{infMap[s.influencer_id] || '—'}</td>
                   <td className="p-3 font-mono text-xs">{s.referral_code}</td>
                   <td className="p-3 text-right">{fmt(Number(s.sale_total_ars))}</td>
-                  <td className="p-3 text-right text-success">{fmt(Number(s.commission_ars))}</td>
-                  <td className="p-3 text-center"><Badge className={s.paid ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}>{s.paid ? 'Pagado' : 'Pendiente'}</Badge></td>
+                  <td className="p-3 text-right text-emerald-400">{fmt(Number(s.commission_ars))}</td>
+                  <td className="p-3 text-center"><Badge className={s.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}>{s.paid ? 'Pagado' : 'Pendiente'}</Badge></td>
                 </tr>
               ))}
             </tbody>
@@ -272,14 +272,14 @@ function PayoutsTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex justify-between">
         <h3 className="text-lg font-semibold">Liquidaciones</h3>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button className="gradient-gold text-primary-foreground"><DollarSign className="w-4 h-4 mr-1" /> Nueva liquidación</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Liquidar comisiones</DialogTitle></DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-3 pb-12">
               <div>
                 <Label>Influencer</Label>
                 <Select value={selInf} onValueChange={setSelInf}>
@@ -289,7 +289,7 @@ function PayoutsTab() {
               </div>
               <div className="p-3 rounded bg-muted text-sm">
                 <div>Ventas pendientes: <strong>{pendingSales.length}</strong></div>
-                <div>Total a pagar: <strong className="text-success">{fmt(total)}</strong></div>
+                <div>Total a pagar: <strong className="text-emerald-400">{fmt(total)}</strong></div>
               </div>
               <Button onClick={submit} className="w-full" disabled={!selInf || total === 0}>Confirmar pago</Button>
             </div>
@@ -310,7 +310,7 @@ function PayoutsTab() {
                     <td className="p-3">{new Date(p.paid_at).toLocaleDateString('es-AR')}</td>
                     <td className="p-3">{inf?.name || '—'}</td>
                     <td className="p-3 text-right">{p.sales_count}</td>
-                    <td className="p-3 text-right text-success font-semibold">{fmt(Number(p.amount_ars))}</td>
+                    <td className="p-3 text-right text-emerald-400 font-semibold">{fmt(Number(p.amount_ars))}</td>
                   </tr>
                 );
               })}
@@ -325,7 +325,7 @@ function PayoutsTab() {
 export default function InfluencersPage() {
   usePageTitle("Influencers");
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Users}
         title="Influencers Pro"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -165,7 +165,7 @@ export default function PricingEnginePage() {
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
-        icon={<Tag className="w-6 h-6" />}
+        icon={Tag}
         title="Motor de Precios"
         description="Reglas dinámicas, A/B testing y control de márgenes"
         actions={
@@ -321,7 +321,7 @@ export default function PricingEnginePage() {
                   <Badge className="bg-primary/15 text-primary border-0 text-xs">{exp.confidence_pct ?? 0}% confianza</Badge>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-4">
                   {[
                     { label: "Control (actual)", price: exp.control_price, cvr: controlCvr, winner: !isRunning && exp.winner === "control" },
                     { label: "Variante (test)",  price: exp.variant_price, cvr: variantCvr, winner: !isRunning && exp.winner === "variant" },

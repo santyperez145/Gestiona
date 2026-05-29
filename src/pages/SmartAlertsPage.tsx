@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -187,7 +187,7 @@ export default function SmartAlertsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Bell}
         title="Motor de Alertas Inteligentes"
@@ -268,7 +268,7 @@ export default function SmartAlertsPage() {
         </TabsList>
 
         {/* EVENTS */}
-        <TabsContent value="events" className="space-y-4">
+        <TabsContent value="events" className="space-y-4 pb-12">
           <div className="flex gap-2">
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Prioridad" /></SelectTrigger>
@@ -299,7 +299,7 @@ export default function SmartAlertsPage() {
               }}>Reconocer todas</Button>
             )}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pb-12">
             {filteredEvents.map(event => (
               <Card key={event.id} className={`${!event.acknowledged_at ? `border-l-4 ${event.priority === "critical" ? "border-l-red-500" : event.priority === "high" ? "border-l-orange-500" : "border-l-yellow-500"}` : "opacity-60"}`}>
                 <CardContent className="p-4 flex items-start gap-3">
@@ -341,7 +341,7 @@ export default function SmartAlertsPage() {
         </TabsContent>
 
         {/* RULES */}
-        <TabsContent value="rules" className="space-y-3">
+        <TabsContent value="rules" className="space-y-3 pb-12">
           {rules.map(rule => (
             <Card key={rule.id} className={!rule.is_active ? "opacity-50" : ""}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -382,7 +382,7 @@ export default function SmartAlertsPage() {
         <TabsContent value="config">
           <Card className="max-w-lg">
             <CardHeader><CardTitle className="text-base">Canales de Notificación</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-12">
               {Object.entries(CHANNEL_ICONS).map(([key, cfg]) => {
                 const Icon = cfg.icon;
                 const isConfigured = key === "app" || key === "email";

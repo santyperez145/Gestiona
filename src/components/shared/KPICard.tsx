@@ -22,9 +22,9 @@ const colorMap: Record<ColorVariant, {
   glow:   string;   // hover glow class
 }> = {
   primary:     { bar: "bg-primary",     icon: "text-primary",     value: "text-primary",     glow: "hover:shadow-[0_0_32px_-4px_hsl(38_82%_52%/0.2)]" },
-  success:     { bar: "bg-success",     icon: "text-success",     value: "text-success",     glow: "hover:shadow-[0_0_32px_-4px_hsl(155_55%_40%/0.2)]" },
+  success:     { bar: "bg-emerald-500", icon: "text-emerald-400", value: "text-emerald-400", glow: "hover:shadow-[0_0_32px_-4px_hsl(160_60%_50%/0.2)]" },
   destructive: { bar: "bg-destructive", icon: "text-destructive", value: "text-destructive", glow: "hover:shadow-[0_0_32px_-4px_hsl(0_68%_50%/0.2)]" },
-  warning:     { bar: "bg-warning",     icon: "text-warning",     value: "text-warning",     glow: "hover:shadow-[0_0_32px_-4px_hsl(38_90%_55%/0.2)]" },
+  warning:     { bar: "bg-yellow-500",  icon: "text-yellow-400",  value: "text-yellow-400",  glow: "hover:shadow-[0_0_32px_-4px_hsl(48_96%_53%/0.2)]" },
   blue:        { bar: "bg-blue-500",    icon: "text-blue-400",    value: "text-blue-400",    glow: "hover:shadow-[0_0_32px_-4px_hsl(210_90%_60%/0.2)]" },
   purple:      { bar: "bg-violet-500",  icon: "text-violet-400",  value: "text-violet-400",  glow: "hover:shadow-[0_0_32px_-4px_hsl(265_85%_65%/0.2)]" },
 };
@@ -88,7 +88,7 @@ export default function KPICard({
           {trend && (
             <span className={cn(
               "shrink-0 flex items-center gap-0.5 text-[11px] font-bold leading-none font-mono",
-              trend.value >= 0 ? "text-success" : "text-destructive",
+              trend.value >= 0 ? "text-emerald-400" : "text-destructive",
             )}>
               <span className="text-[10px]">{trend.value >= 0 ? "↑" : "↓"}</span>
               {Math.abs(trend.value).toFixed(1)}%

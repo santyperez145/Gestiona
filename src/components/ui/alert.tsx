@@ -23,11 +23,11 @@ const alertVariants = cva(
           "bg-destructive/6 border border-destructive/18 text-destructive " +
           "before:bg-destructive",
         warning:
-          "bg-warning/6 border border-warning/18 text-warning " +
-          "before:bg-warning",
+          "bg-yellow-500/6 border border-yellow-500/18 text-yellow-400 " +
+          "before:bg-yellow-500",
         success:
-          "bg-success/6 border border-success/18 text-success " +
-          "before:bg-success",
+          "bg-emerald-500/6 border border-emerald-500/18 text-emerald-400 " +
+          "before:bg-emerald-500",
         info:
           "bg-blue-500/6 border border-blue-500/18 text-blue-400 " +
           "before:bg-blue-500",

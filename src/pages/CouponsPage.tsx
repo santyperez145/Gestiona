@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CouponsPage — /cupones
  *
  * Create, manage and track promotional discount codes.
@@ -205,7 +205,7 @@ export default function CouponsPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Tag}
         title="Cupones & Descuentos"
@@ -218,7 +218,7 @@ export default function CouponsPage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Cupones activos" value={String(kpis.active)} icon={Tag} sub={`${coupons.length} total`} />
         <KPICard label="Usos totales" value={String(kpis.totalUses)} icon={BarChart3} sub="Veces canjeados" />
         <KPICard label="Revenue con cupones" value={formatARS(kpis.totalRevenue)} icon={DollarSign} sub="Ventas con código aplicado" color="success" />
@@ -238,7 +238,7 @@ export default function CouponsPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {coupons.map(c => {
             const stCfg = STATUS_CONFIG[c.status];
             const usagePct = c.max_uses ? Math.min((c.current_uses / c.max_uses) * 100, 100) : 0;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { getMarketingPostsDB, addMarketingPostDB, updateMarketingPostDB, deleteMarketingPostDB, getProductsDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet, ImageIcon, Calendar, Download, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet, ImageIcon, Calendar, Download, RefreshCw, Loader2, TrendingUp, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
@@ -99,14 +100,14 @@ export default function MarketingPage() {
 
   const statusColors: Record<string, string> = {
     draft: 'bg-muted text-muted-foreground',
-    scheduled: 'bg-warning/20 text-warning',
-    published: 'bg-success/20 text-success',
+    scheduled: 'bg-yellow-500/20 text-yellow-400',
+    published: 'bg-emerald-500/20 text-emerald-400',
   };
   const statusLabels: Record<string, string> = { draft: 'Borrador', scheduled: 'Programado', published: 'Publicado' };
   const typeIcons: Record<string, string> = postTypes.reduce((acc: any, t: any) => ({ ...acc, [t.code]: t.emoji || '📸' }), { post: '📸', story: '📱', reel: '🎬', carousel: '🖼️' });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={Instagram}
         title="Marketing"
@@ -142,6 +143,18 @@ export default function MarketingPage() {
           </div>
         }
       />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard label="Total publicaciones" value={posts.length} icon={Instagram} color="primary"
+          sub={`${posts.filter(p => p.status === "draft").length} borradores`} />
+        <KPICard label="Programados" value={posts.filter(p => p.status === "scheduled").length} icon={Calendar} color="warning"
+          sub="listos para publicar" />
+        <KPICard label="Publicados" value={posts.filter(p => p.status === "published").length} icon={CheckCircle2} color="success"
+          sub="ya publicados" />
+        <KPICard label="Con IA" value={posts.filter((p: any) => p.ai_generated).length} icon={Sparkles} color="blue"
+          sub="generados con IA" />
+      </div>
 
       {/* Tab Navigation */}
       <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border">
@@ -242,7 +255,7 @@ export default function MarketingPage() {
                         reload();
                         toast.success("Marcado como publicado");
                       }}>
-                        <Send className="w-3.5 h-3.5 text-success" />
+                        <Send className="w-3.5 h-3.5 text-emerald-400" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={async () => {
                         await deleteMarketingPostDB(post.id);
@@ -358,18 +371,18 @@ function AIImageGenerator({ products }: { products: any[] }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-[10px] p-5">
         <div className="flex items-center gap-2 mb-1">
           <ImageIcon className="w-5 h-5 text-primary" />
           <h2 className="font-bold text-base">Generador de Imágenes IA</h2>
-          <span className="text-[10px] bg-success/20 text-success border border-success/20 px-2 py-0.5 rounded-[5px] font-semibold ml-1">GRATIS</span>
+          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-[5px] font-semibold ml-1">GRATIS</span>
         </div>
         <p className="text-xs text-muted-foreground mb-5">Creá imágenes de marketing para tus productos en segundos con inteligencia artificial</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Controls */}
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             {/* Product selector */}
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Producto (opcional)</label>
@@ -573,7 +586,7 @@ function CampaignCalendar({ onGeneratePost }: { onGeneratePost: (theme: string) 
   }).slice(0, 10);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="flex items-center gap-2 mb-2">
         <Calendar className="w-5 h-5 text-primary" />
         <h2 className="font-bold text-base">Calendario de Marketing</h2>
@@ -717,7 +730,7 @@ function UTMLinkBuilder() {
           <Button onClick={build} size="sm" className="gradient-gold text-primary-foreground font-semibold"><Link2 className="w-3.5 h-3.5 mr-1.5" />Generar Link</Button>
           {generated && (
             <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
-              <p className="text-xs font-mono break-all flex-1 text-success">{generated}</p>
+              <p className="text-xs font-mono break-all flex-1 text-emerald-400">{generated}</p>
               <Button variant="ghost" size="sm" onClick={copy} className="shrink-0"><Copy className="w-3.5 h-3.5" /></Button>
             </div>
           )}
@@ -736,7 +749,7 @@ function AIContentForm({ onGenerate, generating, postTypes, themes }: { onGenera
   }, [postTypes]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div>
         <label className="text-sm text-muted-foreground">Tipo de publicación</label>
         <Select value={postType} onValueChange={setPostType}>
@@ -789,7 +802,7 @@ function ManualPostForm({ userId, onSave, postTypes }: { userId: string; onSave:
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-12">
       <div>
         <label className="text-sm text-muted-foreground">Título</label>
         <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Nombre de la publicación" className="bg-muted border-border" />

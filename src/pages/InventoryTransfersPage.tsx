@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
@@ -236,7 +236,7 @@ export default function InventoryTransfersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ArrowRightLeft}
         title="Transferencias de Inventario"
@@ -353,7 +353,7 @@ export default function InventoryTransfersPage() {
           <p>No hay transferencias registradas.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           {filtered.map(transfer => {
             const sc = STATUS_CFG[transfer.status];
             const StatusIcon = sc.icon;
@@ -463,7 +463,7 @@ export default function InventoryTransfersPage() {
                             </div>
                           )}
                           {selectedProduct && (
-                            <div className="space-y-2">
+                            <div className="space-y-2 pb-12">
                               <p className="text-xs text-emerald-400">✓ {selectedProduct.name} (Stock: {selectedProduct.stock})</p>
                               {selectedProduct.stock <= 0 && (
                                 <p className="text-xs text-red-400 flex items-center gap-1">

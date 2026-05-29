@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { broadcastSync } from "@/lib/broadcastSync";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
@@ -42,11 +42,11 @@ const CATEGORIES = [
 ];
 
 const PAYMENT_BADGE: Record<string, string> = {
-  efectivo: 'bg-success/15 text-success',
+  efectivo: 'bg-emerald-500/15 text-emerald-400',
   transferencia: 'bg-blue-500/15 text-blue-400',
   mayorista: 'bg-purple-500/15 text-purple-400',
   debito: 'bg-primary/15 text-primary',
-  credito: 'bg-warning/15 text-warning',
+  credito: 'bg-yellow-500/15 text-yellow-400',
   fiado: 'bg-destructive/15 text-destructive',
 };
 
@@ -624,7 +624,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
   };
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         icon={ShoppingCart}
         title="Ventas"
@@ -680,7 +680,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           <div className="mb-4 flex items-center gap-3 flex-wrap rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
             <span className="text-primary font-semibold text-xs uppercase tracking-wide">Hoy</span>
             <span className="font-bold text-primary">{formatARS(todayTotal)}</span>
-            <span className="text-success text-xs">{formatARS(todayProfit)} ganancia</span>
+            <span className="text-emerald-400 text-xs">{formatARS(todayProfit)} ganancia</span>
             <span className="text-muted-foreground text-xs">{todaySales.length} venta{todaySales.length !== 1 ? 's' : ''}</span>
             <span className="text-muted-foreground text-xs">{todayPaid} cobrada{todayPaid !== 1 ? 's' : ''}</span>
             {maxTicket && (
@@ -707,7 +707,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total facturado" value={formatARS(totalSales)} icon={DollarSign} color="primary" sub={`${filtered.length} venta${filtered.length !== 1 ? 's' : ''}`} trend={prevPeriod && delta(totalSales, prevPeriod.totalSales) !== undefined ? { value: delta(totalSales, prevPeriod.totalSales)!, label: "vs período ant." } : undefined} />
         <KPICard label="Ganancia neta" value={formatARS(totalProfit)} icon={TrendingUp} color="success" sub={formatUSD(totalProfitUSD)} trend={prevPeriod && delta(totalProfit, prevPeriod.totalProfit) !== undefined ? { value: delta(totalProfit, prevPeriod.totalProfit)!, label: "vs período ant." } : undefined} />
         <KPICard label="Margen promedio" value={`${marginPct.toFixed(1)}%`} icon={Percent} color={marginPct >= 30 ? "success" : marginPct >= 15 ? "warning" : "destructive"} />
@@ -727,7 +727,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         return (
           <div className="mb-5 bg-card border border-border/60 rounded-[10px] p-4">
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Desglose por método de pago</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {sorted.map(([method, data]) => {
                 const pct = totalSales > 0 ? (data.total / totalSales) * 100 : 0;
                 return (
@@ -891,7 +891,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                 className="w-12 bg-muted border border-border rounded px-1.5 text-center" />
               <span className="text-muted-foreground">%</span>
               {sellers.map(([name, data]) => (
-                <span key={name} className="ml-2 font-medium text-success">
+                <span key={name} className="ml-2 font-medium text-emerald-400">
                   {name}: {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(data.total * commPct / 100)}
                 </span>
               ))}
@@ -977,7 +977,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     </td>
                     <td className="px-4 py-3 text-right text-muted-foreground">{c.count}</td>
                     <td className="px-4 py-3 text-right font-bold">{formatARS(c.total)}</td>
-                    <td className="px-4 py-3 text-right text-success hidden md:table-cell">{formatARS(c.profit)}</td>
+                    <td className="px-4 py-3 text-right text-emerald-400 hidden md:table-cell">{formatARS(c.profit)}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground hidden lg:table-cell">
                       {new Date(c.lastDate + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                     </td>
@@ -992,7 +992,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         </div>
       ) : viewMode === "by_session" ? (
         /* ── By Session view ── */
-        <div className="space-y-2">
+        <div className="space-y-2 pb-12">
           <div className="flex items-center justify-between px-1">
             <span className="text-xs text-muted-foreground">{sessionGroups.length} ticket{sessionGroups.length !== 1 ? 's' : ''} · {filtered.length} líneas · {formatARS(totalSales)}</span>
             <button onClick={() => setCollapsedSessions(prev => prev.size > 0 ? new Set() : new Set(sessionGroups.map(s => s.id)))}
@@ -1022,7 +1022,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs text-muted-foreground">{sess.items.length} ítem{sess.items.length !== 1 ? 's' : ''}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sess.paid ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>{sess.paid ? '✓' : 'Debe'}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sess.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{sess.paid ? '✓' : 'Debe'}</span>
                     <span className="font-bold text-sm">{formatARS(sess.total)}</span>
                     <ChevronLeft className={`w-4 h-4 text-muted-foreground transition-transform ${isCollapsed ? '-rotate-90' : 'rotate-90'}`} />
                   </div>
@@ -1093,8 +1093,8 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-sm">{p.units}</td>
                       <td className="px-4 py-3 text-right font-bold">{formatARS(p.total)}</td>
-                      <td className="px-4 py-3 text-right text-success hidden md:table-cell">{formatARS(p.profit)}</td>
-                      <td className={`px-4 py-3 text-right hidden lg:table-cell font-semibold text-xs ${margin >= 30 ? 'text-success' : margin >= 15 ? 'text-warning' : 'text-destructive'}`}>
+                      <td className="px-4 py-3 text-right text-emerald-400 hidden md:table-cell">{formatARS(p.profit)}</td>
+                      <td className={`px-4 py-3 text-right hidden lg:table-cell font-semibold text-xs ${margin >= 30 ? 'text-emerald-400' : margin >= 15 ? 'text-yellow-400' : 'text-destructive'}`}>
                         {margin.toFixed(1)}%
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell">
@@ -1122,7 +1122,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
           const dates = Object.keys(dateMap).sort().reverse();
           if (dates.length === 0) return <EmptyState icon={Calendar} title="Sin ventas" description="No hay ventas en el período seleccionado." />;
           return (
-            <div className="space-y-2">
+            <div className="space-y-2 pb-12">
               {dates.map(d => {
                 const data = dateMap[d];
                 // Delta vs same weekday 7 days ago
@@ -1143,10 +1143,10 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-sm font-mono">{formatARS(data.total)}</p>
-                      <p className="text-[10px] text-success">{formatARS(data.profit)} gan.</p>
+                      <p className="text-[10px] text-emerald-400">{formatARS(data.profit)} gan.</p>
                     </div>
                     {delta !== null ? (
-                      <div className={`w-14 text-right shrink-0 text-xs font-semibold ${delta >= 0 ? "text-success" : "text-destructive"}`}>
+                      <div className={`w-14 text-right shrink-0 text-xs font-semibold ${delta >= 0 ? "text-emerald-400" : "text-destructive"}`}>
                         {delta >= 0 ? "▲" : "▼"}{Math.abs(delta).toFixed(0)}%
                         <p className="text-[9px] font-normal text-muted-foreground">vs -7d</p>
                       </div>
@@ -1252,11 +1252,11 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     </td>
                     <td className="px-4 py-3 text-right font-bold">{formatARS(Number(s.total_ars))}</td>
                     <td className="px-4 py-3 text-right hidden xl:table-cell">
-                      <span className={`font-medium ${Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}`}>{formatARS(Number(s.profit_ars))}</span>
+                      <span className={`font-medium ${Number(s.profit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}`}>{formatARS(Number(s.profit_ars))}</span>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.paid ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.paid ? 'bg-emerald-500/15 text-emerald-400' : 'bg-destructive/15 text-destructive'}`}>
                           {s.paid ? '✓ Cobrado' : 'Debe'}
                         </span>
                         {s.invoice_id && (
@@ -1272,7 +1272,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-[11px] text-success hover:text-success hover:bg-success/10 gap-1"
+                            className="h-7 px-2 text-[11px] text-emerald-400 hover:text-emerald-400 hover:bg-emerald-500/10 gap-1"
                             title="Marcar como cobrado"
                             onClick={() => markSinglePaid(s)}
                           >
@@ -1321,7 +1321,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${PAYMENT_BADGE[s.payment_method] || 'bg-muted'}`}>
                       {s.payment_method || 'efectivo'}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.paid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'}`}>
                       {s.paid ? 'Pagado' : 'Debe'}
                     </span>
                     {s.invoice_id && (
@@ -1340,14 +1340,14 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
                   <div className="flex gap-4 text-sm">
                     <span>x{s.quantity}</span>
                     <span className="font-medium">{formatARS(Number(s.total_ars))}</span>
-                    <span className={Number(s.profit_ars) > 0 ? 'text-success' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
+                    <span className={Number(s.profit_ars) > 0 ? 'text-emerald-400' : 'text-destructive'}>{formatARS(Number(s.profit_ars))}</span>
                   </div>
                   <div className="flex gap-1">
                     {!s.paid && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[11px] text-success hover:bg-success/10 gap-1"
+                        className="h-7 px-2 text-[11px] text-emerald-400 hover:bg-emerald-500/10 gap-1"
                         onClick={() => markSinglePaid(s)}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />Cobrar
@@ -1373,7 +1373,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
             <div className="mt-3 bg-card border border-border/60 rounded-[10px] px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
               <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Totales del período</span>
               <span className="font-bold text-primary">{formatARS(totalSales)}</span>
-              <span className="text-success text-xs">{formatARS(totalProfit)} ganancia</span>
+              <span className="text-emerald-400 text-xs">{formatARS(totalProfit)} ganancia</span>
               <span className="text-muted-foreground text-xs">{marginPct.toFixed(1)}% margen</span>
               <span className="text-muted-foreground text-xs">{filtered.length} ventas</span>
               {debtCount > 0 && <span className="text-destructive text-xs font-medium">{formatARS(filtered.filter(s => !s.paid).reduce((a, s) => a + Number(s.total_ars), 0))} pendiente</span>}
@@ -1647,7 +1647,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       {/* LINE ITEMS */}
-      <div className="space-y-3">
+      <div className="space-y-3 pb-12">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium flex items-center gap-1.5">
             <ShoppingCart className="w-4 h-4 text-primary" />
@@ -1732,7 +1732,7 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </Button>
         </div>
         {couponResult && (
-          <p className={`text-[10px] mt-1 font-medium ${couponResult.valid ? 'text-success' : 'text-destructive'}`}>
+          <p className={`text-[10px] mt-1 font-medium ${couponResult.valid ? 'text-emerald-400' : 'text-destructive'}`}>
             {couponResult.valid
               ? `✓ Cupón aplicado: ${couponResult.coupon.discount_percent > 0 ? `-${couponResult.coupon.discount_percent}%` : `-${formatARS(Number(couponResult.coupon.discount_fixed_ars))}`}`
               : `✗ ${couponResult.reason}`}
@@ -1748,11 +1748,11 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Ganancia total:</span>
-          <span className={grandProfit > 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{formatARS(grandProfit)} ({formatUSD(grandProfitUSD)})</span>
+          <span className={grandProfit > 0 ? 'text-emerald-400 font-medium' : 'text-destructive font-medium'}>{formatARS(grandProfit)} ({formatUSD(grandProfitUSD)})</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Margen:</span>
-          <span className={grandProfit > 0 ? 'text-success' : 'text-destructive'}>{grandTotal > 0 ? Math.round(grandProfit / grandTotal * 100) : 0}%</span>
+          <span className={grandProfit > 0 ? 'text-emerald-400' : 'text-destructive'}>{grandTotal > 0 ? Math.round(grandProfit / grandTotal * 100) : 0}%</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Medio:</span>
@@ -1874,7 +1874,7 @@ function LineItemRow({
           </span>
           <div className="flex items-center gap-3">
             <span className="font-medium">{formatARS(calc.total)}</span>
-            <span className={calc.profitARS > 0 ? 'text-success' : 'text-destructive'}>+{formatARS(calc.profitARS)}</span>
+            <span className={calc.profitARS > 0 ? 'text-emerald-400' : 'text-destructive'}>+{formatARS(calc.profitARS)}</span>
           </div>
         </div>
       )}

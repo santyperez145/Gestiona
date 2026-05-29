@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -306,7 +306,7 @@ function ActivityPanel({
           <div className="relative">
             {/* Timeline line */}
             <div className="absolute left-3.5 top-0 bottom-0 w-px bg-border/50" />
-            <div className="space-y-4">
+            <div className="space-y-4 pb-12">
               {activities.map(act => {
                 const meta = ACTIVITY_META[act.type] || ACTIVITY_META.note;
                 const Icon = meta.icon;
@@ -1050,7 +1050,7 @@ export default function SalesPipelinePage() {
             {/* Conversion Funnel */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Embudo de conversión</p>
-              <div className="space-y-2">
+              <div className="space-y-2 pb-12">
                 {analyticsData.funnel.map((item, idx) => {
                   const maxCount = analyticsData.funnel[0]?.count || 1;
                   const widthPct = maxCount > 0 ? Math.round((item.count / maxCount) * 100) : 0;
@@ -1126,7 +1126,7 @@ export default function SalesPipelinePage() {
 
             {/* Win/Loss Rate & Reason Breakdown */}
             {(analyticsData.won + analyticsData.lost) > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-3 pb-12">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Win Rate & Razones</p>
                 <div className="flex items-center gap-3">
                   <div className="relative w-16 h-16 shrink-0">

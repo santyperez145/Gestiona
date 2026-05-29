@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -269,7 +269,7 @@ export default function WhatsAppCampaignsPage() {
   };
 
   if (loading) return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-12">
       <div className="h-8 bg-muted/40 rounded animate-pulse w-48" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted/40 rounded-[10px] animate-pulse" />)}
@@ -278,11 +278,11 @@ export default function WhatsAppCampaignsPage() {
   );
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader
         title="WhatsApp Masivo"
-        subtitle={`Enviá campañas a tus clientes · ${totalPhone} contactos con teléfono`}
-        icon={<MessageCircle className="w-5 h-5 text-green-400" />}
+        description={`Enviá campañas a tus clientes · ${totalPhone} contactos con teléfono`}
+        icon={MessageCircle}
         actions={
           <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground font-semibold shadow-gold gap-1.5">
             <Plus className="w-4 h-4" />Nueva campaña
@@ -305,7 +305,7 @@ export default function WhatsAppCampaignsPage() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Contactos" value={totalPhone} icon={Users} />
         <KPICard label="Campañas enviadas" value={sentCamps} icon={CheckCircle2} color="success" />
         <KPICard label="Mensajes enviados" value={totalSent} icon={MessageCircle} color="blue" />
@@ -320,7 +320,7 @@ export default function WhatsAppCampaignsPage() {
           <p className="text-sm mt-1">Creá tu primera campaña de WhatsApp masivo</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-12">
           {campaigns.map(camp => {
             const audience = audienceFor(camp.segment);
             const segLabel = SEGMENTS.find(s => s.value === camp.segment)?.label || camp.segment;
