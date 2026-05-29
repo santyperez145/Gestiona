@@ -38,6 +38,17 @@ interface Customer {
   last_purchase_at: string | null;
 }
 
+interface DealOutcome {
+  deal_id: string;
+  outcome: 'won' | 'lost';
+  reason: string | null;
+  deal_value: number;
+  customer_name: string | null;
+  stage_at_close: string | null;
+  days_in_pipeline: number | null;
+  closed_at: string;
+}
+
 interface ScoredDeal extends Deal {
   score: number;
   scoreTrend: 'up' | 'down' | 'stable';
@@ -53,6 +64,109 @@ interface ScoreFactor {
   max: number;
   description: string;
   positive: boolean;
+}
+
+// Historical patterns derived from `deal_outcomes` — fed into scoring
+interface OutcomeStats {
+  /** Org-wide win rate (0–1) */
+  overallWinRate: number;
+  /** Avg days to close a won deal */
+  avgWinDays: number | null;
+  /** Win rate per stage_at_close — only used as risk signal */
+  stageWinRate: Record<string, number>;
+  /** Win rate per amount bucket (small/mid/large) */
+  valueBucketWinRate: { small: number; mid: number; large: number };
+  /** Customer-level win rate (by name, lowercased) */
+  customerWinRate: Map<string, { wins: number; losses: number }>;
+  /** Top loss reasons (for risk callouts) */
+  topLossReasons: string[];
+  /** Have we got enough samples to trust the stats? */
+  hasEnoughData: boolean;
+}
+
+const EMPTY_STATS: OutcomeStats = {
+  overallWinRate: 0.5,
+  avgWinDays: null,
+  stageWinRate: {},
+  valueBucketWinRate: { small: 0.5, mid: 0.5, large: 0.5 },
+  customerWinRate: new Map(),
+  topLossReasons: [],
+  hasEnoughData: false,
+};
+
+function computeOutcomeStats(outcomes: DealOutcome[], avgAmount: number): OutcomeStats {
+  if (outcomes.length < 5) return EMPTY_STATS;
+
+  const won  = outcomes.filter(o => o.outcome === 'won');
+  const lost = outcomes.filter(o => o.outcome === 'lost');
+  const overall = won.length / outcomes.length;
+
+  // Avg win velocity
+  const winDays = won.filter(o => o.days_in_pipeline != null).map(o => o.days_in_pipeline as number);
+  const avgWinDays = winDays.length > 0
+    ? Math.round(winDays.reduce((s, d) => s + d, 0) / winDays.length)
+    : null;
+
+  // Per-stage win rate (stage_at_close → outcome)
+  const stageMap: Record<string, { w: number; l: number }> = {};
+  outcomes.forEach(o => {
+    const stage = (o.stage_at_close ?? 'unknown').toLowerCase();
+    if (!stageMap[stage]) stageMap[stage] = { w: 0, l: 0 };
+    if (o.outcome === 'won') stageMap[stage].w += 1; else stageMap[stage].l += 1;
+  });
+  const stageWinRate: Record<string, number> = {};
+  Object.entries(stageMap).forEach(([stage, { w, l }]) => {
+    stageWinRate[stage] = (w + l) > 0 ? w / (w + l) : 0.5;
+  });
+
+  // Value bucket win rates (small/mid/large, vs avgAmount)
+  const bucketize = (v: number): 'small' | 'mid' | 'large' => {
+    if (avgAmount <= 0) return 'mid';
+    if (v < avgAmount * 0.5) return 'small';
+    if (v > avgAmount * 1.5) return 'large';
+    return 'mid';
+  };
+  const buckets = { small: { w: 0, l: 0 }, mid: { w: 0, l: 0 }, large: { w: 0, l: 0 } };
+  outcomes.forEach(o => {
+    const b = bucketize(o.deal_value || 0);
+    if (o.outcome === 'won') buckets[b].w += 1; else buckets[b].l += 1;
+  });
+  const valueBucketWinRate = {
+    small: (buckets.small.w + buckets.small.l) > 0 ? buckets.small.w / (buckets.small.w + buckets.small.l) : overall,
+    mid:   (buckets.mid.w   + buckets.mid.l)   > 0 ? buckets.mid.w   / (buckets.mid.w   + buckets.mid.l)   : overall,
+    large: (buckets.large.w + buckets.large.l) > 0 ? buckets.large.w / (buckets.large.w + buckets.large.l) : overall,
+  };
+
+  // Customer-level history (key by lowercased name)
+  const customerWinRate = new Map<string, { wins: number; losses: number }>();
+  outcomes.forEach(o => {
+    const key = (o.customer_name ?? '').trim().toLowerCase();
+    if (!key) return;
+    const cur = customerWinRate.get(key) ?? { wins: 0, losses: 0 };
+    if (o.outcome === 'won') cur.wins += 1; else cur.losses += 1;
+    customerWinRate.set(key, cur);
+  });
+
+  // Top loss reasons
+  const reasonCount: Record<string, number> = {};
+  lost.forEach(o => {
+    const r = o.reason || 'Sin registrar';
+    reasonCount[r] = (reasonCount[r] || 0) + 1;
+  });
+  const topLossReasons = Object.entries(reasonCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([r]) => r);
+
+  return {
+    overallWinRate: overall,
+    avgWinDays,
+    stageWinRate,
+    valueBucketWinRate,
+    customerWinRate,
+    topLossReasons,
+    hasEnoughData: true,
+  };
 }
 
 // ── Scoring constants ────────────────────────────────────────────────────────
@@ -71,7 +185,8 @@ function computeScore(
   deal: Deal,
   avgAmount: number,
   allDeals: Deal[],
-  customerMap: Map<string, Customer>
+  customerMap: Map<string, Customer>,
+  outcomeStats: OutcomeStats = EMPTY_STATS,
 ): { score: number; factors: ScoreFactor[]; recommendation: string } {
   const factors: ScoreFactor[] = [];
   let totalScore = 0;
@@ -168,6 +283,62 @@ function computeScore(
   });
   totalScore += custScore;
 
+  // ── Historical adjustments (only if we have enough win/loss data) ─────────
+  // These factors are *adjustments*: they can add up to +15 or subtract up to -20
+  // from the base score, encoding what the org has learned over time.
+  if (outcomeStats.hasEnoughData) {
+    // (a) Value-bucket win rate vs overall — large deals harder, signal accordingly
+    const bucket = avgAmount > 0
+      ? (deal.amount < avgAmount * 0.5 ? 'small' : deal.amount > avgAmount * 1.5 ? 'large' : 'mid')
+      : 'mid';
+    const bucketRate = outcomeStats.valueBucketWinRate[bucket];
+    const bucketDelta = bucketRate - outcomeStats.overallWinRate;
+    // Convert -0.5..+0.5 delta into -8..+8 points
+    const bucketPoints = Math.round(Math.max(-8, Math.min(8, bucketDelta * 16)));
+    if (bucketPoints !== 0) {
+      factors.push({
+        label: "Histórico por valor",
+        points: bucketPoints,
+        max: 8,
+        description: `Win-rate ${bucket === 'small' ? 'deals chicos' : bucket === 'large' ? 'deals grandes' : 'deals medianos'}: ${Math.round(bucketRate * 100)}% (org ${Math.round(outcomeStats.overallWinRate * 100)}%)`,
+        positive: bucketPoints >= 0,
+      });
+      totalScore += bucketPoints;
+    }
+
+    // (b) Customer-level history — if this customer has historical wins, big boost
+    const custKey = (deal.customer_name ?? '').trim().toLowerCase();
+    const custStats = custKey ? outcomeStats.customerWinRate.get(custKey) : undefined;
+    if (custStats && (custStats.wins + custStats.losses) >= 2) {
+      const cwr = custStats.wins / (custStats.wins + custStats.losses);
+      // 80% win-rate → +6, 0% → -6
+      const custPoints = Math.round((cwr - 0.5) * 12);
+      factors.push({
+        label: "Histórico del cliente",
+        points: custPoints,
+        max: 6,
+        description: `${custStats.wins}W / ${custStats.losses}L (${Math.round(cwr * 100)}% win-rate)`,
+        positive: custPoints >= 0,
+      });
+      totalScore += custPoints;
+    }
+
+    // (c) Velocity check — if deal is older than typical winning deal, penalize
+    if (outcomeStats.avgWinDays != null && daysSinceCreated > outcomeStats.avgWinDays * 1.5) {
+      const overdueRatio = daysSinceCreated / outcomeStats.avgWinDays;
+      const velocityPenalty = -Math.round(Math.min(8, (overdueRatio - 1.5) * 8));
+      factors.push({
+        label: "Velocidad atípica",
+        points: velocityPenalty,
+        max: 8,
+        description: `${Math.round(daysSinceCreated)} días vs ${outcomeStats.avgWinDays} días promedio de cierre`,
+        positive: false,
+      });
+      totalScore += velocityPenalty;
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   // Clamp to 100
   const score = Math.min(100, Math.max(0, totalScore));
 
@@ -181,6 +352,11 @@ function computeScore(
   } else {
     if (daysSinceCreated > 90) recommendation = "🗑️ Deal muerto — mover a perdido para limpiar el pipeline.";
     else recommendation = "❄️ Lead frío — campaña de nurturing antes de invertir tiempo.";
+  }
+
+  // Risk callout: append top loss-reason warning for at-risk large deals
+  if (outcomeStats.hasEnoughData && score < 60 && deal.amount > avgAmount * 1.2 && outcomeStats.topLossReasons.length > 0) {
+    recommendation += ` ⚠️ Riesgo similar a deals perdidos por: ${outcomeStats.topLossReasons.slice(0, 2).join(', ').toLowerCase()}.`;
   }
 
   return { score, factors, recommendation };
@@ -202,6 +378,7 @@ export default function AILeadScoringPage() {
 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [outcomes, setOutcomes] = useState<DealOutcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'score' | 'amount' | 'updated'>('score');
@@ -212,7 +389,11 @@ export default function AILeadScoringPage() {
     if (!activeOrg?.id) return;
     setLoading(true);
     try {
-      const [dealsRes, custRes] = await Promise.all([
+      // Cap outcome history to the last 365 days — older data is less predictive
+      const oneYearAgo = new Date();
+      oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
+      const [dealsRes, custRes, outcomesRes] = await Promise.all([
         supabase
           .from("deals")
           .select("id, title, stage, amount, customer_name, customer_id, assigned_name, win_loss_reason, created_at, updated_at")
@@ -223,11 +404,18 @@ export default function AILeadScoringPage() {
           .from("customers")
           .select("id, name, total_spent, purchase_count, last_purchase_at")
           .eq("org_id", activeOrg.id),
+        supabase
+          .from("deal_outcomes")
+          .select("deal_id, outcome, reason, deal_value, customer_name, stage_at_close, days_in_pipeline, closed_at")
+          .eq("org_id", activeOrg.id)
+          .gte("closed_at", oneYearAgo.toISOString()),
       ]);
       if (dealsRes.error) throw dealsRes.error;
       if (custRes.error) throw custRes.error;
+      // outcomesRes can fail silently (table may not exist yet pre-migration)
       setDeals(dealsRes.data ?? []);
       setCustomers(custRes.data ?? []);
+      setOutcomes((outcomesRes.data as DealOutcome[] | null) ?? []);
     } catch (e: any) {
       toast.error("Error cargando deals: " + e.message);
     } finally {
@@ -248,9 +436,11 @@ export default function AILeadScoringPage() {
     return deals.reduce((s, d) => s + (d.amount || 0), 0) / deals.length;
   }, [deals]);
 
+  const outcomeStats = useMemo(() => computeOutcomeStats(outcomes, avgAmount), [outcomes, avgAmount]);
+
   const scoredDeals = useMemo<ScoredDeal[]>(() => {
-    return deals.map((deal, idx) => {
-      const { score, factors, recommendation } = computeScore(deal, avgAmount, deals, customerMap);
+    return deals.map((deal) => {
+      const { score, factors, recommendation } = computeScore(deal, avgAmount, deals, customerMap, outcomeStats);
       // Simple trend: compare score to median (pseudo-previous)
       const trend: 'up' | 'down' | 'stable' =
         score >= 65 ? 'up' : score <= 30 ? 'down' : 'stable';
@@ -264,7 +454,7 @@ export default function AILeadScoringPage() {
         customerData: deal.customer_id ? customerMap.get(deal.customer_id) ?? null : null,
       };
     });
-  }, [deals, avgAmount, customerMap]);
+  }, [deals, avgAmount, customerMap, outcomeStats]);
 
   // ── KPI computations ─────────────────────────────────────────────────────
   const hotCount = useMemo(() => scoredDeals.filter(d => d.urgency === 'hot').length, [scoredDeals]);
@@ -502,7 +692,16 @@ export default function AILeadScoringPage() {
       <PageHeader
         icon={Brain}
         title="AI Lead Scoring"
-        description="Priorización inteligente de oportunidades de venta"
+        description={
+          outcomeStats.hasEnoughData
+            ? `Priorización inteligente — aprendiendo de ${outcomes.length} cierres históricos (win-rate ${Math.round(outcomeStats.overallWinRate * 100)}%)`
+            : "Priorización inteligente de oportunidades de venta — modo base (sin histórico suficiente)"
+        }
+        badge={
+          outcomeStats.hasEnoughData
+            ? { label: "Histórico activo", variant: "success" }
+            : undefined
+        }
         actions={
           <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
