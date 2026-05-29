@@ -53,7 +53,7 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePermissions } from "@/lib/usePermissions";
+import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PAGE_SIZE = 20;
@@ -62,7 +62,7 @@ export default function PurchasesPage() {
   usePageTitle("Compras");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("purchases");
   const [searchParams] = useSearchParams();
   const prefilledProduct = searchParams.get("product") || "";
   const [purchases, setPurchases] = useState<any[]>([]);

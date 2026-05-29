@@ -20,7 +20,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePermissions } from "@/lib/usePermissions";
+import { useModulePermissions } from "@/lib/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1148,7 +1148,7 @@ export default function CustomersPage() {
   usePageTitle("Clientes — CRM");
   const { user } = useAuth();
   const { activeOrg } = useOrg();
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("customers");
   const [sales, setSales] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);

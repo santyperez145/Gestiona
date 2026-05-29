@@ -23,7 +23,7 @@ import CSVImportWizard from "@/components/products/CSVImportWizard";
 import EmptyState from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { logAudit } from "@/lib/auditLog";
-import { usePermissions } from "@/lib/usePermissions";
+import { useModulePermissions } from "@/lib/usePermissions";
 import { useAIProductSuggest } from "@/hooks/useAIProductSuggest";
 import BarcodeScanModal from "@/components/shared/BarcodeScanModal";
 import { broadcastSync } from "@/lib/broadcastSync";
@@ -275,7 +275,9 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const { productLimit, plan } = useEntitlements();
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  // Module-aware permissions: admins can grant/deny per-module via role_permissions
+  // (falls back to role defaults if no DB rows exist)
+  const { canCreate, canEdit, canDelete } = useModulePermissions("products");
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [salesVelocity, setSalesVelocity] = useState<Record<string, number>>({}); // units sold per day per product

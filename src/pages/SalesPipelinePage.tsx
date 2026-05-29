@@ -18,7 +18,7 @@ import {
   Plus, X, Edit2, Trash2, DollarSign, User, Calendar,
   TrendingUp, Loader2, GripVertical, FileSpreadsheet, MessageCircle,
   Phone, Mail, Users, StickyNote, ChevronRight, Clock, Activity,
-  ArrowRight, Send, Zap, BarChart3,
+  ArrowRight, Send, Zap, BarChart3, Sparkles, Brain, AlertTriangle, Target,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatARS } from "@/lib/supabaseStore";
@@ -129,6 +129,17 @@ function timeAgo(iso: string) {
 
 // ─── Activity Panel (Sidebar) ─────────────────────────────────────────────────
 
+interface CoachResult {
+  win_probability: number;
+  urgency: "hot" | "warm" | "cold";
+  next_action: { action: string; why: string; when: string; owner_role: string };
+  talking_points: string[];
+  risk_factors: string[];
+  similar_wins: { count: number; avg_days: number; dominant_reason: string } | null;
+  coach_note: string;
+  _parse_error?: boolean;
+}
+
 function ActivityPanel({
   deal,
   orgId,
@@ -147,6 +158,30 @@ function ActivityPanel({
   const [actType, setActType] = useState<ActivityType>("note");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // ── AI Coach state ──────────────────────────────────────────────────────
+  const [coach, setCoach] = useState<CoachResult | null>(null);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachError, setCoachError] = useState<string | null>(null);
+  const [coachOpen, setCoachOpen] = useState(false);
+
+  const runCoach = useCallback(async () => {
+    setCoachLoading(true);
+    setCoachError(null);
+    setCoachOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-deal-coach", {
+        body: { deal_id: deal.id },
+      });
+      if (error) throw error;
+      setCoach(data as CoachResult);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error invocando al coach";
+      setCoachError(msg);
+    } finally {
+      setCoachLoading(false);
+    }
+  }, [deal.id]);
 
   const loadActivities = useCallback(async () => {
     setLoading(true);
@@ -218,6 +253,116 @@ function ActivityPanel({
             </div>
           )}
         </div>
+      </div>
+
+      {/* AI Coach trigger + collapsed panel */}
+      <div className="px-4 py-2.5 border-b border-border/50 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-violet-400" /> AI Coach
+          </p>
+          <button
+            onClick={() => (coachOpen && coach ? setCoachOpen(false) : runCoach())}
+            disabled={coachLoading}
+            className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 disabled:opacity-50 transition-all"
+          >
+            {coachLoading
+              ? <><Loader2 className="w-3 h-3 animate-spin" /> Analizando…</>
+              : coachOpen && coach
+                ? <><X className="w-3 h-3" /> Cerrar coach</>
+                : <><Brain className="w-3 h-3" /> {coach ? "Re-analizar" : "Pedir consejo"}</>}
+          </button>
+        </div>
+
+        {coachOpen && coach && !coachLoading && (
+          <div className="mt-2.5 space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+            {/* Win probability + urgency strip */}
+            <div className="flex items-center gap-2.5 p-2 rounded-md bg-violet-500/5 border border-violet-500/20">
+              <div className="relative w-9 h-9 shrink-0">
+                <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+                  <circle cx="18" cy="18" r="14" fill="none"
+                    stroke={coach.win_probability >= 65 ? "#10b981" : coach.win_probability >= 35 ? "#f59e0b" : "#ef4444"}
+                    strokeWidth="3" strokeDasharray={`${coach.win_probability * 0.88} 88`} strokeLinecap="round" />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">
+                  {coach.win_probability}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Probabilidad de cierre</p>
+                <p className="text-xs text-foreground leading-tight mt-0.5">{coach.coach_note}</p>
+              </div>
+              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase ${
+                coach.urgency === "hot"  ? "bg-red-500/15 text-red-400" :
+                coach.urgency === "warm" ? "bg-amber-500/15 text-amber-400" :
+                                           "bg-blue-500/15 text-blue-400"
+              }`}>{coach.urgency}</span>
+            </div>
+
+            {/* Next action */}
+            <div className="p-2.5 rounded-md bg-primary/5 border border-primary/20 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Target className="w-3 h-3 text-primary" />
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Próxima acción</p>
+                <span className="ml-auto text-[9px] text-muted-foreground">{coach.next_action.when}</span>
+              </div>
+              <p className="text-xs font-medium text-foreground leading-tight">{coach.next_action.action}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">{coach.next_action.why}</p>
+            </div>
+
+            {/* Talking points */}
+            {coach.talking_points.length > 0 && (
+              <div className="p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                  <MessageCircle className="w-3 h-3" /> Para mencionar
+                </p>
+                <ul className="space-y-1">
+                  {coach.talking_points.map((p, i) => (
+                    <li key={i} className="text-[11px] text-foreground/90 leading-snug flex gap-1.5">
+                      <span className="text-emerald-400 shrink-0">·</span>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Risks */}
+            {coach.risk_factors.length > 0 && (
+              <div className="p-2.5 rounded-md bg-red-500/5 border border-red-500/20 space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Riesgos a mitigar
+                </p>
+                <ul className="space-y-1">
+                  {coach.risk_factors.map((r, i) => (
+                    <li key={i} className="text-[11px] text-foreground/90 leading-snug flex gap-1.5">
+                      <span className="text-red-400 shrink-0">·</span>
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Similar wins */}
+            {coach.similar_wins && coach.similar_wins.count > 0 && (
+              <div className="p-2 rounded-md bg-muted/40 border border-border/40 text-[10px] text-muted-foreground flex items-center gap-1.5">
+                <TrendingUp className="w-3 h-3" />
+                {coach.similar_wins.count} deals similares ganados ·
+                cierre promedio {coach.similar_wins.avg_days}d ·
+                razón dominante: <span className="text-emerald-400">{coach.similar_wins.dominant_reason}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {coachOpen && coachError && !coachLoading && (
+          <div className="mt-2.5 p-2 rounded-md bg-red-500/5 border border-red-500/20 text-[11px] text-red-400">
+            <AlertTriangle className="w-3 h-3 inline mr-1" />
+            {coachError}
+          </div>
+        )}
       </div>
 
       {/* Quick stage move */}

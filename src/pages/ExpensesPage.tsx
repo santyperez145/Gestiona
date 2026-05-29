@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePermissions } from "@/lib/usePermissions";
+import { useModulePermissions } from "@/lib/usePermissions";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 function exportExpensesCSV(expenses: any[], getCategoryLabel: (c: string) => string) {
@@ -75,7 +75,7 @@ function printExpensesReport(expenses: any[], getCategoryLabel: (c: string) => s
 export default function ExpensesPage() {
   usePageTitle("Gastos");
   const { user } = useAuth();
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("expenses");
   const [expenses, setExpenses] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
