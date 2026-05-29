@@ -60,10 +60,10 @@ const LEVEL_NAMES = ["Novato", "Vendedor", "Pro", "Experto", "Élite", "Leyenda"
 const LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2200, 3000];
 const RARITY_COLORS: Record<string, string> = {
   common:    "bg-muted/40 border-border/40 text-muted-foreground",
-  uncommon:  "bg-green-100 border-green-300 text-green-700",
-  rare:      "bg-blue-100 border-blue-400 text-blue-700",
-  epic:      "bg-purple-100 border-purple-400 text-purple-700",
-  legendary: "bg-yellow-100 border-yellow-500 text-yellow-800",
+  uncommon:  "bg-emerald-500/15 border-emerald-500/30 text-emerald-400",
+  rare:      "bg-blue-500/15 border-blue-500/30 text-blue-400",
+  epic:      "bg-purple-500/15 border-purple-500/30 text-purple-400",
+  legendary: "bg-yellow-500/15 border-yellow-500/30 text-yellow-400",
 };
 
 

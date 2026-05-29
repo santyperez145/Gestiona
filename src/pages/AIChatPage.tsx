@@ -2852,6 +2852,6 @@ export default function AIChatPage() {
       </div>
       </div>{/* end main chat */}
     </div>{/* end flex chat viewport */}
-    </div>{/* end space-y-6 */}
+    </div>
   );
 }

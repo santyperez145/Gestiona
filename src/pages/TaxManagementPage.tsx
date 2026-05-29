@@ -88,9 +88,9 @@ const TAX_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
 
 const DECL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   draft:    { label: "Borrador", color: "bg-muted/40 text-foreground/80",    icon: <FileText className="w-3 h-3" /> },
-  filed:    { label: "Presentada",color: "bg-blue-100 text-blue-800",   icon: <CheckCircle className="w-3 h-3" /> },
-  paid:     { label: "Pagada",   color: "bg-green-100 text-green-800",  icon: <CheckCircle className="w-3 h-3" /> },
-  amended:  { label: "Rectificada",color:"bg-orange-100 text-orange-800",icon: <AlertCircle className="w-3 h-3" /> },
+  filed:    { label: "Presentada",  color: "bg-blue-500/15 text-blue-400",     icon: <CheckCircle className="w-3 h-3" /> },
+  paid:     { label: "Pagada",      color: "bg-emerald-500/15 text-emerald-400", icon: <CheckCircle className="w-3 h-3" /> },
+  amended:  { label: "Rectificada", color: "bg-orange-500/15 text-orange-400",  icon: <AlertCircle className="w-3 h-3" /> },
 };
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -605,7 +605,7 @@ export default function TaxManagementPage() {
                         <td className="py-2 px-3 text-right text-muted-foreground">{fmt(d.taxable_base)}</td>
                         <td className="py-2 px-3 text-right text-red-600 font-medium">{fmt(d.tax_collected)}</td>
                         <td className="py-2 px-3 text-right text-green-600 font-medium">{fmt(d.tax_paid)}</td>
-                        <td className={`py-2 px-3 text-right font-bold ${Number(d.tax_balance) > 0 ? "text-red-700" : "text-green-700"}`}>
+                        <td className={`py-2 px-3 text-right font-bold ${Number(d.tax_balance) > 0 ? "text-red-400" : "text-emerald-400"}`}>
                           {fmt(d.tax_balance)}
                         </td>
                         <td className="py-2 px-3 text-center">
@@ -629,7 +629,7 @@ export default function TaxManagementPage() {
                               </Button>
                             )}
                             {d.status === "filed" && (
-                              <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-green-700 border-green-300" onClick={() => updateDeclStatus(d.id, "paid")}>
+                              <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-emerald-400 border-emerald-500/30" onClick={() => updateDeclStatus(d.id, "paid")}>
                                 Pagado
                               </Button>
                             )}
@@ -698,7 +698,7 @@ export default function TaxManagementPage() {
                         </Badge>
                       </td>
                       <td className="py-2 px-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${w.direction === "suffered" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${w.direction === "suffered" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
                           {w.direction === "suffered" ? "Sufrida" : "Aplicada"}
                         </span>
                       </td>

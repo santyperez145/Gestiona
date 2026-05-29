@@ -48,8 +48,8 @@ interface DemandSignal {
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const ABC_CONFIG = {
-  A: { label: "Clase A", desc: "70-80% del revenue", color: "bg-green-100 text-green-800", dot: "bg-green-500", border: "border-l-green-500" },
-  B: { label: "Clase B", desc: "15-25% del revenue", color: "bg-blue-100 text-blue-700",  dot: "bg-blue-500",  border: "border-l-blue-500" },
+  A: { label: "Clase A", desc: "70-80% del revenue", color: "bg-emerald-500/15 text-emerald-400", dot: "bg-emerald-500", border: "border-l-emerald-500" },
+  B: { label: "Clase B", desc: "15-25% del revenue", color: "bg-blue-500/15 text-blue-400",       dot: "bg-blue-500",    border: "border-l-blue-500" },
   C: { label: "Clase C", desc: "Resto del revenue",  color: "bg-muted/40 text-muted-foreground",  dot: "bg-muted-foreground/50",  border: "border-l-gray-400" },
 };
 
@@ -61,19 +61,19 @@ const VELOCITY_CONFIG: Record<string, { label: string; icon: React.ReactNode; co
 };
 
 const RISK_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  critical: { label: "Crítico", color: "bg-red-100 text-red-800",    icon: <AlertTriangle className="w-3 h-3" /> },
-  high:     { label: "Alto",    color: "bg-orange-100 text-orange-700", icon: <AlertCircle className="w-3 h-3" /> },
-  medium:   { label: "Medio",   color: "bg-yellow-100 text-yellow-700", icon: <AlertCircle className="w-3 h-3" /> },
-  low:      { label: "Bajo",    color: "bg-green-100 text-green-700",  icon: <CheckCircle2 className="w-3 h-3" /> },
+  critical: { label: "Crítico", color: "bg-red-500/15 text-red-400",         icon: <AlertTriangle className="w-3 h-3" /> },
+  high:     { label: "Alto",    color: "bg-orange-500/15 text-orange-400",   icon: <AlertCircle className="w-3 h-3" /> },
+  medium:   { label: "Medio",   color: "bg-yellow-500/15 text-yellow-400",   icon: <AlertCircle className="w-3 h-3" /> },
+  low:      { label: "Bajo",    color: "bg-emerald-500/15 text-emerald-400", icon: <CheckCircle2 className="w-3 h-3" /> },
 };
 
 const SIGNAL_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  spike:        { label: "Pico de demanda",    color: "bg-green-100 text-green-700",  icon: <TrendingUp className="w-3.5 h-3.5" /> },
-  trend_up:     { label: "Tendencia ↑",        color: "bg-blue-100 text-blue-700",    icon: <TrendingUp className="w-3.5 h-3.5" /> },
-  trend_down:   { label: "Tendencia ↓",        color: "bg-red-100 text-red-700",      icon: <TrendingDown className="w-3.5 h-3.5" /> },
-  seasonal:     { label: "Estacional",         color: "bg-purple-100 text-purple-700", icon: <Activity className="w-3.5 h-3.5" /> },
-  promotion:    { label: "Promoción activa",   color: "bg-yellow-100 text-yellow-700", icon: <Zap className="w-3.5 h-3.5" /> },
-  stockout_risk:{ label: "Riesgo de quiebre",  color: "bg-orange-100 text-orange-700", icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+  spike:        { label: "Pico de demanda",    color: "bg-emerald-500/15 text-emerald-400", icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  trend_up:     { label: "Tendencia ↑",        color: "bg-blue-500/15 text-blue-400",       icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  trend_down:   { label: "Tendencia ↓",        color: "bg-red-500/15 text-red-400",         icon: <TrendingDown className="w-3.5 h-3.5" /> },
+  seasonal:     { label: "Estacional",         color: "bg-purple-500/15 text-purple-400",   icon: <Activity className="w-3.5 h-3.5" /> },
+  promotion:    { label: "Promoción activa",   color: "bg-yellow-500/15 text-yellow-400",   icon: <Zap className="w-3.5 h-3.5" /> },
+  stockout_risk:{ label: "Riesgo de quiebre",  color: "bg-orange-500/15 text-orange-400",   icon: <AlertTriangle className="w-3.5 h-3.5" /> },
 };
 
 const TABS = ["Análisis ABC", "Señales de demanda", "Insights"] as const;
