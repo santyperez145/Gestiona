@@ -48,9 +48,9 @@ interface Module {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  beginner:     "bg-green-100 text-green-700",
-  intermediate: "bg-yellow-100 text-yellow-800",
-  advanced:     "bg-red-100 text-red-700",
+  beginner:     "bg-emerald-500/15 text-emerald-400",
+  intermediate: "bg-yellow-500/15 text-yellow-400",
+  advanced:     "bg-red-500/15 text-red-400",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -282,7 +282,7 @@ export default function ELearningPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold">{course.title}</span>
-                        {course.is_mandatory && <Badge className="bg-red-100 text-red-700 border-0 text-xs">Obligatorio</Badge>}
+                        {course.is_mandatory && <Badge className="bg-red-500/15 text-red-400 border-0 text-xs">Obligatorio</Badge>}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${LEVEL_COLORS[course.level]}`}>{course.level}</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">{course.description}</p>

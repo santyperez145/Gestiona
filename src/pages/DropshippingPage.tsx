@@ -84,13 +84,13 @@ interface OrderItem {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:                { label: "Pendiente",          color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-3 h-3" /> },
-  ordered_from_supplier:  { label: "Pedido proveedor",   color: "bg-blue-100 text-blue-800",    icon: <Package className="w-3 h-3" /> },
-  dispatched:             { label: "Despachado",          color: "bg-indigo-100 text-indigo-800",icon: <Truck className="w-3 h-3" /> },
-  in_transit:             { label: "En tránsito",         color: "bg-purple-100 text-purple-800",icon: <Truck className="w-3 h-3" /> },
-  delivered:              { label: "Entregado",           color: "bg-green-100 text-green-800",  icon: <CheckCircle className="w-3 h-3" /> },
-  cancelled:              { label: "Cancelado",           color: "bg-red-100 text-red-800",      icon: <XCircle className="w-3 h-3" /> },
-  returned:               { label: "Devuelto",            color: "bg-orange-100 text-orange-800",icon: <RotateCcw className="w-3 h-3" /> },
+  pending:                { label: "Pendiente",          color: "bg-yellow-500/15 text-yellow-400",   icon: <Clock className="w-3 h-3" /> },
+  ordered_from_supplier:  { label: "Pedido proveedor",   color: "bg-blue-500/15 text-blue-400",       icon: <Package className="w-3 h-3" /> },
+  dispatched:             { label: "Despachado",          color: "bg-indigo-500/15 text-indigo-400",   icon: <Truck className="w-3 h-3" /> },
+  in_transit:             { label: "En tránsito",         color: "bg-purple-500/15 text-purple-400",   icon: <Truck className="w-3 h-3" /> },
+  delivered:              { label: "Entregado",           color: "bg-emerald-500/15 text-emerald-400", icon: <CheckCircle className="w-3 h-3" /> },
+  cancelled:              { label: "Cancelado",           color: "bg-red-500/15 text-red-400",         icon: <XCircle className="w-3 h-3" /> },
+  returned:               { label: "Devuelto",            color: "bg-orange-500/15 text-orange-400",   icon: <RotateCcw className="w-3 h-3" /> },
 };
 
 const STOCK_STATUS_CONFIG: Record<string, { label: string; color: string }> = {

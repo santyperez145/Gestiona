@@ -64,9 +64,9 @@ const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
   draft:     { label: "Borrador",  color: "bg-muted/40 text-muted-foreground" },
-  active:    { label: "Activo",    color: "bg-green-100 text-green-700" },
-  completed: { label: "Completo",  color: "bg-blue-100 text-blue-700" },
-  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-700" },
+  active:    { label: "Activo",    color: "bg-emerald-500/15 text-emerald-400" },
+  completed: { label: "Completo",  color: "bg-blue-500/15 text-blue-400" },
+  cancelled: { label: "Cancelado", color: "bg-red-500/15 text-red-400" },
 };
 
 function ObligationRow({ ob }: { ob: Obligation }) {
@@ -357,7 +357,7 @@ export default function RevenueRecognitionPage() {
                     <tr key={i} className="border-b last:border-0 hover:bg-muted/20">
                       <td className="py-3 px-4 text-muted-foreground">{entry.date}</td>
                       <td className="py-3 px-4">
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${entry.type === "recognized" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${entry.type === "recognized" ? "bg-emerald-500/15 text-emerald-400" : "bg-orange-500/15 text-orange-400"}`}>
                           {entry.type === "recognized" ? "Reconocido" : "Diferido"}
                         </span>
                       </td>

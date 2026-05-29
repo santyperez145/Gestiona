@@ -56,11 +56,11 @@ interface CatalogItem {
 }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  pending:  { label: "Pendiente", color: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "Aprobada",  color: "bg-blue-100 text-blue-700" },
-  rejected: { label: "Rechazada", color: "bg-red-100 text-red-700" },
-  paid:     { label: "Pagada",    color: "bg-green-100 text-green-700" },
-  disputed: { label: "Disputada", color: "bg-orange-100 text-orange-700" },
+  pending:  { label: "Pendiente", color: "bg-yellow-500/15 text-yellow-400" },
+  approved: { label: "Aprobada",  color: "bg-blue-500/15 text-blue-400" },
+  rejected: { label: "Rechazada", color: "bg-red-500/15 text-red-400" },
+  paid:     { label: "Pagada",    color: "bg-emerald-500/15 text-emerald-400" },
+  disputed: { label: "Disputada", color: "bg-orange-500/15 text-orange-400" },
 };
 
 

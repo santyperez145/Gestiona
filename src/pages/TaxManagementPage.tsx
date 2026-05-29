@@ -77,13 +77,13 @@ interface IibbRegistration {
 }
 
 const TAX_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  iva:         { label: "IVA",         color: "bg-blue-100 text-blue-800" },
-  iibb:        { label: "IIBB",        color: "bg-purple-100 text-purple-800" },
-  ganancias:   { label: "Ganancias",   color: "bg-orange-100 text-orange-800" },
-  monotributo: { label: "Monotributo", color: "bg-green-100 text-green-800" },
-  sellos:      { label: "Sellos",      color: "bg-yellow-100 text-yellow-800" },
+  iva:         { label: "IVA",         color: "bg-blue-500/15 text-blue-400" },
+  iibb:        { label: "IIBB",        color: "bg-purple-500/15 text-purple-400" },
+  ganancias:   { label: "Ganancias",   color: "bg-orange-500/15 text-orange-400" },
+  monotributo: { label: "Monotributo", color: "bg-emerald-500/15 text-emerald-400" },
+  sellos:      { label: "Sellos",      color: "bg-yellow-500/15 text-yellow-400" },
   municipal:   { label: "Municipal",   color: "bg-muted/40 text-foreground" },
-  otro:        { label: "Otro",        color: "bg-slate-100 text-slate-800" },
+  otro:        { label: "Otro",        color: "bg-muted/40 text-muted-foreground" },
 };
 
 const DECL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {

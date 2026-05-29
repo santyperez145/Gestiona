@@ -51,13 +51,13 @@ interface BinStock {
 }
 
 const ZONE_TYPE_CFG: Record<string, { label: string; color: string }> = {
-  general:    { label: "General",    color: "bg-gray-100 text-gray-700" },
-  cold:       { label: "Frío",       color: "bg-blue-100 text-blue-800" },
-  bulk:       { label: "Granel",     color: "bg-yellow-100 text-yellow-800" },
-  hazardous:  { label: "Peligroso",  color: "bg-red-100 text-red-800" },
-  quarantine: { label: "Cuarentena", color: "bg-orange-100 text-orange-800" },
-  dispatch:   { label: "Despacho",   color: "bg-purple-100 text-purple-800" },
-  receiving:  { label: "Recepción",  color: "bg-green-100 text-green-800" },
+  general:    { label: "General",    color: "bg-muted/40 text-muted-foreground" },
+  cold:       { label: "Frío",       color: "bg-blue-500/15 text-blue-400" },
+  bulk:       { label: "Granel",     color: "bg-yellow-500/15 text-yellow-400" },
+  hazardous:  { label: "Peligroso",  color: "bg-red-500/15 text-red-400" },
+  quarantine: { label: "Cuarentena", color: "bg-orange-500/15 text-orange-400" },
+  dispatch:   { label: "Despacho",   color: "bg-purple-500/15 text-purple-400" },
+  receiving:  { label: "Recepción",  color: "bg-emerald-500/15 text-emerald-400" },
 };
 
 const EMPTY_WH = { name: "", code: "", address: "", manager: "", phone: "", is_default: false };

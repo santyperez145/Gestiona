@@ -52,7 +52,7 @@ const STATUS_CFG: Record<ContractStatus, { label: string; color: string; bg: str
   draft:     { label: 'Borrador',   color: 'text-slate-400',   bg: 'bg-slate-500/10 border-slate-500/20',   icon: FileText },
   active:    { label: 'Activo',     color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20',icon: CheckCircle },
   expired:   { label: 'Vencido',    color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20',        icon: XCircle },
-  cancelled: { label: 'Cancelado',  color: 'text-gray-400',    bg: 'bg-gray-500/10 border-gray-500/20',      icon: X },
+  cancelled: { label: 'Cancelado',  color: 'text-muted-foreground', bg: 'bg-muted/30 border-border/40',          icon: X },
   renewed:   { label: 'Renovado',   color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20',      icon: RotateCcw },
 };
 

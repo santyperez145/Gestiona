@@ -81,11 +81,11 @@ interface LoyaltyTransaction {
 
 /* ─────────────────────────── configs ─────────────────────────── */
 const REWARD_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  discount_pct:   { label: "Descuento %",      icon: <Zap className="w-4 h-4" />,        color: "bg-yellow-100 text-yellow-700" },
-  discount_fixed: { label: "Descuento $",       icon: <Coins className="w-4 h-4" />,      color: "bg-green-100 text-green-700" },
-  free_product:   { label: "Producto gratis",   icon: <Gift className="w-4 h-4" />,       color: "bg-purple-100 text-purple-700" },
-  gift_card:      { label: "Gift Card",         icon: <ShoppingBag className="w-4 h-4" />,color: "bg-blue-100 text-blue-700" },
-  experience:     { label: "Experiencia",       icon: <Trophy className="w-4 h-4" />,     color: "bg-pink-100 text-pink-700" },
+  discount_pct:   { label: "Descuento %",      icon: <Zap className="w-4 h-4" />,        color: "bg-yellow-500/15 text-yellow-400" },
+  discount_fixed: { label: "Descuento $",       icon: <Coins className="w-4 h-4" />,      color: "bg-emerald-500/15 text-emerald-400" },
+  free_product:   { label: "Producto gratis",   icon: <Gift className="w-4 h-4" />,       color: "bg-purple-500/15 text-purple-400" },
+  gift_card:      { label: "Gift Card",         icon: <ShoppingBag className="w-4 h-4" />,color: "bg-blue-500/15 text-blue-400" },
+  experience:     { label: "Experiencia",       icon: <Trophy className="w-4 h-4" />,     color: "bg-pink-500/15 text-pink-400" },
   other:          { label: "Otro",              icon: <Award className="w-4 h-4" />,      color: "bg-muted/40 text-muted-foreground" },
 };
 

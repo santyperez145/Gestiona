@@ -310,12 +310,12 @@ export default function CarbonFootprintPage() {
                       <span className="font-semibold">{offset.program_name}</span>
                       {offset.is_retired
                         ? <Badge variant="secondary" className="text-xs">Retirado</Badge>
-                        : <Badge className="bg-green-100 text-green-700 border-0 text-xs">Activo</Badge>}
+                        : <Badge className="bg-emerald-500/15 text-emerald-400 border-0 text-xs">Activo</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground">{offset.offset_type.replace("_", " ")} · {offset.purchase_date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-green-600">{(offset.co2e_kg_offset / 1000).toFixed(1)} t CO₂e</p>
+                    <p className="font-bold text-emerald-400">{(offset.co2e_kg_offset / 1000).toFixed(1)} t CO₂e</p>
                     <p className="text-xs text-muted-foreground">${offset.cost_ars.toLocaleString()}</p>
                   </div>
                   {!offset.is_retired && (
@@ -335,7 +335,7 @@ export default function CarbonFootprintPage() {
             <Card className="border-green-200 bg-green-50">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Target className="w-8 h-8 text-green-600" />
+                  <Target className="w-8 h-8 text-emerald-400" />
                   <div>
                     <h3 className="font-bold text-lg">Meta de Reducción 2030</h3>
                     <p className="text-sm text-muted-foreground">Base: 2023 (estimado 45.000 kg CO₂e anuales)</p>
@@ -352,11 +352,11 @@ export default function CarbonFootprintPage() {
                     <div key={t.year}>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="font-medium">{t.year}</span>
-                        <span className={t.current_pct ? "text-green-700" : "text-muted-foreground"}>
+                        <span className={t.current_pct ? "text-emerald-400" : "text-muted-foreground"}>
                           {t.current_pct ? `${t.current_pct}%` : "—"} / Meta: {t.target_pct}%
                         </span>
                       </div>
-                      <div className="h-3 bg-green-100 rounded-full overflow-hidden relative">
+                      <div className="h-3 bg-muted/30 rounded-full overflow-hidden relative">
                         <div className="h-full bg-green-500 rounded-full" style={{ width: `${t.target_pct}%` }} />
                         {t.current_pct && (
                           <div className="absolute top-0 h-full bg-green-700 rounded-full" style={{ width: `${t.current_pct}%` }} />

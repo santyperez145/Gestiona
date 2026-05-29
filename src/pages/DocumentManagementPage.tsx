@@ -63,9 +63,9 @@ const DOC_TYPE_CONFIG: Record<string, { label: string; icon: string }> = {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:    { label: "Borrador",  color: "bg-muted/40 text-muted-foreground" },
-  active:   { label: "Activo",    color: "bg-green-100 text-green-800" },
-  archived: { label: "Archivado", color: "bg-orange-100 text-orange-800" },
-  expired:  { label: "Vencido",   color: "bg-red-100 text-red-800" },
+  active:   { label: "Activo",    color: "bg-emerald-500/15 text-emerald-400" },
+  archived: { label: "Archivado", color: "bg-orange-500/15 text-orange-400" },
+  expired:  { label: "Vencido",   color: "bg-red-500/15 text-red-400" },
 };
 
 const EMPTY_DOC = {

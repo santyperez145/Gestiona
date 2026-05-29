@@ -57,13 +57,13 @@ interface Product {
 }
 
 const WASTE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  spoilage:       { label: "Deterioro",      color: "bg-orange-100 text-orange-800" },
-  damage:         { label: "Daño/Rotura",    color: "bg-red-100 text-red-800" },
-  theft:          { label: "Hurto",          color: "bg-purple-100 text-purple-800" },
-  expiry:         { label: "Vencimiento",    color: "bg-yellow-100 text-yellow-800" },
-  production:     { label: "Producción",     color: "bg-blue-100 text-blue-800" },
+  spoilage:       { label: "Deterioro",      color: "bg-orange-500/15 text-orange-400" },
+  damage:         { label: "Daño/Rotura",    color: "bg-red-500/15 text-red-400" },
+  theft:          { label: "Hurto",          color: "bg-purple-500/15 text-purple-400" },
+  expiry:         { label: "Vencimiento",    color: "bg-yellow-500/15 text-yellow-400" },
+  production:     { label: "Producción",     color: "bg-blue-500/15 text-blue-400" },
   administrative: { label: "Administrativo", color: "bg-muted/40 text-muted-foreground" },
-  other:          { label: "Otro",           color: "bg-slate-100 text-slate-700" },
+  other:          { label: "Otro",           color: "bg-muted/40 text-muted-foreground" },
 };
 
 const EMPTY_RECORD = {

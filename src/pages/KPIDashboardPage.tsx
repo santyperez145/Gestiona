@@ -109,9 +109,9 @@ const TIME_RANGES: { value: string; label: string }[] = [
 ];
 
 const GOAL_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  active:   { label: "Activa",    color: "bg-blue-100 text-blue-700",  icon: <Activity className="w-3 h-3" /> },
-  achieved: { label: "Lograda",   color: "bg-green-100 text-green-700", icon: <CheckCircle2 className="w-3 h-3" /> },
-  missed:   { label: "No lograda",color: "bg-red-100 text-red-700",    icon: <AlertCircle className="w-3 h-3" /> },
+  active:   { label: "Activa",    color: "bg-blue-500/15 text-blue-400",     icon: <Activity className="w-3 h-3" /> },
+  achieved: { label: "Lograda",   color: "bg-emerald-500/15 text-emerald-400", icon: <CheckCircle2 className="w-3 h-3" /> },
+  missed:   { label: "No lograda",color: "bg-red-500/15 text-red-400",        icon: <AlertCircle className="w-3 h-3" /> },
   paused:   { label: "Pausada",   color: "bg-muted/40 text-muted-foreground",  icon: <EyeOff className="w-3 h-3" /> },
 };
 
@@ -191,7 +191,7 @@ function WidgetCard({ widget, liveValues, onEdit, onDelete, onToggleVisibility }
       ) : widget.widget_type === "bar_chart" ? (
         <div className="flex items-end gap-1 h-12 mt-1">
           {[65, 80, 72, 90, 85, 100, 78].map((h, i) => (
-            <div key={i} className="flex-1 bg-blue-100 rounded-t" style={{ height: `${h}%` }} />
+            <div key={i} className="flex-1 bg-primary/20 rounded-t" style={{ height: `${h}%` }} />
           ))}
         </div>
       ) : widget.widget_type === "sparkline" ? (

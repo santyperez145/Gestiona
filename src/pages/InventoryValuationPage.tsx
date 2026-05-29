@@ -279,7 +279,7 @@ export default function InventoryValuationPage() {
                         <td className="py-3 px-4 font-medium">{layer.product_name}</td>
                         <td className="py-3 px-4">{new Date(layer.layer_date).toLocaleDateString("es-AR")}</td>
                         <td className="py-3 px-4">
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded capitalize">{layer.layer_type}</span>
+                          <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded capitalize">{layer.layer_type}</span>
                         </td>
                         <td className="py-3 px-4 text-right">{layer.quantity_remaining}</td>
                         <td className="py-3 px-4 text-right">${layer.unit_cost.toLocaleString()}</td>

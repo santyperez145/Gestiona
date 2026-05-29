@@ -72,9 +72,9 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
-  high:   "bg-green-100 text-green-700",
-  medium: "bg-yellow-100 text-yellow-800",
-  low:    "bg-gray-100 text-gray-700",
+  high:   "bg-emerald-500/15 text-emerald-400",
+  medium: "bg-yellow-500/15 text-yellow-400",
+  low:    "bg-muted/40 text-muted-foreground",
 };
 
 

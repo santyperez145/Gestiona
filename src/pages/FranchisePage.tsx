@@ -43,10 +43,10 @@ interface Royalty {
 
 
 function ComplianceBadge({ score }: { score: number }) {
-  const cfg = score >= 90 ? { label: "Excelente", cls: "bg-green-100 text-green-700" }
-    : score >= 75 ? { label: "Bueno", cls: "bg-blue-100 text-blue-700" }
-    : score >= 60 ? { label: "Regular", cls: "bg-yellow-100 text-yellow-800" }
-    : { label: "Crítico", cls: "bg-red-100 text-red-700" };
+  const cfg = score >= 90 ? { label: "Excelente", cls: "bg-emerald-500/15 text-emerald-400" }
+    : score >= 75 ? { label: "Bueno", cls: "bg-blue-500/15 text-blue-400" }
+    : score >= 60 ? { label: "Regular", cls: "bg-yellow-500/15 text-yellow-400" }
+    : { label: "Crítico", cls: "bg-red-500/15 text-red-400" };
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>;
 }
 
@@ -200,9 +200,9 @@ export default function FranchisePage() {
                       <td className="py-3 px-4 text-right">${r.marketing_fee.toLocaleString()}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          r.status === "paid" ? "bg-green-100 text-green-700" :
-                          r.status === "invoiced" ? "bg-blue-100 text-blue-700" :
-                          "bg-yellow-100 text-yellow-800"}`}>
+                          r.status === "paid" ? "bg-emerald-500/15 text-emerald-400" :
+                          r.status === "invoiced" ? "bg-blue-500/15 text-blue-400" :
+                          "bg-yellow-500/15 text-yellow-400"}`}>
                           {r.status === "paid" ? "Pagado" : r.status === "invoiced" ? "Facturado" : "Pendiente"}
                         </span>
                       </td>

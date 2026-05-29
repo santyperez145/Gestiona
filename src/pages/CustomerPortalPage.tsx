@@ -379,7 +379,7 @@ export default function CustomerPortalPage() {
                             </Button>
                           )}
                           {ticket.status === "in_progress" && (
-                            <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-green-700 border-green-300" onClick={() => updateTicketStatus(ticket.id, "resolved")}>
+                            <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-emerald-400 border-emerald-500/30" onClick={() => updateTicketStatus(ticket.id, "resolved")}>
                               Resolver
                             </Button>
                           )}
