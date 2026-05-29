@@ -277,7 +277,7 @@ export default function ProductLifecyclePage() {
                   return (
                     <div key={stage}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-3 h-3 rounded-full ${stage === "concept" ? "bg-gray-400" : stage === "development" ? "bg-blue-500" : stage === "testing" ? "bg-indigo-500" : "bg-purple-500"}`} />
+                        <div className={`w-3 h-3 rounded-full ${stage === "concept" ? "bg-muted-foreground/50" : stage === "development" ? "bg-blue-500" : stage === "testing" ? "bg-indigo-500" : "bg-purple-500"}`} />
                         <span className="font-semibold text-sm">{STAGE_CONFIG[stage]?.label}</span>
                         <span className="text-xs text-muted-foreground">({stageProducts.length} productos)</span>
                       </div>

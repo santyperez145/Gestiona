@@ -89,7 +89,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   pending: { label: "Pendiente", color: "bg-amber-500/15 text-amber-400", icon: Clock },
   active: { label: "Activo", color: "bg-emerald-500/15 text-emerald-400", icon: CheckCircle },
   suspended: { label: "Suspendido", color: "bg-orange-500/15 text-orange-400", icon: XCircle },
-  inactive: { label: "Inactivo", color: "bg-gray-500/15 text-gray-400", icon: XCircle },
+  inactive: { label: "Inactivo", color: "bg-muted/40 text-muted-foreground", icon: XCircle },
 };
 
 const CONV_STATUS_CONFIG: Record<string, { label: string; color: string }> = {

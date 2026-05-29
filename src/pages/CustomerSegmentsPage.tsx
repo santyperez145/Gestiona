@@ -115,7 +115,7 @@ const CHANNEL_CONFIG: Record<string, { label: string; icon: React.ElementType; c
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  draft: { label: "Borrador", color: "bg-gray-500/15 text-gray-400" },
+  draft: { label: "Borrador", color: "bg-muted/40 text-muted-foreground" },
   scheduled: { label: "Programada", color: "bg-blue-500/15 text-blue-400" },
   running: { label: "Enviando", color: "bg-amber-500/15 text-amber-400" },
   completed: { label: "Enviada", color: "bg-emerald-500/15 text-emerald-400" },
@@ -306,7 +306,7 @@ function SegCard({ segment, campaigns, onEdit, onDelete, onSync, onNewCampaign }
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold">{segment.name}</h3>
             {segment.is_dynamic && <Badge className="text-xs bg-violet-500/15 text-violet-400"><Zap className="w-3 h-3 mr-1" />Dinámico</Badge>}
-            {!segment.active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactivo</Badge>}
+            {!segment.active && <Badge className="text-xs bg-muted/40 text-muted-foreground">Inactivo</Badge>}
           </div>
           {segment.description && <p className="text-xs text-muted-foreground mt-0.5">{segment.description}</p>}
           {segment.last_synced_at && (

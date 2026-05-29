@@ -479,7 +479,7 @@ export default function PricingIntelligencePage() {
                       const priceDiff = p.suggestedPrice - p.salePrice;
                       const needsPriceIncrease = priceDiff > 100;
                       return (
-                        <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                        <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                           <td className="px-4 py-3">
                             <div>
                               <p className="font-medium text-sm leading-snug">{p.name}</p>

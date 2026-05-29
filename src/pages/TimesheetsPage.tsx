@@ -86,7 +86,7 @@ interface PayrollPeriod {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const TS_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  draft: { label: "Borrador", color: "bg-gray-500/15 text-gray-400", icon: Clock },
+  draft: { label: "Borrador", color: "bg-muted/40 text-muted-foreground", icon: Clock },
   submitted: { label: "Enviado", color: "bg-blue-500/15 text-blue-400", icon: Clock },
   approved: { label: "Aprobado", color: "bg-emerald-500/15 text-emerald-400", icon: CheckCircle },
   rejected: { label: "Rechazado", color: "bg-red-500/15 text-red-400", icon: XCircle },

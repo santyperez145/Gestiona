@@ -308,7 +308,7 @@ export default function CalendarPage() {
                       onClick={() => setSelectedDate(day.date === selectedDate ? null : day.date)}
                       className={`
                         min-h-[64px] p-1.5 border-b border-r border-border/20 text-left flex flex-col
-                        transition-colors hover:bg-white/[0.03]
+                        transition-colors hover:bg-muted/20
                         ${!day.inMonth ? "opacity-30" : ""}
                         ${isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/30" : ""}
                       `}

@@ -485,7 +485,7 @@ export default function AIProductRecommenderPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm">{rule.name}</span>
                     <Badge className={`text-xs ${tc.color}`}>{tc.label}</Badge>
-                    {!rule.active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactiva</Badge>}
+                    {!rule.active && <Badge className="text-xs bg-muted/40 text-muted-foreground">Inactiva</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {rule.trigger_product

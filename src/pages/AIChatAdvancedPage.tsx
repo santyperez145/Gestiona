@@ -57,14 +57,14 @@ const MODELS = [
 ];
 
 const PROMPT_CATEGORIES: Record<string, { label: string; color: string }> = {
-  sales:      { label: "Ventas",      color: "bg-green-100 text-green-700" },
-  inventory:  { label: "Inventario",  color: "bg-blue-100 text-blue-700" },
-  finance:    { label: "Finanzas",    color: "bg-yellow-100 text-yellow-700" },
-  marketing:  { label: "Marketing",  color: "bg-pink-100 text-pink-700" },
-  hr:         { label: "RRHH",        color: "bg-purple-100 text-purple-700" },
-  general:    { label: "General",    color: "bg-gray-100 text-gray-600" },
-  analysis:   { label: "Análisis",   color: "bg-indigo-100 text-indigo-700" },
-  templates:  { label: "Templates",  color: "bg-orange-100 text-orange-700" },
+  sales:      { label: "Ventas",      color: "bg-green-500/15 text-green-400" },
+  inventory:  { label: "Inventario",  color: "bg-blue-500/15 text-blue-400" },
+  finance:    { label: "Finanzas",    color: "bg-yellow-500/15 text-yellow-400" },
+  marketing:  { label: "Marketing",  color: "bg-pink-500/15 text-pink-400" },
+  hr:         { label: "RRHH",        color: "bg-purple-500/15 text-purple-400" },
+  general:    { label: "General",    color: "bg-muted/40 text-muted-foreground" },
+  analysis:   { label: "Análisis",   color: "bg-indigo-500/15 text-indigo-400" },
+  templates:  { label: "Templates",  color: "bg-orange-500/15 text-orange-400" },
 };
 
 const STARTER_PROMPTS = [
