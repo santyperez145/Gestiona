@@ -1,4 +1,3 @@
-npm warn exec The following package was not found and will be installed: supabase@2.98.2
 export type Json =
   | string
   | number

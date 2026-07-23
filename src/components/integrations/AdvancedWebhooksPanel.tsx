@@ -1,20 +1,23 @@
-﻿import { useState, useEffect, useMemo } from "react";
+/**
+ * AdvancedWebhooksPanel — multi-event outbound webhooks with delivery log.
+ *
+ * Ported from the former standalone WebhooksPage (`/webhooks`, now redirected
+ * to `/integraciones?tab=webhooks`). Uses the `webhook_configs` table — a
+ * richer, event-catalog-driven system than the single simple webhook stored
+ * on `settings` (also available on this page, in "Webhook simple").
+ */
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import { toast } from "sonner";
 import {
   Webhook, Plus, X, Save, Trash2, Edit2, CheckCircle, XCircle,
-  RefreshCw, Play, ChevronDown, ChevronUp, Copy, Eye, EyeOff,
-  Zap, AlertTriangle, Clock, Link, Shield, BarChart3, Info, Loader2
+  RefreshCw, Play, ChevronDown, ChevronUp, Shield, BarChart3, Info, Loader2, Link, Clock,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -55,7 +58,6 @@ const EVENTS = [
 
 const ALL_EVENTS = EVENTS.flatMap(g => g.events);
 
-// ── Sample payloads ──────────────────────────────────────────────────────────
 const SAMPLE_PAYLOADS: Record<string, object> = {
   'sale.created': {
     event: 'sale.created', timestamp: new Date().toISOString(),
@@ -79,7 +81,6 @@ const SAMPLE_PAYLOADS: Record<string, object> = {
   },
 };
 
-// ── Types ────────────────────────────────────────────────────────────────────
 interface WebhookConfig {
   id: string;
   name: string;
@@ -114,9 +115,7 @@ const emptyForm = () => ({
   retry_on_fail: true, max_retries: '3', timeout_seconds: '10',
 });
 
-// ── Component ────────────────────────────────────────────────────────────────
-export default function WebhooksPage() {
-  usePageTitle("Webhooks Salientes");
+export default function AdvancedWebhooksPanel() {
   const { activeOrg } = useOrg();
   const { isAdmin } = useUserRole();
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
@@ -129,7 +128,6 @@ export default function WebhooksPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [testEvent, setTestEvent] = useState('sale.created');
-  const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     if (!activeOrg?.id) return;
@@ -227,7 +225,6 @@ export default function WebhooksPage() {
     toast.success(w.active ? "Webhook desactivado" : "Webhook activado");
   };
 
-  // Test webhook by sending sample payload via fetch
   const testWebhook = async (webhook: WebhookConfig) => {
     setTesting(webhook.id);
     const payload = SAMPLE_PAYLOADS[testEvent] || { event: testEvent, timestamp: new Date().toISOString(), data: {} };
@@ -244,7 +241,6 @@ export default function WebhooksPage() {
         signal: AbortSignal.timeout(webhook.timeout_seconds * 1000),
       });
       const ms = Date.now() - start;
-      // Log delivery
       await supabase.from("webhook_deliveries").insert({
         webhook_id: webhook.id,
         org_id: activeOrg!.id,
@@ -304,34 +300,30 @@ export default function WebhooksPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <PageHeader
-        icon={Webhook}
-        title="Webhooks Salientes"
-        description="Conectá con Zapier, Make, n8n o cualquier HTTP endpoint"
-        actions={
-          <>
-            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="font-semibold flex items-center gap-2"><Webhook className="w-4 h-4 text-primary" />Webhooks por evento</h3>
+          <p className="text-xs text-muted-foreground">Conectá con Zapier, Make, n8n o cualquier HTTP endpoint por tipo de evento</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          {isAdmin && (
+            <Button size="sm" className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
+              <Plus className="w-4 h-4" /> Nuevo webhook
             </Button>
-            {isAdmin && (
-              <Button className="gradient-gold text-primary-foreground gap-2" onClick={openCreate}>
-                <Plus className="w-4 h-4" /> Nuevo webhook
-              </Button>
-            )}
-          </>
-        }
-      />
+          )}
+        </div>
+      </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
         <KPICard label="Activos"          value={kpis.active}                      icon={Webhook}   color="purple" />
         <KPICard label="Entregas totales" value={kpis.totalDeliveries}             icon={BarChart3} color="blue" />
         <KPICard label="Tasa de éxito"    value={`${kpis.successRate}%`}           icon={CheckCircle} color={kpis.successRate >= 95 ? "success" : kpis.successRate >= 80 ? "warning" : "destructive"} />
       </div>
 
-      {/* Info */}
       <div className="flex items-start gap-3 p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/15 text-sm">
         <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
         <p className="text-muted-foreground">
@@ -341,7 +333,6 @@ export default function WebhooksPage() {
         </p>
       </div>
 
-      {/* Form */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-card border border-border/60 rounded-xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -359,10 +350,9 @@ export default function WebhooksPage() {
                 <Input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} className="bg-muted font-mono text-xs" placeholder="https://hooks.zapier.com/hooks/catch/..." />
               </div>
 
-              {/* Event selector */}
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block">Eventos a escuchar *</label>
-                <div className="space-y-3 pb-12">
+                <div className="space-y-3">
                   {EVENTS.map(group => (
                     <div key={group.group}>
                       <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide mb-1">{group.group}</p>
@@ -390,7 +380,6 @@ export default function WebhooksPage() {
                 )}
               </div>
 
-              {/* Security */}
               <div className="space-y-2 border-t border-border/50 pt-3">
                 <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" />Seguridad (opcional)</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -405,7 +394,6 @@ export default function WebhooksPage() {
                 </div>
               </div>
 
-              {/* Config */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Timeout (seg)</label>
@@ -434,19 +422,18 @@ export default function WebhooksPage() {
         </div>
       )}
 
-      {/* Webhook list */}
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        <div className="flex justify-center py-10">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       ) : webhooks.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Zap className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+          <Webhook className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p>No hay webhooks configurados.</p>
           <p className="text-sm mt-1">Conectá con Zapier, Make o n8n para automatizar tu negocio.</p>
         </div>
       ) : (
-        <div className="space-y-3 pb-12">
+        <div className="space-y-3">
           {webhooks.map(webhook => {
             const isExpanded = expandedId === webhook.id;
             const successRate = webhook.total_deliveries > 0
@@ -455,7 +442,6 @@ export default function WebhooksPage() {
             return (
               <div key={webhook.id} className={`bg-card border rounded-xl overflow-hidden transition-all ${webhook.active ? 'border-border' : 'border-border/40 opacity-60'}`}>
                 <div className="p-4 flex items-center gap-3">
-                  {/* Status dot */}
                   <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${webhook.active ? 'bg-emerald-400 shadow-[0_0_8px_hsl(152_69%_60%/0.6)]' : 'bg-slate-500'}`} />
 
                   <button className="flex-1 text-left" onClick={() => { setExpandedId(isExpanded ? null : webhook.id); if (!isExpanded) loadDeliveries(webhook.id); }}>
@@ -477,7 +463,6 @@ export default function WebhooksPage() {
                     </div>
                   </button>
 
-                  {/* Test */}
                   <div className="flex items-center gap-1 shrink-0">
                     <select
                       value={testEvent}
@@ -492,7 +477,7 @@ export default function WebhooksPage() {
                       Test
                     </Button>
                     <button onClick={() => toggleActive(webhook)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${webhook.active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/50'}`}>
-                      <Zap className="w-3.5 h-3.5" />
+                      <Webhook className="w-3.5 h-3.5" />
                     </button>
                     {isAdmin && (
                       <>
@@ -512,7 +497,6 @@ export default function WebhooksPage() {
 
                 {isExpanded && (
                   <div className="border-t border-border bg-muted/20 p-4 space-y-3">
-                    {/* Events */}
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Eventos suscritos</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -527,13 +511,12 @@ export default function WebhooksPage() {
                       </div>
                     </div>
 
-                    {/* Delivery log */}
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Log de entregas (últimas 20)</p>
                       {(deliveries[webhook.id] ?? []).length === 0 ? (
                         <p className="text-xs text-muted-foreground/50 italic">Sin entregas registradas. Usá el botón Test para enviar un payload de prueba.</p>
                       ) : (
-                        <div className="space-y-1 pb-12">
+                        <div className="space-y-1">
                           {(deliveries[webhook.id] ?? []).map(d => (
                             <div key={d.id} className="flex items-center gap-3 text-xs bg-card rounded-lg px-3 py-2">
                               {statusIcon(d.status)}

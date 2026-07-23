@@ -47,6 +47,8 @@ import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceOCRModal";
+import { ScanLine } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,9 +135,10 @@ interface POFormProps {
   orgId: string;
   onClose: () => void;
   onSaved: () => void;
+  prefill?: OCRPrefillData | null;
 }
 
-function POForm({ open, order, suppliers, products, orgId, onClose, onSaved }: POFormProps) {
+function POForm({ open, order, suppliers, products, orgId, onClose, onSaved, prefill }: POFormProps) {
   const [loading, setLoading] = useState(false);
   const [supplierId, setSupplierId] = useState("none");
   const [supplierName, setSupplierName] = useState("");
@@ -163,12 +166,20 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved }: P
         quantity_ordered: i.quantity_ordered, quantity_received: i.quantity_received,
         unit_cost: i.unit_cost, tax_rate: i.tax_rate,
       })));
+    } else if (prefill) {
+      setSupplierId("none"); setSupplierName(prefill.supplierName ?? ""); setSupplierEmail(""); setCurrency("ARS");
+      setNotes(""); setInternalNotes(""); setExpectedDate(""); setPaymentTerms("30_days");
+      setItems(prefill.items.map(i => ({
+        product_id: null, product_name: i.product_name, sku: i.sku,
+        quantity_ordered: i.quantity_ordered, quantity_received: 0,
+        unit_cost: i.unit_cost, tax_rate: i.tax_rate,
+      })));
     } else {
       setSupplierId("none"); setSupplierName(""); setSupplierEmail(""); setCurrency("ARS");
       setNotes(""); setInternalNotes(""); setExpectedDate(""); setPaymentTerms("30_days");
       setItems([]);
     }
-  }, [order, open]);
+  }, [order, open, prefill]);
 
   const handleSupplierChange = (id: string) => {
     setSupplierId(id);
@@ -522,6 +533,8 @@ export default function PurchaseOrdersPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+  const [ocrModalOpen, setOcrModalOpen] = useState(false);
+  const [ocrPrefill, setOcrPrefill] = useState<OCRPrefillData | null>(null);
 
   const loadAll = async () => {
     if (!orgId) return;
@@ -590,7 +603,10 @@ export default function PurchaseOrdersPage() {
             <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
             </Button>
-            <Button size="sm" onClick={() => { setEditingOrder(null); setFormOpen(true); }}>
+            <Button variant="outline" size="sm" onClick={() => setOcrModalOpen(true)}>
+              <ScanLine className="w-4 h-4 mr-1.5" /> Escanear factura
+            </Button>
+            <Button size="sm" onClick={() => { setEditingOrder(null); setOcrPrefill(null); setFormOpen(true); }}>
               <Plus className="w-4 h-4 mr-1.5" /> Nueva OC
             </Button>
           </div>
@@ -647,8 +663,15 @@ export default function PurchaseOrdersPage() {
         suppliers={suppliers}
         products={products}
         orgId={orgId}
-        onClose={() => { setFormOpen(false); setEditingOrder(null); }}
+        onClose={() => { setFormOpen(false); setEditingOrder(null); setOcrPrefill(null); }}
         onSaved={loadAll}
+        prefill={ocrPrefill}
+      />
+
+      <InvoiceOCRModal
+        open={ocrModalOpen}
+        onOpenChange={setOcrModalOpen}
+        onUseData={data => { setEditingOrder(null); setOcrPrefill(data); setFormOpen(true); }}
       />
     </div>
   );

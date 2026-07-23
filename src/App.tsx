@@ -84,7 +84,6 @@ const AILeadScoringPage        = lazy(() => import("@/pages/AILeadScoringPage"))
 const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
 const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
 const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
-const WebhooksPage             = lazy(() => import("@/pages/WebhooksPage"));
 const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
 const AIProductRecommenderPage = lazy(() => import("@/pages/AIProductRecommenderPage"));
 const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
@@ -102,8 +101,6 @@ const PurchaseRequestsPage     = lazy(() => import("@/pages/PurchaseRequestsPage
 const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
 const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
 const LoyaltyAdvancedPage      = lazy(() => import("@/pages/LoyaltyAdvancedPage"));
-const AuditLogPage             = lazy(() => import("@/pages/AuditLogPage"));
-const APIKeysPage              = lazy(() => import("@/pages/APIKeysPage"));
 const ReturnsPortalPage        = lazy(() => import("@/pages/ReturnsPortalPage"));
 const SmartInventoryPage       = lazy(() => import("@/pages/SmartInventoryPage"));
 const AIChatAdvancedPage       = lazy(() => import("@/pages/AIChatAdvancedPage"));
@@ -112,7 +109,6 @@ const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
 const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
 const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
 const PricingEnginePage        = lazy(() => import("@/pages/PricingEnginePage"));
-const DocumentOCRPage          = lazy(() => import("@/pages/DocumentOCRPage"));
 const PredictiveAnalyticsPage  = lazy(() => import("@/pages/PredictiveAnalyticsPage"));
 const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
 const FinancialScenariosPage   = lazy(() => import("@/pages/FinancialScenariosPage"));
@@ -269,7 +265,7 @@ function ProtectedRoutes() {
               <Route path="/bundles" element={<ProductBundlesPage />} />
               <Route path="/transferencias" element={<InventoryTransfersPage />} />
               <Route path="/promociones" element={<PromotionsPage />} />
-              <Route path="/webhooks" element={<WebhooksPage />} />
+              <Route path="/webhooks" element={<Navigate to="/integraciones?tab=webhooks" replace />} />
               <Route path="/suscripciones" element={<SubscriptionsPage />} />
               <Route path="/recomendaciones-ia" element={<AIProductRecommenderPage />} />
               <Route path="/listas-precios" element={<PriceListsPage />} />
@@ -288,8 +284,8 @@ function ProtectedRoutes() {
               <Route path="/cash-flow" element={<CashFlowPage />} />
               <Route path="/kpi-dashboard" element={<KPIDashboardPage />} />
               <Route path="/fidelidad-avanzada" element={<Navigate to="/fidelidad" replace />} />
-              <Route path="/auditoria" element={<AuditLogPage />} />
-              <Route path="/api-keys" element={<APIKeysPage />} />
+              <Route path="/auditoria" element={<Navigate to="/admin?tab=audit" replace />} />
+              <Route path="/api-keys" element={<Navigate to="/integraciones?tab=apikeys" replace />} />
               <Route path="/devoluciones-rma" element={<ReturnsPortalPage />} />
               <Route path="/inventario-inteligente" element={<SmartInventoryPage />} />
               <Route path="/chat-ia-avanzado" element={<Navigate to="/chat-ia" replace />} />
@@ -298,7 +294,6 @@ function ProtectedRoutes() {
               <Route path="/tienda-online" element={<EcommerceStorePage />} />
               <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
               <Route path="/motor-precios" element={<PricingEnginePage />} />
-              <Route path="/ocr-facturas" element={<DocumentOCRPage />} />
               <Route path="/analytics-ia" element={<PredictiveAnalyticsPage />} />
               <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
               <Route path="/escenarios-financieros" element={<FinancialScenariosPage />} />

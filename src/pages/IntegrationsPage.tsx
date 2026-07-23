@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   ShoppingBag, RefreshCw, Unplug, CheckCircle2, AlertCircle,
@@ -18,9 +19,12 @@ import {
   Eye, EyeOff, Save, Webhook, KeyRound, Copy, RotateCcw,
   History, XCircle, Clock, Activity, WifiOff, ShieldCheck,
   AlertTriangle, Send, MessageCircle, QrCode as QrCodeIcon,
+  Code2,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import AdvancedApiKeysPanel from "@/components/integrations/AdvancedApiKeysPanel";
+import AdvancedWebhooksPanel from "@/components/integrations/AdvancedWebhooksPanel";
 
 // ── Integration health types ──────────────────────────────────────────────────
 type IntegrationStatus = "ok" | "error" | "warning" | "unknown";
@@ -66,9 +70,10 @@ function fmtDate(d: string | null) {
 }
 
 export default function IntegrationsPage() {
-  usePageTitle("Integraciones");
+  usePageTitle("Integraciones & API");
   const { activeOrg } = useOrg();
   const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "conexiones";
   const [conn, setConn] = useState<TiendanubeConnection | null>(null);
   const [loadingConn, setLoadingConn] = useState(true);
   const [syncing, setSyncing] = useState<"products" | "orders" | "all" | null>(null);
@@ -518,8 +523,8 @@ export default function IntegrationsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Link2}
-        title="Integraciones"
-        description="Servicios que vienen con tu plan y conexiones con tus propias cuentas externas."
+        title="Integraciones & API"
+        description="Conexiones con servicios externos, claves API y webhooks salientes."
         actions={
           <Button variant="outline" size="sm" className="text-xs" onClick={loadHealth} disabled={loadingHealth}>
             <Activity className={`w-3.5 h-3.5 mr-1.5 ${loadingHealth ? "animate-pulse" : ""}`} />
@@ -528,6 +533,22 @@ export default function IntegrationsPage() {
         }
       />
 
+      <Tabs
+        defaultValue={initialTab}
+        onValueChange={(v) => {
+          const next = new URLSearchParams(searchParams);
+          if (v === "conexiones") next.delete("tab"); else next.set("tab", v);
+          setSearchParams(next, { replace: true });
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="conexiones" className="gap-1.5"><Link2 className="w-3.5 h-3.5" />Conexiones</TabsTrigger>
+          <TabsTrigger value="apikeys" className="gap-1.5"><KeyRound className="w-3.5 h-3.5" />API Keys</TabsTrigger>
+          <TabsTrigger value="webhooks" className="gap-1.5"><Webhook className="w-3.5 h-3.5" />Webhooks</TabsTrigger>
+        </TabsList>
+
+        {/* ── CONEXIONES TAB ───────────────────────────────────────── */}
+        <TabsContent value="conexiones" className="space-y-6 mt-4">
       {/* ── Platform services (bundled, no config needed) ──────────── */}
       <PlatformServicesPanel />
 
@@ -1014,7 +1035,10 @@ export default function IntegrationsPage() {
 
       {/* Twilio WhatsApp */}
       <TwilioSection orgId={activeOrg?.id} />
+        </TabsContent>
 
+        {/* ── API KEYS TAB ─────────────────────────────────────────── */}
+        <TabsContent value="apikeys" className="space-y-6 mt-4">
       {/* API REST pública */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center gap-3">
@@ -1068,6 +1092,14 @@ export default function IntegrationsPage() {
         <ApiKeysManager />
       </div>
 
+      {/* Advanced scoped API keys */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <AdvancedApiKeysPanel />
+      </div>
+        </TabsContent>
+
+        {/* ── WEBHOOKS TAB ─────────────────────────────────────────── */}
+        <TabsContent value="webhooks" className="space-y-6 mt-4">
       {/* Outbound Webhooks */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center gap-3">
@@ -1261,6 +1293,13 @@ export default function IntegrationsPage() {
           )}
         </div>
       </div>
+
+      {/* Advanced per-event webhooks */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <AdvancedWebhooksPanel />
+      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
