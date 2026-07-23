@@ -68,109 +68,61 @@ const KardexPage             = lazy(() => import("@/pages/KardexPage"));
 const EmailCampaignsPage     = lazy(() => import("@/pages/EmailCampaignsPage"));
 const WhatsAppCampaignsPage  = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
 const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
-const TeamChatPage           = lazy(() => import("@/pages/TeamChatPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
 const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
-const WinLossAnalyticsPage   = lazy(() => import("@/pages/WinLossAnalyticsPage"));
-const TerritoriesPage        = lazy(() => import("@/pages/TerritoriesPage"));
 const LoyaltyPage              = lazy(() => import("@/pages/LoyaltyPage"));
 const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
 const AlertsPage               = lazy(() => import("@/pages/AlertsPage"));
 const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
 const ActivityFeedPage         = lazy(() => import("@/pages/ActivityFeedPage"));
-const SellerGoalsPage          = lazy(() => import("@/pages/SellerGoalsPage"));
 const InventoryAgingPage       = lazy(() => import("@/pages/InventoryAgingPage"));
 const FollowUpPage             = lazy(() => import("@/pages/FollowUpPage"));
 const PricingIntelligencePage  = lazy(() => import("@/pages/PricingIntelligencePage"));
-const TeamPerformancePage      = lazy(() => import("@/pages/TeamPerformancePage"));
 const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
 const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
 const SalesForecastPage        = lazy(() => import("@/pages/SalesForecastPage"));
-const SupportPage              = lazy(() => import("@/pages/SupportPage"));
 const DripSequencesPage        = lazy(() => import("@/pages/DripSequencesPage"));
-const CustomFieldsPage         = lazy(() => import("@/pages/CustomFieldsPage"));
-const KnowledgeBasePage        = lazy(() => import("@/pages/KnowledgeBasePage"));
-const NPSSurveysPage           = lazy(() => import("@/pages/NPSSurveysPage"));
 const AILeadScoringPage        = lazy(() => import("@/pages/AILeadScoringPage"));
-const ChurnPredictionPage      = lazy(() => import("@/pages/ChurnPredictionPage"));
-const ServiceOrdersPage        = lazy(() => import("@/pages/ServiceOrdersPage"));
 const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
-const ContractsPage            = lazy(() => import("@/pages/ContractsPage"));
 const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
 const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
 const WebhooksPage             = lazy(() => import("@/pages/WebhooksPage"));
 const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
 const AIProductRecommenderPage = lazy(() => import("@/pages/AIProductRecommenderPage"));
-const SLARulesPage             = lazy(() => import("@/pages/SLARulesPage"));
 const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
 const AffiliateProgramPage     = lazy(() => import("@/pages/AffiliateProgramPage"));
 const InventoryForecastPage    = lazy(() => import("@/pages/InventoryForecastPage"));
 const CustomerSegmentsPage     = lazy(() => import("@/pages/CustomerSegmentsPage"));
 const PurchaseOrdersPage       = lazy(() => import("@/pages/PurchaseOrdersPage"));
-const TimesheetsPage           = lazy(() => import("@/pages/TimesheetsPage"));
-const QRGeneratorPage          = lazy(() => import("@/pages/QRGeneratorPage"));
-const EventTicketingPage       = lazy(() => import("@/pages/EventTicketingPage"));
-const AppointmentBookingPage   = lazy(() => import("@/pages/AppointmentBookingPage"));
-const DigitalProductsPage      = lazy(() => import("@/pages/DigitalProductsPage"));
 const DeliveryTrackingPage     = lazy(() => import("@/pages/DeliveryTrackingPage"));
 const SupplierQuotesPage       = lazy(() => import("@/pages/SupplierQuotesPage"));
-const GamificationPage         = lazy(() => import("@/pages/GamificationPage"));
-const WarrantyClaimsPage       = lazy(() => import("@/pages/WarrantyClaimsPage"));
-const FormsBuilderPage         = lazy(() => import("@/pages/FormsBuilderPage"));
-const NotificationRulesPage    = lazy(() => import("@/pages/NotificationRulesPage"));
 const CurrencyTrackerPage      = lazy(() => import("@/pages/CurrencyTrackerPage"));
-const BudgetPlannerPage        = lazy(() => import("@/pages/BudgetPlannerPage"));
 const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"));
 const BatchLotPage             = lazy(() => import("@/pages/BatchLotPage"));
-const RecipesPage              = lazy(() => import("@/pages/RecipesPage"));
-const RentalPage               = lazy(() => import("@/pages/RentalPage"));
-const MarketplaceListingsPage  = lazy(() => import("@/pages/MarketplaceListingsPage"));
-const EmployeePayrollPage      = lazy(() => import("@/pages/EmployeePayrollPage"));
-const ProjectManagementPage    = lazy(() => import("@/pages/ProjectManagementPage"));
-const GiftCardsPage            = lazy(() => import("@/pages/GiftCardsPage"));
-const DropshippingPage         = lazy(() => import("@/pages/DropshippingPage"));
 const TaxManagementPage        = lazy(() => import("@/pages/TaxManagementPage"));
-const FleetPage                = lazy(() => import("@/pages/FleetPage"));
-const WasteControlPage         = lazy(() => import("@/pages/WasteControlPage"));
-const FixedAssetsPage          = lazy(() => import("@/pages/FixedAssetsPage"));
-const CustomerPortalPage       = lazy(() => import("@/pages/CustomerPortalPage"));
 const MultiWarehousePage       = lazy(() => import("@/pages/MultiWarehousePage"));
 const PurchaseRequestsPage     = lazy(() => import("@/pages/PurchaseRequestsPage"));
-const DocumentManagementPage   = lazy(() => import("@/pages/DocumentManagementPage"));
 const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
 const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
 const LoyaltyAdvancedPage      = lazy(() => import("@/pages/LoyaltyAdvancedPage"));
-const CompetitorPricingPage    = lazy(() => import("@/pages/CompetitorPricingPage"));
-const HRPortalPage             = lazy(() => import("@/pages/HRPortalPage"));
 const AuditLogPage             = lazy(() => import("@/pages/AuditLogPage"));
 const APIKeysPage              = lazy(() => import("@/pages/APIKeysPage"));
 const ReturnsPortalPage        = lazy(() => import("@/pages/ReturnsPortalPage"));
 const SmartInventoryPage       = lazy(() => import("@/pages/SmartInventoryPage"));
 const AIChatAdvancedPage       = lazy(() => import("@/pages/AIChatAdvancedPage"));
 const AFIPPage                 = lazy(() => import("@/pages/AFIPPage"));
-const SupplyChainPage          = lazy(() => import("@/pages/SupplyChainPage"));
 const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
 const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
 const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
-const CustomerJourneyPage      = lazy(() => import("@/pages/CustomerJourneyPage"));
 const PricingEnginePage        = lazy(() => import("@/pages/PricingEnginePage"));
 const DocumentOCRPage          = lazy(() => import("@/pages/DocumentOCRPage"));
 const PredictiveAnalyticsPage  = lazy(() => import("@/pages/PredictiveAnalyticsPage"));
 const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
-const LogisticsPage            = lazy(() => import("@/pages/LogisticsPage"));
 const FinancialScenariosPage   = lazy(() => import("@/pages/FinancialScenariosPage"));
 const FranchisePage            = lazy(() => import("@/pages/FranchisePage"));
-const CompetitorIntelligencePage = lazy(() => import("@/pages/CompetitorIntelligencePage"));
-const SalesGamificationPage    = lazy(() => import("@/pages/SalesGamificationPage"));
 const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
-const ELearningPage            = lazy(() => import("@/pages/ELearningPage"));
 const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
-const VendorPortalPage         = lazy(() => import("@/pages/VendorPortalPage"));
-const RevenueRecognitionPage   = lazy(() => import("@/pages/RevenueRecognitionPage"));
-const CarbonFootprintPage      = lazy(() => import("@/pages/CarbonFootprintPage"));
-const DynamicPricingPage       = lazy(() => import("@/pages/DynamicPricingPage"));
-const ProductLifecyclePage     = lazy(() => import("@/pages/ProductLifecyclePage"));
 const PLDashboardPage          = lazy(() => import("@/pages/PLDashboardPage"));
 const NotFound                 = lazy(() => import("@/pages/NotFound"));
 
@@ -303,109 +255,61 @@ function ProtectedRoutes() {
               <Route path="/email-campaigns" element={<EmailCampaignsPage />} />
               <Route path="/whatsapp-campaigns" element={<WhatsAppCampaignsPage />} />
               <Route path="/links-de-pago" element={<PaymentLinksPage />} />
-              <Route path="/chat-equipo" element={<TeamChatPage />} />
               <Route path="/banco" element={<BankReconciliationPage />} />
               <Route path="/movimientos" element={<FinancialMovementsPage />} />
               <Route path="/pipeline" element={<SalesPipelinePage />} />
-              <Route path="/win-loss" element={<WinLossAnalyticsPage />} />
-              <Route path="/territorios" element={<TerritoriesPage />} />
               <Route path="/fidelidad" element={<LoyaltyPage />} />
               <Route path="/alertas" element={<AlertsPage />} />
               <Route path="/actividad" element={<ActivityFeedPage />} />
-              <Route path="/metas" element={<SellerGoalsPage />} />
               <Route path="/inventario-aging" element={<InventoryAgingPage />} />
               <Route path="/seguimiento" element={<FollowUpPage />} />
               <Route path="/precios-inteligentes" element={<PricingIntelligencePage />} />
-              <Route path="/rendimiento-equipo" element={<TeamPerformancePage />} />
               <Route path="/cupones" element={<CouponsPage />} />
               <Route path="/calendario" element={<CalendarPage />} />
               <Route path="/rfm" element={<CustomerRFMPage />} />
               <Route path="/forecast" element={<SalesForecastPage />} />
-              <Route path="/soporte" element={<SupportPage />} />
               <Route path="/secuencias-email" element={<DripSequencesPage />} />
-              <Route path="/campos-personalizados" element={<CustomFieldsPage />} />
-              <Route path="/base-conocimiento" element={<KnowledgeBasePage />} />
-              <Route path="/encuestas-nps" element={<NPSSurveysPage />} />
               <Route path="/lead-scoring" element={<AILeadScoringPage />} />
-              <Route path="/churn" element={<ChurnPredictionPage />} />
-              <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
               <Route path="/bundles" element={<ProductBundlesPage />} />
-              <Route path="/contratos" element={<ContractsPage />} />
               <Route path="/transferencias" element={<InventoryTransfersPage />} />
               <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/webhooks" element={<WebhooksPage />} />
               <Route path="/suscripciones" element={<SubscriptionsPage />} />
               <Route path="/recomendaciones-ia" element={<AIProductRecommenderPage />} />
-              <Route path="/sla" element={<SLARulesPage />} />
               <Route path="/listas-precios" element={<PriceListsPage />} />
               <Route path="/afiliados" element={<AffiliateProgramPage />} />
               <Route path="/forecast-inventario" element={<InventoryForecastPage />} />
               <Route path="/segmentos" element={<CustomerSegmentsPage />} />
               <Route path="/ordenes-compra" element={<PurchaseOrdersPage />} />
-              <Route path="/fichajes" element={<TimesheetsPage />} />
-              <Route path="/qr-generator" element={<QRGeneratorPage />} />
-              <Route path="/eventos" element={<EventTicketingPage />} />
-              <Route path="/turnos" element={<AppointmentBookingPage />} />
-              <Route path="/productos-digitales" element={<DigitalProductsPage />} />
               <Route path="/envios" element={<DeliveryTrackingPage />} />
               <Route path="/cotizaciones-proveedor" element={<SupplierQuotesPage />} />
-              <Route path="/gamificacion" element={<GamificationPage />} />
-              <Route path="/garantias" element={<WarrantyClaimsPage />} />
-              <Route path="/formularios" element={<FormsBuilderPage />} />
-              <Route path="/reglas-notificacion" element={<NotificationRulesPage />} />
               <Route path="/tipo-cambio" element={<CurrencyTrackerPage />} />
-              <Route path="/presupuesto" element={<BudgetPlannerPage />} />
               <Route path="/planner-social" element={<SocialPlannerPage />} />
               <Route path="/lotes" element={<BatchLotPage />} />
-              <Route path="/recetas" element={<RecipesPage />} />
-              <Route path="/alquileres" element={<RentalPage />} />
-              <Route path="/marketplace" element={<MarketplaceListingsPage />} />
-              <Route path="/sueldos" element={<EmployeePayrollPage />} />
-              <Route path="/proyectos" element={<ProjectManagementPage />} />
-              <Route path="/tarjetas-regalo" element={<GiftCardsPage />} />
-              <Route path="/dropshipping" element={<DropshippingPage />} />
               <Route path="/impuestos" element={<TaxManagementPage />} />
-              <Route path="/flota" element={<FleetPage />} />
-              <Route path="/mermas" element={<WasteControlPage />} />
-              <Route path="/activos-fijos" element={<FixedAssetsPage />} />
-              <Route path="/portal-clientes" element={<CustomerPortalPage />} />
               <Route path="/multi-deposito" element={<MultiWarehousePage />} />
               <Route path="/solicitudes-compra" element={<PurchaseRequestsPage />} />
-              <Route path="/documentos" element={<DocumentManagementPage />} />
               <Route path="/cash-flow" element={<CashFlowPage />} />
               <Route path="/kpi-dashboard" element={<KPIDashboardPage />} />
               <Route path="/fidelidad-avanzada" element={<LoyaltyAdvancedPage />} />
-              <Route path="/precios-competencia" element={<CompetitorPricingPage />} />
-              <Route path="/rrhh" element={<HRPortalPage />} />
               <Route path="/auditoria" element={<AuditLogPage />} />
               <Route path="/api-keys" element={<APIKeysPage />} />
               <Route path="/devoluciones-rma" element={<ReturnsPortalPage />} />
               <Route path="/inventario-inteligente" element={<SmartInventoryPage />} />
               <Route path="/chat-ia-avanzado" element={<AIChatAdvancedPage />} />
               <Route path="/afip" element={<AFIPPage />} />
-              <Route path="/supply-chain" element={<SupplyChainPage />} />
               <Route path="/bi-reportes" element={<BIReportsPage />} />
               <Route path="/tienda-online" element={<EcommerceStorePage />} />
               <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
-              <Route path="/customer-journey" element={<CustomerJourneyPage />} />
               <Route path="/motor-precios" element={<PricingEnginePage />} />
               <Route path="/ocr-facturas" element={<DocumentOCRPage />} />
               <Route path="/analytics-ia" element={<PredictiveAnalyticsPage />} />
               <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
-              <Route path="/logistica" element={<LogisticsPage />} />
               <Route path="/escenarios-financieros" element={<FinancialScenariosPage />} />
               <Route path="/franquicias" element={<FranchisePage />} />
-              <Route path="/inteligencia-competitiva" element={<CompetitorIntelligencePage />} />
-              <Route path="/gamificacion-ventas" element={<SalesGamificationPage />} />
               <Route path="/valuacion-inventario" element={<InventoryValuationPage />} />
-              <Route path="/capacitacion" element={<ELearningPage />} />
               <Route path="/alertas-inteligentes" element={<SmartAlertsPage />} />
-              <Route path="/portal-proveedores" element={<VendorPortalPage />} />
-              <Route path="/reconocimiento-ingresos" element={<RevenueRecognitionPage />} />
               <Route path="/pl-dashboard" element={<PLDashboardPage />} />
-              <Route path="/huella-carbono" element={<CarbonFootprintPage />} />
-              <Route path="/precios-dinamicos" element={<DynamicPricingPage />} />
-              <Route path="/ciclo-vida-producto" element={<ProductLifecyclePage />} />
               <Route path="/integraciones" element={<IntegrationsPage />} />
               <Route path="/ajustes" element={<SettingsPage />} />
               <Route path="/admin" element={<AdminPage />} />
