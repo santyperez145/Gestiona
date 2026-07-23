@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Sparkles, Plus, Copy, Heart, Download, Globe, Lock, Search, Tag, ArrowUpRight, BarChart3 } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
-import PageHeader from "@/components/shared/PageHeader";
 import { addMarketingPostDB } from "@/lib/supabaseStore";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 type Template = {
   id: string;
@@ -124,8 +122,7 @@ function TemplateForm({
   );
 }
 
-export default function MarketingTemplatesPage() {
-  usePageTitle("Plantillas de Marketing");
+export default function MarketingTemplatesTab() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -182,16 +179,15 @@ export default function MarketingTemplatesPage() {
 
   return (
     <div className="space-y-5 pb-12">
-      <PageHeader
-        icon={Sparkles}
-        title="Marketplace de Templates"
-        description="Descubrí y compartí templates de marketing con la comunidad"
-        actions={
-          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />Crear template
-          </Button>
-        }
-      />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display text-lg font-bold">Marketplace de Templates</h2>
+          <p className="text-sm text-muted-foreground">Descubrí y compartí templates de marketing con la comunidad</p>
+        </div>
+        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />Crear template
+        </Button>
+      </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

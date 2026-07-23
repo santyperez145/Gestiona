@@ -6,13 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet, ImageIcon, Calendar, Download, RefreshCw, Loader2, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Instagram, Copy, Send, Megaphone, Link2, ChevronDown, ChevronUp, FileSpreadsheet, ImageIcon, Calendar, Download, RefreshCw, Loader2, TrendingUp, CheckCircle2, LayoutTemplate, Package, Zap, Brain } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InstagramStoryGenerator } from "@/components/marketing/InstagramStoryGenerator";
 import OfferRecommenderPanel from "@/components/marketing/OfferRecommenderPanel";
+import MarketingTemplatesTab from "@/components/marketing/MarketingTemplatesTab";
+import CombosBannersTab from "@/components/marketing/CombosBannersTab";
+import BrandKnowledgeTab from "@/components/marketing/BrandKnowledgeTab";
+import AutomationFlowsTab from "@/components/marketing/AutomationFlowsTab";
 import { listPostTypes, listMarketingThemes } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -27,7 +31,7 @@ export default function MarketingPage() {
   const [postTypes, setPostTypes] = useState<any[]>([]);
   const [themes, setThemes] = useState<any[]>([]);
   const [industryCode, setIndustryCode] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'images' | 'calendar'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'images' | 'calendar' | 'templates' | 'combos' | 'automations' | 'brand'>('posts');
 
   const reload = async () => {
     if (!user) return;
@@ -144,24 +148,30 @@ export default function MarketingPage() {
         }
       />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Total publicaciones" value={posts.length} icon={Instagram} color="primary"
-          sub={`${posts.filter(p => p.status === "draft").length} borradores`} />
-        <KPICard label="Programados" value={posts.filter(p => p.status === "scheduled").length} icon={Calendar} color="warning"
-          sub="listos para publicar" />
-        <KPICard label="Publicados" value={posts.filter(p => p.status === "published").length} icon={CheckCircle2} color="success"
-          sub="ya publicados" />
-        <KPICard label="Con IA" value={posts.filter((p: any) => p.ai_generated).length} icon={Sparkles} color="blue"
-          sub="generados con IA" />
-      </div>
+      {/* KPIs (contenido de publicaciones) */}
+      {(activeTab === 'posts' || activeTab === 'images' || activeTab === 'calendar') && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KPICard label="Total publicaciones" value={posts.length} icon={Instagram} color="primary"
+            sub={`${posts.filter(p => p.status === "draft").length} borradores`} />
+          <KPICard label="Programados" value={posts.filter(p => p.status === "scheduled").length} icon={Calendar} color="warning"
+            sub="listos para publicar" />
+          <KPICard label="Publicados" value={posts.filter(p => p.status === "published").length} icon={CheckCircle2} color="success"
+            sub="ya publicados" />
+          <KPICard label="Con IA" value={posts.filter((p: any) => p.ai_generated).length} icon={Sparkles} color="blue"
+            sub="generados con IA" />
+        </div>
+      )}
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border">
+      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border flex-wrap">
         {([
           { id: 'posts', label: 'Publicaciones', icon: Instagram },
           { id: 'images', label: 'Imágenes IA', icon: ImageIcon },
           { id: 'calendar', label: 'Calendario', icon: Calendar },
+          { id: 'templates', label: 'Plantillas', icon: LayoutTemplate },
+          { id: 'combos', label: 'Combos & Banners', icon: Package },
+          { id: 'automations', label: 'Automatizaciones', icon: Zap },
+          { id: 'brand', label: 'Marca IA', icon: Brain },
         ] as const).map(tab => (
           <button
             key={tab.id}
@@ -290,6 +300,18 @@ export default function MarketingPage() {
 
       {/* ── TAB: CALENDARIO ── */}
       {activeTab === 'calendar' && <CampaignCalendar onGeneratePost={(theme) => { setActiveTab('posts'); setOpen(true); }} />}
+
+      {/* ── TAB: PLANTILLAS ── */}
+      {activeTab === 'templates' && <MarketingTemplatesTab />}
+
+      {/* ── TAB: COMBOS & BANNERS ── */}
+      {activeTab === 'combos' && <CombosBannersTab />}
+
+      {/* ── TAB: AUTOMATIZACIONES ── */}
+      {activeTab === 'automations' && <AutomationFlowsTab />}
+
+      {/* ── TAB: MARCA IA ── */}
+      {activeTab === 'brand' && <BrandKnowledgeTab />}
     </div>
   );
 }

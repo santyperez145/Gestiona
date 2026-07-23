@@ -20,11 +20,12 @@ import { toast } from "sonner";
 import {
   Mail, Plus, Send, Users, CheckCircle2, XCircle,
   Clock, Loader2, Eye, Trash2, AlertCircle, MousePointerClick, MailOpen,
-  Copy, FlaskConical, Trophy,
+  Copy, FlaskConical, Trophy, Zap,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import DripSequencesTab from "@/components/marketing/DripSequencesTab";
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
 
@@ -169,6 +170,7 @@ export default function EmailCampaignsPage() {
   const [preview, setPreview] = useState<Campaign | null>(null);
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'drip'>('campaigns');
 
   // Form state
   const [subject, setSubject] = useState("");
@@ -417,12 +419,41 @@ export default function EmailCampaignsPage() {
             : undefined
         }
         actions={
-          <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground gap-1.5">
-            <Plus className="w-4 h-4" /> Nueva campaña
-          </Button>
+          activeTab === 'campaigns' ? (
+            <Button onClick={() => setOpen(true)} className="gradient-gold text-primary-foreground gap-1.5">
+              <Plus className="w-4 h-4" /> Nueva campaña
+            </Button>
+          ) : undefined
         }
       />
 
+      {/* Tab Navigation */}
+      <div className="flex gap-1 bg-muted/40 rounded-[10px] p-1 w-fit border border-border">
+        {([
+          { id: 'campaigns', label: 'Campañas', icon: Mail },
+          { id: 'drip', label: 'Drip Sequences', icon: Zap },
+        ] as const).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-card border border-border shadow-sm text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB: DRIP SEQUENCES ── */}
+      {activeTab === 'drip' && <DripSequencesTab />}
+
+      {/* ── TAB: CAMPAÑAS ── */}
+      {activeTab === 'campaigns' && (
+      <>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Con email" value={customers.filter(c => c.email).length} icon={Users} color="primary"
@@ -582,6 +613,8 @@ export default function EmailCampaignsPage() {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* Create dialog */}

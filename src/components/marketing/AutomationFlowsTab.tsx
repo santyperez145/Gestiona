@@ -1,5 +1,4 @@
-﻿import { useState, useEffect } from "react";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { useState, useEffect } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,11 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Zap, Plus, Trash2, Play, Pause, Edit2,
-  MessageCircle, Bell, Mail, Check, Package,
+  MessageCircle, Bell, Mail, Package,
   ClipboardList, Globe, Users, ShoppingBag, TrendingUp, AlertTriangle,
-  History, RefreshCw, CheckCircle2, XCircle, SkipForward, Kanban,
+  History, RefreshCw, CheckCircle2, XCircle, SkipForward, Kanban, BarChart3,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 // ─────────────────────────────────────────────────────────────
@@ -545,7 +543,7 @@ function actionBadgeClass(a: ActionType): string {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main page
+// Main tab
 // ─────────────────────────────────────────────────────────────
 interface AutomationRun {
   id: string;
@@ -559,8 +557,7 @@ interface AutomationRun {
   ran_at: string;
 }
 
-export default function AutomationFlowsPage() {
-  usePageTitle("Automatizaciones");
+export default function AutomationFlowsTab() {
   const { activeOrg } = useOrg();
   const [flows, setFlows] = useState<FlowRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -643,35 +640,38 @@ export default function AutomationFlowsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Zap}
-        title="Automatizaciones"
-        description="Reglas que se ejecutan automáticamente cada día a las 08:00 según eventos del negocio"
-        badge={{ label: `${activeCount} activa${activeCount !== 1 ? "s" : ""}`, variant: activeCount > 0 ? "success" : "default" }}
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5"
-              disabled={runningFlowId === "__all__"}
-              onClick={async () => {
-                setRunningFlowId("__all__");
-                try {
-                  const { error } = await supabase.functions.invoke("execute-automations", { body: { org_id: activeOrg?.id } });
-                  if (error) throw error;
-                  toast.success("Todos los flujos ejecutados");
-                  setTimeout(() => load(), 1500);
-                } catch { toast.error("Error al ejecutar flujos"); }
-                setRunningFlowId(null);
-              }}>
-              {runningFlowId === "__all__" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-              Ejecutar todos
-            </Button>
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"
-              onClick={() => { setEditingFlow(null); setShowForm(true); }}>
-              <Plus className="w-4 h-4 mr-2" />Nuevo flujo
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display text-lg font-bold flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />Automatizaciones
+            <Badge variant="outline" className={`text-[10px] ${activeCount > 0 ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/5" : "border-border text-muted-foreground"}`}>
+              {activeCount} activa{activeCount !== 1 ? "s" : ""}
+            </Badge>
+          </h2>
+          <p className="text-sm text-muted-foreground">Reglas que se ejecutan automáticamente cada día a las 08:00 según eventos del negocio</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5"
+            disabled={runningFlowId === "__all__"}
+            onClick={async () => {
+              setRunningFlowId("__all__");
+              try {
+                const { error } = await supabase.functions.invoke("execute-automations", { body: { org_id: activeOrg?.id } });
+                if (error) throw error;
+                toast.success("Todos los flujos ejecutados");
+                setTimeout(() => load(), 1500);
+              } catch { toast.error("Error al ejecutar flujos"); }
+              setRunningFlowId(null);
+            }}>
+            {runningFlowId === "__all__" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+            Ejecutar todos
+          </Button>
+          <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold"
+            onClick={() => { setEditingFlow(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-2" />Nuevo flujo
+          </Button>
+        </div>
+      </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

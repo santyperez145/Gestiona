@@ -66,7 +66,6 @@ const allNavItems = [
   { to: "/promociones", label: "Flash Sales / Promo", icon: Zap, roles: ['admin'], section: 'marketing' },
   { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
   { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
-  { to: "/secuencias-email", label: "Drip Sequences", icon: Zap, roles: ['admin'], section: 'marketing' },
   { to: "/whatsapp-campaigns", label: "WhatsApp Masivo", icon: MessageCircle, roles: ['admin'], section: 'marketing' },
   { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
@@ -74,7 +73,6 @@ const allNavItems = [
   { to: "/lead-scoring", label: "AI Lead Scoring", icon: Brain, roles: ['admin'], section: 'ia' },
   { to: "/recomendaciones-ia", label: "AI Recomendador", icon: Sparkles, roles: ['admin'], section: 'ia' },
   { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'ia' },
-  { to: "/automatizaciones", label: "Automatizaciones", icon: Zap, roles: ['admin'], section: 'ia' },
   // ── Sistema ─────────────────────────────────────────────────────────────────
   { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },

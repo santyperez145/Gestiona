@@ -25,17 +25,13 @@ const ReportsPage            = lazy(() => import("@/pages/ReportsPage"));
 const SettingsPage           = lazy(() => import("@/pages/SettingsPage"));
 const MarketingPage          = lazy(() => import("@/pages/MarketingPage"));
 const AIInsightsPage         = lazy(() => import("@/pages/AIInsightsPage"));
-const AutomationFlowsPage    = lazy(() => import("@/pages/AutomationFlowsPage"));
 const LocationsPage          = lazy(() => import("@/pages/LocationsPage"));
 const ReferralsPage          = lazy(() => import("@/pages/ReferralsPage"));
-const MarketingTemplatesPage = lazy(() => import("@/pages/MarketingTemplatesPage"));
 const ExpensesPage           = lazy(() => import("@/pages/ExpensesPage"));
 const CustomersPage          = lazy(() => import("@/pages/CustomersPage"));
 const InfluencerExchangesPage= lazy(() => import("@/pages/InfluencerExchangesPage"));
 const InfluencersPage        = lazy(() => import("@/pages/InfluencersPage"));
 const SettlementsPage        = lazy(() => import("@/pages/SettlementsPage"));
-const BrandKnowledgePage     = lazy(() => import("@/pages/BrandKnowledgePage"));
-const CombosBannersPage      = lazy(() => import("@/pages/CombosBannersPage"));
 const CatalogPage            = lazy(() => import("@/pages/CatalogPage"));
 const TiendanubeExportPage   = lazy(() => import("@/pages/TiendanubeExportPage"));
 const AdminPage              = lazy(() => import("@/pages/AdminPage"));
@@ -75,7 +71,6 @@ const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
 const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
 const SalesForecastPage        = lazy(() => import("@/pages/SalesForecastPage"));
-const DripSequencesPage        = lazy(() => import("@/pages/DripSequencesPage"));
 const AILeadScoringPage        = lazy(() => import("@/pages/AILeadScoringPage"));
 const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
 const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
@@ -211,16 +206,16 @@ function ProtectedRoutes() {
               <Route path="/canjes" element={<InfluencerExchangesPage />} />
               <Route path="/influencers" element={<InfluencersPage />} />
               <Route path="/liquidaciones" element={<SettlementsPage />} />
-              <Route path="/marca-ia" element={<BrandKnowledgePage />} />
-              <Route path="/combos-banners" element={<CombosBannersPage />} />
+              <Route path="/marca-ia" element={<Navigate to="/marketing" replace />} />
+              <Route path="/combos-banners" element={<Navigate to="/marketing" replace />} />
               <Route path="/catalogo" element={<CatalogPage />} />
               <Route path="/tiendanube" element={<TiendanubeExportPage />} />
               <Route path="/ia" element={<AIInsightsPage />} />
               <Route path="/chat-ia" element={<AIChatAdvancedPage />} />
-              <Route path="/automatizaciones" element={<AutomationFlowsPage />} />
+              <Route path="/automatizaciones" element={<Navigate to="/marketing" replace />} />
               <Route path="/sucursales" element={<LocationsPage />} />
               <Route path="/referidos" element={<ReferralsPage />} />
-              <Route path="/templates" element={<MarketingTemplatesPage />} />
+              <Route path="/templates" element={<Navigate to="/marketing" replace />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/facturas" element={<InvoicesPage />} />
               <Route path="/caja/turno" element={<CashSessionPage />} />
@@ -254,7 +249,7 @@ function ProtectedRoutes() {
               <Route path="/calendario" element={<CalendarPage />} />
               <Route path="/rfm" element={<CustomerRFMPage />} />
               <Route path="/forecast" element={<SalesForecastPage />} />
-              <Route path="/secuencias-email" element={<DripSequencesPage />} />
+              <Route path="/secuencias-email" element={<Navigate to="/email-campaigns" replace />} />
               <Route path="/lead-scoring" element={<AILeadScoringPage />} />
               <Route path="/bundles" element={<ProductBundlesPage />} />
               <Route path="/transferencias" element={<InventoryTransfersPage />} />

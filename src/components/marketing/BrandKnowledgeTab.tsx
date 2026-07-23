@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { listBrandKnowledge, createBrandKnowledge, updateBrandKnowledge, deleteBrandKnowledge } from "@/lib/marketingExtraDB";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Brain, Plus, Edit, Trash2, BookOpen, Tag, Globe } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 const CATEGORIES = [
   { code: 'perfume_arabe', label: 'Perfume árabe' },
@@ -23,8 +21,7 @@ const CATEGORIES = [
   { code: 'otro', label: 'Otro' },
 ];
 
-export default function BrandKnowledgePage() {
-  usePageTitle("Conocimiento de Marca");
+export default function BrandKnowledgeTab() {
   const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
@@ -51,27 +48,26 @@ export default function BrandKnowledgePage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Brain}
-        title="Base de conocimiento de marcas"
-        description="Marcas, clones y notas que la IA usa para generar descripciones y respuestas"
-        actions={
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
-            <DialogTrigger asChild>
-              <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
-                <Plus className="w-4 h-4 mr-2" />Nueva marca
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>{editItem ? 'Editar marca' : 'Agregar marca'}</DialogTitle></DialogHeader>
-              <BrandForm
-                editItem={editItem}
-                onSave={() => { setOpen(false); setEditItem(null); reload(); }}
-              />
-            </DialogContent>
-          </Dialog>
-        }
-      />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display text-lg font-bold">Base de conocimiento de marcas</h2>
+          <p className="text-sm text-muted-foreground">Marcas, clones y notas que la IA usa para generar descripciones y respuestas</p>
+        </div>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditItem(null); }}>
+          <DialogTrigger asChild>
+            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold">
+              <Plus className="w-4 h-4 mr-2" />Nueva marca
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border/60 max-h-[85vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>{editItem ? 'Editar marca' : 'Agregar marca'}</DialogTitle></DialogHeader>
+            <BrandForm
+              editItem={editItem}
+              onSave={() => { setOpen(false); setEditItem(null); reload(); }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

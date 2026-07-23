@@ -1,5 +1,6 @@
-﻿/**
- * DripSequencesPage — Email drip sequence campaigns
+/**
+ * DripSequencesTab — ported from the former DripSequencesPage (/secuencias-email).
+ * Rendered as the "Drip Sequences" tab inside EmailCampaignsPage (/email-campaigns).
  *
  * Salesforce Marketing Cloud equivalent for pymes.
  * Build automated email sequences triggered by customer events:
@@ -16,19 +17,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Mail, Plus, X, Loader2, Play, Pause, Trash2, ChevronDown, ChevronUp,
-  Clock, Users, Send, Zap, BarChart3, CheckCircle2, Circle, ArrowRight,
-  Edit2, Eye, RefreshCw,
+  Clock, Users, Send, Zap, CheckCircle2,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 // ─────────────────────────────────────────────────────────────
@@ -110,9 +107,7 @@ const EMPTY_STEP = (): SequenceStep => ({ day_offset: 3, subject: "", body_html:
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
-export default function DripSequencesPage() {
-  usePageTitle("Secuencias de Email");
-
+export default function DripSequencesTab() {
   const { activeOrg, activeRole } = useOrg();
   const { user } = useAuth();
 
@@ -297,19 +292,17 @@ export default function DripSequencesPage() {
   // ─────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Mail}
-        title="Secuencias de Email"
-        description="Automatizá el nurturing de clientes con drip campaigns"
-        badge={stats.active > 0 ? { label: `${stats.active} activa${stats.active > 1 ? "s" : ""}`, variant: "success" } : undefined}
-        actions={
-          canManage ? (
-            <Button onClick={() => { setShowForm(!showForm); initFormWithTrigger("welcome"); }} className="gradient-gold text-primary-foreground">
-              <Plus className="w-4 h-4 mr-2" />Nueva secuencia
-            </Button>
-          ) : undefined
-        }
-      />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display text-lg font-bold">Secuencias de Email</h2>
+          <p className="text-sm text-muted-foreground">Automatizá el nurturing de clientes con drip campaigns</p>
+        </div>
+        {canManage && (
+          <Button onClick={() => { setShowForm(!showForm); initFormWithTrigger("welcome"); }} className="gradient-gold text-primary-foreground">
+            <Plus className="w-4 h-4 mr-2" />Nueva secuencia
+          </Button>
+        )}
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { listCombos, createCombo, updateCombo, deleteCombo, listBanners, createBanner, updateBanner, deleteBanner } from "@/lib/marketingExtraDB";
@@ -11,21 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Package, Image as ImageIcon, Plus, Edit, Trash2, Sparkles, Layers, Minus, CheckCircle2 } from "lucide-react";
+import { Package, Image as ImageIcon, Plus, Edit, Trash2, Layers, Minus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import PageHeader from "@/components/shared/PageHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
-export default function CombosBannersPage() {
-  usePageTitle("Combos & Banners");
+export default function CombosBannersTab() {
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Sparkles}
-        title="Combos & Banners"
-        description="Crea combos promocionales, kits ERP y banners para tu catálogo"
-      />
       <Tabs defaultValue="kits">
         <TabsList className="mb-4">
           <TabsTrigger value="kits"><Layers className="w-4 h-4 mr-2" />Kits ERP</TabsTrigger>

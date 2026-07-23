@@ -317,19 +317,6 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
     ],
   },
 
-  // ── Automatizaciones ─────────────────────────────────────────
-  "/automatizaciones": {
-    title: "Automatizaciones",
-    subtitle: "Flujos de trabajo automáticos",
-    color: "text-yellow-400",
-    tips: [
-      { icon: Zap, title: "Motor de ejecución real", desc: "Las automatizaciones corren en un edge function en Supabase. El historial en `automation_runs` registra cada ejecución con resultado." },
-      { icon: Clock, title: "Ejecutar ahora", desc: "El botón 'Ejecutar ahora' dispara la automatización inmediatamente sin esperar el cron configurado. Ideal para probar flujos nuevos." },
-      { icon: History, title: "Historial de ejecuciones", desc: "Cada automatización muestra sus últimas ejecuciones con estado (success/error) y el detalle del resultado." },
-      { icon: Bell, title: "Combinar con alertas", desc: "Las automatizaciones y alertas son complementarias: las alertas notifican, las automatizaciones actúan. Usá ambas para máxima eficiencia." },
-    ],
-  },
-
   // ── Integraciones ────────────────────────────────────────────
   "/integraciones": {
     title: "Integraciones",
