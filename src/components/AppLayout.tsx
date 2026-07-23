@@ -1,6 +1,6 @@
 ﻿import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe, Warehouse, FolderOpen, LineChart, Shield, Code2, Map, Eye, Leaf, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Bell, Tag, Calendar, Layers, ArrowRightLeft, UserPlus, Trophy, Share2, ScanBarcode, Users2, Scale, Globe, Warehouse, LineChart, Shield, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -35,76 +35,81 @@ const allNavItems = [
   { to: "/ordenes-compra", label: "Órdenes de Compra", icon: ClipboardList, roles: ['admin'], section: 'inventario' },
   { to: "/restock", label: "Auto-Reposición", icon: RefreshCw, roles: ['admin'], section: 'inventario' },
   { to: "/transferencias", label: "Transferencias", icon: ArrowRightLeft, roles: ['admin'], section: 'inventario' },
+  { to: "/kardex", label: "Kardex", icon: History, roles: ['admin'], section: 'inventario' },
+  { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },
+  { to: "/valuacion-inventario", label: "Valuación de Inventario", icon: Layers, roles: ['admin'], section: 'inventario' },
+  { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
+  { to: "/inventario-inteligente", label: "Inventario Inteligente IA", icon: Brain, roles: ['admin'], section: 'inventario' },
+  { to: "/forecast-inventario", label: "Forecast Inventario", icon: TrendingUp, roles: ['admin'], section: 'inventario' },
   // ── Ventas & CRM ────────────────────────────────────────────────────────────
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/clientes", label: "Clientes / CRM", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
+  { to: "/crm-avanzado", label: "CRM / Pipeline", icon: Kanban, roles: ['admin'], section: 'ventas' },
   { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
   { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
+  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'ventas' },
   { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
-  { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
   { to: "/rfm", label: "Segmentación RFM", icon: Users, roles: ['admin'], section: 'ventas' },
+  { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'ventas' },
   { to: "/envios", label: "Seguimiento de Envíos", icon: Truck, roles: ['admin', 'vendedor'], section: 'ventas' },
-  { to: "/cupones", label: "Cupones", icon: Tag, roles: ['admin'], section: 'ventas' },
+  // ── Ecommerce & Multi-Tienda ────────────────────────────────────────────────
+  { to: "/tienda-online", label: "Tienda Online", icon: ShoppingBag, roles: ['admin'], section: 'ecommerce' },
+  { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'ecommerce' },
+  { to: "/sucursales", label: "Sucursales & Depósitos", icon: Warehouse, roles: ['admin'], section: 'ecommerce' },
+  { to: "/tiendanube", label: "Tiendanube Export", icon: Globe, roles: ['admin'], section: 'ecommerce' },
+  { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'ecommerce' },
   // ── Finanzas ────────────────────────────────────────────────────────────────
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
   { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
   { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
   { to: "/movimientos", label: "Libro Mayor", icon: BookOpen, roles: ['admin'], section: 'finanzas' },
-  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/cheques", label: "Cheques", icon: FileText, roles: ['admin'], section: 'finanzas' },
   { to: "/comisiones", label: "Comisiones", icon: Receipt, roles: ['admin'], section: 'finanzas' },
-  { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'finanzas' },
+  { to: "/cash-flow", label: "Cash Flow", icon: BarChart3, roles: ['admin'], section: 'finanzas' },
+  { to: "/multi-divisa", label: "Multi-Divisa FX", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
+  { to: "/impuestos", label: "Gestión Impositiva", icon: Scale, roles: ['admin'], section: 'finanzas' },
+  { to: "/afip", label: "AFIP / Fact. Electrónica", icon: Shield, roles: ['admin'], section: 'finanzas' },
+  { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
+  { to: "/pl-dashboard", label: "Dashboard P&L", icon: TrendingUp, roles: ['admin'], section: 'finanzas' },
+  // ── Marketing & Influencers ─────────────────────────────────────────────────
+  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
+  { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
+  { to: "/influencers", label: "Influencers", icon: Users2, roles: ['admin'], section: 'marketing' },
+  { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
+  { to: "/whatsapp-campaigns", label: "WhatsApp Masivo", icon: MessageCircle, roles: ['admin'], section: 'marketing' },
+  { to: "/planner-social", label: "Planner Social", icon: Share2, roles: ['admin'], section: 'marketing' },
+  { to: "/cupones", label: "Cupones", icon: Tag, roles: ['admin'], section: 'marketing' },
+  { to: "/promociones", label: "Promociones & Flash Sales", icon: Zap, roles: ['admin'], section: 'marketing' },
+  { to: "/afiliados", label: "Programa Afiliados", icon: UserPlus, roles: ['admin'], section: 'marketing' },
+  { to: "/referidos", label: "Referidos", icon: Trophy, roles: ['admin'], section: 'marketing' },
+  { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'marketing' },
   // ── Analytics ───────────────────────────────────────────────────────────────
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
-  { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
-  { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'analytics' },
-  // ── Marketing ───────────────────────────────────────────────────────────────
-  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
-  { to: "/promociones", label: "Flash Sales / Promo", icon: Zap, roles: ['admin'], section: 'marketing' },
-  { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
-  { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
-  { to: "/whatsapp-campaigns", label: "WhatsApp Masivo", icon: MessageCircle, roles: ['admin'], section: 'marketing' },
-  { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
-  { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
-  // ── IA ──────────────────────────────────────────────────────────────────────
-  { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'ia' },
-  // ── Sistema ─────────────────────────────────────────────────────────────────
-  { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
-  { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
-  { to: "/forecast-inventario", label: "Forecast Inventario", icon: TrendingUp, roles: ['admin'], section: 'inventario' },
-  { to: "/afiliados", label: "Programa Afiliados", icon: UserPlus, roles: ['admin'], section: 'marketing' },
-  { to: "/cash-flow", label: "Cash Flow", icon: BarChart3, roles: ['admin'], section: 'finanzas' },
-  { to: "/planner-social", label: "Planner Social", icon: Share2, roles: ['admin'], section: 'marketing' },
-  { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },
-  { to: "/impuestos", label: "Gestión Impositiva", icon: Scale, roles: ['admin'], section: 'finanzas' },
   { to: "/kpi-dashboard", label: "KPI Dashboard", icon: LineChart, roles: ['admin'], section: 'analytics' },
-  { to: "/inventario-inteligente", label: "Inventario Inteligente IA", icon: Brain, roles: ['admin'], section: 'inventario' },
-  { to: "/afip", label: "AFIP / Fact. Electrónica", icon: Shield, roles: ['admin'], section: 'finanzas' },
   { to: "/bi-reportes", label: "BI & Reports Avanzados", icon: BarChart3, roles: ['admin'], section: 'analytics' },
-  { to: "/tienda-online", label: "Tienda Online", icon: ShoppingBag, roles: ['admin'], section: 'ventas' },
-  { to: "/multi-divisa", label: "Multi-Divisa FX", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
-  { to: "/motor-precios", label: "Motor de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
-  { to: "/crm-avanzado", label: "CRM / Pipeline", icon: Kanban, roles: ['admin'], section: 'ventas' },
-  { to: "/sucursales", label: "Sucursales & Depósitos", icon: Warehouse, roles: ['admin'], section: 'inventario' },
-  { to: "/valuacion-inventario", label: "Valuación de Inventario", icon: Layers, roles: ['admin'], section: 'inventario' },
-  { to: "/pl-dashboard", label: "Dashboard P&L", icon: TrendingUp, roles: ['admin'], section: 'finanzas' },
-  { to: "/integraciones", label: "Integraciones & API", icon: Plug, roles: ['admin'], section: 'config' },
-  { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'config' },
-  { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'config' },
-  { to: "/perfil", label: "Mi Perfil", icon: UserCircle, roles: ['admin', 'vendedor'], section: 'config' },
-  { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'config' },
+  { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
+  { to: "/motor-precios", label: "Motor de Precios", icon: Tag, roles: ['admin'], section: 'analytics' },
+  { to: "/ia", label: "AI Insights", icon: Sparkles, roles: ['admin'], section: 'analytics' },
+  // ── Administración ──────────────────────────────────────────────────────────
+  { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'admin' },
+  { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'admin' },
+  { to: "/integraciones", label: "Integraciones & API", icon: Plug, roles: ['admin'], section: 'admin' },
+  { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'admin' },
+  { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'admin' },
+  { to: "/perfil", label: "Mi Perfil", icon: UserCircle, roles: ['admin', 'vendedor'], section: 'admin' },
+  { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'admin' },
 ];
 
 const SECTION_LABELS: Record<string, string> = {
   principal: '',
   inventario: 'Inventario',
   ventas: 'Ventas & CRM',
+  ecommerce: 'Ecommerce & Multi-Tienda',
   finanzas: 'Finanzas',
+  marketing: 'Marketing & Influencers',
   analytics: 'Analytics',
-  marketing: 'Marketing',
-  ia: 'Inteligencia Artificial',
-  config: 'Sistema',
+  admin: 'Administración',
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -405,13 +410,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {!collapsed && (
             <div className="px-1 py-1">
               <p className="text-[11px] text-muted-foreground/55 truncate font-mono">{user?.email}</p>
-              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest">v8.5</p>
+              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest">v10.0</p>
             </div>
           )}
           {!collapsed && (
             <div className="px-1 pb-1 flex items-center gap-1.5">
               <span className="text-[9px] text-muted-foreground/25 uppercase tracking-widest font-mono">build</span>
-              <span className="text-[9px] font-bold text-primary/50 font-mono">v9.0 · 132nav</span>
+              <span className="text-[9px] font-bold text-primary/50 font-mono">v10.0 · 69nav</span>
             </div>
           )}
           <button
