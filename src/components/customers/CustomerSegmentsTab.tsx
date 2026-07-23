@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +42,6 @@ import {
   ChevronUp,
   Loader2,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -486,8 +484,7 @@ function CampForm({ open, segmentId, segments, orgId, onClose, onSaved }: CampFo
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function CustomerSegmentsPage() {
-  usePageTitle("Segmentos de Clientes");
+export default function CustomerSegmentsTab() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
 
@@ -553,25 +550,24 @@ export default function CustomerSegmentsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Layers}
-        title="Segmentos de Clientes"
-        description="Audiencias dinámicas basadas en comportamiento y datos"
-        actions={
-          <>
-            <Button variant="outline" size="sm" onClick={syncAll}>
-              <RefreshCw className="w-4 h-4 mr-1.5" /> Sync todos
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => { setCampSegmentId(null); setCampFormOpen(true); }}>
-              <Send className="w-4 h-4 mr-1.5" /> Nueva campaña
-            </Button>
-            <Button size="sm" onClick={() => { setEditingSegment(null); setSegFormOpen(true); }}>
-              <Plus className="w-4 h-4 mr-1.5" /> Nuevo segmento
-            </Button>
-          </>
-        }
-      />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2"><Layers className="w-4 h-4 text-primary" />Segmentos de Clientes</h2>
+          <p className="text-xs text-muted-foreground">Audiencias dinámicas basadas en comportamiento y datos</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={syncAll}>
+            <RefreshCw className="w-4 h-4 mr-1.5" /> Sync todos
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setCampSegmentId(null); setCampFormOpen(true); }}>
+            <Send className="w-4 h-4 mr-1.5" /> Nueva campaña
+          </Button>
+          <Button size="sm" onClick={() => { setEditingSegment(null); setSegFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1.5" /> Nuevo segmento
+          </Button>
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

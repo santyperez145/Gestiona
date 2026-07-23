@@ -31,7 +31,6 @@ const ExpensesPage           = lazy(() => import("@/pages/ExpensesPage"));
 const CustomersPage          = lazy(() => import("@/pages/CustomersPage"));
 const InfluencerExchangesPage= lazy(() => import("@/pages/InfluencerExchangesPage"));
 const InfluencersPage        = lazy(() => import("@/pages/InfluencersPage"));
-const SettlementsPage        = lazy(() => import("@/pages/SettlementsPage"));
 const CatalogPage            = lazy(() => import("@/pages/CatalogPage"));
 const TiendanubeExportPage   = lazy(() => import("@/pages/TiendanubeExportPage"));
 const AdminPage              = lazy(() => import("@/pages/AdminPage"));
@@ -65,22 +64,18 @@ const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
 const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
 const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
-const ActivityFeedPage         = lazy(() => import("@/pages/ActivityFeedPage"));
 const FollowUpPage             = lazy(() => import("@/pages/FollowUpPage"));
 const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
 const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
 const SalesForecastPage        = lazy(() => import("@/pages/SalesForecastPage"));
-const AILeadScoringPage        = lazy(() => import("@/pages/AILeadScoringPage"));
 const ProductBundlesPage       = lazy(() => import("@/pages/ProductBundlesPage"));
 const InventoryTransfersPage   = lazy(() => import("@/pages/InventoryTransfersPage"));
 const PromotionsPage           = lazy(() => import("@/pages/PromotionsPage"));
 const SubscriptionsPage        = lazy(() => import("@/pages/SubscriptionsPage"));
-const AIProductRecommenderPage = lazy(() => import("@/pages/AIProductRecommenderPage"));
 const PriceListsPage           = lazy(() => import("@/pages/PriceListsPage"));
 const AffiliateProgramPage     = lazy(() => import("@/pages/AffiliateProgramPage"));
 const InventoryForecastPage    = lazy(() => import("@/pages/InventoryForecastPage"));
-const CustomerSegmentsPage     = lazy(() => import("@/pages/CustomerSegmentsPage"));
 const PurchaseOrdersPage       = lazy(() => import("@/pages/PurchaseOrdersPage"));
 const DeliveryTrackingPage     = lazy(() => import("@/pages/DeliveryTrackingPage"));
 const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"));
@@ -89,7 +84,6 @@ const TaxManagementPage        = lazy(() => import("@/pages/TaxManagementPage"))
 const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
 const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
 const LoyaltyAdvancedPage      = lazy(() => import("@/pages/LoyaltyAdvancedPage"));
-const ReturnsPortalPage        = lazy(() => import("@/pages/ReturnsPortalPage"));
 const SmartInventoryPage       = lazy(() => import("@/pages/SmartInventoryPage"));
 const AIChatAdvancedPage       = lazy(() => import("@/pages/AIChatAdvancedPage"));
 const AFIPPage                 = lazy(() => import("@/pages/AFIPPage"));
@@ -97,7 +91,6 @@ const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
 const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
 const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
 const PricingEnginePage        = lazy(() => import("@/pages/PricingEnginePage"));
-const PredictiveAnalyticsPage  = lazy(() => import("@/pages/PredictiveAnalyticsPage"));
 const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
 const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
 const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
@@ -205,7 +198,7 @@ function ProtectedRoutes() {
               <Route path="/marketing" element={<MarketingPage />} />
               <Route path="/canjes" element={<InfluencerExchangesPage />} />
               <Route path="/influencers" element={<InfluencersPage />} />
-              <Route path="/liquidaciones" element={<SettlementsPage />} />
+              <Route path="/liquidaciones" element={<Navigate to="/canjes" replace />} />
               <Route path="/marca-ia" element={<Navigate to="/marketing" replace />} />
               <Route path="/combos-banners" element={<Navigate to="/marketing" replace />} />
               <Route path="/catalogo" element={<CatalogPage />} />
@@ -238,7 +231,7 @@ function ProtectedRoutes() {
               <Route path="/pipeline" element={<Navigate to="/crm-avanzado" replace />} />
               <Route path="/fidelidad" element={<LoyaltyAdvancedPage />} />
               <Route path="/alertas" element={<SmartAlertsPage />} />
-              <Route path="/actividad" element={<ActivityFeedPage />} />
+              <Route path="/actividad" element={<Navigate to="/admin?tab=activity" replace />} />
               <Route path="/inventario-aging" element={<Navigate to="/valuacion-inventario" replace />} />
               <Route path="/seguimiento" element={<FollowUpPage />} />
               <Route path="/precios-inteligentes" element={<Navigate to="/motor-precios" replace />} />
@@ -250,17 +243,17 @@ function ProtectedRoutes() {
               <Route path="/rfm" element={<CustomerRFMPage />} />
               <Route path="/forecast" element={<SalesForecastPage />} />
               <Route path="/secuencias-email" element={<Navigate to="/email-campaigns" replace />} />
-              <Route path="/lead-scoring" element={<AILeadScoringPage />} />
+              <Route path="/lead-scoring" element={<Navigate to="/rfm" replace />} />
               <Route path="/bundles" element={<ProductBundlesPage />} />
               <Route path="/transferencias" element={<InventoryTransfersPage />} />
               <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/webhooks" element={<Navigate to="/integraciones?tab=webhooks" replace />} />
               <Route path="/suscripciones" element={<SubscriptionsPage />} />
-              <Route path="/recomendaciones-ia" element={<AIProductRecommenderPage />} />
+              <Route path="/recomendaciones-ia" element={<Navigate to="/" replace />} />
               <Route path="/listas-precios" element={<PriceListsPage />} />
               <Route path="/afiliados" element={<AffiliateProgramPage />} />
               <Route path="/forecast-inventario" element={<InventoryForecastPage />} />
-              <Route path="/segmentos" element={<CustomerSegmentsPage />} />
+              <Route path="/segmentos" element={<Navigate to="/rfm" replace />} />
               <Route path="/ordenes-compra" element={<PurchaseOrdersPage />} />
               <Route path="/envios" element={<DeliveryTrackingPage />} />
               <Route path="/cotizaciones-proveedor" element={<Navigate to="/ordenes-compra" replace />} />
@@ -275,7 +268,7 @@ function ProtectedRoutes() {
               <Route path="/fidelidad-avanzada" element={<Navigate to="/fidelidad" replace />} />
               <Route path="/auditoria" element={<Navigate to="/admin?tab=audit" replace />} />
               <Route path="/api-keys" element={<Navigate to="/integraciones?tab=apikeys" replace />} />
-              <Route path="/devoluciones-rma" element={<ReturnsPortalPage />} />
+              <Route path="/devoluciones-rma" element={<Navigate to="/devoluciones" replace />} />
               <Route path="/inventario-inteligente" element={<SmartInventoryPage />} />
               <Route path="/chat-ia-avanzado" element={<Navigate to="/chat-ia" replace />} />
               <Route path="/afip" element={<AFIPPage />} />
@@ -283,7 +276,7 @@ function ProtectedRoutes() {
               <Route path="/tienda-online" element={<EcommerceStorePage />} />
               <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
               <Route path="/motor-precios" element={<PricingEnginePage />} />
-              <Route path="/analytics-ia" element={<PredictiveAnalyticsPage />} />
+              <Route path="/analytics-ia" element={<Navigate to="/analytics" replace />} />
               <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
               <Route path="/escenarios-financieros" element={<Navigate to="/pl-dashboard" replace />} />
               <Route path="/franquicias" element={<Navigate to="/sucursales" replace />} />

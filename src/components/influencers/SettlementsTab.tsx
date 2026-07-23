@@ -10,15 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Wallet, Download, Calendar, CheckCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import KPICard from "@/components/shared/KPICard";
-import PageHeader from "@/components/shared/PageHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 function startOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); }
 function endOfMonthISO(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString(); }
 function toDateInput(d: Date) { return d.toISOString().slice(0, 10); }
 
-export default function SettlementsPage() {
-  usePageTitle("Liquidaciones");
+export default function SettlementsTab() {
   const { user } = useAuth();
   const today = new Date();
   const [from, setFrom] = useState(toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)));
@@ -116,13 +113,18 @@ export default function SettlementsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Wallet}
-        title="Liquidaciones de Influencers"
-        description="Calculá comisiones por período y registrá los pagos"
-        badge={totals.commissions > 0 ? { label: `${formatARS(totals.commissions)} a liquidar`, variant: "warning" } : undefined}
-      />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2"><Wallet className="w-4 h-4 text-primary" />Liquidaciones de Influencers</h2>
+          <p className="text-xs text-muted-foreground">Calculá comisiones por período y registrá los pagos</p>
+        </div>
+        {totals.commissions > 0 && (
+          <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 font-medium">
+            {formatARS(totals.commissions)} a liquidar
+          </span>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Ventas referidas" value={formatARS(totals.sales)} icon={Calendar} sub={`${totals.count} ventas`} />

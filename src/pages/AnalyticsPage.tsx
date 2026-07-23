@@ -21,6 +21,7 @@ import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import PredictiveAnalyticsTab from "@/components/analytics/PredictiveAnalyticsTab";
 
 const PALETTE = [
   "hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)",
@@ -543,6 +544,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="trend" className="text-xs">Tendencia</TabsTrigger>
           <TabsTrigger value="forecast" className="text-xs">📈 Forecast</TabsTrigger>
           <TabsTrigger value="demand" className="text-xs">🔮 Demanda</TabsTrigger>
+          <TabsTrigger value="predictivo" className="text-xs">🧠 Predictivo IA</TabsTrigger>
           <TabsTrigger value="yoy" className="text-xs">Año vs Año</TabsTrigger>
           <TabsTrigger value="products" className="text-xs">Productos</TabsTrigger>
           <TabsTrigger value="customers" className="text-xs">Clientes</TabsTrigger>
@@ -1020,6 +1022,11 @@ export default function AnalyticsPage() {
         {/* DEMAND FORECAST TAB */}
         <TabsContent value="demand" className="mt-4 space-y-4">
           <ProductDemandTab products={rawData.products} sales={rawData.sales} />
+        </TabsContent>
+
+        {/* PREDICTIVE AI TAB */}
+        <TabsContent value="predictivo" className="mt-4 space-y-4">
+          <PredictiveAnalyticsTab />
         </TabsContent>
 
         {/* FUNNEL TAB */}

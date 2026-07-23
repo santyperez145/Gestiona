@@ -25,6 +25,7 @@ import HealthScore from "@/components/dashboard/HealthScore";
 import ConsistencyAlerts from "@/components/dashboard/ConsistencyAlerts";
 import AIPrediction from "@/components/dashboard/AIPrediction";
 import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
+import AIProductRecommenderWidget from "@/components/dashboard/AIProductRecommenderWidget";
 import DailyBriefingModal from "@/components/shared/DailyBriefingModal";
 import StockHeatmapWidget from "@/components/shared/StockHeatmapWidget";
 import { toast } from "sonner";
@@ -2831,6 +2832,9 @@ export default function Dashboard() {
           <StockHeatmapWidget products={stats.products} maxTiles={80} />
         </div>
       )}
+
+      {/* AI Product Recommender */}
+      <AIProductRecommenderWidget />
 
       {/* Próximas compras sugeridas */}
       {stats.restockSuggestions?.length > 0 && (

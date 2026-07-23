@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import {
   RotateCcw, Plus, CheckCircle2, XCircle, Clock, Package,
@@ -52,8 +50,7 @@ const REFUND_METHOD_LABELS: Record<string, string> = {
 const TABS = ["Solicitudes", "Razones", "Estadísticas"] as const;
 type Tab = typeof TABS[number];
 
-export default function ReturnsPortalPage() {
-  usePageTitle("Portal de Devoluciones RMA");
+export default function ReturnsPortalTab() {
   const { orgId } = useOrganization();
   const [activeTab, setActiveTab] = useState<Tab>("Solicitudes");
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
@@ -155,17 +152,16 @@ export default function ReturnsPortalPage() {
   const totalRefunds = returns.filter(r => r.resolution === "refund" && r.refund_amount).reduce((s, r) => s + (r.refund_amount ?? 0), 0);
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={RotateCcw}
-        title="Portal de Devoluciones RMA"
-        description="Solicitudes de devolución, cambio y reembolso"
-        actions={
-          <Button size="sm" onClick={() => { setForm(blankForm); setShowNewDialog(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nueva Solicitud
-          </Button>
-        }
-      />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2"><RotateCcw className="w-4 h-4 text-primary" />Portal de Devoluciones RMA</h2>
+          <p className="text-xs text-muted-foreground">Solicitudes de devolución, cambio y reembolso</p>
+        </div>
+        <Button size="sm" onClick={() => { setForm(blankForm); setShowNewDialog(true); }}>
+          <Plus className="w-4 h-4 mr-1" /> Nueva Solicitud
+        </Button>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

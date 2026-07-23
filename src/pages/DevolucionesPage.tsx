@@ -18,6 +18,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import ReturnsPortalTab from "@/components/sales/ReturnsPortalTab";
 
 type Return = {
   id: string;
@@ -64,6 +65,7 @@ export default function DevolucionesPage() {
   const [returns, setReturns] = useState<Return[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [pageTab, setPageTab] = useState<"standard" | "rma">("standard");
   const [search, setSearch] = useState("");
   const [filterMethod, setFilterMethod] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -289,6 +291,21 @@ export default function DevolucionesPage() {
           </Button>
         }
       />
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+        {[{ id: "standard", label: "Devoluciones" }, { id: "rma", label: "RMA" }].map(t => (
+          <button key={t.id} onClick={() => setPageTab(t.id as any)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${pageTab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === "rma" ? (
+        <ReturnsPortalTab />
+      ) : (
+      <div className="space-y-5 pb-12">
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
@@ -557,6 +574,8 @@ export default function DevolucionesPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
+      )}
     </div>
   );
 }

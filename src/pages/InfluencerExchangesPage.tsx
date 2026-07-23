@@ -18,6 +18,8 @@ import KPICard from "@/components/shared/KPICard";
 import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import SettlementsTab from "@/components/influencers/SettlementsTab";
+import { Wallet } from "lucide-react";
 
 export default function InfluencerExchangesPage() {
   usePageTitle("Canjes & Influencers");
@@ -28,6 +30,7 @@ export default function InfluencerExchangesPage() {
   const [editItem, setEditItem] = useState<any>(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [pageTab, setPageTab] = useState<"canjes" | "liquidaciones">("canjes");
   const [statusConfigs, setStatusConfigs] = useState<ExchangeConfig[]>([]);
   const [typeConfigs, setTypeConfigs] = useState<ExchangeConfig[]>([]);
 
@@ -157,6 +160,21 @@ export default function InfluencerExchangesPage() {
           </div>
         }
       />
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+        {[{ id: "canjes", label: "Canjes" }, { id: "liquidaciones", label: "Liquidaciones" }].map(t => (
+          <button key={t.id} onClick={() => setPageTab(t.id as any)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${pageTab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === "liquidaciones" ? (
+        <SettlementsTab />
+      ) : (
+      <div className="space-y-6 pb-12">
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -363,6 +381,8 @@ export default function InfluencerExchangesPage() {
             })}
           </div>
         </>
+      )}
+      </div>
       )}
     </div>
   );

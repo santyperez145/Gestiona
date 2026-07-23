@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { formatARS } from "@/lib/supabaseStore";
@@ -10,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import PageHeader from "@/components/shared/PageHeader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,8 +83,7 @@ function groupByDate(events: FeedEvent[]): { label: string; events: FeedEvent[] 
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ActivityFeedPage() {
-  usePageTitle("Feed de Actividad");
+export default function ActivityFeedTab() {
   const { activeOrg } = useOrg();
 
   const [events, setEvents] = useState<FeedEvent[]>([]);
@@ -235,24 +232,25 @@ export default function ActivityFeedPage() {
   }, {});
 
   return (
-    <div className="space-y-4 pb-12">
-      <PageHeader
-        icon={Activity}
-        title="Feed de Actividad"
-        description="Eventos en tiempo real del negocio — últimos 30 días"
-        badge={newCount > 0 ? { label: `${newCount} nuevos`, variant: "default" } : undefined}
-        actions={
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => { loadEvents(); setNewCount(0); }}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Actualizar
-          </Button>
-        }
-      />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" />Feed de Actividad
+            {newCount > 0 && <Badge>{newCount} nuevos</Badge>}
+          </h2>
+          <p className="text-xs text-muted-foreground">Eventos en tiempo real del negocio — últimos 30 días</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => { loadEvents(); setNewCount(0); }}
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Actualizar
+        </Button>
+      </div>
 
       {/* Summary strip */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">

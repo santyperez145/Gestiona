@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +9,6 @@ import {
   RefreshCw, CheckCircle2, XCircle, ChevronRight, BarChart3,
   Package, Users, DollarSign, Eye, ThumbsUp, ThumbsDown, Clock, Loader2
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 type ForecastRow   = { day: string; predicted: number; lo: number; hi: number; actual: number | null };
@@ -58,8 +56,7 @@ function ForecastChart({ data }: { data: ForecastRow[] }) {
   );
 }
 
-export default function PredictiveAnalyticsPage() {
-  usePageTitle("Analytics Predictivo & IA");
+export default function PredictiveAnalyticsTab() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"forecast" | "anomalies" | "recommendations">("recommendations");
   const [ackedIds, setAckedIds] = useState<Set<string>>(new Set());
@@ -198,25 +195,24 @@ export default function PredictiveAnalyticsPage() {
   ], [forecast, activeRecs, activeAnomalies]);
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Brain}
-        title="Analytics Predictivo & IA"
-        description="Forecasting, anomalías automáticas y recomendaciones inteligentes"
-        actions={
-          <>
-            {activeAnomalies.length > 0 && (
-              <Badge className="bg-red-500/15 text-red-400 border-red-500/20">
-                {activeAnomalies.length} anomalía{activeAnomalies.length > 1 ? "s" : ""} activa{activeAnomalies.length > 1 ? "s" : ""}
-              </Badge>
-            )}
-            <Button size="sm" onClick={runForecast} disabled={loading} variant="outline" className="gap-1.5 text-xs">
-              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
-              Recalcular
-            </Button>
-          </>
-        }
-      />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2"><Brain className="w-4 h-4 text-primary" />Analytics Predictivo & IA</h2>
+          <p className="text-xs text-muted-foreground">Forecasting, anomalías automáticas y recomendaciones inteligentes</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {activeAnomalies.length > 0 && (
+            <Badge className="bg-red-500/15 text-red-400 border-red-500/20">
+              {activeAnomalies.length} anomalía{activeAnomalies.length > 1 ? "s" : ""} activa{activeAnomalies.length > 1 ? "s" : ""}
+            </Badge>
+          )}
+          <Button size="sm" onClick={runForecast} disabled={loading} variant="outline" className="gap-1.5 text-xs">
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
+            Recalcular
+          </Button>
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

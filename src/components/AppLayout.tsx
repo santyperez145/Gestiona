@@ -43,7 +43,6 @@ const allNavItems = [
   { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
   { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'ventas' },
   { to: "/rfm", label: "Segmentación RFM", icon: Users, roles: ['admin'], section: 'ventas' },
-  { to: "/segmentos", label: "Segmentos Dinámicos", icon: Layers, roles: ['admin'], section: 'ventas' },
   { to: "/envios", label: "Seguimiento de Envíos", icon: Truck, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/cupones", label: "Cupones", icon: Tag, roles: ['admin'], section: 'ventas' },
   // ── Finanzas ────────────────────────────────────────────────────────────────
@@ -58,7 +57,6 @@ const allNavItems = [
   // ── Analytics ───────────────────────────────────────────────────────────────
   { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
-  { to: "/actividad", label: "Feed de Actividad", icon: Activity, roles: ['admin'], section: 'analytics' },
   { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
   { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'analytics' },
   // ── Marketing ───────────────────────────────────────────────────────────────
@@ -70,8 +68,6 @@ const allNavItems = [
   { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'marketing' },
   // ── IA ──────────────────────────────────────────────────────────────────────
-  { to: "/lead-scoring", label: "AI Lead Scoring", icon: Brain, roles: ['admin'], section: 'ia' },
-  { to: "/recomendaciones-ia", label: "AI Recomendador", icon: Sparkles, roles: ['admin'], section: 'ia' },
   { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'ia' },
   // ── Sistema ─────────────────────────────────────────────────────────────────
   { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
@@ -83,14 +79,12 @@ const allNavItems = [
   { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },
   { to: "/impuestos", label: "Gestión Impositiva", icon: Scale, roles: ['admin'], section: 'finanzas' },
   { to: "/kpi-dashboard", label: "KPI Dashboard", icon: LineChart, roles: ['admin'], section: 'analytics' },
-  { to: "/devoluciones-rma", label: "Portal Devoluciones RMA", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
   { to: "/inventario-inteligente", label: "Inventario Inteligente IA", icon: Brain, roles: ['admin'], section: 'inventario' },
   { to: "/afip", label: "AFIP / Fact. Electrónica", icon: Shield, roles: ['admin'], section: 'finanzas' },
   { to: "/bi-reportes", label: "BI & Reports Avanzados", icon: BarChart3, roles: ['admin'], section: 'analytics' },
   { to: "/tienda-online", label: "Tienda Online", icon: ShoppingBag, roles: ['admin'], section: 'ventas' },
   { to: "/multi-divisa", label: "Multi-Divisa FX", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
   { to: "/motor-precios", label: "Motor de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
-  { to: "/analytics-ia", label: "Analytics Predictivo IA", icon: Brain, roles: ['admin'], section: 'ia' },
   { to: "/crm-avanzado", label: "CRM / Pipeline", icon: Kanban, roles: ['admin'], section: 'ventas' },
   { to: "/sucursales", label: "Sucursales & Depósitos", icon: Warehouse, roles: ['admin'], section: 'inventario' },
   { to: "/valuacion-inventario", label: "Valuación de Inventario", icon: Layers, roles: ['admin'], section: 'inventario' },

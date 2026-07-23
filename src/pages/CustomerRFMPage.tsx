@@ -6,6 +6,8 @@ import { Download, Users, TrendingUp, AlertTriangle, Crown, Flame, Zap, Leaf, Mo
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import CustomerSegmentsTab from "@/components/customers/CustomerSegmentsTab";
+import AILeadScoringWidget from "@/components/customers/AILeadScoringWidget";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Sale {
@@ -105,7 +107,7 @@ export default function CustomerRFMPage() {
   const { activeOrg } = useOrg();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "clientes">("overview");
+  const [tab, setTab] = useState<"overview" | "clientes" | "segmentos">("overview");
   const [search, setSearch] = useState("");
   const [segFilter, setSegFilter] = useState<Segment | "all">("all");
   const [sort, setSort] = useState<"monetary" | "frequency" | "recency" | "rfm">("rfm");
@@ -290,7 +292,7 @@ export default function CustomerRFMPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
-        {[{ id: "overview", label: "Resumen & Segmentos" }, { id: "clientes", label: `Clientes (${rfmData.length})` }].map(t => (
+        {[{ id: "overview", label: "Resumen RFM" }, { id: "clientes", label: `Clientes (${rfmData.length})` }, { id: "segmentos", label: "Segmentos" }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.label}
@@ -383,6 +385,9 @@ export default function CustomerRFMPage() {
           })}
         </div>
       </div>
+
+      {/* AI Lead Scoring widget (top-scored deals) */}
+      <AILeadScoringWidget />
 
       </div>
       )}
@@ -529,6 +534,9 @@ export default function CustomerRFMPage() {
       </div>
       </div>
       )}
+
+      {/* ─── Segmentos tab ─── */}
+      {tab === "segmentos" && <CustomerSegmentsTab />}
     </div>
   );
 }

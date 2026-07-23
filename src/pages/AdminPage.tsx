@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import ActivityFeedTab from "@/components/admin/ActivityFeedTab";
 
 const CHART_COLORS = [
   'hsl(38 82% 52%)',
@@ -223,6 +224,7 @@ export default function AdminPage() {
           <TabsTrigger value="team" className="gap-1.5"><Users className="w-3.5 h-3.5" />Equipo</TabsTrigger>
           <TabsTrigger value="goals" className="gap-1.5"><Target className="w-3.5 h-3.5" />Metas</TabsTrigger>
           <TabsTrigger value="audit" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" />Auditoría</TabsTrigger>
+          <TabsTrigger value="activity" className="gap-1.5"><Activity className="w-3.5 h-3.5" />Actividad</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW TAB ─────────────────────────────────────────── */}
@@ -454,6 +456,11 @@ export default function AdminPage() {
         {/* ── AUDIT TAB ────────────────────────────────────────────── */}
         <TabsContent value="audit" className="mt-4">
           <SystemAuditLogTab />
+        </TabsContent>
+
+        {/* ── ACTIVITY TAB ─────────────────────────────────────────── */}
+        <TabsContent value="activity" className="mt-4">
+          <ActivityFeedTab />
         </TabsContent>
       </Tabs>
     </div>
