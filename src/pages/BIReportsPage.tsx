@@ -14,6 +14,10 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
+// Note: StoreFilter is intentionally not wired here — bi_snapshots/sale_items
+// have no location_id in the schema yet (see Dashboard.tsx for the one real
+// store-filter integration, which scopes stock via `location_stock`).
 
 
 const MONTH_LABELS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -90,6 +94,7 @@ export default function BIReportsPage() {
   const [cohortData, setCohortData] = useState<CohortRow[]>([]);
   const [categoryRev, setCategoryRev] = useState<CatRevRow[]>([]);
   const [topProducts, setTopProducts] = useState<TopProductRow[]>([]);
+  const { from: dateFrom, to: dateTo } = useDateRangeFilter();
 
   useEffect(() => {
     if (!orgId) return;
@@ -112,13 +117,22 @@ export default function BIReportsPage() {
           shared: r.is_shared,
         })));
       });
-    // Load BI snapshots (last 7 days)
-    supabase
-      .from("bi_snapshots")
-      .select("snapshot_date, revenue_day, orders_day, avg_order_value, new_customers")
-      .eq("org_id", orgId)
-      .order("snapshot_date", { ascending: false })
-      .limit(7)
+    // Load BI snapshots — scoped by the shared date-range filter when active,
+    // otherwise the default last 7 days.
+    (() => {
+      let q = supabase
+        .from("bi_snapshots")
+        .select("snapshot_date, revenue_day, orders_day, avg_order_value, new_customers")
+        .eq("org_id", orgId)
+        .order("snapshot_date", { ascending: false });
+      if (dateFrom) {
+        q = q.gte("snapshot_date", dateFrom.toISOString().slice(0, 10));
+        if (dateTo) q = q.lte("snapshot_date", dateTo.toISOString().slice(0, 10));
+      } else {
+        q = q.limit(7);
+      }
+      return q;
+    })()
       .then(({ data }) => {
         setSnapshots((data ?? []).map((s: any) => ({
           date: s.snapshot_date,
@@ -211,7 +225,7 @@ export default function BIReportsPage() {
           }));
         setTopProducts(top);
       });
-  }, [orgId]);
+  }, [orgId, dateFrom, dateTo]);
 
   const runReport = async (id: string) => {
     setRunningId(id);
@@ -247,21 +261,22 @@ export default function BIReportsPage() {
         title="Business Intelligence"
         description="Reportes avanzados, cohort analysis y drill-down por dimensión"
         actions={
-          <>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DateRangeFilter label="Últimos 7 días" />
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Snapshot generado")}>
               <RefreshCw className="w-3.5 h-3.5" />Actualizar snapshot
             </Button>
             <Button size="sm" onClick={() => setShowNewDialog(true)} className="gap-1.5 gradient-gold text-primary-foreground">
               <Plus className="w-3.5 h-3.5" />Nuevo Reporte
             </Button>
-          </>
+          </div>
         }
       />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="Revenue hoy" value={`$${(todayRev / 1000).toFixed(0)}K`} icon={DollarSign} color="success" trend={snapshots.length > 1 ? { value: revTrend, label: "vs ayer" } : undefined} sub="ingresos del día" />
-        <KPICard label="Revenue semana" value={`$${(weekRev / 1000).toFixed(0)}K`} icon={TrendingUp} color="primary" sub="últimos 7 días" />
+        <KPICard label="Revenue período" value={`$${(weekRev / 1000).toFixed(0)}K`} icon={TrendingUp} color="primary" sub={dateFrom ? "período seleccionado" : "últimos 7 días"} />
         <KPICard label="AOV promedio" value={`$${(snapshots[0]?.aov ?? 0).toLocaleString("es-AR")}`} icon={Users} color="blue" sub="ticket promedio" />
         <KPICard label="Reportes guardados" value={savedReports.length} icon={BarChart3} color="purple" sub={`${savedReports.filter(r => r.pinned).length} fijados`} />
       </div>

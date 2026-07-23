@@ -22,6 +22,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PredictiveAnalyticsTab from "@/components/analytics/PredictiveAnalyticsTab";
+import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
+// Note: StoreFilter is intentionally not wired here — sales/purchases/expenses
+// have no location_id in the schema yet, so a store filter couldn't actually
+// scope anything on this page (see Dashboard.tsx for the one real integration,
+// which scopes stock-related figures via `location_stock`).
 
 const PALETTE = [
   "hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)",
@@ -193,6 +198,7 @@ export default function AnalyticsPage() {
   });
   const [trendTo, setTrendTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [sellerPeriod, setSellerPeriod] = useState<"thisMonth" | "last30" | "thisWeek" | "thisYear">("thisMonth");
+  const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
 
   useEffect(() => {
     if (!user) return;
@@ -213,7 +219,12 @@ export default function AnalyticsPage() {
 
   const derived = useMemo(() => {
     if (!rawData) return null;
-    const { products, sales, purchases, expenses, quotes = [] } = rawData;
+    const { products, sales: salesAll, purchases: purchasesAll, expenses: expensesAll, quotes = [] } = rawData;
+    // Shared date-range filter (URL-persisted) — scopes all Analytics data below
+    const hasDateFilter = !!dateFrom;
+    const sales = hasDateFilter ? salesAll.filter((s: any) => inRange(s.date)) : salesAll;
+    const purchases = hasDateFilter ? purchasesAll.filter((p: any) => inRange(p.date)) : purchasesAll;
+    const expenses = hasDateFilter ? expensesAll.filter((e: any) => inRange(e.date)) : expensesAll;
     const offset = Number(year);
     const monthly = buildMonthlyData(sales, expenses, purchases, offset);
     const prevMonthly = buildMonthlyData(sales, expenses, purchases, offset + 1);
@@ -427,7 +438,7 @@ export default function AnalyticsPage() {
       rentabilidad, paymentChannels, channelTrendData, channelKeys: Object.keys(channelMonthly),
       sellerStats,
     };
-  }, [rawData, year]);
+  }, [rawData, year, dateFrom, dateTo]);
 
   const trendDailyData = useMemo(() => {
     if (!rawData) return [];
@@ -494,16 +505,19 @@ export default function AnalyticsPage() {
         title="Analytics"
         description="Análisis profundo de tu negocio"
         actions={
-          <Select value={year} onValueChange={(v) => setYear(v as "0" | "1")}>
-            <SelectTrigger className="w-36 bg-muted border-border text-sm">
-              <Calendar className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">{new Date().getFullYear()}</SelectItem>
-              <SelectItem value="1">{new Date().getFullYear() - 1}</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DateRangeFilter label="Todo el período" />
+            <Select value={year} onValueChange={(v) => setYear(v as "0" | "1")}>
+              <SelectTrigger className="w-36 bg-muted border-border text-sm">
+                <Calendar className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">{new Date().getFullYear()}</SelectItem>
+                <SelectItem value="1">{new Date().getFullYear() - 1}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 

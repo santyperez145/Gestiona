@@ -15,6 +15,10 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FinancialScenariosTab from "@/components/finance/FinancialScenariosTab";
+import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
+// Note: StoreFilter is intentionally not wired here — sales/expenses/purchases
+// have no location_id in the schema yet (see Dashboard.tsx for the one real
+// store-filter integration, which scopes stock via `location_stock`).
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Sale { total_ars: number; created_at: string; cost_of_goods_ars?: number }
@@ -66,6 +70,7 @@ export default function PLDashboardPage() {
   const [months, setMonths] = useState(12);
   const [selectedYm, setSelectedYm] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("mensual");
+  const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
 
   useEffect(() => {
     if (!activeOrg) return;
@@ -86,6 +91,12 @@ export default function PLDashboardPage() {
   }, [activeOrg]);
 
   // ── Monthly P&L data ───────────────────────────────────────────────────────
+  // Shared date-range filter (URL-persisted) — scopes which raw rows feed the P&L
+  const hasDateFilter = !!dateFrom;
+  const filteredSales = useMemo(() => hasDateFilter ? sales.filter(s => inRange(s.created_at)) : sales, [sales, hasDateFilter, dateFrom, dateTo]);
+  const filteredExpenses = useMemo(() => hasDateFilter ? expenses.filter(e => inRange(e.date)) : expenses, [expenses, hasDateFilter, dateFrom, dateTo]);
+  const filteredPurchases = useMemo(() => hasDateFilter ? purchases.filter(p => inRange(p.created_at)) : purchases, [purchases, hasDateFilter, dateFrom, dateTo]);
+
   const monthlyPL = useMemo<MonthlyPL[]>(() => {
     const today = new Date();
     const result: MonthlyPL[] = [];
@@ -95,19 +106,19 @@ export default function PLDashboardPage() {
       const ym = yyyymm(d);
       const label = `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
 
-      const revenue = sales.filter(s => yyyymm(new Date(s.created_at)) === ym)
+      const revenue = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym)
         .reduce((sum, s) => sum + (s.total_ars || 0), 0);
 
-      const cogsDirect = sales.filter(s => yyyymm(new Date(s.created_at)) === ym)
+      const cogsDirect = filteredSales.filter(s => yyyymm(new Date(s.created_at)) === ym)
         .reduce((sum, s) => sum + (s.cost_of_goods_ars || 0), 0);
-      const purchasesCogs = purchases.filter(p => yyyymm(new Date(p.created_at)) === ym)
+      const purchasesCogs = filteredPurchases.filter(p => yyyymm(new Date(p.created_at)) === ym)
         .reduce((sum, p) => sum + (p.total_ars || 0), 0);
       const cogs = cogsDirect > 0 ? cogsDirect : purchasesCogs;
 
       const grossProfit = revenue - cogs;
       const grossMargin = pct(grossProfit, revenue);
 
-      const expensesTotal = expenses.filter(e => {
+      const expensesTotal = filteredExpenses.filter(e => {
         const ed = new Date(e.date);
         return yyyymm(ed) === ym;
       }).reduce((sum, e) => sum + (e.amount_ars || e.amount || 0), 0);
@@ -118,7 +129,7 @@ export default function PLDashboardPage() {
       result.push({ ym, label, revenue, cogs, grossProfit, grossMargin, expenses: expensesTotal, netProfit, netMargin });
     }
     return result;
-  }, [sales, expenses, purchases, months]);
+  }, [filteredSales, filteredExpenses, filteredPurchases, months]);
 
   // ── Current month detail ───────────────────────────────────────────────────
   const currentYm = selectedYm || yyyymm(new Date());
@@ -141,7 +152,7 @@ export default function PLDashboardPage() {
   // ── Expense breakdown by category (monthly view) ───────────────────────────
   const expenseByCategory = useMemo(() => {
     const catMap = new Map<string, number>();
-    expenses.filter(e => {
+    filteredExpenses.filter(e => {
       const d = yyyymm(new Date(e.date));
       return d === currentYm;
     }).forEach(e => {
@@ -151,20 +162,20 @@ export default function PLDashboardPage() {
     return Array.from(catMap.entries())
       .map(([cat, total]) => ({ cat, total }))
       .sort((a, b) => b.total - a.total);
-  }, [expenses, currentYm]);
+  }, [filteredExpenses, currentYm]);
 
   // ── Expense breakdown YTD ─────────────────────────────────────────────────
   const expenseByCategoryYtd = useMemo(() => {
     const year = String(new Date().getFullYear());
     const catMap = new Map<string, number>();
-    expenses.filter(e => yyyymm(new Date(e.date)).startsWith(year)).forEach(e => {
+    filteredExpenses.filter(e => yyyymm(new Date(e.date)).startsWith(year)).forEach(e => {
       const cat = e.category || "Sin categoría";
       catMap.set(cat, (catMap.get(cat) || 0) + (e.amount_ars || e.amount || 0));
     });
     return Array.from(catMap.entries())
       .map(([cat, total]) => ({ cat, total }))
       .sort((a, b) => b.total - a.total);
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const exportCSV = () => {
     const rows = [
@@ -207,13 +218,16 @@ export default function PLDashboardPage() {
         title="Dashboard P&L"
         description="Estado de resultados en tiempo real"
         actions={
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 text-xs hover:bg-muted/50 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Exportar CSV
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DateRangeFilter label="Todo el período" />
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 text-xs hover:bg-muted/50 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exportar CSV
+            </button>
+          </div>
         }
       />
 

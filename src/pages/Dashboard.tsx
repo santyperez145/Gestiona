@@ -28,6 +28,9 @@ import AIProactiveWidget from "@/components/dashboard/AIProactiveWidget";
 import AIProductRecommenderWidget from "@/components/dashboard/AIProductRecommenderWidget";
 import DailyBriefingModal from "@/components/shared/DailyBriefingModal";
 import StockHeatmapWidget from "@/components/shared/StockHeatmapWidget";
+import InfluencerROIWidget from "@/components/dashboard/InfluencerROIWidget";
+import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
+import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { toast } from "sonner";
 
 const CHART_COLORS = ['hsl(40, 70%, 50%)', 'hsl(150, 60%, 40%)', 'hsl(35, 90%, 55%)', 'hsl(0, 70%, 50%)', 'hsl(200, 60%, 50%)', 'hsl(280, 60%, 50%)'];
@@ -390,6 +393,20 @@ export default function Dashboard() {
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
 
+  // Shared date-range + store filters (persisted in URL search params)
+  const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
+  const { storeId } = useStoreFilter();
+  const [locationStockMap, setLocationStockMap] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    if (!storeId) { setLocationStockMap(null); return; }
+    supabase.from('location_stock').select('product_id, stock').eq('location_id', storeId)
+      .then(({ data }) => {
+        const map: Record<string, number> = {};
+        (data || []).forEach((r: any) => { map[r.product_id] = r.stock; });
+        setLocationStockMap(map);
+      });
+  }, [storeId]);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -632,7 +649,18 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     if (!rawData) return null;
-    const { products: allProducts, sales: allSales, purchases: allPurchases, debts, settings, expenses } = rawData;
+    const { products: allProductsRaw, sales: allSalesRaw, purchases: allPurchasesRaw, debts, settings, expenses: expensesRaw } = rawData;
+
+    // Shared date-range filter (URL-persisted) — scopes sales/purchases/expenses
+    const hasDateFilter = !!dateFrom;
+    const allSales = hasDateFilter ? allSalesRaw.filter((s: any) => inRange(s.date)) : allSalesRaw;
+    const allPurchases = hasDateFilter ? allPurchasesRaw.filter((p: any) => inRange(p.date)) : allPurchasesRaw;
+    const expenses = hasDateFilter ? expensesRaw.filter((e: any) => inRange(e.date)) : expensesRaw;
+
+    // Shared store filter (URL-persisted) — scopes stock-related figures to the selected sucursal
+    const allProducts = locationStockMap
+      ? allProductsRaw.map((p: any) => ({ ...p, stock: locationStockMap[p.id] ?? 0 }))
+      : allProductsRaw;
 
     // Filter by category: get product IDs in category, then filter sales/purchases
     const products = filterCat === 'all' ? allProducts : allProducts.filter(p => p.category === filterCat);
@@ -1007,7 +1035,7 @@ export default function Dashboard() {
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
-  }, [rawData, filterCat]);
+  }, [rawData, filterCat, dateFrom, dateTo, locationStockMap]);
 
   // Browser notification for critical stock alert (once per session per threshold breach)
   useEffect(() => {
@@ -1155,7 +1183,9 @@ export default function Dashboard() {
             {filterCat === 'all' ? 'Resumen general de tu negocio' : `Filtrado: ${categories.find(c => c.value === filterCat)?.label}`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DateRangeFilter label="Todo el período" />
+          <StoreFilter />
           <Select value={filterCat} onValueChange={setFilterCat}>
             <SelectTrigger className="bg-card border-border/50 w-full sm:w-[200px] h-9 text-sm rounded-lg">
               <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
@@ -2835,6 +2865,9 @@ export default function Dashboard() {
 
       {/* AI Product Recommender */}
       <AIProductRecommenderWidget />
+
+      {/* ROI de Canjes con Influencers */}
+      <InfluencerROIWidget />
 
       {/* Próximas compras sugeridas */}
       {stats.restockSuggestions?.length > 0 && (

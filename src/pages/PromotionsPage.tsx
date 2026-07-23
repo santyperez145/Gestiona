@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
@@ -10,7 +11,7 @@ import {
   Zap, Plus, X, Save, Search, Trash2, Edit2, Clock, CheckCircle,
   PauseCircle, XCircle, RefreshCw, Tag, DollarSign, Users,
   ChevronDown, ChevronUp, Calendar, Copy, BarChart3, Percent,
-  Gift, ShoppingBag, Timer, Play
+  Gift, ShoppingBag, Timer, Play, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,18 +119,31 @@ export default function PromotionsPage() {
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
+  // coupon_code (uppercased) -> count of matching rows in `coupons`, for the
+  // "Cupones asociados" cross-link with /cupones
+  const [couponCountByCode, setCouponCountByCode] = useState<Record<string, number>>({});
 
   const load = async () => {
     if (!activeOrg?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("promotions")
-        .select("*")
-        .eq("org_id", activeOrg.id)
-        .order("starts_at", { ascending: false });
+      const [{ data, error }, couponsRes] = await Promise.all([
+        supabase
+          .from("promotions")
+          .select("*")
+          .eq("org_id", activeOrg.id)
+          .order("starts_at", { ascending: false }),
+        supabase.from("coupons").select("code").eq("org_id", activeOrg.id),
+      ]);
       if (error) throw error;
       setPromotions(data ?? []);
+      const counts: Record<string, number> = {};
+      (couponsRes.data || []).forEach((c: any) => {
+        if (!c.code) return;
+        const k = c.code.toUpperCase();
+        counts[k] = (counts[k] || 0) + 1;
+      });
+      setCouponCountByCode(counts);
     } catch (e: any) {
       toast.error("Error: " + e.message);
     } finally {
@@ -430,6 +444,7 @@ export default function PromotionsPage() {
             const StatusIcon = sc.icon;
             const TypeIcon = tc.icon;
             const isExpanded = expandedId === promo.id;
+            const linkedCouponCount = promo.coupon_code ? (couponCountByCode[promo.coupon_code.toUpperCase()] || 0) : 0;
 
             return (
               <div key={promo.id} className="bg-card border border-border rounded-xl overflow-hidden">
@@ -466,6 +481,12 @@ export default function PromotionsPage() {
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           Hasta: {format(new Date(promo.ends_at), "d MMM yyyy HH:mm", { locale: es })}
+                        </span>
+                      )}
+                      {promo.coupon_code && (
+                        <span className={`flex items-center gap-1 ${linkedCouponCount > 0 ? "text-primary" : "text-muted-foreground/70"}`}>
+                          <Tag className="w-3 h-3" />
+                          Cupones asociados: {linkedCouponCount}
                         </span>
                       )}
                     </div>
@@ -506,6 +527,20 @@ export default function PromotionsPage() {
                       {promo.min_order_value > 0 && <div><p className="text-xs text-muted-foreground">Compra mínima</p><p className="font-semibold">${promo.min_order_value.toLocaleString("es-AR")}</p></div>}
                     </div>
                     {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
+
+                    {/* Cross-link to Cupones */}
+                    {promo.coupon_code && (
+                      <Link
+                        to="/cupones"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-card hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs w-fit"
+                      >
+                        <Tag className="w-3.5 h-3.5 text-primary" />
+                        {linkedCouponCount > 0
+                          ? `Cupones asociados: ${linkedCouponCount} — Ver en Cupones`
+                          : `Sin cupón "${promo.coupon_code}" creado — Ir a Cupones`}
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>

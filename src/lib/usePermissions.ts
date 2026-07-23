@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 // ─── Role-based permission helpers ───────────────────────────────────────────
 
 /** Derive sensible permission defaults from a role (used as fallback). */
-function defaultsForRole(role: AppRole) {
+export function defaultsForRole(role: AppRole) {
   const isAdmin    = role === 'admin';
   const isSeller   = role === 'vendedor';
 

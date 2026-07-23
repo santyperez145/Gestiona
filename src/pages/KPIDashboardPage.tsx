@@ -16,6 +16,10 @@ import {
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
+import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
+// Note: StoreFilter is intentionally not wired here — sales have no location_id
+// in the schema yet (see Dashboard.tsx for the one real store-filter
+// integration, which scopes stock via `location_stock`).
 
 /* ─────────────────────────── types ─────────────────────────── */
 type WidgetType = "number" | "trend" | "bar_chart" | "pie_chart" | "table" | "gauge" | "sparkline" | "comparison";
@@ -239,6 +243,7 @@ export default function KPIDashboardPage() {
   const [activeDashId, setActiveDashId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [liveValues, setLiveValues] = useState<Record<string, { value: number; trend?: number }>>({});
+  const { from: dateFrom, to: dateTo } = useDateRangeFilter();
 
   /* dialogs */
   const [showDashDialog, setShowDashDialog] = useState(false);
@@ -288,21 +293,41 @@ export default function KPIDashboardPage() {
       .eq("org_id", orgId)
       .order("snapshot_date", { ascending: false })
       .limit(2);
+    let values: Record<string, { value: number; trend?: number }> = {};
     if (snapRes.data && snapRes.data.length > 0) {
       const today = snapRes.data[0];
       const yesterday = snapRes.data[1];
       const calcTrend = (a: number, b: number) => b > 0 ? Math.round(((a - b) / b) * 100) : 0;
-      setLiveValues({
+      values = {
         sales_total:     { value: Number(today.revenue_day ?? 0), trend: yesterday ? calcTrend(Number(today.revenue_day), Number(yesterday.revenue_day)) : undefined },
         sales_count:     { value: today.orders_day ?? 0, trend: yesterday ? calcTrend(today.orders_day, yesterday.orders_day) : undefined },
         avg_ticket:      { value: Number(today.avg_order_value ?? 0) },
         inventory_value: { value: Number(today.total_stock_value ?? 0) },
         low_stock_count: { value: today.low_stock_count ?? 0 },
         new_customers:   { value: today.new_customers ?? 0, trend: yesterday ? calcTrend(today.new_customers, yesterday.new_customers) : undefined },
-      });
+      };
     }
+
+    // Shared date-range filter (URL-persisted) — when active, override the
+    // sales-related live values with a real aggregate over the selected range
+    // instead of the single-day bi_snapshots comparison.
+    if (dateFrom) {
+      let salesQ = supabase.from("sales").select("total_ars").eq("org_id", orgId).gte("date", dateFrom.toISOString().slice(0, 10));
+      if (dateTo) salesQ = salesQ.lte("date", dateTo.toISOString().slice(0, 10));
+      const { data: rangeSales } = await salesQ;
+      if (rangeSales) {
+        const total = rangeSales.reduce((s, r: any) => s + Number(r.total_ars || 0), 0);
+        values = {
+          ...values,
+          sales_total: { value: total },
+          sales_count: { value: rangeSales.length },
+          avg_ticket: { value: rangeSales.length > 0 ? total / rangeSales.length : 0 },
+        };
+      }
+    }
+    setLiveValues(values);
     setLoading(false);
-  }, [orgId, activeDashId]);
+  }, [orgId, activeDashId, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -447,7 +472,8 @@ export default function KPIDashboardPage() {
         title="KPI Dashboard"
         description="Métricas clave, metas y alertas en tiempo real"
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <DateRangeFilter label="Todo el período" />
             <Button variant="outline" size="sm" onClick={openNewDash}><Plus className="w-4 h-4 mr-1" /> Dashboard</Button>
             {activeTab === "Widgets" && <Button size="sm" onClick={openNewWidget}><Plus className="w-4 h-4 mr-1" /> Widget</Button>}
             {activeTab === "Metas" && <Button size="sm" onClick={openNewGoal}><Plus className="w-4 h-4 mr-1" /> Meta</Button>}

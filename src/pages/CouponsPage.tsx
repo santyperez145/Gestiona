@@ -5,6 +5,7 @@
  * Reads from the `coupons` table and `sales` table for usage analytics.
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -13,7 +14,7 @@ import { formatARS } from "@/lib/supabaseStore";
 import {
   Tag, Plus, Trash2, Copy, CheckCircle2, XCircle,
   RefreshCw, Percent, DollarSign, BarChart3, AlertTriangle,
-  Clock, Infinity as InfinityIcon,
+  Clock, Infinity as InfinityIcon, Zap, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,12 +96,14 @@ export default function CouponsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // code (uppercased) -> matching promotion, for the cross-link with /promociones
+  const [promoByCode, setPromoByCode] = useState<Record<string, { id: string; name: string; status: string }>>({});
 
   const load = useCallback(async () => {
     if (!activeOrg) return;
     setLoading(true);
 
-    const [couponsRes, salesRes] = await Promise.all([
+    const [couponsRes, salesRes, promosRes] = await Promise.all([
       supabase
         .from("coupons")
         .select("*")
@@ -111,7 +114,18 @@ export default function CouponsPage() {
         .select("coupon_code, total_ars, discount_applied")
         .eq("org_id", activeOrg.id)
         .not("coupon_code", "is", null),
+      supabase
+        .from("promotions")
+        .select("id, name, status, coupon_code")
+        .eq("org_id", activeOrg.id)
+        .not("coupon_code", "is", null),
     ]);
+
+    const promoMap: Record<string, { id: string; name: string; status: string }> = {};
+    (promosRes.data || []).forEach((p: any) => {
+      if (p.coupon_code) promoMap[p.coupon_code.toUpperCase()] = { id: p.id, name: p.name, status: p.status };
+    });
+    setPromoByCode(promoMap);
 
     // Map coupon_code → revenue + discount
     const salesMap: Record<string, { revenue: number; discount: number; count: number }> = {};
@@ -225,6 +239,23 @@ export default function CouponsPage() {
         <KPICard label="Vencidos/Agotados" value={String(kpis.expired)} icon={AlertTriangle} sub="Ya no son canjeables" color="warning" />
       </div>
 
+      {/* Cross-link banner to Promociones */}
+      <Link
+        to="/promociones"
+        className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors group"
+      >
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <Zap className="w-4 h-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">¿Buscás crear una campaña con este cupón?</p>
+          <p className="text-xs text-muted-foreground">Las promociones agrupan cupones en ofertas con vigencia, banner y cuenta regresiva.</p>
+        </div>
+        <span className="text-xs text-primary font-medium flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          Ir a Promociones <ArrowRight className="w-3.5 h-3.5" />
+        </span>
+      </Link>
+
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground text-sm gap-2">
           <RefreshCw className="w-4 h-4 animate-spin" /> Cargando cupones…
@@ -242,6 +273,7 @@ export default function CouponsPage() {
           {coupons.map(c => {
             const stCfg = STATUS_CONFIG[c.status];
             const usagePct = c.max_uses ? Math.min((c.current_uses / c.max_uses) * 100, 100) : 0;
+            const linkedPromo = promoByCode[c.code?.toUpperCase()];
             return (
               <div
                 key={c.id}
@@ -265,6 +297,15 @@ export default function CouponsPage() {
                           <Clock className="w-3 h-3" />
                           Vence {new Date(c.valid_until).toLocaleDateString("es-AR")}
                         </span>
+                      )}
+                      {linkedPromo && (
+                        <Link
+                          to="/promociones"
+                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5 font-medium"
+                          title={`Parte de la promoción "${linkedPromo.name}"`}
+                        >
+                          <Zap className="w-3 h-3" />Ver en Promociones
+                        </Link>
                       )}
                     </div>
                   </div>

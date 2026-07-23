@@ -24,6 +24,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import ActivityFeedTab from "@/components/admin/ActivityFeedTab";
+import PermissionsTab from "@/components/admin/PermissionsTab";
 
 const CHART_COLORS = [
   'hsl(38 82% 52%)',
@@ -222,6 +223,7 @@ export default function AdminPage() {
         <TabsList className="overflow-x-auto">
           <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" />Rendimiento</TabsTrigger>
           <TabsTrigger value="team" className="gap-1.5"><Users className="w-3.5 h-3.5" />Equipo</TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-1.5"><Shield className="w-3.5 h-3.5" />Permisos</TabsTrigger>
           <TabsTrigger value="goals" className="gap-1.5"><Target className="w-3.5 h-3.5" />Metas</TabsTrigger>
           <TabsTrigger value="audit" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" />Auditoría</TabsTrigger>
           <TabsTrigger value="activity" className="gap-1.5"><Activity className="w-3.5 h-3.5" />Actividad</TabsTrigger>
@@ -441,6 +443,11 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </TabsContent>
+
+        {/* ── PERMISSIONS TAB ──────────────────────────────────────── */}
+        <TabsContent value="permissions" className="mt-4">
+          <PermissionsTab />
         </TabsContent>
 
         {/* ── GOALS TAB ────────────────────────────────────────────── */}
