@@ -68,13 +68,11 @@ const EmailCampaignsPage     = lazy(() => import("@/pages/EmailCampaignsPage"));
 const WhatsAppCampaignsPage  = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
 const PaymentLinksPage       = lazy(() => import("@/pages/PaymentLinksPage"));
 const BankReconciliationPage = lazy(() => import("@/pages/BankReconciliationPage"));
-const SalesPipelinePage      = lazy(() => import("@/pages/SalesPipelinePage"));
 const ProfilePage              = lazy(() => import("@/pages/ProfilePage"));
 const FinancialMovementsPage   = lazy(() => import("@/pages/FinancialMovementsPage"));
 const ActivityFeedPage         = lazy(() => import("@/pages/ActivityFeedPage"));
 const InventoryAgingPage       = lazy(() => import("@/pages/InventoryAgingPage"));
 const FollowUpPage             = lazy(() => import("@/pages/FollowUpPage"));
-const PricingIntelligencePage  = lazy(() => import("@/pages/PricingIntelligencePage"));
 const CouponsPage              = lazy(() => import("@/pages/CouponsPage"));
 const CalendarPage             = lazy(() => import("@/pages/CalendarPage"));
 const CustomerRFMPage          = lazy(() => import("@/pages/CustomerRFMPage"));
@@ -96,7 +94,6 @@ const SupplierQuotesPage       = lazy(() => import("@/pages/SupplierQuotesPage")
 const SocialPlannerPage        = lazy(() => import("@/pages/SocialPlannerPage"));
 const BatchLotPage             = lazy(() => import("@/pages/BatchLotPage"));
 const TaxManagementPage        = lazy(() => import("@/pages/TaxManagementPage"));
-const MultiWarehousePage       = lazy(() => import("@/pages/MultiWarehousePage"));
 const PurchaseRequestsPage     = lazy(() => import("@/pages/PurchaseRequestsPage"));
 const CashFlowPage             = lazy(() => import("@/pages/CashFlowPage"));
 const KPIDashboardPage         = lazy(() => import("@/pages/KPIDashboardPage"));
@@ -112,7 +109,6 @@ const PricingEnginePage        = lazy(() => import("@/pages/PricingEnginePage"))
 const PredictiveAnalyticsPage  = lazy(() => import("@/pages/PredictiveAnalyticsPage"));
 const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
 const FinancialScenariosPage   = lazy(() => import("@/pages/FinancialScenariosPage"));
-const FranchisePage            = lazy(() => import("@/pages/FranchisePage"));
 const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
 const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
 const PLDashboardPage          = lazy(() => import("@/pages/PLDashboardPage"));
@@ -249,13 +245,16 @@ function ProtectedRoutes() {
               <Route path="/links-de-pago" element={<PaymentLinksPage />} />
               <Route path="/banco" element={<BankReconciliationPage />} />
               <Route path="/movimientos" element={<FinancialMovementsPage />} />
-              <Route path="/pipeline" element={<SalesPipelinePage />} />
+              <Route path="/pipeline" element={<Navigate to="/crm-avanzado" replace />} />
               <Route path="/fidelidad" element={<LoyaltyAdvancedPage />} />
               <Route path="/alertas" element={<SmartAlertsPage />} />
               <Route path="/actividad" element={<ActivityFeedPage />} />
               <Route path="/inventario-aging" element={<InventoryAgingPage />} />
               <Route path="/seguimiento" element={<FollowUpPage />} />
-              <Route path="/precios-inteligentes" element={<PricingIntelligencePage />} />
+              <Route path="/precios-inteligentes" element={<Navigate to="/motor-precios" replace />} />
+              <Route path="/precios-dinamicos" element={<Navigate to="/motor-precios" replace />} />
+              <Route path="/precios-competencia" element={<Navigate to="/motor-precios" replace />} />
+              <Route path="/inteligencia-competitiva" element={<Navigate to="/motor-precios" replace />} />
               <Route path="/cupones" element={<CouponsPage />} />
               <Route path="/calendario" element={<CalendarPage />} />
               <Route path="/rfm" element={<CustomerRFMPage />} />
@@ -279,7 +278,7 @@ function ProtectedRoutes() {
               <Route path="/planner-social" element={<SocialPlannerPage />} />
               <Route path="/lotes" element={<BatchLotPage />} />
               <Route path="/impuestos" element={<TaxManagementPage />} />
-              <Route path="/multi-deposito" element={<MultiWarehousePage />} />
+              <Route path="/multi-deposito" element={<Navigate to="/sucursales" replace />} />
               <Route path="/solicitudes-compra" element={<PurchaseRequestsPage />} />
               <Route path="/cash-flow" element={<CashFlowPage />} />
               <Route path="/kpi-dashboard" element={<KPIDashboardPage />} />
@@ -297,7 +296,7 @@ function ProtectedRoutes() {
               <Route path="/analytics-ia" element={<PredictiveAnalyticsPage />} />
               <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
               <Route path="/escenarios-financieros" element={<FinancialScenariosPage />} />
-              <Route path="/franquicias" element={<FranchisePage />} />
+              <Route path="/franquicias" element={<Navigate to="/sucursales" replace />} />
               <Route path="/valuacion-inventario" element={<InventoryValuationPage />} />
               <Route path="/alertas-inteligentes" element={<Navigate to="/alertas" replace />} />
               <Route path="/pl-dashboard" element={<PLDashboardPage />} />

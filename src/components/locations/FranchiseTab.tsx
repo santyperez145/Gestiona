@@ -1,7 +1,12 @@
-﻿import { useState, useEffect } from "react";
+/**
+ * FranchiseTab — ported from the former FranchisePage (/franquicias).
+ * Rendered as the "Franquicias" tab inside LocationsPage (/sucursales).
+ *
+ * Franchise unit tracking: revenue, royalties, compliance audits and analytics.
+ */
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +16,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import {
-  Building2, MapPin, TrendingUp, DollarSign, CheckCircle, AlertTriangle,
-  Plus, Users, Star, BarChart3, Calendar, ShieldCheck
+  Building2, MapPin, TrendingUp, DollarSign, AlertTriangle,
+  Plus, ShieldCheck
 } from "lucide-react";
 
 interface FranchiseUnit {
@@ -41,7 +45,6 @@ interface Royalty {
   status: string;
 }
 
-
 function ComplianceBadge({ score }: { score: number }) {
   const cfg = score >= 90 ? { label: "Excelente", cls: "bg-emerald-500/15 text-emerald-400" }
     : score >= 75 ? { label: "Bueno", cls: "bg-blue-500/15 text-blue-400" }
@@ -50,29 +53,26 @@ function ComplianceBadge({ score }: { score: number }) {
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>;
 }
 
-export default function FranchisePage() {
-  usePageTitle("Gestión de Franquicias");
+export default function FranchiseTab() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"units" | "royalties" | "compliance" | "analytics">("units");
   const [units, setUnits] = useState<FranchiseUnit[]>([]);
   const [royalties, setRoyalties] = useState<Royalty[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<FranchiseUnit | null>(null);
   const [showNew, setShowNew] = useState(false);
 
   useEffect(() => {
     if (!orgId) return;
-    setLoading(true);
     supabase
       .from("franchise_units")
       .select("id, unit_code, owner_name, address, opened_at, revenue_mtd, revenue_ytd, compliance_score, last_audit, is_active")
       .eq("org_id", orgId)
       .order("unit_code")
       .then(({ data, error }) => {
-        if (error) { toast.error("Error cargando unidades"); setLoading(false); return; }
+        if (error) { toast.error("Error cargando unidades"); return; }
         const fetchedUnits = (data ?? []) as FranchiseUnit[];
         setUnits(fetchedUnits);
-        if (fetchedUnits.length === 0) { setLoading(false); return; }
+        if (fetchedUnits.length === 0) return;
         const unitIds = fetchedUnits.map(u => u.id);
         supabase
           .from("franchise_royalties")
@@ -80,20 +80,17 @@ export default function FranchisePage() {
           .in("unit_id", unitIds)
           .order("period_month", { ascending: false })
           .then(({ data: rData, error: rError }) => {
-            if (rError) toast.error("Error cargando regalías");
-            else {
-              const mapped: Royalty[] = (rData ?? []).map((r: any) => ({
-                unit_id: r.unit_id,
-                unit_code: r.franchise_units?.unit_code ?? "",
-                period_month: r.period_month,
-                gross_revenue: r.gross_revenue,
-                royalty_amount: r.royalty_amount,
-                marketing_fee: r.marketing_fee,
-                status: r.status,
-              }));
-              setRoyalties(mapped);
-            }
-            setLoading(false);
+            if (rError) { toast.error("Error cargando regalías"); return; }
+            const mapped: Royalty[] = (rData ?? []).map((r: any) => ({
+              unit_id: r.unit_id,
+              unit_code: r.franchise_units?.unit_code ?? "",
+              period_month: r.period_month,
+              gross_revenue: r.gross_revenue,
+              royalty_amount: r.royalty_amount,
+              marketing_fee: r.marketing_fee,
+              status: r.status,
+            }));
+            setRoyalties(mapped);
           });
       });
   }, [orgId]);
@@ -103,30 +100,26 @@ export default function FranchisePage() {
   const avgCompliance = units.length ? Math.round(units.reduce((s, u) => s + u.compliance_score, 0) / units.length) : 0;
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Building2}
-        title="Gestión de Franquicias"
-        description="Red de unidades, regalías y cumplimiento"
-        actions={
-          <Dialog open={showNew} onOpenChange={setShowNew}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nueva Unidad</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Agregar Unidad Franquiciada</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-2">
-                <div><Label>Código de Unidad</Label><Input placeholder="ARG-005" /></div>
-                <div><Label>Nombre del Franquiciado</Label><Input placeholder="Nombre completo" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Ciudad</Label><Input placeholder="Buenos Aires" /></div>
-                  <div><Label>Provincia</Label><Input placeholder="CABA" /></div>
-                </div>
-                <div><Label>Fecha de Apertura</Label><Input type="date" /></div>
-                <Button className="w-full" onClick={() => { toast.success("Unidad creada"); setShowNew(false); }}>Crear Unidad</Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">Red de unidades franquiciadas, regalías y cumplimiento</p>
+        <Dialog open={showNew} onOpenChange={setShowNew}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nueva Unidad</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Agregar Unidad Franquiciada</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <div><Label>Código de Unidad</Label><Input placeholder="ARG-005" /></div>
+              <div><Label>Nombre del Franquiciado</Label><Input placeholder="Nombre completo" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Ciudad</Label><Input placeholder="Buenos Aires" /></div>
+                <div><Label>Provincia</Label><Input placeholder="CABA" /></div>
               </div>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+              <div><Label>Fecha de Apertura</Label><Input type="date" /></div>
+              <Button className="w-full" onClick={() => { toast.success("Unidad creada"); setShowNew(false); }}>Crear Unidad</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -145,7 +138,7 @@ export default function FranchisePage() {
         </TabsList>
 
         {/* UNITS */}
-        <TabsContent value="units" className="space-y-3 pb-12">
+        <TabsContent value="units" className="space-y-3 pb-4">
           {units.map(unit => (
             <Card key={unit.id} className={`cursor-pointer hover:shadow-md transition-shadow ${!unit.is_active ? "opacity-60" : ""}`} onClick={() => setSelected(unit)}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -172,12 +165,15 @@ export default function FranchisePage() {
               </CardContent>
             </Card>
           ))}
+          {units.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Sin unidades franquiciadas configuradas</p>
+          )}
         </TabsContent>
 
         {/* ROYALTIES */}
         <TabsContent value="royalties">
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30">
                   <tr>
@@ -211,6 +207,9 @@ export default function FranchisePage() {
                       </td>
                     </tr>
                   ))}
+                  {royalties.length === 0 && (
+                    <tr><td colSpan={7} className="text-center py-10 text-muted-foreground">Sin regalías registradas</td></tr>
+                  )}
                 </tbody>
               </table>
             </CardContent>
@@ -218,7 +217,7 @@ export default function FranchisePage() {
         </TabsContent>
 
         {/* COMPLIANCE */}
-        <TabsContent value="compliance" className="space-y-4 pb-12">
+        <TabsContent value="compliance" className="space-y-4 pb-4">
           {units.filter(u => u.is_active).map(unit => (
             <Card key={unit.id} className={unit.compliance_score < 70 ? "border-red-300" : ""}>
               <CardContent className="p-4">
@@ -291,7 +290,7 @@ export default function FranchisePage() {
               <CardTitle className="text-base">{selected.unit_code} — {selected.owner_name}</CardTitle>
               <Button size="icon" variant="ghost" onClick={() => setSelected(null)}>✕</Button>
             </CardHeader>
-            <CardContent className="space-y-4 pb-12">
+            <CardContent className="space-y-4 pb-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-xs text-muted-foreground">Ubicación</p><p>{selected.address?.city}, {selected.address?.province}</p></div>
                 <div><p className="text-xs text-muted-foreground">Apertura</p><p>{selected.opened_at ?? "—"}</p></div>

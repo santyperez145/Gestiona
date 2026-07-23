@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Check } from "lucide-react";
+import { MapPin, Plus, Edit2, Trash2, ArrowLeftRight, Package, Phone, Star, Check, Warehouse, Building2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import WarehouseZonesTab from "@/components/locations/WarehouseZonesTab";
+import FranchiseTab from "@/components/locations/FranchiseTab";
 
 type Location = {
   id: string;
@@ -202,7 +204,7 @@ async function upsertLocationStock(orgId: string, locationId: string, productId:
 }
 
 export default function LocationsPage() {
-  usePageTitle("Ubicaciones");
+  usePageTitle("Sucursales & Depósitos");
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const [locations, setLocations] = useState<Location[]>([]);
@@ -210,6 +212,7 @@ export default function LocationsPage() {
   const [transfers, setTransfers] = useState<any[]>([]);
   const [locationStock, setLocationStock] = useState<Record<string, LocationStock[]>>({});
   const [loading, setLoading] = useState(true);
+  const [mainTab, setMainTab] = useState<"sucursales" | "depositos" | "franquicias">("sucursales");
   const [tab, setTab] = useState<"locations" | "transfers" | "stock">("locations");
   const [showForm, setShowForm] = useState(false);
   const [editingLoc, setEditingLoc] = useState<Location | null>(null);
@@ -269,21 +272,37 @@ export default function LocationsPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={MapPin}
-        title="Sucursales"
-        description="Gestioná múltiples locales y transferencias de stock entre ellos"
-        actions={
-          <div className="flex gap-2">
-            {locations.length >= 2 && (
-              <Button variant="outline" onClick={() => setShowTransfer(true)}>
-                <ArrowLeftRight className="w-4 h-4 mr-2" />Transferir stock
-              </Button>
-            )}
-            <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => { setEditingLoc(null); setShowForm(true); }}>
-              <Plus className="w-4 h-4 mr-2" />Nuevo local
-            </Button>
-          </div>
-        }
+        title="Sucursales & Depósitos"
+        description="Locales, depósitos, zonas y franquicias en un solo lugar"
       />
+
+      {/* Main sections */}
+      <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+        {[
+          { id: "sucursales",  label: "Sucursales", icon: MapPin },
+          { id: "depositos",   label: "Depósitos y Zonas", icon: Warehouse },
+          { id: "franquicias", label: "Franquicias", icon: Building2 },
+        ].map(t => (
+          <button key={t.id} onClick={() => setMainTab(t.id as any)}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${mainTab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            <t.icon className="w-3.5 h-3.5" />{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ═══════════════════════ Sucursales ═══════════════════════════════════ */}
+      {mainTab === "sucursales" && (
+      <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2">
+        {locations.length >= 2 && (
+          <Button variant="outline" onClick={() => setShowTransfer(true)}>
+            <ArrowLeftRight className="w-4 h-4 mr-2" />Transferir stock
+          </Button>
+        )}
+        <Button className="gradient-gold text-primary-foreground font-semibold shadow-gold" onClick={() => { setEditingLoc(null); setShowForm(true); }}>
+          <Plus className="w-4 h-4 mr-2" />Nuevo local
+        </Button>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -454,6 +473,14 @@ export default function LocationsPage() {
           </div>
         </div>
       )}
+      </div>
+      )}
+
+      {/* ═══════════════════════ Depósitos y Zonas ═════════════════════════════ */}
+      {mainTab === "depositos" && <WarehouseZonesTab />}
+
+      {/* ═══════════════════════ Franquicias ═══════════════════════════════════ */}
+      {mainTab === "franquicias" && <FranchiseTab />}
 
       {/* Create/Edit Location Dialog */}
       <Dialog open={showForm} onOpenChange={v => { setShowForm(v); if (!v) setEditingLoc(null); }}>

@@ -1,7 +1,16 @@
-﻿import { useState, useEffect, useMemo, useCallback } from "react";
+/**
+ * PipelineKanbanTab — ported from the former SalesPipelinePage (/pipeline).
+ * Rendered as the default "Pipeline Kanban" tab inside AdvancedCRMPage (/crm-avanzado).
+ *
+ * Full drag-and-drop pipeline board on the `deals` table: KPIs, funnel/win-loss
+ * analytics, revenue forecast by month, per-deal activity timeline with an AI coach,
+ * and win/loss reason capture on close. This is the richer of the two former
+ * kanban implementations (AdvancedCRMPage's old static `crm_deals` board was dropped
+ * in favor of this one).
+ */
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +31,6 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatARS } from "@/lib/supabaseStore";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -733,10 +741,9 @@ function DealCard({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Tab content ──────────────────────────────────────────────────────────────
 
-export default function SalesPipelinePage() {
-  usePageTitle("Pipeline de Ventas");
+export default function PipelineKanbanTab() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 
@@ -744,7 +751,6 @@ export default function SalesPipelinePage() {
   const [loading, setLoading] = useState(true);
   const [showStalePanel, setShowStalePanel] = useState(false);
   const [dialog, setDialog] = useState<{ open: boolean; deal?: Deal; prefillStage?: Stage }>({ open: false });
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
   const [activityDeal, setActivityDeal] = useState<Deal | null>(null);
@@ -1043,12 +1049,11 @@ export default function SalesPipelinePage() {
 
   const handleDelete = async (deal: Deal) => {
     if (!confirm(`¿Eliminar "${deal.title}"?`)) return;
-    setDeletingId(deal.id);
     try {
       await supabase.from("deals").delete().eq("id", deal.id);
       setDeals(prev => prev.filter(d => d.id !== deal.id));
-    } finally {
-      setDeletingId(null);
+    } catch {
+      toast.error("Error al eliminar");
     }
   };
 
@@ -1084,12 +1089,8 @@ export default function SalesPipelinePage() {
     return days >= 14;
   }), [deals]);
 
-  // Tab state: "pipeline" | "analisis"
-  const [activeTab, setActiveTab] = useState<"pipeline" | "analisis">("pipeline");
-
   // Analytics: conversion funnel + velocity
   const analyticsData = useMemo(() => {
-    const ACTIVE_STAGES: Stage[] = ["lead", "contactado", "propuesta", "negociacion"];
     const now = Date.now();
 
     // Count per stage (all deals)
@@ -1120,17 +1121,6 @@ export default function SalesPipelinePage() {
       return { stage: s, count, pct, avgAge, avgValue };
     });
 
-    // Stage conversion rates
-    const conversionRates = ACTIVE_STAGES.map((stageVal, idx) => {
-      const current = countByStage[stageVal] || 0;
-      const prev = idx === 0 ? totalEntered : (countByStage[ACTIVE_STAGES[idx - 1]] || 1);
-      return {
-        label: STAGES.find(s => s.value === stageVal)?.label ?? stageVal,
-        rate: prev > 0 ? Math.round((current / prev) * 100) : 0,
-        count: current,
-      };
-    });
-
     // Avg deal velocity: days from lead creation to cerrado
     const velocities = won
       .map(d => Math.floor((now - new Date(d.created_at).getTime()) / 86400000))
@@ -1139,17 +1129,7 @@ export default function SalesPipelinePage() {
       ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
       : null;
 
-    // Loss analysis: avg value of lost deals
-    const avgLostValue = lost.length > 0
-      ? Math.round(lost.reduce((s, d) => s + (d.value_ars || 0), 0) / lost.length)
-      : 0;
-
     // Win/Loss reason breakdown
-    const winReasonMap: Record<string, number> = {};
-    won.forEach(d => {
-      const r = d.win_loss_reason || "Sin registrar";
-      winReasonMap[r] = (winReasonMap[r] || 0) + 1;
-    });
     const lossReasonMap: Record<string, number> = {};
     lost.forEach(d => {
       const r = d.win_loss_reason || "Sin registrar";
@@ -1161,16 +1141,13 @@ export default function SalesPipelinePage() {
 
     return {
       funnel,
-      conversionRates,
       won: won.length,
       lost: lost.length,
       open: open.length,
       avgVelocity,
-      avgLostValue,
       totalValue: deals.reduce((s, d) => s + (d.value_ars || 0), 0),
       wonValue: won.reduce((s, d) => s + (d.value_ars || 0), 0),
       lostValue: lost.reduce((s, d) => s + (d.value_ars || 0), 0),
-      winReasonMap,
       lossReasonMap,
       winRate,
     };
@@ -1201,7 +1178,7 @@ export default function SalesPipelinePage() {
   }, [deals]);
 
   return (
-    <div className={`p-4 md:p-6 space-y-5 transition-all duration-300 ${activityDeal ? "sm:mr-[420px]" : ""}`}>
+    <div className={`space-y-5 transition-all duration-300 ${activityDeal ? "sm:mr-[420px]" : ""}`}>
       {/* Activity Panel overlay */}
       {activityDeal && activeOrg && user && (
         <ActivityPanel
@@ -1225,67 +1202,35 @@ export default function SalesPipelinePage() {
         onSave={handleSave}
       />
 
-      {/* Header */}
-      <PageHeader
-        icon={TrendingUp}
-        title="Pipeline de Ventas"
-        description="Seguimiento de oportunidades comerciales"
-        badge={
-          stats.openCount > 0
-            ? { label: `${stats.openCount} abiertas`, variant: "default" }
-            : undefined
-        }
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => {
-              const header = "Título,Cliente,Etapa,Valor ARS,Cierre esperado,Notas,Creada\n";
-              const rows = deals.map(d => [
-                d.title, d.customer_name,
-                STAGES.find(s => s.value === d.stage)?.label || d.stage,
-                d.value_ars || 0,
-                d.expected_close || '',
-                d.notes || '',
-                d.created_at.slice(0, 10),
-              ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-              const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
-              const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pipeline.csv"; a.click();
-            }}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
-            </Button>
-            <Button onClick={() => setDialog({ open: true })} className="gradient-gold text-primary-foreground gap-1.5">
-              <Plus className="w-4 h-4" />Nueva oportunidad
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-muted/40 border border-border rounded-xl p-1 w-fit">
-        <button
-          onClick={() => setActiveTab("pipeline")}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "pipeline"
-              ? "bg-card shadow border border-border text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Pipeline
-        </button>
-        <button
-          onClick={() => setActiveTab("analisis")}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-            activeTab === "analisis"
-              ? "bg-card shadow border border-border text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-          Análisis
-        </button>
+      {/* Actions row */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">
+          {stats.openCount > 0 ? `${stats.openCount} oportunidades abiertas` : "Seguimiento de oportunidades comerciales"}
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            const header = "Título,Cliente,Etapa,Valor ARS,Cierre esperado,Notas,Creada\n";
+            const rows = deals.map(d => [
+              d.title, d.customer_name,
+              STAGES.find(s => s.value === d.stage)?.label || d.stage,
+              d.value_ars || 0,
+              d.expected_close || '',
+              d.notes || '',
+              d.created_at.slice(0, 10),
+            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8;" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pipeline.csv"; a.click();
+          }}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" />CSV
+          </Button>
+          <Button onClick={() => setDialog({ open: true })} className="gradient-gold text-primary-foreground gap-1.5">
+            <Plus className="w-4 h-4" />Nueva oportunidad
+          </Button>
+        </div>
       </div>
 
       {/* Stale deals alert */}
-      {activeTab === "pipeline" && staleDeals.length > 0 && (
+      {staleDeals.length > 0 && (
         <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-2.5">
           <span className="text-sm font-semibold text-orange-400">{staleDeals.length} deal{staleDeals.length !== 1 ? "s" : ""} sin actividad +14 días</span>
           <button
@@ -1296,333 +1241,325 @@ export default function SalesPipelinePage() {
           </button>
         </div>
       )}
-      {/* ── TAB: PIPELINE ──────────────────────────────────────────────────────── */}
-      {activeTab === "pipeline" && (
-        <>
-          {showStalePanel && staleDeals.length > 0 && (
-            <div className="bg-card border border-orange-500/20 rounded-xl p-4 space-y-2">
-              {staleDeals.map(d => {
-                const days = Math.floor((Date.now() - new Date(d.updated_at).getTime()) / 86400000);
-                const stageLabel = STAGES.find(s => s.value === d.stage)?.label || d.stage;
-                return (
-                  <div key={d.id} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{d.title}</p>
-                      <p className="text-[10px] text-muted-foreground">{d.customer_name || ""} · {stageLabel}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-3">
-                      <span className="text-xs text-orange-400 font-semibold">{days}d sin cambios</span>
-                      {d.value_ars && <span className="text-xs text-muted-foreground">{formatARS(d.value_ars)}</span>}
-                      <button
-                        onClick={() => setDialog({ open: true, deal: d })}
-                        className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                      >
-                        Actualizar
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KPICard label="Pipeline total" value={formatARS(stats.pipelineValue)} icon={DollarSign} color="primary" sub="valor bruto" />
-            <KPICard label="Pipeline ponderado" value={formatARS(stats.weightedValue)} icon={TrendingUp} color="warning" sub="ajustado por probabilidad" />
-            <KPICard label="Cerradas ganadas" value={formatARS(stats.wonValue)} icon={Calendar} color="success" sub={`${stats.openCount} abiertas`} />
-            <KPICard label="Tasa de cierre" value={`${stats.winRate.toFixed(0)}%`} icon={User}
-              color={stats.winRate >= 50 ? "success" : stats.winRate >= 25 ? "warning" : "destructive"} />
-          </div>
-
-          {/* Pipeline Analytics Panel */}
-          <div className="bg-card border border-border rounded-xl p-5 space-y-5">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-sm">Analíticas del Pipeline</h3>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded ml-auto">
-                {deals.length} deals totales
-              </span>
-            </div>
-
-            {/* Win / Loss / Open summary */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold font-display text-emerald-400">{analyticsData.won}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Ganados</p>
-                <p className="text-xs text-emerald-400 font-semibold mt-1">{formatARS(analyticsData.wonValue)}</p>
-              </div>
-              <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold font-display text-primary">{analyticsData.open}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">En progreso</p>
-                {analyticsData.avgVelocity !== null && (
-                  <p className="text-xs text-muted-foreground mt-1">~{analyticsData.avgVelocity}d ciclo</p>
-                )}
-              </div>
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold font-display text-red-400">{analyticsData.lost}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Perdidos</p>
-                <p className="text-xs text-red-400 font-semibold mt-1">{formatARS(analyticsData.lostValue)}</p>
-              </div>
-            </div>
-
-            {/* Conversion Funnel */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Embudo de conversión</p>
-              <div className="space-y-2 pb-12">
-                {analyticsData.funnel.map((item, idx) => {
-                  const maxCount = analyticsData.funnel[0]?.count || 1;
-                  const widthPct = maxCount > 0 ? Math.round((item.count / maxCount) * 100) : 0;
-                  return (
-                    <div key={item.stage.value} className="flex items-center gap-3">
-                      <span className={`text-xs font-medium w-28 shrink-0 ${item.stage.color}`}>{item.stage.label}</span>
-                      <div className="flex-1 h-7 bg-muted/30 rounded-lg overflow-hidden relative">
-                        <div
-                          className="h-full rounded-lg transition-all duration-500"
-                          style={{
-                            width: `${widthPct}%`,
-                            background: item.stage.value === "cerrado"
-                              ? "hsl(var(--emerald-500, 160 60% 45%))"
-                              : "hsl(var(--primary))",
-                            opacity: 0.6 + (idx * 0.08),
-                          }}
-                        />
-                        <span className="absolute inset-0 flex items-center px-3 text-xs font-semibold">
-                          {item.count} deal{item.count !== 1 ? "s" : ""} · {widthPct}%
-                          {item.avgValue > 0 && (
-                            <span className="ml-2 text-muted-foreground font-normal">
-                              · avg {formatARS(item.avgValue)}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      {item.avgAge > 0 && (
-                        <span className="text-[10px] text-muted-foreground shrink-0 w-14 text-right">
-                          ~{item.avgAge}d avg
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Deal velocity insight */}
-            {analyticsData.avgVelocity !== null && (
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center gap-3">
-                <Clock className="w-5 h-5 text-primary shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold">Velocidad promedio de cierre: <span className="text-primary">{analyticsData.avgVelocity} días</span></p>
-                  <p className="text-xs text-muted-foreground">
-                    Tiempo promedio desde la creación del deal hasta el cierre en los {analyticsData.won} deals ganados.
-                  </p>
+      {showStalePanel && staleDeals.length > 0 && (
+        <div className="bg-card border border-orange-500/20 rounded-xl p-4 space-y-2">
+          {staleDeals.map(d => {
+            const days = Math.floor((Date.now() - new Date(d.updated_at).getTime()) / 86400000);
+            const stageLabel = STAGES.find(s => s.value === d.stage)?.label || d.stage;
+            return (
+              <div key={d.id} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{d.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{d.customer_name || ""} · {stageLabel}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 ml-3">
+                  <span className="text-xs text-orange-400 font-semibold">{days}d sin cambios</span>
+                  {d.value_ars && <span className="text-xs text-muted-foreground">{formatARS(d.value_ars)}</span>}
+                  <button
+                    onClick={() => setDialog({ open: true, deal: d })}
+                    className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    Actualizar
+                  </button>
                 </div>
               </div>
-            )}
+            );
+          })}
+        </div>
+      )}
 
-            {/* Stage value bar chart */}
-            {analyticsData.funnel.some(f => f.avgValue > 0) && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Valor promedio por etapa</p>
-                <ResponsiveContainer width="100%" height={140}>
-                  <BarChart data={analyticsData.funnel.filter(f => f.avgValue > 0)} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                    <XAxis dataKey={d => d.stage.label} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                      formatter={(v: number) => [formatARS(v), "Valor promedio"]}
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPICard label="Pipeline total" value={formatARS(stats.pipelineValue)} icon={DollarSign} color="primary" sub="valor bruto" />
+        <KPICard label="Pipeline ponderado" value={formatARS(stats.weightedValue)} icon={TrendingUp} color="warning" sub="ajustado por probabilidad" />
+        <KPICard label="Cerradas ganadas" value={formatARS(stats.wonValue)} icon={Calendar} color="success" sub={`${stats.openCount} abiertas`} />
+        <KPICard label="Tasa de cierre" value={`${stats.winRate.toFixed(0)}%`} icon={User}
+          color={stats.winRate >= 50 ? "success" : stats.winRate >= 25 ? "warning" : "destructive"} />
+      </div>
+
+      {/* Pipeline Analytics Panel */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+        <div className="flex items-center gap-2 mb-2">
+          <BarChart3 className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold text-sm">Analíticas del Pipeline</h3>
+          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded ml-auto">
+            {deals.length} deals totales
+          </span>
+        </div>
+
+        {/* Win / Loss / Open summary */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold font-display text-emerald-400">{analyticsData.won}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Ganados</p>
+            <p className="text-xs text-emerald-400 font-semibold mt-1">{formatARS(analyticsData.wonValue)}</p>
+          </div>
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold font-display text-primary">{analyticsData.open}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">En progreso</p>
+            {analyticsData.avgVelocity !== null && (
+              <p className="text-xs text-muted-foreground mt-1">~{analyticsData.avgVelocity}d ciclo</p>
+            )}
+          </div>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold font-display text-red-400">{analyticsData.lost}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Perdidos</p>
+            <p className="text-xs text-red-400 font-semibold mt-1">{formatARS(analyticsData.lostValue)}</p>
+          </div>
+        </div>
+
+        {/* Conversion Funnel */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Embudo de conversión</p>
+          <div className="space-y-2">
+            {analyticsData.funnel.map((item, idx) => {
+              const maxCount = analyticsData.funnel[0]?.count || 1;
+              const widthPct = maxCount > 0 ? Math.round((item.count / maxCount) * 100) : 0;
+              return (
+                <div key={item.stage.value} className="flex items-center gap-3">
+                  <span className={`text-xs font-medium w-28 shrink-0 ${item.stage.color}`}>{item.stage.label}</span>
+                  <div className="flex-1 h-7 bg-muted/30 rounded-lg overflow-hidden relative">
+                    <div
+                      className="h-full rounded-lg transition-all duration-500"
+                      style={{
+                        width: `${widthPct}%`,
+                        background: item.stage.value === "cerrado"
+                          ? "hsl(var(--emerald-500, 160 60% 45%))"
+                          : "hsl(var(--primary))",
+                        opacity: 0.6 + (idx * 0.08),
+                      }}
                     />
-                    <Bar dataKey="avgValue" radius={[4, 4, 0, 0]}>
-                      {analyticsData.funnel.filter(f => f.avgValue > 0).map((entry, idx) => (
-                        <Cell key={entry.stage.value} fill={idx === analyticsData.funnel.filter(f => f.avgValue > 0).length - 1
-                          ? "hsl(var(--chart-2))" : "hsl(var(--primary))"} opacity={0.7 + idx * 0.05} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Win/Loss Rate & Reason Breakdown */}
-            {(analyticsData.won + analyticsData.lost) > 0 && (
-              <div className="space-y-3 pb-12">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Win Rate & Razones</p>
-                <div className="flex items-center gap-3">
-                  <div className="relative w-16 h-16 shrink-0">
-                    <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="hsl(var(--muted))" strokeWidth="3.5" />
-                      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="hsl(160 60% 45%)" strokeWidth="3.5"
-                        strokeDasharray={`${analyticsData.winRate} ${100 - analyticsData.winRate}`} strokeLinecap="round" />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-400">
-                      {analyticsData.winRate}%
+                    <span className="absolute inset-0 flex items-center px-3 text-xs font-semibold">
+                      {item.count} deal{item.count !== 1 ? "s" : ""} · {widthPct}%
+                      {item.avgValue > 0 && (
+                        <span className="ml-2 text-muted-foreground font-normal">
+                          · avg {formatARS(item.avgValue)}
+                        </span>
+                      )}
                     </span>
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-xs font-semibold">Win rate: <span className="text-emerald-400">{analyticsData.winRate}%</span></p>
-                    <p className="text-[10px] text-muted-foreground">{analyticsData.won} ganados · {analyticsData.lost} perdidos</p>
-                    {Object.keys(analyticsData.lossReasonMap).length > 0 && (
-                      <div className="space-y-1 mt-2">
-                        <p className="text-[10px] text-red-400 font-medium">Top razones de pérdida:</p>
-                        {Object.entries(analyticsData.lossReasonMap)
-                          .sort(([, a], [, b]) => b - a).slice(0, 4).map(([reason, count]) => (
-                          <div key={reason} className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground flex-1 truncate">{reason}</span>
-                            <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-red-400/60 rounded-full"
-                                style={{ width: `${Math.round((count / analyticsData.lost) * 100)}%` }} />
-                            </div>
-                            <span className="text-[10px] text-muted-foreground w-4 text-right">{count}</span>
-                          </div>
-                        ))}
+                  {item.avgAge > 0 && (
+                    <span className="text-[10px] text-muted-foreground shrink-0 w-14 text-right">
+                      ~{item.avgAge}d avg
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Deal velocity insight */}
+        {analyticsData.avgVelocity !== null && (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center gap-3">
+            <Clock className="w-5 h-5 text-primary shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">Velocidad promedio de cierre: <span className="text-primary">{analyticsData.avgVelocity} días</span></p>
+              <p className="text-xs text-muted-foreground">
+                Tiempo promedio desde la creación del deal hasta el cierre en los {analyticsData.won} deals ganados.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Stage value bar chart */}
+        {analyticsData.funnel.some(f => f.avgValue > 0) && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Valor promedio por etapa</p>
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart data={analyticsData.funnel.filter(f => f.avgValue > 0)} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <XAxis dataKey={d => d.stage.label} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                  formatter={(v: number) => [formatARS(v), "Valor promedio"]}
+                />
+                <Bar dataKey="avgValue" radius={[4, 4, 0, 0]}>
+                  {analyticsData.funnel.filter(f => f.avgValue > 0).map((entry, idx) => (
+                    <Cell key={entry.stage.value} fill={idx === analyticsData.funnel.filter(f => f.avgValue > 0).length - 1
+                      ? "hsl(var(--chart-2))" : "hsl(var(--primary))"} opacity={0.7 + idx * 0.05} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Win/Loss Rate & Reason Breakdown */}
+        {(analyticsData.won + analyticsData.lost) > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Win Rate & Razones</p>
+            <div className="flex items-center gap-3">
+              <div className="relative w-16 h-16 shrink-0">
+                <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+                  <circle cx="18" cy="18" r="15.9155" fill="none" stroke="hsl(var(--muted))" strokeWidth="3.5" />
+                  <circle cx="18" cy="18" r="15.9155" fill="none" stroke="hsl(160 60% 45%)" strokeWidth="3.5"
+                    strokeDasharray={`${analyticsData.winRate} ${100 - analyticsData.winRate}`} strokeLinecap="round" />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-400">
+                  {analyticsData.winRate}%
+                </span>
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-xs font-semibold">Win rate: <span className="text-emerald-400">{analyticsData.winRate}%</span></p>
+                <p className="text-[10px] text-muted-foreground">{analyticsData.won} ganados · {analyticsData.lost} perdidos</p>
+                {Object.keys(analyticsData.lossReasonMap).length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    <p className="text-[10px] text-red-400 font-medium">Top razones de pérdida:</p>
+                    {Object.entries(analyticsData.lossReasonMap)
+                      .sort(([, a], [, b]) => b - a).slice(0, 4).map(([reason, count]) => (
+                      <div key={reason} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground flex-1 truncate">{reason}</span>
+                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-red-400/60 rounded-full"
+                            style={{ width: `${Math.round((count / analyticsData.lost) * 100)}%` }} />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground w-4 text-right">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Revenue Forecast Chart */}
+      {forecastData.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Proyección de cierre por mes
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-normal">
+                Basado en expected_close de deals abiertos
+              </span>
+            </h3>
+            <button
+              onClick={() => setShowForecast(v => !v)}
+              className="text-xs text-primary hover:underline"
+            >
+              {showForecast ? "Ocultar" : "Ver gráfico →"}
+            </button>
+          </div>
+          {showForecast && (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={forecastData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                    formatter={(val: any, name: string) => [formatARS(Number(val)), name === "bruto" ? "Valor bruto" : "Valor ponderado"]}
+                  />
+                  <Bar dataKey="bruto" fill="hsl(var(--primary))" opacity={0.3} radius={[3, 3, 0, 0]} name="bruto" />
+                  <Bar dataKey="ponderado" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} name="ponderado" />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-2 rounded bg-primary/30 inline-block" />Valor bruto</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-2 rounded bg-primary inline-block" />Ponderado por probabilidad de etapa</span>
+              </div>
+            </>
+          )}
+          {!showForecast && (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {forecastData.map(d => (
+                <div key={d.month} className="shrink-0 text-center">
+                  <p className="text-[10px] text-muted-foreground">{d.month}</p>
+                  <p className="text-xs font-mono font-semibold text-primary">{formatARS(d.ponderado)}</p>
+                  <p className="text-[9px] text-muted-foreground/60">{d.count} deal{d.count !== 1 ? "s" : ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Kanban board */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />Cargando...
+        </div>
+      ) : (
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-3 min-w-max">
+            {STAGES.map(stage => {
+              const stageDeals = dealsByStage[stage.value] || [];
+              const stageTotal = stageDeals.reduce((s, d) => s + (d.value_ars || 0), 0);
+              return (
+                <div
+                  key={stage.value}
+                  className={`w-64 flex flex-col gap-2 transition-all rounded-xl ${dragOverStage === stage.value ? "ring-2 ring-primary/40 bg-primary/5" : ""}`}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverStage(stage.value); }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStage(null); }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    setDragOverStage(null);
+                    if (draggedId) {
+                      const deal = deals.find(d => d.id === draggedId);
+                      if (deal && deal.stage !== stage.value) handleMove(deal, stage.value);
+                    }
+                    setDraggedId(null);
+                  }}
+                >
+                  {/* Column header */}
+                  <div className={`rounded-xl px-3 py-2.5 ${stage.bg}`}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-xs font-bold uppercase tracking-wide ${stage.color}`}>
+                        {stage.label}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {stage.probability > 0 && stage.probability < 100 && (
+                          <span className="text-[10px] text-muted-foreground">{stage.probability}%</span>
+                        )}
+                        <span className="text-xs bg-card border border-border/60 rounded-full px-1.5 py-0.5 text-muted-foreground font-medium">
+                          {stageDeals.length}
+                        </span>
+                      </div>
+                    </div>
+                    {stageTotal > 0 && (
+                      <div className={`text-xs font-mono font-semibold ${stage.color}`}>
+                        {formatARS(stageTotal)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add button */}
+                  <button
+                    onClick={() => setDialog({ open: true, prefillStage: stage.value })}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-muted/60 transition-colors border border-dashed border-border hover:border-primary/30"
+                  >
+                    <Plus className="w-3 h-3" />Agregar
+                  </button>
+
+                  {/* Cards */}
+                  <div className="flex flex-col gap-2">
+                    {stageDeals.map(deal => (
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        stages={STAGES}
+                        onEdit={() => setDialog({ open: true, deal })}
+                        onDelete={() => handleDelete(deal)}
+                        onMove={newStage => handleMove(deal, newStage)}
+                        onDragStart={id => setDraggedId(id)}
+                        onViewActivity={() => setActivityDeal(deal)}
+                      />
+                    ))}
+                    {stageDeals.length === 0 && (
+                      <div className="text-center py-6 text-[11px] text-muted-foreground/50">
+                        Sin oportunidades
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
           </div>
-
-          {/* Revenue Forecast Chart */}
-          {forecastData.length > 0 && (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  Proyección de cierre por mes
-                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-normal">
-                    Basado en expected_close de deals abiertos
-                  </span>
-                </h3>
-                <button
-                  onClick={() => setShowForecast(v => !v)}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {showForecast ? "Ocultar" : "Ver gráfico →"}
-                </button>
-              </div>
-              {showForecast && (
-                <>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={forecastData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip
-                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
-                        formatter={(val: any, name: string) => [formatARS(Number(val)), name === "bruto" ? "Valor bruto" : "Valor ponderado"]}
-                      />
-                      <Bar dataKey="bruto" fill="hsl(var(--primary))" opacity={0.3} radius={[3, 3, 0, 0]} name="bruto" />
-                      <Bar dataKey="ponderado" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} name="ponderado" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-2 rounded bg-primary/30 inline-block" />Valor bruto</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-2 rounded bg-primary inline-block" />Ponderado por probabilidad de etapa</span>
-                  </div>
-                </>
-              )}
-              {!showForecast && (
-                <div className="flex gap-3 overflow-x-auto pb-1">
-                  {forecastData.map(d => (
-                    <div key={d.month} className="shrink-0 text-center">
-                      <p className="text-[10px] text-muted-foreground">{d.month}</p>
-                      <p className="text-xs font-mono font-semibold text-primary">{formatARS(d.ponderado)}</p>
-                      <p className="text-[9px] text-muted-foreground/60">{d.count} deal{d.count !== 1 ? "s" : ""}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Kanban board */}
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />Cargando...
-            </div>
-          ) : (
-            <div className="overflow-x-auto pb-4">
-              <div className="flex gap-3 min-w-max">
-                {STAGES.map(stage => {
-                  const stageDeals = dealsByStage[stage.value] || [];
-                  const stageTotal = stageDeals.reduce((s, d) => s + (d.value_ars || 0), 0);
-                  return (
-                    <div
-                      key={stage.value}
-                      className={`w-64 flex flex-col gap-2 transition-all rounded-xl ${dragOverStage === stage.value ? "ring-2 ring-primary/40 bg-primary/5" : ""}`}
-                      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverStage(stage.value); }}
-                      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStage(null); }}
-                      onDrop={e => {
-                        e.preventDefault();
-                        setDragOverStage(null);
-                        if (draggedId) {
-                          const deal = deals.find(d => d.id === draggedId);
-                          if (deal && deal.stage !== stage.value) handleMove(deal, stage.value);
-                        }
-                        setDraggedId(null);
-                      }}
-                    >
-                      {/* Column header */}
-                      <div className={`rounded-xl px-3 py-2.5 ${stage.bg}`}>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className={`text-xs font-bold uppercase tracking-wide ${stage.color}`}>
-                            {stage.label}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {stage.probability > 0 && stage.probability < 100 && (
-                              <span className="text-[10px] text-muted-foreground">{stage.probability}%</span>
-                            )}
-                            <span className="text-xs bg-card border border-border/60 rounded-full px-1.5 py-0.5 text-muted-foreground font-medium">
-                              {stageDeals.length}
-                            </span>
-                          </div>
-                        </div>
-                        {stageTotal > 0 && (
-                          <div className={`text-xs font-mono font-semibold ${stage.color}`}>
-                            {formatARS(stageTotal)}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Add button */}
-                      <button
-                        onClick={() => setDialog({ open: true, prefillStage: stage.value })}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-muted/60 transition-colors border border-dashed border-border hover:border-primary/30"
-                      >
-                        <Plus className="w-3 h-3" />Agregar
-                      </button>
-
-                      {/* Cards */}
-                      <div className="flex flex-col gap-2">
-                        {stageDeals.map(deal => (
-                          <DealCard
-                            key={deal.id}
-                            deal={deal}
-                            stages={STAGES}
-                            onEdit={() => setDialog({ open: true, deal })}
-                            onDelete={() => handleDelete(deal)}
-                            onMove={newStage => handleMove(deal, newStage)}
-                            onDragStart={id => setDraggedId(id)}
-                            onViewActivity={() => setActivityDeal(deal)}
-                          />
-                        ))}
-                        {stageDeals.length === 0 && (
-                          <div className="text-center py-6 text-[11px] text-muted-foreground/50">
-                            Sin oportunidades
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </>
+        </div>
       )}
-
-      {/* ── TAB: ANÁLISIS ──────────────────────────────────────────────────────── */}
-      {activeTab === "analisis" && <AnalisisTab deals={deals} />}
 
       {/* Win/Loss reason dialog */}
       {winLossDialog && (

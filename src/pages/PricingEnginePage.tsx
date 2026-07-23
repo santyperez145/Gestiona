@@ -13,6 +13,8 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import DynamicPricingTab from "@/components/pricing/DynamicPricingTab";
+import CompetitorIntelligenceTab from "@/components/pricing/CompetitorIntelligenceTab";
 
 const RULE_TYPES = [
   { id: "cost_plus",      label: "Costo + Margen",       desc: "Precio basado en costo + % fijo",         color: "text-blue-400" },
@@ -81,7 +83,7 @@ function MarginBar({ value, target, alertAt }: { value: number; target: number; 
 export default function PricingEnginePage() {
   usePageTitle("Motor de Precios");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"rules" | "calculator" | "experiments" | "margins">("rules");
+  const [tab, setTab] = useState<"rules" | "calculator" | "experiments" | "margins" | "dynamic" | "intelligence">("rules");
   const [showNewRule, setShowNewRule] = useState(false);
   const [newRule, setNewRule] = useState({ name: "", type: "cost_plus", action_type: "pct_markup", value: "40", priority: "100" });
   const [calcCost, setCalcCost] = useState("1000");
@@ -149,10 +151,12 @@ export default function PricingEnginePage() {
   };
 
   const TABS = [
-    { id: "rules",       label: "Reglas de Precios" },
-    { id: "calculator",  label: "Calculadora" },
-    { id: "experiments", label: "A/B Testing" },
-    { id: "margins",     label: "Control Márgenes" },
+    { id: "rules",        label: "Reglas de Precios" },
+    { id: "calculator",   label: "Calculadora" },
+    { id: "experiments",  label: "A/B Testing" },
+    { id: "margins",      label: "Control Márgenes" },
+    { id: "dynamic",      label: "Dinámico" },
+    { id: "intelligence", label: "Inteligencia" },
   ];
 
   const kpis = useMemo(() => ({
@@ -387,6 +391,12 @@ export default function PricingEnginePage() {
           </div>
         </div>
       )}
+
+      {/* ─── Dynamic pricing tab ─── */}
+      {tab === "dynamic" && <DynamicPricingTab />}
+
+      {/* ─── Intelligence tab ─── */}
+      {tab === "intelligence" && <CompetitorIntelligenceTab />}
 
       {/* ─── New Rule dialog ─── */}
       {showNewRule && (

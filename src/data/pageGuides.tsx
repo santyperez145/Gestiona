@@ -126,9 +126,9 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
     ],
   },
 
-  // ── Pipeline ─────────────────────────────────────────────────
-  "/pipeline": {
-    title: "Pipeline de Ventas",
+  // ── CRM Avanzado / Pipeline ──────────────────────────────────
+  "/crm-avanzado": {
+    title: "CRM Avanzado",
     subtitle: "Seguimiento de oportunidades",
     color: "text-orange-400",
     tips: [
