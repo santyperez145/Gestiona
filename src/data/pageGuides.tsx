@@ -12,7 +12,7 @@ import {
   ReceiptText, Settings, User, Lock, Key,
   FileBarChart, PieChart, Activity, LineChart,
   Banknote, BarChart3, CalendarDays, MapPin,
-  Globe, Plug, Shield, Hash, Building2,
+  Globe, Plug, Shield, Building2,
   LucideIcon,
 } from "lucide-react";
 
@@ -191,20 +191,6 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
       { icon: MessageCircle, title: "Contacto clickeable", desc: "El teléfono abre WhatsApp directamente y el email abre el cliente de correo. Comunicación rápida sin copiar datos." },
       { icon: BarChart2, title: "Aging de cuentas a pagar", desc: "El panel de aging muestra lo que debés a cada proveedor agrupado por antigüedad (0-30 / 31-60 / 61-90 / >90 días)." },
       { icon: TrendingUp, title: "Ranking en Reportes", desc: "El tab 'Proveedores' en Reportes muestra el ranking por monto USD, share % del total, cantidad de compras y promedio." },
-    ],
-  },
-
-  // ── Toma Física ──────────────────────────────────────────────
-  "/toma-fisica": {
-    title: "Toma Física de Inventario",
-    subtitle: "Conteo y ajuste de stock real",
-    color: "text-teal-400",
-    tips: [
-      { icon: ScanLine, title: "Escáner de barras para contar", desc: "Presioná 'Escanear' y apuntá la cámara al producto. Se suma +1 automáticamente al stock contado de ese ítem.", tag: "Nuevo" },
-      { icon: Hash, title: "Navegar con Enter", desc: "Presioná Enter en cada campo de cantidad para pasar al siguiente producto automáticamente. Ideal para contar con teclado físico." },
-      { icon: CheckCircle2, title: "Solo se aplican diferencias", desc: "Al confirmar, solo se actualizan los productos con diferencia entre sistema y contado. Los no contados quedan sin tocar." },
-      { icon: Filter, title: "Filtrar por categoría", desc: "Filtrá por categoría para hacer la toma por secciones. Los KPIs superiores se actualizan en tiempo real mientras contás." },
-      { icon: Download, title: "Exportar antes de confirmar", desc: "Descargá el CSV con el estado actual antes de confirmar. Útil para compartir con el contador o guardar como respaldo." },
     ],
   },
 

@@ -48,6 +48,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceOCRModal";
+import SupplierQuotesTab from "@/components/purchases/SupplierQuotesTab";
+import PurchaseRequestsTab from "@/components/purchases/PurchaseRequestsTab";
 import { ScanLine } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -530,6 +532,7 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [tab, setTab] = useState<"ordenes" | "cotizaciones" | "solicitudes">("ordenes");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
@@ -613,49 +616,67 @@ export default function PurchaseOrdersPage() {
         }
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
-        <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
-        <KPICard label="Compras del mes" value={fmtCurrency(kpis.monthTotal)} sub="mes actual" icon={Truck} color="primary" />
-        <KPICard label="OC recibidas" value={kpis.received} sub="completadas" icon={CheckCircle} color="success" />
-      </div>
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="ordenes">Órdenes</TabsTrigger>
+          <TabsTrigger value="cotizaciones">Cotizaciones</TabsTrigger>
+          <TabsTrigger value="solicitudes">Solicitudes</TabsTrigger>
+        </TabsList>
 
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar OC o proveedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+        <TabsContent value="ordenes" className="space-y-6 pb-12">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <KPICard label="OC abiertas" value={kpis.open} sub="en proceso" icon={ClipboardList} color="blue" />
+            <KPICard label="Valor pendiente" value={fmtCurrency(kpis.pendingValue)} sub="por recibir" icon={DollarSign} color="warning" />
+            <KPICard label="Compras del mes" value={fmtCurrency(kpis.monthTotal)} sub="mes actual" icon={Truck} color="primary" />
+            <KPICard label="OC recibidas" value={kpis.received} sub="completadas" icon={CheckCircle} color="success" />
+          </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Sin órdenes de compra</p>
-          <p className="text-sm">Creá tu primera OC para un proveedor</p>
-        </div>
-      ) : (
-        <div className="space-y-2 pb-12">
-          {filtered.map(order => (
-            <PORow
-              key={order.id}
-              order={order}
-              onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
-              onAdvanceStatus={status => handleAdvanceStatus(order, status)}
-              onDelete={() => handleDelete(order)}
-            />
-          ))}
-          <p className="text-xs text-muted-foreground text-right pt-1">{filtered.length} OC{filtered.length !== 1 ? "s" : ""}</p>
-        </div>
-      )}
+          <div className="flex flex-wrap gap-2">
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar OC o proveedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            </div>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Sin órdenes de compra</p>
+              <p className="text-sm">Creá tu primera OC para un proveedor</p>
+            </div>
+          ) : (
+            <div className="space-y-2 pb-12">
+              {filtered.map(order => (
+                <PORow
+                  key={order.id}
+                  order={order}
+                  onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
+                  onAdvanceStatus={status => handleAdvanceStatus(order, status)}
+                  onDelete={() => handleDelete(order)}
+                />
+              ))}
+              <p className="text-xs text-muted-foreground text-right pt-1">{filtered.length} OC{filtered.length !== 1 ? "s" : ""}</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="cotizaciones">
+          <SupplierQuotesTab />
+        </TabsContent>
+
+        <TabsContent value="solicitudes">
+          <PurchaseRequestsTab />
+        </TabsContent>
+      </Tabs>
 
       <POForm
         open={formOpen}

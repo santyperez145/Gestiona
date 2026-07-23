@@ -1,3 +1,9 @@
+/**
+ * PurchaseRequestsTab — ported from the former PurchaseRequestsPage (/solicitudes-compra).
+ * Rendered as the "Solicitudes" tab inside PurchaseOrdersPage (/ordenes-compra).
+ *
+ * Internal purchase-request workflow with approval flow (draft → submitted → approved/rejected → ordered → received).
+ */
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -14,9 +20,7 @@ import {
   ShoppingBag, Plus, CheckCircle, XCircle, Clock,
   ChevronDown, ChevronRight, DollarSign, AlertCircle, Loader2
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface PurchaseRequest {
   id: string;
@@ -69,12 +73,10 @@ const EMPTY_REQUEST = {
   priority: "normal", needed_by: "", notes: ""
 };
 
-export default function PurchaseRequestsPage() {
-  usePageTitle("Solicitudes de Compra");
+export default function PurchaseRequestsTab() {
   const { orgId } = useOrganization();
 
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
-  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedReq, setExpandedReq]   = useState<string | null>(null);
@@ -91,12 +93,8 @@ export default function PurchaseRequestsPage() {
   const load = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
-    const [rRes, pRes] = await Promise.allSettled([
-      supabase.from("purchase_requests").select("*, purchase_request_items(*)").eq("org_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("products").select("id, name").eq("org_id", orgId).order("name"),
-    ]);
-    if (rRes.status === "fulfilled" && rRes.value.data) setRequests(rRes.value.data as PurchaseRequest[]);
-    if (pRes.status === "fulfilled" && pRes.value.data) setProducts(pRes.value.data as { id: string; name: string }[]);
+    const { data } = await supabase.from("purchase_requests").select("*, purchase_request_items(*)").eq("org_id", orgId).order("created_at", { ascending: false });
+    if (data) setRequests(data as PurchaseRequest[]);
     setLoading(false);
   }, [orgId]);
 
@@ -180,17 +178,14 @@ export default function PurchaseRequestsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={ShoppingBag}
-        title="Solicitudes de Compra"
-        description="Pedidos internos con flujo de aprobación"
-        actions={
-          <Dialog open={reqOpen} onOpenChange={setReqOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { setReqForm({ ...EMPTY_REQUEST }); setReqItems([]); }}>
-                <Plus className="w-4 h-4 mr-2" /> Nueva solicitud
-              </Button>
-            </DialogTrigger>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">Pedidos internos con flujo de aprobación</p>
+        <Dialog open={reqOpen} onOpenChange={setReqOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => { setReqForm({ ...EMPTY_REQUEST }); setReqItems([]); }}>
+              <Plus className="w-4 h-4 mr-2" /> Nueva solicitud
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nueva solicitud de compra</DialogTitle></DialogHeader>
             <div className="space-y-4">
@@ -273,8 +268,7 @@ export default function PurchaseRequestsPage() {
             </div>
           </DialogContent>
         </Dialog>
-        }
-      />
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

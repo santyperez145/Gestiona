@@ -26,6 +26,7 @@ import KPICard from "@/components/shared/KPICard";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import StockCountTab from "@/components/inventory/StockCountTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ export default function KardexPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [productFilter, setProductFilter] = useState<string>("all");
   const [datePreset, setDatePreset] = useState<number>(30);
-  const [tab, setTab] = useState<"movimientos" | "resumen">("movimientos");
+  const [tab, setTab] = useState<"movimientos" | "resumen" | "toma_fisica">("movimientos");
 
   // Adjust dialog
   const [showAdjust, setShowAdjust] = useState(false);
@@ -282,7 +283,7 @@ export default function KardexPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border pb-0">
-        {(["movimientos", "resumen"] as const).map(t => (
+        {(["movimientos", "resumen", "toma_fisica"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -292,7 +293,7 @@ export default function KardexPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "movimientos" ? "Movimientos" : "Resumen por Producto"}
+            {t === "movimientos" ? "Movimientos" : t === "resumen" ? "Resumen por Producto" : "Toma Física"}
           </button>
         ))}
       </div>
@@ -351,7 +352,10 @@ export default function KardexPage() {
       )}
 
       {/* Content */}
-      {loading ? (
+      {tab === "toma_fisica" ? (
+        /* ── Toma Física ── */
+        <StockCountTab />
+      ) : loading ? (
         <div className="flex items-center justify-center h-48">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>

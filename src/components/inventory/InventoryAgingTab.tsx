@@ -1,5 +1,6 @@
-﻿/**
- * InventoryAgingPage — /inventario-aging
+/**
+ * InventoryAgingTab — ported from the former InventoryAgingPage (/inventario-aging).
+ * Rendered as the "Aging" tab inside InventoryValuationPage (/valuacion-inventario).
  *
  * Shows which products have not sold recently, how much capital is locked up
  * in slow-moving inventory, and recommended actions per product.
@@ -8,19 +9,17 @@
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import {
   Package, AlertTriangle, TrendingDown, DollarSign,
-  RefreshCw, Download, Filter, Archive,
+  RefreshCw, Download, Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 
@@ -74,10 +73,9 @@ const BUCKET_CONFIG: Record<AgingBucket, { label: string; color: string; bg: str
 
 const PIE_COLORS = ["#22c55e", "#eab308", "#f97316", "#ef4444", "#6b7280"];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Tab ──────────────────────────────────────────────────────────────────────
 
-export default function InventoryAgingPage() {
-  usePageTitle("Aging de Inventario");
+export default function InventoryAgingTab() {
   const { activeOrg } = useOrg();
 
   const [products, setProducts] = useState<AgingProduct[]>([]);
@@ -229,16 +227,12 @@ export default function InventoryAgingPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Archive}
-        title="Aging de Inventario"
-        description="Productos con poco movimiento y capital inmovilizado"
-        actions={
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
-            <Download className="w-3.5 h-3.5" /> Exportar CSV
-          </Button>
-        }
-      />
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">Productos con poco movimiento y capital inmovilizado</p>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
+          <Download className="w-3.5 h-3.5" /> Exportar CSV
+        </Button>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

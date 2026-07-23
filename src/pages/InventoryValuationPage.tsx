@@ -14,6 +14,7 @@ import {
   Package, DollarSign, TrendingUp, TrendingDown, BarChart3,
   RefreshCw, Download, Layers, Calculator, Loader2
 } from "lucide-react";
+import InventoryAgingTab from "@/components/inventory/InventoryAgingTab";
 
 interface ValuationRow {
   product_id: string;
@@ -41,7 +42,7 @@ interface InventoryLayer {
 export default function InventoryValuationPage() {
   usePageTitle("Valuación de Inventario");
   const { activeOrg } = useOrg();
-  const [tab, setTab] = useState<"valuation" | "layers" | "snapshots" | "config">("valuation");
+  const [tab, setTab] = useState<"valuation" | "layers" | "aging" | "snapshots" | "config">("valuation");
   const [method, setMethod] = useState("average");
   const [rows, setRows] = useState<ValuationRow[]>([]);
   const [layers, setLayers] = useState<InventoryLayer[]>([]);
@@ -177,6 +178,7 @@ export default function InventoryValuationPage() {
         <TabsList>
           <TabsTrigger value="valuation">Valuación</TabsTrigger>
           <TabsTrigger value="layers">Capas de Costo</TabsTrigger>
+          <TabsTrigger value="aging">Aging</TabsTrigger>
           <TabsTrigger value="snapshots">Histórico</TabsTrigger>
           <TabsTrigger value="config">Configuración</TabsTrigger>
         </TabsList>
@@ -295,6 +297,11 @@ export default function InventoryValuationPage() {
             <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-500 rounded-full" />FIFO: primeras capas se consumen primero</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 bg-purple-500 rounded-full" />LIFO: últimas capas se consumen primero</span>
           </div>
+        </TabsContent>
+
+        {/* AGING */}
+        <TabsContent value="aging">
+          <InventoryAgingTab />
         </TabsContent>
 
         {/* SNAPSHOTS */}

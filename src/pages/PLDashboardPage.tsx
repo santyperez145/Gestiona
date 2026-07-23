@@ -14,6 +14,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import FinancialScenariosTab from "@/components/finance/FinancialScenariosTab";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Sale { total_ars: number; created_at: string; cost_of_goods_ars?: number }
@@ -257,6 +258,7 @@ export default function PLDashboardPage() {
           <TabsTrigger value="ytd">YTD</TabsTrigger>
           <TabsTrigger value="gastos">Desglose de Gastos</TabsTrigger>
           <TabsTrigger value="comparacion">Comparación</TabsTrigger>
+          <TabsTrigger value="escenarios">Escenarios</TabsTrigger>
         </TabsList>
 
         {/* ── Tab: Mensual ──────────────────────────────────────────────────── */}
@@ -621,6 +623,11 @@ export default function PLDashboardPage() {
               Se necesitan al menos dos meses de datos para mostrar la comparación.
             </div>
           )}
+        </TabsContent>
+
+        {/* ── Tab: Escenarios ───────────────────────────────────────────────── */}
+        <TabsContent value="escenarios">
+          <FinancialScenariosTab />
         </TabsContent>
       </Tabs>
     </div>

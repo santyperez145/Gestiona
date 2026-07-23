@@ -1,20 +1,22 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useAuth } from "@/lib/auth";
+/**
+ * StockCountTab — ported from the former StockCountPage (/toma-fisica).
+ * Rendered as the "Toma Física" tab inside KardexPage (/kardex).
+ *
+ * Physical-count / stock-adjustment workflow with barcode scanning.
+ */
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import {
-  ClipboardList, CheckCircle2, AlertTriangle, RefreshCw,
+  CheckCircle2, RefreshCw,
   Loader2, Download, Search, ChevronUp, ChevronDown,
   PackageCheck, TrendingDown, TrendingUp, Minus, ScanLine, Zap,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
+
 // ─── Barcode scanner hook ─────────────────────────────────────────────────────
 
 function useBarcodeScanner(onDetected: (code: string) => void) {
@@ -75,11 +77,9 @@ const CAT_LABELS: Record<string, string> = {
   electronico: "Electrónico",
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Tab ──────────────────────────────────────────────────────────────────────
 
-export default function StockCountPage() {
-  usePageTitle("Conteo de Stock");
-  const { user } = useAuth();
+export default function StockCountTab() {
   const { activeOrg } = useOrg();
 
   const [loading, setLoading] = useState(true);
@@ -282,13 +282,10 @@ export default function StockCountPage() {
   const changedCount = rows.filter(r => r.counted !== "" && Number(r.counted) !== r.product.stock).length;
 
   return (
-    <div className="p-6 space-y-6 pb-12">
-      {/* Header */}
-      <PageHeader
-        icon={ClipboardList}
-        title="Toma Física de Inventario"
-        description="Ingresá el stock real de cada producto. Confirmá para actualizar las diferencias."
-      />
+    <div className="space-y-6 pb-12">
+      <p className="text-sm text-muted-foreground">
+        Ingresá el stock real de cada producto. Confirmá para actualizar las diferencias.
+      </p>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">

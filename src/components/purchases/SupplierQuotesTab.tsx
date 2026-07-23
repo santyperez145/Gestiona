@@ -1,4 +1,10 @@
-﻿import { useState, useEffect, useMemo } from "react";
+/**
+ * SupplierQuotesTab — ported from the former SupplierQuotesPage (/cotizaciones-proveedor).
+ * Rendered as the "Cotizaciones" tab inside PurchaseOrdersPage (/ordenes-compra).
+ *
+ * RFQ (Request for Quote) workflow: send RFQs to suppliers, compare prices, accept the best offer.
+ */
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
@@ -13,16 +19,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from "@/components/ui/tabs";
-import {
   FileText, Plus, Edit2, Trash2, RefreshCw, Search, Send,
-  CheckCircle2, XCircle, Clock, Package, DollarSign,
-  ChevronDown, ChevronUp, Copy, BarChart3, Loader2,
+  CheckCircle2, Clock, ChevronDown, ChevronUp, Loader2,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RFQ {
@@ -253,9 +253,8 @@ function RFQForm({ open, onClose, editing, orgId, onSaved }: {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-export default function SupplierQuotesPage() {
-  usePageTitle("Cotizaciones de Proveedores");
+// ── Tab ───────────────────────────────────────────────────────────────────────
+export default function SupplierQuotesTab() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [rfqs, setRFQs] = useState<RFQ[]>([]);
@@ -317,16 +316,12 @@ export default function SupplierQuotesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={FileText}
-        title="Cotizaciones de Proveedores"
-        description="Enviá RFQs, comparé precios y aceptá la mejor oferta."
-        actions={
-          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nueva RFQ
-          </Button>
-        }
-      />
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">Enviá RFQs, comparé precios y aceptá la mejor oferta.</p>
+        <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+          <Plus className="w-4 h-4 mr-1" /> Nueva RFQ
+        </Button>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

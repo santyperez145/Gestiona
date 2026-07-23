@@ -1,6 +1,6 @@
 ﻿import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PAGE_GUIDES } from "@/data/pageGuides";
-import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Archive, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, FileSearch, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe, Warehouse, FolderOpen, LineChart, Shield, Code2, Map, Eye, Leaf, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, DollarSign, AlertCircle, Settings, TrendingUp, TrendingDown, Menu, X, Megaphone, Brain, LogOut, Users, Crown, ChevronsLeft, ChevronsRight, Search, Gift, BookOpen, Wallet, Receipt, Sparkles, ShoppingBag, ScanLine, Banknote, PackageOpen, ListChecks, History, Kanban, Star, CreditCard, FileText, Zap, Truck, Landmark, ClipboardList, RotateCcw, BarChart3, Mail, MapPin, Plug, UserCircle, CheckSquare, AlertTriangle, X as XIcon, MessageCircle, RefreshCw, Activity, Target, Bell, Percent, Tag, Calendar, Headphones, Wrench, Layers, ArrowRightLeft, Timer, UserPlus, Clock, QrCode, Ticket, CalendarClock, FileDown, Trophy, ShieldCheck, FormInput, BellRing, PiggyBank, Share2, ScanBarcode, ChefHat, Building2, FolderKanban, Users2, PackageSearch, Scale, Car, Trash2, Globe, Warehouse, FolderOpen, LineChart, Shield, Code2, Map, Eye, Leaf, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -35,7 +35,6 @@ const allNavItems = [
   { to: "/ordenes-compra", label: "Órdenes de Compra", icon: ClipboardList, roles: ['admin'], section: 'inventario' },
   { to: "/restock", label: "Auto-Reposición", icon: RefreshCw, roles: ['admin'], section: 'inventario' },
   { to: "/transferencias", label: "Transferencias", icon: ArrowRightLeft, roles: ['admin'], section: 'inventario' },
-  { to: "/inventario-aging", label: "Aging de Stock", icon: Archive, roles: ['admin'], section: 'inventario' },
   // ── Ventas & CRM ────────────────────────────────────────────────────────────
   { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
   { to: "/clientes", label: "Clientes / CRM", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
@@ -79,14 +78,12 @@ const allNavItems = [
   // ── Sistema ─────────────────────────────────────────────────────────────────
   { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
   { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
-  { to: "/cotizaciones-proveedor", label: "Cotiz. Proveedores", icon: FileSearch, roles: ['admin'], section: 'inventario' },
   { to: "/forecast-inventario", label: "Forecast Inventario", icon: TrendingUp, roles: ['admin'], section: 'inventario' },
   { to: "/afiliados", label: "Programa Afiliados", icon: UserPlus, roles: ['admin'], section: 'marketing' },
   { to: "/cash-flow", label: "Cash Flow", icon: BarChart3, roles: ['admin'], section: 'finanzas' },
   { to: "/planner-social", label: "Planner Social", icon: Share2, roles: ['admin'], section: 'marketing' },
   { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },
   { to: "/impuestos", label: "Gestión Impositiva", icon: Scale, roles: ['admin'], section: 'finanzas' },
-  { to: "/solicitudes-compra", label: "Solicitudes de Compra", icon: ShoppingBag, roles: ['admin'], section: 'inventario' },
   { to: "/kpi-dashboard", label: "KPI Dashboard", icon: LineChart, roles: ['admin'], section: 'analytics' },
   { to: "/devoluciones-rma", label: "Portal Devoluciones RMA", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
   { to: "/inventario-inteligente", label: "Inventario Inteligente IA", icon: Brain, roles: ['admin'], section: 'inventario' },
@@ -97,7 +94,6 @@ const allNavItems = [
   { to: "/motor-precios", label: "Motor de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
   { to: "/analytics-ia", label: "Analytics Predictivo IA", icon: Brain, roles: ['admin'], section: 'ia' },
   { to: "/crm-avanzado", label: "CRM / Pipeline", icon: Kanban, roles: ['admin'], section: 'ventas' },
-  { to: "/escenarios-financieros", label: "Escenarios Financieros", icon: BarChart3, roles: ['admin'], section: 'finanzas' },
   { to: "/sucursales", label: "Sucursales & Depósitos", icon: Warehouse, roles: ['admin'], section: 'inventario' },
   { to: "/valuacion-inventario", label: "Valuación de Inventario", icon: Layers, roles: ['admin'], section: 'inventario' },
   { to: "/pl-dashboard", label: "Dashboard P&L", icon: TrendingUp, roles: ['admin'], section: 'finanzas' },

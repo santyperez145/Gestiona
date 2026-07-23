@@ -1,24 +1,25 @@
-﻿import { useState, useEffect } from "react";
+/**
+ * FinancialScenariosTab — ported from the former FinancialScenariosPage (/escenarios-financieros).
+ * Rendered as the "Escenarios" tab inside PLDashboardPage (/pl-dashboard).
+ *
+ * What-if / scenario modeling: P&L projections, breakeven calculator, cash flow projection, variance analysis.
+ */
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp, BarChart2, Plus, Calculator, DollarSign,
-  AlertTriangle, CheckCircle, ChevronDown, ChevronRight,
-  Layers, Target, Zap
+  AlertTriangle, Layers, Target,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Scenario {
   id: string;
@@ -39,16 +40,6 @@ interface LineItem {
   sort_order: number;
   is_subtotal: boolean;
   values: Record<string, number>;
-}
-
-interface BreakevenResult {
-  fixedCosts: number;
-  variableCostPct: number;
-  avgPrice: number;
-  avgUnitCost: number;
-  contributionMarginPct: number;
-  breakevenRevenue: number;
-  breakevenUnits: number;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -82,7 +73,6 @@ function PnLTable({ items }: { items: LineItem[] }) {
         <tbody>
           {items.map(item => {
             const total = visibleMonths.reduce((sum, m) => sum + (item.values[m] ?? 0), 0);
-            const isNeg = item.category === "cogs" || item.category === "opex";
             return (
               <tr key={item.id} className={`border-b last:border-0 ${item.is_subtotal ? "font-semibold bg-muted/30" : ""}`}>
                 <td className="py-2 pr-4">
@@ -183,8 +173,7 @@ function BreakevenCalc() {
   );
 }
 
-export default function FinancialScenariosPage() {
-  usePageTitle("Escenarios Financieros");
+export default function FinancialScenariosTab() {
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"pnl" | "breakeven" | "cashflow" | "variance">("pnl");
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -291,40 +280,36 @@ export default function FinancialScenariosPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Layers}
-        title="Escenarios Financieros"
-        description="P&L, punto de equilibrio y modelado de escenarios"
-        actions={
-          <Dialog open={showNew} onOpenChange={setShowNew}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" />Nuevo Escenario</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Crear Escenario</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-2">
-                <div>
-                  <Label>Nombre</Label>
-                  <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Expansión LATAM" />
-                </div>
-                <div>
-                  <Label>Tipo</Label>
-                  <Select value={newType} onValueChange={setNewType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="projection">Proyección</SelectItem>
-                      <SelectItem value="budget">Presupuesto</SelectItem>
-                      <SelectItem value="what_if">¿Qué pasa si...?</SelectItem>
-                      <SelectItem value="variance">Varianza</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button className="w-full" onClick={handleCreate}>Crear</Button>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">P&L, punto de equilibrio y modelado de escenarios</p>
+        <Dialog open={showNew} onOpenChange={setShowNew}>
+          <DialogTrigger asChild>
+            <Button><Plus className="w-4 h-4 mr-2" />Nuevo Escenario</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Crear Escenario</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Nombre</Label>
+                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Expansión LATAM" />
               </div>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+              <div>
+                <Label>Tipo</Label>
+                <Select value={newType} onValueChange={setNewType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="projection">Proyección</SelectItem>
+                    <SelectItem value="budget">Presupuesto</SelectItem>
+                    <SelectItem value="what_if">¿Qué pasa si...?</SelectItem>
+                    <SelectItem value="variance">Varianza</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button className="w-full" onClick={handleCreate}>Crear</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
