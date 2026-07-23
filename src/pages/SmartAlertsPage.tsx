@@ -19,6 +19,7 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import LegacyAlertRulesTab from "@/components/alerts/LegacyAlertRulesTab";
 
 interface AlertRule {
   id: string;
@@ -76,9 +77,9 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export default function SmartAlertsPage() {
-  usePageTitle("Motor de Alertas Inteligentes");
+  usePageTitle("Alertas");
   const { activeOrg } = useOrg();
-  const [tab, setTab] = useState<"events" | "rules" | "config">("events");
+  const [tab, setTab] = useState<"events" | "rules" | "legacy" | "config">("events");
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [events, setEvents] = useState<AlertEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -264,6 +265,7 @@ export default function SmartAlertsPage() {
             {unacked > 0 && <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">{unacked}</span>}
           </TabsTrigger>
           <TabsTrigger value="rules">Reglas</TabsTrigger>
+          <TabsTrigger value="legacy">Reglas Clásicas</TabsTrigger>
           <TabsTrigger value="config">Configuración</TabsTrigger>
         </TabsList>
 
@@ -376,6 +378,11 @@ export default function SmartAlertsPage() {
               </CardContent>
             </Card>
           ))}
+        </TabsContent>
+
+        {/* LEGACY — ported from the old /alertas page: expiry tracking + fixed-type rules */}
+        <TabsContent value="legacy" className="pb-12">
+          <LegacyAlertRulesTab />
         </TabsContent>
 
         {/* CONFIG */}

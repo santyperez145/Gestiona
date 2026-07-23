@@ -11,9 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Star, Gift, Plus, Minus, Loader2, Search, Settings2, Trophy, ShoppingBag, Sliders, FileSpreadsheet, Tag, AlertCircle, Medal } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Tier system ──────────────────────────────────────────────────────────────
 
@@ -52,8 +50,7 @@ interface CustomerBalance {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LoyaltyPage() {
-  usePageTitle("Fidelidad");
+export default function LoyaltyPointsTab() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
 
@@ -215,18 +212,15 @@ export default function LoyaltyPage() {
   const redeemEntries = entries.filter(e => e.delta < 0);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6">
       {/* Header */}
-      <PageHeader
-        icon={Star}
-        title="Programa de Fidelidad"
-        description="Puntos por compra, tiers y canjes"
-        badge={
-          enabled
-            ? { label: "Activo ✓", variant: "success" }
-            : { label: "Inactivo", variant: "default" }
-        }
-      />
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p className="text-sm font-semibold flex items-center gap-1.5"><Star className="w-4 h-4 text-primary" /> Puntos por compra (clásico)</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Puntos por compra, tiers y canjes — se otorgan automáticamente en cada venta.</p>
+        </div>
+        <Badge variant={enabled ? "default" : "secondary"}>{enabled ? "Activo ✓" : "Inactivo"}</Badge>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

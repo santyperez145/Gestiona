@@ -11,6 +11,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, RefreshCw, Plus, ArrowRight,
   Clock, AlertTriangle, BarChart3, Settings, Globe, Zap
 } from "lucide-react";
+import CurrencyHistoryTab from "@/components/currency/CurrencyHistoryTab";
 
 const CURRENCIES_INFO: Record<string, { name: string; symbol: string; flag: string }> = {
   ARS: { name: "Peso Argentino",   symbol: "$",   flag: "🇦🇷" },
@@ -90,7 +91,7 @@ function RateCard({ type, data, sparkData, selected, onClick }: any) {
 export default function MultiCurrencyPage() {
   usePageTitle("Multi-Divisa & FX");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"rates" | "converter" | "exposure" | "transactions">("rates");
+  const [tab, setTab] = useState<"rates" | "converter" | "exposure" | "transactions" | "history">("rates");
   const [selectedRate, setSelectedRate] = useState("blue");
   const [convFrom, setConvFrom] = useState("USD");
   const [convTo, setConvTo] = useState("ARS");
@@ -218,6 +219,7 @@ export default function MultiCurrencyPage() {
     { id: "converter",    label: "Conversor" },
     { id: "exposure",     label: "Exposición FX" },
     { id: "transactions", label: "Transacciones" },
+    { id: "history",      label: "Historial de Cotización" },
   ];
 
   return (
@@ -455,6 +457,9 @@ export default function MultiCurrencyPage() {
           </div>
         </div>
       )}
+
+      {/* ─── History tab — ported from the old /tipo-cambio page ─── */}
+      {tab === "history" && <CurrencyHistoryTab />}
 
       {/* ─── Add rate dialog ─── */}
       {showAddRate && (

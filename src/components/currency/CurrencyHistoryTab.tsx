@@ -1,9 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,8 +52,7 @@ const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual", api: "API automática", bcra: "BCRA oficial", dolar_blue: "Dólar blue",
 };
 
-export default function CurrencyTrackerPage() {
-  usePageTitle("Tipo de Cambio & Precios");
+export default function CurrencyHistoryTab() {
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.id ?? "";
   const [rates, setRates] = useState<ExchangeRate[]>([]);
@@ -204,26 +201,25 @@ export default function CurrencyTrackerPage() {
   const sparkData = rates.slice(0, 14).reverse();
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={DollarSign}
-        title="Tipo de Cambio & Precios"
-        description="Registrá cotizaciones y actualizá precios masivamente con el dólar."
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchLiveRates} disabled={fetching}>
-              <Zap className="w-4 h-4 mr-1" />
-              {fetching ? "Consultando..." : "Cotización en vivo"}
-            </Button>
-            <Button variant="outline" onClick={() => setAddOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Manual
-            </Button>
-            <Button onClick={() => setBulkOpen(true)} disabled={rates.length === 0}>
-              <Package className="w-4 h-4 mr-1" /> Actualizar precios
-            </Button>
-          </div>
-        }
-      />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p className="text-sm font-semibold flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-primary" /> Historial de cotización & actualización de precios</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Registrá cotizaciones y actualizá precios masivamente con el dólar.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchLiveRates} disabled={fetching}>
+            <Zap className="w-4 h-4 mr-1" />
+            {fetching ? "Consultando..." : "Cotización en vivo"}
+          </Button>
+          <Button variant="outline" onClick={() => setAddOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Manual
+          </Button>
+          <Button onClick={() => setBulkOpen(true)} disabled={rates.length === 0}>
+            <Package className="w-4 h-4 mr-1" /> Actualizar precios
+          </Button>
+        </div>
+      </div>
 
       {/* Live rate cards */}
       {latest && (

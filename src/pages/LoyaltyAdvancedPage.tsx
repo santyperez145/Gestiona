@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import LoyaltyPointsTab from "@/components/loyalty/LoyaltyPointsTab";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface LoyaltyProgram {
@@ -97,7 +98,7 @@ const TXN_TYPE_CONFIG: Record<string, { label: string; color: string; sign: stri
   bonus:   { label: "Bonus",     color: "text-purple-600", sign: "+" },
 };
 
-const TABS = ["Programa", "Tiers", "Recompensas", "Miembros", "Transacciones"] as const;
+const TABS = ["Puntos", "Programa", "Tiers", "Recompensas", "Miembros", "Transacciones"] as const;
 type Tab = typeof TABS[number];
 
 /* ─────────────────────────── default tiers seed ─────────────────────────── */
@@ -109,9 +110,9 @@ const DEFAULT_TIERS = [
 ];
 
 export default function LoyaltyAdvancedPage() {
-  usePageTitle("Fidelización Avanzada");
+  usePageTitle("Fidelidad");
   const { orgId } = useOrganization();
-  const [activeTab, setActiveTab] = useState<Tab>("Programa");
+  const [activeTab, setActiveTab] = useState<Tab>("Puntos");
   const [program, setProgram] = useState<LoyaltyProgram | null>(null);
   const [tiers, setTiers] = useState<LoyaltyTier[]>([]);
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
@@ -307,7 +308,10 @@ export default function LoyaltyAdvancedPage() {
         ))}
       </div>
 
-      {loading ? (
+      {/* ── Puntos (clásico) — rendered independently of the advanced-program fetch ── */}
+      {activeTab === "Puntos" && <LoyaltyPointsTab />}
+
+      {activeTab !== "Puntos" && (loading ? (
         <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span className="text-sm">Cargando programa de fidelidad…</span>
@@ -504,7 +508,7 @@ export default function LoyaltyAdvancedPage() {
             </div>
           )}
         </>
-      )}
+      ))}
 
       {/* ── Tier Dialog ── */}
       <Dialog open={showTierDialog} onOpenChange={setShowTierDialog}>

@@ -14,8 +14,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { addProductDB, addExpenseDB, createCustomerDB, getProductsDB, updateProductDB, addSaleDB, addPurchaseDB, getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { requireActiveOrgId } from "@/lib/orgContext";
-import { usePageTitle } from "@/hooks/usePageTitle";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -2280,8 +2278,7 @@ function saveConversations(orgId: string, convs: SavedConversation[]) {
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
-export default function AIChatPage() {
-  usePageTitle("Chat IA");
+export default function AIChatAssistantTab() {
   const { user } = useAuth();
   const { activeOrg } = useOrg();
   const navigate = useNavigate();
@@ -2593,29 +2590,25 @@ export default function AIChatPage() {
   }, [messages, conversations, dismissedActions]);
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Brain}
-        title="Asistente IA"
-        description="Preguntá o pedí acciones en lenguaje natural"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowHistory(v => !v)} className={`text-muted-foreground ${showHistory ? "bg-muted" : ""}`}>
-              <History className="w-3.5 h-3.5 mr-1.5" />Historial
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-sm text-muted-foreground">Preguntá o pedí acciones en lenguaje natural</p>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowHistory(v => !v)} className={`text-muted-foreground ${showHistory ? "bg-muted" : ""}`}>
+            <History className="w-3.5 h-3.5 mr-1.5" />Historial
+          </Button>
+          {messages.length >= 2 && (
+            <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
+              💾 Guardar
             </Button>
-            {messages.length >= 2 && (
-              <Button variant="ghost" size="sm" onClick={saveCurrentConversation} className="text-muted-foreground">
-                💾 Guardar
-              </Button>
-            )}
-            {messages.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />Limpiar
-              </Button>
-            )}
-          </div>
-        }
-      />
+          )}
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setMessages([])} className="text-muted-foreground">
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />Limpiar
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

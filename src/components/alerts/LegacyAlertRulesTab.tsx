@@ -5,7 +5,6 @@ import {
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
   Clock, Zap, Info, ShieldCheck, CalendarX2, Mail, ChevronDown, ChevronUp,
 } from "lucide-react";
-import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +18,6 @@ import { useProductExpiry } from "@/hooks/useProductExpiry";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -137,8 +135,7 @@ const NOTIF_ICON: Record<string, typeof Bell> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AlertsPage() {
-  usePageTitle("Alertas");
+export default function LegacyAlertRulesTab() {
   const { activeOrg } = useOrg();
   const { user } = useAuth();
   const orgId = activeOrg?.id;
@@ -308,27 +305,26 @@ export default function AlertsPage() {
   const firedToday = rules.filter(r => r.last_triggered_at && new Date(r.last_triggered_at) > new Date(Date.now() - 86400000)).length;
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={Zap}
-        title="Alertas inteligentes"
-        description="Configurá qué situaciones te notificamos automáticamente cada día a las 07:00 UTC."
-        badge={{ label: `${activeRules} activa${activeRules !== 1 ? 's' : ''}`, variant: activeRules > 0 ? "success" : "default" }}
-        actions={
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <Button variant="outline" size="sm" onClick={markAllRead} className="gap-1.5">
-                <CheckCheck className="w-4 h-4" />
-                Marcar leídas ({unreadCount})
-              </Button>
-            )}
-            <Button onClick={runCheck} disabled={running} size="sm" className="gradient-gold text-primary-foreground gap-1.5">
-              {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              {running ? "Revisando..." : "Revisar ahora"}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p className="text-sm font-semibold flex items-center gap-1.5"><Zap className="w-4 h-4 text-primary" /> Reglas clásicas de alertas</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Configurá qué situaciones te notificamos automáticamente cada día a las 07:00 UTC.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={activeRules > 0 ? "default" : "secondary"}>{activeRules} activa{activeRules !== 1 ? 's' : ''}</Badge>
+          {unreadCount > 0 && (
+            <Button variant="outline" size="sm" onClick={markAllRead} className="gap-1.5">
+              <CheckCheck className="w-4 h-4" />
+              Marcar leídas ({unreadCount})
             </Button>
-          </div>
-        }
-      />
+          )}
+          <Button onClick={runCheck} disabled={running} size="sm" className="gradient-gold text-primary-foreground gap-1.5">
+            {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+            {running ? "Revisando..." : "Revisar ahora"}
+          </Button>
+        </div>
+      </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

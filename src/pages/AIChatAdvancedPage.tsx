@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import AIChatAssistantTab from "@/components/ai-chat/AIChatAssistantTab";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface ChatSession {
@@ -103,7 +104,8 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 }
 
 export default function AIChatAdvancedPage() {
-  usePageTitle("Chat IA Avanzado");
+  usePageTitle("Chat IA");
+  const [pageTab, setPageTab] = useState<"asistente" | "conversaciones">("asistente");
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -229,15 +231,34 @@ export default function AIChatAdvancedPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Brain}
-        title="Chat IA Avanzado"
-        description="Conversaciones con contexto de tu negocio: ventas, inventario, finanzas y más"
+        title="Chat IA"
+        description="Asistente de acciones y conversaciones con contexto de tu negocio"
         actions={
-          <Button size="sm" onClick={createSession}>
-            <Plus className="w-3 h-3 mr-1" /> Nueva conversación
-          </Button>
+          pageTab === "conversaciones" ? (
+            <Button size="sm" onClick={createSession}>
+              <Plus className="w-3 h-3 mr-1" /> Nueva conversación
+            </Button>
+          ) : undefined
         }
       />
 
+      {/* tabs */}
+      <div className="flex gap-1 bg-muted/30 rounded-xl p-1 w-fit">
+        {([
+          { id: "asistente", label: "Asistente" },
+          { id: "conversaciones", label: "Conversaciones" },
+        ] as const).map(t => (
+          <button key={t.id} onClick={() => setPageTab(t.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pageTab === t.id ? "bg-card border border-border/60 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === "asistente" && <AIChatAssistantTab />}
+
+      {pageTab === "conversaciones" && (
+      <>
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="Conversaciones" value={kpis.totalSessions} icon={MessageSquare} color="primary" sub="sesiones activas" />
@@ -358,7 +379,7 @@ export default function AIChatAdvancedPage() {
               <Brain className="w-10 h-10 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground">Chat IA Avanzado</h2>
+              <h2 className="text-xl font-bold text-foreground">Chat IA</h2>
               <p className="text-muted-foreground text-sm mt-2 max-w-sm">Conversaciones con contexto de tu negocio: ventas, inventario, finanzas y más.</p>
             </div>
             <Button onClick={createSession} className="mt-2"><Sparkles className="w-4 h-4 mr-2" /> Nueva conversación</Button>
@@ -366,6 +387,8 @@ export default function AIChatAdvancedPage() {
         )}
       </div>
       </div>{/* end chat viewport */}
+      </>
+      )}
 
       {/* ── Prompt Library Dialog ── */}
       <Dialog open={showPromptLib} onOpenChange={setShowPromptLib}>
