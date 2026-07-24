@@ -406,9 +406,14 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
   capital inmovilizado por marca + desglose por familia olfativa.
 - **Enviar catálogo por WhatsApp** (CatalogPage): botón wa.me con el link
   del catálogo público prellenado.
+- **IA de copy para Instagram** (`generate-social-copy` edge fn +
+  SocialPlannerPage): genera título/contenido/hashtags para
+  post/story/reel/carousel a partir de un producto o tema.
+- **Enviar lista de precios por WhatsApp** (CatalogPage): botón "Precios
+  WA" que arma la lista en texto (producto — precio) y la abre en wa.me.
 - Pendiente Phase 2+: finanzas/compras (exponer price_lists mayorista),
-  enviar lista de precios por WhatsApp, IA copy de Instagram, reservas
-  reales (tabla stock_reservations), catálogo PDF por facetas, alerta
+  recomendador IA de perfumes similares / según cliente, reservas reales
+  (tabla stock_reservations), catálogo PDF por facetas, alerta
   "precio desactualizado".
 
 ---
