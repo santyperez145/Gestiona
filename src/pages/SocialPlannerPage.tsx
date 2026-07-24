@@ -20,7 +20,7 @@ import {
 import {
   Share2, Plus, Pencil, Trash2, Copy, Lightbulb, Hash, Calendar,
   Eye, Heart, MessageCircle, Repeat2, MousePointerClick, CheckCircle2, Clock,
-  Send, XCircle, FileEdit, Loader2,
+  Send, XCircle, FileEdit, Loader2, Sparkles,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -129,19 +129,56 @@ export default function SocialPlannerPage() {
 
   // Status filter
   const [statusFilter, setStatusFilter] = useState("all");
+  // Generador de copy con IA
+  const [products, setProducts] = useState<{ id: string; name: string; brand: string; category: string }[]>([]);
+  const [aiProductId, setAiProductId] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   async function loadData() {
     if (!orgId) return;
     setLoading(true);
-    const [postsRes, htRes, ideasRes] = await Promise.all([
+    const [postsRes, htRes, ideasRes, prodRes] = await Promise.all([
       supabase.from("social_posts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("hashtag_sets").select("*").eq("org_id", orgId).order("name"),
       supabase.from("content_ideas").select("*").eq("org_id", orgId).order("priority", { ascending: false }),
+      supabase.from("products").select("id, name, brand, category").eq("org_id", orgId).order("name"),
     ]);
     setPosts((postsRes.data || []) as SocialPost[]);
     setHashtagSets((htRes.data || []) as HashtagSet[]);
     setIdeas((ideasRes.data || []) as ContentIdea[]);
+    setProducts((prodRes.data || []) as any[]);
     setLoading(false);
+  }
+
+  async function generateCopy() {
+    const prod = products.find(p => p.id === aiProductId);
+    if (!prod && !postForm.title.trim()) {
+      toast.error("Elegí un producto o escribí un título/tema"); return;
+    }
+    setAiGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-social-copy", {
+        body: {
+          productName: prod?.name || postForm.title.trim(),
+          brand: prod?.brand || "",
+          category: prod?.category || "",
+          postType: postForm.post_type,
+          topic: postForm.title.trim(),
+        },
+      });
+      if (error) throw error;
+      setPostForm(p => ({
+        ...p,
+        title: p.title.trim() || (data?.title ?? p.title),
+        content: data?.content ?? p.content,
+        hashtags: Array.isArray(data?.hashtags) && data.hashtags.length ? Array.from(new Set([...p.hashtags, ...data.hashtags])) : p.hashtags,
+      }));
+      toast.success("Copy generado con IA");
+    } catch (err: any) {
+      toast.error("Error generando copy: " + (err.message || "desconocido"));
+    } finally {
+      setAiGenerating(false);
+    }
   }
 
   useEffect(() => { loadData(); }, [orgId]);
@@ -500,6 +537,27 @@ export default function SocialPlannerPage() {
             <div><Label>Título *</Label>
               <Input value={postForm.title} onChange={e => setPostForm(p => ({ ...p, title: e.target.value }))}
                 placeholder="Post lanzamiento verano..." />
+            </div>
+
+            {/* ── Generador de copy con IA ─────────────────────────── */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />Generar copy con IA
+              </p>
+              <div className="flex gap-2">
+                <Select value={aiProductId || "__none"} onValueChange={v => setAiProductId(v === "__none" ? "" : v)}>
+                  <SelectTrigger className="flex-1 text-xs h-9"><SelectValue placeholder="Producto (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Sin producto — usar el título como tema</SelectItem>
+                    {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.brand ? ` · ${p.brand}` : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="sm" onClick={generateCopy} disabled={aiGenerating} className="shrink-0">
+                  {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  <span className="ml-1">Generar</span>
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Genera texto + hashtags para el tipo de post elegido. Podés editar todo después.</p>
             </div>
 
             {/* Platforms */}

@@ -857,6 +857,22 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   }, [filtered, settings, userId]);
 
+  const sendPriceListWhatsApp = useCallback(() => {
+    const url = `${window.location.origin}/catalogo/${userId}`;
+    const name = settings?.business_name || '';
+    const inStock = filtered.filter(p => p.stock > 0);
+    const CAP = 40; // límite práctico para no exceder el largo de wa.me
+    const lines = inStock.slice(0, CAP).map(p => {
+      const eff = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars)
+        ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+      return `• ${p.name} — ${formatARS(eff)}`;
+    });
+    let msg = `📋 *Lista de precios${name ? ` — ${name}` : ''}*\n\n${lines.join('\n')}`;
+    if (inStock.length > CAP) msg += `\n\n…y ${inStock.length - CAP} productos más en el catálogo:\n${url}`;
+    else msg += `\n\nCatálogo completo: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }, [filtered, settings, userId]);
+
   if (loading) return <TableSkeleton rows={6} cols={4} />;
 
   const businessName = settings?.business_name || '';
@@ -884,7 +900,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
                   <QrCode className="w-4 h-4 mr-1" /> QR
                 </Button>
                 <Button variant="outline" size="sm" onClick={sendCatalogWhatsApp} title="Enviar catálogo por WhatsApp" className="text-emerald-500 hover:text-emerald-400">
-                  <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
+                  <MessageCircle className="w-4 h-4 mr-1" /> Catálogo WA
+                </Button>
+                <Button variant="outline" size="sm" onClick={sendPriceListWhatsApp} title="Enviar lista de precios por WhatsApp" className="text-emerald-500 hover:text-emerald-400">
+                  <MessageCircle className="w-4 h-4 mr-1" /> Precios WA
                 </Button>
                 <Button variant="outline" size="sm" onClick={shareCatalog}>
                   <Share2 className="w-4 h-4 mr-1" /> Compartir
