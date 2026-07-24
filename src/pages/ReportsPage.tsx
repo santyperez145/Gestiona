@@ -12,6 +12,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
+import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { useFileSystemAccess } from "@/hooks/useFileSystemAccess";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine, Area, AreaChart, ComposedChart } from "recharts";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
@@ -484,6 +485,7 @@ export default function ReportsPage() {
           <TabsTrigger value="taxes">Impuestos</TabsTrigger>
           <TabsTrigger value="budget">Presupuesto</TabsTrigger>
           <TabsTrigger value="categories">Por Categoría</TabsTrigger>
+          <TabsTrigger value="brands">🏷️ Marcas</TabsTrigger>
           <TabsTrigger value="cashflow">Flujo de Caja</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
           <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
@@ -681,6 +683,10 @@ export default function ReportsPage() {
 
         <TabsContent value="categories">
           <SalesByCategoryTab sales={filtered.sales} products={data.products} period={filtered.label} />
+        </TabsContent>
+
+        <TabsContent value="brands">
+          <BrandStatsTab sales={filtered.sales} products={data.products} settings={settings} period={filtered.label} />
         </TabsContent>
 
         <TabsContent value="cashflow">
@@ -2453,6 +2459,227 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
                 <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">100%</td>
               </tr>
             </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Brand & Family Stats Tab — ¿qué marca vende/rinde más? ¿capital inmovilizado?
+// ─────────────────────────────────────────────────────────────
+function BrandStatsTab({ sales, products, settings, period }: { sales: any[]; products: any[]; settings: any; period: string }) {
+  const { activeOrg } = useOrg();
+  const [sortKey, setSortKey] = useState<"revenue" | "profit" | "margin" | "units" | "capital">("revenue");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [familiaByProduct, setFamiliaByProduct] = useState<Record<string, string>>({});
+  const rate = Number(settings?.exchange_rate) || 1695;
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    supabase.from("product_perfume_details").select("product_id, familia_olfativa").eq("org_id", activeOrg.id)
+      .then(({ data }) => {
+        const m: Record<string, string> = {};
+        (data || []).forEach((d: any) => { if (d.familia_olfativa) m[d.product_id] = d.familia_olfativa; });
+        setFamiliaByProduct(m);
+      });
+  }, [activeOrg?.id]);
+
+  const productById = useMemo(() => {
+    const m: Record<string, any> = {};
+    products.forEach((p: any) => { if (p.id) m[p.id] = p; });
+    return m;
+  }, [products]);
+
+  // Capital inmovilizado + nº de productos por marca (desde el stock actual)
+  const brandInventory = useMemo(() => {
+    const m: Record<string, { capital: number; skus: number; stock: number }> = {};
+    products.forEach((p: any) => {
+      const brand = (p.brand || "Sin marca").trim() || "Sin marca";
+      if (!m[brand]) m[brand] = { capital: 0, skus: 0, stock: 0 };
+      m[brand].capital += (Number(p.total_cost_usd) || 0) * rate * (Number(p.stock) || 0);
+      m[brand].skus += 1;
+      m[brand].stock += Number(p.stock) || 0;
+    });
+    return m;
+  }, [products, rate]);
+
+  const rows = useMemo(() => {
+    const byBrand: Record<string, { revenue: number; profit: number; units: number; transactions: number }> = {};
+    sales.forEach((s: any) => {
+      const p = productById[s.product_id];
+      const brand = ((p?.brand || "Sin marca").trim()) || "Sin marca";
+      if (!byBrand[brand]) byBrand[brand] = { revenue: 0, profit: 0, units: 0, transactions: 0 };
+      byBrand[brand].revenue += Number(s.total_ars) || 0;
+      byBrand[brand].profit += Number(s.profit_ars) || 0;
+      byBrand[brand].units += Number(s.quantity) || 1;
+      byBrand[brand].transactions++;
+    });
+    // Unir todas las marcas: las que vendieron + las que solo tienen stock
+    const allBrands = new Set([...Object.keys(byBrand), ...Object.keys(brandInventory)]);
+    return Array.from(allBrands).map(brand => {
+      const d = byBrand[brand] || { revenue: 0, profit: 0, units: 0, transactions: 0 };
+      const inv = brandInventory[brand] || { capital: 0, skus: 0, stock: 0 };
+      return {
+        brand,
+        revenue: d.revenue,
+        profit: d.profit,
+        margin: d.revenue > 0 ? (d.profit / d.revenue) * 100 : 0,
+        units: d.units,
+        transactions: d.transactions,
+        capital: inv.capital,
+        skus: inv.skus,
+        stock: inv.stock,
+      };
+    }).sort((a, b) => (sortAsc ? 1 : -1) * ((a as any)[sortKey] - (b as any)[sortKey]));
+  }, [sales, productById, brandInventory, sortKey, sortAsc]);
+
+  const totals = useMemo(() => ({
+    revenue: rows.reduce((s, r) => s + r.revenue, 0),
+    profit: rows.reduce((s, r) => s + r.profit, 0),
+    capital: rows.reduce((s, r) => s + r.capital, 0),
+  }), [rows]);
+
+  // Marca más rentable (por margen, con ingreso mínimo relevante)
+  const topBrand = useMemo(() => [...rows].sort((a, b) => b.revenue - a.revenue)[0], [rows]);
+  const mostProfitable = useMemo(() => {
+    const withSales = rows.filter(r => r.revenue > 0);
+    return [...withSales].sort((a, b) => b.margin - a.margin)[0];
+  }, [rows]);
+
+  const top10 = useMemo(() => [...rows].filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 10), [rows]);
+
+  // Desglose por familia olfativa
+  const familiaRows = useMemo(() => {
+    const byFam: Record<string, { revenue: number; units: number }> = {};
+    sales.forEach((s: any) => {
+      const fam = familiaByProduct[s.product_id];
+      if (!fam) return;
+      if (!byFam[fam]) byFam[fam] = { revenue: 0, units: 0 };
+      byFam[fam].revenue += Number(s.total_ars) || 0;
+      byFam[fam].units += Number(s.quantity) || 1;
+    });
+    return Object.entries(byFam)
+      .map(([fam, d]) => ({ fam, label: taxLabel(FAMILIAS_OLFATIVAS, fam), revenue: d.revenue, units: d.units }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [sales, familiaByProduct]);
+  const familiaTotal = familiaRows.reduce((s, r) => s + r.revenue, 0);
+
+  const tooltipStyle = { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 };
+  const handleSort = (k: typeof sortKey) => { if (sortKey === k) setSortAsc(!sortAsc); else { setSortKey(k); setSortAsc(false); } };
+
+  const exportBrands = () => exportCSV(`ventas-por-marca-${period}.csv`,
+    ["Marca", "Ingresos ARS", "Ganancia ARS", "Margen %", "Unidades", "% del total", "SKUs", "Stock", "Capital inmovilizado ARS"],
+    rows.map(r => [r.brand, Math.round(r.revenue).toString(), Math.round(r.profit).toString(), r.margin.toFixed(1), r.units.toString(),
+      (totals.revenue > 0 ? (r.revenue / totals.revenue) * 100 : 0).toFixed(1), r.skus.toString(), r.stock.toString(), Math.round(r.capital).toString()])
+  );
+
+  if (rows.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+      <BarChart2 className="w-10 h-10 mb-3 opacity-30" />
+      <p className="text-sm">Sin productos ni ventas para analizar por marca</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5 pb-12">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Marca líder", value: topBrand?.revenue > 0 ? topBrand.brand : "—", sub: topBrand?.revenue > 0 ? formatARS(topBrand.revenue) : "sin ventas", color: "text-primary" },
+          { label: "Más rentable", value: mostProfitable ? mostProfitable.brand : "—", sub: mostProfitable ? `${mostProfitable.margin.toFixed(1)}% margen` : "sin ventas", color: "text-emerald-400" },
+          { label: "Capital inmovilizado", value: formatARS(totals.capital), sub: `${rows.length} marcas`, color: "text-yellow-400" },
+          { label: "Ingresos totales", value: formatARS(totals.revenue), sub: `${formatARS(totals.profit)} ganancia`, color: "text-blue-400" },
+        ].map(k => (
+          <div key={k.label} className="bg-card border border-border/60 rounded-[10px] p-3 md:p-4">
+            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">{k.label}</p>
+            <p className={`text-base md:text-lg font-bold tracking-tight font-display truncate ${k.color}`}>{k.value}</p>
+            <p className="text-[10px] text-muted-foreground/70 mt-0.5">{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {top10.length > 0 && (
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
+          <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Ingresos por marca — {period}</h3>
+          <ResponsiveContainer width="100%" height={Math.max(180, top10.length * 34)}>
+            <BarChart data={top10} layout="vertical">
+              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+              <YAxis type="category" dataKey="brand" width={110} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 18) + "…" : v} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), "Ingresos"]} />
+              <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
+                {top10.map((_, i) => <Cell key={i} fill={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {familiaRows.length > 0 && (
+        <div className="bg-card border border-border/60 rounded-[10px] p-4">
+          <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Ingresos por familia olfativa</h3>
+          <div className="space-y-2">
+            {familiaRows.map((f, i) => {
+              const pct = familiaTotal > 0 ? (f.revenue / familiaTotal) * 100 : 0;
+              return (
+                <div key={f.fam} className="flex items-center gap-3">
+                  <span className="text-xs w-28 shrink-0 truncate">{f.label}</span>
+                  <div className="flex-1 h-4 rounded-full bg-muted/40 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] }} />
+                  </div>
+                  <span className="text-xs font-mono w-24 text-right shrink-0">{formatARS(f.revenue)}</span>
+                  <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">{pct.toFixed(0)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={exportBrands}><FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />Exportar CSV</Button>
+      </div>
+
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Marca</th>
+                {(["revenue", "profit", "margin", "units", "capital"] as const).map(k => (
+                  <th key={k} className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => handleSort(k)}>
+                    {k === "revenue" ? "Ingresos" : k === "profit" ? "Ganancia" : k === "margin" ? "Margen" : k === "units" ? "Uds" : "Capital"}
+                    {sortKey === k ? (sortAsc ? " ▲" : " ▼") : ""}
+                  </th>
+                ))}
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">% del total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((r, i) => {
+                const pct = totals.revenue > 0 ? (r.revenue / totals.revenue) * 100 : 0;
+                return (
+                  <tr key={r.brand} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] }} />
+                        <span className="font-medium">{r.brand}</span>
+                        <span className="text-[10px] text-muted-foreground">· {r.skus} SKU{r.skus === 1 ? "" : "s"}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">{formatARS(r.revenue)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">{formatARS(r.profit)}</td>
+                    <td className="px-4 py-3 text-right text-xs">
+                      <span className={`font-semibold ${r.margin >= 30 ? "text-emerald-400" : r.margin >= 15 ? "text-yellow-400" : r.revenue > 0 ? "text-destructive" : "text-muted-foreground"}`}>{r.revenue > 0 ? `${r.margin.toFixed(1)}%` : "—"}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">{r.units}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-yellow-400">{formatARS(r.capital)}</td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">{pct.toFixed(1)}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </div>

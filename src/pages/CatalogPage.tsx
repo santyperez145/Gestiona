@@ -7,7 +7,7 @@ import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, Package, Tag, Download, Share2, QrCode, Layers, Percent } from "lucide-react";
+import { Search, Package, Tag, Download, Share2, QrCode, Layers, Percent, MessageCircle } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { QRCodeSVG } from "qrcode.react";
 import EmptyState from "@/components/shared/EmptyState";
@@ -850,6 +850,13 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     }
   }, [filtered, settings, userId]);
 
+  const sendCatalogWhatsApp = useCallback(() => {
+    const url = `${window.location.origin}/catalogo/${userId}`;
+    const name = settings?.business_name || '';
+    const msg = `Hola! 👋 Mirá el catálogo${name ? ` de ${name}` : ''} con ${filtered.length} productos disponibles:\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }, [filtered, settings, userId]);
+
   if (loading) return <TableSkeleton rows={6} cols={4} />;
 
   const businessName = settings?.business_name || '';
@@ -875,6 +882,9 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
               <>
                 <Button variant="outline" size="sm" onClick={printQR} title="Imprimir QR del catálogo">
                   <QrCode className="w-4 h-4 mr-1" /> QR
+                </Button>
+                <Button variant="outline" size="sm" onClick={sendCatalogWhatsApp} title="Enviar catálogo por WhatsApp" className="text-emerald-500 hover:text-emerald-400">
+                  <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
                 </Button>
                 <Button variant="outline" size="sm" onClick={shareCatalog}>
                   <Share2 className="w-4 h-4 mr-1" /> Compartir
