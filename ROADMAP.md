@@ -411,9 +411,16 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
   post/story/reel/carousel a partir de un producto o tema.
 - **Enviar lista de precios por WhatsApp** (CatalogPage): botón "Precios
   WA" que arma la lista en texto (producto — precio) y la abre en wa.me.
-- Pendiente Phase 2+: finanzas/compras (exponer price_lists mayorista),
-  recomendador IA de perfumes similares / según cliente, reservas reales
-  (tabla stock_reservations), catálogo PDF por facetas, alerta
+- **Recomendador de perfumes similares** (`perfumeMatch.ts` +
+  PerfumeRecommenderModal): similitud determinística por notas/familia/
+  duración/proyección; acción "Similares" por perfume en ProductsPage.
+  `recommendForPreferences()` queda lista para el lado cliente (Phase 3).
+- **Prolijidad UI**: ficha de perfume reorganizada en subsecciones
+  (Identidad / Perfil / Pirámide de notas / Uso ideal); charts de las
+  superficies nuevas 100% theme-aware.
+- Pendiente Phase 3: recomendador por cliente (cablear en CustomersPage —
+  la lib ya existe), reservas reales (tabla stock_reservations), catálogo
+  PDF por facetas, exponer price_lists mayorista en la ficha, alerta
   "precio desactualizado".
 
 ---
