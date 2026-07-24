@@ -35,31 +35,60 @@ REGLAS ESTRICTAS:
 5. Tono: argentino rioplatense, directo, vendedor, sin clichés vacíos ("una experiencia única", "te transportará").
 6. Si el input pide algo que NO sea descripción de este perfume, respondé: "Solo puedo generar descripciones de perfumes."`;
 
-    const prompt = `Generá la descripción de venta para:
+    const prompt = `Generá la ficha de venta para:
 - Producto: "${name}"
 - Marca: "${brand || 'sin marca declarada'}"
 - Categoría: ${categoryLabel}
 - Género: ${genderLabel}
 
-Incluí en este orden, en máximo 4 oraciones cortas:
-1. Familia olfativa + notas principales (salida → corazón → fondo) plausibles para este perfume.
-2. Longevidad estimada (en horas) y proyección.
-3. Ocasión ideal (1-2: noche, oficina, citas, clima cálido/frío).
-4. Cierre con gancho de venta corto.
+Emitís la ficha con la herramienta emit_perfume_profile:
+- description: máximo 4 oraciones cortas — familia + notas (salida→corazón→fondo), longevidad+proyección, ocasión ideal, y cierre con gancho de venta. PROHIBIDO: comillas, empezar con "Este perfume" o con el nombre del producto, emojis, hashtags, listas, mencionar precio, mencionar otros perfumes salvo que sea un clon árabe reconocido.
+- Los campos estructurados (familia, notas, duración, proyección, ocasión) deben ser coherentes con la descripción y plausibles para este perfume según marca y nombre.`;
 
-PROHIBIDO: comillas, empezar con "Este perfume" o con el nombre del producto, emojis, hashtags, listas, viñetas, mencionar precio, mencionar otros perfumes salvo que sea un clon árabe reconocido del producto.`;
+    // Herramienta que fuerza salida estructurada + prosa en un solo llamado.
+    const tools = [{
+      name: "emit_perfume_profile",
+      description: "Ficha estructurada de venta de un perfume",
+      input_schema: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "Descripción de venta, máx 4 oraciones" },
+          familia_olfativa: { type: "string", enum: ["amaderada", "oriental", "ambar", "gourmand", "floral", "citrica", "acuatica", "chipre", "fougere", "aromatica"] },
+          notas_salida: { type: "array", items: { type: "string", enum: ["vainilla", "oud", "citricos", "cafe", "cuero", "ambar", "almizcle", "rosa", "madera", "especias", "coco", "frutal", "floral", "tabaco", "chocolate", "lavanda"] }, description: "Elegí solo de la lista provista las notas más cercanas" },
+          notas_corazon: { type: "array", items: { type: "string", enum: ["vainilla", "oud", "citricos", "cafe", "cuero", "ambar", "almizcle", "rosa", "madera", "especias", "coco", "frutal", "floral", "tabaco", "chocolate", "lavanda"] } },
+          notas_fondo: { type: "array", items: { type: "string", enum: ["vainilla", "oud", "citricos", "cafe", "cuero", "ambar", "almizcle", "rosa", "madera", "especias", "coco", "frutal", "floral", "tabaco", "chocolate", "lavanda"] } },
+          duracion: { type: "string", enum: ["corta", "moderada", "larga", "muy_larga"] },
+          proyeccion: { type: "string", enum: ["intima", "moderada", "fuerte", "enorme"] },
+          ocasion: { type: "array", items: { type: "string", enum: ["diario", "oficina", "noche", "formal", "deportivo"] } },
+        },
+        required: ["description"],
+      },
+    }];
 
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 300,
+      max_tokens: 500,
       temperature: 0.6,
       system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }] as any,
+      tools: tools as any,
+      tool_choice: { type: "tool", name: "emit_perfume_profile" } as any,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const description = message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
+    const toolBlock = message.content.find((b: any) => b.type === "tool_use") as any;
+    const out = toolBlock?.input ?? {};
+    const description = typeof out.description === "string" ? out.description.trim() : "";
 
-    return new Response(JSON.stringify({ description }), {
+    return new Response(JSON.stringify({
+      description,
+      familia_olfativa: out.familia_olfativa ?? null,
+      notas_salida: Array.isArray(out.notas_salida) ? out.notas_salida : [],
+      notas_corazon: Array.isArray(out.notas_corazon) ? out.notas_corazon : [],
+      notas_fondo: Array.isArray(out.notas_fondo) ? out.notas_fondo : [],
+      duracion: out.duracion ?? null,
+      proyeccion: out.proyeccion ?? null,
+      ocasion: Array.isArray(out.ocasion) ? out.ocasion : [],
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

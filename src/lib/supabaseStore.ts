@@ -804,6 +804,8 @@ export async function getCustomersDB(userId: string) {
 export async function createCustomerDB(userId: string, customer: {
   name: string; company?: string; email?: string; phone?: string; address?: string;
   birthday?: string; tags?: string[]; notes?: string;
+  instagram_handle?: string; whatsapp_number?: string; buys_vapers?: boolean; scent_preferences?: string[];
+  custom_fields?: Record<string, any>;
 }) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase
@@ -818,6 +820,8 @@ export async function createCustomerDB(userId: string, customer: {
 export async function updateCustomerDB(id: string, updates: Partial<{
   name: string; company: string; email: string; phone: string; address: string;
   birthday: string; tags: string[]; notes: string;
+  instagram_handle: string; whatsapp_number: string; buys_vapers: boolean; scent_preferences: string[];
+  custom_fields: Record<string, any>;
 }>) {
   const { error } = await supabase
     .from('customers')
