@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, formatARS, formatUSD, getCategoryLabel, seedProductsForUser, calculateTaxes, getExpenseCategoryLabel, buildExpenseCategories, saveSettingsDB } from "@/lib/supabaseStore";
-import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard } from "lucide-react";
+import { Package, TrendingUp, TrendingDown, AlertCircle, DollarSign, BarChart3, Users, ShoppingBag, AlertTriangle, Bell, Filter, Banknote, Target, SlidersHorizontal, Wallet, Crown, ArrowUp, ArrowDown, Zap, Cake, MessageCircle, Share2, Clock, MessageSquare, CheckCircle2, LayoutDashboard, Sparkles } from "lucide-react";
 import { DashboardSkeleton } from "@/components/shared/PageSkeleton";
 import PageHeader from "@/components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -786,6 +786,13 @@ export default function Dashboard() {
     const expenseRatioAlertPct = Number(settings.expense_ratio_alert_percent ?? 40);
     const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= lowStockThreshold);
     const outOfStockProducts = products.filter((p: any) => p.stock <= 0);
+    // Productos nuevos (creados en los últimos 30 días) + próximos ingresos
+    const newProdSince = new Date(); newProdSince.setDate(newProdSince.getDate() - 30);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const newProducts = products.filter((p: any) => p.created_at && new Date(p.created_at) >= newProdSince);
+    const upcomingRestocks = products
+      .filter((p: any) => p.expected_restock_at && p.expected_restock_at >= todayStr)
+      .sort((a: any, b: any) => a.expected_restock_at.localeCompare(b.expected_restock_at));
 
     // Margin rankings
     const productsWithMargin = products.filter((p: any) => Number(p.sale_price_ars) > 0).map((p: any) => ({
@@ -1031,6 +1038,9 @@ export default function Dashboard() {
       lowStock: lowStockProducts.length,
       outOfStock: outOfStockProducts.length,
       lowStockProducts, outOfStockProducts, restockSuggestions,
+      newProductsCount: newProducts.length,
+      newProductNames: newProducts.slice(0, 3).map((p: any) => p.name),
+      upcomingRestocks,
       grossProfitARS, grossProfitUSD,
       netProfitARS: taxes.netProfit,
       taxEnabled: settings.tax_enabled,
@@ -1149,6 +1159,8 @@ export default function Dashboard() {
     { label: "Inventario", value: `${stats.totalStock} uds`, sub: formatUSD(stats.inventoryValueUSD), icon: Package, color: "text-primary" },
     { label: "Ticket Prom.", value: formatARS(stats.avgSaleARS), sub: "Por venta", icon: ShoppingBag, color: "text-accent" },
     { label: "Stock Bajo", value: `${stats.lowStock} / ${stats.outOfStock}`, sub: "Bajo / Agotado", icon: BarChart3, color: stats.lowStock > 0 ? "text-destructive" : "text-emerald-400" },
+    { label: "Productos Nuevos", value: stats.newProductsCount, sub: stats.newProductsCount > 0 ? `${stats.newProductNames.join(", ")}${stats.newProductsCount > 3 ? "…" : ""}` : "Últimos 30 días", icon: Sparkles, color: "text-primary" },
+    { label: "Próximos Ingresos", value: stats.upcomingRestocks.length, sub: stats.upcomingRestocks[0] ? `Próx: ${stats.upcomingRestocks[0].name}` : "Sin ingresos programados", icon: Clock, color: "text-accent" },
     { label: "Clientes", value: stats.uniqueCustomers, sub: "Únicos", icon: Users, color: "text-primary" },
     {
       label: "Forecast 30d (OLS)",

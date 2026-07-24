@@ -20,6 +20,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, BarChart3, RefreshCw, Search,
   Loader2, Download, SlidersHorizontal, Package, PlusCircle,
   MinusCircle, ClipboardList, TrendingDown, TrendingUp, History,
+  AlertTriangle, Gift, Lock,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -33,7 +34,8 @@ import StockCountTab from "@/components/inventory/StockCountTab";
 type MovementType =
   | "purchase" | "sale" | "return_in" | "return_out"
   | "adjustment_in" | "adjustment_out" | "transfer_in" | "transfer_out"
-  | "physical_count" | "initial";
+  | "physical_count" | "initial"
+  | "breakage" | "gift" | "reservation";
 
 interface StockMovement {
   id: string;
@@ -82,6 +84,9 @@ const TYPE_META: Record<MovementType, { label: string; color: string; icon: Reac
   transfer_out:    { label: "Transferencia (−)", color: "bg-pink-500/15 text-pink-400 border-pink-500/30",    icon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
   physical_count:  { label: "Toma Física",      color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",    icon: <ClipboardList className="w-3.5 h-3.5" /> },
   initial:         { label: "Stock Inicial",    color: "bg-gray-500/15 text-gray-400 border-gray-500/30",    icon: <Package className="w-3.5 h-3.5" /> },
+  breakage:        { label: "Rotura/Pérdida",   color: "bg-red-500/15 text-red-400 border-red-500/30",       icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+  gift:            { label: "Regalo",           color: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30", icon: <Gift className="w-3.5 h-3.5" /> },
+  reservation:     { label: "Reserva",          color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Lock className="w-3.5 h-3.5" /> },
 };
 
 function MovTypeBadge({ type }: { type: MovementType }) {
@@ -127,6 +132,13 @@ export default function KardexPage() {
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
+  // ── Movimiento manual (rotura/regalo/reserva/ajuste con signo) ──────────
+  const [showMovement, setShowMovement] = useState(false);
+  const [movProduct, setMovProduct] = useState<Product | null>(null);
+  const [movType, setMovType] = useState<"breakage" | "gift" | "reservation" | "adjustment_in" | "adjustment_out">("breakage");
+  const [movQty, setMovQty] = useState("");
+  const [movNotes, setMovNotes] = useState("");
+  const [movSaving, setMovSaving] = useState(false);
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
 
@@ -224,6 +236,37 @@ export default function KardexPage() {
     }
   }
 
+  async function handleManualMovement() {
+    if (!movProduct || !movQty || !user || !activeOrg) return;
+    const qty = parseInt(movQty, 10);
+    if (isNaN(qty) || qty <= 0) { toast.error("Cantidad inválida"); return; }
+    // adjustment_in suma; el resto (rotura/regalo/reserva/ajuste−) resta.
+    const signedQty = movType === "adjustment_in" ? qty : -qty;
+    setMovSaving(true);
+    try {
+      const { error } = await supabase.rpc("record_manual_stock_movement", {
+        p_org_id: activeOrg.id,
+        p_product_id: movProduct.id,
+        p_variant_id: null,
+        p_movement_type: movType,
+        p_quantity: signedQty,
+        p_notes: movNotes || null,
+        p_created_by: user.id,
+      });
+      if (error) throw error;
+      toast.success(`Movimiento registrado en "${movProduct.name}"`);
+      setShowMovement(false);
+      setMovProduct(null);
+      setMovQty("");
+      setMovNotes("");
+      await loadData();
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al registrar movimiento");
+    } finally {
+      setMovSaving(false);
+    }
+  }
+
   // ── Export CSV ────────────────────────────────────────────────────────────────
 
   function exportCSV() {
@@ -262,6 +305,13 @@ export default function KardexPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0}>
               <Download className="w-4 h-4 mr-1" /> CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setMovProduct(null); setMovType("breakage"); setMovQty(""); setMovNotes(""); setShowMovement(true); }}
+            >
+              <ClipboardList className="w-4 h-4 mr-1" /> Movimiento
             </Button>
             <Button
               size="sm"
@@ -590,6 +640,84 @@ export default function KardexPage() {
             >
               {adjustSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <SlidersHorizontal className="w-4 h-4 mr-2" />}
               Aplicar Ajuste
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Manual movement Dialog (rotura/regalo/reserva/ajuste con signo) ── */}
+      <Dialog open={showMovement} onOpenChange={setShowMovement}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4" /> Registrar Movimiento
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Producto *</Label>
+              <Select value={movProduct?.id ?? ""} onValueChange={v => setMovProduct(products.find(x => x.id === v) ?? null)}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Seleccioná un producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} (stock: {p.stock})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Tipo de movimiento *</Label>
+              <Select value={movType} onValueChange={v => setMovType(v as typeof movType)}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="breakage">Rotura / Pérdida (−)</SelectItem>
+                  <SelectItem value="gift">Regalo (−)</SelectItem>
+                  <SelectItem value="reservation">Reserva (−)</SelectItem>
+                  <SelectItem value="adjustment_out">Ajuste manual (−)</SelectItem>
+                  <SelectItem value="adjustment_in">Ajuste manual (+)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="mov-qty">Cantidad *</Label>
+              <Input
+                id="mov-qty"
+                type="number"
+                min="1"
+                className="mt-1.5 font-mono"
+                placeholder="Ej: 2"
+                value={movQty}
+                onChange={e => setMovQty(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {movType === "adjustment_in" ? "Se sumará al stock." : "Se restará del stock."}
+                {movType === "reservation" && " La reserva reduce el mismo stock (no hay cantidad reservada separada)."}
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="mov-notes">Notas</Label>
+              <Textarea
+                id="mov-notes"
+                className="mt-1.5 resize-none"
+                placeholder="Ej: se rompió en el envío, regalo a influencer…"
+                rows={2}
+                value={movNotes}
+                onChange={e => setMovNotes(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMovement(false)}>Cancelar</Button>
+            <Button onClick={handleManualMovement} disabled={!movProduct || !movQty || movSaving}>
+              {movSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ClipboardList className="w-4 h-4 mr-2" />}
+              Registrar
             </Button>
           </DialogFooter>
         </DialogContent>

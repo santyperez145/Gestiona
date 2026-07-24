@@ -14,7 +14,9 @@ import {
   MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
+  Instagram, Droplets,
 } from "lucide-react";
+import { NOTAS_COMUNES } from "@/lib/scentTaxonomy";
 import { useContactPicker } from "@/hooks/useContactPicker";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -72,6 +74,10 @@ type CustomerProfile = {
   birthday?: string;
   tags?: string[];
   notes?: string;
+  instagram_handle?: string;
+  whatsapp_number?: string;
+  buys_vapers?: boolean;
+  scent_preferences?: string[];
   custom_fields?: Record<string, any>;
 };
 
@@ -213,7 +219,11 @@ function CustomerFormModal({
     birthday: initial?.birthday ?? "",
     tags: (initial?.tags ?? []).join(", "),
     notes: initial?.notes ?? "",
+    instagram: initial?.instagram_handle ?? "",
+    whatsapp: initial?.whatsapp_number ?? "",
+    buysVapers: initial?.buys_vapers ?? false,
   });
+  const [scentPrefs, setScentPrefs] = useState<string[]>(initial?.scent_preferences ?? []);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(
     initial?.custom_fields ?? {}
@@ -266,6 +276,10 @@ function CustomerFormModal({
         birthday: form.birthday || undefined,
         tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
         notes: form.notes.trim() || undefined,
+        instagram_handle: form.instagram.trim() || undefined,
+        whatsapp_number: form.whatsapp.trim() || undefined,
+        buys_vapers: form.buysVapers,
+        scent_preferences: scentPrefs,
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
       });
       onClose();
@@ -379,6 +393,49 @@ function CustomerFormModal({
               className="bg-muted resize-none"
               rows={3}
             />
+          </div>
+
+          {/* ── CRM perfumería: redes + preferencias ─────────────────── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Instagram className="w-3 h-3" />Instagram</label>
+              <Input
+                value={form.instagram}
+                onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))}
+                placeholder="@usuario"
+                className="bg-muted"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MessageCircle className="w-3 h-3" />WhatsApp</label>
+              <Input
+                value={form.whatsapp}
+                onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
+                placeholder="usa el teléfono si se deja vacío"
+                className="bg-muted"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-muted rounded-lg p-3 border border-border">
+            <input type="checkbox" id="buysVapers" checked={form.buysVapers} onChange={e => setForm(f => ({ ...f, buysVapers: e.target.checked }))} className="rounded" />
+            <label htmlFor="buysVapers" className="text-sm flex items-center gap-1 cursor-pointer">
+              <Package className="w-3.5 h-3.5 text-primary" />Compra vapers
+            </label>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1"><Droplets className="w-3 h-3" />Preferencias olfativas</label>
+            <div className="flex flex-wrap gap-1.5">
+              {NOTAS_COMUNES.map(n => {
+                const active = scentPrefs.includes(n.value);
+                return (
+                  <button key={n.value} type="button"
+                    onClick={() => setScentPrefs(prev => prev.includes(n.value) ? prev.filter(x => x !== n.value) : [...prev, n.value])}
+                    className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${active ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>
+                    {n.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Custom fields */}

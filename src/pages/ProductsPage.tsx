@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal } from "lucide-react";
+import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -294,6 +296,16 @@ export default function ProductsPage() {
   const [filterMovement, setFilterMovement] = useState('all');
   const [filterMargin, setFilterMargin] = useState('all');
   const [filterDiscount, setFilterDiscount] = useState(false);
+  // ── Buscador de perfumes por facetas ──────────────────────────────────────
+  const [perfumeDetailsByProduct, setPerfumeDetailsByProduct] = useState<Record<string, any>>({});
+  const [facetSheetOpen, setFacetSheetOpen] = useState(false);
+  const [filterFamilia, setFilterFamilia] = useState<string[]>([]);
+  const [filterNotas, setFilterNotas] = useState<string[]>([]);
+  const [filterEstacion, setFilterEstacion] = useState<string[]>([]);
+  const [filterOcasion, setFilterOcasion] = useState<string[]>([]);
+  const [filterGenderFacet, setFilterGenderFacet] = useState<string[]>([]);
+  const [filterMaxPrice, setFilterMaxPrice] = useState('');
+  const facetCount = filterFamilia.length + filterNotas.length + filterEstacion.length + filterOcasion.length + filterGenderFacet.length + (filterMaxPrice ? 1 : 0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -316,7 +328,7 @@ export default function ProductsPage() {
     if (!user) return;
     const orgId = await import('@/lib/orgContext').then(m => m.getActiveOrgId());
     const since60 = new Date(); since60.setDate(since60.getDate() - 60);
-    const [p, s, allVariants, salesRes] = await Promise.all([
+    const [p, s, allVariants, salesRes, perfumeRes] = await Promise.all([
       getProductsDB(user.id),
       getSettingsDB(user.id),
       getVariantsByUserDB(user.id),
@@ -324,11 +336,17 @@ export default function ProductsPage() {
         .select('product_id, quantity, date')
         .eq('org_id', orgId)
         .gte('date', since60.toISOString().slice(0, 10)),
+      supabase.from('product_perfume_details')
+        .select('*')
+        .eq('org_id', orgId),
     ]);
     setProducts(p); setSettings(s); setLoading(false);
     const counts: Record<string, number> = {};
     allVariants.forEach((v: any) => { counts[v.product_id] = (counts[v.product_id] || 0) + 1; });
     setVariantCounts(counts);
+    const perfumeMap: Record<string, any> = {};
+    (perfumeRes.data || []).forEach((d: any) => { perfumeMap[d.product_id] = d; });
+    setPerfumeDetailsByProduct(perfumeMap);
     // Calculate daily sales velocity per product (units/day over last 60 days)
     const velocity: Record<string, number> = {};
     const lastSale: Record<string, string> = {};
@@ -423,6 +441,23 @@ export default function ProductsPage() {
       if (filterMargin === 'negative' && margin >= 0) return false;
     }
     if (filterDiscount && !(p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars))) return false;
+    // ── Facetas de perfume ──────────────────────────────────────────────
+    if (filterMaxPrice) {
+      const price = Number(p.discount_price_ars) || Number(p.sale_price_ars) || 0;
+      if (price <= 0 || price > Number(filterMaxPrice)) return false;
+    }
+    if (filterGenderFacet.length && !filterGenderFacet.includes(p.gender)) return false;
+    if (filterFamilia.length || filterNotas.length || filterEstacion.length || filterOcasion.length) {
+      const d = perfumeDetailsByProduct[p.id];
+      if (!d) return false; // sin ficha no matchea ninguna faceta de perfume
+      if (filterFamilia.length && !filterFamilia.includes(d.familia_olfativa)) return false;
+      if (filterEstacion.length && !filterEstacion.some((e: string) => (d.estacion || []).includes(e))) return false;
+      if (filterOcasion.length && !filterOcasion.some((o: string) => (d.ocasion || []).includes(o))) return false;
+      if (filterNotas.length) {
+        const allNotas = [...(d.notas_salida || []), ...(d.notas_corazon || []), ...(d.notas_fondo || [])];
+        if (!filterNotas.some((n: string) => allNotas.includes(n))) return false;
+      }
+    }
     return true;
   });
 
@@ -854,6 +889,57 @@ export default function ProductsPage() {
           >
             <Tag className="w-3.5 h-3.5 inline mr-1" />Con oferta
           </button>
+          <Sheet open={facetSheetOpen} onOpenChange={setFacetSheetOpen}>
+            <SheetTrigger asChild>
+              <button
+                className={`h-9 px-3 text-xs rounded-lg border transition-colors font-medium shrink-0 ${facetCount > 0 ? 'bg-primary/20 text-primary border-primary/40' : 'bg-muted text-muted-foreground border-border hover:text-foreground'}`}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 inline mr-1" />Buscador perfume
+                {facetCount > 0 && <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">{facetCount}</span>}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2"><Droplets className="w-4 h-4 text-primary" />Buscador de perfumes</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 space-y-4">
+                <p className="text-[11px] text-muted-foreground">Filtrá por características olfativas. Ej: masculino + dulce + vainilla + larga duración, hasta $80.000.</p>
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">Género</p>
+                  <ChipSelect items={GENEROS} selected={filterGenderFacet} onToggle={v => { setFilterGenderFacet(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(0); }} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">Familia olfativa</p>
+                  <ChipSelect items={FAMILIAS_OLFATIVAS} selected={filterFamilia} onToggle={v => { setFilterFamilia(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(0); }} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">Notas</p>
+                  <ChipSelect items={NOTAS_COMUNES} selected={filterNotas} onToggle={v => { setFilterNotas(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(0); }} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">Estación</p>
+                  <ChipSelect items={ESTACIONES} selected={filterEstacion} onToggle={v => { setFilterEstacion(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(0); }} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">Ocasión</p>
+                  <ChipSelect items={OCASIONES} selected={filterOcasion} onToggle={v => { setFilterOcasion(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(0); }} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold mb-1.5">Precio máximo (ARS)</p>
+                  <Input type="number" min="0" value={filterMaxPrice} onChange={e => { setFilterMaxPrice(e.target.value); setPage(0); }} placeholder="Ej: 80000" className="bg-muted border-border h-9 text-sm" />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1"
+                    onClick={() => { setFilterFamilia([]); setFilterNotas([]); setFilterEstacion([]); setFilterOcasion([]); setFilterGenderFacet([]); setFilterMaxPrice(''); setPage(0); }}>
+                    Limpiar
+                  </Button>
+                  <Button type="button" size="sm" className="flex-1" onClick={() => setFacetSheetOpen(false)}>
+                    Ver {filtered.length} resultado{filtered.length === 1 ? '' : 's'}
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
@@ -1275,6 +1361,23 @@ export default function ProductsPage() {
   );
 }
 
+// ── Chip selector para taxonomías (single o multi) ──────────────────────────
+function ChipSelect({ items, selected, onToggle }: { items: TaxItem[]; selected: string[]; onToggle: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map(it => {
+        const active = selected.includes(it.value);
+        return (
+          <button key={it.value} type="button" onClick={() => onToggle(it.value)}
+            className={`text-[10px] px-2.5 py-1 rounded-full border font-medium transition-all ${active ? 'bg-primary/20 border-primary text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>
+            {it.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ProductForm({ product, settings, userId, orgId, onSave }: { product: any; settings: any; userId: string; orgId?: string; onSave: () => void }) {
   const [name, setName] = useState(product?.name || '');
   const [brand, setBrand] = useState(product?.brand || '');
@@ -1293,8 +1396,24 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [sku, setSku] = useState(product?.sku || '');
   const [lotNumber, setLotNumber] = useState(product?.lot_number || '');
   const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
+  const [isActive, setIsActive] = useState<boolean>(product?.is_active ?? true);
+  const [expectedRestockAt, setExpectedRestockAt] = useState(product?.expected_restock_at || '');
   const [tags, setTags] = useState<string[]>(product?.tags || []);
   const [tagInput, setTagInput] = useState('');
+  // ── Ficha perfume (solo categorías perfume) ──────────────────────────────
+  const [modelo, setModelo] = useState('');
+  const [familiaOlfativa, setFamiliaOlfativa] = useState<string>('');
+  const [notasSalida, setNotasSalida] = useState<string[]>([]);
+  const [notasCorazon, setNotasCorazon] = useState<string[]>([]);
+  const [notasFondo, setNotasFondo] = useState<string[]>([]);
+  const [duracion, setDuracion] = useState<string>('');
+  const [proyeccion, setProyeccion] = useState<string>('');
+  const [estacion, setEstacion] = useState<string[]>([]);
+  const [ocasion, setOcasion] = useState<string[]>([]);
+  const [edadRecomendada, setEdadRecomendada] = useState('');
+  const [inspiracion, setInspiracion] = useState('');
+  const toggleFrom = (arr: string[], set: (v: string[]) => void, v: string) =>
+    set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [manualSalePrice, setManualSalePrice] = useState(!!product);
   const [manualDiscountPrice, setManualDiscountPrice] = useState(!!product);
@@ -1331,6 +1450,30 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       .order("sort_order")
       .then(({ data }) => { if (data) setCustomFieldDefs(data); });
   }, [orgId]);
+
+  // Cargar ficha de perfume existente al editar
+  useEffect(() => {
+    if (!product?.id) return;
+    supabase
+      .from("product_perfume_details")
+      .select("*")
+      .eq("product_id", product.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setModelo(data.modelo || '');
+        setFamiliaOlfativa(data.familia_olfativa || '');
+        setNotasSalida(data.notas_salida || []);
+        setNotasCorazon(data.notas_corazon || []);
+        setNotasFondo(data.notas_fondo || []);
+        setDuracion(data.duracion || '');
+        setProyeccion(data.proyeccion || '');
+        setEstacion(data.estacion || []);
+        setOcasion(data.ocasion || []);
+        setEdadRecomendada(data.edad_recomendada || '');
+        setInspiracion(data.inspiracion || '');
+      });
+  }, [product?.id]);
 
   // AI product suggestion
   const { suggest: aiSuggest, loading: aiLoading, result: aiResult, clear: aiClear } = useAIProductSuggest(orgId);
@@ -1494,6 +1637,14 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
         content_ml: parseInt(contentMl) || 100,
+        // Campos que el form captura pero antes NO se persistían
+        barcode: barcode.trim() || null,
+        sku: sku.trim() || null,
+        lot_number: lotNumber.trim() || null,
+        expiry_date: expiryDate || null,
+        tags,
+        is_active: isActive,
+        expected_restock_at: expectedRestockAt || null,
         ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
@@ -1504,6 +1655,25 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         productId = crypto.randomUUID();
         await addProductDB({ ...data, user_id: userId, id: productId });
         await logAudit(userId, 'create', 'product', productId, { name: data.name });
+      }
+      // Ficha de perfume — solo para categorías perfume
+      if (productId && (category === 'perfume_arabe' || category === 'perfume_diseñador') && orgId) {
+        const { error: ppdErr } = await supabase.from('product_perfume_details').upsert({
+          product_id: productId,
+          org_id: orgId,
+          modelo: modelo.trim() || null,
+          familia_olfativa: familiaOlfativa || null,
+          notas_salida: notasSalida,
+          notas_corazon: notasCorazon,
+          notas_fondo: notasFondo,
+          duracion: duracion || null,
+          proyeccion: proyeccion || null,
+          estacion,
+          ocasion,
+          edad_recomendada: edadRecomendada.trim() || null,
+          inspiracion: inspiracion.trim() || null,
+        }, { onConflict: 'product_id' });
+        if (ppdErr) console.error('Error guardando ficha de perfume:', ppdErr);
       }
       if (showVariants && productId) {
         const existingVariants = product?.id ? await getVariantsDB(product.id) : [];
@@ -1821,6 +1991,56 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 >{g}</button>
               ))}
             </div>
+          </div>
+
+          {/* ── Ficha olfativa premium ─────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Modelo</p>
+              <Input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Ej: Khamrah" className="bg-muted border-border h-8 text-xs" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Inspiración (clon de)</p>
+              <Input value={inspiracion} onChange={e => setInspiracion(e.target.value)} placeholder="Ej: Angels' Share" className="bg-muted border-border h-8 text-xs" />
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Familia olfativa</p>
+            <ChipSelect items={FAMILIAS_OLFATIVAS} selected={familiaOlfativa ? [familiaOlfativa] : []} onToggle={v => setFamiliaOlfativa(familiaOlfativa === v ? '' : v)} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Notas de salida</p>
+            <ChipSelect items={NOTAS_COMUNES} selected={notasSalida} onToggle={v => toggleFrom(notasSalida, setNotasSalida, v)} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Notas de corazón</p>
+            <ChipSelect items={NOTAS_COMUNES} selected={notasCorazon} onToggle={v => toggleFrom(notasCorazon, setNotasCorazon, v)} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Notas de fondo</p>
+            <ChipSelect items={NOTAS_COMUNES} selected={notasFondo} onToggle={v => toggleFrom(notasFondo, setNotasFondo, v)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Duración</p>
+              <ChipSelect items={DURACIONES} selected={duracion ? [duracion] : []} onToggle={v => setDuracion(duracion === v ? '' : v)} />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Proyección</p>
+              <ChipSelect items={PROYECCIONES} selected={proyeccion ? [proyeccion] : []} onToggle={v => setProyeccion(proyeccion === v ? '' : v)} />
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Estación</p>
+            <ChipSelect items={ESTACIONES} selected={estacion} onToggle={v => toggleFrom(estacion, setEstacion, v)} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Ocasión</p>
+            <ChipSelect items={OCASIONES} selected={ocasion} onToggle={v => toggleFrom(ocasion, setOcasion, v)} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">Edad recomendada</p>
+            <Input value={edadRecomendada} onChange={e => setEdadRecomendada(e.target.value)} placeholder="Ej: 25-40 · todas las edades" className="bg-muted border-border h-8 text-xs" />
           </div>
         </div>
       )}
@@ -2144,7 +2364,18 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
                 body: { name: name.trim(), brand: brand.trim(), category, gender }
               });
               if (error) throw error;
-              if (data?.description) { setDescription(data.description); toast.success('Descripción generada con IA'); }
+              if (data?.description) {
+                setDescription(data.description);
+                // Prefill de campos estructurados si la IA los devolvió
+                if (data.familia_olfativa) setFamiliaOlfativa(data.familia_olfativa);
+                if (Array.isArray(data.notas_salida) && data.notas_salida.length) setNotasSalida(data.notas_salida);
+                if (Array.isArray(data.notas_corazon) && data.notas_corazon.length) setNotasCorazon(data.notas_corazon);
+                if (Array.isArray(data.notas_fondo) && data.notas_fondo.length) setNotasFondo(data.notas_fondo);
+                if (data.duracion) setDuracion(data.duracion);
+                if (data.proyeccion) setProyeccion(data.proyeccion);
+                if (Array.isArray(data.ocasion) && data.ocasion.length) setOcasion(data.ocasion);
+                toast.success('Descripción y ficha generadas con IA');
+              }
             } catch (err: any) { toast.error('Error generando descripción: ' + (err.message || 'Error desconocido')); }
             finally { setGeneratingDesc(false); }
           }}>
@@ -2158,9 +2389,21 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
             <Star className="w-3.5 h-3.5 text-primary" />Destacado
           </label>
         </div>
+        <div className="flex items-center gap-2 bg-muted rounded-lg p-3 border border-border">
+          <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} id="isActive" className="rounded" />
+          <label htmlFor="isActive" className="text-sm flex items-center gap-1 cursor-pointer">
+            <Check className="w-3.5 h-3.5 text-emerald-400" />Activo
+          </label>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm text-muted-foreground">Oferta hasta</label>
           <Input type="datetime-local" value={offerExpiresAt} onChange={e => setOfferExpiresAt(e.target.value)} className="bg-muted border-border text-xs" />
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Próximo ingreso</label>
+          <Input type="date" value={expectedRestockAt} onChange={e => setExpectedRestockAt(e.target.value)} className="bg-muted border-border text-xs" />
         </div>
       </div>
       {cost > 0 && salePrice > 0 && (
