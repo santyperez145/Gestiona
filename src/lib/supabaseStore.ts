@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getActiveOrgId, requireActiveOrgId } from './orgContext';
 import type { Database } from '@/integrations/supabase/types';
+import { resolveSaleAttribution } from './businessCalc';
 type SettingsInsert = Database['public']['Tables']['settings']['Insert'];
 
 /** Get the active org id, falling back to looking it up by user (for legacy callers). */
@@ -151,12 +152,9 @@ export async function addSaleDB(sale: any) {
       .eq('discount_code', sale.coupon_code)
       .limit(1)
       .maybeSingle();
-    if (exch) {
-      attributedExchangeId = exch.id;
-      sale.attribution_source = 'influencer';
-    } else if (!sale.attribution_source) {
-      sale.attribution_source = 'coupon';
-    }
+    attributedExchangeId = exch?.id ?? null;
+    const source = resolveSaleAttribution(sale.coupon_code, !!exch);
+    if (source === 'influencer' || !sale.attribution_source) sale.attribution_source = source;
   }
 
   const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
@@ -344,12 +342,26 @@ export async function addExchangeDB(exchange: any) {
   const orgId = exchange.org_id || requireActiveOrgId();
   const { error } = await supabase.from('influencer_exchanges').insert({ ...exchange, org_id: orgId });
   if (error) throw error;
-  // Deduct stock like a sale
+  // Descontar stock (el producto se entrega como en una venta) y dejar rastro
+  // en el kardex, así el canje aparece en el historial de inventario.
   if (exchange.product_id) {
-    const { data: prod } = await supabase.from('products').select('stock').eq('id', exchange.product_id).single();
+    const { data: prod } = await supabase.from('products').select('stock, name').eq('id', exchange.product_id).single();
     if (prod) {
-      const newStock = Math.max(0, prod.stock - (exchange.quantity || 1));
-      await supabase.from('products').update({ stock: newStock }).eq('id', exchange.product_id);
+      const qty = exchange.quantity || 1;
+      const before = Number(prod.stock);
+      const after = Math.max(0, before - qty);
+      await supabase.from('products').update({ stock: after }).eq('id', exchange.product_id);
+      await supabase.from('stock_movements').insert({
+        org_id: orgId,
+        product_id: exchange.product_id,
+        product_name: exchange.product_name || prod.name || 'Producto',
+        movement_type: 'adjustment_out',
+        quantity: -qty,
+        stock_before: before,
+        stock_after: after,
+        reference_type: 'manual',
+        notes: `Canje con influencer${exchange.influencer_name ? ': ' + exchange.influencer_name : ''}`,
+      });
     }
   }
 }

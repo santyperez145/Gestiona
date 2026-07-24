@@ -9,6 +9,7 @@ import {
   calcInventoryValue,
   calcLayerUnitCostARS,
   calcPnLMargins,
+  resolveSaleAttribution,
 } from "@/lib/businessCalc";
 
 // Estas funciones son las que efectivamente usan las páginas (comisiones,
@@ -113,6 +114,22 @@ describe("calcLayerUnitCostARS", () => {
 
   it("cae al tipo de cambio de referencia si la compra no lo tiene", () => {
     expect(calcLayerUnitCostARS(10, 0, 1200)).toBe(12_000);
+  });
+});
+
+describe("resolveSaleAttribution", () => {
+  it("sin cupón la venta es orgánica (null)", () => {
+    expect(resolveSaleAttribution(null, false)).toBeNull();
+    expect(resolveSaleAttribution("", false)).toBeNull();
+    expect(resolveSaleAttribution(undefined, true)).toBeNull();
+  });
+
+  it("un cupón que coincide con código de influencer atribuye a 'influencer'", () => {
+    expect(resolveSaleAttribution("VALE10", true)).toBe("influencer");
+  });
+
+  it("un cupón común (sin match de influencer) atribuye a 'coupon'", () => {
+    expect(resolveSaleAttribution("PROMO20", false)).toBe("coupon");
   });
 });
 

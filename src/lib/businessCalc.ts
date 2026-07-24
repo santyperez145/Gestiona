@@ -26,6 +26,23 @@ export function calcMonthPeriod(period: string): { periodStart: string; periodEn
   return { periodStart, periodEnd };
 }
 
+// ── Atribución de ventas ─────────────────────────────────────────────────
+
+/**
+ * Decide la fuente de atribución de una venta según el cupón usado y si ese
+ * cupón corresponde al código de descuento de un canje de influencer.
+ * - sin cupón            -> null (venta orgánica)
+ * - cupón de influencer  -> 'influencer'
+ * - cupón común          -> 'coupon'
+ */
+export function resolveSaleAttribution(
+  couponCode: string | null | undefined,
+  matchesInfluencerCode: boolean,
+): 'influencer' | 'coupon' | null {
+  if (!couponCode) return null;
+  return matchesInfluencerCode ? 'influencer' : 'coupon';
+}
+
 // ── ROI de canjes con influencers ────────────────────────────────────────
 
 /**
