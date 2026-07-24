@@ -378,6 +378,31 @@ Sentry:    Error tracking + performance traces
   igual que celular), 10 primitivos de UI + Dashboard corregidos para
   no depender de fondos oscuros hardcodeados
 
+### Sesión 79 — ERP vertical de perfumería · Phase 1 (2026-07-24)
+Foco: el diferenciador que pidió el dueño (módulo exclusivo de perfumes)
++ huecos baratos adyacentes. 3 migraciones aplicadas a producción por SQL
+directo (el historial de migraciones está desincronizado: solo 85 de ~209
+trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
+- **Ficha premium de perfume** (`product_perfume_details`, 1:1 con products):
+  familia olfativa, notas salida/corazón/fondo, duración, proyección,
+  estación, ocasión, modelo, inspiración, edad recomendada. Form solo
+  visible en categorías perfume.
+- **Buscador por facetas** en ProductsPage (Sheet): género + familia +
+  notas + estación + ocasión + precio máx → responde "masculino, dulce,
+  vainilla, larga duración, hasta $80.000" al instante.
+- **IA estructurada**: `generate-description` pasó a tool-use forzado y
+  autocompleta la ficha (familia/notas/duración/proyección/ocasión).
+- **CRM perfumería**: clientes con Instagram, WhatsApp separado, flag
+  "compra vapers", preferencias olfativas (chips de taxonomía compartida).
+- **Kardex**: tipos rotura/regalo/reserva + diálogo de movimiento manual
+  (RPC `record_manual_stock_movement` con validación de rol).
+- **Dashboard**: KPIs "Productos Nuevos" y "Próximos Ingresos".
+- **Fix colateral**: el form de productos descartaba silenciosamente
+  barcode/sku/lote/vencimiento/etiquetas al guardar — corregido.
+- Pendiente Phase 2+: finanzas/compras, WhatsApp enviar catálogo/lista,
+  IA copy de Instagram, estadísticas por marca/familia, reservas reales,
+  catálogo PDF por facetas.
+
 ---
 
 ## 7. ROADMAP DE PRODUCTO 2026–2028
