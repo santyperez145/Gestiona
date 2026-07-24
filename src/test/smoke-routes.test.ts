@@ -23,9 +23,12 @@ describe("smoke: todas las páginas se importan sin romper", () => {
     expect(entries.length).toBeGreaterThanOrEqual(75);
   });
 
+  // Timeout generoso (30s): importar en frío una página grande (Analytics tiene
+  // 18+ tabs) transforma todo su grafo de módulos y puede pasar los 5s default,
+  // sobre todo en paralelo en CI. No es un fallo real, así que no debe ser flaky.
   it.each(entries)("importa $name y expone un componente por default", async ({ importer }) => {
     const mod = (await importer()) as { default: unknown };
     expect(mod).toBeDefined();
     expect(mod.default).toBeTypeOf("function");
-  });
+  }, 30000);
 });

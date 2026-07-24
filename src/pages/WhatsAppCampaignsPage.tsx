@@ -2,7 +2,7 @@
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { getSettingsDB } from "@/lib/supabaseStore";
+import { getSettingsDB, formatARS } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,6 +88,7 @@ interface Campaign {
   failed_count: number;
   created_at: string;
   sent_at: string | null;
+  coupon_code: string | null;
 }
 
 interface Customer {
@@ -106,6 +107,9 @@ export default function WhatsAppCampaignsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [salesData, setSalesData] = useState<any[]>([]);
   const [debtsData, setDebtsData] = useState<any[]>([]);
+  const [coupons, setCoupons] = useState<{ id: string; code: string }[]>([]);
+  // coupon_code (uppercased) -> { count, revenue } of attributed sales
+  const [attributionByCode, setAttributionByCode] = useState<Record<string, { count: number; revenue: number }>>({});
   const [loading, setLoading] = useState(true);
   const [evolutionConfigured, setEvolutionConfigured] = useState<boolean | null>(null);
 
@@ -113,6 +117,7 @@ export default function WhatsAppCampaignsPage() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [segment, setSegment] = useState("all");
+  const [couponCode, setCouponCode] = useState<string>("");  // "" = sin cupón
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -123,11 +128,14 @@ export default function WhatsAppCampaignsPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
     try {
-      const [{ data: camps }, { data: custs }, { data: sales }, { data: debts }, sett] = await Promise.all([
+      const [{ data: camps }, { data: custs }, { data: sales }, { data: debts }, { data: coups }, { data: couponSales }, sett] = await Promise.all([
         supabase.from("whatsapp_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("customers").select("id,name,phone,birthday").eq("org_id", activeOrg.id),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
         supabase.from("debts").select("customer_name,amount,paid").eq("org_id", activeOrg.id).eq("paid", false),
+        supabase.from("coupons").select("id, code").eq("user_id", user.id),
+        // One aggregate query for attribution: all sales made with any coupon
+        supabase.from("sales").select("coupon_code, total_ars").eq("org_id", activeOrg.id).not("coupon_code", "is", null),
         getSettingsDB(user.id),
       ]);
 
@@ -135,6 +143,18 @@ export default function WhatsAppCampaignsPage() {
       setCustomers((custs || []) as Customer[]);
       setSalesData(sales || []);
       setDebtsData(debts || []);
+      setCoupons((coups || []) as { id: string; code: string }[]);
+
+      // Aggregate attributed sales by coupon_code (uppercased), mirroring CouponsPage
+      const attrMap: Record<string, { count: number; revenue: number }> = {};
+      (couponSales || []).forEach((s: any) => {
+        if (!s.coupon_code) return;
+        const k = s.coupon_code.toUpperCase();
+        if (!attrMap[k]) attrMap[k] = { count: 0, revenue: 0 };
+        attrMap[k].count++;
+        attrMap[k].revenue += s.total_ars || 0;
+      });
+      setAttributionByCode(attrMap);
 
       // Check Evolution API config from settings DB
       const { data: evoCfg } = await supabase
@@ -197,17 +217,18 @@ export default function WhatsAppCampaignsPage() {
     if (!message.trim()) { toast.error("Escribí el mensaje"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("whatsapp_campaigns").insert({
+      const { error } = await (supabase.from("whatsapp_campaigns") as any).insert({
         org_id: activeOrg.id,
         message: message.trim(),
         segment,
         status: "draft",
         sent_count: 0,
         failed_count: 0,
+        coupon_code: couponCode || null,
       });
       if (error) throw error;
       toast.success("Campaña creada como borrador");
-      setOpen(false); setMessage(""); setSegment("all");
+      setOpen(false); setMessage(""); setSegment("all"); setCouponCode("");
       load();
     } catch {
       toast.error("Error al guardar campaña");
@@ -350,6 +371,21 @@ export default function WhatsAppCampaignsPage() {
                     {camp.sent_count > 0 && <span className="text-emerald-400">{camp.sent_count} ✓</span>}
                     {camp.failed_count > 0 && <span className="text-red-400">{camp.failed_count} ✗</span>}
                   </div>
+                  {/* Coupon attribution line */}
+                  {camp.coupon_code && (() => {
+                    const attr = attributionByCode[camp.coupon_code.toUpperCase()] || { count: 0, revenue: 0 };
+                    return (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+                        <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-primary/30 text-primary">
+                          {camp.coupon_code}
+                        </Badge>
+                        <span className="text-muted-foreground">
+                          Ventas atribuidas: <span className="font-semibold text-foreground">{attr.count}</span>
+                          {" · "}Ingresos: <span className="font-semibold text-emerald-400">{formatARS(attr.revenue)}</span>
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -422,6 +458,27 @@ export default function WhatsAppCampaignsPage() {
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 {currentAudience.length} contacto(s) recibirán este mensaje
+              </p>
+            </div>
+
+            {/* Coupon attribution */}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1.5 block">
+                Cupón asociado <span className="text-xs">(opcional)</span>
+              </label>
+              <Select value={couponCode || "__none__"} onValueChange={v => setCouponCode(v === "__none__" ? "" : v)}>
+                <SelectTrigger className="bg-muted border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin cupón</SelectItem>
+                  {coupons.map(c => (
+                    <SelectItem key={c.id} value={c.code}>{c.code}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Las ventas hechas con este cupón se atribuirán a la campaña.
               </p>
             </div>
 
