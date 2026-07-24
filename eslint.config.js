@@ -13,6 +13,7 @@ export default tseslint.config(
       "supabase/.temp",
       "*.timestamp-*.mjs",
       "vite.config.ts.timestamp-*",
+      "src/integrations/supabase/types.ts",
     ],
   },
   {

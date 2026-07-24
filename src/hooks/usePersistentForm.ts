@@ -52,7 +52,7 @@ function writeDraft<T>(key: string, data: T, ttlMs: number, savedAt: number) {
   try {
     const stored: Stored<T> = { data, savedAt, exp: Date.now() + ttlMs };
     localStorage.setItem(`gestiona.draft.${key}`, JSON.stringify(stored));
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 function timeAgo(ts: number): string {

@@ -138,7 +138,7 @@ function detectIntent(msg: string): AIAction | null {
 
   // Analyze product performance
   if (/\b(anali[zs]a(r)?|cómo\s+va|qué\s+tal\s+(?:va|está)|rendimiento\s+de|performance\s+de|informe\s+de)\b.{0,40}\b(producto|perfume|vaper|artículo)\b/.test(lower) ||
-      /\b(cómo\s+va|qué\s+tal\s+va|analiza(r)?)\s+(?:el\s+producto\s+)?["']?([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9][^\?"']{2,}?)["']?(?:\?|$)/.test(lower)) {
+      /\b(cómo\s+va|qué\s+tal\s+va|analiza(r)?)\s+(?:el\s+producto\s+)?["']?([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9][^?"']{2,}?)["']?(?:\?|$)/.test(lower)) {
     const nameMatch = msg.match(/(?:analiz[ae](?:r)?|cómo va|qué tal va|informe de|rendimiento de|performance de)\s+(?:el\s+(?:producto\s+)?)?["']?([^"'?\n]{2,40}?)["']?\s*(?:\?|$)/i);
     return { type: "query_product_analysis", productName: nameMatch?.[1]?.trim() };
   }

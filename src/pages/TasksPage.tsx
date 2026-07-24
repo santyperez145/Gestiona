@@ -490,7 +490,7 @@ export default function TasksPage() {
                             <button
                               onClick={() => setExpandedSubtasks(prev => {
                                 const next = new Set(prev);
-                                next.has(task.id) ? next.delete(task.id) : next.add(task.id);
+                                if (next.has(task.id)) next.delete(task.id); else next.add(task.id);
                                 return next;
                               })}
                               className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"

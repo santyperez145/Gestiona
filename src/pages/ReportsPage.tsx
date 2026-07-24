@@ -3119,11 +3119,17 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       </div>
 
       {/* Period comparison panel */}
-      {(() => {
-        const allMonths = Array.from(new Set(sales.map((s: any) => String(s.date).slice(0, 7)))).sort().reverse().slice(0, 24);
-        if (allMonths.length < 2) return null;
-        const [monthA, setMonthA] = useState(allMonths[1] || allMonths[0]);
-        const [monthB, setMonthB] = useState(allMonths[0]);
+      <PeriodComparisonPanel sales={sales} expenses={expenses} />
+    </div>
+  );
+}
+
+function PeriodComparisonPanel({ sales, expenses }: { sales: any[]; expenses: any[] }) {
+  const allMonths = Array.from(new Set(sales.map((s: any) => String(s.date).slice(0, 7)))).sort().reverse().slice(0, 24);
+  const [monthA, setMonthA] = useState(allMonths[1] || allMonths[0]);
+  const [monthB, setMonthB] = useState(allMonths[0]);
+  if (allMonths.length < 2) return null;
+        const fmtARS = (v: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
         const computeMonth = (key: string) => {
           const ms = sales.filter((s: any) => String(s.date).slice(0, 7) === key);
           const es = expenses.filter((e: any) => String(e.date).slice(0, 7) === key);
@@ -3203,9 +3209,6 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
             </div>
           </div>
         );
-      })()}
-    </div>
-  );
 }
 
 // ─────────────────────────────────────────────────────────────

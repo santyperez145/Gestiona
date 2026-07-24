@@ -211,7 +211,7 @@ export default function CSVImportWizard({ open, onClose, onImported }: Props) {
   function downloadTemplate() {
     const headers = ["Nombre", "Precio", "Costo USD", "Stock", "Categoría", "Código", "Marca", "Género", "Precio Oferta", "Umbral Stock", "Descripción"];
     const example = ["Lattafa Ameer Al Oud", "35000", "15", "10", "perfume_arabe", "7500123456789", "Lattafa", "unisex", "28000", "3", "Perfume árabe 100ml"];
-    const csv = `﻿${headers.join(",")}\n${example.join(",")}`;
+    const csv = `\uFEFF${headers.join(",")}\n${example.join(",")}`;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);

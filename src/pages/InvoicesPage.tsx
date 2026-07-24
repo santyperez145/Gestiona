@@ -931,7 +931,7 @@ export default function InvoicesPage() {
                     {canManage && (
                       <button
                         className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                        onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => { const n = new Set(prev); n.has(inv.id) ? n.delete(inv.id) : n.add(inv.id); return n; }); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => { const n = new Set(prev); if (n.has(inv.id)) n.delete(inv.id); else n.add(inv.id); return n; }); }}
                       >
                         {selectedIds.has(inv.id)
                           ? <CheckSquare className="w-4 h-4 text-primary" />

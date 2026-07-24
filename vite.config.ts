@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
+
+// Sube source maps a Sentry en el build de producción SOLO si están las
+// credenciales configuradas (SENTRY_AUTH_TOKEN + org + project). Sin ellas,
+// el plugin no se activa y el build funciona igual — no rompe nada en local/CI.
+const sentryEnabled =
+  !!process.env.SENTRY_AUTH_TOKEN &&
+  !!process.env.SENTRY_ORG &&
+  !!process.env.SENTRY_PROJECT;
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -51,6 +60,18 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
     }),
+    // Debe ir al final del array de plugins. Solo se activa con credenciales.
+    sentryEnabled &&
+      sentryVitePlugin({
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        release: { name: process.env.VITE_APP_VERSION },
+        sourcemaps: {
+          // Sube los .map y luego los borra del dist para no exponer el código.
+          filesToDeleteAfterUpload: ["./dist/**/*.map"],
+        },
+      }),
   ].filter(Boolean),
   optimizeDeps: {
     include: ['@zxing/browser', '@zxing/library'],
@@ -62,6 +83,9 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
+    // Genera source maps ocultos solo cuando se van a subir a Sentry (el plugin
+    // los borra del dist después de subirlos, así el código no queda expuesto).
+    sourcemap: sentryEnabled ? "hidden" : false,
     rollupOptions: {
       output: {
         manualChunks: {

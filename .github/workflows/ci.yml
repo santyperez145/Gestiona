@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build:
-    name: Lint & Build
+    name: Lint, Types & Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -29,13 +29,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Bloqueante: falla el CI ante cualquier ERROR de eslint.
+      # Los warnings (deuda de exhaustive-deps) todavía no bloquean.
       - name: Lint
-        run: npm run lint -- --max-warnings 0
-        continue-on-error: true  # warnings won't fail CI until debt is cleared
+        run: npm run lint
 
+      # Bloqueante: el proyecto debe type-checkear limpio.
       - name: Type check
         run: npx tsc --noEmit
-        continue-on-error: true  # same — unblock CI while cleaning types
 
       - name: Build
         run: npm run build
@@ -44,6 +45,11 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'placeholder-key' }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
           VITE_TIENDANUBE_APP_ID: ${{ secrets.VITE_TIENDANUBE_APP_ID || '0' }}
+          VITE_APP_VERSION: ${{ github.sha }}
+          # Source maps a Sentry: solo se suben si estos secrets existen.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
   test:
     name: Unit Tests
@@ -64,6 +70,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Bloqueante: los tests (smoke de páginas + cálculos) deben pasar.
       - name: Run tests
         run: npm test -- --reporter=verbose
-        continue-on-error: true  # no tests yet; won't block until suite grows

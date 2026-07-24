@@ -961,7 +961,7 @@ export default function ProductsPage() {
                      {items.map((p: any) => (
                        <tr key={p.id} className={`border-b border-border last:border-0 hover:bg-muted/30 transition-colors ${selectedIds.has(p.id) ? 'bg-primary/5' : ''}`}>
                           <td className="p-3 w-8">
-                            <button onClick={() => setSelectedIds(prev => { const s = new Set(prev); s.has(p.id) ? s.delete(p.id) : s.add(p.id); return s; })} className="text-muted-foreground hover:text-primary transition-colors">
+                            <button onClick={() => setSelectedIds(prev => { const s = new Set(prev); if (s.has(p.id)) s.delete(p.id); else s.add(p.id); return s; })} className="text-muted-foreground hover:text-primary transition-colors">
                               {selectedIds.has(p.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                             </button>
                           </td>

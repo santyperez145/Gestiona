@@ -101,7 +101,7 @@ export default function DailyBriefingModal({ open, onClose, briefingData, userId
             const delta = parsed.choices?.[0]?.delta?.content ?? "";
             accumulated += delta;
             setText(accumulated);
-          } catch {}
+          } catch { /* ignore */ }
         }
       }
       if (accumulated) sessionStorage.setItem(cacheKey, accumulated);

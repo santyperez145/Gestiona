@@ -23,12 +23,12 @@ export function useVibration() {
 
   const vibrate = (pattern: number | number[]): void => {
     if (!supported) return;
-    try { navigator.vibrate(pattern); } catch {}
+    try { navigator.vibrate(pattern); } catch { /* ignore */ }
   };
 
   const cancel = (): void => {
     if (!supported) return;
-    try { navigator.vibrate(0); } catch {}
+    try { navigator.vibrate(0); } catch { /* ignore */ }
   };
 
   return {

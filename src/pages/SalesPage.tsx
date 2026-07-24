@@ -564,7 +564,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
   };
 
   const unpaidPaged = paged.filter(s => !s.paid);
-  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleSelectAll = () => {
     if (selectedIds.size === paged.length && paged.length > 0) setSelectedIds(new Set());
     else setSelectedIds(new Set(paged.map(s => s.id)));

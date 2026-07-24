@@ -1753,19 +1753,6 @@ export default function CustomersPage() {
     color: "hsl(40, 20%, 92%)",
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  const totalRevenue = customers.reduce((s, c) => s + c.totalSpent, 0);
-  const totalDebt = customers.reduce((s, c) => s + c.pendingDebt, 0);
-  const totalPurchases = customers.reduce((s, c) => s + c.purchaseCount, 0);
-  const avgTicketGlobal = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
-
   // Top 5 clientes del mes actual
   const topThisMonth = useMemo(() => {
     const thisMonth = new Date().toISOString().slice(0, 7);
@@ -1780,6 +1767,19 @@ export default function CustomersPage() {
     });
     return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5);
   }, [sales]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const totalRevenue = customers.reduce((s, c) => s + c.totalSpent, 0);
+  const totalDebt = customers.reduce((s, c) => s + c.pendingDebt, 0);
+  const totalPurchases = customers.reduce((s, c) => s + c.purchaseCount, 0);
+  const avgTicketGlobal = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
   return (
     <div className="space-y-6 pb-12">
@@ -2582,7 +2582,7 @@ export default function CustomersPage() {
                         onChange={e => {
                           setSelectedCustomerNames(prev => {
                             const next = new Set(prev);
-                            e.target.checked ? next.add(c.name) : next.delete(c.name);
+                            if (e.target.checked) next.add(c.name); else next.delete(c.name);
                             return next;
                           });
                         }}

@@ -221,7 +221,7 @@ export default function AIChatAdvancedPage() {
     load();
   }
 
-  function usePrompt(p: PromptItem) {
+  function applyPrompt(p: PromptItem) {
     setInput(p.prompt);
     supabase.from("ai_prompts_library").update({ use_count: p.use_count + 1 }).eq("id", p.id);
     setShowPromptLib(false);
@@ -413,7 +413,7 @@ export default function AIChatAdvancedPage() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3" />{p.use_count}x</span>
-                      <Button size="sm" variant="outline" onClick={() => usePrompt(p)}>Usar</Button>
+                      <Button size="sm" variant="outline" onClick={() => applyPrompt(p)}>Usar</Button>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-2">{p.prompt}</p>

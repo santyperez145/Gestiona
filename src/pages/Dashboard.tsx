@@ -123,8 +123,6 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
   const today = new Date().toISOString().slice(0, 10);
   const todaySales = sales.filter((s: any) => String(s.date).slice(0, 10) === today);
 
-  if (todaySales.length === 0) return null;
-
   const totalRevenue = todaySales.reduce((s: number, v: any) => s + Number(v.total_ars || 0), 0);
   const totalProfit = todaySales.reduce((s: number, v: any) => s + Number(v.profit_ars || 0), 0);
   const totalUnits = todaySales.reduce((s: number, v: any) => s + Number(v.quantity || 1), 0);
@@ -135,6 +133,8 @@ function EndOfDayWidget({ sales, debts, orgId }: { sales: any[]; debts: any[]; o
     easing: "easeOut",
     format: v => `$${Math.round(v).toLocaleString("es-AR")}`,
   }) as string;
+
+  if (todaySales.length === 0) return null;
 
   // By seller
   const bySeller: Record<string, { rev: number; count: number }> = {};

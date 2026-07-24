@@ -194,7 +194,7 @@ export default function AIInsightsPage() {
     const totalTypes = Object.keys(ANALYSIS_CONFIG).length;
     const completedToday = history.length;
     const lastType = history[0] ? ANALYSIS_CONFIG[history[0].type]?.label : "—";
-    const activeCount = !!loadingType ? 1 : 0;
+    const activeCount = loadingType ? 1 : 0;
     return { totalTypes, completedToday, lastType, activeCount };
   }, [history, loadingType]);
 
