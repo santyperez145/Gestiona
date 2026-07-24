@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { calcPnLMargins } from "@/lib/businessCalc";
 import { getProductsDB, getSalesDB, getPurchasesDB, getDebtsDB, getSettingsDB, getExpensesDB, saveSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateTaxes, getOrgMembersWithProfilesDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,8 +147,7 @@ export default function ReportsPage() {
   const periodTaxes = settings.tax_enabled ? calculateTaxes(periodGrossProfit, settings) : { iva: 0, iibb: 0, totalTax: 0, netProfit: opBeforeTax };
   const totalTaxImpact = settings.tax_enabled ? periodTaxes.totalTax : 0;
   const netIncome = opBeforeTax - totalTaxImpact;
-  const grossMarginPct = periodRevenue > 0 ? (periodGrossProfit / periodRevenue) * 100 : 0;
-  const netMarginPct = periodRevenue > 0 ? (netIncome / periodRevenue) * 100 : 0;
+  const { grossMargin: grossMarginPct, netMargin: netMarginPct } = calcPnLMargins(periodRevenue, periodGrossProfit, totalOpex + totalTaxImpact);
 
   const handleExportProducts = () => saveCSV('productos.csv',
     ['Nombre','Marca','Categoría','Costo USD','Costo+Pasero USD','Precio ARS','Precio Oferta ARS','Ganancia ARS','Stock'],

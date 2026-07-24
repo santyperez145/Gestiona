@@ -19,6 +19,7 @@ import { logAudit } from "@/lib/auditLog";
 import { listExchangeConfigs, ExchangeConfig } from "@/lib/marketingExtraDB";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import SettlementsTab from "@/components/influencers/SettlementsTab";
+import { calcInfluencerROI, calcCPM, calcFulfillmentRate } from "@/lib/businessCalc";
 import { Wallet } from "lucide-react";
 
 export default function InfluencerExchangesPage() {
@@ -66,10 +67,10 @@ export default function InfluencerExchangesPage() {
   const totalReach = exchanges.reduce((s, e) => s + (e.influencer_followers || 0) * (e.actual_posts || e.expected_posts || 1), 0);
   const totalExpected = exchanges.reduce((s, e) => s + (e.expected_posts || 0), 0);
   const totalActual = exchanges.reduce((s, e) => s + (e.actual_posts || 0), 0);
-  const fulfillmentRate = totalExpected > 0 ? (totalActual / totalExpected * 100) : 0;
+  const fulfillmentRate = calcFulfillmentRate(totalActual, totalExpected);
   const uniqueInfluencers = new Set(exchanges.map(e => e.influencer_instagram || e.influencer_name)).size;
-  const roiPct = totalInversion > 0 && totalSalesGenerated > 0 ? ((totalSalesGenerated - totalInversion) / totalInversion * 100) : null;
-  const cpm = totalReach > 0 && totalInversion > 0 ? (totalInversion / totalReach * 1000) : null;
+  const roiPct = calcInfluencerROI(totalSalesGenerated, totalInversion);
+  const cpm = calcCPM(totalInversion, totalReach);
 
   const handleDelete = async (ex: any) => {
     await deleteExchangeDB(ex.id);

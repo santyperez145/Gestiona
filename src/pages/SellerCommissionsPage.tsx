@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
+import { calcSellerCommission, calcMonthPeriod } from "@/lib/businessCalc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -102,9 +103,7 @@ export default function SellerCommissionsPage() {
     if (!activeOrg || !member.commission_enabled || !member.commission_percent) return;
     setGenerating(true);
     try {
-      const [year, month] = selectedPeriod.split("-").map(Number);
-      const periodStart = new Date(year, month - 1, 1).toISOString().slice(0, 10);
-      const periodEnd = new Date(year, month, 0).toISOString().slice(0, 10);
+      const { periodStart, periodEnd } = calcMonthPeriod(selectedPeriod);
 
       // Get sales for this seller in the period
       const { data: sales } = await supabase
@@ -116,7 +115,7 @@ export default function SellerCommissionsPage() {
         .lte("date", `${periodEnd}T23:59:59`);
 
       const salesTotal = (sales || []).reduce((s, r) => s + Number(r.total_ars || 0), 0);
-      const commissionARS = Math.round(salesTotal * (member.commission_percent / 100));
+      const commissionARS = calcSellerCommission(salesTotal, member.commission_percent);
 
       if (salesTotal === 0) { toast.error("Sin ventas registradas para este vendedor en el período"); return; }
 

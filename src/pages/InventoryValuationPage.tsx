@@ -15,6 +15,7 @@ import {
   RefreshCw, Download, Layers, Calculator, Loader2
 } from "lucide-react";
 import InventoryAgingTab from "@/components/inventory/InventoryAgingTab";
+import { calcCostARS, calcInventoryValue, calcLayerUnitCostARS } from "@/lib/businessCalc";
 
 interface ValuationRow {
   product_id: string;
@@ -75,7 +76,7 @@ export default function InventoryValuationPage() {
 
       // Build ValuationRow per product
       const valuationRows: ValuationRow[] = products.map((p: any) => {
-        const costARS = Math.max(0, Number(p.sale_price_ars || 0) - Number(p.profit_per_unit_ars || 0));
+        const costARS = calcCostARS(p.sale_price_ars, p.profit_per_unit_ars);
         const marketValue = Number(p.stock) * Number(p.sale_price_ars || 0);
         const avgCost = costARS;
         const gainLoss = Number(p.stock) * Number(p.profit_per_unit_ars || 0);
@@ -86,7 +87,7 @@ export default function InventoryValuationPage() {
           category: p.category || "Sin categoría",
           total_units: Number(p.stock),
           avg_cost: avgCost,
-          fifo_value: Number(p.stock) * costARS,
+          fifo_value: calcInventoryValue(p.stock, costARS),
           market_value: marketValue,
           gain_loss: gainLoss,
         };
@@ -96,7 +97,7 @@ export default function InventoryValuationPage() {
       // Build InventoryLayer from purchases
       const purchases = purchRes.data || [];
       const layerData: InventoryLayer[] = purchases.map((pu: any) => {
-        const unitCostARS = Number(pu.unit_cost_usd || 0) * (Number(pu.exchange_rate_used || 0) || exchangeRate);
+        const unitCostARS = calcLayerUnitCostARS(pu.unit_cost_usd, pu.exchange_rate_used, exchangeRate);
         const qty = Number(pu.quantity || 0);
         return {
           id: pu.product_id + "_" + pu.date,
