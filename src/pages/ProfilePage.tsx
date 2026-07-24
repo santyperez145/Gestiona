@@ -210,7 +210,7 @@ export default function ProfilePage() {
 
       {/* Avatar + Name */}
       <div className="rounded-[10px] border border-border/60 p-5 space-y-5 relative overflow-hidden"
-        style={{ background: 'hsl(228 24% 7%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información personal</p>
 
@@ -302,7 +302,7 @@ export default function ProfilePage() {
 
       {/* Password change */}
       <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
-        style={{ background: 'hsl(228 24% 7%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
           <Lock className="w-3 h-3" /> Cambiar contraseña
@@ -343,7 +343,7 @@ export default function ProfilePage() {
 
       {/* Memberships */}
       <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
-        style={{ background: 'hsl(228 24% 7%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
           <Building2 className="w-3 h-3" /> Mis organizaciones
@@ -374,7 +374,7 @@ export default function ProfilePage() {
 
       {/* MFA / 2FA */}
       <div className="rounded-[10px] border border-border/60 p-5 space-y-4 relative overflow-hidden"
-        style={{ background: 'hsl(228 24% 7%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <div className="flex items-center justify-between">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display flex items-center gap-2">
@@ -488,7 +488,7 @@ export default function ProfilePage() {
 
       {/* Account info */}
       <div className="rounded-[10px] border border-border/60 p-5 space-y-3 relative overflow-hidden"
-        style={{ background: 'hsl(228 24% 7%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40 font-display">Información de cuenta</p>
         <div className="space-y-0 pb-12">

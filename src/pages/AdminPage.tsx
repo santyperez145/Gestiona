@@ -27,7 +27,7 @@ import ActivityFeedTab from "@/components/admin/ActivityFeedTab";
 import PermissionsTab from "@/components/admin/PermissionsTab";
 
 const CHART_COLORS = [
-  'hsl(38 82% 52%)',
+  'hsl(var(--primary))',
   'hsl(150 60% 40%)',
   'hsl(200 60% 50%)',
   'hsl(0 70% 50%)',

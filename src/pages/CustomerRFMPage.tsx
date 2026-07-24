@@ -315,7 +315,7 @@ export default function CustomerRFMPage() {
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none">
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => [`${v} clientes`, ""]} contentStyle={{ background: 'hsl(228 32% 6%)', border: '1px solid hsl(228 20% 18%)', borderRadius: 8, fontSize: 12 }} />
+                  <Tooltip formatter={(v: number) => [`${v} clientes`, ""]} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 space-y-1.5">
@@ -343,8 +343,8 @@ export default function CustomerRFMPage() {
               <BarChart data={barData} layout="vertical" margin={{ left: 60, right: 20 }}>
                 <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
-                <Tooltip formatter={(v: number) => [fmt(v), "Promedio"]} contentStyle={{ background: 'hsl(228 32% 6%)', border: '1px solid hsl(228 20% 18%)', borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <Tooltip formatter={(v: number) => [fmt(v), "Promedio"]} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
                 <Bar dataKey="avg" radius={[0, 4, 4, 0]}>
                   {barData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>

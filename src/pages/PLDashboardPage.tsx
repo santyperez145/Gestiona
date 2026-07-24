@@ -357,15 +357,15 @@ export default function PLDashboardPage() {
             <h3 className="text-sm font-semibold mb-4">Ingresos vs Ganancia neta</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={monthlyPL} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={{ fontSize: 9 }} />
                 <YAxis tick={{ fontSize: 9 }} tickFormatter={fmtK} width={60} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(228 32% 6%)", border: "1px solid hsl(228 20% 18%)", borderRadius: 8, fontSize: 11 }}
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                   formatter={(v: number, n: string) => [fmt(v), n === "revenue" ? "Ingresos" : n === "expenses" ? "Gastos" : "Neta"]}
                 />
                 <Legend formatter={(v) => v === "revenue" ? "Ingresos" : v === "expenses" ? "Gastos" : "Ganancia Neta"} />
-                <Line type="monotone" dataKey="revenue" stroke="hsl(38 82% 52%)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="netProfit" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
               </LineChart>
@@ -377,11 +377,11 @@ export default function PLDashboardPage() {
             <h3 className="text-sm font-semibold mb-4">Waterfall mensual</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthlyPL.slice(-6)} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={{ fontSize: 9 }} />
                 <YAxis tick={{ fontSize: 9 }} tickFormatter={fmtK} width={60} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(228 32% 6%)", border: "1px solid hsl(228 20% 18%)", borderRadius: 8, fontSize: 11 }}
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                   formatter={(v: number, n: string) => [fmt(v), { grossProfit: "Ganancia bruta", expenses: "Gastos", netProfit: "Neta" }[n] || n]}
                 />
                 <Bar dataKey="grossProfit" fill="#3b82f6" radius={[2, 2, 0, 0]} name="grossProfit" />
@@ -466,15 +466,15 @@ export default function PLDashboardPage() {
                 data={monthlyPL.filter(m => m.ym.startsWith(String(new Date().getFullYear())))}
                 margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={{ fontSize: 9 }} />
                 <YAxis tick={{ fontSize: 9 }} tickFormatter={fmtK} width={60} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(228 32% 6%)", border: "1px solid hsl(228 20% 18%)", borderRadius: 8, fontSize: 11 }}
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                   formatter={(v: number, n: string) => [fmt(v), { revenue: "Ingresos", netProfit: "Ganancia Neta", expenses: "Gastos" }[n] || n]}
                 />
                 <Legend formatter={(v) => ({ revenue: "Ingresos", netProfit: "Ganancia Neta", expenses: "Gastos" })[v] || v} />
-                <Bar dataKey="revenue" fill="hsl(38 82% 52%)" radius={[2, 2, 0, 0]} name="revenue" />
+                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} name="revenue" />
                 <Bar dataKey="netProfit" fill="#10b981" radius={[2, 2, 0, 0]} name="netProfit" />
               </BarChart>
             </ResponsiveContainer>
@@ -585,16 +585,16 @@ export default function PLDashboardPage() {
                     ]}
                     margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="metric" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 9 }} tickFormatter={fmtK} width={60} />
                     <Tooltip
-                      contentStyle={{ background: "hsl(228 32% 6%)", border: "1px solid hsl(228 20% 18%)", borderRadius: 8, fontSize: 11 }}
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                       formatter={(v: number, n: string) => [fmt(v), n === "anterior" ? prevPL.label : currentPL.label]}
                     />
                     <Legend formatter={(v) => v === "anterior" ? prevPL.label : currentPL.label} />
                     <Bar dataKey="anterior" fill="hsl(228 20% 30%)" radius={[2, 2, 0, 0]} name="anterior" />
-                    <Bar dataKey="actual" fill="hsl(38 82% 52%)" radius={[2, 2, 0, 0]} name="actual" />
+                    <Bar dataKey="actual" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} name="actual" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

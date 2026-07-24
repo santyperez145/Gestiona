@@ -217,20 +217,20 @@ export default function ProfitCalculatorModal({ open, onClose, product, exchange
                   <AreaChart data={chartData} margin={{ top: 2, right: 4, left: -30, bottom: 0 }}>
                     <defs>
                       <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(38 82% 52%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(38 82% 52%)" stopOpacity={0} />
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="markup" tick={{ fontSize: 9 }} interval={3} />
                     <YAxis tick={{ fontSize: 9 }} unit="%" />
                     <Tooltip
-                      contentStyle={{ background: "hsl(228 24% 7%)", border: "1px solid hsl(var(--border)/0.6)", borderRadius: 8, fontSize: 11 }}
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border)/0.6)", borderRadius: 8, fontSize: 11 }}
                       formatter={(v: number) => [`${v}%`, "Margen"]}
                     />
                     <Area
                       type="monotone"
                       dataKey="margin"
-                      stroke="hsl(38 82% 52%)"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       fill="url(#profitGrad)"
                       dot={false}
@@ -245,7 +245,7 @@ export default function ProfitCalculatorModal({ open, onClose, product, exchange
                       dot={(props: any) => {
                         const idx = chartData.findIndex(d => d.markup === `${markupPct}%`);
                         if (props.index !== idx) return <></>;
-                        return <circle key={props.key} cx={props.cx} cy={props.cy} r={5} fill="hsl(38 82% 52%)" stroke="white" strokeWidth={2} />;
+                        return <circle key={props.key} cx={props.cx} cy={props.cy} r={5} fill="hsl(var(--primary))" stroke="white" strokeWidth={2} />;
                       }}
                     />
                   </AreaChart>

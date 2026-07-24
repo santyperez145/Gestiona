@@ -297,15 +297,15 @@ export default function SalesForecastPage() {
         </div>
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="label" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} tickFormatter={fmtK} width={70} />
             <Tooltip
-              contentStyle={{ background: 'hsl(228 32% 6%)', border: '1px solid hsl(228 20% 18%)', borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
               formatter={(v: number, name: string) => [fmt(v), { actual: "Real", forecast: "Forecast", trend: "Media 3M", goal: "Meta" }[name] || name]}
             />
-            <ReferenceLine x={todayLabel} stroke="hsl(38 82% 52% / 0.6)" strokeDasharray="4 4" label={{ value: "hoy", position: "top", fontSize: 10, fill: "hsl(38 82% 52%)" }} />
-            <Line type="monotone" dataKey="actual" stroke="hsl(38 82% 52%)" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+            <ReferenceLine x={todayLabel} stroke="hsl(var(--primary) / 0.6)" strokeDasharray="4 4" label={{ value: "hoy", position: "top", fontSize: 10, fill: "hsl(var(--primary))" }} />
+            <Line type="monotone" dataKey="actual" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
             <Line type="monotone" dataKey="forecast" stroke="#60a5fa" strokeWidth={2} strokeDasharray="6 3" dot={{ r: 4 }} connectNulls />
             <Line type="monotone" dataKey="trend" stroke="#22d3ee" strokeWidth={1.5} dot={false} strokeOpacity={0.7} connectNulls />
             {monthlyGoals.size > 0 && (
@@ -369,18 +369,18 @@ export default function SalesForecastPage() {
         <h3 className="text-sm font-semibold mb-4">Ventas reales por mes</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData.filter(d => d.actual !== undefined)} margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(228 20% 14%)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="label" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} tickFormatter={fmtK} width={70} />
             <Tooltip
-              contentStyle={{ background: 'hsl(228 32% 6%)', border: '1px solid hsl(228 20% 18%)', borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
               formatter={(v: number) => [fmt(v), "Ventas"]}
             />
             <Bar dataKey="actual" radius={[4, 4, 0, 0]}>
               {chartData.filter(d => d.actual !== undefined).map((entry, i, arr) => (
                 <Cell
                   key={i}
-                  fill={i === arr.length - 1 ? "hsl(38 82% 52%)" : "hsl(38 82% 52% / 0.4)"}
+                  fill={i === arr.length - 1 ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.4)"}
                 />
               ))}
             </Bar>
