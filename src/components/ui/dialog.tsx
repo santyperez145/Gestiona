@@ -47,12 +47,12 @@ const DialogContent = React.forwardRef<
         // Layout
         "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
         "w-[calc(100vw-1.5rem)] max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto",
-        // Appearance — darker than bg, elevated
+        // Appearance — popover surface, elevated
         "rounded-[12px] border border-border/50",
-        "bg-[hsl(228_26%_6%)]",
-        "shadow-[0_0_0_1px_hsl(228_30%_16%/0.4)_inset,0_24px_64px_-8px_hsl(0_0%_0%/0.7),0_8px_24px_-4px_hsl(0_0%_0%/0.5)]",
-        // Inner top highlight
-        "before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-white/6 before:via-white/10 before:to-transparent",
+        "bg-popover",
+        "shadow-elevated",
+        // Inner top highlight (dark theme only)
+        "dark:before:absolute dark:before:inset-x-0 dark:before:top-0 dark:before:h-px dark:before:bg-gradient-to-r dark:before:from-white/6 dark:before:via-white/10 dark:before:to-transparent",
         // Spacing
         "p-5 sm:p-6",
         // Animation

@@ -14,12 +14,14 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useBroadcastChannel } from "@/hooks/useBroadcastChannel";
 import { useIdleDetector } from "@/hooks/useIdleDetector";
+import { useIsTablet } from "@/hooks/useMediaQuery";
 import { toast } from "sonner";
 import NotificationBell from "@/components/shared/NotificationBell";
 import OrgSwitcher from "@/components/shared/OrgSwitcher";
 import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
 import CommandPalette from "@/components/shared/CommandPalette";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 
 const allNavItems = [
   // ── Principal ───────────────────────────────────────────────────────────────
@@ -121,6 +123,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Tablet (768–1023px) always shows the icon-only rail, regardless of the
+  // user's lg+ collapse toggle — see effectiveCollapsed below.
+  const isTablet = useIsTablet();
+  const effectiveCollapsed = collapsed || isTablet;
 
   // ── Collapsible sidebar sections ─────────────────────────────────────────
   const ALL_SECTIONS = Object.keys(SECTION_LABELS);
@@ -237,10 +243,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const roleLabel = role === 'admin' ? 'Administrador' : role === 'vendedor' ? 'Vendedor' : 'Viewer';
-  const roleBadgeClass = role === 'admin' 
-    ? 'bg-primary/15 text-primary border-primary/20' 
-    : role === 'vendedor' 
-    ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' 
+  const roleBadgeClass = role === 'admin'
+    ? 'bg-primary/15 text-primary border-primary/20'
+    : role === 'vendedor'
+    ? 'bg-violet-500/15 text-violet-400 border-violet-500/20'
     : 'bg-muted text-muted-foreground border-border';
 
   return (
@@ -264,17 +270,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       <aside className={`
         fixed inset-y-0 left-0 z-50 gradient-sidebar border-r border-sidebar-border flex flex-col shrink-0
         transform transition-all duration-300 ease-out h-screen
-        ${collapsed ? 'w-[68px]' : 'w-[240px]'}
-        ${mobileOpen ? 'translate-x-0 w-[240px]' : '-translate-x-full lg:translate-x-0'}
+        w-[240px] md:w-[68px] ${collapsed ? 'lg:w-[68px]' : 'lg:w-[240px]'}
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
       `}>
         {/* ── Logo / Brand Header ──────────────────────────────────── */}
-        <div className={`${collapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
+        <div className={`${effectiveCollapsed ? 'px-3 py-4' : 'px-4 py-4'} border-b border-sidebar-border/60 flex items-center justify-between`}>
           <div className="flex items-center gap-3 min-w-0">
             {config.logoUrl ? (
               <div className="relative shrink-0">
@@ -282,11 +288,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-[1.5px] border-sidebar" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-[8px] gradient-gold flex items-center justify-center shrink-0 shadow-[0_2px_12px_-2px_hsl(38_82%_52%/0.5)]">
+              <div className="w-8 h-8 rounded-[8px] gradient-gold flex items-center justify-center shrink-0 shadow-[0_2px_12px_-2px_hsl(213_78%_56%/0.5)]">
                 <span className="text-primary-foreground font-bold text-[13px]">E</span>
               </div>
             )}
-            {!collapsed && (
+            {!effectiveCollapsed && (
               <div className="min-w-0 animate-fade-in">
                 <p className="text-[13px] font-display font-bold text-foreground/90 truncate tracking-tight leading-none">
                   {config.businessName}
@@ -297,7 +303,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
-          <Button variant="ghost" size="sm" className="lg:hidden shrink-0 text-sidebar-foreground h-7 w-7 p-0" onClick={() => setMobileOpen(false)}>
+          <Button variant="ghost" size="sm" className="md:hidden shrink-0 text-sidebar-foreground h-7 w-7 p-0" onClick={() => setMobileOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -305,11 +311,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* ── Navigation ───────────────────────────────────────────── */}
         <nav className="flex-1 px-2 py-2.5 overflow-y-auto scrollbar-hide">
           {groupedNav.map((group, gi) => {
-            const isExpanded = group.section === 'principal' || collapsed || expandedSections.has(group.section);
+            const isExpanded = group.section === 'principal' || effectiveCollapsed || expandedSections.has(group.section);
             return (
             <div key={group.section} className={gi > 0 ? 'mt-1' : ''}>
               {/* Section label — clickable to collapse/expand */}
-              {group.label && !collapsed && (
+              {group.label && !effectiveCollapsed && (
                 <button
                   onClick={() => toggleSection(group.section)}
                   className={`w-full flex items-center justify-between px-2.5 ${gi > 0 ? 'pt-4 pb-1.5' : 'pb-1.5'} group/sec hover:opacity-100`}
@@ -318,7 +324,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <ChevronRight className={`w-3 h-3 text-muted-foreground/30 group-hover/sec:text-muted-foreground/60 transition-all duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                 </button>
               )}
-              {gi > 0 && collapsed && (
+              {gi > 0 && effectiveCollapsed && (
                 <div className="my-2 mx-3 border-t border-sidebar-border/40" />
               )}
               {/* Nav items — hidden when section is collapsed */}
@@ -332,9 +338,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         key={to}
                         to={to}
                         onClick={() => setMobileOpen(false)}
-                        title={collapsed ? label : undefined}
+                        title={effectiveCollapsed ? label : undefined}
                         className={`group relative flex items-center gap-2.5 py-[7px] rounded-[7px] text-[13px] font-medium transition-all duration-150 ${
-                          collapsed ? 'justify-center px-0' : 'px-2.5'
+                          effectiveCollapsed ? 'justify-center px-0' : 'px-2.5'
                         } ${
                           active
                             ? "bg-gradient-to-r from-primary/14 to-primary/3 text-primary"
@@ -343,7 +349,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       >
                         {/* Active left bar — glowing */}
                         {active && (
-                          <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(38_82%_52%/0.7)]" />
+                          <div className="absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_hsl(213_78%_56%/0.7)]" />
                         )}
 
                         {/* Icon */}
@@ -357,12 +363,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </div>
 
                         {/* Label */}
-                        {!collapsed && (
+                        {!effectiveCollapsed && (
                           <span className="flex-1 truncate">{label}</span>
                         )}
 
                         {/* "new" badge */}
-                        {!collapsed && hasNew && !active && (
+                        {!effectiveCollapsed && hasNew && !active && (
                           <span className="text-[8px] font-bold px-1 py-px rounded-[3px] bg-primary/15 text-primary uppercase tracking-wider shrink-0">
                             new
                           </span>
@@ -388,15 +394,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* ── Footer ───────────────────────────────────────────────── */}
-        <div className={`${collapsed ? 'px-2 py-3' : 'px-3 py-3'} border-t border-sidebar-border/60 space-y-1.5`}>
-          <OrgSwitcher collapsed={collapsed} />
-          <NotificationBell collapsed={collapsed} />
+        <div className={`${effectiveCollapsed ? 'px-2 py-3' : 'px-3 py-3'} border-t border-sidebar-border/60 space-y-1.5`}>
+          <OrgSwitcher collapsed={effectiveCollapsed} />
+          <NotificationBell collapsed={effectiveCollapsed} />
+          <ThemeToggle collapsed={effectiveCollapsed} />
           {isPlatformAdmin && (
             <Link
               to="/platform/admin"
-              title={collapsed ? 'Platform Admin' : undefined}
+              title={effectiveCollapsed ? 'Platform Admin' : undefined}
               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full ${
-                collapsed ? 'justify-center' : ''
+                effectiveCollapsed ? 'justify-center' : ''
               } ${
                 pathname === '/platform/admin'
                   ? 'bg-primary/12 text-primary'
@@ -404,36 +411,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }`}
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
-              {!collapsed && <span>Platform Admin</span>}
+              {!effectiveCollapsed && <span>Platform Admin</span>}
             </Link>
           )}
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <div className="px-1 py-1">
               <p className="text-[11px] text-muted-foreground/55 truncate font-mono">{user?.email}</p>
-              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest">v10.0</p>
-            </div>
-          )}
-          {!collapsed && (
-            <div className="px-1 pb-1 flex items-center gap-1.5">
-              <span className="text-[9px] text-muted-foreground/25 uppercase tracking-widest font-mono">build</span>
-              <span className="text-[9px] font-bold text-primary/50 font-mono">v10.0 · 69nav</span>
+              <p className="text-[9px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest font-mono">v10.0</p>
             </div>
           )}
           <button
             onClick={handleLogout}
-            title={collapsed ? 'Cerrar sesión' : undefined}
-            className={`w-full flex items-center ${collapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'} py-1.5 rounded-[7px] text-[12px] text-muted-foreground/50 hover:text-destructive hover:bg-destructive/8 transition-all duration-150`}
+            title={effectiveCollapsed ? 'Cerrar sesión' : undefined}
+            className={`w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'} py-1.5 rounded-[7px] text-[12px] text-muted-foreground/50 hover:text-destructive hover:bg-destructive/8 transition-all duration-150`}
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            {!collapsed && <span>Cerrar sesión</span>}
+            {!effectiveCollapsed && <span>Cerrar sesión</span>}
           </button>
         </div>
       </aside>
 
-      <main className={`flex-1 overflow-auto w-full transition-all duration-300 ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
-        {/* Mobile header */}
-        <div className="lg:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
-          style={{ background: 'hsl(228 32% 3% / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
+      <main className={`flex-1 overflow-auto w-full transition-all duration-300 md:ml-[68px] ${collapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
+        {/* Mobile-only header — hidden from md upward, where the icon rail is always visible */}
+        <div className="md:hidden sticky top-0 z-30 border-b border-border/30 px-4 h-12 flex items-center gap-3"
+          style={{ background: 'hsl(var(--sidebar-background) / 0.92)', backdropFilter: 'blur(16px) saturate(160%)' }}>
           <button
             onClick={() => setMobileOpen(true)}
             className="flex items-center justify-center w-7 h-7 rounded-[6px] border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border/70 transition-all"
@@ -467,7 +468,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Search className="w-3.5 h-3.5" />
             </button>
-            <div className="lg:hidden">
+            <div className="md:hidden">
               <NotificationBell />
             </div>
           </div>
@@ -485,13 +486,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           );
           if (subscription?.status === 'canceled') return (
-            <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2.5 flex items-center gap-3">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
-              <p className="text-sm flex-1 text-yellow-500">
+            <div className="bg-warning/10 border-b border-warning/20 px-4 py-2.5 flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+              <p className="text-sm flex-1 text-warning">
                 <span className="font-semibold">Suscripción cancelada.</span> Reactivá tu plan para seguir usando Gestiona.
               </p>
-              <Link to="/pricing"><Button size="sm" className="h-7 text-xs shrink-0 bg-yellow-500 hover:bg-yellow-600 text-black">Reactivar</Button></Link>
-              <button onClick={() => setBannerDismissed(true)} className="text-yellow-500/60 hover:text-yellow-500 shrink-0"><XIcon className="w-4 h-4" /></button>
+              <Link to="/pricing"><Button size="sm" className="h-7 text-xs shrink-0 bg-warning hover:bg-warning/90 text-warning-foreground">Reactivar</Button></Link>
+              <button onClick={() => setBannerDismissed(true)} className="text-warning/60 hover:text-warning shrink-0"><XIcon className="w-4 h-4" /></button>
             </div>
           );
           if (isTrialing && trialDaysLeft <= 7) return (

@@ -75,6 +75,9 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 2px)",
+        "2xl": "calc(var(--radius) + 4px)",
+        "3xl": "calc(var(--radius) + 6px)",
       },
       keyframes: {
         "accordion-down": {
@@ -106,8 +109,8 @@ export default {
           to:   { opacity: "1", transform: "scale(1)" },
         },
         "pulse-gold": {
-          "0%, 100%": { boxShadow: "0 0 0 0 hsl(38, 82%, 52% / 0.45)" },
-          "50%":       { boxShadow: "0 0 0 7px hsl(38, 82%, 52% / 0)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(213, 78%, 56% / 0.45)" },
+          "50%":       { boxShadow: "0 0 0 7px hsl(213, 78%, 56% / 0)" },
         },
         "shimmer": {
           from: { backgroundPosition: "-200% 0" },

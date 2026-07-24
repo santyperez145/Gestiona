@@ -18,8 +18,8 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
       )}
       {...props}
     >
-      {/* Inner top-edge highlight — feels like physical depth */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
+      {/* Inner top-edge highlight — feels like physical depth (dark theme only) */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px hidden dark:block bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
       {props.children}
     </div>
   ),

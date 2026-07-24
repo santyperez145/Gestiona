@@ -36,10 +36,10 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 const sheetVariants = cva(
   [
     "fixed z-50",
-    // Dark surface, deeper than card
-    "bg-[hsl(228_28%_5%)]",
+    // Popover surface, elevated relative to the page
+    "bg-popover",
     // Subtle border on the opening edge
-    "shadow-[0_0_0_1px_hsl(228_20%_12%)]",
+    "shadow-[0_0_0_1px_hsl(var(--border))]",
     // Transition
     "transition-transform ease-out",
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -75,9 +75,9 @@ const SheetContent = React.forwardRef<
       className={cn(sheetVariants({ side }), "p-6", className)}
       {...props}
     >
-      {/* Top-edge inner highlight */}
+      {/* Top-edge inner highlight (dark theme only) */}
       {(side === "right" || side === "left") && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px hidden dark:block bg-gradient-to-r from-white/5 via-white/8 to-transparent" />
       )}
 
       {children}

@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── :root = dark theme (default) ──────────────────────────────────────
+     next-themes toggles a "light" / "dark" class on <html>. Dark values
+     live here so the app renders correctly before/without JS, matching
+     defaultTheme="dark". The .light block below overrides for light mode. */
   :root {
     /* ── Deep noir backgrounds ─────────────────────────────── */
     --background:  228 28% 4.5%;    /* #070712 — near black, cold */
@@ -16,9 +20,9 @@
     --popover:      228 24% 9%;
     --popover-foreground: 220 20% 91%;
 
-    /* ── Brand gold — richer, more orange ─────────────────── */
-    --primary:      38 82% 52%;     /* #D4891A — amber gold */
-    --primary-foreground: 228 30% 5%;
+    /* ── Brand — sapphire blue ─────────────────────────────── */
+    --primary:      213 78% 56%;    /* #3E7FD1 — sapphire blue */
+    --primary-foreground: 0 0% 100%;
 
     --secondary:    228 20% 13%;
     --secondary-foreground: 220 15% 78%;
@@ -26,7 +30,7 @@
     --muted:        228 20% 11%;
     --muted-foreground: 228 12% 46%;
 
-    --accent:       38 55% 40%;
+    --accent:       213 40% 22%;
     --accent-foreground: 220 20% 91%;
 
     --destructive:  0 68% 50%;
@@ -40,19 +44,19 @@
 
     --border:       228 20% 12%;    /* very subtle, barely visible */
     --input:        228 20% 12%;
-    --ring:         38 82% 52%;
+    --ring:         213 78% 56%;
 
-    --radius: 0.625rem;             /* 10px — tighter than before */
+    --radius: 0.625rem;             /* 10px */
 
     /* ── Sidebar — deeper than background ─────────────────── */
     --sidebar-background: 228 32% 3%;
     --sidebar-foreground: 228 12% 55%;
-    --sidebar-primary: 38 82% 52%;
-    --sidebar-primary-foreground: 228 30% 5%;
+    --sidebar-primary: 213 78% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 228 24% 8%;
     --sidebar-accent-foreground: 220 20% 88%;
     --sidebar-border: 228 22% 9%;
-    --sidebar-ring: 38 82% 52%;
+    --sidebar-ring: 213 78% 56%;
 
     /* ── Fonts ────────────────────────────────────────────── */
     --font-display: 'Space Grotesk', system-ui, sans-serif;
@@ -60,14 +64,14 @@
     --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
 
     /* ── Gradients ─────────────────────────────────────────── */
-    --gradient-gold:        linear-gradient(135deg, hsl(40,88%,58%), hsl(36,82%,48%), hsl(32,75%,42%));
-    --gradient-gold-subtle: linear-gradient(135deg, hsl(38,82%,52% / 0.12), hsl(38,82%,52% / 0.03));
+    --gradient-gold:        linear-gradient(135deg, hsl(207,85%,64%), hsl(213,78%,56%), hsl(220,70%,46%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(213,78%,56% / 0.12), hsl(213,78%,56% / 0.03));
     --gradient-card:        linear-gradient(160deg, hsl(228,24%,8.5%) 0%, hsl(228,28%,5.5%) 100%);
     --gradient-sidebar:     linear-gradient(180deg, hsl(228,32%,3.5%) 0%, hsl(228,36%,2.5%) 100%);
-    --gradient-page:        radial-gradient(ellipse 80% 60% at 50% -10%, hsl(38,82%,52% / 0.05) 0%, transparent 65%);
+    --gradient-page:        radial-gradient(ellipse 80% 60% at 50% -10%, hsl(213,78%,56% / 0.05) 0%, transparent 65%);
 
     /* ── Shadows ─────────────────────────────────────────── */
-    --shadow-gold:     0 4px 28px -4px hsl(38 82% 52% / 0.30);
+    --shadow-gold:     0 4px 28px -4px hsl(213 78% 56% / 0.30);
     --shadow-card:     0 1px 0 hsl(228 30% 16% / 0.5) inset,
                        0 2px 4px hsl(0 0% 0% / 0.35),
                        0 8px 24px -8px hsl(0 0% 0% / 0.45);
@@ -80,6 +84,72 @@
     /* ── Glass ────────────────────────────────────────────── */
     --glass-bg:     hsl(228 24% 7% / 0.72);
     --glass-border: hsl(228 20% 20% / 0.45);
+  }
+
+  /* ── .light = light theme override ─────────────────────────────────────
+     Applied when next-themes sets class="light" on <html>. */
+  .light {
+    --background:  220 20% 98%;
+    --foreground:  222 24% 12%;
+
+    --card:         0 0% 100%;
+    --card-foreground: 222 24% 12%;
+
+    --popover:      0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+
+    --primary:      217 85% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary:    220 16% 94%;
+    --secondary-foreground: 222 20% 20%;
+
+    --muted:        220 16% 95%;
+    --muted-foreground: 222 12% 42%;
+
+    --accent:       217 65% 94%;
+    --accent-foreground: 217 85% 28%;
+
+    --destructive:  0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success:      155 62% 30%;
+    --success-foreground: 0 0% 100%;
+
+    --warning:      38 92% 38%;
+    --warning-foreground: 0 0% 100%;
+
+    --border:       220 16% 88%;
+    --input:        220 16% 88%;
+    --ring:         217 85% 48%;
+
+    --sidebar-background: 220 18% 97%;
+    --sidebar-foreground: 222 15% 35%;
+    --sidebar-primary: 217 85% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 93%;
+    --sidebar-accent-foreground: 222 24% 15%;
+    --sidebar-border: 220 16% 88%;
+    --sidebar-ring: 217 85% 48%;
+
+    --gradient-gold:        linear-gradient(135deg, hsl(212,85%,58%), hsl(217,85%,48%), hsl(222,75%,40%));
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(217,85%,48% / 0.10), hsl(217,85%,48% / 0.03));
+    --gradient-card:        linear-gradient(160deg, hsl(0,0%,100%) 0%, hsl(220,20%,98.5%) 100%);
+    --gradient-sidebar:     linear-gradient(180deg, hsl(220,18%,98%) 0%, hsl(220,20%,96%) 100%);
+    --gradient-page:        radial-gradient(ellipse 80% 60% at 50% -10%, hsl(217,85%,48% / 0.035) 0%, transparent 65%);
+
+    --shadow-gold:     0 4px 24px -6px hsl(217 85% 48% / 0.20);
+    --shadow-card:     0 1px 0 hsl(0 0% 100% / 0.6) inset,
+                       0 1px 2px hsl(222 20% 10% / 0.04),
+                       0 6px 16px -8px hsl(222 20% 10% / 0.10);
+    --shadow-elevated: 0 1px 0 hsl(0 0% 100% / 0.6) inset,
+                       0 4px 10px hsl(222 20% 10% / 0.06),
+                       0 16px 32px -12px hsl(222 20% 10% / 0.14);
+    --shadow-kpi:      0 1px 0 hsl(0 0% 100% / 0.6) inset,
+                       0 2px 6px hsl(222 20% 10% / 0.06);
+
+    --glass-bg:     hsl(0 0% 100% / 0.72);
+    --glass-border: hsl(220 16% 80% / 0.5);
   }
 }
 
@@ -127,10 +197,10 @@
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: hsl(228, 20%, 18%);
+    background: hsl(var(--border));
     border-radius: 2px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(228, 20%, 26%); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
 
   /* Focus ring */
   :focus-visible {
@@ -148,7 +218,7 @@
 
   /* Selection */
   ::selection {
-    background-color: hsl(38 82% 52% / 0.25);
+    background-color: hsl(var(--primary) / 0.25);
     color: hsl(var(--foreground));
   }
 }
@@ -183,10 +253,10 @@
 
   /* ── Glow ─────────────────────────────────────────────── */
   .glow-gold {
-    box-shadow: 0 0 24px hsl(38 82% 52% / 0.18), 0 0 48px hsl(38 82% 52% / 0.06);
+    box-shadow: 0 0 24px hsl(var(--primary) / 0.18), 0 0 48px hsl(var(--primary) / 0.06);
   }
   .glow-gold-sm {
-    box-shadow: 0 0 10px hsl(38 82% 52% / 0.22);
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.22);
   }
 
   /* ── Scrollbar hide ──────────────────────────────────── */
@@ -209,7 +279,7 @@
   .kpi-bar-success     { border-left-color: hsl(var(--success)); }
   .kpi-bar-destructive { border-left-color: hsl(var(--destructive)); }
   .kpi-bar-warning     { border-left-color: hsl(var(--warning)); }
-  .kpi-bar-blue        { border-left-color: hsl(210 90% 60%); }
+  .kpi-bar-blue        { border-left-color: hsl(190 85% 45%); }
   .kpi-bar-purple      { border-left-color: hsl(265 85% 65%); }
 
   /* ── Noise texture overlay ───────────────────────────── */
@@ -225,7 +295,7 @@
 
   /* ── Dot grid background for main area ──────────────── */
   .dot-grid {
-    background-image: radial-gradient(circle, hsl(228 20% 22% / 0.35) 1px, transparent 1px);
+    background-image: radial-gradient(circle, hsl(var(--border) / 0.7) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
@@ -236,7 +306,7 @@
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: hsl(228 12% 32%);
+    color: hsl(var(--muted-foreground) / 0.7);
   }
 
   /* ── Animated underline for links ────────────────────── */
@@ -268,8 +338,8 @@
 
   /* ── Frosted badge ───────────────────────────────────── */
   .badge-frost {
-    background: hsl(228 20% 14% / 0.8);
-    border: 1px solid hsl(228 20% 20% / 0.6);
+    background: hsl(var(--muted) / 0.8);
+    border: 1px solid hsl(var(--border));
     backdrop-filter: blur(8px);
   }
 
@@ -352,7 +422,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    color: hsl(228 12% 36%);
+    color: hsl(var(--muted-foreground) / 0.85);
     font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.14em;
@@ -364,7 +434,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(228 20% 14%), transparent);
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
   }
 
   /* ── Label-value pair — terminal key: val ────────────────────────── */
@@ -381,7 +451,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: hsl(228 12% 42%);
+    color: hsl(var(--muted-foreground));
     white-space: nowrap;
     font-family: var(--font-display);
   }
@@ -403,7 +473,7 @@
 
   /* ── Row highlight for selected/active table rows ────────────────── */
   .row-active {
-    background: hsl(38 82% 52% / 0.06) !important;
+    background: hsl(var(--primary) / 0.06) !important;
     border-left: 2px solid hsl(var(--primary));
   }
 
@@ -424,38 +494,39 @@
   .vr {
     width: 1px;
     align-self: stretch;
-    background: hsl(228 20% 13%);
+    background: hsl(var(--border));
     flex-shrink: 0;
   }
 }
 
 /* ── Recharts global overrides ──────────────────────────────────────────────
-   Apply to ALL charts in the app — removes generic look.                     */
+   Apply to ALL charts in the app — theme-aware via CSS vars, no hardcoded
+   dark-only literals, so charts read correctly in both light and dark.    */
 @layer base {
   /* Grid lines — barely visible */
   .recharts-cartesian-grid-horizontal line,
   .recharts-cartesian-grid-vertical line {
-    stroke: hsl(228, 20%, 12%);
+    stroke: hsl(var(--border));
     stroke-dasharray: none;
   }
 
   /* Axis text */
   .recharts-cartesian-axis-tick-value {
-    fill: hsl(228, 12%, 40%) !important;
+    fill: hsl(var(--muted-foreground)) !important;
     font-size: 10px !important;
     font-family: var(--font-mono) !important;
   }
 
-  /* Tooltip — dark, sharp, not the browser default gray */
+  /* Tooltip — themed surface, not the browser default gray */
   .recharts-default-tooltip {
-    background: hsl(228, 26%, 7%) !important;
-    border: 1px solid hsl(228, 20%, 14%) !important;
+    background: hsl(var(--popover)) !important;
+    border: 1px solid hsl(var(--border)) !important;
     border-radius: 8px !important;
-    box-shadow: 0 8px 32px hsl(0, 0%, 0% / 0.55) !important;
+    box-shadow: var(--shadow-elevated) !important;
     padding: 8px 12px !important;
   }
   .recharts-tooltip-label {
-    color: hsl(220, 20%, 65%) !important;
+    color: hsl(var(--muted-foreground)) !important;
     font-size: 11px !important;
     font-family: var(--font-display) !important;
     font-weight: 600 !important;
@@ -464,35 +535,35 @@
     margin-bottom: 4px !important;
   }
   .recharts-tooltip-item {
-    color: hsl(220, 20%, 91%) !important;
+    color: hsl(var(--foreground)) !important;
     font-size: 13px !important;
     font-family: var(--font-mono) !important;
     padding: 1px 0 !important;
   }
   .recharts-tooltip-item-name {
-    color: hsl(228, 12%, 55%) !important;
+    color: hsl(var(--muted-foreground)) !important;
     font-size: 11px !important;
   }
 
   /* Legend text */
   .recharts-legend-item-text {
-    color: hsl(228, 12%, 52%) !important;
+    color: hsl(var(--muted-foreground)) !important;
     font-size: 11px !important;
     font-family: var(--font-display) !important;
   }
 
   /* Cursor line on charts */
   .recharts-curve.recharts-tooltip-cursor {
-    stroke: hsl(228, 20%, 20%) !important;
+    stroke: hsl(var(--border)) !important;
   }
   .recharts-rectangle.recharts-tooltip-cursor {
-    fill: hsl(228, 20%, 12% / 0.6) !important;
+    fill: hsl(var(--muted) / 0.6) !important;
   }
 
   /* Global textarea — match input style */
   textarea {
-    background: hsl(228, 26%, 5.5%);
-    border: 1px solid hsl(228, 20%, 12% / 0.55);
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border) / 0.55);
     border-radius: 7px;
     font-size: 13px;
     color: hsl(var(--foreground));
@@ -501,12 +572,12 @@
   }
   textarea:focus {
     outline: none;
-    border-color: hsl(38, 82%, 52% / 0.45);
-    box-shadow: 0 0 0 3px hsl(38, 82%, 52% / 0.08),
-                inset 0 0 0 1px hsl(38, 82%, 52% / 0.12);
+    border-color: hsl(var(--primary) / 0.45);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08),
+                inset 0 0 0 1px hsl(var(--primary) / 0.12);
   }
   textarea::placeholder {
-    color: hsl(228, 12%, 38%);
+    color: hsl(var(--muted-foreground) / 0.7);
   }
 
   /* Hide number input spinners globally */
@@ -519,16 +590,6 @@
 
   /* Remove search cancel button */
   input[type=search]::-webkit-search-cancel-button { display: none; }
-}
-
-/* ── Global border-radius normalization ─────────────────────────────────────
-   Reduce Tailwind's default "bubbly" radii across all pages.
-   Components with explicit rounded-[Npx] are unaffected.
-   rounded-xl  12px → 10px  |  rounded-2xl 16px → 12px  |  rounded-3xl 24px → 14px */
-@layer utilities {
-  .rounded-xl  { border-radius: 10px; }
-  .rounded-2xl { border-radius: 12px; }
-  .rounded-3xl { border-radius: 14px; }
 }
 
 /* ── Extra utilities — used across pages ────────────────────────────────── */
@@ -545,9 +606,9 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     border-radius: 5px;
-    border: 1px solid hsl(228 20% 14%);
-    background: hsl(228 24% 8%);
-    color: hsl(228 12% 52%);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
     cursor: pointer;
     transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -569,7 +630,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 0;
-    border-bottom: 1px solid hsl(228 20% 11%);
+    border-bottom: 1px solid hsl(var(--border));
     font-size: 13px;
     gap: 1rem;
   }
@@ -579,7 +640,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: hsl(228 12% 42%);
+    color: hsl(var(--muted-foreground));
     font-family: var(--font-display);
   }
   .info-row > :last-child {
@@ -589,8 +650,8 @@
 
   /* Panel — used for side-panels and detail panes inside pages */
   .panel {
-    background: hsl(228 24% 7%);
-    border: 1px solid hsl(228 20% 12%);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     border-radius: 10px;
     overflow: hidden;
     box-shadow: var(--shadow-card);
@@ -602,7 +663,7 @@
     inset-x: 0;
     top: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(228 30% 20% / 0.5), transparent);
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
     pointer-events: none;
   }
 }

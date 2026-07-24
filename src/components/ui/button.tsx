@@ -14,12 +14,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // ── Primary — gradient gold, glow shadow ─────────────────────────
+        // ── Primary — theme-driven gradient + glow shadow ────────────────
         default:
-          "bg-gradient-to-br from-[hsl(40,88%,59%)] via-[hsl(38,82%,52%)] to-[hsl(34,76%,44%)] " +
-          "text-[hsl(228,30%,5%)] font-semibold " +
-          "shadow-[0_2px_14px_-3px_hsl(38_82%_52%/0.50)] " +
-          "hover:brightness-110 hover:shadow-[0_4px_22px_-3px_hsl(38_82%_52%/0.60)] " +
+          "gradient-gold text-primary-foreground font-semibold " +
+          "shadow-gold " +
+          "hover:brightness-110 hover:shadow-[0_4px_22px_-3px_hsl(var(--primary)/0.60)] " +
           "active:scale-[0.97] active:brightness-95",
 
         // ── Destructive ─────────────────────────────────────────────────

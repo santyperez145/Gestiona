@@ -17,20 +17,20 @@ const alertVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[hsl(228_22%_8%)] border border-border/40 text-foreground " +
+          "bg-muted/50 border border-border/40 text-foreground " +
           "before:bg-primary/60",
         destructive:
           "bg-destructive/6 border border-destructive/18 text-destructive " +
           "before:bg-destructive",
         warning:
-          "bg-yellow-500/6 border border-yellow-500/18 text-yellow-400 " +
-          "before:bg-yellow-500",
+          "bg-warning/8 border border-warning/20 text-warning " +
+          "before:bg-warning",
         success:
-          "bg-emerald-500/6 border border-emerald-500/18 text-emerald-400 " +
-          "before:bg-emerald-500",
+          "bg-success/8 border border-success/20 text-success " +
+          "before:bg-success",
         info:
-          "bg-blue-500/6 border border-blue-500/18 text-blue-400 " +
-          "before:bg-blue-500",
+          "bg-primary/8 border border-primary/20 text-primary " +
+          "before:bg-primary",
       },
     },
     defaultVariants: {
