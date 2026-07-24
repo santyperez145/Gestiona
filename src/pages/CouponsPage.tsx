@@ -42,6 +42,7 @@ interface Coupon {
   // Computed
   usageRevenue?: number;
   usageDiscount?: number;
+  usageCount?: number;
   status: "active" | "expired" | "exhausted" | "inactive";
 }
 
@@ -143,6 +144,7 @@ export default function CouponsPage() {
         ...c,
         usageRevenue: usage.revenue,
         usageDiscount: 0,
+        usageCount: usage.count,
         status: "active",
       };
       coupon.status = getCouponStatus(coupon);
@@ -288,6 +290,11 @@ export default function CouponsPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold">{formatDiscount(c)}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {(c.usageCount || 0) > 0
+                        ? <>Ventas atribuidas: <span className="font-semibold text-foreground">{c.usageCount}</span> · Ingresos: <span className="font-semibold text-emerald-400">{formatARS(c.usageRevenue || 0)}</span></>
+                        : <span className="opacity-60">Sin ventas atribuidas todavía</span>}
+                    </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge variant="outline" className={`text-[9px] ${stCfg.color} ${stCfg.border}`}>
                         {stCfg.label}

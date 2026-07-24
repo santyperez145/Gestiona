@@ -37,6 +37,7 @@ const AdminPage              = lazy(() => import("@/pages/AdminPage"));
 const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
 const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
 const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
+const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage"));
 const PricingPage            = lazy(() => import("@/pages/PricingPage"));
 const PrivacyPage            = lazy(() => import("@/pages/PrivacyPage"));
 const TermsPage              = lazy(() => import("@/pages/TermsPage"));
@@ -374,6 +375,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
                 <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
+                <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
                 <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
                 <Route path="/app/*" element={<ProtectedRoutes />} />
                 <Route path="/*" element={<ProtectedRoutes />} />

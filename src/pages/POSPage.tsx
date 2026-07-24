@@ -13,7 +13,7 @@ import {
   ShoppingCart, Search, Minus, Plus, Trash2, X, CheckCircle2,
   Banknote, ArrowLeftRight, CreditCard, UserX, User, Zap, Printer,
   QrCode, ChevronUp, Package, MessageCircle, RotateCcw, Link2, Copy, Loader2,
-  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard,
+  Ticket, Tag, SplitSquareHorizontal, Percent, DollarSign, Undo2, WifiOff, RefreshCw, BarChart2, Sun, Moon, Mail, Layers, Maximize2, Minimize2, Pencil, Check, AlertCircle, Mic, MicOff, HelpCircle, Keyboard, Store,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -801,6 +801,37 @@ export default function POSPage() {
   const [showTurnoHistory, setShowTurnoHistory] = useState(false);
   const [showTurnoSummary, setShowTurnoSummary] = useState(false);
 
+  // ── Multi-store: location selector (persisted per org in localStorage) ──
+  const posLocationKey = `gestiona.pos.location.${activeOrg?.id || 'default'}`;
+  const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!activeOrg?.id) { setLocations([]); setSelectedLocationId(null); return; }
+    let cancelled = false;
+    supabase
+      .from("locations")
+      .select("id,name,is_main,active")
+      .eq("org_id", activeOrg.id)
+      .eq("active", true)
+      .order("is_main", { ascending: false })
+      .order("name")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const locs = (data || []) as Array<{ id: string; name: string; is_main: boolean }>;
+        setLocations(locs);
+        if (locs.length === 0) { setSelectedLocationId(null); return; }
+        const stored = localStorage.getItem(posLocationKey);
+        const valid = stored && locs.some((l) => l.id === stored) ? stored : null;
+        setSelectedLocationId(valid ?? (locs.find((l) => l.is_main)?.id ?? locs[0].id));
+      });
+    return () => { cancelled = true; };
+  }, [activeOrg?.id]);
+
+  const selectLocation = (id: string) => {
+    setSelectedLocationId(id);
+    localStorage.setItem(posLocationKey, id);
+  };
+
   useEffect(() => {
     if (!sellerName) setShowSellerPrompt(true);
   }, []);
@@ -1415,6 +1446,8 @@ export default function POSPage() {
           split_payments: splitPayments,
           global_discount_ars: itemGlobalDiscount > 0 ? itemGlobalDiscount : null,
           coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+          coupon_code: couponResult?.valid ? couponResult.coupon.code : null,
+          location_id: selectedLocationId,
           seller_name: sellerName || null,
           notes: posNote.trim() || null,
         };
@@ -1698,6 +1731,23 @@ export default function POSPage() {
 
       {/* Customer + Payment */}
       <div className="px-4 py-3 border-t border-border space-y-3">
+        {/* Location selector — only when org has locations configured */}
+        {locations.length > 0 && (
+          <div className="relative">
+            <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
+            <select
+              value={selectedLocationId ?? ""}
+              onChange={(e) => selectLocation(e.target.value)}
+              className="h-8 w-full text-sm bg-muted border border-border rounded-md pl-8 pr-2 text-foreground"
+            >
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}{l.is_main ? " (principal)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="relative">
           <Input
             placeholder="Cliente (opcional)"

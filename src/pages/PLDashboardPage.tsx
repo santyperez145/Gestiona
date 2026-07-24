@@ -16,13 +16,13 @@ import KPICard from "@/components/shared/KPICard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FinancialScenariosTab from "@/components/finance/FinancialScenariosTab";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
-// Note: StoreFilter is intentionally not wired here — sales/expenses/purchases
-// have no location_id in the schema yet (see Dashboard.tsx for the one real
-// store-filter integration, which scopes stock via `location_stock`).
+import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
+// StoreFilter scopes sales/expenses to the selected sucursal via `location_id`.
+// Purchases carry no location_id, so they are not scoped by store.
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Sale { total_ars: number; created_at: string; cost_of_goods_ars?: number }
-interface Expense { amount_ars?: number; amount?: number; date: string; category?: string }
+interface Sale { total_ars: number; created_at: string; cost_of_goods_ars?: number; location_id?: string | null }
+interface Expense { amount_ars?: number; amount?: number; date: string; category?: string; location_id?: string | null }
 interface Purchase { total_ars: number; created_at: string }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -71,6 +71,7 @@ export default function PLDashboardPage() {
   const [selectedYm, setSelectedYm] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("mensual");
   const { from: dateFrom, to: dateTo, inRange } = useDateRangeFilter();
+  const { storeId } = useStoreFilter();
 
   useEffect(() => {
     if (!activeOrg) return;
@@ -79,8 +80,8 @@ export default function PLDashboardPage() {
     since.setMonth(since.getMonth() - 24);
     const sinceStr = since.toISOString();
     Promise.all([
-      supabase.from("sales").select("total_ars, created_at, cost_of_goods_ars").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
-      supabase.from("expenses").select("amount_ars, amount, date, category").eq("org_id", activeOrg.id).gte("date", sinceStr.slice(0, 10)),
+      supabase.from("sales").select("total_ars, created_at, cost_of_goods_ars, location_id").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
+      supabase.from("expenses").select("amount_ars, amount, date, category, location_id").eq("org_id", activeOrg.id).gte("date", sinceStr.slice(0, 10)),
       supabase.from("purchases").select("total_ars, created_at").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
     ]).then(([{ data: s }, { data: e }, { data: p }]) => {
       setSales((s as Sale[]) || []);
@@ -93,8 +94,17 @@ export default function PLDashboardPage() {
   // ── Monthly P&L data ───────────────────────────────────────────────────────
   // Shared date-range filter (URL-persisted) — scopes which raw rows feed the P&L
   const hasDateFilter = !!dateFrom;
-  const filteredSales = useMemo(() => hasDateFilter ? sales.filter(s => inRange(s.created_at)) : sales, [sales, hasDateFilter, dateFrom, dateTo]);
-  const filteredExpenses = useMemo(() => hasDateFilter ? expenses.filter(e => inRange(e.date)) : expenses, [expenses, hasDateFilter, dateFrom, dateTo]);
+  // Shared store filter (URL-persisted) — scopes sales/expenses to the selected sucursal.
+  const filteredSales = useMemo(() => {
+    let out = hasDateFilter ? sales.filter(s => inRange(s.created_at)) : sales;
+    if (storeId) out = out.filter(s => s.location_id === storeId);
+    return out;
+  }, [sales, hasDateFilter, dateFrom, dateTo, storeId]);
+  const filteredExpenses = useMemo(() => {
+    let out = hasDateFilter ? expenses.filter(e => inRange(e.date)) : expenses;
+    if (storeId) out = out.filter(e => e.location_id === storeId);
+    return out;
+  }, [expenses, hasDateFilter, dateFrom, dateTo, storeId]);
   const filteredPurchases = useMemo(() => hasDateFilter ? purchases.filter(p => inRange(p.created_at)) : purchases, [purchases, hasDateFilter, dateFrom, dateTo]);
 
   const monthlyPL = useMemo<MonthlyPL[]>(() => {
@@ -219,6 +229,7 @@ export default function PLDashboardPage() {
         description="Estado de resultados en tiempo real"
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            <StoreFilter />
             <DateRangeFilter label="Todo el período" />
             <button
               onClick={exportCSV}

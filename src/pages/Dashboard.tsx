@@ -653,9 +653,14 @@ export default function Dashboard() {
 
     // Shared date-range filter (URL-persisted) — scopes sales/purchases/expenses
     const hasDateFilter = !!dateFrom;
-    const allSales = hasDateFilter ? allSalesRaw.filter((s: any) => inRange(s.date)) : allSalesRaw;
+    const dateSales = hasDateFilter ? allSalesRaw.filter((s: any) => inRange(s.date)) : allSalesRaw;
     const allPurchases = hasDateFilter ? allPurchasesRaw.filter((p: any) => inRange(p.date)) : allPurchasesRaw;
-    const expenses = hasDateFilter ? expensesRaw.filter((e: any) => inRange(e.date)) : expensesRaw;
+    const dateExpenses = hasDateFilter ? expensesRaw.filter((e: any) => inRange(e.date)) : expensesRaw;
+
+    // Shared store filter (URL-persisted) — scopes sales/expenses to the selected sucursal.
+    // Rows with null location_id only appear under "todas" (no store selected).
+    const allSales = storeId ? dateSales.filter((s: any) => s.location_id === storeId) : dateSales;
+    const expenses = storeId ? dateExpenses.filter((e: any) => e.location_id === storeId) : dateExpenses;
 
     // Shared store filter (URL-persisted) — scopes stock-related figures to the selected sucursal
     const allProducts = locationStockMap
@@ -1035,7 +1040,7 @@ export default function Dashboard() {
       // raw passthrough
       rawSales: sales, rawDebts: debts, rawExpenses: expenses, rawPurchases: allPurchases, rawSettings: settings,
     };
-  }, [rawData, filterCat, dateFrom, dateTo, locationStockMap]);
+  }, [rawData, filterCat, dateFrom, dateTo, locationStockMap, storeId]);
 
   // Browser notification for critical stock alert (once per session per threshold breach)
   useEffect(() => {

@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone, Copy, Tag, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Gift, Instagram, Users, BarChart3, CheckCircle, Edit, FileSpreadsheet, TrendingUp, DollarSign, Target, Megaphone, Copy, Tag, RefreshCw, Link2, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
@@ -132,6 +133,42 @@ export default function InfluencerExchangesPage() {
       toast.error('Error al sincronizar: ' + err.message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // ── Portal del influencer: genera/reutiliza un token compartido por todos ──
+  // los canjes del mismo influencer y copia el link público al portapapeles.
+  const [portalBusy, setPortalBusy] = useState<string | null>(null);
+
+  const handleCopyPortalLink = async (influencerName: string) => {
+    const key = influencerName.trim().toLowerCase();
+    const rows = exchanges.filter(e => (e.influencer_name || '').trim().toLowerCase() === key);
+    if (!rows.length) return;
+    setPortalBusy(key);
+    try {
+      // Reuse an existing token if any of the influencer's canjes already has one
+      let token: string = rows.find(r => r.portal_token)?.portal_token || '';
+      if (!token) {
+        token = (crypto.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 20);
+      }
+      // Write the token to every canje of this influencer that doesn't already have it
+      const idsToUpdate = rows.filter(r => r.portal_token !== token).map(r => r.id);
+      if (idsToUpdate.length) {
+        const { error } = await (supabase as any)
+          .from('influencer_exchanges')
+          .update({ portal_token: token })
+          .in('id', idsToUpdate);
+        if (error) throw error;
+        // Reflect locally without a full reload
+        setExchanges(prev => prev.map(e => idsToUpdate.includes(e.id) ? { ...e, portal_token: token } : e));
+      }
+      const link = `${window.location.origin}/portal-influencer/${token}`;
+      await navigator.clipboard.writeText(link);
+      toast.success("Link del portal copiado", { description: `Portal de ${influencerName}` });
+    } catch (err: any) {
+      toast.error("No se pudo generar el link: " + (err?.message || 'error'));
+    } finally {
+      setPortalBusy(null);
     }
   };
 
@@ -278,10 +315,31 @@ export default function InfluencerExchangesPage() {
                         <p className="font-medium">{ex.influencer_name}</p>
                         {ex.influencer_instagram && <p className="text-xs text-muted-foreground flex items-center gap-1"><Instagram className="w-3 h-3" />@{ex.influencer_instagram}</p>}
                         {ex.influencer_followers > 0 && <p className="text-[10px] text-muted-foreground">{ex.influencer_followers.toLocaleString()} seg.</p>}
+                        <button
+                          className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                          title="Copiar link del portal del influencer"
+                          disabled={portalBusy === ex.influencer_name.trim().toLowerCase()}
+                          onClick={() => handleCopyPortalLink(ex.influencer_name)}
+                        >
+                          <Link2 className="w-3 h-3" />
+                          {portalBusy === ex.influencer_name.trim().toLowerCase() ? 'Generando…' : 'Portal'}
+                        </button>
                       </td>
                       <td className="p-3">
                         <p>{ex.product_name}</p>
                         <p className="text-xs text-muted-foreground">x{ex.quantity}</p>
+                        {ex.content_url && (
+                          <a
+                            href={ex.content_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 hover:underline"
+                            title={ex.content_submitted_at ? `Enviado ${ex.content_submitted_at.slice(0, 10)}` : 'Contenido enviado'}
+                          >
+                            <ExternalLink className="w-3 h-3" />✓ Contenido enviado
+                            {ex.content_submitted_at && <span className="text-emerald-400/60">· {ex.content_submitted_at.slice(0, 10)}</span>}
+                          </a>
+                        )}
                       </td>
                       <td className="p-3 text-center">
                         {ex.discount_code ? (
@@ -368,7 +426,27 @@ export default function InfluencerExchangesPage() {
                     <div><span className="text-muted-foreground block">Valor</span><span className="font-medium">{formatARS(value)}</span></div>
                     <div><span className="text-muted-foreground block">Posts</span><span>{ex.actual_posts}/{ex.expected_posts}</span></div>
                   </div>
-                  <div className="flex items-center justify-end gap-1">
+                  {ex.content_url && (
+                    <a
+                      href={ex.content_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mb-2 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />✓ Contenido enviado
+                      {ex.content_submitted_at && <span className="text-emerald-400/60">· {ex.content_submitted_at.slice(0, 10)}</span>}
+                    </a>
+                  )}
+                  <div className="flex items-center justify-between gap-1">
+                    <button
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      disabled={portalBusy === ex.influencer_name.trim().toLowerCase()}
+                      onClick={() => handleCopyPortalLink(ex.influencer_name)}
+                    >
+                      <Link2 className="w-3 h-3" />
+                      {portalBusy === ex.influencer_name.trim().toLowerCase() ? 'Generando…' : 'Portal'}
+                    </button>
+                    <div className="flex items-center gap-1">
                     <Button variant="ghost" size="sm" className="h-7" onClick={() => { setEditItem(ex); setOpen(true); }}><Edit className="w-3 h-3 mr-1" />Editar</Button>
                     <ConfirmDialog
                       trigger={<Button variant="ghost" size="sm" className="h-7 text-destructive"><Trash2 className="w-3 h-3" /></Button>}
@@ -376,6 +454,7 @@ export default function InfluencerExchangesPage() {
                       confirmText="Eliminar"
                       onConfirm={() => handleDelete(ex)}
                     />
+                    </div>
                   </div>
                 </div>
               );

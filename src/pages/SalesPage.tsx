@@ -2,6 +2,8 @@
 import { broadcastSync } from "@/lib/broadcastSync";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/lib/orgContext";
+import { supabase } from "@/integrations/supabase/client";
 import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getSalesDB, addSaleDB, deleteSaleDB, updateSaleDB, getProductsDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, getUniqueCustomersDB, formatDateAR, dateToNoon, calculateDecantPrice, calculateWholesalePrice, validateCouponDB, incrementCouponUse, getVariantsByUserDB, addSaleWithVariantDB, findExchangeByCode, attributeSaleToExchange } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
@@ -1467,10 +1469,13 @@ function calcLineItem(
 // ============ MULTI-PRODUCT SALE FORM ============
 function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any; onSave: () => void }) {
   const { checkSalesLimit } = usePlanLimits();
+  const { activeOrg } = useOrg();
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [customers, setCustomers] = useState<string[]>([]);
   const [allVariants, setAllVariants] = useState<any[]>([]);
+  const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
+  const [locationId, setLocationId] = useState<string>(editItem?.location_id || '');
 
   // For edit mode, single line item
   const isEditMode = !!editItem;
@@ -1496,6 +1501,25 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
       setProducts(p); setSettings(s); setCustomers(c); setAllVariants(v);
     })();
   }, [userId]);
+
+  // Load org locations for the optional location dropdown
+  useEffect(() => {
+    if (!activeOrg?.id) { setLocations([]); return; }
+    supabase
+      .from("locations")
+      .select("id,name,is_main,active")
+      .eq("org_id", activeOrg.id)
+      .eq("active", true)
+      .order("is_main", { ascending: false })
+      .order("name")
+      .then(({ data }) => {
+        const locs = (data || []) as Array<{ id: string; name: string; is_main: boolean }>;
+        setLocations(locs);
+        if (!editItem && locs.length > 0) {
+          setLocationId((prev) => prev || (locs.find((l) => l.is_main)?.id ?? locs[0].id));
+        }
+      });
+  }, [activeOrg?.id]);
 
   const isFiado = paymentMethod === 'fiado';
 
@@ -1582,6 +1606,8 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             customer_name: customerName || null, date: dateToNoon(date), paid,
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+            coupon_code: couponResult?.valid ? couponResult.coupon.code : null,
+            location_id: locationId || null,
             variant_id: line.variantId || null,
           };
 
@@ -1612,6 +1638,8 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
             customer_name: customerName || null, date: dateToNoon(date), paid,
             payment_method: paymentMethod,
             coupon_id: couponResult?.valid ? couponResult.coupon.id : null,
+            coupon_code: couponResult?.valid ? couponResult.coupon.code : null,
+            location_id: locationId || null,
             variant_id: line.variantId || null,
             source: "manual",
           };
@@ -1692,6 +1720,21 @@ function SaleForm({ userId, editItem, onSave }: { userId: string; editItem?: any
           </Select>
         </div>
       </div>
+
+      {/* Location (only when org has locations configured) */}
+      {locations.length > 0 && (
+        <div>
+          <label className="text-sm text-muted-foreground">Sucursal</label>
+          <Select value={locationId} onValueChange={setLocationId}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar sucursal" /></SelectTrigger>
+            <SelectContent>
+              {locations.map(l => (
+                <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? ' (principal)' : ''}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Customer */}
       <div className="relative">

@@ -19,6 +19,7 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import ReceiptScanner from "@/components/shared/ReceiptScanner";
 import { logAudit } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/orgContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -916,10 +917,32 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
   const [submitting, setSubmitting] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string>(editItem?.receipt_url || '');
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const { activeOrg } = useOrg();
+  const [locations, setLocations] = useState<Array<{ id: string; name: string; is_main: boolean }>>([]);
+  const [locationId, setLocationId] = useState<string>(editItem?.location_id || '');
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const receiptCamRef = useRef<HTMLInputElement>(null);
   const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  // Load org locations for the optional location dropdown
+  useEffect(() => {
+    if (!activeOrg?.id) { setLocations([]); return; }
+    supabase
+      .from("locations")
+      .select("id,name,is_main,active")
+      .eq("org_id", activeOrg.id)
+      .eq("active", true)
+      .order("is_main", { ascending: false })
+      .order("name")
+      .then(({ data }) => {
+        const locs = (data || []) as Array<{ id: string; name: string; is_main: boolean }>;
+        setLocations(locs);
+        if (!editItem && locs.length > 0) {
+          setLocationId((prev) => prev || (locs.find((l) => l.is_main)?.id ?? locs[0].id));
+        }
+      });
+  }, [activeOrg?.id]);
 
   // Auto-suggest category when description or vendor changes (debounced 400ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -984,6 +1007,7 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         recurring_frequency: recurring ? recurringFrequency : null,
         recurring_next_date: nextDate ? nextDate.toISOString().slice(0, 10) : null,
         receipt_url: receiptUrl || null,
+        location_id: locationId || null,
       };
       if (editItem) {
         await updateExpenseDB(editItem.id, data);
@@ -1089,6 +1113,20 @@ function ExpenseForm({ userId, editItem, categories, onSave }: { userId: string;
         <label className="text-sm text-muted-foreground">Fecha</label>
         <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
       </div>
+
+      {locations.length > 0 && (
+        <div>
+          <label className="text-sm text-muted-foreground">Sucursal <span className="text-[10px] opacity-60">(opcional)</span></label>
+          <Select value={locationId} onValueChange={setLocationId}>
+            <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Seleccionar sucursal" /></SelectTrigger>
+            <SelectContent>
+              {locations.map(l => (
+                <SelectItem key={l.id} value={l.id}>{l.name}{l.is_main ? ' (principal)' : ''}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="bg-muted/50 border border-border rounded-lg p-3 space-y-3">
         <div className="flex items-center justify-between">
