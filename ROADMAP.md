@@ -361,6 +361,23 @@ Sentry:    Error tracking + performance traces
 - Dashboard: 8h chart, temperatura 5 señales, objetivos por vendedor
 - UX audit: 0 subtitle=, 0 icon JSX, 134/146 páginas con KPICards
 
+### Sesión 78 — Refocus de producto + rediseño visual (2026-07-24)
+- Refocus de alcance: 160 → 83 páginas (bloque2/bloque3), eliminando
+  módulos enterprise fuera de foco (HR/payroll, fleet, project mgmt,
+  e-learning, territorios, contratos B2B, revenue recognition, etc.)
+  y consolidando duplicados (fidelidad, CRM, analytics, pricing,
+  inventario, marketing) en tabs dentro de páginas padre
+- Nav reconstruido alrededor del alcance final: Principal / Inventario
+  / Ventas & CRM / Ecommerce & Multi-Tienda / Finanzas / Marketing &
+  Influencers / Analytics / Administración
+- Nuevo: multi-tienda (sucursales), portal de influencers, atribución
+  de campañas vía cupones, kardex de canjes con influencers
+- Rediseño visual completo: tema "oscuro premium" (dorado → zafiro),
+  tema claro real + toggle persistente (next-themes), sidebar con
+  rail de íconos fijo en tablet (768-1023px, antes se comportaba
+  igual que celular), 10 primitivos de UI + Dashboard corregidos para
+  no depender de fondos oscuros hardcodeados
+
 ---
 
 ## 7. ROADMAP DE PRODUCTO 2026–2028
