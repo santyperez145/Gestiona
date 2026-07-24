@@ -29,6 +29,7 @@ import AIProductRecommenderWidget from "@/components/dashboard/AIProductRecommen
 import DailyBriefingModal from "@/components/shared/DailyBriefingModal";
 import StockHeatmapWidget from "@/components/shared/StockHeatmapWidget";
 import InfluencerROIWidget from "@/components/dashboard/InfluencerROIWidget";
+import SetupChecklist from "@/components/dashboard/SetupChecklist";
 import DateRangeFilter, { useDateRangeFilter } from "@/components/shared/DateRangeFilter";
 import StoreFilter, { useStoreFilter } from "@/components/shared/StoreFilter";
 import { toast } from "sonner";
@@ -453,6 +454,25 @@ export default function Dashboard() {
 
   // Urgent/overdue tasks widget + tasks due today
   const { activeOrg: orgForTasks, activeOrg } = useOrg();
+
+  // ── Flags para el checklist de configuración inicial (negocios nuevos) ────
+  const [setupFlags, setSetupFlags] = useState({ hasCustomers: true, hasExchanges: true, hasTeam: true });
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    (async () => {
+      const [cust, exch, team] = await Promise.all([
+        supabase.from("customers").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
+        supabase.from("influencer_exchanges").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
+        supabase.from("memberships").select("id", { count: "exact", head: true }).eq("org_id", activeOrg.id),
+      ]);
+      setSetupFlags({
+        hasCustomers: (cust.count ?? 0) > 0,
+        hasExchanges: (exch.count ?? 0) > 0,
+        hasTeam: (team.count ?? 0) > 1, // más de 1 miembro = ya invitó a alguien
+      });
+    })();
+  }, [activeOrg?.id, reloadKey]);
+
   useEffect(() => {
     if (!orgForTasks) return;
     (async () => {
@@ -1208,6 +1228,20 @@ export default function Dashboard() {
           <span className="text-[11px] text-muted-foreground/60 hidden sm:block">{new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
+
+      {/* Configuración inicial — guía para negocios nuevos (se auto-oculta al completar) */}
+      <SetupChecklist
+        businessName={rawData?.settings?.business_name || ""}
+        hasLogo={!!rawData?.settings?.logo_url}
+        hasExchangeRate={Number(rawData?.settings?.exchange_rate || 0) > 0}
+        hasProducts={(rawData?.products?.length || 0) > 0}
+        hasSales={(rawData?.sales?.length || 0) > 0}
+        hasPurchases={(rawData?.purchases?.length || 0) > 0}
+        hasCustomers={setupFlags.hasCustomers}
+        hasExchanges={setupFlags.hasExchanges}
+        hasTeam={setupFlags.hasTeam}
+        industryCode={rawData?.settings?.industry_code}
+      />
 
       {/* Open Cash Session Banner */}
       {openCashSession && (

@@ -18,6 +18,11 @@ interface SetupChecklistProps {
   hasProducts: boolean;
   hasSales: boolean;
   hasPurchases: boolean;
+  hasCustomers: boolean;
+  hasExchanges: boolean;
+  hasTeam: boolean;
+  /** Código de rubro del negocio (settings.industry_code). Ajusta qué pasos se muestran. */
+  industryCode?: string | null;
 }
 
 const STORAGE_KEY = "gestiona.setup.dismissed";
@@ -31,9 +36,15 @@ function setDismissed() {
 
 export default function SetupChecklist({
   businessName, hasLogo, hasExchangeRate, hasProducts, hasSales, hasPurchases,
+  hasCustomers, hasExchanges, hasTeam, industryCode,
 }: SetupChecklistProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setLocalDismissed] = useState(isDismissed);
+
+  // El tipo de cambio (costos en USD) importa sobre todo en rubros que importan
+  // producto — perfumes, vapers, tecnología, cosmética. En alimentos/indumentaria
+  // locales suele no aplicar, así que no lo mostramos como paso obligatorio.
+  const usaCostosUSD = !industryCode || ["perfumes", "vapers", "tecnologia", "cosmetica"].includes(industryCode);
 
   const items: ChecklistItem[] = [
     {
@@ -52,14 +63,14 @@ export default function SetupChecklist({
       href: "/ajustes",
       actionLabel: "Subir logo",
     },
-    {
+    ...(usaCostosUSD ? [{
       id: "tc",
       label: "Configurar tipo de cambio",
       desc: "El TC se usa para convertir costos en USD a ARS en todo el sistema.",
       done: hasExchangeRate,
       href: "/ajustes",
       actionLabel: "Configurar",
-    },
+    }] : []),
     {
       id: "products",
       label: "Agregar el primer producto",
@@ -67,6 +78,14 @@ export default function SetupChecklist({
       done: hasProducts,
       href: "/productos",
       actionLabel: "Ir a Productos",
+    },
+    {
+      id: "purchase",
+      label: "Registrar la primera compra",
+      desc: "Las compras actualizan el stock y permiten calcular el costo real de cada producto.",
+      done: hasPurchases,
+      href: "/compras",
+      actionLabel: "Ir a Compras",
     },
     {
       id: "sale",
@@ -77,12 +96,28 @@ export default function SetupChecklist({
       actionLabel: "Abrir POS",
     },
     {
-      id: "purchase",
-      label: "Registrar la primera compra",
-      desc: "Las compras actualizan el stock y permiten calcular el costo real de cada producto.",
-      done: hasPurchases,
-      href: "/compras",
-      actionLabel: "Ir a Compras",
+      id: "customer",
+      label: "Cargar tu primer cliente",
+      desc: "La base de clientes habilita CRM, fidelidad, deudas y campañas de marketing.",
+      done: hasCustomers,
+      href: "/clientes",
+      actionLabel: "Ir a Clientes",
+    },
+    {
+      id: "exchange",
+      label: "Registrar tu primer canje con influencer",
+      desc: "Entregá producto a un influencer y seguí el alcance, el contenido y el ROI que genera.",
+      done: hasExchanges,
+      href: "/canjes",
+      actionLabel: "Ir a Canjes",
+    },
+    {
+      id: "team",
+      label: "Invitar a tu equipo",
+      desc: "Sumá vendedores con permisos por rol para que trabajen en el sistema con vos.",
+      done: hasTeam,
+      href: "/equipo",
+      actionLabel: "Invitar equipo",
     },
   ];
 
