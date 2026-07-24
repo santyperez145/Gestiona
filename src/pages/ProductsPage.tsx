@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
+import { recommendSimilar } from "@/lib/perfumeMatch";
+import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -323,6 +325,7 @@ export default function ProductsPage() {
   const [calcProduct, setCalcProduct] = useState<any | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [recoTargetId, setRecoTargetId] = useState<string | null>(null);
 
   const reload = async () => {
     if (!user) return;
@@ -687,6 +690,15 @@ export default function ProductsPage() {
         onClose={() => setPriceHistoryProduct(null)}
       />
 
+      <PerfumeRecommenderModal
+        open={!!recoTargetId}
+        onOpenChange={(v) => { if (!v) setRecoTargetId(null); }}
+        title="Perfumes similares"
+        subtitle={recoTargetId ? `Parecidos a ${products.find(p => p.id === recoTargetId)?.name || ""} por familia y notas` : undefined}
+        results={recoTargetId ? recommendSimilar(recoTargetId, products, perfumeDetailsByProduct) : []}
+        onPick={(prod) => { setRecoTargetId(null); setEditing(prod); setOpen(true); }}
+      />
+
       {(expired.length > 0 || critical.length > 0 || warning.length > 0) && (
         <div className={`rounded-xl border px-4 py-3 ${
           expired.length > 0
@@ -965,13 +977,18 @@ export default function ProductsPage() {
                     )}
                   </div>
                 )}
-                {canEdit && (
-                  <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  {perfumeDetailsByProduct[p.id] && (
+                    <button onClick={() => setRecoTargetId(p.id)} title="Perfumes similares" className="p-1 rounded bg-card/90 hover:bg-card border border-border">
+                      <Sparkles className="w-3 h-3 text-primary" />
+                    </button>
+                  )}
+                  {canEdit && (
                     <button onClick={() => { setEditing(p); setOpen(true); }} className="p-1 rounded bg-card/90 hover:bg-card border border-border">
                       <Pencil className="w-3 h-3" />
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
               <div className="p-2">
                 <p className="text-xs font-medium leading-tight line-clamp-2 mb-1">{p.name}</p>
@@ -1194,6 +1211,9 @@ export default function ProductsPage() {
                              </Button>
                            )}
                            <Button variant="ghost" size="sm" title="Historial de precios" onClick={() => setPriceHistoryProduct({ id: p.id, name: p.name })}><Clock className="w-3.5 h-3.5 text-muted-foreground" /></Button>
+                           {perfumeDetailsByProduct[p.id] && (
+                             <Button variant="ghost" size="sm" title="Perfumes similares" onClick={() => setRecoTargetId(p.id)}><Sparkles className="w-3.5 h-3.5 text-primary" /></Button>
+                           )}
                            {(canShare || p.barcode) && (
                              <Button
                                variant="ghost"
@@ -1357,6 +1377,16 @@ export default function ProductsPage() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Subsección de la ficha de perfume (encabezado + agrupación) ─────────────
+function FichaSection({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2.5 pt-2 mt-1 border-t border-primary/10">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/70">{label}</p>
+      {children}
     </div>
   );
 }
@@ -1994,6 +2024,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </div>
 
           {/* ── Ficha olfativa premium ─────────────────────────────── */}
+          {/* Identidad */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Modelo</p>
@@ -2004,44 +2035,56 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
               <Input value={inspiracion} onChange={e => setInspiracion(e.target.value)} placeholder="Ej: Angels' Share" className="bg-muted border-border h-8 text-xs" />
             </div>
           </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5">Familia olfativa</p>
-            <ChipSelect items={FAMILIAS_OLFATIVAS} selected={familiaOlfativa ? [familiaOlfativa] : []} onToggle={v => setFamiliaOlfativa(familiaOlfativa === v ? '' : v)} />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5">Notas de salida</p>
-            <ChipSelect items={NOTAS_COMUNES} selected={notasSalida} onToggle={v => toggleFrom(notasSalida, setNotasSalida, v)} />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5">Notas de corazón</p>
-            <ChipSelect items={NOTAS_COMUNES} selected={notasCorazon} onToggle={v => toggleFrom(notasCorazon, setNotasCorazon, v)} />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5">Notas de fondo</p>
-            <ChipSelect items={NOTAS_COMUNES} selected={notasFondo} onToggle={v => toggleFrom(notasFondo, setNotasFondo, v)} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          {/* Perfil olfativo */}
+          <FichaSection label="Perfil olfativo">
             <div>
-              <p className="text-[10px] text-muted-foreground mb-1.5">Duración</p>
-              <ChipSelect items={DURACIONES} selected={duracion ? [duracion] : []} onToggle={v => setDuracion(duracion === v ? '' : v)} />
+              <p className="text-[10px] text-muted-foreground mb-1.5">Familia</p>
+              <ChipSelect items={FAMILIAS_OLFATIVAS} selected={familiaOlfativa ? [familiaOlfativa] : []} onToggle={v => setFamiliaOlfativa(familiaOlfativa === v ? '' : v)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">Duración</p>
+                <ChipSelect items={DURACIONES} selected={duracion ? [duracion] : []} onToggle={v => setDuracion(duracion === v ? '' : v)} />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">Proyección</p>
+                <ChipSelect items={PROYECCIONES} selected={proyeccion ? [proyeccion] : []} onToggle={v => setProyeccion(proyeccion === v ? '' : v)} />
+              </div>
+            </div>
+          </FichaSection>
+
+          {/* Pirámide de notas */}
+          <FichaSection label="Pirámide de notas">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Salida</p>
+              <ChipSelect items={NOTAS_COMUNES} selected={notasSalida} onToggle={v => toggleFrom(notasSalida, setNotasSalida, v)} />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-1.5">Proyección</p>
-              <ChipSelect items={PROYECCIONES} selected={proyeccion ? [proyeccion] : []} onToggle={v => setProyeccion(proyeccion === v ? '' : v)} />
+              <p className="text-[10px] text-muted-foreground mb-1.5">Corazón</p>
+              <ChipSelect items={NOTAS_COMUNES} selected={notasCorazon} onToggle={v => toggleFrom(notasCorazon, setNotasCorazon, v)} />
             </div>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5">Estación</p>
-            <ChipSelect items={ESTACIONES} selected={estacion} onToggle={v => toggleFrom(estacion, setEstacion, v)} />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5">Ocasión</p>
-            <ChipSelect items={OCASIONES} selected={ocasion} onToggle={v => toggleFrom(ocasion, setOcasion, v)} />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1">Edad recomendada</p>
-            <Input value={edadRecomendada} onChange={e => setEdadRecomendada(e.target.value)} placeholder="Ej: 25-40 · todas las edades" className="bg-muted border-border h-8 text-xs" />
-          </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Fondo</p>
+              <ChipSelect items={NOTAS_COMUNES} selected={notasFondo} onToggle={v => toggleFrom(notasFondo, setNotasFondo, v)} />
+            </div>
+          </FichaSection>
+
+          {/* Uso ideal */}
+          <FichaSection label="Uso ideal">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Estación</p>
+              <ChipSelect items={ESTACIONES} selected={estacion} onToggle={v => toggleFrom(estacion, setEstacion, v)} />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1.5">Ocasión</p>
+              <ChipSelect items={OCASIONES} selected={ocasion} onToggle={v => toggleFrom(ocasion, setOcasion, v)} />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Edad recomendada</p>
+              <Input value={edadRecomendada} onChange={e => setEdadRecomendada(e.target.value)} placeholder="Ej: 25-40 · todas las edades" className="bg-muted border-border h-8 text-xs" />
+            </div>
+          </FichaSection>
         </div>
       )}
 
