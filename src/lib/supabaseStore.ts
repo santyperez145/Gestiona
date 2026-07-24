@@ -137,13 +137,66 @@ export async function getSalesDB(userId: string) {
 export async function addSaleDB(sale: any) {
   const orgId = sale.org_id || requireActiveOrgId();
   sale.org_id = orgId;
+
+  // ── Atribución de marketing ────────────────────────────────────────────
+  // Si el cupón usado coincide con el código de descuento de un canje de
+  // influencer, la venta se atribuye a ese influencer (alimenta el ROI de
+  // canjes). Si es un cupón común, se marca como 'coupon'.
+  let attributedExchangeId: string | null = null;
+  if (sale.coupon_code) {
+    const { data: exch } = await supabase
+      .from('influencer_exchanges')
+      .select('id')
+      .eq('org_id', orgId)
+      .eq('discount_code', sale.coupon_code)
+      .limit(1)
+      .maybeSingle();
+    if (exch) {
+      attributedExchangeId = exch.id;
+      sale.attribution_source = 'influencer';
+    } else if (!sale.attribution_source) {
+      sale.attribution_source = 'coupon';
+    }
+  }
+
   const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
   if (error) throw error;
+
+  // Acreditar las ventas generadas al canje atribuido.
+  if (attributedExchangeId) {
+    const { data: ex } = await supabase
+      .from('influencer_exchanges')
+      .select('sales_generated_ars')
+      .eq('id', attributedExchangeId)
+      .single();
+    const prev = Number(ex?.sales_generated_ars || 0);
+    await supabase
+      .from('influencer_exchanges')
+      .update({ sales_generated_ars: prev + Number(sale.total_ars || 0) })
+      .eq('id', attributedExchangeId);
+  }
+
   if (sale.product_id) {
     const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
     if (prod) {
       const newStock = Math.max(0, prod.stock - sale.quantity);
       await supabase.from('products').update({ stock: newStock }).eq('id', sale.product_id);
+    }
+    // Multi-tienda: descontar también del stock de la sucursal, si la venta
+    // se registró en una sucursal concreta y hay stock por sucursal cargado.
+    if (sale.location_id) {
+      const { data: ls } = await supabase
+        .from('location_stock')
+        .select('id, stock')
+        .eq('location_id', sale.location_id)
+        .eq('product_id', sale.product_id)
+        .maybeSingle();
+      if (ls) {
+        await supabase
+          .from('location_stock')
+          .update({ stock: Math.max(0, Number(ls.stock) - sale.quantity), updated_at: new Date().toISOString() })
+          .eq('id', ls.id);
+      }
     }
   }
   if (!sale.paid) {
