@@ -399,9 +399,17 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
 - **Dashboard**: KPIs "Productos Nuevos" y "Próximos Ingresos".
 - **Fix colateral**: el form de productos descartaba silenciosamente
   barcode/sku/lote/vencimiento/etiquetas al guardar — corregido.
-- Pendiente Phase 2+: finanzas/compras, WhatsApp enviar catálogo/lista,
-  IA copy de Instagram, estadísticas por marca/familia, reservas reales,
-  catálogo PDF por facetas.
+
+**Phase 2 (misma sesión, ya hecho):**
+- **Estadísticas por marca** (ReportsPage → tab "Marcas"): qué marca
+  vende/rinde más, cuál es la más rentable, % que representa cada una,
+  capital inmovilizado por marca + desglose por familia olfativa.
+- **Enviar catálogo por WhatsApp** (CatalogPage): botón wa.me con el link
+  del catálogo público prellenado.
+- Pendiente Phase 2+: finanzas/compras (exponer price_lists mayorista),
+  enviar lista de precios por WhatsApp, IA copy de Instagram, reservas
+  reales (tabla stock_reservations), catálogo PDF por facetas, alerta
+  "precio desactualizado".
 
 ---
 
