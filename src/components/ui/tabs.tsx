@@ -17,7 +17,8 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "flex items-end gap-0 border-b border-border/40",
+      // Scrollea horizontal en móvil en vez de desbordar cuando hay muchos tabs
+      "flex items-end gap-0 border-b border-border/40 overflow-x-auto scrollbar-hide",
       className,
     )}
     {...props}
