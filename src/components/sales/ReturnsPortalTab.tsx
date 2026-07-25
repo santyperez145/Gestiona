@@ -196,7 +196,7 @@ export default function ReturnsPortalTab() {
                 ))}
               </div>
 
-              <div className="bg-card rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/20 text-muted-foreground">
                     <tr>{["RMA", "Cliente", "Producto", "Cant.", "Razón", "Resolución", "Reembolso", "Estado", ""].map(h => <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>)}</tr>

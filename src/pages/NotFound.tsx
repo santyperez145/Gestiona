@@ -12,7 +12,7 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
-      style={{ background: 'hsl(228 28% 4.5%)' }}>
+      style={{ background: 'hsl(var(--background))' }}>
       {/* dot grid */}
       <div className="absolute inset-0 dot-grid opacity-20 pointer-events-none" />
       <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"

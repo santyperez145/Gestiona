@@ -344,7 +344,7 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved, pre
                 Buscá un producto o hacé clic en Agregar
               </div>
             ) : (
-              <div className="rounded-lg border border-border overflow-hidden">
+              <div className="rounded-lg border border-border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/30">
                     <tr>
@@ -457,7 +457,7 @@ function PORow({ order, onEdit, onAdvanceStatus, onDelete }: PORowProps) {
       {expanded && (
         <div className="border-t border-border p-3 bg-muted/10 space-y-3">
           {order.items && order.items.length > 0 && (
-            <div className="rounded-lg border border-border overflow-hidden">
+            <div className="rounded-lg border border-border overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/20">
                   <tr>

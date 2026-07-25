@@ -374,7 +374,7 @@ export default function StockCountTab() {
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Cargando productos...
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">

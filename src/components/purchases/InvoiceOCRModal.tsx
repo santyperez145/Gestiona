@@ -263,7 +263,7 @@ export default function InvoiceOCRModal({ open, onOpenChange, onUseData }: Invoi
                         </div>
 
                         {doc.items.length > 0 && (
-                          <div className="bg-muted/20 rounded-lg overflow-hidden">
+                          <div className="bg-muted/20 rounded-lg overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="border-b border-border/40">

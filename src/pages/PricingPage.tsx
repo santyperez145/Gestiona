@@ -93,11 +93,11 @@ export default function PricingPage() {
   const subStatus = subscription?.status;
 
   return (
-    <div className="min-h-screen text-foreground" style={{ background: 'hsl(228 28% 4.5%)' }}>
+    <div className="min-h-screen text-foreground" style={{ background: 'hsl(var(--background))' }}>
 
       {/* ── Nav ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-10 border-b border-border/30 backdrop-blur-md"
-        style={{ background: 'hsl(228 28% 4.5% / 0.85)' }}>
+        style={{ background: 'hsl(var(--background) / 0.85)' }}>
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-[13px] font-display font-semibold text-muted-foreground/70 hover:text-foreground transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> Gestiona
@@ -277,7 +277,7 @@ export default function PricingPage() {
 
       {/* ── Trust strip ──────────────────────────────────────────── */}
       <section className="border-y border-border/30 py-8"
-        style={{ background: 'hsl(228 24% 6%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/35 mb-5">
             Utilizado por negocios de perfumería, ropa, tecnología, gastronomía y más
@@ -302,7 +302,7 @@ export default function PricingPage() {
         <div className="space-y-1">
           {FAQ.map((item, i) => (
             <div key={i} className="rounded-[8px] border border-border/40 overflow-hidden"
-              style={{ background: 'hsl(228 24% 7%)' }}>
+              style={{ background: 'hsl(var(--card))' }}>
               <button
                 className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
                 onClick={() => setFaqOpen(faqOpen === i ? null : i)}
@@ -322,7 +322,7 @@ export default function PricingPage() {
 
       {/* ── Footer CTA ───────────────────────────────────────────── */}
       <section className="border-t border-border/30 py-16 text-center"
-        style={{ background: 'hsl(228 24% 6%)' }}>
+        style={{ background: 'hsl(var(--card))' }}>
         <div className="max-w-md mx-auto px-6">
           <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-primary/60 mb-3">¿Tenés dudas?</p>
           <h2 className="font-display text-[1.6rem] font-bold tracking-tight mb-3">Estamos para ayudarte</h2>

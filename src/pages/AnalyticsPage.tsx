@@ -149,8 +149,8 @@ function buildCategoryMix(sales: any[], products: any[]) {
 }
 
 const tooltipStyle = {
-  contentStyle: { background: "hsl(220,15%,12%)", border: "1px solid hsl(220,15%,22%)", borderRadius: 8 },
-  labelStyle: { color: "hsl(220,15%,70%)", fontSize: 11 },
+  contentStyle: { background: "hsl(var(--border))", border: "1px solid hsl(var(--border))", borderRadius: 8 },
+  labelStyle: { color: "hsl(var(--muted-foreground))", fontSize: 11 },
   itemStyle: { color: "hsl(40,70%,60%)", fontSize: 11 },
 };
 
@@ -606,9 +606,9 @@ export default function AnalyticsPage() {
                     <stop offset="95%" stopColor={PALETTE[1]} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 10, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={45} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={45} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
                 <Area type="monotone" dataKey="revenue" name="Ingresos" stroke={PALETTE[0]} fill="url(#gradRev)" strokeWidth={2} dot={false} />
                 <Area type="monotone" dataKey="profit" name="Ganancia" stroke={PALETTE[1]} fill="url(#gradProf)" strokeWidth={2} dot={false} />
@@ -637,10 +637,10 @@ export default function AnalyticsPage() {
                     <stop offset="95%" stopColor={PALETTE[0]} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false}
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false}
                   interval={Math.floor(trendDailyData.length / 7)} />
-                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={40} />
+                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
                 <Area type="monotone" dataKey="revenue" name="Ingresos" stroke={PALETTE[0]} fill="url(#gradRevDay)" strokeWidth={2} dot={false} />
               </AreaChart>
@@ -652,9 +652,9 @@ export default function AnalyticsPage() {
               <h3 className="text-sm font-semibold mb-4">Resultado neto mensual (ganancia − gastos)</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={derived.monthly} barSize={16} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={40} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={40} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
                   <Bar dataKey="net" name="Neto" radius={[4, 4, 0, 0]}>
                     {derived.monthly.map((entry, i) => (
@@ -669,9 +669,9 @@ export default function AnalyticsPage() {
               <h3 className="text-sm font-semibold mb-4">Unidades vendidas por mes</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={derived.monthly} barSize={16} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={30} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={30} />
                   <Tooltip {...tooltipStyle} />
                   <Bar dataKey="units" name="Unidades" fill={PALETTE[2]} radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -688,13 +688,13 @@ export default function AnalyticsPage() {
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={derived.yoyData} barCategoryGap="30%" margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 10, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={45} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={45} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="actual" name={String(currentYear)} fill={PALETTE[0]} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="anterior" name={String(currentYear - 1)} fill="hsl(220,15%,30%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="anterior" name={String(currentYear - 1)} fill="hsl(var(--border))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -711,13 +711,13 @@ export default function AnalyticsPage() {
                 margin={{ top: 0, right: 60, left: 0, bottom: 0 }}
                 barSize={12}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" horizontal={false} />
-                <XAxis type="number" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10, fill: "hsl(220,15%,65%)" }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => formatARS(v)} />
                 <Bar dataKey="profit" name="Ganancia" fill={PALETTE[0]} radius={[0, 4, 4, 0]}>
                   {derived.productPerf.map((_: any, i: number) => (
-                    <Cell key={i} fill={i < 3 ? PALETTE[0] : i < 8 ? PALETTE[2] : "hsl(220,15%,30%)"} />
+                    <Cell key={i} fill={i < 3 ? PALETTE[0] : i < 8 ? PALETTE[2] : "hsl(var(--border))"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -947,9 +947,9 @@ export default function AnalyticsPage() {
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={derived.hourlyBars} barSize={10} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} interval={2} />
-                <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={24} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} interval={2} />
+                <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={24} />
                 <Tooltip {...tooltipStyle} formatter={(v: number, name: string) => [v, name === "count" ? "Ventas" : formatARS(v)]} />
                 <Bar dataKey="count" name="Ventas" radius={[3, 3, 0, 0]}>
                   {derived.hourlyBars.map((h: any, i: number) => {
@@ -972,9 +972,9 @@ export default function AnalyticsPage() {
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={derived.dailyBars} barSize={20} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 9, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={24} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={24} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [v, "Ventas"]} />
                   <Bar dataKey="count" name="Ventas" radius={[4, 4, 0, 0]}>
                     {derived.dailyBars.map((d: any, i: number) => {
@@ -1237,10 +1237,10 @@ export default function AnalyticsPage() {
                 <h3 className="text-sm font-semibold mb-4">Ingresos por categoría — mes a mes</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={derived.catTrend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(220,10%,55%)" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: "hsl(220,10%,55%)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
-                    <Tooltip formatter={(v: number, name: string) => [formatARS(v), name]} contentStyle={{ background: "hsl(220,18%,12%)", border: "1px solid hsl(220,15%,18%)", borderRadius: 8, fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+                    <Tooltip formatter={(v: number, name: string) => [formatARS(v), name]} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                     <Legend iconSize={10} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                     {derived.catKeys.map((cat: string, i: number) => (
                       <Bar key={cat} dataKey={cat} stackId="a" fill={PALETTE[i % PALETTE.length]} radius={i === derived.catKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
@@ -1250,7 +1250,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Summary table — monthly breakdown */}
-              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
@@ -1382,21 +1382,21 @@ export default function AnalyticsPage() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={derived.weeklyComparison} barGap={2} barCategoryGap="25%">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: "hsl(220,10%,55%)", fontSize: 12 }} />
-                <YAxis tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} width={55} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                <YAxis tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} width={55} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                   formatter={(v: number, name: string) => [formatARS(v), name === "actual" ? "Esta semana" : "Semana anterior"]}
                 />
-                <Bar dataKey="prevWeek" name="prevWeek" fill="hsl(220,10%,40%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="prevWeek" name="prevWeek" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="actual" name="actual" fill="hsl(43,86%,55%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Day-by-day table */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -1542,9 +1542,9 @@ export default function AnalyticsPage() {
                 <h3 className="text-sm font-semibold mb-4">Distribución de margen por producto (Top 15)</h3>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={[...derived.rentabilidad.top5, ...derived.rentabilidad.bottom5.filter(p => !derived.rentabilidad.top5.find(t => t.name === p.name))].slice(0, 15).sort((a, b) => b.margin - a.margin)} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(220,15%,55%)" }} angle={-35} textAnchor="end" interval={0} />
-                    <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: "hsl(220,15%,45%)" }} width={38} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} angle={-35} textAnchor="end" interval={0} />
+                    <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={38} />
                     <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, "Margen"]} />
                     <Bar dataKey="margin" name="Margen %" radius={[4, 4, 0, 0]}>
                       {[...derived.rentabilidad.top5, ...derived.rentabilidad.bottom5.filter(p => !derived.rentabilidad.top5.find(t => t.name === p.name))].slice(0, 15).sort((a, b) => b.margin - a.margin).map((entry, index) => (
@@ -1649,7 +1649,7 @@ export default function AnalyticsPage() {
               )}
 
               {/* Tabla detalle */}
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="bg-card border border-border rounded-xl overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
@@ -2194,11 +2194,11 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
           <p className="text-xs text-muted-foreground mb-4">Bandas muestran intervalo de confianza 80%</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={weeklyForecast} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" />
-              <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} />
-              <YAxis tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ background: "hsl(222,15%,12%)", border: "1px solid hsl(220,15%,22%)", borderRadius: 8 }}
+                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
                 formatter={(value: any, name: string) => [
                   `$${Number(value).toLocaleString("es-AR")}`,
                   name === "value" ? "Proyectado" : name === "hi" ? "IC alto (80%)" : "IC bajo (80%)",
@@ -2206,7 +2206,7 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
               />
               <Bar dataKey="value" fill="hsl(200,60%,50%)" radius={[4,4,0,0]} name="value" opacity={0.85} />
               <Bar dataKey="hi" fill="hsl(200,40%,40%)" radius={[4,4,0,0]} name="hi" opacity={0.35} />
-              <Bar dataKey="lo" fill="hsl(220,30%,30%)" radius={[4,4,0,0]} name="lo" opacity={0.2} />
+              <Bar dataKey="lo" fill="hsl(var(--border))" radius={[4,4,0,0]} name="lo" opacity={0.2} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -2219,11 +2219,11 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
         </h3>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={chartData} barGap={4} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} />
-            <YAxis tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
-              contentStyle={{ background: "hsl(222,15%,12%)", border: "1px solid hsl(220,15%,22%)", borderRadius: 8 }}
+              contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
               formatter={(value: any, name: string) => [
                 `$${Number(value).toLocaleString("es-AR")}`,
                 name === "actual" ? "Real" : "Proyectado",

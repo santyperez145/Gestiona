@@ -549,7 +549,7 @@ export default function KPIDashboardPage() {
 
           {/* ── Widgets tab ── */}
           {activeTab === "Widgets" && (
-            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
@@ -634,7 +634,7 @@ export default function KPIDashboardPage() {
 
           {/* ── Alertas tab ── */}
           {activeTab === "Alertas" && (
-            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-muted-foreground">
                   <tr>

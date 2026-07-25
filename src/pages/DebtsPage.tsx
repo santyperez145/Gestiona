@@ -740,7 +740,7 @@ export default function DebtsPage() {
       {/* Desktop table — only for pending/paid tabs */}
       {(tab === "pending" || tab === "paid") && shown.length > 0 && (
         <>
-          <div className="hidden md:block bg-card border border-border/60 rounded-xl overflow-hidden">
+          <div className="hidden md:block bg-card border border-border/60 rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">

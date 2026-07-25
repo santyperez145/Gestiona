@@ -316,11 +316,11 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
           </div>
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={monthlySpend} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(220,15%,55%)" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: "hsl(220,15%,45%)" }} axisLine={false} tickLine={false} width={38} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={38} />
               <Tooltip
-                contentStyle={{ background: "hsl(220,18%,12%)", border: "1px solid hsl(220,15%,18%)", borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                 formatter={(v: number, name: string) => [name === 'usd' ? formatUSD(v) : formatARS(v), name === 'usd' ? 'USD' : 'ARS']}
               />
               <Bar dataKey="usd" fill="hsl(40,70%,50%)" radius={[3, 3, 0, 0]} name="usd" />
@@ -439,7 +439,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
         supplierStats.length === 0 ? (
           <EmptyState icon={ShoppingCart} title="Sin compras registradas" description="Registrá compras con proveedor para ver el análisis aquí." />
         ) : (
-          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -489,7 +489,7 @@ ${topSuppliers.length > 0 ? `<h2>Top proveedores</h2><table><thead><tr><th>Prove
         <EmptyState icon={ShoppingCart} title="No hay compras registradas" description="Registrá tu primera compra para llevar el control de tu inversión." actionLabel="Nueva Compra" onAction={() => setOpen(true)} />
       ) : (
         <>
-          <div className="hidden md:block bg-card border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="hidden md:block bg-card border border-border/60 rounded-[10px] overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">

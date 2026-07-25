@@ -593,7 +593,7 @@ export default function PLDashboardPage() {
                       formatter={(v: number, n: string) => [fmt(v), n === "anterior" ? prevPL.label : currentPL.label]}
                     />
                     <Legend formatter={(v) => v === "anterior" ? prevPL.label : currentPL.label} />
-                    <Bar dataKey="anterior" fill="hsl(228 20% 30%)" radius={[2, 2, 0, 0]} name="anterior" />
+                    <Bar dataKey="anterior" fill="hsl(var(--border))" radius={[2, 2, 0, 0]} name="anterior" />
                     <Bar dataKey="actual" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} name="actual" />
                   </BarChart>
                 </ResponsiveContainer>

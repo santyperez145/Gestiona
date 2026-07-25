@@ -804,7 +804,7 @@ export default function ProveedoresPage() {
 
             {/* Ranking table */}
             {ranked.length > 0 ? (
-              <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
+              <div className="bg-card border border-border/60 rounded-xl overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">

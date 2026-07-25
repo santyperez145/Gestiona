@@ -421,7 +421,7 @@ export default function LoyaltyAdvancedPage() {
 
           {/* ── Miembros ── */}
           {activeTab === "Miembros" && (
-            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-muted-foreground">
                   <tr>
@@ -471,7 +471,7 @@ export default function LoyaltyAdvancedPage() {
 
           {/* ── Transacciones ── */}
           {activeTab === "Transacciones" && (
-            <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+            <div className="bg-card rounded-xl border border-border/50 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-muted-foreground">
                   <tr>

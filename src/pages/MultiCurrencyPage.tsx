@@ -270,7 +270,7 @@ export default function MultiCurrencyPage() {
           {/* Other pairs */}
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Otras divisas vs ARS</h3>
-            <div className="bg-card border border-border/40 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border/40 rounded-xl overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">

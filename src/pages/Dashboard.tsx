@@ -293,7 +293,7 @@ function GaugeChart({ value, max, label, color }: { value: number; max: number; 
   return (
     <div className="flex flex-col items-center">
       <svg viewBox="0 0 100 60" className="w-full max-w-[160px]">
-        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="hsl(220, 15%, 18%)" strokeWidth="8" strokeLinecap="round" />
+        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="hsl(var(--border))" strokeWidth="8" strokeLinecap="round" />
         {pct > 0 && (
           <path d={`M 10 50 A 40 40 0 ${largeArc} 1 ${x} ${y}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" />
         )}
@@ -858,7 +858,7 @@ export default function Dashboard() {
     monthExpenses.forEach((e: any) => { expensesByCat[e.category] = (expensesByCat[e.category] || 0) + Number(e.amount_ars); });
     const expensesChartData = Object.entries(expensesByCat).map(([cat, value]) => ({
       name: getExpenseCategoryLabel(cat, settings), value,
-      color: expenseCats.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
+      color: expenseCats.find(c => c.value === cat)?.color || 'hsl(var(--muted-foreground))',
     }));
 
     // Net profit: gross - expenses - taxes (if enabled)
@@ -2028,8 +2028,8 @@ export default function Dashboard() {
                         <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
                           <defs>
                             <linearGradient id="gradGoal" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="hsl(220,10%,50%)" stopOpacity={0.15} />
-                              <stop offset="95%" stopColor="hsl(220,10%,50%)" stopOpacity={0} />
+                              <stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.15} />
+                              <stop offset="95%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="gradActual" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="hsl(40,70%,50%)" stopOpacity={0.3} />
@@ -2037,11 +2037,11 @@ export default function Dashboard() {
                             </linearGradient>
                           </defs>
                           <Tooltip
-                            contentStyle={{ background: 'hsl(220,15%,12%)', border: '1px solid hsl(220,15%,20%)', borderRadius: 6, fontSize: 10 }}
+                            contentStyle={{ background: 'hsl(var(--border))', border: '1px solid hsl(var(--border))', borderRadius: 6, fontSize: 10 }}
                             formatter={(v: number, name: string) => [formatARS(v), name === 'actual' ? 'Acumulado real' : 'Meta lineal']}
                             labelFormatter={(l: number) => `Día ${l}`}
                           />
-                          <Area type="monotone" dataKey="goal" stroke="hsl(220,10%,50%)" fill="url(#gradGoal)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                          <Area type="monotone" dataKey="goal" stroke="hsl(var(--muted-foreground))" fill="url(#gradGoal)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
                           <Area type="monotone" dataKey="actual" stroke="hsl(40,70%,50%)" fill="url(#gradActual)" strokeWidth={2} dot={false} />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -2599,9 +2599,9 @@ export default function Dashboard() {
           {stats.salesByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stats.salesByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
-                <XAxis dataKey="month" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name === 'total' ? 'Ventas' : 'Ganancia']} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="total" fill="hsl(40, 70%, 50%)" radius={[4, 4, 0, 0]} name="Ventas" />
@@ -2646,9 +2646,9 @@ export default function Dashboard() {
           {stats.dailySales.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={stats.dailySales}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
-                <XAxis dataKey="date" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 9 }} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v)]} />
                 <Area type="monotone" dataKey="total" stroke="hsl(40, 70%, 50%)" fill="hsl(40, 70%, 50%)" fillOpacity={0.15} name="Ventas" />
                 <Area type="monotone" dataKey="profit" stroke="hsl(150, 60%, 40%)" fill="hsl(150, 60%, 40%)" fillOpacity={0.15} name="Ganancia" />
@@ -2662,9 +2662,9 @@ export default function Dashboard() {
           {stats.salesByMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={stats.salesByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
-                <XAxis dataKey="month" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Margen']} />
                 <Line type="monotone" dataKey="margin" stroke="hsl(200, 60%, 50%)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(200, 60%, 50%)' }} name="Margen" />
               </LineChart>
@@ -2747,9 +2747,9 @@ export default function Dashboard() {
           <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Resultado Neto por Mes (Ganancia − Gastos)</h2>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={stats.salesByMonth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
-              <XAxis dataKey="month" tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 11 }} axisLine={false} />
-              <YAxis tick={{ fill: 'hsl(220, 10%, 55%)', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} />
+              <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [formatARS(v), name === 'profit' ? 'Ganancia bruta' : name === 'expenses' ? 'Gastos' : 'Neto']} />
               <Legend formatter={(v: string) => v === 'profit' ? 'Ganancia bruta' : v === 'expenses' ? 'Gastos' : 'Resultado neto'} />
               <Bar dataKey="profit" fill="hsl(150, 60%, 40%)" radius={[3, 3, 0, 0]} name="profit" />

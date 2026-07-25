@@ -511,7 +511,7 @@ export default function AffiliateProgramPage() {
               <p>Sin conversiones registradas</p>
             </div>
           ) : (
-            <div className="rounded-xl border border-border overflow-hidden">
+            <div className="rounded-xl border border-border overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30">
                   <tr>

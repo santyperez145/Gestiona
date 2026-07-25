@@ -193,7 +193,7 @@ const SEGMENT_COLORS: Record<string, string> = {
   Activo: "hsl(150, 60%, 45%)",
   "En riesgo": "hsl(30, 80%, 55%)",
   Dormido: "hsl(0, 60%, 50%)",
-  Perdido: "hsl(220, 10%, 45%)",
+  Perdido: "hsl(var(--muted-foreground))",
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -1804,8 +1804,8 @@ export default function CustomersPage() {
   };
 
   const tooltipStyle = {
-    background: "hsl(220, 18%, 12%)",
-    border: "1px solid hsl(220, 15%, 18%)",
+    background: "hsl(var(--popover))",
+    border: "1px solid hsl(var(--border))",
     borderRadius: 8,
     color: "hsl(40, 20%, 92%)",
   };
@@ -1984,7 +1984,7 @@ export default function CustomersPage() {
                 key={s.name}
                 onClick={() => setSegmentFilter(segmentFilter === s.name ? "all" : s.name)}
                 className={`px-3 py-1.5 rounded-[5px] text-xs font-medium transition-all ${segmentFilter === s.name ? "ring-2 ring-primary" : ""}`}
-                style={{ background: `${SEGMENT_COLORS[s.name] || "hsl(220, 10%, 45%)"}22`, color: SEGMENT_COLORS[s.name] || "hsl(220, 10%, 45%)" }}
+                style={{ background: `${SEGMENT_COLORS[s.name] || "hsl(var(--muted-foreground))"}22`, color: SEGMENT_COLORS[s.name] || "hsl(var(--muted-foreground))" }}
               >
                 {s.name} ({s.value})
               </button>
@@ -1998,10 +1998,10 @@ export default function CustomersPage() {
           <ResponsiveContainer width="100%" height={120}>
             <BarChart data={segmentCounts} layout="vertical">
               <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" tick={{ fill: "hsl(220, 10%, 55%)", fontSize: 11 }} width={80} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} width={80} />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar dataKey="value" radius={[0, 4, 4, 0]} name="Clientes">
-                {segmentCounts.map((s, i) => <Cell key={i} fill={SEGMENT_COLORS[s.name] || "hsl(220, 10%, 45%)"} />)}
+                {segmentCounts.map((s, i) => <Cell key={i} fill={SEGMENT_COLORS[s.name] || "hsl(var(--muted-foreground))"} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>

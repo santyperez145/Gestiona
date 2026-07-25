@@ -52,7 +52,7 @@ export default function InvitationAcceptPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'hsl(228 28% 4.5%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'hsl(var(--background))' }}>
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -60,7 +60,7 @@ export default function InvitationAcceptPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: 'hsl(228 28% 4.5%)' }}>
+      style={{ background: 'hsl(var(--background))' }}>
       <div className="absolute inset-x-0 top-0 h-[300px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(38 82% 52% / 0.05) 0%, transparent 70%)' }} />
 
@@ -69,14 +69,14 @@ export default function InvitationAcceptPage() {
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="w-7 h-7 rounded-[5px] flex items-center justify-center"
             style={{ background: 'var(--gradient-gold)' }}>
-            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+            <span className="font-display font-black text-[12px]" style={{ color: 'hsl(var(--primary-foreground))' }}>G</span>
           </div>
           <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/80">Gestiona</span>
         </div>
 
         {/* Card */}
         <div className="rounded-[10px] border border-border/60 p-8 text-center relative overflow-hidden"
-          style={{ background: 'hsl(228 24% 7%)' }}>
+          style={{ background: 'hsl(var(--card))' }}>
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
 
           {error ? (

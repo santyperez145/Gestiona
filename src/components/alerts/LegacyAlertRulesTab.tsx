@@ -709,7 +709,7 @@ export default function LegacyAlertRulesTab() {
       {rules.some(r => r.last_triggered_at) && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Última vez disparadas</h2>
-          <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/30">
                 <tr>

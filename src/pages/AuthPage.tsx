@@ -74,7 +74,7 @@ export default function AuthPage() {
   return (
     <div
       className="min-h-screen flex relative overflow-hidden"
-      style={{ background: 'hsl(228 28% 4.5%)' }}
+      style={{ background: 'hsl(var(--background))' }}
     >
       {/* Left decorative panel — hidden on mobile */}
       <div className="hidden lg:flex flex-col justify-between w-[420px] shrink-0 border-r border-border/30 p-12 relative overflow-hidden">
@@ -93,7 +93,7 @@ export default function AuthPage() {
               className="w-8 h-8 rounded-[6px] flex items-center justify-center"
               style={{ background: 'var(--gradient-gold)' }}
             >
-              <span className="font-display font-black text-[13px] text-[hsl(225_22%_6%)]">G</span>
+              <span className="font-display font-black text-[13px] text-primary-foreground">G</span>
             </div>
             <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/90">Gestiona</span>
           </div>
@@ -148,7 +148,7 @@ export default function AuthPage() {
               className="w-7 h-7 rounded-[5px] flex items-center justify-center"
               style={{ background: 'var(--gradient-gold)' }}
             >
-              <span className="font-display font-black text-[12px] text-[hsl(225_22%_6%)]">G</span>
+              <span className="font-display font-black text-[12px] text-primary-foreground">G</span>
             </div>
             <span className="font-display font-semibold text-[15px] tracking-tight text-foreground/90">Gestiona</span>
           </div>
@@ -222,7 +222,7 @@ export default function AuthPage() {
                 </div>
                 <div className="relative flex justify-center">
                   <span className="px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/45"
-                    style={{ background: 'hsl(228 28% 4.5%)' }}>
+                    style={{ background: 'hsl(var(--background))' }}>
                     o con email
                   </span>
                 </div>

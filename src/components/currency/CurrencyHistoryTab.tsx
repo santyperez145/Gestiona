@@ -291,7 +291,7 @@ export default function CurrencyHistoryTab() {
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="rounded-xl border border-border/50 overflow-hidden">
+            <div className="rounded-xl border border-border/50 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b border-border/50 bg-muted/20">
                   <tr className="text-muted-foreground text-xs">

@@ -247,7 +247,7 @@ export default function SmartInventoryPage() {
               </div>
 
               {/* Table */}
-              <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+              <div className="bg-card rounded-xl border border-border/50 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/20 text-muted-foreground">
                     <tr>{["Producto","Clase","Velocidad","Revenue","% Share","Acumulado","Stock","Días en mano","Riesgo"].map(h => <th key={h} className="text-left px-4 py-3 font-medium text-xs">{h}</th>)}</tr>

@@ -297,7 +297,7 @@ export default function InventoryAgingTab() {
                       <Tooltip
                         formatter={(v: number) => formatARS(v)}
                         contentStyle={{
-                          background: "hsl(228 24% 9%)",
+                          background: "hsl(var(--popover))",
                           border: "1px solid hsl(var(--border)/0.6)",
                           borderRadius: "12px",
                           fontSize: "12px",

@@ -15,11 +15,11 @@ const CHECKS = ['Sin instalación', 'Multi-usuario', 'Soporte en español', 'Can
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen text-foreground overflow-x-hidden" style={{ background: 'hsl(228 28% 4.5%)' }}>
+    <div className="min-h-screen text-foreground overflow-x-hidden" style={{ background: 'hsl(var(--background))' }}>
 
       {/* ── Nav ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-20 border-b border-border/30 backdrop-blur-md"
-        style={{ background: 'hsl(228 28% 4.5% / 0.85)' }}>
+        style={{ background: 'hsl(var(--background) / 0.85)' }}>
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
@@ -27,7 +27,7 @@ export default function LandingPage() {
               className="w-7 h-7 rounded-[5px] flex items-center justify-center shrink-0"
               style={{ background: 'var(--gradient-gold)' }}
             >
-              <span className="font-display font-black text-[12px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+              <span className="font-display font-black text-[12px]" style={{ color: 'hsl(var(--primary-foreground))' }}>G</span>
             </div>
             <span className="font-display font-semibold text-[15px] tracking-tight">Gestiona</span>
           </div>
@@ -159,7 +159,7 @@ export default function LandingPage() {
       {/* ── CTA ──────────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-24">
         <div className="relative overflow-hidden rounded-[12px] border border-primary/20 p-12"
-          style={{ background: 'hsl(228 24% 7%)' }}>
+          style={{ background: 'hsl(var(--card))' }}>
 
           {/* Inner top highlight */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px"
@@ -204,7 +204,7 @@ export default function LandingPage() {
               className="w-5 h-5 rounded-[3px] flex items-center justify-center"
               style={{ background: 'var(--gradient-gold)' }}
             >
-              <span className="font-display font-black text-[9px]" style={{ color: 'hsl(225 22% 6%)' }}>G</span>
+              <span className="font-display font-black text-[9px]" style={{ color: 'hsl(var(--primary-foreground))' }}>G</span>
             </div>
             <span className="font-display font-semibold text-[13px] text-muted-foreground/60">Gestiona</span>
           </div>

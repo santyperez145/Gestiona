@@ -484,7 +484,7 @@ export default function CompetitorIntelligenceTab() {
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.3)" horizontal={false} />
                         <XAxis type="number" tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                         <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                        <Tooltip formatter={(v: number) => [`${v}%`, "Margen"]} contentStyle={{ background: "hsl(228 24% 9%)", border: "1px solid hsl(var(--border)/0.6)", borderRadius: "12px", fontSize: "12px" }} />
+                        <Tooltip formatter={(v: number) => [`${v}%`, "Margen"]} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border)/0.6)", borderRadius: "12px", fontSize: "12px" }} />
                         <Bar dataKey="margin" radius={[0, 4, 4, 0]}>
                           {categoryData.map((d, i) => <Cell key={i} fill={d.margin >= 30 ? "#22c55e" : d.margin >= 15 ? "#f59e0b" : "#ef4444"} />)}
                         </Bar>
@@ -637,7 +637,7 @@ export default function CompetitorIntelligenceTab() {
                   </div>
                 </div>
 
-                <div className="bg-card rounded-xl border border-border/40 overflow-hidden">
+                <div className="bg-card rounded-xl border border-border/40 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/20 text-muted-foreground">
                       <tr>
@@ -742,7 +742,7 @@ export default function CompetitorIntelligenceTab() {
             )}
 
             {compSubTab === "productos" && (
-              <div className="bg-card rounded-xl border border-border/40 overflow-hidden">
+              <div className="bg-card rounded-xl border border-border/40 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/20 text-muted-foreground">
                     <tr>

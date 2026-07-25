@@ -889,7 +889,7 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
     toast.success("PDF descargado");
   };
 
-  const tooltipStyle = { background: "hsl(220, 18%, 12%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8, color: "hsl(40, 20%, 92%)" };
+  const tooltipStyle = { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(40, 20%, 92%)" };
   const PALETTE = ["hsl(40,70%,50%)", "hsl(150,60%,40%)", "hsl(200,70%,55%)", "hsl(280,60%,55%)", "hsl(0,65%,55%)", "hsl(60,70%,50%)", "hsl(25,70%,50%)", "hsl(320,60%,50%)", "hsl(180,60%,45%)", "hsl(100,55%,40%)"];
 
   return (
@@ -948,8 +948,8 @@ function InventoryTab({ products, settings, sales }: { products: any[]; settings
           <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Top 10 productos por valor al costo</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={top10} layout="vertical">
-              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(220, 10%, 55%)", fontSize: 10 }} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "hsl(220, 10%, 55%)", fontSize: 10 }} width={110} tickFormatter={(v) => v.length > 18 ? v.slice(0, 18) + "…" : v} />
+              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} width={110} tickFormatter={(v) => v.length > 18 ? v.slice(0, 18) + "…" : v} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), "Valor al costo"]} />
               <Bar dataKey="costValue" radius={[0, 4, 4, 0]}>
                 {top10.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
@@ -1242,7 +1242,7 @@ function SellersTab({ sales, members, period }: { sales: any[]; members: any[]; 
             <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 8 }}>
               <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
-              <Tooltip formatter={(v: any) => formatARS(v)} contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip formatter={(v: any) => formatARS(v)} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
               <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                 {chartData.map((_, i) => <Cell key={i} fill={SELLER_COLORS[i % SELLER_COLORS.length]} />)}
               </Bar>
@@ -1937,7 +1937,7 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
   const totals = rows.reduce((a, r) => ({ revenue: a.revenue + r.revenue, outflow: a.outflow + r.outflow, net: a.net + r.net }), { revenue: 0, outflow: 0, net: 0 });
   const positiveMonths = rows.filter(r => r.net >= 0).length;
 
-  const tooltipStyle = { background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 };
+  const tooltipStyle = { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 };
 
   return (
     <div className="space-y-6 pb-12">
@@ -1967,8 +1967,8 @@ function CashFlowTab({ sales, expenses, purchases }: { sales: any[]; expenses: a
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={rows} barGap={2} barCategoryGap="25%">
-              <XAxis dataKey="label" tick={{ fill: "hsl(220,10%,55%)", fontSize: 11 }} />
-              <YAxis tickFormatter={(v: number) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} width={55} />
+              <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+              <YAxis tickFormatter={(v: number) => `$${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} width={55} />
               <Tooltip
                 contentStyle={tooltipStyle}
                 formatter={(v: number, name: string) => [formatARS(v), name === "revenue" ? "Ingresos" : name === "outflow" ? "Egresos" : "Neto"]}
@@ -2351,7 +2351,7 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
   }), [rows]);
 
   const top8 = useMemo(() => [...rows].sort((a, b) => b.revenue - a.revenue).slice(0, 8), [rows]);
-  const tooltipStyle = { background: "hsl(220, 18%, 12%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8 };
+  const tooltipStyle = { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 };
   const handleSort = (k: typeof sortKey) => { if (sortKey === k) setSortAsc(!sortAsc); else { setSortKey(k); setSortAsc(false); } };
 
   const exportCat = () => exportCSV(`ventas-por-categoria-${period}.csv`,
@@ -2387,8 +2387,8 @@ function SalesByCategoryTab({ sales, products, period }: { sales: any[]; product
           <h3 className="text-sm font-display font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Ingresos por categoría — {period}</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={top8} layout="vertical">
-              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} />
-              <YAxis type="category" dataKey="label" width={120} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} tickFormatter={(v: string) => v.length > 20 ? v.slice(0, 20) + "…" : v} />
+              <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+              <YAxis type="category" dataKey="label" width={120} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(v: string) => v.length > 20 ? v.slice(0, 20) + "…" : v} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatARS(v), "Ingresos"]} />
               <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
                 {top8.map((_, i) => <Cell key={i} fill={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]} />)}
@@ -2830,7 +2830,7 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
     { metric: 'Neto', A: Math.round(A.netResult), B: Math.round(B.netResult) },
   ];
 
-  const ttStyle = { background: "hsl(220,14%,12%)", border: "1px solid hsl(220,14%,20%)", borderRadius: 8, fontSize: 12 };
+  const ttStyle = { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 };
 
   return (
     <div className="space-y-6 pb-12">
@@ -2869,17 +2869,17 @@ function ComparePeriodTab({ sales, expenses }: { sales: any[]; expenses: any[] }
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Comparativa visual</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData} barGap={4} barCategoryGap="30%">
-            <XAxis dataKey="metric" tick={{ fill: "hsl(220,10%,55%)", fontSize: 11 }} />
-            <YAxis tickFormatter={(v: number) => `$${Math.abs(v) >= 1000000 ? `${(v/1000000).toFixed(1)}M` : Math.abs(v) >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(220,10%,55%)", fontSize: 10 }} width={60} />
+            <XAxis dataKey="metric" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+            <YAxis tickFormatter={(v: number) => `$${Math.abs(v) >= 1000000 ? `${(v/1000000).toFixed(1)}M` : Math.abs(v) >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} width={60} />
             <Tooltip contentStyle={ttStyle} formatter={(v: number, name: string) => [formatARS(v), name]} />
             <Bar dataKey="A" name="Período A" fill="hsl(43,86%,55%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="B" name="Período B" fill="hsl(220,14%,40%)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="B" name="Período B" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Metrics table */}
-      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
@@ -3041,7 +3041,7 @@ function SucursalesTab({ sales }: { sales: any[] }) {
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
             <Users className="w-4 h-4" />Ventas por vendedor
           </h3>
-          <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+          <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
@@ -3308,7 +3308,7 @@ function MarginTrendTab({ sales, expenses }: { sales: any[]; expenses: any[] }) 
       </div>
 
       {/* Monthly summary table */}
-      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
@@ -3717,7 +3717,7 @@ function WeeklyTrendTab({ sales }: { sales: any[] }) {
       </div>
 
       {/* Detail table */}
-      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-muted-foreground text-xs">
@@ -3905,7 +3905,7 @@ function ByWeekTab({ sales }: { sales: any[] }) {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border/60 rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-[10px] overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">

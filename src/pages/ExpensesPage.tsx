@@ -185,7 +185,7 @@ export default function ExpensesPage() {
       cat,
       name: getExpenseCategoryLabel(cat, settings),
       value,
-      color: categories.find(c => c.value === cat)?.color || 'hsl(220,10%,55%)',
+      color: categories.find(c => c.value === cat)?.color || 'hsl(var(--muted-foreground))',
     }));
     const methodData = Object.entries(byMethod)
       .map(([method, value]) => ({ method, value, pct: total > 0 ? Math.round((value / total) * 100) : 0 }))
@@ -412,7 +412,7 @@ export default function ExpensesPage() {
                 <Pie data={totals.chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" stroke="none">
                   {totals.chartData.map((c, i) => <Cell key={i} fill={c.color} />)}
                 </Pie>
-                <Tooltip formatter={(v: number) => formatARS(v)} contentStyle={{ background: 'hsl(220, 18%, 12%)', border: '1px solid hsl(220, 15%, 18%)', borderRadius: 8 }} />
+                <Tooltip formatter={(v: number) => formatARS(v)} contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : <p className="text-muted-foreground text-sm py-12 text-center">Sin datos</p>}
@@ -786,16 +786,16 @@ export default function ExpensesPage() {
             <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Tendencia mensual de gastos</h2>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={monthlyTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
                 <Tooltip
                   formatter={(v: number) => [formatARS(v), 'Total']}
-                  contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 12 }}
-                  cursor={{ fill: 'hsl(220,15%,18%)' }}
+                  contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                  cursor={{ fill: 'hsl(var(--border))' }}
                 />
                 <Bar dataKey="total" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} maxBarSize={48}
-                  label={{ position: 'top', fontSize: 10, fill: 'hsl(220,10%,55%)', formatter: (v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : '' }}
+                  label={{ position: 'top', fontSize: 10, fill: 'hsl(var(--muted-foreground))', formatter: (v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : '' }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -815,14 +815,14 @@ export default function ExpensesPage() {
                 <h2 className="text-sm font-display font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Distribución por categoría</h2>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,18%)" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: 'hsl(220,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
                     <Tooltip
                       formatter={(v: number, name: string) => [formatARS(v), getExpenseCategoryLabel(name, settings)]}
-                      contentStyle={{ background: 'hsl(220,18%,12%)', border: '1px solid hsl(220,15%,18%)', borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
                     />
-                    <Legend formatter={name => getExpenseCategoryLabel(name, settings)} wrapperStyle={{ fontSize: 10, color: 'hsl(220,10%,55%)' }} />
+                    <Legend formatter={name => getExpenseCategoryLabel(name, settings)} wrapperStyle={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }} />
                     {allCats.map((cat, i) => (
                       <Bar key={cat} dataKey={cat} stackId="a" fill={CAT_COLORS[i % CAT_COLORS.length]} maxBarSize={48}
                         radius={i === allCats.length - 1 ? [4, 4, 0, 0] : undefined}

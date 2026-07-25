@@ -451,7 +451,7 @@ export default function TiendanubeExportPage() {
                 </Button>
               </div>
 
-              <div className="border border-border rounded-lg overflow-hidden max-h-[480px] overflow-y-auto table-wrap">
+              <div className="border border-border rounded-lg max-h-[480px] overflow-y-auto table-wrap">
                 <table className="w-full text-sm table-compact-mobile">
                   <thead className="bg-muted/50 sticky top-0">
                     <tr className="text-left">
