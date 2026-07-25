@@ -208,7 +208,7 @@ export default function DebtsPage() {
         description="Control de cuentas corrientes de clientes"
         badge={pending.length > 0 ? { label: `${pending.length} pendientes`, variant: "destructive" } : { label: "Al día ✓", variant: "success" }}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
             {pending.length > 0 && (
               <button onClick={printDebtsPDF} className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-border bg-muted text-muted-foreground hover:text-foreground text-xs font-medium transition-colors" title="Imprimir PDF de deudas pendientes">

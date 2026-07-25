@@ -633,7 +633,7 @@ ${customer ? `<div style="margin-bottom:8px">Cliente: <strong>${customer}</stron
         description="Historial y gestión de ventas"
         badge={{ label: `${filtered.length} registradas`, variant: "default" }}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <DateRangePicker from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(0); setDatePreset("custom"); }} />
             {filtered.length > 0 && (
               <>

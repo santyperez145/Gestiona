@@ -167,7 +167,7 @@ export default function EcommerceStorePage() {
         title="Tienda E-Commerce"
         description="Tu tienda online integrada con inventario y pagos"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <Badge className={store?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
               {store?.is_active ? "● Activa" : "○ Inactiva"}
             </Badge>

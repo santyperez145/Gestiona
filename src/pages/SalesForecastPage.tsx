@@ -209,7 +209,7 @@ export default function SalesForecastPage() {
         title="Forecast de Ventas"
         description={`Proyección basada en regresión lineal · últimos ${historyMonths} meses`}
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted-foreground">Historial:</label>
               <select

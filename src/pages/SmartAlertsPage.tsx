@@ -194,7 +194,7 @@ export default function SmartAlertsPage() {
         title="Motor de Alertas Inteligentes"
         description="Reglas automáticas, notificaciones multicanal y gestión de incidentes"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             {unacked > 0 && <Badge className="bg-destructive text-destructive-foreground">{unacked} sin reconocer</Badge>}
             <Button onClick={() => setShowNew(true)}><Plus className="w-4 h-4 mr-2" />Nueva Regla</Button>
           </div>

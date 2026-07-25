@@ -203,7 +203,7 @@ export default function AFIPPage() {
         title="AFIP / Facturación Electrónica"
         description="Emisión de comprobantes electrónicos — conexión con AFIP WSFE"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <Badge className={config?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
               {config?.is_active ? "● Activo" : "○ Inactivo"} — {config?.ambiente || "homologacion"}
             </Badge>

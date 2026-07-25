@@ -229,7 +229,7 @@ export default function MultiCurrencyPage() {
         title="Multi-Divisa & FX"
         description="Tipos de cambio en tiempo real, conversor y exposición FX"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Tasas actualizadas")}>
               <RefreshCw className="w-3 h-3" />Actualizar tasas
             </Button>
