@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
+import { loadActivePromotions, bestPromoPrice, type Promotion } from "@/lib/promotions";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const userId = isPublic ? publicUserId : auth?.user?.id;
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [catalogPromos, setCatalogPromos] = useState<Promotion[]>([]);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,10 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     setProducts(pRes.data || []);
     setSettings(sRes.data);
     setLoading(false);
-  }, [userId]);
+    // Promos auto-aplicables solo en catálogo interno (la RLS de promotions
+    // exige auth; el catálogo público anónimo no puede leerlas).
+    if (!isPublic) loadActivePromotions(orgId).then(setCatalogPromos).catch(() => {});
+  }, [userId, isPublic]);
 
   useEffect(() => {
     fetchData();
@@ -963,8 +968,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(p => {
-            const hasDiscount = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars);
-            const discountPct = hasDiscount ? Math.round((1 - Number(p.discount_price_ars) / Number(p.sale_price_ars)) * 100) : 0;
+            const promo = !isPublic ? bestPromoPrice(p, catalogPromos) : null;
+            const manualDisc = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? Number(p.discount_price_ars) : null;
+            const effDiscPrice = promo ? promo.price : manualDisc;   // promo ya es ≤ descuento manual
+            const hasDiscount = effDiscPrice != null && effDiscPrice < Number(p.sale_price_ars);
+            const discountPct = hasDiscount ? Math.round((1 - (effDiscPrice as number) / Number(p.sale_price_ars)) * 100) : 0;
             return (
             <div key={p.id} className="bg-card border border-border/60 rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
               <div className="aspect-square bg-muted/60 flex items-center justify-center relative overflow-hidden">
@@ -1005,8 +1013,8 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
                   {hasDiscount ? (
                     <>
                       <div className="bg-primary/8 border border-primary/15 rounded-lg px-2.5 py-2">
-                        <span className="text-base font-bold text-primary">{formatARS(Number(p.discount_price_ars))}</span>
-                        <p className="text-[10px] text-primary/70 mt-0.5">Efectivo / Transferencia</p>
+                        <span className="text-base font-bold text-primary">{formatARS(Number(effDiscPrice))}</span>
+                        <p className="text-[10px] text-primary/70 mt-0.5">{promo ? promo.promo.name : 'Efectivo / Transferencia'}</p>
                       </div>
                       <div className="px-1">
                         <span className="text-xs text-muted-foreground line-through">{formatARS(Number(p.sale_price_ars))}</span>

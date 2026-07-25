@@ -5,6 +5,7 @@ import { useBusinessConfig } from "@/lib/useBusinessConfig";
 import { usePlanLimits } from "@/lib/usePlanLimits";
 import { getProductsDB, getSettingsDB, addSaleDB, deleteSaleDB, formatARS, validateCouponDB, incrementCouponUse, awardLoyaltyPointsForSale, getVariantsByUserDB } from "@/lib/supabaseStore";
 import { logAudit } from "@/lib/auditLog";
+import { loadActivePromotions, bestPromoPrice, type Promotion, type BestPromo } from "@/lib/promotions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -708,10 +709,14 @@ export default function POSPage() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [activePromos, setActivePromos] = useState<Promotion[]>([]);
   const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
   const [recSales, setRecSales] = useState<{ product_id: string; product_name: string; date: string; quantity: number }[]>([]);
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, any[]>>({});
   const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
+  useEffect(() => {
+    if (activeOrg?.id) loadActivePromotions(activeOrg.id).then(setActivePromos).catch(() => {});
+  }, [activeOrg?.id]);
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
   const [showBundles, setShowBundles] = useState(false);
@@ -1212,9 +1217,22 @@ export default function POSPage() {
   const effectivePayMethod = splitMode ? splitMethod1 : payMethod;
   const usesDiscount = PAY_METHODS.find(m => m.value === effectivePayMethod)?.usesDiscount ?? false;
 
+  // Mejor promoción auto-aplicable para un item (o null). Compite contra el
+  // descuento manual del producto según el medio de pago.
+  const promoFor = (item: CartItem): BestPromo | null => {
+    if (item.customPrice != null && item.customPrice > 0) return null;
+    const baseDiscount = usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : null;
+    return bestPromoPrice(
+      { id: item.productId, category: item.category, sale_price_ars: item.price, discount_price_ars: baseDiscount },
+      activePromos,
+    );
+  };
+
   const priceFor = (item: CartItem) => {
     if (item.customPrice != null && item.customPrice > 0) return item.customPrice;
-    return usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
+    const manual = usesDiscount && item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price;
+    const promo = promoFor(item);
+    return promo ? promo.price : manual;
   };
 
   const cartSubtotal = cart.reduce((s, it) => s + priceFor(it) * it.quantity, 0);
@@ -1469,6 +1487,26 @@ export default function POSPage() {
 
       if (couponResult?.valid) await incrementCouponUse(couponResult.coupon.id);
 
+      // Registrar usos de promociones auto-aplicadas (best-effort; el trigger
+      // increment_promotion_usage suma uses_count)
+      if (isOnline) {
+        const promoAgg: Record<string, { promo: Promotion; discount: number }> = {};
+        for (const item of cart) {
+          const bp = promoFor(item);
+          if (!bp) continue;
+          if (!promoAgg[bp.promo.id]) promoAgg[bp.promo.id] = { promo: bp.promo, discount: 0 };
+          promoAgg[bp.promo.id].discount += (bp.basePrice - bp.price) * item.quantity;
+        }
+        const usages = Object.values(promoAgg).map(({ promo, discount }) => ({
+          promotion_id: promo.id,
+          org_id: orgId,
+          customer_name: customer.trim() || null,
+          order_value: cartTotal,
+          discount_applied: Math.round(discount),
+        }));
+        if (usages.length) supabase.from("promotion_usages").insert(usages).then(() => {}, () => {});
+      }
+
       // Award loyalty points (best-effort)
       if (customer.trim()) {
         awardLoyaltyPointsForSale(orgId, customer.trim(), cartTotal, cart[0]?.productId ?? "").catch(() => {});
@@ -1626,12 +1664,18 @@ export default function POSPage() {
             const hasCustom = it.customPrice != null && it.customPrice > 0;
             const costARS = it.costUSD * it.exchangeRate;
             const marginPct = unitP > 0 && costARS > 0 ? ((unitP - costARS) / unitP) * 100 : null;
+            const linePromo = promoFor(it);
             return (
               <div key={it.productId} className={`rounded-[10px] p-3 space-y-2 transition-colors ${hasCustom ? "bg-primary/8 border border-primary/20" : "bg-muted/40"}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-medium leading-tight truncate flex-1">{it.name}</p>
+                      {linePromo && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded shrink-0 bg-primary/20 text-primary" title={linePromo.promo.name}>
+                          PROMO
+                        </span>
+                      )}
                       {marginPct !== null && (
                         <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${
                           marginPct >= 40 ? 'bg-green-500/20 text-green-400' :
