@@ -326,6 +326,12 @@ export default function ProductsPage() {
   const [calcOpen, setCalcOpen] = useState(false);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [recoTargetId, setRecoTargetId] = useState<string | null>(null);
+  // Oferta masiva por categoría
+  const [catOfferOpen, setCatOfferOpen] = useState(false);
+  const [catOfferCategory, setCatOfferCategory] = useState('perfume_arabe');
+  const [catOfferPct, setCatOfferPct] = useState('20');
+  const [catOfferExpiry, setCatOfferExpiry] = useState('');
+  const [catOfferSaving, setCatOfferSaving] = useState(false);
 
   const reload = async () => {
     if (!user) return;
@@ -551,6 +557,37 @@ export default function ProductsPage() {
     reload();
   };
 
+  // ── Oferta masiva por categoría ────────────────────────────────────────────
+  const catOfferProducts = products.filter(p => p.category === catOfferCategory && Number(p.sale_price_ars) > 0);
+  const applyCategoryOffer = async () => {
+    const pct = Number(catOfferPct);
+    if (isNaN(pct) || pct <= 0 || pct >= 100) { toast.error("Descuento inválido"); return; }
+    setCatOfferSaving(true);
+    try {
+      const expiry = catOfferExpiry ? new Date(catOfferExpiry).toISOString() : null;
+      await Promise.all(catOfferProducts.map(p => updateProductDB(p.id, {
+        discount_price_ars: Math.round(Number(p.sale_price_ars) * (1 - pct / 100)),
+        offer_expires_at: expiry,
+      } as any)));
+      toast.success(`Oferta de ${pct}% aplicada a ${catOfferProducts.length} productos de ${getCategoryLabel(catOfferCategory)}`);
+      setCatOfferOpen(false);
+      reload();
+    } catch (e: any) { toast.error(e.message || "Error aplicando la oferta"); }
+    finally { setCatOfferSaving(false); }
+  };
+  const clearCategoryOffer = async () => {
+    const withOffer = catOfferProducts.filter(p => p.discount_price_ars);
+    if (withOffer.length === 0) { toast.info("No hay ofertas activas en esa categoría"); return; }
+    setCatOfferSaving(true);
+    try {
+      await Promise.all(withOffer.map(p => updateProductDB(p.id, { discount_price_ars: null, offer_expires_at: null } as any)));
+      toast.success(`Ofertas quitadas de ${withOffer.length} productos de ${getCategoryLabel(catOfferCategory)}`);
+      setCatOfferOpen(false);
+      reload();
+    } catch (e: any) { toast.error(e.message || "Error quitando la oferta"); }
+    finally { setCatOfferSaving(false); }
+  };
+
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 3).length;
@@ -609,6 +646,11 @@ export default function ProductsPage() {
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="hidden md:flex">
                 <TrendingUp className="w-4 h-4 mr-2" />Ajuste masivo
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setCatOfferOpen(true)} title="Aplicar oferta a toda una categoría">
+                <Tag className="w-4 h-4 mr-2" />Oferta x categoría
               </Button>
             )}
             <Button variant="outline" size="sm" title="Calculadora de rentabilidad" onClick={() => { setCalcProduct(null); setCalcOpen(true); }}>
@@ -699,6 +741,46 @@ export default function ProductsPage() {
         results={recoTargetId ? recommendSimilar(recoTargetId, products, perfumeDetailsByProduct) : []}
         onPick={(prod) => { setRecoTargetId(null); setEditing(prod); setOpen(true); }}
       />
+
+      {/* ── Oferta masiva por categoría ─────────────────────────────── */}
+      <Dialog open={catOfferOpen} onOpenChange={setCatOfferOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Tag className="w-4 h-4 text-primary" />Oferta por categoría</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Categoría</label>
+              <Select value={catOfferCategory} onValueChange={setCatOfferCategory}>
+                <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['perfume_arabe', 'perfume_diseñador', 'vaper', 'electronico'].map(c => (
+                    <SelectItem key={c} value={c}>{getCategoryLabel(c)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">{catOfferProducts.length} productos en esta categoría · {catOfferProducts.filter(p => p.discount_price_ars).length} con oferta activa</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Descuento %</label>
+                <Input type="number" min="1" max="99" value={catOfferPct} onChange={e => setCatOfferPct(e.target.value)} className="bg-muted border-border" />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Vence (opcional)</label>
+                <Input type="datetime-local" value={catOfferExpiry} onChange={e => setCatOfferExpiry(e.target.value)} className="bg-muted border-border text-xs" />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Se aplica a todos los productos de la categoría: precio c/desc = Venta × (1 − {catOfferPct || 0}%).</p>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={clearCategoryOffer} disabled={catOfferSaving} className="text-destructive">Quitar ofertas</Button>
+            <Button onClick={applyCategoryOffer} disabled={catOfferSaving || catOfferProducts.length === 0}>
+              {catOfferSaving ? "Aplicando…" : `Aplicar a ${catOfferProducts.length}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {(expired.length > 0 || critical.length > 0 || warning.length > 0) && (
         <div className={`rounded-xl border px-4 py-3 ${
