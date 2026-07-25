@@ -418,6 +418,19 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
 - **Prolijidad UI**: ficha de perfume reorganizada en subsecciones
   (Identidad / Perfil / Pirámide de notas / Uso ideal); charts de las
   superficies nuevas 100% theme-aware.
+- **Endurecimiento UI app-wide** (legible en todos los dispositivos +
+  tema claro/oscuro):
+  - Colores hardcodeados de charts (147 ocurrencias / 16 archivos):
+    tooltips/ejes/grillas → tokens del tema. Ya no se rompen en claro.
+  - Páginas públicas (Landing/Auth/Pricing/Onboarding/NotFound/Invitación/
+    Reset): fondo→--background, cards→--card, logo→--primary-foreground.
+    Antes quedaban oscuras aunque el tema fuera claro.
+  - 32 tablas (21 archivos) que se recortaban en móvil → overflow-x-auto
+    (scroll horizontal).
+  - TabsList (primitivo) → scroll horizontal: corrige los 17 páginas con
+    muchas pestañas de una vez.
+  - Verificado: sin desborde horizontal en 375px, colores OK en ambos
+    temas, tsc/build/123 tests limpios.
 - Pendiente Phase 3: recomendador por cliente (cablear en CustomersPage —
   la lib ya existe), reservas reales (tabla stock_reservations), catálogo
   PDF por facetas, exponer price_lists mayorista en la ficha, alerta
