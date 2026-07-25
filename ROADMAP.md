@@ -431,10 +431,29 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
     muchas pestañas de una vez.
   - Verificado: sin desborde horizontal en 375px, colores OK en ambos
     temas, tsc/build/123 tests limpios.
-- Pendiente Phase 3: recomendador por cliente (cablear en CustomersPage —
-  la lib ya existe), reservas reales (tabla stock_reservations), catálogo
-  PDF por facetas, exponer price_lists mayorista en la ficha, alerta
-  "precio desactualizado".
+### Sesión 80 — Sistemas por categoría + pulido UI (2026-07-25)
+- **Markup/margen por categoría**: `settings.category_pricing` jsonb;
+  el auto-cálculo de precios usa el markup y descuento propios de cada
+  categoría (ej. perfumes ×2.2, vapers ×1.6) en vez del ×2 fijo.
+  Config en Ajustes → "Precios por categoría".
+- **Oferta masiva por categoría**: modal en Productos que aplica/quita
+  descuento + vencimiento a todos los productos de una categoría.
+- **Promociones aplicadas al cobrar**: la tabla `promotions` (targeting
+  por categoría/producto/todo) existía pero nunca se aplicaba. Nuevo
+  `src/lib/promotions.ts` (bestPromoPrice, +9 tests) + enforcement en POS
+  (badge PROMO, registra promotion_usages) y catálogo interno.
+- **Pulido UI sistemático** (sobre todas las páginas): toolbars de
+  acciones con flex-wrap (8 páginas), sumado a lo previo (colores
+  theme-aware, tablas y tabs con scroll, páginas públicas theme-aware).
+- Nota verificada: el POS ya calculaba bien la ganancia (usa costo con
+  aduana); no había bug.
+
+- Pendiente Phase 3: pulido visual profundo de páginas puntuales (mejor
+  con feedback del usuario sobre cuáles), recomendador por cliente
+  (cablear en CustomersPage — la lib ya existe), reservas reales (tabla
+  stock_reservations), catálogo PDF por facetas, promos en catálogo
+  público (necesita path de lectura pública), price_lists mayorista en la
+  ficha, alerta "precio desactualizado".
 
 ---
 
