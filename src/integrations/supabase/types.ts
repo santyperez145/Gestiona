@@ -3713,6 +3713,7 @@ export type Database = {
           catalog_accent_color: string | null
           catalog_bg_color: string | null
           catalog_card_color: string | null
+          category_pricing: Json
           created_at: string
           customs_percent: number
           daily_margin_alert_threshold: number | null
@@ -3797,6 +3798,7 @@ export type Database = {
           catalog_accent_color?: string | null
           catalog_bg_color?: string | null
           catalog_card_color?: string | null
+          category_pricing?: Json
           created_at?: string
           customs_percent?: number
           daily_margin_alert_threshold?: number | null
@@ -3881,6 +3883,7 @@ export type Database = {
           catalog_accent_color?: string | null
           catalog_bg_color?: string | null
           catalog_card_color?: string | null
+          category_pricing?: Json
           created_at?: string
           customs_percent?: number
           daily_margin_alert_threshold?: number | null

@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
 import { useEntitlements } from "@/lib/useEntitlements";
-import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories } from "@/lib/supabaseStore";
+import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories, getCategoryLabel } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,7 @@ export default function SettingsPage() {
 
   const [customsPercent, setCustomsPercent] = useState('');
   const [defaultDiscountPercent, setDefaultDiscountPercent] = useState('');
+  const [categoryPricing, setCategoryPricing] = useState<Record<string, { markup?: number; discount?: number }>>({});
   const [taxEnabled, setTaxEnabled] = useState(false);
   const [taxIva, setTaxIva] = useState('21');
   const [taxIibb, setTaxIibb] = useState('3.5');
@@ -318,6 +319,7 @@ export default function SettingsPage() {
       setExchangeRate(String(s.exchange_rate));
       setCustomsPercent(String(s.customs_percent));
       setDefaultDiscountPercent(String(s.default_discount_percent));
+      setCategoryPricing((s.category_pricing as Record<string, { markup?: number; discount?: number }>) || {});
       setTaxEnabled(!!s.tax_enabled);
       setTaxIva(String(s.tax_iva_percent ?? 21));
       setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
@@ -397,6 +399,7 @@ export default function SettingsPage() {
         exchange_rate: num(exchangeRate, 1695),
         customs_percent: num(customsPercent, 15),
         default_discount_percent: num(defaultDiscountPercent, 20),
+        category_pricing: categoryPricing,
         tax_enabled: taxEnabled,
         tax_iva_percent: num(taxIva, 21),
         tax_iibb_percent: num(taxIibb, 3.5),
@@ -742,6 +745,35 @@ export default function SettingsPage() {
               <Input type="number" value={defaultDiscountPercent} onChange={e => setDefaultDiscountPercent(e.target.value)} className="bg-muted border-border mt-1" />
               <p className="text-[10px] text-muted-foreground mt-1">Se aplica al calcular precio c/descuento: Venta × (1 - {defaultDiscountPercent}%)</p>
             </div>
+
+            {/* ── Precios por categoría ─────────────────────────────── */}
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Precios por categoría</p>
+              <p className="text-[10px] text-muted-foreground mb-3">Markup y descuento propios de cada categoría. Si quedan vacíos, se usa el markup ×2 y el descuento por defecto de arriba.</p>
+              <div className="space-y-2">
+                {['perfume_arabe', 'perfume_diseñador', 'vaper', 'electronico'].map(cat => {
+                  const cp = categoryPricing[cat] || {};
+                  return (
+                    <div key={cat} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                      <span className="text-xs font-medium truncate">{getCategoryLabel(cat)}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">markup ×</span>
+                        <Input type="number" step="0.1" min="0" value={cp.markup ?? ''} placeholder="2.0"
+                          onChange={e => setCategoryPricing(prev => ({ ...prev, [cat]: { ...prev[cat], markup: e.target.value === '' ? undefined : Number(e.target.value) } }))}
+                          className="bg-muted border-border h-8 w-16 text-xs" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">desc %</span>
+                        <Input type="number" min="0" max="100" value={cp.discount ?? ''} placeholder={defaultDiscountPercent || '20'}
+                          onChange={e => setCategoryPricing(prev => ({ ...prev, [cat]: { ...prev[cat], discount: e.target.value === '' ? undefined : Number(e.target.value) } }))}
+                          className="bg-muted border-border h-8 w-16 text-xs" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3">
               <Button onClick={handleSave} disabled={saving} className="gradient-gold text-primary-foreground font-semibold shadow-gold flex-1">
                 {saving ? 'Guardando...' : 'Guardar Configuración'}

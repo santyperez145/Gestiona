@@ -542,7 +542,8 @@ export default function ProductsPage() {
       await updateProductDB(p.id, { discount_price_ars: null });
       toast.success(`Descuento removido de "${p.name}"`);
     } else {
-      const pct = Number(settings?.default_discount_percent || 20);
+      const catDisc = (settings?.category_pricing as Record<string, { discount?: number }> | undefined)?.[p.category]?.discount;
+      const pct = catDisc != null && Number(catDisc) >= 0 ? Number(catDisc) : Number(settings?.default_discount_percent || 20);
       const discounted = Math.round(Number(p.sale_price_ars) * (1 - pct / 100));
       await updateProductDB(p.id, { discount_price_ars: discounted });
       toast.success(`Descuento de ${pct}% aplicado a "${p.name}" → ${formatARS(discounted)}`);
@@ -1552,9 +1553,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const salePrice = parseFloat(salePriceARS) || 0;
   const customsPercent = Number(settings?.customs_percent || 15);
   const exchangeRate = Number(settings?.exchange_rate || 1695);
-  const defaultDiscount = Number(settings?.default_discount_percent || 40);
+  // Precios por categoría: markup y descuento por defecto propios de la categoría
+  // (fallback: markup ×2 y descuento global default_discount_percent, o 20).
+  const catPricing = (settings?.category_pricing as Record<string, { markup?: number; discount?: number }> | undefined)?.[category];
+  const categoryMarkup = Number(catPricing?.markup) > 0 ? Number(catPricing!.markup) : 2;
+  const defaultDiscount = Number(catPricing?.discount) >= 0 && catPricing?.discount != null
+    ? Number(catPricing.discount)
+    : Number(settings?.default_discount_percent || 20);
 
-  const autoSalePrice = cost > 0 ? Math.round((cost + cost * customsPercent / 100) * exchangeRate * 2) : 0;
+  const autoSalePrice = cost > 0 ? Math.round((cost + cost * customsPercent / 100) * exchangeRate * categoryMarkup) : 0;
   const currentSaleForDiscount = parseFloat(salePriceARS) || autoSalePrice;
   const autoDiscountPrice = currentSaleForDiscount > 0 ? Math.round(currentSaleForDiscount * (1 - defaultDiscount / 100)) : 0;
 
@@ -2123,7 +2130,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         <Input type="number" step="0.01" min="0" value={costUSD} onChange={e => { setCostUSD(e.target.value); setManualSalePrice(false); setManualDiscountPrice(false); }} className="bg-muted border-border" required />
         {cost > 0 && (
           <p className="text-[10px] text-muted-foreground mt-1">
-            Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × 2 = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
+            Fórmula: [(${cost}+{customsPercent}%) × ${exchangeRate}] × {categoryMarkup} = {formatARS(autoSalePrice)} · -{defaultDiscount}% = {formatARS(autoDiscountPrice)}
           </p>
         )}
       </div>
