@@ -95,7 +95,7 @@ export default function SmartAlertsPage() {
       try {
         const [rulesRes, eventsRes] = await Promise.all([
           supabase
-            .from("alert_rules")
+            .from("smart_alert_rules")
             .select("id, name, category, metric, condition_op, threshold, priority, channels, cooldown_min, is_active, last_triggered, trigger_count")
             .eq("org_id", activeOrg.id)
             .order("created_at", { ascending: false }),
@@ -149,7 +149,7 @@ export default function SmartAlertsPage() {
     if (!rule) return;
     const newActive = !rule.is_active;
     await supabase
-      .from("alert_rules")
+      .from("smart_alert_rules")
       .update({ is_active: newActive })
       .eq("id", id);
     setRules(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r));
@@ -171,7 +171,7 @@ export default function SmartAlertsPage() {
       is_active: true,
     };
     const { data, error } = await supabase
-      .from("alert_rules")
+      .from("smart_alert_rules")
       .insert(payload)
       .select()
       .single();

@@ -860,6 +860,66 @@ export type Database = {
           },
         ]
       }
+      alert_events: {
+        Row: {
+          acknowledged_at: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          metric_value: number | null
+          org_id: string
+          priority: string
+          rule_id: string | null
+          rule_name: string
+          threshold_value: number | null
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metric_value?: number | null
+          org_id: string
+          priority?: string
+          rule_id?: string | null
+          rule_name: string
+          threshold_value?: number | null
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metric_value?: number | null
+          org_id?: string
+          priority?: string
+          rule_id?: string | null
+          rule_name?: string
+          threshold_value?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "smart_alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_rules: {
         Row: {
           created_at: string | null
@@ -13229,6 +13289,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "shipping_zones_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_alert_rules: {
+        Row: {
+          category: string
+          channels: string[]
+          condition_op: string
+          cooldown_min: number
+          created_at: string
+          id: string
+          is_active: boolean
+          last_triggered: string | null
+          metric: string
+          name: string
+          org_id: string
+          priority: string
+          threshold: number
+          trigger_count: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          channels?: string[]
+          condition_op?: string
+          cooldown_min?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          metric: string
+          name: string
+          org_id: string
+          priority?: string
+          threshold?: number
+          trigger_count?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          channels?: string[]
+          condition_op?: string
+          cooldown_min?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_triggered?: string | null
+          metric?: string
+          name?: string
+          org_id?: string
+          priority?: string
+          threshold?: number
+          trigger_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_alert_rules_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"

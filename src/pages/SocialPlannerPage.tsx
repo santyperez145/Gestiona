@@ -99,7 +99,10 @@ function fmtDate(d: string) {
 
 const EMPTY_POST = {
   title: "", content: "", platforms: ["instagram"] as string[], hashtags: [] as string[],
-  status: "draft" as const, scheduled_for: "", post_type: "post",
+  // Tipado como la unión completa (no `as const`): el form cambia de estado
+  // y también se carga desde un post existente.
+  status: "draft" as "draft" | "scheduled" | "published" | "cancelled",
+  scheduled_for: "", post_type: "post",
   campaign_name: "", target_audience: "", cta_text: "", cta_url: "", notes: "",
 };
 

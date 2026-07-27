@@ -469,7 +469,8 @@ function InvoicesModal({ open, sub, onClose, onRefresh }: InvoicesModalProps) {
       .select("*")
       .eq("subscription_id", sub.id)
       .order("created_at", { ascending: false })
-      .then(({ data }) => { setInvoices(data ?? []); setLoading(false); });
+      // status/currency son TEXT con CHECK en DB → llegan como string
+      .then(({ data }) => { setInvoices((data ?? []) as SubscriptionInvoice[]); setLoading(false); });
   }, [open, sub]);
 
   const markPaid = async (inv: SubscriptionInvoice) => {
@@ -760,7 +761,8 @@ export default function SubscriptionsPage() {
       .select("*")
       .eq("org_id", orgId)
       .order("price");
-    setPlans(data ?? []);
+    // billing_interval es TEXT con CHECK en DB → llega como string
+    setPlans((data ?? []) as SubscriptionPlan[]);
     setLoadingPlans(false);
   };
 
@@ -839,7 +841,7 @@ export default function SubscriptionsPage() {
   };
 
   const handleRenew = async (sub: Subscription) => {
-    const { error } = await supabase.rpc("renew_subscription", { p_sub_id: sub.id });
+    const { error } = await supabase.rpc("renew_subscription", { p_subscription_id: sub.id });
     if (error) { toast.error("Error al renovar: " + error.message); return; }
     toast.success("Suscripción renovada y factura generada");
     loadSubs();
