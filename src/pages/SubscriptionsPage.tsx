@@ -357,8 +357,8 @@ function SubFormDialog({ open, sub, plans, orgId, onClose, onSaved }: SubFormDia
       payment_method: paymentMethod.trim() || null,
     };
     const { error } = sub
-      ? await supabase.from("subscriptions").update(payload).eq("id", sub.id)
-      : await supabase.from("subscriptions").insert(payload);
+      ? await supabase.from("customer_subscriptions").update(payload).eq("id", sub.id)
+      : await supabase.from("customer_subscriptions").insert(payload);
     setLoading(false);
     if (error) { toast.error("Error al guardar la suscripción"); return; }
     toast.success(sub ? "Suscripción actualizada" : "Suscripción creada");
@@ -769,7 +769,7 @@ export default function SubscriptionsPage() {
     if (!orgId) return;
     setLoadingSubs(true);
     const { data } = await supabase
-      .from("subscriptions")
+      .from("customer_subscriptions")
       .select("*, plan:subscription_plans(*)")
       .eq("org_id", orgId)
       .order("created_at", { ascending: false });
@@ -832,7 +832,7 @@ export default function SubscriptionsPage() {
   const handleChangeSubStatus = async (sub: Subscription, status: string) => {
     const update: Record<string, unknown> = { status };
     if (status === "cancelled") update.cancelled_at = new Date().toISOString();
-    const { error } = await supabase.from("subscriptions").update(update).eq("id", sub.id);
+    const { error } = await supabase.from("customer_subscriptions").update(update).eq("id", sub.id);
     if (error) { toast.error("Error al cambiar estado"); return; }
     toast.success(`Suscripción ${STATUS_CONFIG[status]?.label ?? status}`);
     loadSubs();

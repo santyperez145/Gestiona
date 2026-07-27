@@ -132,7 +132,9 @@ export default function WhatsAppCampaignsPage() {
         supabase.from("whatsapp_campaigns").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
         supabase.from("customers").select("id,name,phone,birthday").eq("org_id", activeOrg.id),
         supabase.from("sales").select("customer_name,date").eq("org_id", activeOrg.id).order("date", { ascending: false }),
-        supabase.from("debts").select("customer_name,amount,paid").eq("org_id", activeOrg.id).eq("paid", false),
+        // Deudas pendientes: la tabla no tiene `paid`/`amount` — el saldo real
+        // es remaining_ars (>0 = todavía debe).
+        supabase.from("debts").select("customer_name,remaining_ars,status").eq("org_id", activeOrg.id).gt("remaining_ars", 0),
         supabase.from("coupons").select("id, code").eq("user_id", user.id),
         // One aggregate query for attribution: all sales made with any coupon
         supabase.from("sales").select("coupon_code, total_ars").eq("org_id", activeOrg.id).not("coupon_code", "is", null),

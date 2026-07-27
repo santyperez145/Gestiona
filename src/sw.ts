@@ -61,14 +61,16 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title ?? "Gestiona";
-  const options: NotificationOptions = {
+  // `renotify` es válido en la Web Notifications API pero todavía no está en
+  // el tipo NotificationOptions del lib DOM de TS → se castea.
+  const options = {
     body: data.body ?? "",
     icon: "/favicon.ico",
     badge: "/favicon.ico",
     tag: data.tag ?? "gestiona-push",
     renotify: true,
     data: { url: data.url ?? "/" },
-  };
+  } as NotificationOptions;
 
   event.waitUntil(self.registration.showNotification(title, options));
 });

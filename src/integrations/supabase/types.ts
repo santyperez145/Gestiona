@@ -3196,6 +3196,94 @@ export type Database = {
           },
         ]
       }
+      customer_subscriptions: {
+        Row: {
+          amount_override: number | null
+          auto_renew: boolean
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          discount_percent: number
+          id: string
+          notes: string | null
+          org_id: string
+          payment_method: string | null
+          plan_id: string
+          status: string
+          trial_end: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_override?: number | null
+          auto_renew?: boolean
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end: string
+          current_period_start?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          discount_percent?: number
+          id?: string
+          notes?: string | null
+          org_id: string
+          payment_method?: string | null
+          plan_id: string
+          status?: string
+          trial_end?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_override?: number | null
+          auto_renew?: boolean
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          discount_percent?: number
+          id?: string
+          notes?: string | null
+          org_id?: string
+          payment_method?: string | null
+          plan_id?: string
+          status?: string
+          trial_end?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_touchpoints: {
         Row: {
           assigned_to: string | null
@@ -13667,6 +13755,128 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          due_date: string
+          id: string
+          invoice_number: string
+          notes: string | null
+          org_id: string
+          paid_at: string | null
+          payment_method: string | null
+          period_end: string
+          period_start: string
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          due_date: string
+          id?: string
+          invoice_number: string
+          notes?: string | null
+          org_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          org_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "customer_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          billing_interval: string
+          created_at: string
+          currency: string
+          description: string | null
+          features: string[] | null
+          id: string
+          is_public: boolean
+          name: string
+          org_id: string
+          price: number
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          is_public?: boolean
+          name: string
+          org_id: string
+          price?: number
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          org_id?: string
+          price?: number
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -16551,6 +16761,10 @@ export type Database = {
           p_variant_id: string
           p_variant_name: string
         }
+        Returns: string
+      }
+      renew_subscription: {
+        Args: { p_subscription_id: string }
         Returns: string
       }
       run_abc_analysis: {
