@@ -16,7 +16,9 @@ import {
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
   Instagram, Droplets,
 } from "lucide-react";
-import { NOTAS_COMUNES } from "@/lib/scentTaxonomy";
+import { NOTAS_COMUNES, taxLabel } from "@/lib/scentTaxonomy";
+import { recommendForPreferences } from "@/lib/perfumeMatch";
+import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import { useContactPicker } from "@/hooks/useContactPicker";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1207,6 +1209,9 @@ export default function CustomersPage() {
   const { activeOrg } = useOrg();
   const { canCreate, canEdit, canDelete } = useModulePermissions("customers");
   const [sales, setSales] = useState<any[]>([]);
+  const [recoProducts, setRecoProducts] = useState<any[]>([]);
+  const [perfumeDetailsById, setPerfumeDetailsById] = useState<Record<string, any>>({});
+  const [recoForCustomer, setRecoForCustomer] = useState<CustomerProfile | null>(null);
   const [debts, setDebts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [profiles, setProfiles] = useState<CustomerProfile[]>([]);
@@ -1286,17 +1291,24 @@ export default function CustomersPage() {
 
   const loadData = async () => {
     if (!user) return;
-    const [s, d, st, profs, segs] = await Promise.all([
+    const orgId = await import("@/lib/orgContext").then(m => m.getActiveOrgId());
+    const [s, d, st, profs, segs, prodRes, ppdRes] = await Promise.all([
       getSalesDB(user.id),
       getDebtsDB(user.id),
       getSettingsDB(user.id),
       getCustomersDB(user.id).catch(() => [] as CustomerProfile[]),
       getCRMSegmentsDB(user.id).catch(() => [] as SavedCRMSegment[]),
+      supabase.from("products").select("id, name, brand, image_url, sale_price_ars, discount_price_ars, category").eq("org_id", orgId).gt("stock", 0),
+      supabase.from("product_perfume_details").select("*").eq("org_id", orgId),
     ]);
     setSales(s);
     setDebts(d);
     setSettings(st);
     setProfiles(profs);
+    setRecoProducts((prodRes.data as any[]) || []);
+    const dmap: Record<string, any> = {};
+    (ppdRes.data || []).forEach((r: any) => { dmap[r.product_id] = r; });
+    setPerfumeDetailsById(dmap);
     // Merge DB segments with any existing localStorage segments (migration)
     const lsRaw = localStorage.getItem("gestiona.crm.saved_segments");
     const lsSegs: SavedCRMSegment[] = lsRaw ? JSON.parse(lsRaw) : [];
@@ -2459,6 +2471,16 @@ export default function CustomersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Recomendador de perfumes por cliente */}
+      <PerfumeRecommenderModal
+        open={!!recoForCustomer}
+        onOpenChange={(v) => { if (!v) setRecoForCustomer(null); }}
+        title="Perfumes recomendados"
+        subtitle={recoForCustomer ? `Para ${recoForCustomer.name} según sus preferencias olfativas` : undefined}
+        results={recoForCustomer ? recommendForPreferences(recoForCustomer.scent_preferences || [], recoProducts, perfumeDetailsById, { limit: 8 }) : []}
+        onPick={(prod) => { const num = (recoForCustomer?.whatsapp_number || recoForCustomer?.phone || '').replace(/\D/g, ''); if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(`Hola ${recoForCustomer?.name?.split(' ')[0] || ''}! Te recomiendo este perfume que va con tu estilo: ${prod.name} 🌟`)}`, '_blank'); }}
+      />
+
       {/* Bulk Note Dialog */}
       <Dialog open={bulkNoteOpen} onOpenChange={setBulkNoteOpen}>
         <DialogContent className="sm:max-w-md">
@@ -3053,7 +3075,36 @@ export default function CustomersPage() {
                       </TabsContent>
 
                       {/* ── Tab: Compras ── */}
-                      <TabsContent value="compras" className="mt-0">
+                      <TabsContent value="compras" className="mt-0 space-y-3">
+                        {(() => {
+                          const prof = profileByName[c.name.toLowerCase()];
+                          const prefs = prof?.scent_preferences || [];
+                          if (prefs.length === 0) return null;
+                          const recos = recommendForPreferences(prefs, recoProducts, perfumeDetailsById, { limit: 4 });
+                          if (recos.length === 0) return null;
+                          return (
+                            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><Star className="w-3.5 h-3.5" />Recomendados según sus gustos</p>
+                                <button onClick={() => setRecoForCustomer(prof || null)} className="text-[10px] text-primary hover:underline">Ver todos</button>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mb-2">Le gustan: {prefs.map((p: string) => taxLabel(NOTAS_COMUNES, p)).join(", ")}</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {recos.map(({ product, score }) => (
+                                  <div key={product.id} className="flex items-center gap-2 bg-card rounded-md p-1.5 border border-border/60">
+                                    <div className="w-8 h-8 rounded bg-muted/40 overflow-hidden shrink-0 flex items-center justify-center">
+                                      {product.image_url ? <img src={product.image_url} alt="" className="w-full h-full object-cover" /> : <Package className="w-4 h-4 text-muted-foreground/40" />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[11px] font-medium truncate">{product.name}</p>
+                                      <p className="text-[9px] text-primary font-bold">{score}% match</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <CustomerSalesTimeline
                           customerName={c.name}
                           sales={sales}
