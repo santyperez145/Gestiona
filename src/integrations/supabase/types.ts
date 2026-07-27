@@ -2521,6 +2521,7 @@ export type Database = {
       payment_links: {
         Row: {
           created_at: string
+          customer_email: string | null
           customer_name: string
           customer_phone: string | null
           expires_at: string | null
@@ -2529,6 +2530,7 @@ export type Database = {
           items: Json
           mp_link: string | null
           mp_payment_id: string | null
+          mp_preference_id: string | null
           notes: string | null
           org_id: string
           paid_at: string | null
@@ -2539,6 +2541,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
           expires_at?: string | null
@@ -2547,6 +2550,7 @@ export type Database = {
           items?: Json
           mp_link?: string | null
           mp_payment_id?: string | null
+          mp_preference_id?: string | null
           notes?: string | null
           org_id: string
           paid_at?: string | null
@@ -2557,6 +2561,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
           expires_at?: string | null
@@ -2565,6 +2570,7 @@ export type Database = {
           items?: Json
           mp_link?: string | null
           mp_payment_id?: string | null
+          mp_preference_id?: string | null
           notes?: string | null
           org_id?: string
           paid_at?: string | null
@@ -3727,6 +3733,9 @@ export type Database = {
           discount_credit_percent: number
           discount_debit_percent: number
           discount_transfer_percent: number
+          evolution_api_key: string | null
+          evolution_api_url: string | null
+          evolution_instance: string | null
           exchange_rate: number
           expense_categories: Json
           expense_ratio_alert_percent: number
@@ -3755,6 +3764,13 @@ export type Database = {
           referral_bonus_points: number | null
           referral_enabled: boolean | null
           secondary_color: string | null
+          smtp_from_email: string | null
+          smtp_from_name: string | null
+          smtp_host: string | null
+          smtp_pass: string | null
+          smtp_port: number
+          smtp_secure: boolean
+          smtp_user: string | null
           stock_dormido_days: number | null
           tax_enabled: boolean
           tax_iibb_percent: number
@@ -3772,6 +3788,8 @@ export type Database = {
           webhook_events: string[] | null
           webhook_secret: string | null
           webhook_url: string | null
+          whatsapp_birthday_enabled: boolean
+          whatsapp_digest_enabled: boolean
           whatsapp_number: string | null
         }
         Insert: {
@@ -3812,6 +3830,9 @@ export type Database = {
           discount_credit_percent?: number
           discount_debit_percent?: number
           discount_transfer_percent?: number
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance?: string | null
           exchange_rate?: number
           expense_categories?: Json
           expense_ratio_alert_percent?: number
@@ -3840,6 +3861,13 @@ export type Database = {
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
           secondary_color?: string | null
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_pass?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string | null
           stock_dormido_days?: number | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
@@ -3857,6 +3885,8 @@ export type Database = {
           webhook_events?: string[] | null
           webhook_secret?: string | null
           webhook_url?: string | null
+          whatsapp_birthday_enabled?: boolean
+          whatsapp_digest_enabled?: boolean
           whatsapp_number?: string | null
         }
         Update: {
@@ -3897,6 +3927,9 @@ export type Database = {
           discount_credit_percent?: number
           discount_debit_percent?: number
           discount_transfer_percent?: number
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance?: string | null
           exchange_rate?: number
           expense_categories?: Json
           expense_ratio_alert_percent?: number
@@ -3925,6 +3958,13 @@ export type Database = {
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
           secondary_color?: string | null
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_pass?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string | null
           stock_dormido_days?: number | null
           tax_enabled?: boolean
           tax_iibb_percent?: number
@@ -3942,6 +3982,8 @@ export type Database = {
           webhook_events?: string[] | null
           webhook_secret?: string | null
           webhook_url?: string | null
+          whatsapp_birthday_enabled?: boolean
+          whatsapp_digest_enabled?: boolean
           whatsapp_number?: string | null
         }
         Relationships: [
@@ -4794,6 +4836,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "webhook_deliveries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_campaigns: {
+        Row: {
+          created_at: string
+          failed_count: number
+          id: string
+          message: string
+          org_id: string
+          segment: string
+          sent_at: string | null
+          sent_count: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          failed_count?: number
+          id?: string
+          message: string
+          org_id: string
+          segment?: string
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          failed_count?: number
+          id?: string
+          message?: string
+          org_id?: string
+          segment?: string
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaigns_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
