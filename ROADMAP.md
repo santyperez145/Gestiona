@@ -448,12 +448,17 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
 - Nota verificada: el POS ya calculaba bien la ganancia (usa costo con
   aduana); no había bug.
 
-- Pendiente Phase 3: pulido visual profundo de páginas puntuales (mejor
-  con feedback del usuario sobre cuáles), recomendador por cliente
-  (cablear en CustomersPage — la lib ya existe), reservas reales (tabla
-  stock_reservations), catálogo PDF por facetas, promos en catálogo
-  público (necesita path de lectura pública), price_lists mayorista en la
-  ficha, alerta "precio desactualizado".
+- **Fix header (bug real reportado con captura)**: en páginas con toolbars
+  largas (Productos ~10 botones) el bloque de acciones aplastaba el
+  título/descripción a ~0px. PageHeader ahora limita acciones al 62% en
+  desktop + flex-wrap; 29 páginas con divs de acciones sin flex-wrap
+  corregidos. Sistémico → arregla todas las páginas con header compartido.
+- **Recomendador por cliente** (Phase 3): en la ficha del cliente se
+  muestran perfumes que matchean sus preferencias olfativas (% match) +
+  modal "Ver todos" + WhatsApp de recomendación.
+- Pendiente Phase 3: reservas reales (tabla stock_reservations), catálogo
+  PDF por facetas, promos en catálogo público (path de lectura pública),
+  price_lists mayorista en la ficha, alerta "precio desactualizado".
 
 ---
 
