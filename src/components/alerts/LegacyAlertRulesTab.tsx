@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { safeChannel } from "@/lib/realtimeChannel";
 import {
-  Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown,
+  Bell, Package, AlertTriangle, DollarSign, Users, TrendingDown, TrendingUp,
   RefreshCw, CheckCheck, ToggleLeft, ToggleRight, Save, Play,
   Clock, Zap, Info, ShieldCheck, CalendarX2, Mail, ChevronDown, ChevronUp,
 } from "lucide-react";
@@ -122,6 +122,17 @@ const RULE_CONFIG: Record<string, {
     thresholdUnit: "días",
     useDays: true,
     daysLabel: "días antes de vencer",
+  },
+  stale_price: {
+    label: "Precios desactualizados",
+    description: "Avisa cuando el precio guardado se desvía del que corresponde al dólar y markup actuales (típico cuando sube el dólar).",
+    icon: TrendingUp,
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    thresholdLabel: "Desvío máximo tolerado",
+    thresholdUnit: "%",
+    useDays: false,
   },
 };
 

@@ -198,6 +198,61 @@ Deno.serve(async (req) => {
           }
         }
 
+        if (rule.type === "stale_price") {
+          // Precio desactualizado: el precio guardado se desvió más de
+          // threshold_value % del que correspondería hoy.
+          // Fórmula espejo de src/lib/pricing.ts (calcAutoSalePrice):
+          //   (costo + costo×pasero%) × TC × markup de la categoría
+          const { data: settingsRow } = await supabase
+            .from("settings")
+            .select("exchange_rate, customs_percent, category_pricing")
+            .eq("org_id", orgId)
+            .maybeSingle();
+
+          const rate = Number(settingsRow?.exchange_rate) || 0;
+          const customs = Number(settingsRow?.customs_percent) || 0;
+          const catPricing = (settingsRow?.category_pricing ?? {}) as Record<string, { markup?: number }>;
+          const tolerance = Number(rule.threshold_value) || 10;
+
+          if (rate > 0) {
+            const { data: prods } = await supabase
+              .from("products")
+              .select("id, name, category, cost_usd, sale_price_ars")
+              .eq("org_id", orgId)
+              .gt("cost_usd", 0)
+              .gt("sale_price_ars", 0)
+              .limit(300);
+
+            const stale: { name: string; actual: number; expected: number; devPct: number }[] = [];
+            for (const p of prods ?? []) {
+              const mk = Number(catPricing?.[p.category as string]?.markup) > 0
+                ? Number(catPricing[p.category as string].markup)
+                : 2;
+              const cost = Number(p.cost_usd);
+              const expected = Math.round((cost + cost * (customs / 100)) * rate * mk);
+              if (expected <= 0) continue;
+              const actual = Number(p.sale_price_ars);
+              const devPct = Math.abs(actual - expected) / expected * 100;
+              if (devPct > tolerance) stale.push({ name: p.name, actual, expected, devPct });
+            }
+
+            if (stale.length > 0) {
+              stale.sort((a, b) => b.devPct - a.devPct);
+              const worst = stale[0];
+              const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
+              alerts.push({
+                type: "sistema",
+                title: `${stale.length} producto${stale.length !== 1 ? "s" : ""} con precio desactualizado`,
+                message:
+                  `El precio guardado difiere más de ${tolerance}% del que corresponde al dólar actual ($${rate}). ` +
+                  `El más desviado: ${worst.name} — está a ${fmt(worst.actual)} y debería estar a ${fmt(worst.expected)} ` +
+                  `(${worst.devPct.toFixed(0)}% de desvío). Podés corregirlos con "Recalcular Todo" en Ajustes.`,
+                entityKey: `stale_price:${orgId}:${now.toISOString().slice(0, 10)}`,
+              });
+            }
+          }
+        }
+
         // Update last_run_at for the rule
         await supabase
           .from("alert_rules")
