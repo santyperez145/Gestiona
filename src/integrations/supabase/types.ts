@@ -612,6 +612,44 @@ export type Database = {
           },
         ]
       }
+      content_ideas: {
+        Row: {
+          category: string
+          converted_to_post: boolean
+          created_at: string
+          id: string
+          idea: string
+          org_id: string
+          priority: number
+        }
+        Insert: {
+          category?: string
+          converted_to_post?: boolean
+          created_at?: string
+          id?: string
+          idea: string
+          org_id: string
+          priority?: number
+        }
+        Update: {
+          category?: string
+          converted_to_post?: boolean
+          created_at?: string
+          id?: string
+          idea?: string
+          org_id?: string
+          priority?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           active: boolean
@@ -1418,6 +1456,41 @@ export type Database = {
           },
           {
             foreignKeyName: "financial_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hashtag_sets: {
+        Row: {
+          created_at: string
+          hashtags: string[]
+          id: string
+          name: string
+          org_id: string
+          platform: string
+        }
+        Insert: {
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          name: string
+          org_id: string
+          platform?: string
+        }
+        Update: {
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          name?: string
+          org_id?: string
+          platform?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hashtag_sets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3081,6 +3154,151 @@ export type Database = {
         }
         Relationships: []
       }
+      promotion_usages: {
+        Row: {
+          customer_id: string | null
+          customer_name: string | null
+          discount_applied: number
+          id: string
+          order_value: number
+          org_id: string
+          promotion_id: string
+          used_at: string
+        }
+        Insert: {
+          customer_id?: string | null
+          customer_name?: string | null
+          discount_applied?: number
+          id?: string
+          order_value?: number
+          org_id: string
+          promotion_id: string
+          used_at?: string
+        }
+        Update: {
+          customer_id?: string | null
+          customer_name?: string | null
+          discount_applied?: number
+          id?: string
+          order_value?: number
+          org_id?: string
+          promotion_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_usages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "active_promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_usages_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          applies_to: string
+          banner_color: string
+          banner_text: string | null
+          category_names: string[] | null
+          coupon_code: string | null
+          created_at: string
+          description: string | null
+          discount_value: number
+          ends_at: string | null
+          id: string
+          max_uses: number | null
+          min_order_value: number
+          name: string
+          org_id: string
+          product_ids: string[] | null
+          show_countdown: boolean
+          starts_at: string
+          status: string
+          type: string
+          updated_at: string
+          uses_count: number
+          uses_per_customer: number
+        }
+        Insert: {
+          applies_to?: string
+          banner_color?: string
+          banner_text?: string | null
+          category_names?: string[] | null
+          coupon_code?: string | null
+          created_at?: string
+          description?: string | null
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_value?: number
+          name: string
+          org_id: string
+          product_ids?: string[] | null
+          show_countdown?: boolean
+          starts_at?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          uses_count?: number
+          uses_per_customer?: number
+        }
+        Update: {
+          applies_to?: string
+          banner_color?: string
+          banner_text?: string | null
+          category_names?: string[] | null
+          coupon_code?: string | null
+          created_at?: string
+          description?: string | null
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_value?: number
+          name?: string
+          org_id?: string
+          product_ids?: string[] | null
+          show_countdown?: boolean
+          starts_at?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          uses_count?: number
+          uses_per_customer?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchases: {
         Row: {
           batch_name: string | null
@@ -3996,6 +4214,92 @@ export type Database = {
           },
         ]
       }
+      social_posts: {
+        Row: {
+          campaign_name: string | null
+          clicks: number
+          comments: number
+          content: string
+          created_at: string
+          cta_text: string | null
+          cta_url: string | null
+          hashtags: string[]
+          id: string
+          likes: number
+          media_urls: string[]
+          notes: string | null
+          org_id: string
+          platforms: string[]
+          post_type: string
+          published_at: string | null
+          scheduled_for: string | null
+          shares: number
+          status: string
+          target_audience: string | null
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          campaign_name?: string | null
+          clicks?: number
+          comments?: number
+          content: string
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          hashtags?: string[]
+          id?: string
+          likes?: number
+          media_urls?: string[]
+          notes?: string | null
+          org_id: string
+          platforms?: string[]
+          post_type?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          shares?: number
+          status?: string
+          target_audience?: string | null
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          campaign_name?: string | null
+          clicks?: number
+          comments?: number
+          content?: string
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          hashtags?: string[]
+          id?: string
+          likes?: number
+          media_urls?: string[]
+          notes?: string | null
+          org_id?: string
+          platforms?: string[]
+          post_type?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          shares?: number
+          status?: string
+          target_audience?: string | null
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_history: {
         Row: {
           change: number
@@ -4889,6 +5193,89 @@ export type Database = {
       }
     }
     Views: {
+      active_promotions: {
+        Row: {
+          applies_to: string | null
+          banner_color: string | null
+          banner_text: string | null
+          category_names: string[] | null
+          coupon_code: string | null
+          created_at: string | null
+          description: string | null
+          discount_value: number | null
+          ends_at: string | null
+          id: string | null
+          max_uses: number | null
+          min_order_value: number | null
+          name: string | null
+          org_id: string | null
+          product_ids: string[] | null
+          show_countdown: boolean | null
+          starts_at: string | null
+          status: string | null
+          type: string | null
+          updated_at: string | null
+          uses_count: number | null
+          uses_per_customer: number | null
+        }
+        Insert: {
+          applies_to?: string | null
+          banner_color?: string | null
+          banner_text?: string | null
+          category_names?: string[] | null
+          coupon_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_value?: number | null
+          ends_at?: string | null
+          id?: string | null
+          max_uses?: number | null
+          min_order_value?: number | null
+          name?: string | null
+          org_id?: string | null
+          product_ids?: string[] | null
+          show_countdown?: boolean | null
+          starts_at?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string | null
+          uses_count?: number | null
+          uses_per_customer?: number | null
+        }
+        Update: {
+          applies_to?: string | null
+          banner_color?: string | null
+          banner_text?: string | null
+          category_names?: string[] | null
+          coupon_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_value?: number | null
+          ends_at?: string | null
+          id?: string | null
+          max_uses?: number | null
+          min_order_value?: number | null
+          name?: string | null
+          org_id?: string | null
+          product_ids?: string[] | null
+          show_countdown?: boolean | null
+          starts_at?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string | null
+          uses_count?: number | null
+          uses_per_customer?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_summary: {
         Row: {
           action: string | null
@@ -5101,6 +5488,7 @@ export type Database = {
       }
     }
     Functions: {
+      activate_scheduled_promotions: { Args: never; Returns: number }
       adjust_stock: {
         Args: {
           p_created_by: string
@@ -5113,6 +5501,7 @@ export type Database = {
         Returns: string
       }
       check_overdue_debts: { Args: never; Returns: undefined }
+      end_expired_promotions: { Args: never; Returns: number }
       expire_overdue_trials: { Args: never; Returns: undefined }
       generate_org_slug: { Args: { _name: string }; Returns: string }
       get_org_role: {
