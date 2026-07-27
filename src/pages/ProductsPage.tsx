@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
+import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -548,9 +549,8 @@ export default function ProductsPage() {
       await updateProductDB(p.id, { discount_price_ars: null });
       toast.success(`Descuento removido de "${p.name}"`);
     } else {
-      const catDisc = (settings?.category_pricing as Record<string, { discount?: number }> | undefined)?.[p.category]?.discount;
-      const pct = catDisc != null && Number(catDisc) >= 0 ? Number(catDisc) : Number(settings?.default_discount_percent || 20);
-      const discounted = Math.round(Number(p.sale_price_ars) * (1 - pct / 100));
+      const pct = getCategoryDiscount(settings, p.category);
+      const discounted = calcAutoDiscountPrice(Number(p.sale_price_ars), pct);
       await updateProductDB(p.id, { discount_price_ars: discounted });
       toast.success(`Descuento de ${pct}% aplicado a "${p.name}" → ${formatARS(discounted)}`);
     }
@@ -1635,17 +1635,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const salePrice = parseFloat(salePriceARS) || 0;
   const customsPercent = Number(settings?.customs_percent || 15);
   const exchangeRate = Number(settings?.exchange_rate || 1695);
-  // Precios por categoría: markup y descuento por defecto propios de la categoría
-  // (fallback: markup ×2 y descuento global default_discount_percent, o 20).
-  const catPricing = (settings?.category_pricing as Record<string, { markup?: number; discount?: number }> | undefined)?.[category];
-  const categoryMarkup = Number(catPricing?.markup) > 0 ? Number(catPricing!.markup) : 2;
-  const defaultDiscount = Number(catPricing?.discount) >= 0 && catPricing?.discount != null
-    ? Number(catPricing.discount)
-    : Number(settings?.default_discount_percent || 20);
+  // Precios por categoría — fuente de verdad compartida en @/lib/pricing
+  const categoryMarkup = getCategoryMarkup(settings, category);
+  const defaultDiscount = getCategoryDiscount(settings, category);
 
-  const autoSalePrice = cost > 0 ? Math.round((cost + cost * customsPercent / 100) * exchangeRate * categoryMarkup) : 0;
+  const autoSalePrice = calcAutoSalePrice(cost, customsPercent, exchangeRate, categoryMarkup);
   const currentSaleForDiscount = parseFloat(salePriceARS) || autoSalePrice;
-  const autoDiscountPrice = currentSaleForDiscount > 0 ? Math.round(currentSaleForDiscount * (1 - defaultDiscount / 100)) : 0;
+  const autoDiscountPrice = calcAutoDiscountPrice(currentSaleForDiscount, defaultDiscount);
 
   useEffect(() => {
     if (cost <= 0) return;
@@ -2631,7 +2627,13 @@ function BulkPriceAdjust({ userId, settings, onDone }: { userId: string; setting
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'percent' | 'recalc'>('percent');
   const [newExchangeRate, setNewExchangeRate] = useState(String(settings?.exchange_rate || 1700));
-  const [recalcMarkup, setRecalcMarkup] = useState('100');
+  // El markup se expresa en % (100% = ×2). Se prellena con el markup
+  // configurado para la categoría elegida, para no pisarlo sin querer.
+  const [recalcMarkup, setRecalcMarkup] = useState(String((getCategoryMarkup(settings, null) - 1) * 100));
+  useEffect(() => {
+    if (category === 'all') return;
+    setRecalcMarkup(String(Math.round((getCategoryMarkup(settings, category) - 1) * 100)));
+  }, [category, settings]);
 
   const handleRecalc = async () => {
     const xRate = parseFloat(newExchangeRate);

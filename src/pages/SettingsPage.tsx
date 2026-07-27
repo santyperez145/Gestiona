@@ -9,6 +9,7 @@ import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSup
 import { useEntitlements } from "@/lib/useEntitlements";
 import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories, getCategoryLabel } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
+import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -311,6 +312,7 @@ export default function SettingsPage() {
   const [origRate, setOrigRate] = useState('');
   const [origCustoms, setOrigCustoms] = useState('');
   const [origDiscount, setOrigDiscount] = useState('');
+  const [origCategoryPricing, setOrigCategoryPricing] = useState('{}');
 
   useEffect(() => {
     if (!user) return;
@@ -364,6 +366,7 @@ export default function SettingsPage() {
       setOrigRate(String(s.exchange_rate));
       setOrigCustoms(String(s.customs_percent));
       setOrigDiscount(String(s.default_discount_percent));
+      setOrigCategoryPricing(JSON.stringify(s.category_pricing || {}));
       const products = await getProductsDB(user.id);
       setProductCount(products.length);
       setLoading(false);
@@ -434,9 +437,12 @@ export default function SettingsPage() {
       toast.success("Configuración guardada correctamente");
 
       // Check if pricing-related settings changed → prompt recalculate
-      if (exchangeRate !== origRate || customsPercent !== origCustoms || defaultDiscountPercent !== origDiscount) {
-        toast("Los parámetros financieros cambiaron", {
-          description: "¿Recalcular todos los precios de productos?",
+      // (incluye el markup/descuento por categoría: si cambia el markup, los
+      // precios ya cargados quedan viejos hasta recalcular)
+      const catPricingChanged = JSON.stringify(categoryPricing) !== origCategoryPricing;
+      if (exchangeRate !== origRate || customsPercent !== origCustoms || defaultDiscountPercent !== origDiscount || catPricingChanged) {
+        toast(catPricingChanged ? "Cambiaron los precios por categoría" : "Los parámetros financieros cambiaron", {
+          description: "¿Recalcular los precios de todos los productos con los nuevos valores?",
           action: { label: "Recalcular", onClick: () => handleRecalculate() },
           duration: 10000,
         });
@@ -444,6 +450,7 @@ export default function SettingsPage() {
       setOrigRate(exchangeRate);
       setOrigCustoms(customsPercent);
       setOrigDiscount(defaultDiscountPercent);
+      setOrigCategoryPricing(JSON.stringify(categoryPricing));
     } catch (err: any) {
       toast.error("Error al guardar: " + err.message);
     } finally {
@@ -456,28 +463,53 @@ export default function SettingsPage() {
     const products = await getProductsDB(user.id);
     const rate = parseFloat(exchangeRate) || 1695;
     const customs = parseFloat(customsPercent) || 15;
-    const discPct = parseFloat(defaultDiscountPercent) || 40;
-    let count = 0;
-    for (const p of products) {
-      if (Number(p.cost_usd) <= 0) continue;
+    // Se usa el markup/descuento de CADA categoría (settings.category_pricing),
+    // no un ×2 fijo — así cambiar el markup de una categoría se refleja acá.
+    const settingsForCalc = { category_pricing: categoryPricing, default_discount_percent: parseFloat(defaultDiscountPercent) };
+    const eligible = products.filter(p => Number(p.cost_usd) > 0);
+    const nowMs = Date.now();
+
+    const updates = eligible.map(p => {
       const costUsd = Number(p.cost_usd);
-      // Auto-calculate sale price: (cost + pasero) * TC * 2
-      const newSalePrice = Math.round((costUsd + costUsd * customs / 100) * rate * 2);
-      // Auto-calculate discount price
-      const newDiscountPrice = Math.round(newSalePrice * (1 - discPct / 100));
+      const markup = getCategoryMarkup(settingsForCalc, p.category);
+      const newSalePrice = calcAutoSalePrice(costUsd, customs, rate, markup);
+
+      // Si el producto tiene una oferta vigente, se preserva su % de descuento
+      // real (para no pisar una promo activa con el descuento por defecto).
+      const oldSale = Number(p.sale_price_ars) || 0;
+      const oldDisc = Number(p.discount_price_ars) || 0;
+      const hasLiveOffer = p.offer_expires_at ? new Date(p.offer_expires_at).getTime() > nowMs : false;
+      const oldDiscPct = oldSale > 0 && oldDisc > 0 && oldDisc < oldSale
+        ? (1 - oldDisc / oldSale) * 100
+        : null;
+      const discPct = hasLiveOffer && oldDiscPct !== null
+        ? oldDiscPct
+        : getCategoryDiscount(settingsForCalc, p.category);
+      const newDiscountPrice = calcAutoDiscountPrice(newSalePrice, discPct);
+
       const { customsFee, totalCostUSD, profitPerUnitARS, profitPerUnitUSD } = calculateProductProfits(
         costUsd, customs, newSalePrice, rate
       );
-      await supabase.from('products').update({
-        customs_fee: customsFee, total_cost_usd: totalCostUSD,
-        sale_price_ars: newSalePrice,
-        discount_price_ars: newDiscountPrice,
-        profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
-      }).eq('id', p.id);
-      count++;
+      return {
+        id: p.id,
+        payload: {
+          customs_fee: customsFee, total_cost_usd: totalCostUSD,
+          sale_price_ars: newSalePrice,
+          discount_price_ars: newDiscountPrice,
+          profit_per_unit_ars: profitPerUnitARS, profit_per_unit_usd: profitPerUnitUSD,
+        },
+      };
+    });
+
+    // En tandas de 25 para no disparar cientos de requests en serie.
+    let count = 0;
+    for (let i = 0; i < updates.length; i += 25) {
+      const chunk = updates.slice(i, i + 25);
+      await Promise.all(chunk.map(u => supabase.from('products').update(u.payload).eq('id', u.id)));
+      count += chunk.length;
     }
     setProductCount(count);
-    toast.success(`${count} productos recalculados con TC $${rate}, pasero ${customs}%, desc. ${discPct}%`);
+    toast.success(`${count} productos recalculados con TC $${rate}, pasero ${customs}% y el markup de cada categoría`);
   };
 
   if (loading) return (
