@@ -34,9 +34,19 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Bloqueante: el proyecto debe type-checkear limpio.
-      - name: Type check
-        run: npx tsc --noEmit
+      # OJO: `npx tsc --noEmit` sobre el tsconfig raíz (files: []) NO chequea
+      # NINGÚN archivo — daba verde siempre. Por eso pasaron sin detectarse
+      # errores que rompían páginas en runtime (ver DialogFooter, settings).
+      # `npm run typecheck` apunta a tsconfig.app.json y sí chequea de verdad.
+      #
+      # NO bloqueante por ahora: hay ~810 errores pre-existentes en 88 archivos,
+      # en su mayoría referencias a tablas/columnas que nunca se migraron a prod.
+      # Pasar a bloqueante cuando se salde esa deuda.
+      - name: Type check (informativo — deuda pre-existente)
+        run: npm run typecheck
+        continue-on-error: true
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
       - name: Build
         run: npm run build
