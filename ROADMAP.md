@@ -456,9 +456,32 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
 - **Recomendador por cliente** (Phase 3): en la ficha del cliente se
   muestran perfumes que matchean sus preferencias olfativas (% match) +
   modal "Ver todos" + WhatsApp de recomendación.
+### Sesión 81 — Pricing por categoría end-to-end + typecheck real (2026-07-27)
+- **Recalcular precios con el markup de cada categoría** (hueco reportado):
+  "Recalcular Todo" usaba un ×2 hardcodeado → ignoraba category_pricing.
+  Ahora usa el markup/descuento de cada categoría, preserva el % de las
+  ofertas vigentes y actualiza en tandas de 25. Al guardar Ajustes, si
+  cambian los precios por categoría aparece el aviso "¿Recalcular?".
+- **`src/lib/pricing.ts`**: fuente de verdad del pricing (getCategoryMarkup,
+  getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice,
+  calcMarginPct) + 18 tests. Elimina 3 fórmulas de precio duplicadas
+  (form de producto, recalculador, ajuste masivo).
+- **Alerta `stale_price`** (Phase 3 ✅): avisa cuando el precio guardado se
+  desvía >umbral% del que corresponde al dólar+markup actuales.
+- **Typecheck real**: `npx tsc --noEmit` sobre el tsconfig raíz (files: [])
+  NO chequeaba nada → el CI daba verde siempre. Por eso llegó a runtime un
+  ReferenceError. Ahora `npm run typecheck` (tsconfig.app.json) y el CI lo
+  usa. Destapó 13 errores que eran bugs reales:
+  - SubscriptionsPage usaba 3 tablas + 1 RPC inexistentes → página rota.
+    Creadas subscription_plans / customer_subscriptions /
+    subscription_invoices + RPC renew_subscription (con RLS).
+  - WhatsAppCampaignsPage filtraba `debts.paid` (columna inexistente) →
+    el segmento "con deuda" quedaba vacío. Ahora usa remaining_ars > 0.
 - Pendiente Phase 3: reservas reales (tabla stock_reservations), catálogo
   PDF por facetas, promos en catálogo público (path de lectura pública),
-  price_lists mayorista en la ficha, alerta "precio desactualizado".
+  price_lists mayorista en la ficha.
+- A confirmar con el dueño: `calculateTaxes` aplica IVA sobre la ganancia
+  (normalmente el IVA va sobre las ventas) — puede estar subestimando.
 
 ---
 
