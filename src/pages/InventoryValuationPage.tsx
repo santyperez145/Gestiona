@@ -142,7 +142,7 @@ export default function InventoryValuationPage() {
         title="Valuación de Inventario"
         description="Métodos FIFO, LIFO y Costo Promedio Ponderado"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select value={method} onValueChange={setMethod}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent>

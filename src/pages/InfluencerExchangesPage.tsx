@@ -181,7 +181,7 @@ export default function InfluencerExchangesPage() {
         title="Canjes & Influencers"
         description="Gestión de canjes, regalos y colaboraciones con influencers"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={handleSyncCosts} disabled={syncing} title="Recalcula product_value_ars de todos los canjes según el costo USD actual del producto">
               <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Actualizando...' : 'Sincronizar costos'}

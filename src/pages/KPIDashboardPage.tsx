@@ -472,7 +472,7 @@ export default function KPIDashboardPage() {
         title="KPI Dashboard"
         description="Métricas clave, metas y alertas en tiempo real"
         actions={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2 flex-wrap">
             <DateRangeFilter label="Todo el período" />
             <Button variant="outline" size="sm" onClick={openNewDash}><Plus className="w-4 h-4 mr-1" /> Dashboard</Button>
             {activeTab === "Widgets" && <Button size="sm" onClick={openNewWidget}><Plus className="w-4 h-4 mr-1" /> Widget</Button>}

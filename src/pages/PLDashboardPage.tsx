@@ -228,7 +228,7 @@ export default function PLDashboardPage() {
         title="Dashboard P&L"
         description="Estado de resultados en tiempo real"
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2 flex-wrap">
             <StoreFilter />
             <DateRangeFilter label="Todo el período" />
             <button

@@ -602,7 +602,7 @@ export default function PurchaseOrdersPage() {
         title="Órdenes de Compra"
         description="Gestión formal de OC a proveedores con seguimiento de recepción"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
             </Button>

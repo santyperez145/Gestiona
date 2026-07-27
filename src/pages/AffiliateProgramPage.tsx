@@ -440,7 +440,7 @@ export default function AffiliateProgramPage() {
         title="Programa de Afiliados"
         description="Gestioná socios y comisiones por referidos"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={exportCSV}>
               <Download className="w-4 h-4 mr-1.5" /> Exportar
             </Button>

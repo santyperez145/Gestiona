@@ -1864,7 +1864,7 @@ export default function CustomersPage() {
             : { label: "Sin deudas ✓", variant: "success" }
         }
         actions={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={exportCSV}

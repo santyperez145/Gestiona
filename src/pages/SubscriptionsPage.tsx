@@ -858,7 +858,7 @@ export default function SubscriptionsPage() {
         title="Suscripciones & Recurrencia"
         description="Gestioná planes, suscriptores y facturación automática"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => { loadPlans(); loadSubs(); }}>
               <RefreshCw className="w-4 h-4 mr-1.5" /> Actualizar
             </Button>

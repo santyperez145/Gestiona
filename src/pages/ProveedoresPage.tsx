@@ -294,7 +294,7 @@ export default function ProveedoresPage() {
             : undefined
         }
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {filteredSuppliers.length > 0 && (
               <Button variant="outline" className="h-9 gap-2" onClick={exportSuppliersCSV} title="Exportar lista de proveedores a CSV">
                 <FileSpreadsheet className="w-4 h-4" />CSV

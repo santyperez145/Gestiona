@@ -309,7 +309,7 @@ export default function ExpensesPage() {
         description="Control de egresos por categoría"
         badge={{ label: formatARS(totals.total), variant: "destructive" }}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {filtered.length > 0 && (
               <>
                 <Button variant="outline" size="sm" onClick={() => exportExpensesCSV(filtered, getExpenseCategoryLabel)}>

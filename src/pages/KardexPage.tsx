@@ -299,7 +299,7 @@ export default function KardexPage() {
         title="Kardex de Stock"
         description="Historial completo de movimientos de inventario"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Actualizar
             </Button>

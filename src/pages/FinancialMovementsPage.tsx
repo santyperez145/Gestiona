@@ -174,7 +174,7 @@ export default function FinancialMovementsPage() {
         title="Movimientos financieros"
         description="Libro mayor de todos los ingresos y egresos del negocio"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
               Actualizar

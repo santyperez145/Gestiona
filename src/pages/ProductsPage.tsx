@@ -609,7 +609,7 @@ export default function ProductsPage() {
             : undefined
         }
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <div className="flex rounded-lg border border-border overflow-hidden h-9">
               <button onClick={() => setProductView('list')} className={`px-2.5 transition-colors ${productView === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`} title="Vista lista">
                 <List className="w-4 h-4" />

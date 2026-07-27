@@ -203,7 +203,7 @@ export default function ProductBundlesPage() {
         title="Bundles / Kits"
         description="Productos agrupados que se venden como uno · stock se deduce de cada componente"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>

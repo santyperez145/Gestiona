@@ -300,7 +300,7 @@ export default function TaxManagementPage() {
         icon={Receipt}
         title="Gestión Impositiva"
         description="IVA, IIBB, retenciones y declaraciones AFIP"
-        actions={<div className="flex gap-2">
+        actions={<div className="flex flex-wrap gap-2">
           {taxRates.length === 0 && (
             <Button variant="outline" onClick={seedRates} disabled={seeding}>
               {seeding ? "Cargando..." : "🇦🇷 Cargar alícuotas AR"}

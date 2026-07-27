@@ -232,7 +232,7 @@ export default function FollowUpPage() {
         description="Deals sin actividad, tareas vencidas y clientes pendientes de contacto"
         badge={urgentCount > 0 ? { label: `${urgentCount} urgente${urgentCount > 1 ? "s" : ""}`, variant: "destructive" } : undefined}
         actions={
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center">
             <span className="text-xs text-muted-foreground">Deals estancados:</span>
             <Select value={String(staleThreshold)} onValueChange={v => setStaleThreshold(Number(v))}>
               <SelectTrigger className="w-28 h-8 text-xs">

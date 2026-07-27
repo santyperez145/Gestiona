@@ -261,7 +261,7 @@ export default function BIReportsPage() {
         title="Business Intelligence"
         description="Reportes avanzados, cohort analysis y drill-down por dimensión"
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2 flex-wrap">
             <DateRangeFilter label="Últimos 7 días" />
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => toast.info("Snapshot generado")}>
               <RefreshCw className="w-3.5 h-3.5" />Actualizar snapshot

@@ -898,7 +898,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
         title={isPublic ? businessName : 'Catálogo'}
         description={`${filtered.length} productos disponibles`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {!isPublic && (
               <>
                 <Button variant="outline" size="sm" onClick={printQR} title="Imprimir QR del catálogo">

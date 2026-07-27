@@ -154,7 +154,7 @@ export default function SmartInventoryPage() {
         title="Inventario Inteligente"
         description="Análisis ABC/XYZ, velocidad de rotación y señales de demanda con IA"
         actions={
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center">
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>

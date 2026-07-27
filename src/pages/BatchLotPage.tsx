@@ -193,7 +193,7 @@ export default function BatchLotPage() {
         title="Lotes & Vencimientos"
         description="Trazabilidad completa por lote: fechas de vencimiento, movimientos y cuarentenas."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={expireBatches}>
               <RefreshCw className="w-4 h-4 mr-1" /> Verificar vencidos
             </Button>

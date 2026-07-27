@@ -269,7 +269,7 @@ export default function AIInsightsPage() {
         title="IA Insights"
         description="Inteligencia artificial para tu negocio — powered by Claude"
         actions={
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+          <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-xs font-medium text-primary">Claude Haiku</span>
           </div>

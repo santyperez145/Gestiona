@@ -508,7 +508,7 @@ export default function AnalyticsPage() {
         title="Analytics"
         description="Análisis profundo de tu negocio"
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2 flex-wrap">
             <StoreFilter />
             <DateRangeFilter label="Todo el período" />
             <Select value={year} onValueChange={(v) => setYear(v as "0" | "1")}>

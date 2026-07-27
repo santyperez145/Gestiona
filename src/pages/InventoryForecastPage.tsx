@@ -328,7 +328,7 @@ export default function InventoryForecastPage() {
         title="Forecast de Inventario"
         description="Demanda proyectada con promedio móvil y suavizado exponencial"
         actions={
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex flex-wrap gap-2 flex-wrap items-center">
             <Select value={horizon} onValueChange={setHorizon}>
               <SelectTrigger className="w-36 h-8 text-xs">
                 <SelectValue />

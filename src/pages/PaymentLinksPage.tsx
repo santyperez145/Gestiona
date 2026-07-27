@@ -292,7 +292,7 @@ export default function PaymentLinksPage() {
         description="Generá links de cobro con Mercado Pago y transferencia"
         icon={CreditCard}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
               <RefreshCw className="w-3.5 h-3.5" />Actualizar
             </Button>

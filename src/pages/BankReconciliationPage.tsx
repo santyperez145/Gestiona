@@ -301,7 +301,7 @@ export default function BankReconciliationPage() {
         title="Conciliación Bancaria"
         description="Reconciliá movimientos bancarios con ventas y gastos del sistema"
         actions={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={handleAutoMatch}>
               <RefreshCw className="w-4 h-4 mr-1" /> Auto-conciliar
             </Button>

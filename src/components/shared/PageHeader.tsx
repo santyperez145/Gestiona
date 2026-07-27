@@ -64,8 +64,10 @@ export default function PageHeader({ icon: Icon, title, description, actions, ba
       </div>
 
       {/* ── Right: actions ───────────────────────────────────────── */}
+      {/* w-full en mobile; en desktop se limita a 62% para que el título
+          nunca colapse, y flex-wrap deja que las toolbars largas envuelvan. */}
       {actions && (
-        <div className="flex items-center gap-2 flex-wrap shrink-0 sm:pt-1">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto sm:max-w-[62%] sm:justify-end sm:pt-1">
           {actions}
         </div>
       )}
