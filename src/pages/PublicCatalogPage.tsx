@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { calculateDecantPrice } from "@/lib/supabaseStore";
+import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
 import {
   Package,
   Tag,
@@ -187,7 +188,7 @@ export default function PublicCatalogPage() {
     const [pRes, sRes, fsRes] = await Promise.all([
       supabase
         .from("products")
-        .select("id,name,brand,category,gender,sale_price_ars,discount_price_ars,price_2x_ars,stock,description,image_url,content_ml,total_sold,featured,offer_expires_at,total_cost_usd,user_id,created_at")
+        .select("id,org_id,name,brand,category,gender,sale_price_ars,discount_price_ars,price_2x_ars,stock,description,image_url,content_ml,total_sold,featured,offer_expires_at,total_cost_usd,user_id,created_at")
         .eq("user_id", userId)
         .gt("stock", 0)
         .order("category")
@@ -200,7 +201,26 @@ export default function PublicCatalogPage() {
         .maybeSingle(),
     ]);
     if (!sRes.data) { setValid(false); return; }
-    setProducts(pRes.data || []);
+
+    // Promociones vigentes: sin esto la vidriera mostraba un precio y el POS
+    // cobraba otro. Se leen por RPC (la RLS de `promotions` exige auth) y se
+    // vuelcan sobre `discount_price_ars`, que es el campo que usa toda la
+    // página para badges, % OFF, combos y el mensaje de WhatsApp.
+    const rows = pRes.data || [];
+    const orgId = (rows[0] as any)?.org_id as string | undefined;
+    let priced = rows;
+    if (orgId) {
+      const promos = await loadPublicPromotions(orgId);
+      if (promos.length) {
+        priced = rows.map((p: any) => {
+          const best = bestPromoPrice(p, promos);
+          if (!best) return p;
+          const current = p.discount_price_ars != null ? Number(p.discount_price_ars) : Number(p.sale_price_ars);
+          return best.price < current ? { ...p, discount_price_ars: best.price } : p;
+        });
+      }
+    }
+    setProducts(priced);
     setSettings(sRes.data);
     setFullSettings(fsRes.data || null);
     setValid(true);

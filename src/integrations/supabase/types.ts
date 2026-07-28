@@ -18770,6 +18770,25 @@ export type Database = {
           score: number
         }[]
       }
+      get_public_promotions: {
+        Args: { p_org_id: string }
+        Returns: {
+          applies_to: string
+          banner_color: string
+          banner_text: string
+          category_names: string[]
+          coupon_code: string
+          discount_value: number
+          ends_at: string
+          id: string
+          min_order_value: number
+          name: string
+          product_ids: string[]
+          starts_at: string
+          status: string
+          type: string
+        }[]
+      }
       get_revenue_waterfall: {
         Args: { p_months?: number; p_org_id: string }
         Returns: {

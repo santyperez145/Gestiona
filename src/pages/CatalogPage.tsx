@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
-import { loadActivePromotions, bestPromoPrice, type Promotion } from "@/lib/promotions";
+import { loadActivePromotions, loadPublicPromotions, bestPromoPrice, type Promotion } from "@/lib/promotions";
 import { FAMILIAS_OLFATIVAS, NOTAS_COMUNES, OCASIONES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,9 +73,12 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     setProducts(pRes.data || []);
     setSettings(sRes.data);
     setLoading(false);
-    // Promos auto-aplicables solo en catálogo interno (la RLS de promotions
-    // exige auth; el catálogo público anónimo no puede leerlas).
-    if (!isPublic) loadActivePromotions(orgId).then(setCatalogPromos).catch(() => {});
+    // El catálogo público lee las promos por RPC security-definer: la RLS de
+    // `promotions` exige auth, pero el precio que ve el cliente tiene que ser
+    // el mismo que se le cobra después en el POS.
+    (isPublic ? loadPublicPromotions(orgId) : loadActivePromotions(orgId))
+      .then(setCatalogPromos)
+      .catch(() => {});
     supabase.from("product_perfume_details").select("*").eq("org_id", orgId).then(({ data }) => {
       const m: Record<string, any> = {};
       (data ?? []).forEach((d: any) => { m[d.product_id] = d; });
@@ -1074,7 +1077,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(p => {
-            const promo = !isPublic ? bestPromoPrice(p, catalogPromos) : null;
+            const promo = bestPromoPrice(p, catalogPromos);
             const manualDisc = p.discount_price_ars && Number(p.discount_price_ars) < Number(p.sale_price_ars) ? Number(p.discount_price_ars) : null;
             const effDiscPrice = promo ? promo.price : manualDisc;   // promo ya es ≤ descuento manual
             const hasDiscount = effDiscPrice != null && effDiscPrice < Number(p.sale_price_ars);

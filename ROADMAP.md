@@ -565,11 +565,22 @@ y tab Cotizaciones a proveedores (RFQ).
 - KPIs de Lotes sin `icon`, ConfirmDialog de Devoluciones con `children` en
   vez de `trigger`, `safeChannel` sin scope en las alertas de stock.
 
-**Migraciones aplicadas:** `products_supplier_id`, `debt_payments`,
-`audit_logs_rich_fields`, `product_variants_barcode`.
+**Promos en el catálogo público** (último pendiente de Phase 3): la RLS de
+`promotions` exige auth, así que la vidriera anónima mostraba un precio y el
+POS cobraba otro. Se agregó el RPC security-definer `get_public_promotions`,
+que devuelve **solo** promos ya públicas por definición (activas, en ventana,
+sin `coupon_code`, de tipo percentage/fixed y alcance all/products/categories)
+y **nunca** el código de cupón. `PublicCatalogPage` vuelca el mejor precio
+sobre `discount_price_ars`, así badges, % OFF, combos y el mensaje de WhatsApp
+quedan consistentes solos.
+*Verificado contra producción como rol `anon`: la promo pública se ve, la de
+cupón queda filtrada, filas de prueba eliminadas.*
 
-- Pendiente: promos en el catálogo **público** (la RLS de `promotions` exige
-  auth; necesita un RPC security-definer o política de lectura pública).
+**Migraciones aplicadas:** `products_supplier_id`, `debt_payments`,
+`audit_logs_rich_fields`, `product_variants_barcode`,
+`public_promotions_rpc`.
+
+**CI:** el typecheck pasa a bloqueante (la deuda llegó a 0, venía de ~810).
 
 ---
 

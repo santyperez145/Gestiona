@@ -29,6 +29,18 @@ interface PricedProduct {
 }
 
 /**
+ * Igual que `loadActivePromotions` pero vía RPC security-definer, para el
+ * catálogo público anónimo (la RLS de `promotions` exige auth). Devuelve solo
+ * promos ya públicas por definición y nunca el código de cupón.
+ */
+export async function loadPublicPromotions(orgId: string): Promise<Promotion[]> {
+  if (!orgId) return [];
+  const { data, error } = await supabase.rpc("get_public_promotions", { p_org_id: orgId });
+  if (error || !data) return [];
+  return data as unknown as Promotion[];
+}
+
+/**
  * Promociones activas auto-aplicables (sin coupon_code) para la org.
  * Filtra por status/ventana de fechas y tipos soportados (percentage/fixed).
  */
