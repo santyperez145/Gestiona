@@ -81,7 +81,7 @@ export default function PLDashboardPage() {
     const sinceStr = since.toISOString();
     Promise.all([
       supabase.from("sales").select("total_ars, created_at, cost_of_goods_ars, location_id").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
-      supabase.from("expenses").select("amount_ars, amount, date, category, location_id").eq("org_id", activeOrg.id).gte("date", sinceStr.slice(0, 10)),
+      supabase.from("expenses").select("amount_ars, date, category, location_id").eq("org_id", activeOrg.id).gte("date", sinceStr.slice(0, 10)),
       supabase.from("purchases").select("total_ars, created_at").eq("org_id", activeOrg.id).gte("created_at", sinceStr),
     ]).then(([{ data: s }, { data: e }, { data: p }]) => {
       setSales((s as Sale[]) || []);

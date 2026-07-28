@@ -111,7 +111,7 @@ export default function MultiCurrencyPage() {
 
     // Fetch latest exchange rates for USD/ARS per rate_type
     supabase
-      .from("exchange_rates")
+      .from("fx_rates")
       .select("rate_type, rate, valid_from, currency_from, currency_to")
       .eq("currency_to", "ARS")
       .or(`org_id.eq.${orgId},org_id.is.null`)
@@ -203,7 +203,7 @@ export default function MultiCurrencyPage() {
 
   const addRate = async () => {
     if (!orgId || !newRate.rate) return;
-    const { error } = await supabase.from("exchange_rates").insert({
+    const { error } = await supabase.from("fx_rates").insert({
       org_id: orgId, currency_from: newRate.currency_from,
       currency_to: newRate.currency_to, rate: Number(newRate.rate),
       rate_type: newRate.rate_type, source: "manual",

@@ -6644,6 +6644,50 @@ export type Database = {
           },
         ]
       }
+      fx_rates: {
+        Row: {
+          created_at: string
+          currency_from: string
+          currency_to: string
+          id: string
+          org_id: string
+          rate: number
+          rate_type: string
+          source: string
+          valid_from: string
+        }
+        Insert: {
+          created_at?: string
+          currency_from: string
+          currency_to?: string
+          id?: string
+          org_id: string
+          rate: number
+          rate_type?: string
+          source?: string
+          valid_from?: string
+        }
+        Update: {
+          created_at?: string
+          currency_from?: string
+          currency_to?: string
+          id?: string
+          org_id?: string
+          rate?: number
+          rate_type?: string
+          source?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gamification_badges: {
         Row: {
           category: string
@@ -10082,6 +10126,7 @@ export type Database = {
           created_at: string
           custom_branding: boolean
           description: string | null
+          features: string[]
           id: string
           max_products: number | null
           max_sales_per_month: number | null
@@ -10101,6 +10146,7 @@ export type Database = {
           created_at?: string
           custom_branding?: boolean
           description?: string | null
+          features?: string[]
           id?: string
           max_products?: number | null
           max_sales_per_month?: number | null
@@ -10120,6 +10166,7 @@ export type Database = {
           created_at?: string
           custom_branding?: boolean
           description?: string | null
+          features?: string[]
           id?: string
           max_products?: number | null
           max_sales_per_month?: number | null

@@ -100,7 +100,7 @@ export default function PaymentLinksPage() {
         supabase.from("settings").select("mp_enabled, mp_access_token, whatsapp_number, business_name").eq("org_id", activeOrg.id).maybeSingle(),
         getSettingsDB(user.id),
       ]);
-      setLinks((linksData || []) as PaymentLink[]);
+      setLinks((linksData || []) as unknown as PaymentLink[]);
       setOrgSettings({
         mp_enabled: orgSettingsData?.mp_enabled ?? false,
         mp_access_token: orgSettingsData?.mp_access_token ?? null,

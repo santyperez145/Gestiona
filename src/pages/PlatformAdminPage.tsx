@@ -90,7 +90,8 @@ const adminCall = async (action: string, params: Record<string, unknown> = {}) =
     const ctx = (error as { context?: unknown }).context;
     if (ctx) {
       try {
-        const body = typeof ctx.json === 'function' ? await ctx.json() : null;
+        const ctxAny = ctx as { json?: () => Promise<any> };
+        const body = typeof ctxAny.json === 'function' ? await ctxAny.json() : null;
         if (body?.error) throw new Error(body.error);
       } catch (parseErr) {
         if (parseErr instanceof Error && parseErr.message !== error.message) throw parseErr;
