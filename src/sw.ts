@@ -34,7 +34,11 @@ registerRoute(
     url.hostname.includes("supabase.co") && url.pathname.startsWith("/rest/"),
   new NetworkFirst({
     cacheName: "supabase-api",
-    plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 300 })],
+    // 24 h y 200 entradas. Con los 5 minutos anteriores, una jornada en una
+    // feria sin señal dejaba al POS sin catálogo. Al ser NetworkFirst, con
+    // conexión siempre se sirve el dato fresco: el TTL solo define hasta
+    // cuándo vale la copia de emergencia.
+    plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 })],
   })
 );
 

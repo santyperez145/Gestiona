@@ -861,9 +861,11 @@ export default function POSPage() {
 
   // Offline mode
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [offlineSales, setOfflineSales] = useState<any[]>(() => {
-    try { return JSON.parse(localStorage.getItem(`gestiona.pos.offline_sales.${activeOrg?.id || 'default'}`) || "[]"); } catch { return []; }
-  });
+  // OJO: no se puede inicializar leyendo `activeOrg?.id` — en el primer render
+  // la org todavía no cargó, así que se leía la clave `...default` mientras las
+  // ventas se guardaban bajo el id real. Resultado: al reabrir la caja las
+  // ventas offline quedaban invisibles y nunca se sincronizaban.
+  const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
@@ -875,6 +877,21 @@ export default function POSPage() {
   }, []);
 
   const offlineKey = `gestiona.pos.offline_sales.${activeOrg?.id || 'default'}`;
+
+  // Se cargan recién cuando se conoce la organización, y se migra lo que haya
+  // quedado bajo la clave vieja `...default` por el bug de inicialización.
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    try {
+      const own = JSON.parse(localStorage.getItem(offlineKey) || "[]");
+      const legacyKey = "gestiona.pos.offline_sales.default";
+      const legacy = JSON.parse(localStorage.getItem(legacyKey) || "[]");
+      const merged = [...own, ...legacy.filter((s: any) => s?.org_id === activeOrg.id)];
+      if (legacy.length) localStorage.removeItem(legacyKey);
+      if (merged.length !== own.length) localStorage.setItem(offlineKey, JSON.stringify(merged));
+      setOfflineSales(merged);
+    } catch { setOfflineSales([]); }
+  }, [activeOrg?.id, offlineKey]);
 
   const syncOfflineSales = async () => {
     if (!offlineSales.length || !isOnline) return;
@@ -893,6 +910,16 @@ export default function POSPage() {
     setSyncing(false);
     if (synced > 0) toast.success(`${synced} venta${synced !== 1 ? "s" : ""} sincronizada${synced !== 1 ? "s" : ""} correctamente`);
   };
+
+  // Auto-sincronizar al recuperar señal: antes solo pasaba si el cajero
+  // apretaba el botón del banner, y si no lo veía las ventas quedaban colgadas.
+  const syncRef = useRef(syncOfflineSales);
+  syncRef.current = syncOfflineSales;
+  useEffect(() => {
+    if (!isOnline || !offlineSales.length || syncing) return;
+    const t = setTimeout(() => { syncRef.current(); }, 1500); // margen para que la red se estabilice
+    return () => clearTimeout(t);
+  }, [isOnline, offlineSales.length, syncing]);
 
   // Pending debt alert for selected customer
   // Price list — auto-applied when customer has one assigned
@@ -1144,15 +1171,42 @@ export default function POSPage() {
     (async () => {
       const since30 = new Date(); since30.setDate(since30.getDate() - 30);
       const since90 = new Date(); since90.setDate(since90.getDate() - 90);
-      const [prods, sett, { data: recentSales }, allVariants, { data: salesForRec }] = await Promise.all([
+      // allSettled, no all: sin señal cualquiera de estas 5 consultas rechaza y
+      // con Promise.all la caja quedaba cargando para siempre. Las estadísticas
+      // (top vendidos, recomendador) son accesorias — el catálogo no.
+      const settled = await Promise.allSettled([
         getProductsDB(user.id),
         getSettingsDB(user.id),
         supabase.from('sales').select('product_id, quantity').gte('date', since30.toISOString().slice(0, 10)),
         getVariantsByUserDB(user.id).catch(() => []),
         supabase.from('sales').select('product_id, product_name, date, quantity').gte('date', since90.toISOString().slice(0, 10)).not('product_id', 'is', null),
       ]);
+      const val = <T,>(i: number, fallback: T): T =>
+        settled[i].status === 'fulfilled' ? ((settled[i] as PromiseFulfilledResult<any>).value ?? fallback) : fallback;
+
+      let prods = val<any[]>(0, []);
+      const sett = val<any>(1, null);
+      const { data: recentSales } = val<any>(2, { data: [] });
+      const allVariants = val<any[]>(3, []);
+      const { data: salesForRec } = val<any>(4, { data: [] });
+
+      // Snapshot local del catálogo: es lo que permite cobrar en una feria sin
+      // señal. El caché del service worker vence a los 5 minutos y no alcanza.
+      const snapKey = `gestiona.pos.catalog.${activeOrg?.id || 'default'}`;
+      if (prods.length) {
+        try { localStorage.setItem(snapKey, JSON.stringify({ at: Date.now(), prods })); } catch { /* cuota llena */ }
+      } else {
+        try {
+          const snap = JSON.parse(localStorage.getItem(snapKey) || 'null');
+          if (snap?.prods?.length) {
+            prods = snap.prods;
+            toast.info('Sin conexión — mostrando el último catálogo guardado');
+          }
+        } catch { /* sin snapshot */ }
+      }
+
       setProducts(prods);
-      setSettings(sett);
+      if (sett) setSettings(sett);
       // Group variants by product_id
       const varMap: Record<string, any[]> = {};
       (allVariants || []).forEach((v: any) => {
