@@ -28,6 +28,7 @@ import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import StockCountTab from "@/components/inventory/StockCountTab";
+import StockReservationsTab from "@/components/inventory/StockReservationsTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,7 +125,7 @@ export default function KardexPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [productFilter, setProductFilter] = useState<string>("all");
   const [datePreset, setDatePreset] = useState<number>(30);
-  const [tab, setTab] = useState<"movimientos" | "resumen" | "toma_fisica">("movimientos");
+  const [tab, setTab] = useState<"movimientos" | "resumen" | "reservas" | "toma_fisica">("movimientos");
 
   // Adjust dialog
   const [showAdjust, setShowAdjust] = useState(false);
@@ -135,7 +136,7 @@ export default function KardexPage() {
   // ── Movimiento manual (rotura/regalo/reserva/ajuste con signo) ──────────
   const [showMovement, setShowMovement] = useState(false);
   const [movProduct, setMovProduct] = useState<Product | null>(null);
-  const [movType, setMovType] = useState<"breakage" | "gift" | "reservation" | "adjustment_in" | "adjustment_out">("breakage");
+  const [movType, setMovType] = useState<"breakage" | "gift" | "adjustment_in" | "adjustment_out">("breakage");
   const [movQty, setMovQty] = useState("");
   const [movNotes, setMovNotes] = useState("");
   const [movSaving, setMovSaving] = useState(false);
@@ -334,7 +335,7 @@ export default function KardexPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border pb-0">
-        {(["movimientos", "resumen", "toma_fisica"] as const).map(t => (
+        {(["movimientos", "resumen", "reservas", "toma_fisica"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -344,7 +345,7 @@ export default function KardexPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "movimientos" ? "Movimientos" : t === "resumen" ? "Resumen por Producto" : "Toma Física"}
+            {t === "movimientos" ? "Movimientos" : t === "resumen" ? "Resumen por Producto" : t === "reservas" ? "Reservas" : "Toma Física"}
           </button>
         ))}
       </div>
@@ -403,7 +404,9 @@ export default function KardexPage() {
       )}
 
       {/* Content */}
-      {tab === "toma_fisica" ? (
+      {tab === "reservas" ? (
+        <StockReservationsTab />
+      ) : tab === "toma_fisica" ? (
         /* ── Toma Física ── */
         <StockCountTab />
       ) : loading ? (
@@ -677,7 +680,6 @@ export default function KardexPage() {
                 <SelectContent>
                   <SelectItem value="breakage">Rotura / Pérdida (−)</SelectItem>
                   <SelectItem value="gift">Regalo (−)</SelectItem>
-                  <SelectItem value="reservation">Reserva (−)</SelectItem>
                   <SelectItem value="adjustment_out">Ajuste manual (−)</SelectItem>
                   <SelectItem value="adjustment_in">Ajuste manual (+)</SelectItem>
                 </SelectContent>
@@ -697,7 +699,7 @@ export default function KardexPage() {
               />
               <p className="text-xs text-muted-foreground mt-1">
                 {movType === "adjustment_in" ? "Se sumará al stock." : "Se restará del stock."}
-                {movType === "reservation" && " La reserva reduce el mismo stock (no hay cantidad reservada separada)."}
+                {" Para reservar stock a un cliente usá la pestaña Reservas: no descuenta stock, baja el disponible."}
               </p>
             </div>
 
