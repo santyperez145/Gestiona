@@ -2109,7 +2109,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
   const load = async () => {
     if (!orgId) return;
     setLoading(true);
-    const { data } = await supabase.from('locations').select('id, name, address, is_active').eq('org_id', orgId).order('name');
+    const { data } = await supabase.from('locations').select('id, name, address, active').eq('org_id', orgId).order('name');
     setLocations(data || []);
     setLoading(false);
   };
@@ -2119,7 +2119,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
   const handleAdd = async () => {
     if (!orgId || !newName.trim()) return;
     setAdding(true);
-    const { error } = await supabase.from('locations').insert({ org_id: orgId, name: newName.trim(), address: newAddress.trim() || null, is_active: true });
+    const { error } = await supabase.from('locations').insert({ org_id: orgId, name: newName.trim(), address: newAddress.trim() || null, active: true });
     if (error) { toast.error('Error al crear sucursal: ' + error.message); }
     else { toast.success('Sucursal creada'); setNewName(''); setNewAddress(''); await load(); }
     setAdding(false);
@@ -2135,7 +2135,7 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
   };
 
   const handleToggle = async (loc: any) => {
-    await supabase.from('locations').update({ is_active: !loc.is_active }).eq('id', loc.id);
+    await supabase.from('locations').update({ active: !loc.active }).eq('id', loc.id);
     await load();
   };
 
@@ -2184,8 +2184,8 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
       ) : (
         <div className="space-y-2 pb-12">
           {locations.map(loc => (
-            <div key={loc.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${loc.is_active ? 'bg-muted/30 border-border' : 'bg-muted/10 border-border/50 opacity-60'}`}>
-              <MapPin className={`w-3.5 h-3.5 shrink-0 ${loc.is_active ? 'text-primary' : 'text-muted-foreground'}`} />
+            <div key={loc.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${loc.active ? 'bg-muted/30 border-border' : 'bg-muted/10 border-border/50 opacity-60'}`}>
+              <MapPin className={`w-3.5 h-3.5 shrink-0 ${loc.active ? 'text-primary' : 'text-muted-foreground'}`} />
               {editId === loc.id ? (
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                   <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 text-xs bg-background border-border" />
@@ -2212,9 +2212,9 @@ function SucursalesSection({ orgId }: { orgId?: string }) {
                   ><Edit2 className="w-3 h-3" /></button>
                   <button
                     onClick={() => handleToggle(loc)}
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-[5px] transition-colors ${loc.is_active ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                    title={loc.is_active ? 'Desactivar' : 'Activar'}
-                  >{loc.is_active ? 'Activa' : 'Inactiva'}</button>
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-[5px] transition-colors ${loc.active ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                    title={loc.active ? 'Desactivar' : 'Activar'}
+                  >{loc.active ? 'Activa' : 'Inactiva'}</button>
                   <button
                     onClick={() => { if (window.confirm(`¿Eliminar "${loc.name}"?`)) handleDelete(loc.id); }}
                     className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"

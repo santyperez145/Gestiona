@@ -926,7 +926,9 @@ function PurchaseOrderGenerator({ userId, onDone }: { userId: string; onDone: ()
         'Total USD': (orders[p.id]?.qty || 0) * Number(p.total_cost_usd),
       }));
       const totalUSD = rows.reduce((s, r) => s + r['Total USD'], 0);
-      rows.push({ 'Producto': 'TOTAL', 'Cantidad': rows.reduce((s, r) => s + r['Cantidad'], 0), 'Precio Unit. USD': 0, 'Total USD': totalUSD, 'Costo Unit. USD (con pasero)': 0 });
+      // Las columnas deben coincidir con las de las filas de arriba
+      // ('Precio Unit. USD' ya no existe: es 'Costo Unit. USD (con pasero)').
+      rows.push({ 'Producto': 'TOTAL', 'Cantidad': rows.reduce((s, r) => s + r['Cantidad'], 0), 'Costo Unit. USD (con pasero)': 0, 'Total USD': totalUSD });
 
       const ws = utils.json_to_sheet(rows);
       ws['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 16 }, { wch: 14 }];

@@ -10933,6 +10933,160 @@ export type Database = {
           },
         ]
       }
+      purchase_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          org_id: string
+          product_id: string | null
+          product_name: string
+          quantity_ordered: number
+          quantity_received: number
+          sku: string | null
+          tax_rate: number
+          total_cost: number
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          org_id: string
+          product_id?: string | null
+          product_name: string
+          quantity_ordered?: number
+          quantity_received?: number
+          sku?: string | null
+          tax_rate?: number
+          total_cost?: number
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          org_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity_ordered?: number
+          quantity_received?: number
+          sku?: string | null
+          tax_rate?: number
+          total_cost?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          discount_amount: number
+          expected_date: string | null
+          id: string
+          internal_notes: string | null
+          notes: string | null
+          order_number: string
+          org_id: string
+          payment_terms: string | null
+          received_date: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number
+          supplier_email: string | null
+          supplier_id: string | null
+          supplier_name: string
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          discount_amount?: number
+          expected_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_number: string
+          org_id: string
+          payment_terms?: string | null
+          received_date?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          supplier_email?: string | null
+          supplier_id?: string | null
+          supplier_name: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          discount_amount?: number
+          expected_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_number?: string
+          org_id?: string
+          payment_terms?: string | null
+          received_date?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          supplier_email?: string | null
+          supplier_id?: string | null
+          supplier_name?: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_request_items: {
         Row: {
           description: string | null

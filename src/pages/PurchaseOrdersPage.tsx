@@ -544,12 +544,17 @@ export default function PurchaseOrdersPage() {
     setLoading(true);
     const [ordRes, supRes, prodRes] = await Promise.all([
       supabase.from("purchase_orders").select("*, items:purchase_order_items(*)").eq("org_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("proveedores").select("id,name,email").eq("org_id", orgId).order("name"),
-      supabase.from("products").select("id,name,sku,cost,price").eq("org_id", orgId).order("name"),
+      // La tabla real es `suppliers` (no `proveedores`), y en products el
+      // costo/precio son cost_usd / sale_price_ars.
+      supabase.from("suppliers").select("id,name,email").eq("org_id", orgId).order("name"),
+      supabase.from("products").select("id,name,sku,cost_usd,sale_price_ars").eq("org_id", orgId).order("name"),
     ]);
     setOrders((ordRes.data ?? []) as PurchaseOrder[]);
-    setSuppliers(supRes.data ?? []);
-    setProducts((prodRes.data ?? []) as Product[]);
+    setSuppliers((supRes.data ?? []) as Supplier[]);
+    setProducts(((prodRes.data ?? []) as any[]).map(p => ({
+      id: p.id, name: p.name, sku: p.sku,
+      cost: p.cost_usd ?? null, price: p.sale_price_ars ?? 0,
+    })) as Product[]);
     setLoading(false);
   };
 
