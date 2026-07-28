@@ -11,6 +11,8 @@ import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import MfaGate from "@/components/auth/MfaGate";
+import ModuleGuard from "@/components/auth/ModuleGuard";
+import { PermissionsProvider } from "@/lib/permissionsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, BookOpen } from "lucide-react";
 
@@ -186,11 +188,13 @@ function ProtectedRoutes() {
 
   return (
     <MfaGate isAdmin={isAdmin} orgRequiresMfa={!!orgRequiresMfa}>
+    <PermissionsProvider>
     <AppLayout>
       <Suspense fallback={null}>
         <CommandPalette />
       </Suspense>
       <Suspense fallback={<PageLoader />}>
+        <ModuleGuard>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
@@ -309,8 +313,10 @@ function ProtectedRoutes() {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </ModuleGuard>
       </Suspense>
     </AppLayout>
+    </PermissionsProvider>
     </MfaGate>
   );
 }

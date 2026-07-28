@@ -22,6 +22,8 @@ import PageGuide from "@/components/shared/PageGuide";
 import PresenceAvatars from "@/components/shared/PresenceAvatars";
 import CommandPalette from "@/components/shared/CommandPalette";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { usePermissionsResolver } from "@/lib/permissionsContext";
+import { moduleForRoute } from "@/lib/moduleMap";
 
 const allNavItems = [
   // ── Principal ───────────────────────────────────────────────────────────────
@@ -206,9 +208,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, [navigate]);
 
+  // Además del rol, se respeta `can_view` por módulo (Admin → Permisos):
+  // sin esto los toggles de la mayoría de los módulos no hacían nada.
+  const { forModule } = usePermissionsResolver();
   const navItems = useMemo(() => {
-    return allNavItems.filter(item => item.roles.includes(role));
-  }, [role]);
+    return allNavItems.filter(item => {
+      if (!item.roles.includes(role)) return false;
+      const mod = moduleForRoute(item.to, item.section);
+      return !mod || forModule(mod).canView;
+    });
+  }, [role, forModule]);
 
   // Pages with "Nuevo" guide tips that haven't been seen yet
   const unseenNewPages = useMemo(() => {
