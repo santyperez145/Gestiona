@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/orgContext";
 import {
   Users, ShoppingBag, Crown, AlertCircle,
-  MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin,
+  MessageCircle, Plus, Edit2, Trash2, X, Save, Phone, Mail, MapPin, EyeOff,
   Calendar, Tag, ChevronDown, ChevronUp, Upload, Clock, FileText, CreditCard,
   Star, TrendingUp, Package, Gift, Merge, Download, CheckSquare, Send, Printer, Bell, BookUser,
   Instagram, Droplets,
@@ -1817,6 +1817,38 @@ export default function CustomersPage() {
     }
   };
 
+  /**
+   * Derecho de supresión (Ley 25.326). No se borran las ventas — AFIP exige
+   * conservar los comprobantes — sino que se reemplaza el PII por un seudónimo
+   * estable en todas las tablas de la organización.
+   */
+  const handleAnonymize = async (id: string, name: string) => {
+    if (!activeOrg?.id) return;
+    if (!confirm(
+      `Anonimizar a "${name}"?\n\n` +
+      `Se borran nombre, email, teléfono, dirección y notas de forma DEFINITIVA ` +
+      `en toda la app. Las ventas se conservan (AFIP lo exige) pero pasan a figurar ` +
+      `a nombre de un cliente anonimizado.\n\nEsta acción no se puede deshacer.`
+    )) return;
+
+    setDeletingId(id);
+    try {
+      const { data, error } = await supabase.rpc("anonymize_customer", {
+        p_org_id: activeOrg.id,
+        p_customer_id: id,
+      });
+      if (error) throw error;
+      const tablas = (data as any)?.tablas?.length ?? 0;
+      toast.success(`Cliente anonimizado${tablas ? ` · ${tablas} tabla${tablas > 1 ? "s" : ""} actualizada${tablas > 1 ? "s" : ""}` : ""}`);
+      await loadData();
+      if (selectedCustomer === name) setSelectedCustomer(null);
+    } catch (e: any) {
+      toast.error("No se pudo anonimizar: " + (e?.message ?? "error desconocido"));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const tooltipStyle = {
     background: "hsl(var(--popover))",
     border: "1px solid hsl(var(--border))",
@@ -2818,6 +2850,18 @@ export default function CustomersPage() {
                           disabled={deletingId === c.profileId}
                         >
                           <Trash2 className="w-3.5 h-3.5" />Eliminar perfil
+                        </Button>
+                      )}
+                      {canDelete && c.profileId && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs text-amber-500 hover:text-amber-500 border-amber-500/30 hover:border-amber-500/60"
+                          onClick={() => handleAnonymize(c.profileId!, c.name)}
+                          disabled={deletingId === c.profileId}
+                          title="Derecho de supresión (Ley 25.326): borra los datos personales pero conserva las ventas"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />Anonimizar
                         </Button>
                       )}
                       <Button

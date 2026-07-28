@@ -1524,6 +1524,31 @@ function ExpenseCategoriesSection({ userId }: { userId: string }) {
 
 function BackupExport({ userId }: { userId: string }) {
   const [busy, setBusy] = useState(false);
+  const { activeOrg } = useOrg();
+  const activeOrgId = activeOrg?.id;
+  const [exportingAll, setExportingAll] = useState(false);
+  const [exportStep, setExportStep] = useState("");
+
+  const handleFullExport = async () => {
+    if (!activeOrgId) return;
+    setExportingAll(true);
+    setExportStep("");
+    try {
+      const { downloadOrgExport } = await import("@/lib/orgDataExport");
+      const n = await downloadOrgExport(
+        activeOrgId,
+        activeOrg?.name ?? "",
+        p => setExportStep(p.table),
+      );
+      if (n === 0) toast.info("No hay datos para exportar todavía");
+      else toast.success(`Export listo · ${n} tabla${n > 1 ? "s" : ""}`);
+    } catch (e: any) {
+      toast.error("Falló el export: " + (e?.message ?? "error desconocido"));
+    } finally {
+      setExportingAll(false);
+      setExportStep("");
+    }
+  };
 
   const collectAll = async () => {
     const [products, sales, purchases, debts, settings, expenses, notes] = await Promise.all([
@@ -1588,6 +1613,27 @@ function BackupExport({ userId }: { userId: string }) {
         </Button>
         <Button onClick={exportJSON} disabled={busy} variant="outline" className="flex-1">
           <FileJson className="w-4 h-4 mr-2" />JSON
+        </Button>
+      </div>
+
+      {/* Export completo — derecho de acceso (Ley 25.326) */}
+      <div className="mt-4 pt-4 border-t border-border/60 space-y-2">
+        <p className="text-sm font-medium">Export completo (ZIP)</p>
+        <p className="text-xs text-muted-foreground">
+          Un CSV por tabla con todo lo que tiene cargado la organización — no solo
+          las 6 planillas de arriba. Sirve como respaldo portable y cubre el
+          derecho de acceso de la Ley 25.326.
+        </p>
+        <Button
+          onClick={handleFullExport}
+          disabled={exportingAll || !activeOrgId}
+          variant="outline"
+          className="w-full"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          {exportingAll
+            ? (exportStep ? `Exportando ${exportStep}…` : "Preparando…")
+            : "Descargar todo (.zip)"}
         </Button>
       </div>
     </div>

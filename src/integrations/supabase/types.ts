@@ -18535,6 +18535,10 @@ export type Database = {
         }
         Returns: string
       }
+      anonymize_customer: {
+        Args: { p_customer_id: string; p_org_id: string }
+        Returns: Json
+      }
       apply_territory_rules: {
         Args: {
           p_attributes: Json
