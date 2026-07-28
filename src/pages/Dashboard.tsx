@@ -1113,7 +1113,7 @@ export default function Dashboard() {
       .filter((e: { date: string; amount: number }) => e.date && e.amount > 0),
   [rawData]);
   const { forecast: forecastPoints, trend: forecastTrend, r2: forecastR2 } = useSalesForecaster(forecastSaleEntries, { horizon: 30 });
-  const forecast30dTotal = useMemo(() => forecastPoints.reduce((s, p) => s + p.value, 0), [forecastPoints]);
+  const forecast30dTotal = useMemo(() => forecastPoints.reduce((s, p) => s + p.projected, 0), [forecastPoints]);
 
   // ── Supabase Realtime KPIs (live sale/stock/debt events) ──────────────────
   const { lastSale, saleEventCount } = useRealtimeKPIs(activeOrg?.id);

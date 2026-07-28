@@ -143,50 +143,8 @@ async function renderStory(opts: {
   // Max image height: reserve ~380px for brand+name+price, plus ~260px for flavor pills when present
   const MAX_IMG_H = hasFlavors ? 520 : 1000;
 
-  // Product image — Y start clears the logo (with 40px breathing room)
-  const imgStartY = Math.max(380, Math.ceil(logoBottomY) + 40);
-
-  let imgH = 0;
-  if (product.image_url) {
-    try {
-      const img = await loadImage(product.image_url);
-      const targetW = 820;
-      const ratio = img.height / img.width;
-      const targetH = Math.min(targetW * ratio, MAX_IMG_H);
-      const finalW = targetH === MAX_IMG_H ? MAX_IMG_H / ratio : targetW;
-      const x = (W - finalW) / 2;
-      const y = imgStartY;
-      // soft shadow
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
-      ctx.shadowBlur = 60;
-      ctx.shadowOffsetY = 20;
-      drawRoundRect(ctx, x, y, finalW, targetH, 40);
-      ctx.fillStyle = "#fff";
-      ctx.fill();
-      ctx.restore();
-      ctx.save();
-      drawRoundRect(ctx, x, y, finalW, targetH, 40);
-      ctx.clip();
-      ctx.drawImage(img, x, y, finalW, targetH);
-      ctx.restore();
-      imgH = y + targetH;
-    } catch {
-      imgH = hasFlavors ? imgStartY + 400 : imgStartY + 520;
-    }
-  } else {
-    // Placeholder block — smaller when flavors need room
-    const placeholderH = hasFlavors ? 520 : 820;
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
-    drawRoundRect(ctx, 130, imgStartY, 820, placeholderH, 40);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.font = "bold 120px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("📦", W / 2, imgStartY + placeholderH / 2 + 44);
-    imgH = imgStartY + placeholderH;
-  }
-
+  // ── Logo primero: imgStartY depende de dónde termina el logo ──────────
+  // (antes se calculaba imgStartY ANTES de declarar logoBottomY → ReferenceError)
   const tpl = templateData || FALLBACK_TEMPLATES.find((t) => t.id === template) || FALLBACK_TEMPLATES[0];
 
   // Top: logo or business name — size varies per template
@@ -232,6 +190,51 @@ async function renderStory(opts: {
     ctx.fillText(displayName.toUpperCase(), W / 2, logoTopY + (isLimpio ? 60 : 50));
     logoBottomY = logoTopY + (isLimpio ? 80 : 60);
   }
+
+  // Product image — Y start clears the logo (with 40px breathing room)
+  const imgStartY = Math.max(380, Math.ceil(logoBottomY) + 40);
+
+  let imgH = 0;
+  if (product.image_url) {
+    try {
+      const img = await loadImage(product.image_url);
+      const targetW = 820;
+      const ratio = img.height / img.width;
+      const targetH = Math.min(targetW * ratio, MAX_IMG_H);
+      const finalW = targetH === MAX_IMG_H ? MAX_IMG_H / ratio : targetW;
+      const x = (W - finalW) / 2;
+      const y = imgStartY;
+      // soft shadow
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 60;
+      ctx.shadowOffsetY = 20;
+      drawRoundRect(ctx, x, y, finalW, targetH, 40);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      drawRoundRect(ctx, x, y, finalW, targetH, 40);
+      ctx.clip();
+      ctx.drawImage(img, x, y, finalW, targetH);
+      ctx.restore();
+      imgH = y + targetH;
+    } catch {
+      imgH = hasFlavors ? imgStartY + 400 : imgStartY + 520;
+    }
+  } else {
+    // Placeholder block — smaller when flavors need room
+    const placeholderH = hasFlavors ? 520 : 820;
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    drawRoundRect(ctx, 130, imgStartY, 820, placeholderH, 40);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = "bold 120px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("📦", W / 2, imgStartY + placeholderH / 2 + 44);
+    imgH = imgStartY + placeholderH;
+  }
+
 
   // Badge — positioned 20px below wherever the logo bottom landed
   if (tpl.badge && !isLimpio) {

@@ -2096,7 +2096,7 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
 
   // 30-day aggregate for the next-month projection card
   const projectedNext30 = useMemo(
-    () => dailyForecast.reduce((s, p) => s + p.value, 0),
+    () => dailyForecast.reduce((s, p) => s + p.projected, 0),
     [dailyForecast]
   );
 
@@ -2129,9 +2129,9 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
       const first = new Date(slice[0].date);
       weeks.push({
         week: `Sem ${w + 1} (${first.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })})`,
-        value: Math.round(slice.reduce((s, p) => s + p.value, 0)),
-        lo: Math.round(slice.reduce((s, p) => s + p.lo, 0)),
-        hi: Math.round(slice.reduce((s, p) => s + p.hi, 0)),
+        value: Math.round(slice.reduce((s, p) => s + p.projected, 0)),
+        lo: Math.round(slice.reduce((s, p) => s + p.lower, 0)),
+        hi: Math.round(slice.reduce((s, p) => s + p.upper, 0)),
       });
     }
     return weeks;

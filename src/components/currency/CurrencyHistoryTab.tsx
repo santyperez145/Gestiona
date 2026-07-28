@@ -165,7 +165,7 @@ export default function CurrencyHistoryTab() {
       : after / before;
 
     // Update products
-    let query = supabase.from("products").select("id, price").eq("org_id", orgId);
+    let query = supabase.from("products").select("id, sale_price_ars").eq("org_id", orgId);
     if (bulkForm.apply_to === "category" && bulkForm.category) {
       query = query.eq("category", bulkForm.category);
     }
@@ -173,10 +173,10 @@ export default function CurrencyHistoryTab() {
     if (!prods || prods.length === 0) { toast.error("Sin productos para actualizar"); return; }
 
     // Batch update prices
-    const updates = prods.map(p => ({ id: p.id, price: Math.ceil(p.price * multiplier) }));
+    const updates = prods.map(p => ({ id: p.id, sale_price_ars: Math.ceil((Number(p.sale_price_ars) || 0) * multiplier) }));
     let count = 0;
     for (const u of updates) {
-      const { error } = await supabase.from("products").update({ price: u.price }).eq("id", u.id);
+      const { error } = await supabase.from("products").update({ sale_price_ars: u.sale_price_ars }).eq("id", u.id);
       if (!error) count++;
     }
 

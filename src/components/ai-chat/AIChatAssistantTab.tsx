@@ -551,7 +551,7 @@ function CreateSaleCard({ userId, initialCustomer, initialQty, onDone }: {
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
-    getProductsDB(userId).then(p => { setProducts(p.filter(x => x.active !== false)); setLoadingProducts(false); }).catch(() => setLoadingProducts(false));
+    getProductsDB(userId).then(p => { setProducts(p.filter(x => x.is_active !== false)); setLoadingProducts(false); }).catch(() => setLoadingProducts(false));
   }, [userId]);
 
   if (done) {
@@ -647,7 +647,7 @@ function CreatePurchaseCard({ userId, initialSupplier, initialQty, initialCostUS
 
   useEffect(() => {
     Promise.all([getProductsDB(userId), getSettingsDB(userId)]).then(([p, s]) => {
-      setProducts(p.filter(x => x.active !== false));
+      setProducts(p.filter(x => x.is_active !== false));
       setSettings(s);
     }).catch(() => {});
   }, [userId]);
@@ -1060,7 +1060,7 @@ function CustomerAnalysisCard({ userId, initialName, onDone }: { userId: string;
         { data: recentSales },
         { data: debts },
       ] = await Promise.all([
-        supabase.from("customers").select("name, email, phone, company, segment, health_score, created_at")
+        supabase.from("customers").select("name, email, phone, company, created_at")
           .eq("org_id", activeOrg.id).ilike("name", `%${name.trim()}%`).limit(1).maybeSingle(),
         supabase.from("sales").select("total_ars, profit_ars, date, product_name, quantity")
           .eq("org_id", activeOrg.id).ilike("customer_name", `%${name.trim()}%`)
