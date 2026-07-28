@@ -10719,27 +10719,33 @@ export type Database = {
       price_list_items: {
         Row: {
           created_at: string
+          custom_price: number | null
           discount_pct: number | null
           id: string
           min_qty: number
+          min_quantity: number
           price_ars: number | null
           price_list_id: string
           product_id: string
         }
         Insert: {
           created_at?: string
+          custom_price?: number | null
           discount_pct?: number | null
           id?: string
           min_qty?: number
+          min_quantity?: number
           price_ars?: number | null
           price_list_id: string
           product_id: string
         }
         Update: {
           created_at?: string
+          custom_price?: number | null
           discount_pct?: number | null
           id?: string
           min_qty?: number
+          min_quantity?: number
           price_ars?: number | null
           price_list_id?: string
           product_id?: string
@@ -10770,40 +10776,58 @@ export type Database = {
       }
       price_lists: {
         Row: {
+          applies_to: string
           created_at: string
           currency: string
+          customer_segment: string | null
           description: string | null
           discount_pct: number
+          discount_type: string
+          discount_value: number
           id: string
           is_active: boolean
           is_default: boolean
           name: string
           org_id: string
           updated_at: string
+          valid_from: string | null
+          valid_until: string | null
         }
         Insert: {
+          applies_to?: string
           created_at?: string
           currency?: string
+          customer_segment?: string | null
           description?: string | null
           discount_pct?: number
+          discount_type?: string
+          discount_value?: number
           id?: string
           is_active?: boolean
           is_default?: boolean
           name: string
           org_id: string
           updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Update: {
+          applies_to?: string
           created_at?: string
           currency?: string
+          customer_segment?: string | null
           description?: string | null
           discount_pct?: number
+          discount_type?: string
+          discount_value?: number
           id?: string
           is_active?: boolean
           is_default?: boolean
           name?: string
           org_id?: string
           updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Relationships: [
           {
@@ -10942,34 +10966,40 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          featured: boolean
           id: string
           image_url: string | null
           is_active: boolean
           name: string
           org_id: string
           price_ars: number
+          sold_count: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          featured?: boolean
           id?: string
           image_url?: string | null
           is_active?: boolean
           name: string
           org_id: string
           price_ars?: number
+          sold_count?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          featured?: boolean
           id?: string
           image_url?: string | null
           is_active?: boolean
           name?: string
           org_id?: string
           price_ars?: number
+          sold_count?: number
           updated_at?: string
         }
         Relationships: [

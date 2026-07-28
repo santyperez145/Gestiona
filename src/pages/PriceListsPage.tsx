@@ -52,7 +52,7 @@ interface PriceList {
   description: string | null;
   currency: string;
   is_default: boolean;
-  active: boolean;
+  is_active: boolean;
   valid_from: string | null;
   valid_until: string | null;
   applies_to: "all" | "segment" | "customer";
@@ -120,7 +120,7 @@ function PLForm({ open, list, orgId, onClose, onSaved }: PLFormProps) {
   useEffect(() => {
     if (list) {
       setName(list.name); setDescription(list.description ?? ""); setCurrency(list.currency);
-      setIsDefault(list.is_default); setActive(list.active);
+      setIsDefault(list.is_default); setActive(list.is_active);
       setValidFrom(list.valid_from ?? ""); setValidUntil(list.valid_until ?? "");
       setAppliesTo(list.applies_to); setSegment(list.customer_segment ?? "");
       setDiscountType(list.discount_type); setDiscountValue(String(list.discount_value));
@@ -264,7 +264,7 @@ function PLItemsDialog({ open, list, products, orgId, onClose }: PLItemsDialogPr
     setLoading(true);
     const { data } = await supabase
       .from("price_list_items")
-      .select("*, product:products(id,name,price,category)")
+      .select("*, product:products(id,name,price:sale_price_ars,category)")
       .eq("price_list_id", list.id)
       .order("created_at");
     setItems(data ?? []);
@@ -408,7 +408,7 @@ export default function PriceListsPage() {
     setLoading(true);
     const [listRes, prodRes] = await Promise.all([
       supabase.from("price_lists").select("*").eq("org_id", orgId).order("is_default", { ascending: false }).order("name"),
-      supabase.from("products").select("id,name,price,category").eq("org_id", orgId).order("name"),
+      supabase.from("products").select("id,name,price:sale_price_ars,category").eq("org_id", orgId).order("name"),
     ]);
     setLists(listRes.data ?? []);
     setProducts(prodRes.data ?? []);
@@ -419,7 +419,7 @@ export default function PriceListsPage() {
 
   const kpis = useMemo(() => ({
     total: lists.length,
-    active: lists.filter(l => l.active).length,
+    active: lists.filter(l => l.is_active).length,
     currencies: [...new Set(lists.map(l => l.currency))].length,
     withDiscounts: lists.filter(l => l.discount_type !== "none").length,
   }), [lists]);
@@ -433,13 +433,13 @@ export default function PriceListsPage() {
   };
 
   const handleToggle = async (list: PriceList) => {
-    await supabase.from("price_lists").update({ active: !list.active }).eq("id", list.id);
-    setLists(prev => prev.map(l => l.id === list.id ? { ...l, active: !l.active } : l));
+    await supabase.from("price_lists").update({ is_active: !list.is_active }).eq("id", list.id);
+    setLists(prev => prev.map(l => l.id === list.id ? { ...l, is_active: !l.is_active } : l));
   };
 
   const exportCSV = () => {
     const rows = [["Lista", "Moneda", "Descuento", "Aplica a", "Activa"],
-      ...lists.map(l => [l.name, l.currency, discountLabel(l), l.applies_to, l.active ? "Sí" : "No"])];
+      ...lists.map(l => [l.name, l.currency, discountLabel(l), l.applies_to, l.is_active ? "Sí" : "No"])];
     const csv = rows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "listas-precios.csv"; a.click();
@@ -465,10 +465,10 @@ export default function PriceListsPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KPICard label="Total listas" value={kpis.total} color="primary" />
-        <KPICard label="Activas" value={kpis.active} color="success" />
-        <KPICard label="Monedas" value={kpis.currencies} color="blue" />
-        <KPICard label="Con descuento" value={kpis.withDiscounts} color="purple" />
+        <KPICard label="Total listas" value={kpis.total} icon={Tag} color="primary" />
+        <KPICard label="Activas" value={kpis.active} icon={CheckCircle} color="success" />
+        <KPICard label="Monedas" value={kpis.currencies} icon={Globe} color="blue" />
+        <KPICard label="Con descuento" value={kpis.withDiscounts} icon={DollarSign} color="purple" />
       </div>
 
       {/* Lists */}
@@ -483,7 +483,7 @@ export default function PriceListsPage() {
       ) : (
         <div className="space-y-3 pb-12">
           {lists.map(list => (
-            <div key={list.id} className={`rounded-xl border bg-card overflow-hidden transition-all ${!list.active ? "opacity-60" : ""}`}>
+            <div key={list.id} className={`rounded-xl border bg-card overflow-hidden transition-all ${!list.is_active ? "opacity-60" : ""}`}>
               <div
                 className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/20 transition-colors"
                 onClick={() => setExpanded(e => e === list.id ? null : list.id)}
@@ -494,7 +494,7 @@ export default function PriceListsPage() {
                     {list.is_default && <Badge className="text-xs bg-primary/15 text-primary"><Star className="w-3 h-3 mr-1" />Predeterminada</Badge>}
                     <span className="text-sm">{CURRENCY_FLAGS[list.currency] ?? "💱"} {list.currency}</span>
                     {list.discount_type !== "none" && <Badge className="text-xs bg-emerald-500/15 text-emerald-400">{discountLabel(list)}</Badge>}
-                    {!list.active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactiva</Badge>}
+                    {!list.is_active && <Badge className="text-xs bg-gray-500/15 text-gray-400">Inactiva</Badge>}
                     {list.applies_to !== "all" && <Badge className="text-xs bg-blue-500/15 text-blue-400">{list.applies_to === "segment" ? list.customer_segment : "Por cliente"}</Badge>}
                   </div>
                   {list.description && <p className="text-xs text-muted-foreground mt-1">{list.description}</p>}
@@ -513,7 +513,7 @@ export default function PriceListsPage() {
                     <Edit className="w-3.5 h-3.5" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleToggle(list); }}>
-                    {list.active ? "Pausar" : "Activar"}
+                    {list.is_active ? "Pausar" : "Activar"}
                   </Button>
                   <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); handleDelete(list); }}>
                     <Trash2 className="w-3.5 h-3.5" />

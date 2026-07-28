@@ -21,8 +21,8 @@ interface Bundle {
   id: string;
   name: string;
   description: string | null;
-  sale_price: number;
-  active: boolean;
+  price_ars: number;
+  is_active: boolean;
   featured: boolean;
   sold_count: number;
   created_at: string;
@@ -52,7 +52,7 @@ interface Product {
 }
 
 const emptyForm = () => ({
-  name: '', description: '', sale_price: '', active: true, featured: false,
+  name: '', description: '', price_ars: '', is_active: true, featured: false,
 });
 
 export default function ProductBundlesPage() {
@@ -80,7 +80,7 @@ export default function ProductBundlesPage() {
     try {
       const [bundlesRes, productsRes] = await Promise.all([
         supabase.from("product_bundles").select(`
-          id, name, description, sale_price, active, featured, sold_count, created_at,
+          id, name, description, price_ars, is_active, featured, sold_count, created_at,
           product_bundle_items(id, bundle_id, product_id, quantity,
             products:product_id(name, sale_price_ars, stock, image_url))
         `).eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
@@ -107,15 +107,15 @@ export default function ProductBundlesPage() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("El nombre es obligatorio"); return; }
-    if (!form.sale_price || parseFloat(form.sale_price) <= 0) { toast.error("El precio de venta es obligatorio"); return; }
+    if (!form.price_ars || parseFloat(form.price_ars) <= 0) { toast.error("El precio de venta es obligatorio"); return; }
     if (!activeOrg?.id) return;
     setSaving(true);
     try {
       const payload = {
         name: form.name.trim(),
         description: form.description.trim() || null,
-        sale_price: parseFloat(form.sale_price),
-        active: form.active,
+        price_ars: parseFloat(form.price_ars),
+        is_active: form.is_active,
         featured: form.featured,
       };
       if (editing) {
@@ -147,7 +147,7 @@ export default function ProductBundlesPage() {
     if (!selectedProduct) { toast.error("Seleccioná un producto"); return; }
     const qty = parseInt(addItemQty) || 1;
     const { error } = await supabase.from("product_bundle_items").upsert({
-      bundle_id: bundleId, product_id: selectedProduct.id, quantity: qty,
+      org_id: activeOrg!.id, bundle_id: bundleId, product_id: selectedProduct.id, quantity: qty,
     }, { onConflict: 'bundle_id,product_id' });
     if (error) { toast.error(error.message); return; }
     toast.success(`${selectedProduct.name} × ${qty} agregado`);
@@ -161,7 +161,7 @@ export default function ProductBundlesPage() {
   };
 
   const toggleActive = async (b: Bundle) => {
-    await supabase.from("product_bundles").update({ active: !b.active }).eq("id", b.id);
+    await supabase.from("product_bundles").update({ is_active: !b.is_active }).eq("id", b.id);
     load();
   };
 
@@ -185,11 +185,11 @@ export default function ProductBundlesPage() {
   const savings = (bundle: Bundle) => {
     const cost = componentCost(bundle.items);
     if (!cost) return 0;
-    return Math.max(0, cost - bundle.sale_price);
+    return Math.max(0, cost - bundle.price_ars);
   };
 
   const kpis = useMemo(() => {
-    const active = bundles.filter(b => b.active).length;
+    const active = bundles.filter(b => b.is_active).length;
     const totalSold = bundles.reduce((s, b) => s + b.sold_count, 0);
     const featured = bundles.filter(b => b.featured).length;
     const outStock = bundles.filter(b => !hasStock(b.items)).length;
@@ -260,11 +260,11 @@ export default function ProductBundlesPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Precio de venta *</label>
-                <Input type="number" value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} className="bg-muted" placeholder="Precio final del bundle en ARS" />
+                <Input type="number" value={form.price_ars} onChange={e => setForm(f => ({ ...f, price_ars: e.target.value }))} className="bg-muted" placeholder="Precio final del bundle en ARS" />
               </div>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input type="checkbox" checked={form.active} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} className="w-4 h-4 accent-primary" />
+                  <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="w-4 h-4 accent-primary" />
                   Activo
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-sm">
@@ -304,7 +304,7 @@ export default function ProductBundlesPage() {
             const inStock = hasStock(bundle.items);
             const itemCount = bundle.items?.length ?? 0;
             return (
-              <div key={bundle.id} className={`bg-card border rounded-xl overflow-hidden transition-all ${bundle.active ? 'border-border' : 'border-border/40 opacity-60'}`}>
+              <div key={bundle.id} className={`bg-card border rounded-xl overflow-hidden transition-all ${bundle.is_active ? 'border-border' : 'border-border/40 opacity-60'}`}>
                 {/* Header row */}
                 <div className="p-4 flex items-center gap-3">
                   {/* Expand */}
@@ -315,7 +315,7 @@ export default function ProductBundlesPage() {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${inStock ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
                         {inStock ? '✓ Stock OK' : '⚠ Sin stock'}
                       </span>
-                      {!bundle.active && <span className="text-[10px] text-muted-foreground">(inactivo)</span>}
+                      {!bundle.is_active && <span className="text-[10px] text-muted-foreground">(inactivo)</span>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{itemCount} productos</span>
@@ -328,7 +328,7 @@ export default function ProductBundlesPage() {
 
                   {/* Price */}
                   <div className="text-right shrink-0">
-                    <p className="font-bold text-lg">${bundle.sale_price.toLocaleString("es-AR")}</p>
+                    <p className="font-bold text-lg">${bundle.price_ars.toLocaleString("es-AR")}</p>
                     {compCost > 0 && (
                       <p className="text-xs text-muted-foreground line-through">${compCost.toLocaleString("es-AR")}</p>
                     )}
@@ -339,12 +339,12 @@ export default function ProductBundlesPage() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => toggleActive(bundle)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${bundle.active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/50'}`}
-                        title={bundle.active ? 'Desactivar' : 'Activar'}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${bundle.is_active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/50'}`}
+                        title={bundle.is_active ? 'Desactivar' : 'Activar'}
                       >
                         <CheckCircle className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { setEditing(bundle); setForm({ name: bundle.name, description: bundle.description ?? '', sale_price: bundle.sale_price.toString(), active: bundle.active, featured: bundle.featured }); setShowForm(true); }}
+                      <button onClick={() => { setEditing(bundle); setForm({ name: bundle.name, description: bundle.description ?? '', price_ars: bundle.price_ars.toString(), is_active: bundle.is_active, featured: bundle.featured }); setShowForm(true); }}
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50">
                         <Edit2 className="w-4 h-4" />
                       </button>

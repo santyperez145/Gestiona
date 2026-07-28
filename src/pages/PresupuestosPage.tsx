@@ -1033,11 +1033,16 @@ export default function PresupuestosPage() {
                   <button onClick={() => duplicateQuote(q)} disabled={duplicating === q.id} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors disabled:opacity-50" title="Duplicar presupuesto">
                     {duplicating === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CopyPlus className="w-4 h-4" />}
                   </button>
-                  <ConfirmDialog title="Eliminar presupuesto" description="Esta acción no se puede deshacer." onConfirm={() => handleDelete(q.id)}>
-                    <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </ConfirmDialog>
+                  <ConfirmDialog
+                    title="Eliminar presupuesto"
+                    description="Esta acción no se puede deshacer."
+                    onConfirm={() => handleDelete(q.id)}
+                    trigger={
+                      <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    }
+                  />
                 </div>
               </div>
 
