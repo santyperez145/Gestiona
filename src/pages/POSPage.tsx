@@ -988,7 +988,7 @@ export default function POSPage() {
         if (!inInput) { if (search) setSearch(''); else if (cart.length > 0) setCart([]); return; }
       }
       // F9 → confirm sale (if cart has items and sale not disabled)
-      if (e.key === 'F9') { e.preventDefault(); if (cart.length > 0 && !confirmDisabled) confirmSale(); return; }
+      if (e.key === 'F9') { e.preventDefault(); if (cart.length > 0 && !confirmDisabledRef.current) confirmSale(); return; }
       // + key → increment qty of last cart item
       if (e.key === '+' && !inInput && cart.length > 0) {
         e.preventDefault();
@@ -1005,12 +1005,15 @@ export default function POSPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart, search, confirmDisabled, showShortcutHelp, toggleFullscreen]);
+  }, [cart, search, showShortcutHelp, toggleFullscreen]);
+
+  // Espejo de confirmDisabled para el listener de teclado (ver más abajo).
+  const confirmDisabledRef = useRef(false);
 
   // ── Voice commands (Web Speech API) ──────────────────────────────────────────
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const SpeechRecognitionAPI = typeof window !== 'undefined'
     ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
     : null;
@@ -1028,7 +1031,7 @@ export default function POSPage() {
     rec.lang = 'es-AR';
     rec.continuous = false;
     rec.interimResults = true;
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e: any) => {
       const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
       setVoiceTranscript(transcript);
       if (e.results[e.results.length - 1].isFinal) {
@@ -1066,12 +1069,9 @@ export default function POSPage() {
         const results = fuse.search(productQuery);
         if (results[0]) {
           const p = results[0].item;
-          setCart(prev => {
-            const key = p.id;
-            const existing = prev.find(i => i.id === key);
-            if (existing) return prev.map(i => i.id === key ? { ...i, quantity: i.quantity + qty } : i);
-            return [...prev, { ...p, quantity: qty, id: key }];
-          });
+          // Reusa addToCart: arma el CartItem completo (costo, TC, categoría…).
+          // Antes hacía un spread del producto crudo y quedaba malformado.
+          for (let n = 0; n < qty; n++) addToCart(p);
           setSearch('');
           toast.success(`🎤 ${qty}× ${p.name} al carrito`);
         } else {
@@ -1520,7 +1520,7 @@ export default function POSPage() {
             data: {
               customer: customer.trim() || null,
               total_ars: cartTotal,
-              items: cart.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+              items: cart.map(i => ({ name: i.name, qty: i.quantity, price: priceFor(i) })),
               payment_method: splitMode ? `${splitMethod1}+${splitMethod2}` : payMethod,
             },
           },
@@ -1544,7 +1544,7 @@ export default function POSPage() {
           title: `Venta grande: ${formatARS(cartTotal)}`,
           message: customer.trim() ? `Cliente: ${customer.trim()}` : "Venta sin nombre de cliente",
           read: false,
-        }).then(() => {}).catch(() => {});
+        }).then(() => {}, () => {});
       }
 
       const updatedProducts = await getProductsDB(user.id);
@@ -1587,11 +1587,15 @@ export default function POSPage() {
   };
 
   // ── Confirm button disabled condition ──
+  // Se espeja en un ref porque el listener de teclado (F9) se registra antes
+  // de que esta const exista; leer la const desde el array de deps tiraba
+  // ReferenceError y rompía el render del POS.
   const confirmDisabled =
     cart.length === 0 ||
     submitting ||
     (splitMode && splitAmt1 <= 0) ||
     (!splitMode && payMethod === "efectivo" && cashGiven !== "" && Number(cashGiven) < cartTotal);
+  confirmDisabledRef.current = confirmDisabled;
 
   // ─────────────────────────────────────────────────────────
   // Cart panel

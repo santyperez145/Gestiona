@@ -410,8 +410,8 @@ export default function PriceListsPage() {
       supabase.from("price_lists").select("*").eq("org_id", orgId).order("is_default", { ascending: false }).order("name"),
       supabase.from("products").select("id,name,price:sale_price_ars,category").eq("org_id", orgId).order("name"),
     ]);
-    setLists(listRes.data ?? []);
-    setProducts(prodRes.data ?? []);
+    setLists((listRes.data ?? []) as PriceList[]);
+    setProducts((prodRes.data ?? []) as Product[]);
     setLoading(false);
   };
 

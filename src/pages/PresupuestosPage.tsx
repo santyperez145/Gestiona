@@ -530,7 +530,7 @@ export default function PresupuestosPage() {
       .select("*")
       .eq("org_id", activeOrg.id)
       .order("created_at", { ascending: false });
-    setQuotes((data as Quote[]) || []);
+    setQuotes((data as unknown as Quote[]) || []);
     setLoading(false);
   };
 
@@ -596,7 +596,7 @@ export default function PresupuestosPage() {
 
       // Auto-send por email si está activado y hay email
       if (autoSend && custEmail && newQuote) {
-        const q = newQuote as Quote;
+        const q = newQuote as unknown as Quote;
         await sendQuoteEmail(q);
       }
     } catch (e: any) {
