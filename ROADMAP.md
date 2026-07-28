@@ -477,11 +477,47 @@ trackeadas, así que `db push` habría reintentado ~120 ya aplicadas).
     subscription_invoices + RPC renew_subscription (con RLS).
   - WhatsAppCampaignsPage filtraba `debts.paid` (columna inexistente) →
     el segmento "con deuda" quedaba vacío. Ahora usa remaining_ars > 0.
+### Sesión 82 — Auditoría de esquema: 35 tablas faltantes → 0 (2026-07-28)
+
+Al arreglar el typecheck (que no chequeaba nada) quedó expuesto que gran
+parte del código consultaba tablas/columnas inexistentes. Se escribió un
+auditor (`.from()`/`.rpc()` vs tipos generados) y se cerró la brecha.
+
+**Bugs críticos encontrados y corregidos:**
+- **POS crasheaba al renderizar**: `confirmDisabled` se leía en el array de
+  deps de un useEffect ~600 líneas antes de declararse → ReferenceError.
+  La caja no abría. Ahora usa un ref espejo.
+- POS: el comando de voz armaba items de carrito malformados (sin costo ni
+  TC → ganancia mal calculada); el webhook mandaba qty/price undefined.
+- ReportsPage importaba `Toggle` de lucide-react (no existe) — mismo bug
+  que había roto Productos con `DialogFooter`.
+- Proveedores: 2 usos de una variable renombrada → crash al exportar CSV.
+- Sucursales, Bundles y Listas de Precios guardaban contra columnas
+  inexistentes → fallaban en silencio.
+- WhatsApp Masivo: el segmento "con deuda" siempre vacío.
+- P&L: pedía `expenses.amount` (es amount_ars) → quedaba sin gastos.
+
+**Tablas creadas (20) para features que sí sirven:** fidelidad (5), lotes
+y vencimientos (2), devoluciones (2), órdenes de compra (2) + numeración,
+suscripciones de clientes (3) + renovación, alertas v2 (2), integraciones
+(api_keys, webhook_configs), BI (saved_reports, bi_snapshots), OCR (2),
+multi-divisa (multi_currency_transactions, fx_exposure, fx_rates), items de
+bundles, seguimientos CRM. Todas con RLS por org.
+**Vista `sale_items`** sobre `sales` (cada venta ya es una línea).
+**Funciones:** generate_po_number, renew_subscription, expire_batches,
+seed_return_reasons, get_audit_summary.
+
+**Eliminadas (13 tablas) por estar fuera de alcance:** Motor de Precios
+(incluía Inteligencia de Competencia y Precios Dinámicos), tab Franquicias
+y tab Cotizaciones a proveedores (RFQ).
+
 - Pendiente Phase 3: reservas reales (tabla stock_reservations), catálogo
   PDF por facetas, promos en catálogo público (path de lectura pública),
   price_lists mayorista en la ficha.
 - A confirmar con el dueño: `calculateTaxes` aplica IVA sobre la ganancia
   (normalmente el IVA va sobre las ventas) — puede estar subestimando.
+- Nota: las tablas nuevas están vacías; las páginas abren sin datos hasta
+  que se cargue el primer registro.
 
 ---
 
