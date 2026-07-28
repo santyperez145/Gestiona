@@ -12,7 +12,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Layers, Plus, AlertTriangle, Package, Pencil, ChevronDown, ChevronRight, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { Layers, Plus, AlertTriangle, Package, Pencil, ChevronDown, ChevronRight, Trash2, RefreshCw, Loader2, Clock, XCircle, DollarSign } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -206,11 +206,12 @@ export default function BatchLotPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard label="Lotes activos" value={kpis.activeLots} color="primary" />
-        <KPICard label="Por vencer (30 días)" value={kpis.expiringCnt} color={kpis.expiringCnt > 0 ? "warning" : "success"} />
-        <KPICard label="Vencidos" value={kpis.expiredCnt} color={kpis.expiredCnt > 0 ? "destructive" : "success"} />
+        <KPICard label="Lotes activos" value={kpis.activeLots} icon={Layers} color="primary" />
+        <KPICard label="Por vencer (30 días)" value={kpis.expiringCnt} icon={Clock} color={kpis.expiringCnt > 0 ? "warning" : "success"} />
+        <KPICard label="Vencidos" value={kpis.expiredCnt} icon={XCircle} color={kpis.expiredCnt > 0 ? "destructive" : "success"} />
         <KPICard
           label="Valor en stock"
+          icon={DollarSign}
           value={new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(kpis.totalVal)}
           color="blue"
         />

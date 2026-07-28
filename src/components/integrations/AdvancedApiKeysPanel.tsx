@@ -73,7 +73,7 @@ export default function AdvancedApiKeysPanel() {
     if (!orgId) return;
     setLoading(true);
     const { data } = await supabase.from("api_keys").select("*").eq("org_id", orgId).order("created_at", { ascending: false });
-    if (data) setApiKeys(data as APIKey[]);
+    if (data) setApiKeys(data as unknown as APIKey[]);
     setLoading(false);
   }, [orgId]);
 

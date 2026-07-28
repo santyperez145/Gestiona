@@ -72,6 +72,7 @@ function fmtDate(d: string | null) {
 export default function IntegrationsPage() {
   usePageTitle("Integraciones & API");
   const { activeOrg } = useOrg();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "conexiones";
   const [conn, setConn] = useState<TiendanubeConnection | null>(null);
@@ -272,7 +273,7 @@ export default function IntegrationsPage() {
         .map(b => b.toString(16).padStart(2, "0")).join("");
       const { error } = await supabase
         .from("settings")
-        .upsert({ org_id: activeOrg.id, api_key: newKey }, { onConflict: "org_id" });
+        .upsert({ org_id: activeOrg.id, user_id: user!.id, api_key: newKey }, { onConflict: "org_id" });
       if (error) throw error;
       setApiKey(newKey);
       setApiKeyVisible(true);
@@ -294,6 +295,7 @@ export default function IntegrationsPage() {
     setSavingWebhook(true);
     const { error } = await supabase.from("settings").upsert({
       org_id: activeOrg.id,
+      user_id: user!.id,
       webhook_url: webhookUrl.trim() || null,
       webhook_enabled: webhookEnabled,
       webhook_events: webhookEvents,
@@ -361,7 +363,7 @@ export default function IntegrationsPage() {
     setSavingMp(true);
     const { error } = await supabase
       .from("settings")
-      .upsert({ org_id: activeOrg.id, mp_access_token: mpToken, mp_enabled: mpEnabled }, { onConflict: "org_id" });
+      .upsert({ org_id: activeOrg.id, user_id: user!.id, mp_access_token: mpToken, mp_enabled: mpEnabled }, { onConflict: "org_id" });
     setSavingMp(false);
     if (error) {
       toast.error("Error al guardar: " + error.message);
@@ -1356,6 +1358,7 @@ function EvolutionSection({ orgId }: { orgId: string | undefined }) {
         .from("settings")
         .upsert({
           org_id: orgId,
+          user_id: session!.user.id,
           evolution_api_url:  apiUrl.trim(),
           evolution_api_key:  apiKey.trim(),
           evolution_instance: instance.trim() || "gestiona",

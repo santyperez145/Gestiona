@@ -136,14 +136,21 @@ export default function BankReconciliationPage() {
     try {
       const [{ data: bankTxs }, { data: salesData }, { data: expData }, { data: debtData }, { data: suppPayData }] = await Promise.all([
         supabase.from("bank_transactions").select("*").eq("org_id", activeOrg.id).order("date", { ascending: false }),
-        supabase.from("sales").select("id,date,customer_name,total_ars,method").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo + "T23:59:59"),
-        supabase.from("expenses").select("id,date,description,amount").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo),
+        supabase.from("sales").select("id,date,customer_name,total_ars,payment_method").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo + "T23:59:59"),
+        supabase.from("expenses").select("id,date,description,amount_ars").eq("org_id", activeOrg.id).gte("date", dateFrom).lte("date", dateTo),
         supabase.from("debts").select("id,updated_at,customer_name,amount_ars,description").eq("org_id", activeOrg.id).eq("status", "paid").gte("updated_at", dateFrom).lte("updated_at", dateTo + "T23:59:59"),
         supabase.from("supplier_payments").select("id,paid_at,amount_ars,method,supplier_debt_id,supplier_debts(supplier_name)").eq("org_id", activeOrg.id).gte("paid_at", dateFrom).lte("paid_at", dateTo + "T23:59:59"),
       ]);
       setTxs((bankTxs || []) as BankTx[]);
-      setSales((salesData || []) as Sale[]);
-      setExpenses((expData || []) as Expense[]);
+      // Las columnas reales son `payment_method` y `amount_ars`; se normalizan
+      // a los nombres que usa la conciliación.
+      setSales((salesData || []).map(s => ({
+        id: s.id, date: s.date, customer_name: s.customer_name,
+        total_ars: s.total_ars, method: s.payment_method,
+      })));
+      setExpenses((expData || []).map(e => ({
+        id: e.id, date: e.date, description: e.description, amount: e.amount_ars,
+      })));
       setDebtPayments((debtData || []).map(d => ({
         id: d.id,
         updated_at: d.updated_at,

@@ -12,7 +12,6 @@ import AILeadScoringWidget from "@/components/customers/AILeadScoringWidget";
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Sale {
   customer_name: string;
-  customer_email: string | null;
   total_ars: number;
   created_at: string;
 }
@@ -106,6 +105,7 @@ export default function CustomerRFMPage() {
   usePageTitle("Segmentación RFM");
   const { activeOrg } = useOrg();
   const [sales, setSales] = useState<Sale[]>([]);
+  const [emailByName, setEmailByName] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview" | "clientes" | "segmentos">("overview");
   const [search, setSearch] = useState("");
@@ -120,13 +120,19 @@ export default function CustomerRFMPage() {
     since.setFullYear(since.getFullYear() - 1);
     supabase
       .from("sales")
-      .select("customer_name, customer_email, total_ars, created_at")
+      .select("customer_name, total_ars, created_at")
       .eq("org_id", activeOrg.id)
       .gte("created_at", since.toISOString())
       .then(({ data }) => {
         setSales((data as Sale[]) || []);
         setLoading(false);
       });
+    // `sales` no guarda el email del cliente: se resuelve desde `customers`.
+    supabase.from("customers").select("name, email").eq("org_id", activeOrg.id).then(({ data }) => {
+      const m: Record<string, string> = {};
+      (data ?? []).forEach((c: any) => { if (c.name) m[c.name] = c.email || ""; });
+      setEmailByName(m);
+    }, () => {});
   }, [activeOrg]);
 
   // ── Build RFM table ────────────────────────────────────────────────────────
@@ -137,14 +143,14 @@ export default function CustomerRFMPage() {
     // Group by customer
     const map = new Map<string, { name: string; email: string; dates: Date[]; total: number }>();
     sales.forEach(s => {
-      const key = s.customer_email || s.customer_name || "Anónimo";
+      const key = s.customer_name || "Anónimo";
       const existing = map.get(key);
       const d = new Date(s.created_at);
       if (existing) {
         existing.dates.push(d);
         existing.total += s.total_ars || 0;
       } else {
-        map.set(key, { name: s.customer_name || "Anónimo", email: s.customer_email || "", dates: [d], total: s.total_ars || 0 });
+        map.set(key, { name: s.customer_name || "Anónimo", email: emailByName[s.customer_name] || "", dates: [d], total: s.total_ars || 0 });
       }
     });
 
@@ -170,7 +176,7 @@ export default function CustomerRFMPage() {
       const segment = classifySegment(rScore, fScore, mScore);
       return { ...c, rScore, fScore, mScore, rfmScore, segment };
     });
-  }, [sales]);
+  }, [sales, emailByName]);
 
   // ── Filtered + sorted ──────────────────────────────────────────────────────
   const filtered = useMemo(() => {

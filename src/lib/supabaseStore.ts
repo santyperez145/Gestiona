@@ -74,9 +74,42 @@ export async function addProductDB(product: any) {
   if (error) throw error;
 }
 
-export async function updateProductDB(id: string, updates: any) {
+export async function updateProductDB(id: string, updates: any, prev?: any) {
+  // `prev` permite registrar el cambio en `price_history` sin un round-trip
+  // extra. Si no se pasa y hay cambio de precio/costo, se lee el estado previo.
+  const touchesPrice = updates?.sale_price_ars !== undefined || updates?.cost_usd !== undefined;
+  let before = prev;
+  if (touchesPrice && !before) {
+    const { data } = await supabase.from('products').select('org_id,sale_price_ars,cost_usd').eq('id', id).maybeSingle();
+    before = data;
+  }
+
   const { error } = await supabase.from('products').update(updates).eq('id', id);
   if (error) throw error;
+
+  if (touchesPrice && before) {
+    const oldPrice = Number(before.sale_price_ars) || null;
+    const newPrice = updates.sale_price_ars !== undefined ? Number(updates.sale_price_ars) : oldPrice;
+    const oldCost = before.cost_usd != null ? Number(before.cost_usd) : null;
+    const newCost = updates.cost_usd !== undefined ? Number(updates.cost_usd) : oldCost;
+    const priceChanged = newPrice != null && oldPrice !== newPrice;
+    const costChanged = oldCost !== newCost;
+    if (newPrice != null && (priceChanged || costChanged)) {
+      const orgId = before.org_id ?? getActiveOrgId();
+      if (orgId) {
+        // Best-effort: un fallo al historiar no debe abortar el guardado.
+        await supabase.from('price_history').insert({
+          org_id: orgId,
+          product_id: id,
+          old_price_ars: oldPrice,
+          new_price_ars: newPrice,
+          old_cost_usd: oldCost,
+          new_cost_usd: newCost,
+          change_pct: oldPrice ? Number((((newPrice - oldPrice) / oldPrice) * 100).toFixed(2)) : null,
+        }).then(undefined, () => {});
+      }
+    }
+  }
 }
 
 export async function deleteProductDB(id: string) {
@@ -275,13 +308,26 @@ export async function deleteDebtDB(id: string) {
 }
 
 /** Register a debt payment and auto-sync sale status if fully paid. */
-export async function addDebtPaymentDB(debtId: string, paymentARS: number) {
+export async function addDebtPaymentDB(
+  debtId: string,
+  paymentARS: number,
+  opts?: { paymentMethod?: string; userId?: string; notes?: string },
+) {
   const { data: debt } = await supabase.from('debts').select('*').eq('id', debtId).maybeSingle();
   if (!debt) throw new Error('Deuda no encontrada');
   const newPaid = Number(debt.paid_ars) + paymentARS;
   const newRemaining = Math.max(0, Number(debt.amount_ars) - newPaid);
   const newStatus = newRemaining <= 0.01 ? 'paid' : 'partial';
   await updateDebtDB(debtId, { paid_ars: newPaid, remaining_ars: newRemaining, status: newStatus });
+  // Ledger del pago: sin esto se perdía el medio de pago elegido.
+  await supabase.from('debt_payments').insert({
+    org_id: debt.org_id,
+    debt_id: debtId,
+    amount_ars: paymentARS,
+    payment_method: opts?.paymentMethod ?? null,
+    user_id: opts?.userId ?? null,
+    notes: opts?.notes ?? null,
+  });
   return { newPaid, newRemaining, newStatus, debt };
 }
 

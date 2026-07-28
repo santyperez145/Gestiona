@@ -1300,31 +1300,61 @@ export type Database = {
           action: string
           created_at: string
           details: Json | null
+          diff: Json | null
           entity_id: string | null
+          entity_label: string | null
           entity_type: string
           id: string
+          ip_address: string | null
+          metadata: Json
+          new_values: Json | null
+          old_values: Json | null
           org_id: string | null
+          severity: string
+          tags: string[]
+          user_email: string | null
           user_id: string
+          user_role: string | null
         }
         Insert: {
           action: string
           created_at?: string
           details?: Json | null
+          diff?: Json | null
           entity_id?: string | null
+          entity_label?: string | null
           entity_type: string
           id?: string
+          ip_address?: string | null
+          metadata?: Json
+          new_values?: Json | null
+          old_values?: Json | null
           org_id?: string | null
+          severity?: string
+          tags?: string[]
+          user_email?: string | null
           user_id: string
+          user_role?: string | null
         }
         Update: {
           action?: string
           created_at?: string
           details?: Json | null
+          diff?: Json | null
           entity_id?: string | null
+          entity_label?: string | null
           entity_type?: string
           id?: string
+          ip_address?: string | null
+          metadata?: Json
+          new_values?: Json | null
+          old_values?: Json | null
           org_id?: string | null
+          severity?: string
+          tags?: string[]
+          user_email?: string | null
           user_id?: string
+          user_role?: string | null
         }
         Relationships: []
       }
@@ -3935,6 +3965,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debt_payments: {
+        Row: {
+          amount_ars: number
+          created_at: string
+          debt_id: string
+          id: string
+          notes: string | null
+          org_id: string
+          paid_at: string
+          payment_method: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_ars: number
+          created_at?: string
+          debt_id: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          paid_at?: string
+          payment_method?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_ars?: number
+          created_at?: string
+          debt_id?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          paid_at?: string
+          payment_method?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_payments_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debt_payments_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -11395,6 +11476,7 @@ export type Database = {
       product_variants: {
         Row: {
           active: boolean
+          barcode: string | null
           created_at: string
           id: string
           image_url: string | null
@@ -11409,6 +11491,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          barcode?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -11423,6 +11506,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          barcode?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -11497,6 +11581,7 @@ export type Database = {
           sale_price_ars: number
           sku: string | null
           stock: number
+          supplier_id: string | null
           tags: string[] | null
           tiendanube_id: string | null
           tiendanube_product_id: string | null
@@ -11535,6 +11620,7 @@ export type Database = {
           sale_price_ars?: number
           sku?: string | null
           stock?: number
+          supplier_id?: string | null
           tags?: string[] | null
           tiendanube_id?: string | null
           tiendanube_product_id?: string | null
@@ -11573,6 +11659,7 @@ export type Database = {
           sale_price_ars?: number
           sku?: string | null
           stock?: number
+          supplier_id?: string | null
           tags?: string[] | null
           tiendanube_id?: string | null
           tiendanube_product_id?: string | null
@@ -11587,6 +11674,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]

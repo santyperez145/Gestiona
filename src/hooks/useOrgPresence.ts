@@ -41,19 +41,19 @@ export function useOrgPresence(orgId: string | undefined) {
         const state = channel.presenceState<OnlineUser>();
         const users = Object.values(state)
           .flat()
-          .filter((u): u is OnlineUser => !!u.user_id);
+          .filter((u: any) => !!u.user_id) as unknown as OnlineUser[];
         setOnlineUsers(users);
       })
       .on("presence", { event: "join" }, ({ newPresences }) => {
         setOnlineUsers(prev => {
-          const joined = (newPresences as OnlineUser[]).filter(
+          const joined = (newPresences as unknown as OnlineUser[]).filter(
             np => !prev.some(u => u.user_id === np.user_id)
           );
           return [...prev, ...joined];
         });
       })
       .on("presence", { event: "leave" }, ({ leftPresences }) => {
-        const leftIds = new Set((leftPresences as OnlineUser[]).map(u => u.user_id));
+        const leftIds = new Set((leftPresences as unknown as OnlineUser[]).map(u => u.user_id));
         setOnlineUsers(prev => prev.filter(u => !leftIds.has(u.user_id)));
       })
       .subscribe(async (status) => {

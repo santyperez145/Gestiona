@@ -2088,8 +2088,8 @@ function ForecastTab({ monthly, currentYear, sales }: { monthly: any[]; currentY
 
   // ── Daily OLS via useSalesForecaster ──────────────────────────────────────
   const saleEntries = useMemo(() =>
-    sales.map((s: any) => ({ date: s.date?.slice(0, 10) || "", amount: Number(s.total_ars || 0) }))
-         .filter(e => e.date && e.amount > 0),
+    sales.map((s: any) => ({ date: s.date?.slice(0, 10) || "", total_ars: Number(s.total_ars || 0) }))
+         .filter(e => e.date && e.total_ars > 0),
   [sales]);
 
   const { forecast: dailyForecast, trend, r2, slope } = useSalesForecaster(saleEntries, { horizon: 30, smoothingWindow: 7 });

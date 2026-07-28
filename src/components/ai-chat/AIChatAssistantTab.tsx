@@ -1434,7 +1434,8 @@ function SendWaSegmentCard({ userId, initialSegment, onDone }: {
   userId: string; initialSegment?: string; onDone: () => void;
 }) {
   const { activeOrg } = useOrg();
-  const SEGMENTS = ["VIP", "Premium", "Frecuente", "Activo", "Nuevo", "En riesgo", "Dormido", "Perdido"];
+  // Los segmentos reales son los que la organización administra en CRM.
+  const [SEGMENTS, setSegments] = useState<string[]>([]);
   const [segment, setSegment] = useState(initialSegment || "VIP");
   const [customers, setCustomers] = useState<{ name: string; phone: string }[]>([]);
   const [message, setMessage] = useState("Hola {nombre}, te contactamos desde el negocio. ¡Tenemos novedades para vos! 🎉");
@@ -1451,16 +1452,29 @@ function SendWaSegmentCard({ userId, initialSegment, onDone }: {
         .select("evolution_api_url, evolution_api_key, evolution_instance")
         .eq("org_id", activeOrg.id).maybeSingle();
       setSettings(data);
+      const { data: segs } = await supabase.from("customer_segments")
+        .select("name").eq("org_id", activeOrg.id).eq("active", true).order("name");
+      const names = (segs ?? []).map((s: any) => s.name);
+      setSegments(names);
+      if (names.length && !names.includes(segment)) setSegment(names[0]);
     })();
   }, [activeOrg]);
 
   const loadCustomers = async () => {
     if (!activeOrg) return;
     setLoading(true);
-    const { data } = await supabase.from("customers")
-      .select("name, phone").eq("org_id", activeOrg.id)
-      .eq("segment", segment).not("phone", "is", null);
-    setCustomers((data || []).filter((c: any) => c.phone) as { name: string; phone: string }[]);
+    // `customers` no tiene columna `segment`: la pertenencia vive en
+    // `customer_segment_members` contra los segmentos de la organización.
+    const { data: seg } = await supabase.from("customer_segments")
+      .select("id").eq("org_id", activeOrg.id).eq("name", segment).maybeSingle();
+    if (!seg) { setCustomers([]); setLoading(false); return; }
+    const { data } = await supabase.from("customer_segment_members")
+      .select("customers(name, phone)").eq("segment_id", seg.id);
+    setCustomers(
+      (data || [])
+        .map((r: any) => r.customers)
+        .filter((c: any) => c?.phone) as { name: string; phone: string }[]
+    );
     setLoading(false);
   };
 
@@ -1514,6 +1528,11 @@ function SendWaSegmentCard({ userId, initialSegment, onDone }: {
 
       <div className="space-y-1.5">
         <p className="text-[10px] text-muted-foreground font-medium">Segmento de clientes</p>
+        {!SEGMENTS.length && (
+          <p className="text-[10px] text-muted-foreground/70">
+            No hay segmentos creados todavía. Creá uno en Clientes → Segmentos.
+          </p>
+        )}
         <div className="flex flex-wrap gap-1">
           {SEGMENTS.map(s => (
             <button
@@ -2049,7 +2068,7 @@ function SupplierAnalysisCard({ userId, initialName, onDone }: {
         .from("purchases")
         .select("id, created_at, total_usd, total_ars, quantity, product_name, notes")
         .eq("org_id", activeOrg.id)
-        .eq("supplier_name", supplier.name)
+        .eq("supplier", supplier.name)
         .order("created_at", { ascending: false });
 
       const { data: debts } = await supabase

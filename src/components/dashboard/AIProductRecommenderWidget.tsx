@@ -34,11 +34,12 @@ export default function AIProductRecommenderWidget() {
     if (!activeOrg?.id) return;
     setLoading(true);
     Promise.all([
-      supabase.from("products").select("id,name,price").eq("org_id", activeOrg.id),
+      supabase.from("products").select("id,name,sale_price_ars").eq("org_id", activeOrg.id),
       supabase.from("product_cooccurrences").select("product_a_id,product_b_id,cooccurrence_count")
         .eq("org_id", activeOrg.id).order("cooccurrence_count", { ascending: false }).limit(5),
     ]).then(([prodRes, coRes]) => {
-      setProducts(prodRes.data ?? []);
+      // El precio de venta vive en `sale_price_ars`, no en `price`.
+      setProducts((prodRes.data ?? []).map((p: any) => ({ id: p.id, name: p.name, price: Number(p.sale_price_ars) || 0 })));
       setCooccurrences(coRes.data ?? []);
       setLoading(false);
     });

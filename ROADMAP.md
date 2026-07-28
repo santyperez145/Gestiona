@@ -519,6 +519,58 @@ y tab Cotizaciones a proveedores (RFQ).
 - Nota: las tablas nuevas están vacías; las páginas abren sin datos hasta
   que se cargue el primer registro.
 
+### Sesión 83 — Cierre de Phase 3 + 49 → 0 errores de tipo (2026-07-28)
+
+**Phase 3 completada:**
+- **Catálogo filtrable por facetas**: género, familia olfativa, ocasión y
+  notas sobre `product_perfume_details`. El PDF se arma desde `filtered`, así
+  que exportar da exactamente la selección visible; la portada nombra las
+  facetas activas.
+- **Listas de precios en la ficha del producto** (`ProductPriceListsSection`):
+  muestra el precio efectivo de cada lista mayorista y permite fijar un
+  override por producto (precio fijo o %) en `price_list_items`.
+- **Proveedor preferido por producto** (`products.supplier_id`) — lo pedían
+  AutoRestock y las órdenes de compra, y no existía la columna.
+
+**Bugs reales encontrados por el typecheck (49 errores → 0):**
+- `sales.customer_email` no existe → CustomerRFM devolvía 400. Ahora el email
+  se resuelve desde `customers`.
+- `sales.method` / `expenses.amount` → la conciliación bancaria no cargaba
+  ventas ni gastos (nombres reales: `payment_method`, `amount_ars`).
+- `deals.amount` → el scoring de leads puntuaba todo con monto 0
+  (real: `value_ars`). `products.price` → recomendador sin precios.
+- `customers.segment` no existe: la campaña de WhatsApp por segmento nunca
+  encontraba clientes. Ahora usa `customer_segment_members` y lista los
+  segmentos reales de la organización.
+- `purchases.supplier_name` → el histórico por proveedor salía vacío
+  (real: `supplier`).
+- `product_variants` no tenía `barcode` ni se mandaba `org_id`: la
+  importación de variantes de Tiendanube fallaba entera.
+- Los upserts de `settings` en Integraciones no mandaban `user_id` (NOT NULL)
+  → guardar webhook / Mercado Pago / Evolution fallaba en un alta nueva.
+- El log de entregas de webhooks consultaba columnas inexistentes
+  (`webhook_id`, `event_type`, `status`…): se alineó al esquema real que
+  escribe la Edge Function `send-webhook`.
+- `price_history` no la escribía nadie → el historial de precios y el
+  sparkline estaban vacíos siempre. Ahora `updateProductDB` registra el
+  cambio de precio/costo.
+- El medio de pago de un pago de deuda se descartaba: nueva tabla
+  `debt_payments` como ledger.
+- La auditoría de AdminPage filtraba por `severity` y buscaba por
+  `entity_label`/`user_email`, columnas que no existían → se agregaron y
+  `logAudit` las completa (severidad derivada de la acción).
+- El forecast de Dashboard y Analytics pasaba `{date, amount}` cuando el
+  hook espera `total_ars` → proyectaba siempre 0. `smoothingWindow` se
+  aceptaba pero se ignoraba: ahora aplica media móvil centrada.
+- KPIs de Lotes sin `icon`, ConfirmDialog de Devoluciones con `children` en
+  vez de `trigger`, `safeChannel` sin scope en las alertas de stock.
+
+**Migraciones aplicadas:** `products_supplier_id`, `debt_payments`,
+`audit_logs_rich_fields`, `product_variants_barcode`.
+
+- Pendiente: promos en el catálogo **público** (la RLS de `promotions` exige
+  auth; necesita un RPC security-definer o política de lectura pública).
+
 ---
 
 ## 7. ROADMAP DE PRODUCTO 2026–2028

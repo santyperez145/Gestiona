@@ -1109,8 +1109,8 @@ export default function Dashboard() {
 
   // ── Sales Forecaster (OLS daily regression, 30-day horizon) ──────────────
   const forecastSaleEntries = useMemo(() =>
-    (rawData?.sales ?? []).map((s: any) => ({ date: String(s.date).slice(0, 10), amount: Number(s.total_ars || 0) }))
-      .filter((e: { date: string; amount: number }) => e.date && e.amount > 0),
+    (rawData?.sales ?? []).map((s: any) => ({ date: String(s.date).slice(0, 10), total_ars: Number(s.total_ars || 0) }))
+      .filter((e: { date: string; total_ars: number }) => e.date && e.total_ars > 0),
   [rawData]);
   const { forecast: forecastPoints, trend: forecastTrend, r2: forecastR2 } = useSalesForecaster(forecastSaleEntries, { horizon: 30 });
   const forecast30dTotal = useMemo(() => forecastPoints.reduce((s, p) => s + p.projected, 0), [forecastPoints]);

@@ -418,11 +418,12 @@ export default function DevolucionesPage() {
                     title="Eliminar devolución"
                     description="¿Eliminás este registro? El stock NO se vuelve a descontar."
                     onConfirm={() => handleDelete(r.id)}
-                  >
-                    <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors text-xs px-2">
-                      Eliminar
-                    </button>
-                  </ConfirmDialog>
+                    trigger={
+                      <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors text-xs px-2">
+                        Eliminar
+                      </button>
+                    }
+                  />
                 </div>
               </div>
 

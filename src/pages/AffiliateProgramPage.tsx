@@ -368,8 +368,8 @@ export default function AffiliateProgramPage() {
       supabase.from("affiliate_partners").select("*").eq("org_id", orgId).order("joined_at", { ascending: false }),
       supabase.from("affiliate_conversions").select("*, partner:affiliate_partners(name,code)").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
     ]);
-    setPartners(pRes.data ?? []);
-    setConversions(cRes.data ?? []);
+    setPartners((pRes.data ?? []) as unknown as AffiliatePartner[]);
+    setConversions((cRes.data ?? []) as unknown as AffiliateConversion[]);
     setLoading(false);
   };
 

@@ -74,7 +74,23 @@ export default function EcommerceStorePage() {
       .then(({ data }) => {
         if (data) {
           setStore(data);
-          setStoreForm(prev => ({ ...prev, ...data, payment_methods: data.payment_methods || ["mercadopago", "transferencia"] }));
+          // Mapeo explícito: la fila trae columnas extra y numéricas donde el
+          // formulario usa strings (los inputs son de texto).
+          setStoreForm(prev => ({
+            ...prev,
+            name: data.name ?? prev.name,
+            slug: data.slug ?? prev.slug,
+            theme: data.theme ?? prev.theme,
+            primary_color: data.primary_color ?? prev.primary_color,
+            currency: data.currency ?? prev.currency,
+            tax_included: data.tax_included ?? prev.tax_included,
+            free_shipping_above: data.free_shipping_above != null ? String(data.free_shipping_above) : prev.free_shipping_above,
+            shipping_cost: data.shipping_cost != null ? String(data.shipping_cost) : prev.shipping_cost,
+            is_active: data.is_active ?? prev.is_active,
+            payment_methods: data.payment_methods || ["mercadopago", "transferencia"],
+            meta_title: data.meta_title ?? prev.meta_title,
+            meta_description: data.meta_description ?? prev.meta_description,
+          }));
           setSelectedTheme(data.theme);
         }
       });

@@ -478,7 +478,7 @@ export default function AdminPage() {
 // Full-featured audit trail — ported from the former standalone AuditLogPage
 // (`/auditoria`, now redirected to `/admin?tab=audit`).
 interface AuditLogRow {
-  id: number;
+  id: string;
   user_id: string | null;
   user_email: string | null;
   user_role: string | null;

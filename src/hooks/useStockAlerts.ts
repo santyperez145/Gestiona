@@ -61,7 +61,7 @@ export function useStockAlerts({ orgId, threshold = 5, enabled = true }: StockAl
   useEffect(() => {
     if (!orgId || !enabled) return;
 
-    const channel = safeChannel(`stock-alerts-${orgId}`);
+    const channel = safeChannel("stock-alerts", orgId);
 
     channel
       .on(

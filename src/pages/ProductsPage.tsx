@@ -6,6 +6,7 @@ import { useOrg } from "@/lib/orgContext";
 import { useEntitlements } from "@/lib/useEntitlements";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { getProductsDB, addProductDB, updateProductDB, deleteProductDB, getSettingsDB, formatARS, formatUSD, getCategoryLabel, calculateProductProfits, getVariantsDB, addVariantDB, updateVariantDB, deleteVariantDB, syncProductStockFromVariants, getVariantsByUserDB } from "@/lib/supabaseStore";
+import ProductPriceListsSection from "@/components/products/ProductPriceListsSection";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCountdown } from "@/hooks/useCountdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -1506,6 +1507,8 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [gender, setGender] = useState(product?.gender || 'masculino');
   const [costUSD, setCostUSD] = useState(product?.cost_usd?.toString() || '');
   const [salePriceARS, setSalePriceARS] = useState(product?.sale_price_ars?.toString() || '');
+  const [supplierId, setSupplierId] = useState<string>(product?.supplier_id || '');
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [discountPriceARS, setDiscountPriceARS] = useState(product?.discount_price_ars?.toString() || '');
   const [price2xARS, setPrice2xARS] = useState(product?.price_2x_ars?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '0');
@@ -1639,6 +1642,13 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
     }
   }, [product?.id]);
 
+  // Proveedor preferido — lo usan AutoRestock y las órdenes de compra.
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.from('suppliers').select('id,name').eq('org_id', orgId).order('name')
+      .then(({ data }) => setSuppliers((data ?? []) as { id: string; name: string }[]), () => {});
+  }, [orgId]);
+
   const cost = parseFloat(costUSD) || 0;
   const salePrice = parseFloat(salePriceARS) || 0;
   const customsPercent = Number(settings?.customs_percent || 15);
@@ -1768,6 +1778,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         tags,
         is_active: isActive,
         expected_restock_at: expectedRestockAt || null,
+        supplier_id: supplierId || null,
         ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
@@ -2240,6 +2251,27 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           <Input type="number" min="0" value={discountPriceARS} onChange={e => { setDiscountPriceARS(e.target.value); setManualDiscountPrice(true); }} placeholder="Auto-calculado" className="bg-muted border-border" />
         </div>
       </div>
+
+      {/* Precios por lista (mayorista / distribuidor) */}
+      <ProductPriceListsSection productId={product?.id} orgId={orgId} salePriceARS={salePrice} />
+
+      {suppliers.length > 0 && (
+        <div>
+          <label className="text-sm text-muted-foreground">Proveedor</label>
+          <Select value={supplierId || 'none'} onValueChange={v => setSupplierId(v === 'none' ? '' : v)}>
+            <SelectTrigger className="bg-muted border-border">
+              <SelectValue placeholder="Sin proveedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin proveedor</SelectItem>
+              {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Agrupa las sugerencias de reposición y arma las órdenes de compra por proveedor.
+          </p>
+        </div>
+      )}
       {/* ── AI Price Intelligence ─────────────────────────────── */}
       {cost > 0 && (
         <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">

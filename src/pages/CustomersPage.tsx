@@ -1223,7 +1223,9 @@ export default function CustomersPage() {
   const [saveSegmentName, setSaveSegmentName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
-  const [formModal, setFormModal] = useState<{ open: boolean; profile?: CustomerProfile }>({ open: false });
+  // `profile` puede venir parcial: al crear desde una fila sin ficha solo se
+  // conoce el nombre, y el `id` decide si se crea o se actualiza.
+  const [formModal, setFormModal] = useState<{ open: boolean; profile?: Partial<CustomerProfile> }>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, string> } | null>(null);
@@ -1304,7 +1306,7 @@ export default function CustomersPage() {
     setSales(s);
     setDebts(d);
     setSettings(st);
-    setProfiles(profs);
+    setProfiles(profs as unknown as CustomerProfile[]);
     setRecoProducts((prodRes.data as any[]) || []);
     const dmap: Record<string, any> = {};
     (ppdRes.data || []).forEach((r: any) => { dmap[r.product_id] = r; });
@@ -1432,7 +1434,7 @@ export default function CustomersPage() {
         map[name] = {
           name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0, avgTicket: 0,
           lastPurchase: s.date, firstPurchase: s.date, daysSinceLastPurchase: 0,
-          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [], clv: 0, churnRisk: 0,
+          frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [], clv: 0, churnRisk: 0, healthScore: 0,
         };
       }
       const c = map[name];
@@ -1462,7 +1464,7 @@ export default function CustomersPage() {
           name: p.name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0,
           avgTicket: 0, lastPurchase: new Date().toISOString(), firstPurchase: new Date().toISOString(),
           daysSinceLastPurchase: 999, frequency: 999, pendingDebt: 0, products: {},
-          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [], clv: 0, churnRisk: 0,
+          segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [], clv: 0, churnRisk: 0, healthScore: 0,
         };
       }
       const prof = profileByName[p.name.toLowerCase()];

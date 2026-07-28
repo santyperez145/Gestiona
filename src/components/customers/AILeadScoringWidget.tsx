@@ -65,13 +65,14 @@ export default function AILeadScoringWidget() {
     setLoading(true);
     supabase
       .from("deals")
-      .select("id, title, stage, amount, customer_name, created_at, updated_at")
+      .select("id, title, stage, value_ars, customer_name, created_at, updated_at")
       .eq("org_id", activeOrg.id)
       .not("stage", "in", "(cerrado,perdido)")
       .order("updated_at", { ascending: false })
       .limit(200)
       .then(({ data }) => {
-        setDeals((data as Deal[]) || []);
+        // La columna real del monto en `deals` es `value_ars`.
+        setDeals((data ?? []).map((d: any) => ({ ...d, amount: Number(d.value_ars) || 0 })) as Deal[]);
         setLoading(false);
       });
   }, [activeOrg?.id]);

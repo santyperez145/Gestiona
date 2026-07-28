@@ -98,12 +98,14 @@ interface WebhookConfig {
   created_at: string;
 }
 
+// Vista de UI sobre `webhook_deliveries`, que la Edge Function `send-webhook`
+// escribe con otros nombres (event / delivered / last_response_status /
+// attempt_count) y sin tiempo de respuesta.
 interface Delivery {
   id: string;
   event_type: string;
-  status: 'pending' | 'success' | 'failed' | 'retrying';
+  status: 'success' | 'failed';
   http_status: number | null;
-  response_time_ms: number | null;
   attempt: number;
   delivered_at: string | null;
   created_at: string;
@@ -139,7 +141,7 @@ export default function AdvancedWebhooksPanel() {
         .eq("org_id", activeOrg.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setWebhooks(data ?? []);
+      setWebhooks((data ?? []) as unknown as WebhookConfig[]);
     } catch (e: any) {
       toast.error("Error: " + e.message);
     } finally {
@@ -149,13 +151,29 @@ export default function AdvancedWebhooksPanel() {
 
   const loadDeliveries = async (webhookId: string) => {
     if (deliveries[webhookId]) return;
+    // `webhook_deliveries` no referencia el config: se correlaciona por URL.
+    const url = webhooks.find(w => w.id === webhookId)?.url;
+    if (!url) return;
     const { data } = await supabase
       .from("webhook_deliveries")
-      .select("id, event_type, status, http_status, response_time_ms, attempt, delivered_at, created_at")
-      .eq("webhook_id", webhookId)
+      .select("id, event, delivered, last_response_status, attempt_count, delivered_at, created_at")
+      .eq("webhook_url", url)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (data) setDeliveries(prev => ({ ...prev, [webhookId]: data }));
+    if (data) {
+      setDeliveries(prev => ({
+        ...prev,
+        [webhookId]: data.map(d => ({
+          id: d.id,
+          event_type: d.event,
+          status: d.delivered ? 'success' : 'failed',
+          http_status: d.last_response_status,
+          attempt: d.attempt_count,
+          delivered_at: d.delivered_at,
+          created_at: d.created_at,
+        })),
+      }));
+    }
   };
 
   useEffect(() => { load(); }, [activeOrg?.id]);
@@ -242,14 +260,14 @@ export default function AdvancedWebhooksPanel() {
       });
       const ms = Date.now() - start;
       await supabase.from("webhook_deliveries").insert({
-        webhook_id: webhook.id,
         org_id: activeOrg!.id,
-        event_type: testEvent,
-        payload,
-        status: res.ok ? 'success' : 'failed',
-        http_status: res.status,
-        response_time_ms: ms,
-        delivered_at: new Date().toISOString(),
+        webhook_url: webhook.url,
+        event: testEvent,
+        payload: payload as any,
+        delivered: res.ok,
+        last_response_status: res.status,
+        attempt_count: 1,
+        delivered_at: res.ok ? new Date().toISOString() : null,
       });
       if (res.ok) {
         toast.success(`✅ Test exitoso (${res.status}) en ${ms}ms`);
@@ -262,12 +280,13 @@ export default function AdvancedWebhooksPanel() {
     } catch (e: any) {
       const ms = Date.now() - start;
       await supabase.from("webhook_deliveries").insert({
-        webhook_id: webhook.id,
         org_id: activeOrg!.id,
-        event_type: testEvent,
-        payload,
-        status: 'failed',
-        response_time_ms: ms,
+        webhook_url: webhook.url,
+        event: testEvent,
+        payload: payload as any,
+        delivered: false,
+        attempt_count: 1,
+        last_response_body: String(e?.message ?? '').slice(0, 2000),
       });
       toast.error(`Error de conexión: ${e.message}`);
     } finally {
@@ -294,9 +313,7 @@ export default function AdvancedWebhooksPanel() {
 
   const statusIcon = (s: Delivery['status']) => {
     if (s === 'success') return <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />;
-    if (s === 'failed') return <XCircle className="w-3.5 h-3.5 text-red-400" />;
-    if (s === 'retrying') return <RefreshCw className="w-3.5 h-3.5 text-amber-400" />;
-    return <Clock className="w-3.5 h-3.5 text-muted-foreground" />;
+    return <XCircle className="w-3.5 h-3.5 text-red-400" />;
   };
 
   return (
@@ -525,7 +542,7 @@ export default function AdvancedWebhooksPanel() {
                               {d.http_status && (
                                 <span className={`${d.http_status < 300 ? 'text-emerald-400' : 'text-red-400'}`}>HTTP {d.http_status}</span>
                               )}
-                              {d.response_time_ms && <span className="text-muted-foreground">{d.response_time_ms}ms</span>}
+                              {d.attempt > 1 && <span className="text-muted-foreground">{d.attempt} intentos</span>}
                               <span className="text-muted-foreground/50">
                                 {formatDistanceToNow(new Date(d.created_at), { locale: es, addSuffix: true })}
                               </span>

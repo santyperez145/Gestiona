@@ -241,6 +241,7 @@ export default function TiendanubeExcelImport() {
           const { error: vErr } = await supabase
             .from("product_variants")
             .upsert({
+              org_id: activeOrg.id,
               product_id: product.id,
               user_id: user.id,
               variant_name: v.name,

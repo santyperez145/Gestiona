@@ -46,6 +46,12 @@ interface UseSalesForecasterOptions {
   horizon?: number;
   /** Minimum slope considered "flat" (ARS/day). Default: 500 */
   flatThreshold?: number;
+  /**
+   * Ventana de media móvil centrada aplicada a la serie diaria antes de la
+   * regresión. Suaviza el ruido día-a-día (fines de semana, picos sueltos).
+   * 1 o menos = sin suavizado. Default: 1
+   */
+  smoothingWindow?: number;
 }
 
 interface UseSalesForecasterReturn {
@@ -99,7 +105,7 @@ export function useSalesForecaster(
   sales: SaleEntry[],
   options: UseSalesForecasterOptions = {}
 ): UseSalesForecasterReturn {
-  const { lookback = 30, horizon = 7, flatThreshold = 500 } = options;
+  const { lookback = 30, horizon = 7, flatThreshold = 500, smoothingWindow = 1 } = options;
 
   return useMemo(() => {
     // Aggregate sales by day
@@ -117,7 +123,18 @@ export function useSalesForecaster(
     }
 
     const xVals = days.map((_, i) => i);
-    const yVals = days.map(d => dailyMap[d] ?? 0);
+    const rawY = days.map(d => dailyMap[d] ?? 0);
+    // Media móvil centrada: reduce el ruido diario sin desplazar la tendencia.
+    const yVals = smoothingWindow > 1
+      ? rawY.map((_, i) => {
+          const half = Math.floor(smoothingWindow / 2);
+          const from = Math.max(0, i - half);
+          const to = Math.min(rawY.length - 1, i + half);
+          let sum = 0;
+          for (let k = from; k <= to; k++) sum += rawY[k];
+          return sum / (to - from + 1);
+        })
+      : rawY;
 
     const { slope, intercept, r2 } = linearRegression(xVals, yVals);
 
@@ -145,5 +162,5 @@ export function useSalesForecaster(
       Math.abs(slope) < flatThreshold ? "flat" : slope > 0 ? "up" : "down";
 
     return { forecast, trend, r2, slope, intercept, loading: false as const };
-  }, [sales, lookback, horizon, flatThreshold]);
+  }, [sales, lookback, horizon, flatThreshold, smoothingWindow]);
 }

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/orgContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -169,7 +170,7 @@ function SegForm({ open, segment, orgId, onClose, onSaved }: SegFormProps) {
     setLoading(true);
     const payload = {
       org_id: orgId, name: name.trim(), description: description.trim() || null,
-      color, is_dynamic: isDynamic, rules: rules, active: true,
+      color, is_dynamic: isDynamic, rules: rules as unknown as Json, active: true,
     };
     const { error, data } = segment
       ? await supabase.from("customer_segments").update(payload).eq("id", segment.id).select().single()
@@ -505,8 +506,8 @@ export default function CustomerSegmentsTab() {
       supabase.from("customer_segments").select("*").eq("org_id", orgId).order("customer_count", { ascending: false }),
       supabase.from("segment_campaigns").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     ]);
-    setSegments((segRes.data ?? []) as CustomerSegment[]);
-    setCampaigns(campRes.data ?? []);
+    setSegments((segRes.data ?? []) as unknown as CustomerSegment[]);
+    setCampaigns((campRes.data ?? []) as unknown as SegmentCampaign[]);
     setLoading(false);
   };
 

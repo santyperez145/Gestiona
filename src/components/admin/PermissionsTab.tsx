@@ -11,7 +11,8 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Shield, Loader2, RotateCcw, Eye, Plus, Pencil, Trash2, Download, Lock } from "lucide-react";
-import { defaultsForRole, type AppRole } from "@/lib/usePermissions";
+import { defaultsForRole } from "@/lib/usePermissions";
+import type { AppRole } from "@/lib/useUserRole";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
