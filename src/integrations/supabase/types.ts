@@ -127,6 +127,20 @@ export type Database = {
             foreignKeyName: "affiliate_conversions_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "affiliate_conversions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
@@ -1038,6 +1052,65 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          description: string | null
+          environment: string
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          org_id: string
+          rate_limit_rpm: number
+          request_count: number
+          revoked_at: string | null
+          scopes: string[]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          org_id: string
+          rate_limit_rpm?: number
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          org_id?: string
+          rate_limit_rpm?: number
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_blocks: {
         Row: {
           created_at: string
@@ -1493,6 +1566,53 @@ export type Database = {
           },
           {
             foreignKeyName: "batch_movements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bi_snapshots: {
+        Row: {
+          avg_order_value: number
+          created_at: string
+          id: string
+          low_stock_count: number
+          new_customers: number
+          orders_day: number
+          org_id: string
+          revenue_day: number
+          snapshot_date: string
+          total_stock_value: number
+        }
+        Insert: {
+          avg_order_value?: number
+          created_at?: string
+          id?: string
+          low_stock_count?: number
+          new_customers?: number
+          orders_day?: number
+          org_id: string
+          revenue_day?: number
+          snapshot_date?: string
+          total_stock_value?: number
+        }
+        Update: {
+          avg_order_value?: number
+          created_at?: string
+          id?: string
+          low_stock_count?: number
+          new_customers?: number
+          orders_day?: number
+          org_id?: string
+          revenue_day?: number
+          snapshot_date?: string
+          total_stock_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bi_snapshots_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3210,6 +3330,20 @@ export type Database = {
             foreignKeyName: "customer_payments_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "customer_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
@@ -3259,6 +3393,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_referrals_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "customer_referrals_sale_id_fkey"
@@ -3834,6 +3982,20 @@ export type Database = {
             foreignKeyName: "debts_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
@@ -3943,6 +4105,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "deliveries_sale_id_fkey"
@@ -6427,6 +6603,47 @@ export type Database = {
           },
         ]
       }
+      fx_exposure: {
+        Row: {
+          created_at: string
+          currency_code: string
+          id: string
+          org_id: string
+          payables_fc: number
+          receivables_fc: number
+          snapshot_date: string
+          spot_rate: number
+        }
+        Insert: {
+          created_at?: string
+          currency_code: string
+          id?: string
+          org_id: string
+          payables_fc?: number
+          receivables_fc?: number
+          snapshot_date?: string
+          spot_rate?: number
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          id?: string
+          org_id?: string
+          payables_fc?: number
+          receivables_fc?: number
+          snapshot_date?: string
+          spot_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_exposure_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gamification_badges: {
         Row: {
           category: string
@@ -7251,6 +7468,20 @@ export type Database = {
             foreignKeyName: "installment_schedule_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "installment_schedule_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
@@ -7726,6 +7957,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
           },
           {
             foreignKeyName: "invoices_sale_id_fkey"
@@ -9004,6 +9249,56 @@ export type Database = {
           },
         ]
       }
+      multi_currency_transactions: {
+        Row: {
+          base_amount: number
+          base_currency: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          exchange_rate: number
+          id: string
+          org_id: string
+          rate_type: string
+          transaction_amount: number
+          transaction_currency: string
+        }
+        Insert: {
+          base_amount?: number
+          base_currency?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          exchange_rate?: number
+          id?: string
+          org_id: string
+          rate_type?: string
+          transaction_amount?: number
+          transaction_currency?: string
+        }
+        Update: {
+          base_amount?: number
+          base_currency?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          exchange_rate?: number
+          id?: string
+          org_id?: string
+          rate_type?: string
+          transaction_amount?: number
+          transaction_currency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multi_currency_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_log: {
         Row: {
           body: string | null
@@ -9281,6 +9576,110 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "nps_surveys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocr_documents: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          extracted: Json | null
+          file_size: number | null
+          file_url: string | null
+          filename: string
+          id: string
+          mime_type: string | null
+          ocr_provider: string | null
+          ocr_status: string
+          org_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          extracted?: Json | null
+          file_size?: number | null
+          file_url?: string | null
+          filename: string
+          id?: string
+          mime_type?: string | null
+          ocr_provider?: string | null
+          ocr_status?: string
+          org_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          extracted?: Json | null
+          file_size?: number | null
+          file_url?: string | null
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          ocr_provider?: string | null
+          ocr_status?: string
+          org_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocr_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocr_line_items: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          org_id: string
+          product_name: string
+          quantity: number
+          sku: string | null
+          tax_rate: number
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          org_id: string
+          product_name?: string
+          quantity?: number
+          sku?: string | null
+          tax_rate?: number
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          org_id?: string
+          product_name?: string
+          quantity?: number
+          sku?: string | null
+          tax_rate?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocr_line_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ocr_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocr_line_items_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -12696,6 +13095,20 @@ export type Database = {
             foreignKeyName: "returns_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["sale_id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
@@ -13143,6 +13556,59 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_reports: {
+        Row: {
+          chart_type: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          is_pinned: boolean
+          is_shared: boolean
+          last_run_at: string | null
+          name: string
+          org_id: string
+          report_type: string
+          run_count: number
+        }
+        Insert: {
+          chart_type?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          is_shared?: boolean
+          last_run_at?: string | null
+          name: string
+          org_id: string
+          report_type?: string
+          run_count?: number
+        }
+        Update: {
+          chart_type?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          is_shared?: boolean
+          last_run_at?: string | null
+          name?: string
+          org_id?: string
+          report_type?: string
+          run_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -16583,6 +17049,71 @@ export type Database = {
           },
         ]
       }
+      webhook_configs: {
+        Row: {
+          active: boolean
+          created_at: string
+          event_types: string[]
+          failure_count: number
+          id: string
+          last_fired_at: string | null
+          max_retries: number
+          name: string
+          org_id: string
+          retry_on_fail: boolean
+          secret_header: string | null
+          secret_value: string | null
+          success_count: number
+          timeout_seconds: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          event_types?: string[]
+          failure_count?: number
+          id?: string
+          last_fired_at?: string | null
+          max_retries?: number
+          name: string
+          org_id: string
+          retry_on_fail?: boolean
+          secret_header?: string | null
+          secret_value?: string | null
+          success_count?: number
+          timeout_seconds?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          event_types?: string[]
+          failure_count?: number
+          id?: string
+          last_fired_at?: string | null
+          max_retries?: number
+          name?: string
+          org_id?: string
+          retry_on_fail?: boolean
+          secret_header?: string | null
+          secret_value?: string | null
+          success_count?: number
+          timeout_seconds?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_deliveries: {
         Row: {
           attempt_count: number
@@ -17259,6 +17790,67 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_items: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          id: string | null
+          org_id: string | null
+          product_id: string | null
+          product_name: string | null
+          quantity: number | null
+          sale_id: string | null
+          total_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          id?: string | null
+          org_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          quantity?: number | null
+          sale_id?: string | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          id?: string | null
+          org_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          quantity?: number | null
+          sale_id?: string | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings_public: {
         Row: {
           business_name: string | null
@@ -17446,6 +18038,7 @@ export type Database = {
         Args: { p_attributes: Json; p_conditions: Json }
         Returns: boolean
       }
+      expire_batches: { Args: { p_org_id: string }; Returns: number }
       expire_overdue_contracts: { Args: never; Returns: number }
       expire_overdue_trials: { Args: never; Returns: undefined }
       generate_claim_number: { Args: { p_org_id: string }; Returns: string }
@@ -17477,6 +18070,16 @@ export type Database = {
           rejected: number
           total: number
           total_amount: number
+        }[]
+      }
+      get_audit_summary: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: {
+          action: string
+          entity_type: string
+          event_count: number
+          last_event: string
+          unique_users: number
         }[]
       }
       get_bcg_matrix: {
@@ -17720,6 +18323,7 @@ export type Database = {
         Returns: undefined
       }
       seed_journey_stages: { Args: { p_org_id: string }; Returns: undefined }
+      seed_return_reasons: { Args: { p_org_id: string }; Returns: undefined }
       seed_tax_rates: { Args: { p_org_id: string }; Returns: undefined }
       submit_influencer_content: {
         Args: {
