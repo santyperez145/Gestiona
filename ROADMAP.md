@@ -582,6 +582,41 @@ cupón queda filtrada, filas de prueba eliminadas.*
 
 **CI:** el typecheck pasa a bloqueante (la deuda llegó a 0, venía de ~810).
 
+### Sesión 84 — Hardening: índices por org_id + auditoría de dependencias (2026-07-28)
+
+**Índices por `org_id` (59 tablas → 0).** Toda policy de RLS evalúa
+`is_org_member(org_id, auth.uid())` y toda query filtra por `org_id`, pero 59
+tablas no tenían ningún índice que liderara con esa columna: cada lectura era
+un seq scan sobre las filas de **todas** las organizaciones, o sea un costo que
+crece con el total de clientes del SaaS y no con los datos del que consulta.
+La migración los crea dinámicamente como `(org_id, created_at DESC)` cuando la
+tabla tiene `created_at` y `(org_id)` si no. Las tablas calientes (sales,
+products, customers, expenses, purchases) ya estaban bien.
+
+**`afip_padron_cache`** tiene RLS con cero policies **a propósito**: es un caché
+global con clave CUIT y sin `org_id`; una policy para `authenticated` dejaría
+ver a quién le factura cada negocio. Se documentó con `COMMENT ON TABLE` para
+que una auditoría futura no lo "corrija".
+
+**Dependencias: 35 vulnerabilidades → 18, las 2 críticas eliminadas.**
+En producción (lo que llega al browser): 7 → 3. Solo cambió el lockfile, ningún
+salto de versión directo. Queda:
+- `xlsx` (high, ReDoS + prototype pollution): **sin fix en npm** — SheetJS se
+  distribuye por su propio CDN desde la 0.19. Se usa lazy-loaded en 6 lugares
+  (import/export de Excel). Migrar la fuente del paquete es una decisión aparte.
+- `react-router` (moderate, open redirect vía backslash en `<Link>`/`useNavigate`):
+  **no es alcanzable en esta app** — se auditaron todos los `navigate()` y son
+  rutas literales o mapas estáticos; el único branch con path variable
+  (`action.type === "navigate"` del asistente) está declarado pero ningún código
+  lo produce. El fix exige react-router 7 (major), que no se justifica por una
+  vuln inalcanzable.
+- El resto (15) es tooling de build: eslint 10, vite 8, `@sentry/vite-plugin` 5,
+  todos majors de dev.
+
+**CI:** nuevo job `security`. Bloqueante en `npm audit --omit=dev
+--audit-level=critical` (gate que hoy pasa y frena lo urgente de verdad) más un
+audit completo informativo. Subir a `high` cuando se resuelva `xlsx`.
+
 ---
 
 ## 7. ROADMAP DE PRODUCTO 2026–2028

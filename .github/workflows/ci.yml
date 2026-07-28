@@ -82,3 +82,35 @@ jobs:
       # Bloqueante: los tests (smoke de páginas + cálculos) deben pasar.
       - name: Run tests
         run: npm test -- --reporter=verbose
+
+  security:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # BLOQUEANTE. Solo dependencias de producción (lo que llega al browser) y
+      # solo severidad `critical`: es un gate que hoy pasa y que frena de verdad
+      # cuando entra algo urgente. Subir a `high` cuando se resuelva `xlsx`.
+      - name: Audit (producción, crítico)
+        run: npm audit --omit=dev --audit-level=critical
+
+      # Informativo: la foto completa, incluido el tooling de build.
+      # Lo que queda son majors de dev (eslint 10, vite 8, @sentry/vite-plugin 5)
+      # y `xlsx`, que no tiene fix publicado en npm — SheetJS se distribuye por
+      # su propio CDN desde la v0.19. Ver ROADMAP, sesión 84.
+      - name: Audit completo (informativo)
+        run: npm audit
+        continue-on-error: true
