@@ -725,7 +725,7 @@ export default function LegacyAlertRulesTab() {
               <thead className="bg-muted/30">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Alerta</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden sm:table-cell">Tipo</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden sm:table-cell">Umbral</th>
                   <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Última vez</th>
                   <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">Estado</th>
                 </tr>
@@ -743,11 +743,15 @@ export default function LegacyAlertRulesTab() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
-                          <span className="font-medium text-xs">{r.name}</span>
+                          <span className="font-medium text-xs">{cfg.label}</span>
                         </div>
                       </td>
                       <td className="px-4 py-2.5 hidden sm:table-cell">
-                        <span className="text-xs text-muted-foreground">{cfg.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {(cfg as any).useDays
+                            ? `${r.threshold_days} ${(cfg as any).daysLabel || 'días'}`
+                            : `${r.threshold_value}${(cfg as any).thresholdUnit === '%' ? '%' : ` ${(cfg as any).thresholdUnit || ''}`}`.trim()}
+                        </span>
                       </td>
                       <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
                         {formatDistanceToNow(firedAt, { locale: es, addSuffix: true })}

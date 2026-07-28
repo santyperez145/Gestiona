@@ -5,10 +5,11 @@ import { safeChannel } from "@/lib/realtimeChannel";
 import { getActiveOrgId } from "@/lib/orgContext";
 import { formatARS, getCategoryLabel, getGenderLabel } from "@/lib/supabaseStore";
 import { loadActivePromotions, bestPromoPrice, type Promotion } from "@/lib/promotions";
+import { FAMILIAS_OLFATIVAS, NOTAS_COMUNES, OCASIONES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, Package, Tag, Download, Share2, QrCode, Layers, Percent, MessageCircle } from "lucide-react";
+import { Search, Package, Tag, Download, Share2, QrCode, Layers, Percent, MessageCircle, SlidersHorizontal } from "lucide-react";
 import KPICard from "@/components/shared/KPICard";
 import { QRCodeSVG } from "qrcode.react";
 import EmptyState from "@/components/shared/EmptyState";
@@ -52,6 +53,12 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const [catalogPromos, setCatalogPromos] = useState<Promotion[]>([]);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
+  const [perfumeDetails, setPerfumeDetails] = useState<Record<string, any>>({});
+  const [facetFamilia, setFacetFamilia] = useState<string[]>([]);
+  const [facetNotas, setFacetNotas] = useState<string[]>([]);
+  const [facetOcasion, setFacetOcasion] = useState<string[]>([]);
+  const [facetGenero, setFacetGenero] = useState<string[]>([]);
+  const [showFacets, setShowFacets] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -69,6 +76,11 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     // Promos auto-aplicables solo en catálogo interno (la RLS de promotions
     // exige auth; el catálogo público anónimo no puede leerlas).
     if (!isPublic) loadActivePromotions(orgId).then(setCatalogPromos).catch(() => {});
+    supabase.from("product_perfume_details").select("*").eq("org_id", orgId).then(({ data }) => {
+      const m: Record<string, any> = {};
+      (data ?? []).forEach((d: any) => { m[d.product_id] = d; });
+      setPerfumeDetails(m);
+    }, () => {});
   }, [userId, isPublic]);
 
   useEffect(() => {
@@ -88,8 +100,22 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
+    // ── Facetas de perfume. El PDF se arma desde `filtered`, así que
+    //    exportar respeta exactamente lo que se ve en pantalla.
+    if (facetGenero.length && !facetGenero.includes(p.gender)) return false;
+    if (facetFamilia.length || facetNotas.length || facetOcasion.length) {
+      const d = perfumeDetails[p.id];
+      if (!d) return false;
+      if (facetFamilia.length && !facetFamilia.includes(d.familia_olfativa)) return false;
+      if (facetOcasion.length && !facetOcasion.some((o: string) => (d.ocasion ?? []).includes(o))) return false;
+      if (facetNotas.length) {
+        const todas = [...(d.notas_salida ?? []), ...(d.notas_corazon ?? []), ...(d.notas_fondo ?? [])];
+        if (!facetNotas.some((n: string) => todas.includes(n))) return false;
+      }
+    }
     return true;
   });
+  const facetCount = facetFamilia.length + facetNotas.length + facetOcasion.length + facetGenero.length;
 
   const generatePDF = useCallback(async () => {
     if (!filtered.length) return;
@@ -122,7 +148,18 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
       const hex = hexPrimary;
       const today = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
       const publicUrl = `${window.location.origin}/catalogo/${userId}`;
-      const catLabel = filterCat !== 'all' ? getCategoryLabel(filterCat) : 'Todos los productos';
+      // Título de portada: refleja la categoría y las facetas activas, así el
+      // PDF exportado dice exactamente qué selección contiene.
+      const facetLabels = [
+        ...facetGenero.map(v => taxLabel(GENEROS, v)),
+        ...facetFamilia.map(v => taxLabel(FAMILIAS_OLFATIVAS, v)),
+        ...facetOcasion.map(v => taxLabel(OCASIONES, v)),
+        ...facetNotas.map(v => taxLabel(NOTAS_COMUNES, v)),
+      ];
+      const baseCatLabel = filterCat !== 'all' ? getCategoryLabel(filterCat) : 'Todos los productos';
+      const catLabel = facetLabels.length
+        ? `${filterCat !== 'all' ? baseCatLabel + ' · ' : ''}${facetLabels.slice(0, 4).join(' · ')}${facetLabels.length > 4 ? ` +${facetLabels.length - 4}` : ''}`
+        : baseCatLabel;
 
       // Preload logo for cover page
       const coverLogoUrl = settings?.logo_url || `${window.location.origin}/exentry-logo.png`;
@@ -824,7 +861,7 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
     } finally {
       setGenerating(false);
     }
-  }, [filtered, settings, isPublic, filterCat, userId]);
+  }, [filtered, settings, isPublic, filterCat, userId, facetGenero, facetFamilia, facetOcasion, facetNotas]);
 
   const printQR = useCallback(() => {
     const url = `${window.location.origin}/catalogo/${userId}`;
@@ -961,6 +998,75 @@ export default function CatalogPage({ isPublic, publicUserId }: CatalogPageProps
             </button>
           ))}
         </div>
+
+        {/* Facetas de perfume — el PDF se exporta desde `filtered`, así que
+            lo que se filtra acá es exactamente lo que sale en el PDF. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={showFacets ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowFacets(v => !v)}
+            className="gap-1.5"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Filtros de perfume
+            {facetCount > 0 && (
+              <span className="ml-1 rounded-full bg-primary/20 text-primary px-1.5 text-[10px] font-bold">{facetCount}</span>
+            )}
+          </Button>
+          {facetCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setFacetFamilia([]); setFacetNotas([]); setFacetOcasion([]); setFacetGenero([]); }}
+              className="text-xs text-muted-foreground"
+            >
+              Limpiar filtros
+            </Button>
+          )}
+          {facetCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? 'producto' : 'productos'} — el PDF exporta solo estos
+            </span>
+          )}
+        </div>
+
+        {showFacets && (
+          <div className="rounded-xl border border-border bg-card/50 p-3 sm:p-4 space-y-4">
+            {([
+              { title: 'Género', items: GENEROS, sel: facetGenero, set: setFacetGenero },
+              { title: 'Familia olfativa', items: FAMILIAS_OLFATIVAS, sel: facetFamilia, set: setFacetFamilia },
+              { title: 'Ocasión', items: OCASIONES, sel: facetOcasion, set: setFacetOcasion },
+              { title: 'Notas', items: NOTAS_COMUNES, sel: facetNotas, set: setFacetNotas },
+            ] as { title: string; items: TaxItem[]; sel: string[]; set: (v: string[]) => void }[]).map(group => (
+              <div key={group.title}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">{group.title}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.items.map(it => {
+                    const active = group.sel.includes(it.value);
+                    return (
+                      <button
+                        key={it.value}
+                        type="button"
+                        onClick={() => group.set(active ? group.sel.filter(v => v !== it.value) : [...group.sel, it.value])}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                          active
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                        }`}
+                      >
+                        {it.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-muted-foreground">
+              Los filtros por familia, ocasión y notas solo alcanzan productos con ficha de perfume cargada.
+            </p>
+          </div>
+        )}
       </div>
 
       {!filtered.length ? (

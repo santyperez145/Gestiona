@@ -64,8 +64,11 @@ export function useEventListener(
   }, [listener]);
 
   useEffect(() => {
-    const target = element && "current" in element ? element.current : element;
-    if (!target || !target.addEventListener) return;
+    // `element` puede ser un EventTarget directo o un ref; el ref puede estar
+    // vacío en el primer render, por eso se resuelve dentro del effect.
+    const target: EventTarget | null =
+      element && "current" in element ? element.current : (element as EventTarget);
+    if (!target || typeof target.addEventListener !== "function") return;
 
     const handler = (e: Event) => savedListener.current(e);
 
