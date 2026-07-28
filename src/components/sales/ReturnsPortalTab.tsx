@@ -22,7 +22,7 @@ interface ReturnRequest {
   refund_amount: number | null; refund_method: string | null; status: string;
   reason_text: string | null; created_at: string; resolved_at: string | null;
   return_reasons: { name: string } | null;
-  clients: { name: string } | null;
+  customers: { name: string } | null;
 }
 interface OurProduct { id: string; name: string; }
 
@@ -77,7 +77,7 @@ export default function ReturnsPortalTab() {
     if (!orgId) return;
     setLoading(true);
     const [rr, reaR, pr] = await Promise.allSettled([
-      supabase.from("return_requests").select("*, return_reasons(name), clients(name)").eq("org_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("return_requests").select("*, return_reasons(name), customers(name)").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("return_reasons").select("*").eq("org_id", orgId).order("sort_order"),
       supabase.from("products").select("id,name").eq("org_id", orgId).order("name"),
     ]);

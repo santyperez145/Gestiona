@@ -104,11 +104,12 @@ export default function CalendarPage() {
         .neq("status", "done")
         .gte("follow_up_date", isoDate(rangeStart))
         .lte("follow_up_date", isoDate(rangeEnd)),
+      // La tabla real es `debts`; el saldo pendiente es remaining_ars (no `paid`)
       supabase
-        .from("customer_debts")
-        .select("id, customer_name, amount_ars, due_date, paid")
+        .from("debts")
+        .select("id, customer_name, amount_ars, due_date, remaining_ars")
         .eq("org_id", activeOrg.id)
-        .eq("paid", false)
+        .gt("remaining_ars", 0)
         .not("due_date", "is", null)
         .gte("due_date", isoDate(rangeStart))
         .lte("due_date", isoDate(rangeEnd)),
@@ -159,7 +160,7 @@ export default function CalendarPage() {
     });
 
     (debtsRes.data || []).forEach((d: any) => {
-      if (!d.due_date || d.paid) return;
+      if (!d.due_date || Number(d.remaining_ars) <= 0) return;
       allEvents.push({
         id: `debt-${d.id}`,
         date: d.due_date.slice(0, 10),

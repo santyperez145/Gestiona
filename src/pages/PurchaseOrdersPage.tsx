@@ -48,7 +48,6 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import InvoiceOCRModal, { OCRPrefillData } from "@/components/purchases/InvoiceOCRModal";
-import SupplierQuotesTab from "@/components/purchases/SupplierQuotesTab";
 import PurchaseRequestsTab from "@/components/purchases/PurchaseRequestsTab";
 import { ScanLine } from "lucide-react";
 
@@ -624,7 +623,6 @@ export default function PurchaseOrdersPage() {
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
         <TabsList>
           <TabsTrigger value="ordenes">Órdenes</TabsTrigger>
-          <TabsTrigger value="cotizaciones">Cotizaciones</TabsTrigger>
           <TabsTrigger value="solicitudes">Solicitudes</TabsTrigger>
         </TabsList>
 
@@ -672,10 +670,6 @@ export default function PurchaseOrdersPage() {
               <p className="text-xs text-muted-foreground text-right pt-1">{filtered.length} OC{filtered.length !== 1 ? "s" : ""}</p>
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="cotizaciones">
-          <SupplierQuotesTab />
         </TabsContent>
 
         <TabsContent value="solicitudes">

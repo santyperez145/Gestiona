@@ -92,7 +92,6 @@ const AFIPPage                 = lazy(() => import("@/pages/AFIPPage"));
 const BIReportsPage            = lazy(() => import("@/pages/BIReportsPage"));
 const EcommerceStorePage       = lazy(() => import("@/pages/EcommerceStorePage"));
 const MultiCurrencyPage        = lazy(() => import("@/pages/MultiCurrencyPage"));
-const PricingEnginePage        = lazy(() => import("@/pages/PricingEnginePage"));
 const AdvancedCRMPage          = lazy(() => import("@/pages/AdvancedCRMPage"));
 const InventoryValuationPage   = lazy(() => import("@/pages/InventoryValuationPage"));
 const SmartAlertsPage          = lazy(() => import("@/pages/SmartAlertsPage"));
@@ -236,10 +235,6 @@ function ProtectedRoutes() {
               <Route path="/actividad" element={<Navigate to="/admin?tab=activity" replace />} />
               <Route path="/inventario-aging" element={<Navigate to="/valuacion-inventario" replace />} />
               <Route path="/seguimiento" element={<FollowUpPage />} />
-              <Route path="/precios-inteligentes" element={<Navigate to="/motor-precios" replace />} />
-              <Route path="/precios-dinamicos" element={<Navigate to="/motor-precios" replace />} />
-              <Route path="/precios-competencia" element={<Navigate to="/motor-precios" replace />} />
-              <Route path="/inteligencia-competitiva" element={<Navigate to="/motor-precios" replace />} />
               <Route path="/cupones" element={<CouponsPage />} />
               <Route path="/calendario" element={<CalendarPage />} />
               <Route path="/rfm" element={<CustomerRFMPage />} />
@@ -277,7 +272,6 @@ function ProtectedRoutes() {
               <Route path="/bi-reportes" element={<BIReportsPage />} />
               <Route path="/tienda-online" element={<EcommerceStorePage />} />
               <Route path="/multi-divisa" element={<MultiCurrencyPage />} />
-              <Route path="/motor-precios" element={<PricingEnginePage />} />
               <Route path="/analytics-ia" element={<Navigate to="/analytics" replace />} />
               <Route path="/crm-avanzado" element={<AdvancedCRMPage />} />
               <Route path="/escenarios-financieros" element={<Navigate to="/pl-dashboard" replace />} />

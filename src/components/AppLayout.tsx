@@ -91,7 +91,6 @@ const allNavItems = [
   { to: "/kpi-dashboard", label: "KPI Dashboard", icon: LineChart, roles: ['admin'], section: 'analytics' },
   { to: "/bi-reportes", label: "BI & Reports Avanzados", icon: BarChart3, roles: ['admin'], section: 'analytics' },
   { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
-  { to: "/motor-precios", label: "Motor de Precios", icon: Tag, roles: ['admin'], section: 'analytics' },
   { to: "/ia", label: "AI Insights", icon: Sparkles, roles: ['admin'], section: 'analytics' },
   // ── Administración ──────────────────────────────────────────────────────────
   { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'admin' },

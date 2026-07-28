@@ -65,7 +65,7 @@ interface LoyaltyMember {
   tier_id: string | null;
   enrolled_at: string;
   last_activity: string | null;
-  clients: { name: string; email: string | null } | null;
+  customers: { name: string; email: string | null } | null;
   loyalty_tiers: { name: string; color: string; icon: string } | null;
 }
 
@@ -77,7 +77,7 @@ interface LoyaltyTransaction {
   balance_after: number;
   description: string;
   created_at: string;
-  loyalty_members: { clients: { name: string } | null } | null;
+  loyalty_members: { customers: { name: string } | null } | null;
 }
 
 /* ─────────────────────────── configs ─────────────────────────── */
@@ -141,8 +141,8 @@ export default function LoyaltyAdvancedPage() {
       supabase.from("loyalty_programs").select("*").eq("org_id", orgId).single(),
       supabase.from("loyalty_tiers").select("*").eq("org_id", orgId).order("min_points"),
       supabase.from("loyalty_rewards").select("*").eq("org_id", orgId).order("points_cost"),
-      supabase.from("loyalty_members").select("*, clients(name,email), loyalty_tiers(name,color,icon)").eq("org_id", orgId).order("current_points", { ascending: false }),
-      supabase.from("loyalty_transactions").select("*, loyalty_members(clients(name))").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("loyalty_members").select("*, customers(name,email), loyalty_tiers(name,color,icon)").eq("org_id", orgId).order("current_points", { ascending: false }),
+      supabase.from("loyalty_transactions").select("*, loyalty_members(customers(name))").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
     ]);
     if (pr.status === "fulfilled" && pr.value.data) {
       const p = pr.value.data as LoyaltyProgram;
@@ -436,8 +436,8 @@ export default function LoyaltyAdvancedPage() {
                     return (
                       <tr key={m.id} className="hover:bg-muted/20">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-foreground">{m.clients?.name ?? "—"}</p>
-                          <p className="text-xs text-muted-foreground/60">{m.clients?.email}</p>
+                          <p className="font-medium text-foreground">{m.customers?.name ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground/60">{m.customers?.email}</p>
                         </td>
                         <td className="px-4 py-3">
                           {tier ? (
@@ -487,7 +487,7 @@ export default function LoyaltyAdvancedPage() {
                     return (
                       <tr key={t.id} className="hover:bg-muted/20">
                         <td className="px-4 py-3 text-muted-foreground">{new Date(t.created_at).toLocaleDateString("es-AR")}</td>
-                        <td className="px-4 py-3 font-medium text-foreground">{(t.loyalty_members as LoyaltyTransaction["loyalty_members"])?.clients?.name ?? "—"}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{(t.loyalty_members as LoyaltyTransaction["loyalty_members"])?.customers?.name ?? "—"}</td>
                         <td className="px-4 py-3"><span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span></td>
                         <td className={`px-4 py-3 font-semibold ${isPos ? "text-green-600" : "text-red-500"}`}>
                           <span className="flex items-center gap-1">
@@ -579,7 +579,7 @@ export default function LoyaltyAdvancedPage() {
       <Dialog open={showAdjustDialog} onOpenChange={setShowAdjustDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajustar Puntos — {selectedMember?.clients?.name}</DialogTitle>
+            <DialogTitle>Ajustar Puntos — {selectedMember?.customers?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Puntos actuales: <strong className="text-yellow-600">{selectedMember?.current_points.toLocaleString("es-AR")}</strong></p>

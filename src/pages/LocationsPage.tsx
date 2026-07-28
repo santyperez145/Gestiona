@@ -13,7 +13,6 @@ import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import WarehouseZonesTab from "@/components/locations/WarehouseZonesTab";
-import FranchiseTab from "@/components/locations/FranchiseTab";
 
 type Location = {
   id: string;
@@ -212,7 +211,7 @@ export default function LocationsPage() {
   const [transfers, setTransfers] = useState<any[]>([]);
   const [locationStock, setLocationStock] = useState<Record<string, LocationStock[]>>({});
   const [loading, setLoading] = useState(true);
-  const [mainTab, setMainTab] = useState<"sucursales" | "depositos" | "franquicias">("sucursales");
+  const [mainTab, setMainTab] = useState<"sucursales" | "depositos">("sucursales");
   const [tab, setTab] = useState<"locations" | "transfers" | "stock">("locations");
   const [showForm, setShowForm] = useState(false);
   const [editingLoc, setEditingLoc] = useState<Location | null>(null);
@@ -273,7 +272,7 @@ export default function LocationsPage() {
       <PageHeader
         icon={MapPin}
         title="Sucursales & Depósitos"
-        description="Locales, depósitos, zonas y franquicias en un solo lugar"
+        description="Locales, depósitos y zonas en un solo lugar"
       />
 
       {/* Main sections */}
@@ -281,7 +280,6 @@ export default function LocationsPage() {
         {[
           { id: "sucursales",  label: "Sucursales", icon: MapPin },
           { id: "depositos",   label: "Depósitos y Zonas", icon: Warehouse },
-          { id: "franquicias", label: "Franquicias", icon: Building2 },
         ].map(t => (
           <button key={t.id} onClick={() => setMainTab(t.id as any)}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${mainTab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -479,8 +477,6 @@ export default function LocationsPage() {
       {/* ═══════════════════════ Depósitos y Zonas ═════════════════════════════ */}
       {mainTab === "depositos" && <WarehouseZonesTab />}
 
-      {/* ═══════════════════════ Franquicias ═══════════════════════════════════ */}
-      {mainTab === "franquicias" && <FranchiseTab />}
 
       {/* Create/Edit Location Dialog */}
       <Dialog open={showForm} onOpenChange={v => { setShowForm(v); if (!v) setEditingLoc(null); }}>

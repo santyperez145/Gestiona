@@ -884,7 +884,7 @@ function QueryDebtCard({ userId, initialName, onDone }: { userId: string; initia
     if (!name.trim() || !activeOrg) return;
     setLoading(true);
     const { data } = await supabase
-      .from("customer_debts")
+      .from("debts")
       .select("id, customer_name, remaining_ars, due_date, status")
       .eq("org_id", activeOrg.id)
       .eq("status", "pending")
