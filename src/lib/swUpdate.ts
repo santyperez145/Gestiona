@@ -12,11 +12,15 @@ export function setupServiceWorkerUpdates() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
   let refreshing = false;
+  // Guarda entre recargas: si el SW se reinstala varias veces (deploys
+  // seguidos, update() periódico), sin esto la app entra en loop de reloads.
+  const RELOADED_KEY = "sw_controller_reloaded";
 
-  // When the new SW takes control, reload once so the user gets the new assets.
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (refreshing) return;
+    if (sessionStorage.getItem(RELOADED_KEY)) return; // ya recargamos en esta sesión
     refreshing = true;
+    sessionStorage.setItem(RELOADED_KEY, "1");
     // Slight delay so any in-flight requests can settle
     setTimeout(() => window.location.reload(), 200);
   });

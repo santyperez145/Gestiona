@@ -95,6 +95,7 @@ export default function SettingsPage() {
   const [categoryPricing, setCategoryPricing] = useState<Record<string, { markup?: number; discount?: number }>>({});
   const [taxEnabled, setTaxEnabled] = useState(false);
   const [taxIva, setTaxIva] = useState('21');
+  const [taxPricesIncludeIva, setTaxPricesIncludeIva] = useState(true);
   const [taxIibb, setTaxIibb] = useState('3.5');
   const [taxMonotributo, setTaxMonotributo] = useState('0');
   const [productCount, setProductCount] = useState(0);
@@ -324,6 +325,8 @@ export default function SettingsPage() {
       setCategoryPricing((s.category_pricing as Record<string, { markup?: number; discount?: number }>) || {});
       setTaxEnabled(!!s.tax_enabled);
       setTaxIva(String(s.tax_iva_percent ?? 21));
+      setTaxPricesIncludeIva((s as any).tax_prices_include_iva !== false);
+      setTaxPricesIncludeIva(s.tax_prices_include_iva !== false);
       setTaxIibb(String(s.tax_iibb_percent ?? 3.5));
       setTaxMonotributo(String(s.tax_monotributo_monthly ?? 0));
       setBusinessName(s.business_name || '');
@@ -405,6 +408,7 @@ export default function SettingsPage() {
         category_pricing: categoryPricing,
         tax_enabled: taxEnabled,
         tax_iva_percent: num(taxIva, 21),
+        tax_prices_include_iva: taxPricesIncludeIva,
         tax_iibb_percent: num(taxIibb, 3.5),
         tax_monotributo_monthly: num(taxMonotributo, 0),
         business_name: businessName,
@@ -1100,7 +1104,21 @@ export default function SettingsPage() {
                 <div><label className="text-sm text-muted-foreground">IVA (%)</label><Input type="number" step="0.1" value={taxIva} onChange={e => setTaxIva(e.target.value)} className="bg-muted border-border mt-1" /></div>
                 <div><label className="text-sm text-muted-foreground">Ingresos Brutos (%)</label><Input type="number" step="0.1" value={taxIibb} onChange={e => setTaxIibb(e.target.value)} className="bg-muted border-border mt-1" /></div>
                 <div><label className="text-sm text-muted-foreground">Monotributo mensual (ARS)</label><Input type="number" value={taxMonotributo} onChange={e => setTaxMonotributo(e.target.value)} className="bg-muted border-border mt-1" /></div>
-                <p className="text-xs text-muted-foreground">Los impuestos se descontarán de la ganancia bruta en reportes y dashboard.</p>
+                <div className="flex items-start gap-2 bg-muted/40 rounded-lg p-3 border border-border">
+                  <input type="checkbox" id="pricesIncludeIva" checked={taxPricesIncludeIva} onChange={e => setTaxPricesIncludeIva(e.target.checked)} className="rounded mt-0.5" />
+                  <label htmlFor="pricesIncludeIva" className="text-sm cursor-pointer">
+                    Mis precios de venta ya incluyen IVA
+                    <span className="block text-[11px] text-muted-foreground mt-0.5">
+                      Lo normal en venta al público. El IVA se extrae del precio final
+                      (÷{(1 + (parseFloat(taxIva) || 21) / 100).toFixed(2)}) en vez de sumarse encima.
+                    </span>
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  IVA e Ingresos Brutos se calculan sobre las <strong>ventas</strong> (antes se calculaban
+                  sobre la ganancia, lo que los subestimaba). El IVA mostrado es el débito fiscal: el IVA
+                  a pagar real descuenta el crédito fiscal de tus compras.
+                </p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Activá esta opción para descontar impuestos de tus ganancias.</p>

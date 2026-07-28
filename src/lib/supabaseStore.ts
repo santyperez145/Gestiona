@@ -681,11 +681,34 @@ export function calculateWholesalePrice(
   return { wholesalePrice: Math.round(finalPrice), belowFloor, basePrice };
 }
 
-/** Calculate tax deductions on profit */
-export function calculateTaxes(profitARS: number, settings: any) {
-  if (!settings?.tax_enabled) return { iva: 0, iibb: 0, monotributo: 0, totalTax: 0, netProfit: profitARS };
-  const iva = profitARS * (Number(settings.tax_iva_percent || 21) / 100);
-  const iibb = profitARS * (Number(settings.tax_iibb_percent || 3.5) / 100);
+/**
+ * Impuestos del período. IVA e IIBB se calculan sobre las VENTAS (no sobre la
+ * ganancia, como se hacía antes: eso los subestimaba fuerte).
+ *
+ * - IVA: en retail argentino el precio de lista ya incluye IVA, así que el
+ *   débito fiscal se EXTRAE del total: total × 21/121 (no total × 21%).
+ *   Si la org carga precios sin IVA, poner `tax_prices_include_iva: false`
+ *   en settings y se calcula por encima.
+ *   Nota: es el IVA débito. El IVA a pagar real descuenta el crédito fiscal
+ *   de las compras, que hoy no se registra discriminado.
+ * - IIBB: Ingresos Brutos — por definición sobre la facturación.
+ * - Monotributo: monto fijo mensual.
+ *
+ * `netProfit` sigue siendo la ganancia menos los impuestos.
+ */
+export function calculateTaxes(revenueARS: number, profitARS: number, settings: any) {
+  if (!settings?.tax_enabled) {
+    return { iva: 0, iibb: 0, monotributo: 0, totalTax: 0, netProfit: profitARS };
+  }
+  const revenue = Number(revenueARS) || 0;
+  const ivaRate = Number(settings.tax_iva_percent ?? 21);
+  const iibbRate = Number(settings.tax_iibb_percent ?? 3.5);
+  const pricesIncludeIva = settings.tax_prices_include_iva !== false; // default: sí
+
+  const iva = pricesIncludeIva
+    ? revenue * (ivaRate / (100 + ivaRate))   // extraído del precio final
+    : revenue * (ivaRate / 100);              // agregado sobre el neto
+  const iibb = revenue * (iibbRate / 100);
   const monotributo = Number(settings.tax_monotributo_monthly || 0);
   const totalTax = iva + iibb + monotributo;
   return { iva, iibb, monotributo, totalTax, netProfit: profitARS - totalTax };

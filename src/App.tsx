@@ -306,6 +306,28 @@ function ProtectedRoutes() {
 
 const CHUNK_RELOAD_KEY = 'chunk_reload_once';
 
+/**
+ * Un chunk que no carga casi siempre significa que el service worker está
+ * sirviendo un index.html viejo que apunta a archivos que ya no existen
+ * (deploy nuevo). Recargar sin más vuelve a leer ese mismo caché → loop
+ * infinito de "Nueva versión disponible". Por eso primero borramos las
+ * caches y desregistramos el SW, y recién ahí recargamos.
+ */
+async function hardReload() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch { /* si falla, igual recargamos */ }
+  // `true` fuerza saltear el caché HTTP del navegador
+  window.location.reload();
+}
+
 const isChunkError = (err: unknown) => {
   const msg = (err as any)?.message ?? '';
   return (
@@ -321,20 +343,21 @@ const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="gestiona-theme">
   <Sentry.ErrorBoundary fallback={({ error }) => {
     if (isChunkError(error)) {
-      // New deploy wiped old chunks — reload once to get fresh index.html
+      // Deploy nuevo: los chunks viejos ya no existen. Limpiamos caches + SW
+      // y recargamos (una sola vez por sesión).
       if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
         sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
-        window.location.reload();
+        hardReload();
         return null;
       }
-      // Already reloaded once — show update prompt instead of blank screen
+      // Si aun así falla, el botón vuelve a hacer la limpieza completa.
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-8 text-center">
           <div>
             <h1 className="text-xl font-bold mb-2">Nueva versión disponible</h1>
             <p className="text-muted-foreground text-sm mb-4">La app se actualizó. Recargá para continuar.</p>
             <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
-              onClick={() => { sessionStorage.removeItem(CHUNK_RELOAD_KEY); window.location.reload(); }}>
+              onClick={() => { sessionStorage.removeItem(CHUNK_RELOAD_KEY); hardReload(); }}>
               Actualizar ahora
             </button>
           </div>

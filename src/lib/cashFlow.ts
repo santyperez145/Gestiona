@@ -107,7 +107,7 @@ export function projectCashFlow(opts: {
       ? recentSales.reduce((a, b) => a + Number(b.profit_ars || 0), 0) / sumRecent
       : 0;
     const projectedProfit = projectedRevenue * avgMargin;
-    const tax = calculateTaxes(projectedProfit, settings).totalTax;
+    const tax = calculateTaxes(projectedRevenue, projectedProfit, settings).totalTax;
     if (tax > 0) {
       movements.push({
         date: end.toISOString().slice(0, 10),

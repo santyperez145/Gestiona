@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
+import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
@@ -411,19 +412,26 @@ export default function ProductsPage() {
       { name: 'sku', weight: 0.1 },
       { name: 'barcode', weight: 0.1 },
     ],
-    threshold: 0.38,
+    // Umbral estricto: solo tolera errores de tipeo, no coincidencias sueltas.
+    threshold: 0.3,
     minMatchCharLength: 2,
     ignoreLocation: true,
   }), [products]);
 
   const searchMatchIds = useMemo(() => {
-    if (!search || search.length < 2) return null;
-    return new Set(fuseIndex.search(search).map(r => r.item.id));
-  }, [fuseIndex, search]);
+    const q = normalizeText(search).trim();
+    if (!q || q.length < 2) return null;
+    // 1) Coincidencia literal: TODOS los términos tienen que aparecer en el
+    //    producto (nombre, marca, SKU o código). Ver src/lib/searchText.ts.
+    const literal = literalFilter(products, search, p => [p.name, p.brand, p.sku, p.barcode]);
+    if (literal.length > 0) return new Set(literal.map(p => p.id));
+    // 2) Si no hubo ninguna, recién ahí buscamos difuso (tolera typos).
+    return new Set(fuseIndex.search(q).map(r => r.item.id));
+  }, [products, fuseIndex, search]);
 
   const filtered = products.filter(p => {
     if (search && search.length >= 2 && searchMatchIds && !searchMatchIds.has(p.id)) return false;
-    if (search && search.length < 2 && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.brand.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && search.length < 2 && !normalizeText(p.name).includes(normalizeText(search)) && !normalizeText(p.brand ?? '').includes(normalizeText(search))) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
     if (filterStock === 'instock' && p.stock <= 0) return false;
     if (filterStock === 'low' && (p.stock > 3 || p.stock <= 0)) return false;

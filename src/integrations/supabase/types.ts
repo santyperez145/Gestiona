@@ -14196,6 +14196,7 @@ export type Database = {
           tax_iibb_percent: number
           tax_iva_percent: number
           tax_monotributo_monthly: number
+          tax_prices_include_iva: boolean
           updated_at: string
           usd_rate_blue: number | null
           usd_rate_mep: number | null
@@ -14301,6 +14302,7 @@ export type Database = {
           tax_iibb_percent?: number
           tax_iva_percent?: number
           tax_monotributo_monthly?: number
+          tax_prices_include_iva?: boolean
           updated_at?: string
           usd_rate_blue?: number | null
           usd_rate_mep?: number | null
@@ -14406,6 +14408,7 @@ export type Database = {
           tax_iibb_percent?: number
           tax_iva_percent?: number
           tax_monotributo_monthly?: number
+          tax_prices_include_iva?: boolean
           updated_at?: string
           usd_rate_blue?: number | null
           usd_rate_mep?: number | null

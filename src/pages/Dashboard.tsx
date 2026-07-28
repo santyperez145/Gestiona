@@ -701,7 +701,7 @@ export default function Dashboard() {
     const totalPurchasesUSD = purchases.reduce((s: number, c: any) => s + Number(c.total_usd), 0);
     const totalPurchasesARS = purchases.reduce((s: number, c: any) => s + Number(c.total_ars), 0);
 
-    const taxes = calculateTaxes(grossProfitARS, settings);
+    const taxes = calculateTaxes(totalSalesARS, grossProfitARS, settings);
 
     // Products by sales
     const productSales: Record<string, any> = {};
@@ -870,7 +870,7 @@ export default function Dashboard() {
     const monthSales = sales.filter((s: any) => { const d = new Date(s.date); return d.getFullYear() === curY && d.getMonth() === curM; });
     const monthGrossProfit = monthSales.reduce((s: number, v: any) => s + Number(v.profit_ars), 0);
     const monthSalesARS = monthSales.reduce((s: number, v: any) => s + Number(v.total_ars), 0);
-    const monthTaxes = settings.tax_enabled ? calculateTaxes(monthGrossProfit, settings).totalTax : 0;
+    const monthTaxes = settings.tax_enabled ? calculateTaxes(monthSalesARS, monthGrossProfit, settings).totalTax : 0;
     const netMonthProfitARS = monthGrossProfit - totalMonthExpenses - monthTaxes;
 
     // ===== Month-over-month growth =====

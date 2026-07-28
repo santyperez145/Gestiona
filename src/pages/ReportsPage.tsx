@@ -131,7 +131,7 @@ export default function ReportsPage() {
   const inventoryValueUSD = products.reduce((s: number, p: any) => s + (Number(p.total_cost_usd) * p.stock), 0);
   const totalStock = products.reduce((s: number, p: any) => s + p.stock, 0);
 
-  const taxes = calculateTaxes(grossProfitARS, settings);
+  const taxes = calculateTaxes(totalSalesARS, grossProfitARS, settings);
   const roi = totalPurchasesUSD > 0 ? ((grossProfitUSD / totalPurchasesUSD) * 100) : 0;
 
   // Income Statement (period-filtered)
@@ -145,7 +145,7 @@ export default function ReportsPage() {
   });
   const totalOpex = Object.values(expensesByCategory).reduce((a, b) => a + b, 0);
   const opBeforeTax = periodGrossProfit - totalOpex;
-  const periodTaxes = settings.tax_enabled ? calculateTaxes(periodGrossProfit, settings) : { iva: 0, iibb: 0, totalTax: 0, netProfit: opBeforeTax };
+  const periodTaxes = settings.tax_enabled ? calculateTaxes(periodRevenue, periodGrossProfit, settings) : { iva: 0, iibb: 0, totalTax: 0, netProfit: opBeforeTax };
   const totalTaxImpact = settings.tax_enabled ? periodTaxes.totalTax : 0;
   const netIncome = opBeforeTax - totalTaxImpact;
   const { grossMargin: grossMarginPct, netMargin: netMarginPct } = calcPnLMargins(periodRevenue, periodGrossProfit, totalOpex + totalTaxImpact);

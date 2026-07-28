@@ -71,31 +71,44 @@ describe("calculateWholesalePrice", () => {
 
 describe("calculateTaxes", () => {
   it("retorna cero cuando tax_enabled es false", () => {
-    const result = calculateTaxes(1000, { tax_enabled: false });
+    const result = calculateTaxes(10_000, 1000, { tax_enabled: false });
     expect(result.totalTax).toBe(0);
     expect(result.netProfit).toBe(1000);
   });
 
-  it("calcula IVA + IIBB + monotributo", () => {
+  it("calcula IVA e IIBB sobre las VENTAS, no sobre la ganancia", () => {
     const settings = {
       tax_enabled: true,
       tax_iva_percent: 21,
       tax_iibb_percent: 3.5,
       tax_monotributo_monthly: 100,
     };
-    const result = calculateTaxes(1000, settings);
-    expect(result.iva).toBeCloseTo(210);
-    expect(result.iibb).toBeCloseTo(35);
+    // Ventas 121.000 con IVA incluido → neto 100.000, IVA débito 21.000
+    const result = calculateTaxes(121_000, 40_000, settings);
+    expect(result.iva).toBeCloseTo(21_000, 0);
+    expect(result.iibb).toBeCloseTo(4_235);   // 3,5% de la facturación
     expect(result.monotributo).toBe(100);
-    expect(result.totalTax).toBeCloseTo(345);
-    expect(result.netProfit).toBeCloseTo(655);
+    expect(result.totalTax).toBeCloseTo(25_335, 0);
+    expect(result.netProfit).toBeCloseTo(40_000 - 25_335, 0);
+  });
+
+  it("si los precios NO incluyen IVA, lo agrega sobre el neto", () => {
+    const settings = { tax_enabled: true, tax_iva_percent: 21, tax_iibb_percent: 0, tax_prices_include_iva: false };
+    const result = calculateTaxes(100_000, 40_000, settings);
+    expect(result.iva).toBeCloseTo(21_000);
+  });
+
+  it("el IVA ya no depende de la ganancia (mismo importe con distinta ganancia)", () => {
+    const settings = { tax_enabled: true, tax_iva_percent: 21, tax_iibb_percent: 0 };
+    const pocoMargen = calculateTaxes(121_000, 5_000, settings);
+    const muchoMargen = calculateTaxes(121_000, 80_000, settings);
+    expect(pocoMargen.iva).toBeCloseTo(muchoMargen.iva);
   });
 
   it("usa defaults cuando los porcentajes no estan seteados", () => {
-    const result = calculateTaxes(1000, { tax_enabled: true });
-    // iva default 21%, iibb default 3.5%, monotributo 0
-    expect(result.iva).toBeCloseTo(210);
-    expect(result.iibb).toBeCloseTo(35);
+    const result = calculateTaxes(121_000, 10_000, { tax_enabled: true });
+    expect(result.iva).toBeCloseTo(21_000, 0);   // 21% incluido
+    expect(result.iibb).toBeCloseTo(4_235);      // 3,5%
   });
 });
 
