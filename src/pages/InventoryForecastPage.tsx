@@ -218,7 +218,7 @@ export default function InventoryForecastPage() {
     setLoading(true);
 
     const [prodRes, saleRes, cfgRes] = await Promise.all([
-      supabase.from("products").select("id,name,stock,price,category,min_stock").eq("org_id", orgId).eq("active", true).order("name"),
+      supabase.from("products").select("id,name,stock,price:sale_price_ars,category,min_stock:low_stock_threshold").eq("org_id", orgId).eq("is_active", true).order("name"),
       supabase.from("sale_items")
         .select("product_id, quantity, sales!inner(org_id, created_at)")
         .eq("sales.org_id", orgId)
@@ -226,7 +226,7 @@ export default function InventoryForecastPage() {
       supabase.from("forecast_configs").select("*").eq("org_id", orgId),
     ]);
 
-    setProducts(prodRes.data ?? []);
+    setProducts((prodRes.data ?? []) as unknown as Product[]);
 
     // Aggregate units sold per product (last 30 days)
     const now = Date.now();

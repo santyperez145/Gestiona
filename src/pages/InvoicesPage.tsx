@@ -521,7 +521,7 @@ export default function InvoicesPage() {
 
   const updateStatus = async (id: string, status: string) => {
     const extra = status === "paid" ? { paid_at: new Date().toISOString() } : {};
-    await supabase.from("invoices").update({ status, ...extra }).eq("id", id);
+    await supabase.from("invoices").update({ status: status as any, ...extra }).eq("id", id);
     load();
   };
 

@@ -46,8 +46,8 @@ export default function MarketingPage() {
     supabase.from('settings').select('industry_code').limit(1).maybeSingle().then(({ data }) => {
       const code = data?.industry_code || null;
       setIndustryCode(code);
-      listMarketingThemes(code).then(setThemes).catch(() => {});
-    }).catch(() => {});
+      listMarketingThemes(code).then(setThemes, () => {});
+    }, () => {});
   }, [user]);
 
   const filtered = posts.filter(p => filter === 'all' || p.status === filter);

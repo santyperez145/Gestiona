@@ -66,10 +66,11 @@ export default function InventoryValuationPage() {
         .eq("org_id", activeOrg.id)
         .order("date", { ascending: false })
         .limit(200),
+      // settings es por organización (no por owner_id, que no existe en Organization)
       supabase.from("settings")
         .select("exchange_rate")
-        .eq("user_id", activeOrg.owner_id ?? "")
-        .single(),
+        .eq("org_id", activeOrg.id)
+        .maybeSingle(),
     ]).then(([prodRes, purchRes, settRes]) => {
       const exchangeRate = Number((settRes.data as any)?.exchange_rate ?? 1200);
       const products = prodRes.data || [];

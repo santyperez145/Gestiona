@@ -39,9 +39,11 @@ jobs:
       # errores que rompían páginas en runtime (ver DialogFooter, settings).
       # `npm run typecheck` apunta a tsconfig.app.json y sí chequea de verdad.
       #
-      # NO bloqueante por ahora: hay ~810 errores pre-existentes en 88 archivos,
-      # en su mayoría referencias a tablas/columnas que nunca se migraron a prod.
-      # Pasar a bloqueante cuando se salde esa deuda.
+      # NO bloqueante todavía. La deuda bajó de ~810 errores (88 archivos) a 76
+      # (~30 archivos) tras crear las 20 tablas faltantes y borrar las features
+      # fuera de alcance. Lo que queda son casi todos casts de tipos (columnas
+      # TEXT con CHECK que llegan como string, jsonb como Json) y algún nombre
+      # de columna desalineado. Pasar a bloqueante cuando llegue a 0.
       - name: Type check (informativo — deuda pre-existente)
         run: npm run typecheck
         continue-on-error: true

@@ -176,7 +176,8 @@ export default function KardexPage() {
       }
 
       const { data: movData } = await query;
-      setMovements(movData ?? []);
+      // movement_type es TEXT en DB → llega como string, no como la unión
+      setMovements((movData ?? []) as StockMovement[]);
     } catch (e) {
       console.error(e);
     } finally {
