@@ -9611,6 +9611,29 @@ export type Database = {
           },
         ]
       }
+      po_sequences: {
+        Row: {
+          last_number: number
+          org_id: string
+        }
+        Insert: {
+          last_number?: number
+          org_id: string
+        }
+        Update: {
+          last_number?: number
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       point_transactions: {
         Row: {
           created_at: string
@@ -16817,6 +16840,7 @@ export type Database = {
         Args: { p_org_id: string; p_period_id: string }
         Returns: number
       }
+      generate_po_number: { Args: { p_org_id: string }; Returns: string }
       generate_rental_number: { Args: { p_org_id: string }; Returns: string }
       generate_request_number: { Args: { p_org_id: string }; Returns: string }
       generate_service_order_number: {
