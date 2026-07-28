@@ -257,7 +257,7 @@ export default function ProveedoresPage() {
   function exportSuppliersCSV() {
     const bom = '﻿';
     const header = ['Nombre', 'Contacto', 'Teléfono', 'Email', 'Dirección', 'Deuda pendiente (ARS)', 'Activo'];
-    const rows = filteredSuppliers.map(s => [
+    const rows = filtered.map(s => [
       s.name,
       s.contact || '',
       s.phone || '',
@@ -295,7 +295,7 @@ export default function ProveedoresPage() {
         }
         actions={
           <div className="flex flex-wrap gap-2">
-            {filteredSuppliers.length > 0 && (
+            {filtered.length > 0 && (
               <Button variant="outline" className="h-9 gap-2" onClick={exportSuppliersCSV} title="Exportar lista de proveedores a CSV">
                 <FileSpreadsheet className="w-4 h-4" />CSV
               </Button>
@@ -479,11 +479,12 @@ export default function ProveedoresPage() {
                     title="Eliminar proveedor"
                     description={`¿Eliminar "${s.name}"? Las compras vinculadas no se borrarán.`}
                     onConfirm={() => handleDelete(s.id)}
-                  >
-                    <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </ConfirmDialog>
+                    trigger={
+                      <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    }
+                  />
                 </div>
               </div>
 

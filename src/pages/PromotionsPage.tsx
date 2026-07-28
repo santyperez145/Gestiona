@@ -136,7 +136,8 @@ export default function PromotionsPage() {
         supabase.from("coupons").select("code").eq("org_id", activeOrg.id),
       ]);
       if (error) throw error;
-      setPromotions(data ?? []);
+      // type/applies_to/status son TEXT con CHECK en DB → llegan como string
+      setPromotions((data ?? []) as Promotion[]);
       const counts: Record<string, number> = {};
       (couponsRes.data || []).forEach((c: any) => {
         if (!c.code) return;

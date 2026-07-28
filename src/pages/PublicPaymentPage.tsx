@@ -104,7 +104,8 @@ export default function PublicPaymentPage() {
         .maybeSingle();
 
       if (!linkData) { setNotFound(true); setLoading(false); return; }
-      const pl = linkData as PaymentLink;
+      // `items` es jsonb en DB → llega como Json genérico
+      const pl = linkData as unknown as PaymentLink;
       setLink(pl);
 
       if (!org) {

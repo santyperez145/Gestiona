@@ -219,10 +219,10 @@ export default function ProductBundlesPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KPICard label="Activos" value={kpis.active} color="primary" />
-        <KPICard label="Total Vendidos" value={kpis.totalSold} color="success" />
-        <KPICard label="Destacados" value={kpis.featured} color="warning" />
-        <KPICard label="Sin stock" value={kpis.outStock} color={kpis.outStock > 0 ? "destructive" : "success"} />
+        <KPICard label="Activos" value={kpis.active} icon={Layers} color="primary" />
+        <KPICard label="Total Vendidos" value={kpis.totalSold} icon={ShoppingBag} color="success" />
+        <KPICard label="Destacados" value={kpis.featured} icon={Star} color="warning" />
+        <KPICard label="Sin stock" value={kpis.outStock} icon={AlertTriangle} color={kpis.outStock > 0 ? "destructive" : "success"} />
       </div>
 
       {/* Info */}
