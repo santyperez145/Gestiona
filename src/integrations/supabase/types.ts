@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_audit_logs: {
@@ -14503,6 +14528,7 @@ export type Database = {
           margin_alert_percent: number
           max_ai_discount_percent: number | null
           max_overstock_units: number | null
+          mfa_required: boolean
           ml_access_token: string | null
           ml_enabled: boolean | null
           ml_refresh_token: string | null
@@ -14610,6 +14636,7 @@ export type Database = {
           margin_alert_percent?: number
           max_ai_discount_percent?: number | null
           max_overstock_units?: number | null
+          mfa_required?: boolean
           ml_access_token?: string | null
           ml_enabled?: boolean | null
           ml_refresh_token?: string | null
@@ -14717,6 +14744,7 @@ export type Database = {
           margin_alert_percent?: number
           max_ai_discount_percent?: number | null
           max_overstock_units?: number | null
+          mfa_required?: boolean
           ml_access_token?: string | null
           ml_enabled?: boolean | null
           ml_refresh_token?: string | null
@@ -19094,6 +19122,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "viewer"],

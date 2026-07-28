@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { OrgProvider, useOrg } from "@/lib/orgContext";
 import { useUserRole } from "@/lib/useUserRole";
 import AppLayout from "@/components/AppLayout";
+import MfaGate from "@/components/auth/MfaGate";
+import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, BookOpen } from "lucide-react";
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
@@ -152,6 +154,13 @@ function ProtectedRoutes() {
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
   const { activeOrg, isPlatformAdmin } = useOrg();
   const { pathname } = useLocation();
+  // Enforcement de 2FA por organización (settings.mfa_required).
+  const [orgRequiresMfa, setOrgRequiresMfa] = useState(false);
+  useEffect(() => {
+    if (!activeOrg?.id) { setOrgRequiresMfa(false); return; }
+    supabase.from('settings').select('mfa_required').eq('org_id', activeOrg.id).maybeSingle()
+      .then(({ data }) => setOrgRequiresMfa(!!data?.mfa_required), () => {});
+  }, [activeOrg?.id]);
 
   if (authLoading || roleLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -176,6 +185,7 @@ function ProtectedRoutes() {
   }
 
   return (
+    <MfaGate isAdmin={isAdmin} orgRequiresMfa={!!orgRequiresMfa}>
     <AppLayout>
       <Suspense fallback={null}>
         <CommandPalette />
@@ -301,6 +311,7 @@ function ProtectedRoutes() {
         </Routes>
       </Suspense>
     </AppLayout>
+    </MfaGate>
   );
 }
 

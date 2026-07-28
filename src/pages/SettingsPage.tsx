@@ -94,6 +94,7 @@ export default function SettingsPage() {
   const [defaultDiscountPercent, setDefaultDiscountPercent] = useState('');
   const [categoryPricing, setCategoryPricing] = useState<Record<string, { markup?: number; discount?: number }>>({});
   const [taxEnabled, setTaxEnabled] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [taxIva, setTaxIva] = useState('21');
   const [taxPricesIncludeIva, setTaxPricesIncludeIva] = useState(true);
   const [taxIibb, setTaxIibb] = useState('3.5');
@@ -324,6 +325,7 @@ export default function SettingsPage() {
       setDefaultDiscountPercent(String(s.default_discount_percent));
       setCategoryPricing((s.category_pricing as Record<string, { markup?: number; discount?: number }>) || {});
       setTaxEnabled(!!s.tax_enabled);
+      setMfaRequired(!!s.mfa_required);
       setTaxIva(String(s.tax_iva_percent ?? 21));
       setTaxPricesIncludeIva((s as any).tax_prices_include_iva !== false);
       setTaxPricesIncludeIva(s.tax_prices_include_iva !== false);
@@ -407,6 +409,7 @@ export default function SettingsPage() {
         default_discount_percent: num(defaultDiscountPercent, 20),
         category_pricing: categoryPricing,
         tax_enabled: taxEnabled,
+        mfa_required: mfaRequired,
         tax_iva_percent: num(taxIva, 21),
         tax_prices_include_iva: taxPricesIncludeIva,
         tax_iibb_percent: num(taxIibb, 3.5),
@@ -1138,6 +1141,18 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">
               Datos protegidos con autenticación, cifrado y auditoría. Cada usuario solo ve sus propios datos. Sistema multi-tenant con aislamiento completo.
             </p>
+
+            <div className="mt-4 pt-4 border-t border-border/60 flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-[220px] flex-1">
+                <p className="text-sm font-medium">Exigir 2FA a los administradores</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Los usuarios con rol dueño o administrador tendrán que configurar
+                  verificación en dos pasos para poder entrar. Cada uno la activa
+                  desde Mi Perfil.
+                </p>
+              </div>
+              <Switch checked={mfaRequired} onCheckedChange={setMfaRequired} />
+            </div>
           </div>
 
           {/* USD Real-time Quote */}
