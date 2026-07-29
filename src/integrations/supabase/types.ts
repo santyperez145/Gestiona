@@ -5393,6 +5393,7 @@ export type Database = {
           ip_address: string | null
           items: Json
           org_id: string
+          recovery_token: string | null
           session_token: string
           shipping_cost: number
           status: string
@@ -5418,6 +5419,7 @@ export type Database = {
           ip_address?: string | null
           items?: Json
           org_id: string
+          recovery_token?: string | null
           session_token?: string
           shipping_cost?: number
           status?: string
@@ -5443,6 +5445,7 @@ export type Database = {
           ip_address?: string | null
           items?: Json
           org_id?: string
+          recovery_token?: string | null
           session_token?: string
           shipping_cost?: number
           status?: string
@@ -19042,6 +19045,10 @@ export type Database = {
       }
       check_overdue_debts: { Args: never; Returns: undefined }
       check_rotting_deals: { Args: { p_org_id: string }; Returns: number }
+      check_store_coupon: {
+        Args: { p_code: string; p_slug: string; p_subtotal: number }
+        Returns: Json
+      }
       complete_inventory_transfer: {
         Args: { p_transfer_id: string }
         Returns: undefined
@@ -19094,6 +19101,10 @@ export type Database = {
           variance_pct: number
         }[]
       }
+      convert_store_cart: {
+        Args: { p_slug: string; p_token: string }
+        Returns: undefined
+      }
       create_stock_reservation: {
         Args: {
           p_customer_name: string
@@ -19109,6 +19120,7 @@ export type Database = {
       }
       create_store_order: {
         Args: {
+          p_coupon?: string
           p_customer_email: string
           p_customer_name: string
           p_customer_phone: string
@@ -19192,6 +19204,14 @@ export type Database = {
           on_time_rate: number
           returned: number
           total_shipments: number
+        }[]
+      }
+      get_cart_by_recovery_token: {
+        Args: { p_token: string }
+        Returns: {
+          customer_email: string
+          items: Json
+          store_slug: string
         }[]
       }
       get_cashflow_summary: {
@@ -19425,11 +19445,25 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      mark_cart_email_sent: { Args: { p_id: string }; Returns: undefined }
       mark_store_order_paid: {
         Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
         Returns: Json
       }
       next_quote_number: { Args: { p_org_id: string }; Returns: string }
+      pending_abandoned_carts: {
+        Args: { p_hours?: number }
+        Returns: {
+          customer_email: string
+          id: string
+          items: Json
+          org_id: string
+          recovery_token: string
+          store_name: string
+          store_slug: string
+          subtotal: number
+        }[]
+      }
       process_drip_unsubscribe: {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
@@ -19489,6 +19523,16 @@ export type Database = {
       run_abc_analysis: {
         Args: { p_org_id: string; p_period_days?: number }
         Returns: number
+      }
+      save_store_cart: {
+        Args: {
+          p_email?: string
+          p_items: Json
+          p_slug: string
+          p_subtotal?: number
+          p_token: string
+        }
+        Returns: Json
       }
       seed_budget_categories: { Args: { p_org_id: string }; Returns: undefined }
       seed_crm_pipeline: { Args: { p_org_id: string }; Returns: string }

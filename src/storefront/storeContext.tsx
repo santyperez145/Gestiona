@@ -160,6 +160,38 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     try { localStorage.setItem(cartKey(slug), JSON.stringify(next)); } catch { /* cuota */ }
   }, [slug]);
 
+  // ── Sesión de carrito, para poder recuperarlo si lo abandonan ───────────
+  // Se guarda del lado del servidor con un token estable por navegador. Solo
+  // sirve de algo si además hay email, cosa que valida el propio RPC.
+  useEffect(() => {
+    if (loading || !store) return;
+    const key = `gestiona.store.session.${slug}`;
+    let token = "";
+    try {
+      token = localStorage.getItem(key) ?? "";
+      if (!token) {
+        token = crypto.randomUUID();
+        localStorage.setItem(key, token);
+      }
+    } catch { return; }
+
+    // Con debounce: si no, cada clic en "+" dispararía una escritura.
+    const t = setTimeout(() => {
+      supabase.rpc("save_store_cart", {
+        p_slug: slug,
+        p_token: token,
+        p_items: cart.map(l => ({
+          product_id: l.productId, name: l.name, quantity: l.qty,
+          unit_price: l.price, image_url: l.image,
+        })),
+        p_email: null,
+        p_subtotal: cart.reduce((s, l) => s + l.price * l.qty, 0),
+      }).then(undefined, () => {});
+    }, 2500);
+
+    return () => clearTimeout(t);
+  }, [cart, slug, loading, store]);
+
   const priceOf = useCallback((p: StoreProduct) => {
     const d = Number(p.discount_price_ars) || 0;
     return d > 0 && d < Number(p.sale_price_ars) ? d : Number(p.sale_price_ars);

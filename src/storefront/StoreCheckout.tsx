@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
-import { Loader2, ShoppingBag, Lock } from "lucide-react";
+import { Loader2, ShoppingBag, Lock, Tag } from "lucide-react";
 
 const METODO_LABEL: Record<string, string> = {
   mercadopago: "MercadoPago",
@@ -14,7 +14,8 @@ const METODO_LABEL: Record<string, string> = {
 };
 
 export default function StoreCheckout() {
-  const { store, cart, subtotal, shippingCost, total, fmt, clearCart } = useStore();
+  // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
+  const { store, cart, subtotal, shippingCost, fmt, clearCart } = useStore();
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
@@ -44,6 +45,33 @@ export default function StoreCheckout() {
   }, [customer]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Cupón ───────────────────────────────────────────────────────────────
+  const [cupon, setCupon] = useState("");
+  const [cuponAplicado, setCuponAplicado] = useState<{ code: string; discount: number } | null>(null);
+  const [cuponError, setCuponError] = useState<string | null>(null);
+  const [validandoCupon, setValidandoCupon] = useState(false);
+
+  const aplicarCupon = async () => {
+    if (!cupon.trim() || !store) return;
+    setValidandoCupon(true);
+    setCuponError(null);
+    const { data, error: rpcErr } = await supabase.rpc("check_store_coupon", {
+      p_slug: store.slug, p_code: cupon.trim(), p_subtotal: subtotal,
+    });
+    setValidandoCupon(false);
+
+    const res = data as any;
+    if (rpcErr || !res?.valid) {
+      setCuponAplicado(null);
+      setCuponError(res?.reason ?? "No se pudo validar el cupón");
+      return;
+    }
+    setCuponAplicado({ code: res.code, discount: Number(res.discount) || 0 });
+  };
+
+  const descuento = cuponAplicado?.discount ?? 0;
+  const totalFinal = Math.max(0, subtotal - descuento) + shippingCost;
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -80,6 +108,9 @@ export default function StoreCheckout() {
       },
       p_payment_method: form.metodo,
       p_notes: form.notas || null,
+      // El RPC revalida el cupón: entre que se escribió y se confirma pudo
+      // agotarse o vencer.
+      p_coupon: cuponAplicado?.code ?? null,
     });
 
     setEnviando(false);
@@ -92,6 +123,17 @@ export default function StoreCheckout() {
     }
 
     const orderNumber = (data as any)?.order_number;
+
+    // Se cierra la sesión de carrito para que no le llegue un email de
+    // "te quedó algo pendiente" a quien acaba de comprar.
+    try {
+      const token = localStorage.getItem(`gestiona.store.session.${store!.slug}`);
+      if (token) {
+        supabase.rpc("convert_store_cart", { p_slug: store!.slug, p_token: token })
+          .then(undefined, () => {});
+      }
+    } catch { /* sin localStorage */ }
+
     clearCart();
 
     // Avisos por email, best-effort: si falla el envío la compra ya está hecha
@@ -222,16 +264,62 @@ export default function StoreCheckout() {
             ))}
           </div>
 
+          {/* Cupón de descuento */}
+          <div className="pt-2 border-t" style={{ borderColor: "hsl(var(--st-border))" }}>
+            {cuponAplicado ? (
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="inline-flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-accent))" }} />
+                  <strong>{cuponAplicado.code}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setCuponAplicado(null); setCupon(""); }}
+                  className="text-xs hover:underline"
+                  style={{ color: "hsl(var(--st-muted))" }}
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={cupon}
+                  onChange={e => { setCupon(e.target.value.toUpperCase()); setCuponError(null); }}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); aplicarCupon(); } }}
+                  placeholder="Cupón de descuento"
+                  className="flex-1 px-3 py-2 text-sm border bg-transparent outline-none uppercase"
+                  style={inputStyle}
+                />
+                <button
+                  type="button"
+                  onClick={aplicarCupon}
+                  disabled={validandoCupon || !cupon.trim()}
+                  className="px-3 text-sm font-medium border disabled:opacity-50"
+                  style={inputStyle}
+                >
+                  {validandoCupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                </button>
+              </div>
+            )}
+            {cuponError && <p className="text-xs mt-1.5 text-red-600">{cuponError}</p>}
+          </div>
+
           <div className="pt-2 border-t space-y-1 text-sm" style={{ borderColor: "hsl(var(--st-border))" }}>
             <div className="flex justify-between">
               <span style={{ color: "hsl(var(--st-muted))" }}>Subtotal</span><span>{fmt(subtotal)}</span>
             </div>
+            {descuento > 0 && (
+              <div className="flex justify-between" style={{ color: "hsl(var(--st-accent))" }}>
+                <span>Descuento</span><span>−{fmt(descuento)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span style={{ color: "hsl(var(--st-muted))" }}>Envío</span>
               <span>{shippingCost === 0 ? "Gratis" : fmt(shippingCost)}</span>
             </div>
             <div className="flex justify-between font-semibold text-base pt-1">
-              <span>Total</span><span>{fmt(total)}</span>
+              <span>Total</span><span>{fmt(totalFinal)}</span>
             </div>
           </div>
 

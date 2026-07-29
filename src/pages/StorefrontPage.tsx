@@ -20,6 +20,7 @@ import StoreProduct from "@/storefront/StoreProduct";
 import StoreCheckout from "@/storefront/StoreCheckout";
 import StoreOrder from "@/storefront/StoreOrder";
 import StoreAccount from "@/storefront/StoreAccount";
+import StoreCartRecovery from "@/storefront/StoreCartRecovery";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { Store, Loader2 } from "lucide-react";
 
@@ -77,6 +78,7 @@ function StoreShell() {
         <Route path="checkout" element={<StoreCheckout />} />
         <Route path="orden/:orderNumber" element={<StoreOrder />} />
         <Route path="cuenta" element={<StoreAccount />} />
+        <Route path="carrito/:token" element={<StoreCartRecovery />} />
         <Route path="*" element={<StoreHome />} />
       </Routes>
     </StoreLayout>
