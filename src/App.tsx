@@ -12,6 +12,7 @@ import { useUserRole } from "@/lib/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import MfaGate from "@/components/auth/MfaGate";
 import ModuleGuard from "@/components/auth/ModuleGuard";
+import PlatformLayout from "@/components/PlatformLayout";
 import { PermissionsProvider } from "@/lib/permissionsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { hardReload } from "@/lib/hardReload";
@@ -153,6 +154,57 @@ function ViewerGate() {
   );
 }
 
+function AppLoader({ label = 'Cargando Gestiona...' }: { label?: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-muted-foreground text-sm">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Superficie de PLATAFORMA — separada del tenant a propósito.
+ *
+ * Vive fuera de `ProtectedRoutes`: no pasa por el gate de onboarding, no usa el
+ * sidebar de la organización y no depende de tener una org activa. El acceso lo
+ * gobierna `platform_admins`, nada más. El enforcement real está en la Edge
+ * Function `platform-admin-action` y en RLS — esto sólo decide qué se dibuja.
+ */
+function PlatformRoutes() {
+  const { user, loading: authLoading } = useAuth();
+  const { platformRole, loading: orgLoading } = useOrg();
+
+  if (authLoading || orgLoading) return <AppLoader label="Verificando acceso de plataforma..." />;
+  if (!user) return <AuthPage />;
+  if (!platformRole) return <Navigate to="/" replace />;
+
+  return (
+    // 2FA sin excepciones para el staff de plataforma: desde acá se leen todos
+    // los tenants y se borran organizaciones. Es la cuenta más valiosa del
+    // sistema para un atacante, así que no depende de la config de ninguna org.
+    <MfaGate isAdmin orgRequiresMfa>
+    <PlatformLayout>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route index element={<PlatformAdminPage section="overview" />} />
+          <Route path="orgs" element={<PlatformAdminPage section="orgs" />} />
+          <Route path="usuarios" element={<PlatformAdminPage section="users" />} />
+          <Route path="planes" element={<PlatformAdminPage section="plans" />} />
+          <Route path="soporte" element={<PlatformAdminPage section="support" />} />
+          <Route path="sistema" element={<PlatformAdminPage section="system" />} />
+          {/* Ruta vieja */}
+          <Route path="admin" element={<Navigate to="/platform" replace />} />
+          <Route path="*" element={<Navigate to="/platform" replace />} />
+        </Routes>
+      </Suspense>
+    </PlatformLayout>
+    </MfaGate>
+  );
+}
+
 function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin, isVendedor, isViewer } = useUserRole();
@@ -166,18 +218,16 @@ function ProtectedRoutes() {
       .then(({ data }) => setOrgRequiresMfa(!!data?.mfa_required), () => {});
   }, [activeOrg?.id]);
 
-  if (authLoading || roleLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm">Cargando Gestiona...</p>
-      </div>
-    </div>
-  );
+  if (authLoading || roleLoading) return <AppLoader />;
   // Root path shows landing page for unauthenticated visitors
   if (!user && pathname === '/') return <LandingPage />;
   if (!user) return <AuthPage />;
-  if (isViewer) return <ViewerGate />;
+  if (isViewer) {
+    // El staff de plataforma ya no hereda rol de admin en el tenant. Si no tiene
+    // membresía propia, su lugar es la superficie de plataforma, no el ViewerGate.
+    if (isPlatformAdmin) return <Navigate to="/platform" replace />;
+    return <ViewerGate />;
+  }
 
   // Force onboarding for fresh orgs — check DB field first, localStorage as fallback
   const onboarded = activeOrg
@@ -303,11 +353,6 @@ function ProtectedRoutes() {
             </>
           )}
 
-          {/* Platform-admin only */}
-          {isPlatformAdmin && (
-            <Route path="/platform/admin" element={<PlatformAdminPage />} />
-          )}
-
           {/* Redirect vendedor from admin routes */}
           {isVendedor && (
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -401,6 +446,7 @@ const App = () => (
                 <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
                 <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
                 <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />
+                <Route path="/platform/*" element={<PlatformRoutes />} />
                 <Route path="/app/*" element={<ProtectedRoutes />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>

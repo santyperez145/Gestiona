@@ -408,18 +408,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <ThemeToggle collapsed={effectiveCollapsed} />
           {isPlatformAdmin && (
             <Link
-              to="/platform/admin"
-              title={effectiveCollapsed ? 'Platform Admin' : undefined}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full ${
+              to="/platform"
+              title={effectiveCollapsed ? 'Panel de plataforma' : undefined}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium transition-all duration-150 w-full border border-transparent ${
                 effectiveCollapsed ? 'justify-center' : ''
-              } ${
-                pathname === '/platform/admin'
-                  ? 'bg-primary/12 text-primary'
-                  : 'text-muted-foreground/50 hover:bg-sidebar-accent/60 hover:text-primary'
-              }`}
+              } text-violet-300/60 hover:bg-violet-500/10 hover:text-violet-200 hover:border-violet-500/25`}
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
-              {!effectiveCollapsed && <span>Platform Admin</span>}
+              {!effectiveCollapsed && <span>Panel de plataforma</span>}
             </Link>
           )}
           {!effectiveCollapsed && (

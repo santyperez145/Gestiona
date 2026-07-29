@@ -4,6 +4,13 @@ import { useAuth } from '@/lib/auth';
 
 export type OrgRole = 'owner' | 'admin' | 'vendedor' | 'viewer';
 
+/**
+ * Rol del staff de la PLATAFORMA — ortogonal a `OrgRole`.
+ * Ser staff de plataforma no otorga ningún permiso dentro de una organización:
+ * son dos superficies separadas (ver `useUserRole`).
+ */
+export type PlatformRole = 'superadmin' | 'support' | 'finance';
+
 export interface Organization {
   id: string;
   name: string;
@@ -31,6 +38,7 @@ interface OrgContextValue {
   switchOrg: (orgId: string) => void;
   refresh: () => Promise<void>;
   isPlatformAdmin: boolean;
+  platformRole: PlatformRole | null;
 }
 
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
@@ -58,11 +66,12 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [activeOrg, setActiveOrg] = useState<Organization | null>(null);
   const [activeRole, setActiveRole] = useState<OrgRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [platformRole, setPlatformRole] = useState<PlatformRole | null>(null);
 
   const refresh = useCallback(async (isInitial = false) => {
     if (!user) {
       setMemberships([]); setActiveOrg(null); setActiveRole(null);
+      setPlatformRole(null);
       _activeOrgId = null; _activeRole = null;
       setLoading(false);
       return;
@@ -94,13 +103,13 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       _activeOrgId = null; _activeRole = null;
     }
 
-    // Check platform admin
+    // Staff de plataforma (superficie separada del tenant)
     const { data: pa } = await supabase
       .from('platform_admins')
-      .select('user_id')
+      .select('user_id, role')
       .eq('user_id', user.id)
       .maybeSingle();
-    setIsPlatformAdmin(!!pa);
+    setPlatformRole(pa ? (((pa as { role?: string }).role as PlatformRole) || 'superadmin') : null);
 
     setLoading(false);
   }, [user]);
@@ -123,7 +132,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, [memberships]);
 
   return (
-    <OrgContext.Provider value={{ loading, memberships, activeOrg, activeRole, switchOrg, refresh, isPlatformAdmin }}>
+    <OrgContext.Provider value={{
+      loading, memberships, activeOrg, activeRole, switchOrg, refresh,
+      platformRole, isPlatformAdmin: platformRole !== null,
+    }}>
       {children}
     </OrgContext.Provider>
   );

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrg } from '@/lib/orgContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   Building2, Users, DollarSign, TrendingUp, Search, RefreshCw,
   Clock, CheckCircle2, XCircle, Zap, Shield, Ban, Trash2,
@@ -14,7 +14,7 @@ import SystemHealthTab from '@/components/platform/SystemHealthTab';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,6 +49,8 @@ interface UserRow {
   banned: boolean;
   memberships: { role: string; orgName: string }[];
   isPlatformAdmin?: boolean;
+  /** Nivel de staff de plataforma: superadmin | support | finance */
+  platformRole?: string;
 }
 
 interface PlanRow {
@@ -112,10 +114,33 @@ const fmtFull = (d: string | null) => d ? new Date(d).toLocaleString('es-AR', { 
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PlatformAdminPage() {
+const SECTION_META: Record<string, { title: string; description: string; icon: typeof Crown }> = {
+  overview: { title: 'Resumen de plataforma', description: 'Salud del negocio: MRR, orgs, conversión y churn', icon: Crown },
+  orgs:     { title: 'Organizaciones',        description: 'Todos los tenants: plan, estado, actividad y soporte', icon: Building2 },
+  users:    { title: 'Usuarios',              description: 'Cuentas de toda la plataforma, accesos y staff', icon: Users },
+  plans:    { title: 'Planes',                description: 'Precios, límites y features de cada plan', icon: DollarSign },
+  support:  { title: 'Soporte',               description: 'Registro de acciones del staff sobre los tenants', icon: Headphones },
+  system:   { title: 'Sistema',               description: 'Estado de secrets, Edge Functions e integraciones', icon: Server },
+};
+
+/** Sección → segmento de URL, para que cada tab sea linkeable y compartible. */
+const SECTION_PATH: Record<string, string> = {
+  overview: '/platform',
+  orgs: '/platform/orgs',
+  users: '/platform/usuarios',
+  plans: '/platform/planes',
+  support: '/platform/soporte',
+  system: '/platform/sistema',
+};
+
+export default function PlatformAdminPage({ section = 'overview' }: { section?: string }) {
   usePageTitle("Platform Admin");
   const { isPlatformAdmin, loading: orgLoading } = useOrg();
-  const [tab, setTab] = useState('overview');
+  const navigate = useNavigate();
+  const tab = section;
+  const setTab = useCallback((next: string) => {
+    navigate(SECTION_PATH[next] || '/platform');
+  }, [navigate]);
 
   // Overview data
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
@@ -242,11 +267,15 @@ export default function PlatformAdminPage() {
     try {
       const [usersData, { data: paData }] = await Promise.all([
         adminCall('getUsers'),
-        supabase.from('platform_admins').select('user_id'),
+        supabase.from('platform_admins').select('user_id, role'),
       ]);
       const paIds = new Set((paData || []).map((r: any) => r.user_id));
+      const paRoles: Record<string, string> = {};
+      (paData || []).forEach((r: any) => { paRoles[r.user_id] = r.role || 'superadmin'; });
       setPlatformAdminIds(paIds);
-      setUsers((usersData.users || []).map((u: UserRow) => ({ ...u, isPlatformAdmin: paIds.has(u.id) })));
+      setUsers((usersData.users || []).map((u: UserRow) => ({
+        ...u, isPlatformAdmin: paIds.has(u.id), platformRole: paRoles[u.id],
+      })));
       setStats(prev => ({ ...prev, users: usersData.users?.length || 0 }));
     } catch (e: any) {
       toast.error(e.message);
@@ -491,15 +520,28 @@ export default function PlatformAdminPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const handleSetPlatformRole = async (u: UserRow, role: string) => {
+    try {
+      await adminCall('setPlatformRole', { userId: u.id, role });
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, platformRole: role } : x));
+      toast.success(`Nivel de ${u.email} actualizado a ${role}`);
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const handleTogglePlatformAdmin = async (u: UserRow) => {
     const isPA = platformAdminIds.has(u.id);
     try {
-      await adminCall(isPA ? 'removePlatformAdmin' : 'addPlatformAdmin', { userId: u.id });
+      // Alta con el nivel más bajo a propósito: subir a superadmin es un acto
+      // explícito, no el default de tocar un switch.
+      await adminCall(isPA ? 'removePlatformAdmin' : 'addPlatformAdmin',
+        isPA ? { userId: u.id } : { userId: u.id, role: 'support' });
       const updated = new Set(platformAdminIds);
       if (isPA) updated.delete(u.id);
       else updated.add(u.id);
       setPlatformAdminIds(updated);
-      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, isPlatformAdmin: !isPA } : x));
+      setUsers(prev => prev.map(x => x.id === u.id
+        ? { ...x, isPlatformAdmin: !isPA, platformRole: isPA ? undefined : 'support' }
+        : x));
       toast.success(isPA ? 'Admin de plataforma removido' : 'Admin de plataforma agregado');
     } catch (e: any) { toast.error(e.message); }
   };
@@ -558,9 +600,9 @@ export default function PlatformAdminPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
-        icon={Crown}
-        title="Platform Admin"
-        description="Control total de todos los tenants de Gestiona"
+        icon={SECTION_META[tab]?.icon || Crown}
+        title={SECTION_META[tab]?.title || 'Plataforma'}
+        description={SECTION_META[tab]?.description || ''}
         actions={
           <Button variant="outline" size="sm" onClick={() => { loadOrgs(); if (tab === 'users') loadUsers(); if (tab === 'plans') loadPlans(); }} disabled={loadingOrgs}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loadingOrgs ? 'animate-spin' : ''}`} /> Actualizar
@@ -591,16 +633,8 @@ export default function PlatformAdminPage() {
         <KPICard label="Cancelados" value={stats.canceled} icon={XCircle} color="destructive" sub="bajas confirmadas" />
       </div>
 
-      {/* Tabs */}
+      {/* Contenido de la sección — la navegación vive en PlatformLayout */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-muted/50 flex-wrap">
-          <TabsTrigger value="overview" className="gap-2"><Activity className="w-3.5 h-3.5" /> Resumen</TabsTrigger>
-          <TabsTrigger value="orgs" className="gap-2"><Building2 className="w-3.5 h-3.5" /> Orgs ({orgs.length})</TabsTrigger>
-          <TabsTrigger value="users" className="gap-2"><Users className="w-3.5 h-3.5" /> Usuarios</TabsTrigger>
-          <TabsTrigger value="plans" className="gap-2"><DollarSign className="w-3.5 h-3.5" /> Planes</TabsTrigger>
-          <TabsTrigger value="support" className="gap-2"><Headphones className="w-3.5 h-3.5" /> Soporte</TabsTrigger>
-          <TabsTrigger value="system" className="gap-2"><Server className="w-3.5 h-3.5" /> Sistema</TabsTrigger>
-        </TabsList>
 
         {/* ── OVERVIEW TAB ── */}
         <TabsContent value="overview" className="mt-4 space-y-4">
@@ -958,9 +992,19 @@ export default function PlatformAdminPage() {
                         Banear
                       </label>
                       <label className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30">
-                        <Switch checked={u.isPlatformAdmin || false} onCheckedChange={() => handleTogglePlatformAdmin(u)} className="data-[state=checked]:bg-primary scale-75" />
-                        Admin
+                        <Switch checked={u.isPlatformAdmin || false} onCheckedChange={() => handleTogglePlatformAdmin(u)} className="data-[state=checked]:bg-violet-500 scale-75" />
+                        Staff
                       </label>
+                      {u.isPlatformAdmin && (
+                        <Select value={u.platformRole || 'support'} onValueChange={(v) => handleSetPlatformRole(u, v)}>
+                          <SelectTrigger className="h-6 w-[96px] text-[10px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="support">Soporte</SelectItem>
+                            <SelectItem value="finance">Finanzas</SelectItem>
+                            <SelectItem value="superadmin">Superadmin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Button variant="outline" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => handleResetPassword(u)}>
                         <KeyRound className="w-2.5 h-2.5 mr-1" /> Reset
                       </Button>
@@ -1027,12 +1071,29 @@ export default function PlatformAdminPage() {
                             className="data-[state=checked]:bg-destructive"
                           />
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <Switch
-                            checked={u.isPlatformAdmin || false}
-                            onCheckedChange={() => handleTogglePlatformAdmin(u)}
-                            className="data-[state=checked]:bg-primary"
-                          />
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <Switch
+                              checked={u.isPlatformAdmin || false}
+                              onCheckedChange={() => handleTogglePlatformAdmin(u)}
+                              className="data-[state=checked]:bg-violet-500"
+                            />
+                            {u.isPlatformAdmin && (
+                              <Select
+                                value={u.platformRole || 'support'}
+                                onValueChange={(v) => handleSetPlatformRole(u, v)}
+                              >
+                                <SelectTrigger className="h-7 w-[110px] text-[11px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="support">Soporte</SelectItem>
+                                  <SelectItem value="finance">Finanzas</SelectItem>
+                                  <SelectItem value="superadmin">Superadmin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">

@@ -1,7 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUserRole, AppRole } from '@/lib/useUserRole';
-import { useOrg } from '@/lib/orgContext';
+import { useOrg, PlatformRole } from '@/lib/orgContext';
 import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * Módulos sobre los que se puede dar/quitar permiso. Tiene que coincidir con
+ * `seed_default_permissions()` (migración 20260729000001) para que la UI de
+ * AdminPage y el enforcement en la base hablen del mismo vocabulario.
+ */
+export const PERMISSION_MODULES = [
+  'sales', 'pos', 'products', 'customers', 'crm', 'reports',
+  'expenses', 'purchases', 'invoices', 'inventory', 'analytics',
+  'marketing', 'support', 'settings', 'team', 'finance',
+  'ecommerce', 'shipping', 'payments', 'influencers',
+] as const;
+
+export type PermissionModule = typeof PERMISSION_MODULES[number];
 
 // ─── Role-based permission helpers ───────────────────────────────────────────
 
@@ -140,4 +154,35 @@ export function useHasPermission(module: string, action: PermAction): boolean {
     case 'delete': return p.canDelete;
     case 'export': return p.canExport;
   }
+}
+
+// ─── usePlatformAccess — permisos del staff DE LA PLATAFORMA ─────────────────
+
+/**
+ * Nivel de staff de plataforma. Ortogonal a los permisos de organización:
+ * esto gobierna la superficie `/platform`, no el tenant.
+ *
+ * `superadmin` satisface cualquier requerimiento — espejo exacto de
+ * `has_platform_role()` en la base, que es donde se hace el enforcement real.
+ */
+export function usePlatformAccess() {
+  const { platformRole, loading } = useOrg();
+
+  const canPlatform = useCallback((...allowed: PlatformRole[]) => {
+    if (!platformRole) return false;
+    if (platformRole === 'superadmin') return true;
+    return allowed.includes(platformRole);
+  }, [platformRole]);
+
+  return {
+    loading,
+    platformRole,
+    isPlatformStaff: platformRole !== null,
+    isSuperadmin: platformRole === 'superadmin',
+    /** Finanzas: planes, precios, comisiones, facturación */
+    canBilling: platformRole === 'superadmin' || platformRole === 'finance',
+    /** Soporte: ver orgs/usuarios, asistir, sin tocar plata ni borrar */
+    canSupport: platformRole !== null,
+    canPlatform,
+  };
 }

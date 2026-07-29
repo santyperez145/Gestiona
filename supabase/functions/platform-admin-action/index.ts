@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const { data: pa } = await admin
       .from("platform_admins")
-      .select("user_id")
+      .select("user_id, role")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -55,6 +55,48 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { action } = body;
+
+    // ── Autorización por nivel de staff ────────────────────────
+    // `superadmin` puede todo. `finance` toca planes y facturación.
+    // `support` ve y asiste, pero no cambia plata ni destruye nada.
+    // Una acción que no esté en el mapa queda reservada a superadmin.
+    const platformRole: string = (pa as { role?: string }).role || "superadmin";
+    const ACTION_ROLES: Record<string, string[]> = {
+      // Lectura y asistencia
+      getUsers: ["support", "finance"],
+      getOrgDetail: ["support", "finance"],
+      getOrgMembers: ["support", "finance"],
+      getOrgActivity: ["support", "finance"],
+      getAdminLogs: ["support", "finance"],
+      checkSecrets: ["support", "finance"],
+      generateMagicLink: ["support"],
+      resetUserPassword: ["support"],
+      // Facturación / planes
+      extendTrial: ["finance"],
+      changePlan: ["finance"],
+      updatePlan: ["finance"],
+      suspendOrg: ["finance"],
+      reactivateOrg: ["finance"],
+      // Sin entrada = sólo superadmin: deleteOrg, addPlatformAdmin,
+      // removePlatformAdmin, toggleBanUser, updateMemberRole,
+      // removeMember, createOrg.
+    };
+
+    if (platformRole !== "superadmin") {
+      const allowed = ACTION_ROLES[action] || [];
+      if (!allowed.includes(platformRole)) {
+        await admin.from("admin_audit_logs" as any).insert({
+          admin_user_id: user.id,
+          admin_email: user.email,
+          action: `DENIED:${action}`,
+          details: { platformRole },
+        }).then(() => {}, () => {});
+        return json(
+          { error: `Tu nivel de acceso (${platformRole}) no permite esta acción` },
+          403,
+        );
+      }
+    }
 
     // ── Helper: log admin action ───────────────────────────────
     const logAction = async (
@@ -185,9 +227,32 @@ Deno.serve(async (req) => {
 
     // ── ADD PLATFORM ADMIN ─────────────────────────────────────
     if (action === "addPlatformAdmin") {
-      const { userId } = body;
-      await admin.from("platform_admins").upsert({ user_id: userId });
-      await logAction("addPlatformAdmin", { userId });
+      const { userId, role = "support" } = body;
+      if (!["superadmin", "support", "finance"].includes(role)) {
+        return json({ error: "Nivel de plataforma inválido" }, 400);
+      }
+      await admin.from("platform_admins").upsert(
+        { user_id: userId, role, granted_by: user.id },
+        { onConflict: "user_id" },
+      );
+      await logAction("addPlatformAdmin", { userId, details: { role } });
+      return json({ ok: true });
+    }
+
+    // ── SET PLATFORM ROLE ──────────────────────────────────────
+    // Cambia el nivel de un miembro del staff ya existente.
+    if (action === "setPlatformRole") {
+      const { userId, role } = body;
+      if (!["superadmin", "support", "finance"].includes(role)) {
+        return json({ error: "Nivel de plataforma inválido" }, 400);
+      }
+      if (userId === user.id) {
+        return json({ error: "No podés cambiar tu propio nivel de acceso" }, 400);
+      }
+      const { error } = await admin
+        .from("platform_admins").update({ role }).eq("user_id", userId);
+      if (error) return json({ error: error.message }, 500);
+      await logAction("setPlatformRole", { userId, details: { role } });
       return json({ ok: true });
     }
 
