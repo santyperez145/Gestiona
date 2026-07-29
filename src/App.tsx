@@ -14,6 +14,7 @@ import MfaGate from "@/components/auth/MfaGate";
 import ModuleGuard from "@/components/auth/ModuleGuard";
 import { PermissionsProvider } from "@/lib/permissionsContext";
 import { supabase } from "@/integrations/supabase/client";
+import { hardReload } from "@/lib/hardReload";
 import { ShieldAlert, BookOpen } from "lucide-react";
 
 // ── Eager (needed for first paint / public routes) ──────────────────────────
@@ -331,21 +332,6 @@ const CHUNK_RELOAD_KEY = 'chunk_reload_once';
  * infinito de "Nueva versión disponible". Por eso primero borramos las
  * caches y desregistramos el SW, y recién ahí recargamos.
  */
-async function hardReload() {
-  try {
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-  } catch { /* si falla, igual recargamos */ }
-  // `true` fuerza saltear el caché HTTP del navegador
-  window.location.reload();
-}
-
 const isChunkError = (err: unknown) => {
   const msg = (err as any)?.message ?? '';
   return (

@@ -5,6 +5,7 @@ import PriceListsManager from "@/components/settings/PriceListsManager";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
+import { hardReload } from "@/lib/hardReload";
 import { subscribeToPush, unsubscribeFromPush, getCurrentSubscription, isPushSupported } from "@/lib/pushNotifications";
 import { useEntitlements } from "@/lib/useEntitlements";
 import { getSettingsDB, saveSettingsDB, getProductsDB, formatARS, calculateProductProfits, getCouponsDB, addCouponDB, updateCouponDB, deleteCouponDB, getSalesDB, getPurchasesDB, getDebtsDB, getExpensesDB, getCustomerNotesDB, buildExpenseCategories, getCategoryLabel } from "@/lib/supabaseStore";
@@ -1152,6 +1153,21 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Switch checked={mfaRequired} onCheckedChange={setMfaRequired} />
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border/60 flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-[220px] flex-1">
+                <p className="text-sm font-medium">Forzar actualización</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Si ves algo desactualizado o un botón que no hace lo que debería,
+                  puede ser una versión vieja guardada en el navegador. Esto la borra
+                  y recarga con la última.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => hardReload()} className="gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5" />
+                Actualizar app
+              </Button>
             </div>
           </div>
 
