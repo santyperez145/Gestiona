@@ -4,7 +4,14 @@ import type { Database } from './types';
 import { getOptionalEnv } from '@/lib/env';
 
 const SUPABASE_URL = getOptionalEnv('VITE_SUPABASE_URL') ?? '';
-const SUPABASE_ANON_KEY = getOptionalEnv('VITE_SUPABASE_ANON_KEY') ?? '';
+// Supabase renombró la clave a "publishable"; se aceptan los dos nombres
+// porque conviven en el .env local y en el workflow de CI. Con uno solo, un
+// build hecho desde el entorno equivocado salía con la clave vacía y la app
+// no conectaba con nada.
+const SUPABASE_ANON_KEY =
+  getOptionalEnv('VITE_SUPABASE_ANON_KEY') ??
+  getOptionalEnv('VITE_SUPABASE_PUBLISHABLE_KEY') ??
+  '';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
