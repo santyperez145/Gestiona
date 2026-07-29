@@ -2,6 +2,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useOrg } from "@/lib/orgContext";
 import MercadoLibrePanel from "@/components/integrations/MercadoLibrePanel";
+import PaymentConnectionsPanel from "@/components/integrations/PaymentConnectionsPanel";
 import { useAuth } from "@/lib/auth";
 import TiendanubeExcelImport from "@/components/integrations/TiendanubeExcelImport";
 import PlatformServicesPanel from "@/components/integrations/PlatformServicesPanel";
@@ -554,6 +555,9 @@ export default function IntegrationsPage() {
         <TabsContent value="conexiones" className="space-y-6 mt-4">
       {/* ── Platform services (bundled, no config needed) ──────────── */}
       <PlatformServicesPanel />
+
+      {/* ── Medios de cobro ────────────────────────────────────────── */}
+      <PaymentConnectionsPanel />
 
       {/* ── MercadoLibre ───────────────────────────────────────────── */}
       <MercadoLibrePanel />

@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireEnv } from "../_shared/env.ts";
+import { getMpCredentials } from "../_shared/mpToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,13 +53,10 @@ Deno.serve(async (req) => {
     if (!order) return json({ error: "Pedido no encontrado" }, 404);
     if (order.payment_status === "paid") return json({ error: "Este pedido ya está pago" }, 409);
 
-    const { data: settings } = await admin
-      .from("settings")
-      .select("mp_access_token, mp_enabled")
-      .eq("org_id", store.org_id)
-      .maybeSingle();
-
-    if (!settings?.mp_enabled || !settings?.mp_access_token) {
+    // El token sale de la conexión OAuth del comercio; si todavía usa el
+    // token pegado a mano, también funciona.
+    const creds = await getMpCredentials(admin, store.org_id);
+    if (!creds) {
       return json({
         error: "Esta tienda todavía no tiene el pago online habilitado. " +
                "Coordiná con el vendedor por los otros medios.",
@@ -78,7 +76,7 @@ Deno.serve(async (req) => {
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${settings.mp_access_token}`,
+        Authorization: `Bearer ${creds.accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

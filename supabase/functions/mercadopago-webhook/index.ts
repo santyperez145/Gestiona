@@ -2,6 +2,7 @@
 // Verifies x-signature header, fetches payment details and updates payment_links + sales.
 // Register at: MP Developers → Tus aplicaciones → Webhooks → URL de notificación
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getMpCredentials } from "../_shared/mpToken.ts";
 
 // Verify Mercado Pago webhook signature
 // Header: x-signature = "ts=<epoch>,v1=<sha256hex>"
@@ -104,34 +105,43 @@ Deno.serve(async (req) => {
     let mpAccessToken = "";
 
     if (orgId) {
-      const { data: settings } = await admin
-        .from("settings")
-        .select("mp_access_token, mp_enabled")
-        .eq("org_id", orgId)
-        .maybeSingle();
-      if (settings?.mp_enabled && settings?.mp_access_token) {
-        mpAccessToken = settings.mp_access_token;
-      }
+      // Resuelve por la conexión OAuth y cae al token pegado a mano si el
+      // comercio todavía no migró.
+      const creds = await getMpCredentials(admin, orgId);
+      if (creds) mpAccessToken = creds.accessToken;
     }
 
-    // If no org from query, try to find by checking all orgs with MP enabled (fallback)
+    // Sin org en la query, se prueban las cuentas conectadas hasta dar con la
+    // dueña del pago. Se miran primero las conexiones OAuth y después los
+    // tokens pegados a mano: con OAuth, settings.mp_access_token queda vacío y
+    // este camino se habría quedado ciego.
     if (!mpAccessToken && !orgId) {
-      const { data: settingsList } = await admin
-        .from("settings")
-        .select("org_id, mp_access_token")
-        .eq("mp_enabled", true)
-        .not("mp_access_token", "is", null)
-        .limit(50);
+      const [{ data: conns }, { data: settingsList }] = await Promise.all([
+        admin.from("payment_connections")
+          .select("org_id, access_token")
+          .eq("provider", "mercadopago")
+          .not("access_token", "is", null)
+          .limit(50),
+        admin.from("settings")
+          .select("org_id, mp_access_token")
+          .eq("mp_enabled", true)
+          .not("mp_access_token", "is", null)
+          .limit(50),
+      ]);
 
-      // We'll try each token until we find the one that owns this payment
-      for (const s of settingsList || []) {
+      const candidatos = [
+        ...(conns ?? []).map((c: any) => ({ org_id: c.org_id, token: c.access_token })),
+        ...(settingsList ?? []).map((s: any) => ({ org_id: s.org_id, token: s.mp_access_token })),
+      ];
+
+      for (const c of candidatos) {
         try {
           const testRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-            headers: { Authorization: `Bearer ${s.mp_access_token}` },
+            headers: { Authorization: `Bearer ${c.token}` },
           });
           if (testRes.ok) {
-            orgId = s.org_id;
-            mpAccessToken = s.mp_access_token;
+            orgId = c.org_id;
+            mpAccessToken = c.token;
             break;
           }
         } catch {

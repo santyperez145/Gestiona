@@ -10004,6 +10004,44 @@ export type Database = {
           },
         ]
       }
+      oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          org_id: string
+          provider: string
+          redirect_to: string | null
+          state: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          org_id: string
+          provider: string
+          redirect_to?: string | null
+          state: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          org_id?: string
+          provider?: string
+          redirect_to?: string | null
+          state?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocr_documents: {
         Row: {
           confidence: number | null
@@ -10245,6 +10283,68 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          email: string | null
+          expires_at: string | null
+          external_id: string | null
+          id: string
+          last_error: string | null
+          live_mode: boolean
+          nickname: string | null
+          org_id: string
+          provider: string
+          public_key: string | null
+          refresh_token: string | null
+          scopes: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          email?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          last_error?: string | null
+          live_mode?: boolean
+          nickname?: string | null
+          org_id: string
+          provider: string
+          public_key?: string | null
+          refresh_token?: string | null
+          scopes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          email?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          last_error?: string | null
+          live_mode?: boolean
+          nickname?: string | null
+          org_id?: string
+          provider?: string
+          public_key?: string | null
+          refresh_token?: string | null
+          scopes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -18617,6 +18717,56 @@ export type Database = {
           },
         ]
       }
+      payment_connection_status: {
+        Row: {
+          conectado: boolean | null
+          connected_at: string | null
+          email: string | null
+          expires_at: string | null
+          external_id: string | null
+          last_error: string | null
+          live_mode: boolean | null
+          nickname: string | null
+          org_id: string | null
+          provider: string | null
+          vigente: boolean | null
+        }
+        Insert: {
+          conectado?: never
+          connected_at?: string | null
+          email?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          last_error?: string | null
+          live_mode?: boolean | null
+          nickname?: string | null
+          org_id?: string | null
+          provider?: string | null
+          vigente?: never
+        }
+        Update: {
+          conectado?: never
+          connected_at?: string | null
+          email?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          last_error?: string | null
+          live_mode?: boolean | null
+          nickname?: string | null
+          org_id?: string | null
+          provider?: string | null
+          vigente?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_availability: {
         Row: {
           available: number | null
@@ -19284,6 +19434,7 @@ export type Database = {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
       }
+      purge_expired_oauth_states: { Args: never; Returns: number }
       rebuild_cooccurrences: { Args: { p_org_id: string }; Returns: undefined }
       record_debt_payment_cash_entry: {
         Args: {
