@@ -41,6 +41,7 @@ const TiendanubeExportPage   = lazy(() => import("@/pages/TiendanubeExportPage")
 const AdminPage              = lazy(() => import("@/pages/AdminPage"));
 const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
 const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
+const StorefrontPage         = lazy(() => import("@/pages/StorefrontPage"));
 const PublicPaymentPage      = lazy(() => import("@/pages/PublicPaymentPage"));
 const InfluencerPortalPage   = lazy(() => import("@/pages/InfluencerPortalPage"));
 const PricingPage            = lazy(() => import("@/pages/PricingPage"));
@@ -410,6 +411,7 @@ const App = () => (
                 <Route path="/terminos" element={<TermsPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/catalogo/:userId" element={<PublicCatalogPage />} />
+                <Route path="/tienda/:slug" element={<StorefrontPage />} />
                 <Route path="/pagar/:linkId" element={<PublicPaymentPage />} />
                 <Route path="/portal-influencer/:token" element={<InfluencerPortalPage />} />
                 <Route path="/invitacion/:token" element={<InvitationAcceptPage />} />

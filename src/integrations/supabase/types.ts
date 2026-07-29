@@ -19049,6 +19049,27 @@ export type Database = {
           recognized: number
         }[]
       }
+      get_store_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          banner_url: string
+          currency: string
+          description: string
+          free_shipping_above: number
+          logo_url: string
+          meta_description: string
+          meta_title: string
+          name: string
+          org_id: string
+          owner_user_id: string
+          payment_methods: string[]
+          primary_color: string
+          shipping_cost: number
+          slug: string
+          social_links: Json
+          theme: string
+        }[]
+      }
       get_top_recommendations: {
         Args: { p_limit?: number; p_org_id: string }
         Returns: {

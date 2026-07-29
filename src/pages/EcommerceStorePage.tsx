@@ -188,7 +188,7 @@ export default function EcommerceStorePage() {
               {store?.is_active ? "● Activa" : "○ Inactiva"}
             </Badge>
             {store?.slug && (
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(`https://gestiona.app/tienda/${store.slug}`, "_blank")}>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(`${window.location.origin}/tienda/${store.slug}`, "_blank")}>
                 <ExternalLink className="w-3 h-3" />Ver tienda
               </Button>
             )}
@@ -355,7 +355,7 @@ export default function EcommerceStorePage() {
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Slug (URL)</label>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground shrink-0">gestiona.app/tienda/</span>
+                  <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[45%]">{window.location.host}/tienda/</span>
                   <Input value={storeForm.slug} onChange={e => setStoreForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))} placeholder="mi-tienda" className="h-9" />
                 </div>
               </div>

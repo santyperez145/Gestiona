@@ -154,8 +154,19 @@ function SectionHeader({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function PublicCatalogPage() {
-  const { userId } = useParams<{ userId: string }>();
+interface PublicCatalogProps {
+  /**
+   * Permite reusar la vitrina desde /tienda/:slug, que resuelve al dueño por
+   * el slug de la tienda en vez de tomarlo de la URL.
+   */
+  overrideUserId?: string;
+  /** Marca de la tienda (nombre, color, logo) cuando se entra por /tienda. */
+  storeBranding?: { name?: string | null; primary_color?: string | null; logo_url?: string | null } | null;
+}
+
+export default function PublicCatalogPage({ overrideUserId, storeBranding }: PublicCatalogProps = {}) {
+  const { userId: routeUserId } = useParams<{ userId: string }>();
+  const userId = overrideUserId ?? routeUserId;
   const [products, setProducts] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [valid, setValid] = useState<boolean | null>(null);
@@ -238,8 +249,9 @@ export default function PublicCatalogPage() {
   }, [userId, valid, fetchData]);
 
   useEffect(() => {
-    if (settings?.business_name) document.title = `${settings.business_name} — Catálogo`;
-  }, [settings]);
+    const title = storeBranding?.name || settings?.business_name;
+    if (title) document.title = `${title} — Catálogo`;
+  }, [settings, storeBranding]);
 
   // Derived data
   const categories = useMemo(() => {
@@ -276,10 +288,11 @@ export default function PublicCatalogPage() {
       .slice(0, 4),
     [products]);
 
-  const primaryColor = settings?.primary_color || "#D4A843";
+  // La marca de la tienda (si se entra por /tienda/:slug) pisa la del negocio.
+  const primaryColor = storeBranding?.primary_color || settings?.primary_color || "#D4A843";
   const accentColor = settings?.catalog_accent_color || primaryColor;
-  const businessName = settings?.business_name || "EXENTRY IMPORTS";
-  const logoUrl = settings?.logo_url || "/exentry-logo.png";
+  const businessName = storeBranding?.name || settings?.business_name || "EXENTRY IMPORTS";
+  const logoUrl = storeBranding?.logo_url || settings?.logo_url || "/exentry-logo.png";
   const whatsappNumber = settings?.whatsapp_number;
 
   const heroConfig = useMemo(() => {
