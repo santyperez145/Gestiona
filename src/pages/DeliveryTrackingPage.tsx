@@ -23,6 +23,9 @@ import {
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useSearchParams } from "react-router-dom";
+import ShippingZonesTab from "@/components/shipping/ShippingZonesTab";
+import CarriersTab from "@/components/shipping/CarriersTab";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Delivery {
@@ -397,6 +400,10 @@ export default function DeliveryTrackingPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDriver, setFilterDriver] = useState("all");
+  // ?tab= para poder linkear directo a la configuración de envíos
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "entregas";
+  const setTab = (next: string) => setSearchParams(next === "entregas" ? {} : { tab: next });
 
   async function loadData() {
     if (!orgId) return;
@@ -437,15 +444,33 @@ export default function DeliveryTrackingPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={Truck}
-        title="Seguimiento de Envíos"
-        description="Gestioná entregas, repartidores, COD y tracking en tiempo real."
+        title="Envíos"
+        description="Entregas y tracking, más las zonas, tarifas y transportistas que cotiza tu tienda online."
         actions={
-          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo envío
-          </Button>
+          tab === "entregas" ? (
+            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Nuevo envío
+            </Button>
+          ) : undefined
         }
       />
 
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="entregas" className="gap-2"><Truck className="w-3.5 h-3.5" /> Entregas</TabsTrigger>
+          <TabsTrigger value="zonas" className="gap-2"><MapPin className="w-3.5 h-3.5" /> Zonas y tarifas</TabsTrigger>
+          <TabsTrigger value="transportistas" className="gap-2"><Package className="w-3.5 h-3.5" /> Transportistas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="zonas" className="mt-4">
+          <ShippingZonesTab />
+        </TabsContent>
+
+        <TabsContent value="transportistas" className="mt-4">
+          <CarriersTab />
+        </TabsContent>
+
+        <TabsContent value="entregas" className="mt-4 space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Total envíos" value={deliveries.length} icon={Package} color="primary" />
@@ -560,6 +585,9 @@ export default function DeliveryTrackingPage() {
           </table>
         </div>
       )}
+
+        </TabsContent>
+      </Tabs>
 
       <DeliveryForm open={formOpen} onClose={() => setFormOpen(false)}
         editing={editing} orgId={orgId} onSaved={loadData} />

@@ -1522,6 +1522,11 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [expiryDate, setExpiryDate] = useState(product?.expiry_date || '');
   const [isActive, setIsActive] = useState<boolean>(product?.is_active ?? true);
   const [expectedRestockAt, setExpectedRestockAt] = useState(product?.expected_restock_at || '');
+  // Logística — alimenta la cotización de envíos del ecommerce
+  const [weightKg, setWeightKg] = useState(product?.weight_kg?.toString() || '');
+  const [lengthCm, setLengthCm] = useState(product?.length_cm?.toString() || '');
+  const [widthCm, setWidthCm] = useState(product?.width_cm?.toString() || '');
+  const [heightCm, setHeightCm] = useState(product?.height_cm?.toString() || '');
   const [tags, setTags] = useState<string[]>(product?.tags || []);
   const [tagInput, setTagInput] = useState('');
   // ── Ficha perfume (solo categorías perfume) ──────────────────────────────
@@ -1779,6 +1784,12 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         is_active: isActive,
         expected_restock_at: expectedRestockAt || null,
         supplier_id: supplierId || null,
+        // Peso y dimensiones: los usa el cotizador de envíos de la tienda online.
+        // Vacío = la tienda cotiza con su peso estimado por default.
+        weight_kg: parseFloat(weightKg) || null,
+        length_cm: parseFloat(lengthCm) || null,
+        width_cm: parseFloat(widthCm) || null,
+        height_cm: parseFloat(heightCm) || null,
         ...(Object.keys(customFieldValues).length > 0 ? { custom_fields: customFieldValues } : {}),
       };
       let productId = product?.id;
@@ -2370,6 +2381,24 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         <div>
           <label className="text-sm text-muted-foreground">SKU interno</label>
           <Input value={sku} onChange={e => setSku(e.target.value)} placeholder="Ej: LAT-KHA-100" className="bg-muted border-border font-mono text-sm" />
+        </div>
+      </div>
+      {/* Logística — peso y dimensiones para cotizar envíos */}
+      <div>
+        <label className="text-sm text-muted-foreground">Peso y dimensiones</label>
+        <p className="text-[11px] text-muted-foreground/70 mb-1.5">
+          Los usa tu tienda online para cotizar el envío. Si los dejás vacíos, se cotiza
+          con el peso estimado que configuraste en la tienda.
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          <Input type="number" min="0" step="0.01" value={weightKg} onChange={e => setWeightKg(e.target.value)}
+            placeholder="Peso kg" className="bg-muted border-border text-sm" />
+          <Input type="number" min="0" step="0.5" value={lengthCm} onChange={e => setLengthCm(e.target.value)}
+            placeholder="Largo cm" className="bg-muted border-border text-sm" />
+          <Input type="number" min="0" step="0.5" value={widthCm} onChange={e => setWidthCm(e.target.value)}
+            placeholder="Ancho cm" className="bg-muted border-border text-sm" />
+          <Input type="number" min="0" step="0.5" value={heightCm} onChange={e => setHeightCm(e.target.value)}
+            placeholder="Alto cm" className="bg-muted border-border text-sm" />
         </div>
       </div>
       {/* Lot & Expiry */}

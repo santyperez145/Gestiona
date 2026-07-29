@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
-  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2
+  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -20,6 +21,12 @@ const THEMES = [
   { id: "luxury",  label: "Luxury",  desc: "Dark & premium",   preview: "bg-zinc-900" },
   { id: "sport",   label: "Sport",   desc: "Dinámico",         preview: "bg-blue-600" },
   { id: "natural", label: "Natural", desc: "Orgánico, verde",   preview: "bg-emerald-600" },
+];
+
+const SHIPPING_MODES = [
+  { id: "flat",  label: "Precio plano",   hint: "Un mismo costo para todo el país." },
+  { id: "zones", label: "Por zona y peso", hint: "Cotiza según provincia, peso y transportista." },
+  { id: "free",  label: "Envío gratis",   hint: "Sin costo de envío para el comprador." },
 ];
 
 const PAYMENT_METHODS = [
@@ -63,6 +70,9 @@ export default function EcommerceStorePage() {
     payment_methods: ["mercadopago", "transferencia"],
     meta_title: "", meta_description: "",
     description: "", notification_email: "",
+    shipping_mode: "flat", pickup_enabled: false,
+    pickup_address: "", pickup_instructions: "",
+    default_item_weight_kg: "0.5",
   });
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [orderFilter, setOrderFilter] = useState<string | null>(null);
@@ -150,6 +160,11 @@ export default function EcommerceStorePage() {
       notification_email: storeForm.notification_email || null,
       meta_title: storeForm.meta_title,
       meta_description: storeForm.meta_description,
+      shipping_mode: storeForm.shipping_mode,
+      pickup_enabled: storeForm.pickup_enabled,
+      pickup_address: storeForm.pickup_address || null,
+      pickup_instructions: storeForm.pickup_instructions || null,
+      default_item_weight_kg: Number(storeForm.default_item_weight_kg) || 0.5,
     };
     const { error } = await supabase.from("ecommerce_stores").upsert(row, { onConflict: "org_id" });
     setLoading(false);
@@ -388,6 +403,46 @@ export default function EcommerceStorePage() {
                   Si lo dejás vacío, los pedidos llegan al email con el que iniciás sesión.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* ── Envíos ─────────────────────────────────────────────── */}
+          <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold">Envíos</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Cómo se calcula el envío en el checkout de tu tienda.
+                </p>
+              </div>
+              <Link to="/envios?tab=zonas">
+                <Button variant="outline" size="sm" className="shrink-0">
+                  <MapPin className="w-3.5 h-3.5 mr-1" /> Zonas y tarifas
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {SHIPPING_MODES.map(m => {
+                const active = storeForm.shipping_mode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setStoreForm(p => ({ ...p, shipping_mode: m.id }))}
+                    className={`text-left p-3 rounded-lg border transition-all ${
+                      active
+                        ? "border-primary/50 bg-primary/8"
+                        : "border-border/50 bg-muted/20 hover:border-border"
+                    }`}
+                  >
+                    <p className={`text-sm font-medium ${active ? "text-primary" : ""}`}>{m.label}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{m.hint}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {storeForm.shipping_mode === "flat" && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Costo de envío</label>
@@ -398,6 +453,54 @@ export default function EcommerceStorePage() {
                   <Input type="number" value={storeForm.free_shipping_above} onChange={e => setStoreForm(p => ({ ...p, free_shipping_above: e.target.value }))} className="h-9" placeholder="dejar vacío para nunca" />
                 </div>
               </div>
+            )}
+
+            {storeForm.shipping_mode === "zones" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Envío gratis desde</label>
+                    <Input type="number" value={storeForm.free_shipping_above} onChange={e => setStoreForm(p => ({ ...p, free_shipping_above: e.target.value }))} className="h-9" placeholder="dejar vacío para nunca" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">
+                      Peso por producto sin peso cargado (kg)
+                    </label>
+                    <Input type="number" step="0.1" value={storeForm.default_item_weight_kg}
+                      onChange={e => setStoreForm(p => ({ ...p, default_item_weight_kg: e.target.value }))} className="h-9" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Cargá el peso real de cada producto en Productos para que la cotización sea exacta.
+                  Mientras no lo tenga, se usa este peso estimado.
+                </p>
+              </div>
+            )}
+
+            {/* Retiro en tienda — vale para cualquier modo */}
+            <div className="pt-3 border-t border-border/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Retiro en tienda</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Opción gratis en el checkout. Sube la conversión y te ahorra el envío.
+                  </p>
+                </div>
+                <button onClick={() => setStoreForm(p => ({ ...p, pickup_enabled: !p.pickup_enabled }))}
+                  className={`w-10 h-5 rounded-full transition-all shrink-0 ${storeForm.pickup_enabled ? "bg-emerald-500" : "bg-muted"}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${storeForm.pickup_enabled ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+              {storeForm.pickup_enabled && (
+                <div className="space-y-2">
+                  <Input value={storeForm.pickup_address}
+                    onChange={e => setStoreForm(p => ({ ...p, pickup_address: e.target.value }))}
+                    placeholder="Dirección de retiro" className="h-9" />
+                  <Input value={storeForm.pickup_instructions}
+                    onChange={e => setStoreForm(p => ({ ...p, pickup_instructions: e.target.value }))}
+                    placeholder="Horarios o instrucciones (ej: lun a vie de 10 a 18)" className="h-9" />
+                </div>
+              )}
             </div>
           </div>
 
