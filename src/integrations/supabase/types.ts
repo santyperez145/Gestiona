@@ -5579,6 +5579,7 @@ export type Database = {
           payment_status: string
           shipping_address: Json
           shipping_cost: number
+          store_customer_id: string | null
           store_id: string
           subtotal: number
           tags: string[]
@@ -5609,6 +5610,7 @@ export type Database = {
           payment_status?: string
           shipping_address?: Json
           shipping_cost?: number
+          store_customer_id?: string | null
           store_id: string
           subtotal?: number
           tags?: string[]
@@ -5639,6 +5641,7 @@ export type Database = {
           payment_status?: string
           shipping_address?: Json
           shipping_cost?: number
+          store_customer_id?: string | null
           store_id?: string
           subtotal?: number
           tags?: string[]
@@ -5668,6 +5671,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_store_customer_id_fkey"
+            columns: ["store_customer_id"]
+            isOneToOne: false
+            referencedRelation: "store_customers"
             referencedColumns: ["id"]
           },
           {
@@ -15820,6 +15830,70 @@ export type Database = {
           },
         ]
       }
+      store_customers: {
+        Row: {
+          accepts_marketing: boolean
+          created_at: string
+          default_address: Json
+          email: string
+          id: string
+          last_login_at: string | null
+          name: string | null
+          org_id: string
+          phone: string | null
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          accepts_marketing?: boolean
+          created_at?: string
+          default_address?: Json
+          email: string
+          id?: string
+          last_login_at?: string | null
+          name?: string | null
+          org_id: string
+          phone?: string | null
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          accepts_marketing?: boolean
+          created_at?: string
+          default_address?: Json
+          email?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string | null
+          org_id?: string
+          phone?: string | null
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_templates: {
         Row: {
           active: boolean | null
@@ -19021,6 +19095,21 @@ export type Database = {
           status: string
         }[]
       }
+      get_my_store_orders: {
+        Args: { p_slug: string }
+        Returns: {
+          created_at: string
+          fulfillment_status: string
+          items: Json
+          order_number: string
+          payment_method: string
+          payment_status: string
+          shipping_cost: number
+          subtotal: number
+          total: number
+          tracking_number: string
+        }[]
+      }
       get_next_cbte_number: {
         Args: { p_org_id: string; p_punto_venta: number; p_tipo_cbte: number }
         Returns: number
@@ -19294,6 +19383,10 @@ export type Database = {
       }
       sync_segment_members: { Args: { p_segment_id: string }; Returns: number }
       unaccent: { Args: { "": string }; Returns: string }
+      upsert_store_customer: {
+        Args: { p_name?: string; p_phone?: string; p_slug: string }
+        Returns: Json
+      }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {

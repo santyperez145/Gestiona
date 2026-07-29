@@ -10,7 +10,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { getCategoryLabel } from "@/lib/supabaseStore";
 import { resolveTheme } from "./theme";
-import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu } from "lucide-react";
+import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } from "lucide-react";
+import { useStoreAuth } from "./storeAuth";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { store, products, cart, cartCount, subtotal, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart } = useStore();
@@ -19,6 +20,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const [q, setQ] = useState("");
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { customer } = useStoreAuth();
 
   const theme = useMemo(
     () => resolveTheme(store?.theme, store?.primary_color),
@@ -121,9 +123,19 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             />
           </form>
 
+          <Link
+            to={`${base}/cuenta`}
+            className="p-2 md:ml-2 ml-auto md:ml-0"
+            aria-label={customer ? "Mi cuenta" : "Iniciar sesión"}
+            title={customer ? "Mi cuenta" : "Iniciar sesión"}
+            style={{ color: "hsl(var(--st-accent-fg))" }}
+          >
+            <User className="w-5 h-5" />
+          </Link>
+
           <button
             onClick={() => setCartOpen(true)}
-            className="relative p-2 md:ml-2 ml-auto"
+            className="relative p-2"
             aria-label={`Carrito, ${cartCount} ${cartCount === 1 ? "artículo" : "artículos"}`}
             style={{ color: "hsl(var(--st-accent-fg))" }}
           >

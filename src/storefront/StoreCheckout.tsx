@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
+import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock } from "lucide-react";
 
 const METODO_LABEL: Record<string, string> = {
@@ -17,12 +18,30 @@ export default function StoreCheckout() {
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
+  const { customer } = useStoreAuth();
   const metodos = store?.payment_methods?.length ? store.payment_methods : ["transferencia"];
   const [form, setForm] = useState({
     nombre: "", email: "", telefono: "",
     calle: "", ciudad: "", provincia: "", cp: "", notas: "",
     metodo: metodos[0],
   });
+
+  // Si el comprador tiene cuenta, se precarga con sus datos y su última
+  // dirección: es el sentido de tener cuenta, no volver a tipear todo.
+  useEffect(() => {
+    if (!customer) return;
+    const d = customer.default_address ?? {};
+    setForm(f => ({
+      ...f,
+      nombre: f.nombre || customer.name || "",
+      email: f.email || customer.email || "",
+      telefono: f.telefono || customer.phone || "",
+      calle: f.calle || d.calle || "",
+      ciudad: f.ciudad || d.ciudad || "",
+      provincia: f.provincia || d.provincia || "",
+      cp: f.cp || d.cp || "",
+    }));
+  }, [customer]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
