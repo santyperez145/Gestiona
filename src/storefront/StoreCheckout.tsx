@@ -74,6 +74,24 @@ export default function StoreCheckout() {
 
     const orderNumber = (data as any)?.order_number;
     clearCart();
+
+    // Con MercadoPago se manda al checkout externo; el webhook confirma el
+    // pago y de ahí vuelve a la página del pedido. Si falla la generación del
+    // link no se pierde nada: la orden ya está creada y se puede pagar después
+    // desde esa misma página.
+    if (form.metodo === "mercadopago") {
+      setEnviando(true);
+      const { data: pay, error: payErr } = await supabase.functions.invoke("store-pay", {
+        body: { slug: store!.slug, orderNumber, returnUrl: window.location.origin },
+      });
+      setEnviando(false);
+      const url = (pay as any)?.url;
+      if (url) { window.location.href = url; return; }
+      if (payErr || (pay as any)?.error) {
+        setError((pay as any)?.error ?? "No se pudo abrir el pago online. Tu pedido quedó registrado.");
+      }
+    }
+
     navigate(`${base}/orden/${orderNumber}`, { replace: true });
   };
 

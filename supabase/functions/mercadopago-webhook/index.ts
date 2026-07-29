@@ -170,6 +170,33 @@ Deno.serve(async (req) => {
     const isApproved = status === "approved";
     const isRejected = status === "rejected" || status === "cancelled";
 
+    // ── Orden de la tienda online ──────────────────────────────────────────
+    // `store-pay` marca sus preferencias con external_reference = "ecom:<uuid>".
+    // El RPC descuenta stock, registra la venta y avisa al dueño, todo de forma
+    // atómica e idempotente: MP reintenta sus webhooks.
+    if (externalRef.startsWith("ecom:")) {
+      const orderId = externalRef.slice(5);
+      if (isApproved) {
+        const { error: paidErr } = await admin.rpc("mark_store_order_paid", {
+          p_order_id: orderId,
+          p_payment_id: String(paymentId),
+          p_method: "mercado_pago",
+        });
+        if (paidErr) console.error("mark_store_order_paid:", paidErr.message);
+      } else if (isRejected) {
+        await admin
+          .from("ecommerce_orders")
+          .update({ payment_status: "failed", updated_at: new Date().toISOString() })
+          .eq("id", orderId)
+          .neq("payment_status", "paid");
+      }
+
+      console.log(`MP ecom order ${orderId}: ${status} (${statusDetail})`);
+      return new Response(JSON.stringify({ ok: true, status, paymentId, scope: "ecommerce" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // ── Update payment_links table ─────────────────────────────────────────────
     if (externalRef) {
       const linkStatus = isApproved ? "paid" : isRejected ? "rejected" : "pending";

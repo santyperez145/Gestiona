@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
-import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard } from "lucide-react";
 
 interface Order {
   order_number: string;
@@ -24,18 +24,50 @@ export default function StoreOrder() {
   const { store, fmt } = useStore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pagando, setPagando] = useState(false);
+  const [pagoError, setPagoError] = useState<string | null>(null);
   const base = `/tienda/${store?.slug ?? ""}`;
 
-  useEffect(() => {
-    if (!store?.slug || !orderNumber) return;
-    supabase
-      .rpc("get_store_order", { p_slug: store.slug, p_order_number: orderNumber })
-      .then(({ data }) => {
-        const row = Array.isArray(data) ? data[0] : data;
-        setOrder((row as Order) ?? null);
-        setLoading(false);
-      }, () => setLoading(false));
+  const cargar = useCallback(async () => {
+    if (!store?.slug || !orderNumber) return null;
+    const { data } = await supabase.rpc("get_store_order", {
+      p_slug: store.slug, p_order_number: orderNumber,
+    });
+    const row = (Array.isArray(data) ? data[0] : data) as Order | undefined;
+    setOrder(row ?? null);
+    setLoading(false);
+    return row ?? null;
   }, [store?.slug, orderNumber]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  // Al volver de MercadoPago el webhook puede tardar unos segundos en
+  // confirmar. Se reintenta un rato para no mostrarle "pendiente" a alguien
+  // que acaba de pagar.
+  useEffect(() => {
+    if (!order || order.payment_status !== "pending") return;
+    let intentos = 0;
+    const t = setInterval(async () => {
+      intentos++;
+      const fresco = await cargar();
+      if (intentos >= 5 || (fresco && fresco.payment_status !== "pending")) clearInterval(t);
+    }, 3000);
+    return () => clearInterval(t);
+    // Solo se dispara al montar con estado pendiente, no en cada refresco.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.order_number]);
+
+  const pagar = async () => {
+    if (!store?.slug || !order) return;
+    setPagando(true);
+    const { data } = await supabase.functions.invoke("store-pay", {
+      body: { slug: store.slug, orderNumber: order.order_number, returnUrl: window.location.origin },
+    });
+    setPagando(false);
+    const url = (data as any)?.url;
+    if (url) window.location.href = url;
+    else setPagoError((data as any)?.error ?? "No se pudo abrir el pago online.");
+  };
 
   if (loading) {
     return (
@@ -66,19 +98,55 @@ export default function StoreOrder() {
     `Hola! Acabo de hacer el pedido ${order.order_number} por ${fmt(Number(order.total))}. Quedo atento para coordinar el pago.`,
   );
 
+  const pagado = order.payment_status === "paid";
+  const fallido = order.payment_status === "failed";
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="text-center">
-        <CheckCircle2 className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-accent))" }} />
-        <h1 className="text-2xl font-bold">¡Gracias por tu compra!</h1>
+        {pagado
+          ? <CheckCircle2 className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-accent))" }} />
+          : <Clock className="w-14 h-14 mx-auto mb-3" style={{ color: "hsl(var(--st-muted))" }} />}
+
+        <h1 className="text-2xl font-bold">
+          {pagado ? "¡Pago confirmado!" : "¡Gracias por tu compra!"}
+        </h1>
         <p className="mt-1" style={{ color: "hsl(var(--st-muted))" }}>
           Tu pedido <strong style={{ color: "hsl(var(--st-text))" }}>{order.order_number}</strong> quedó registrado.
         </p>
         <p className="text-sm mt-2" style={{ color: "hsl(var(--st-muted))" }}>
-          Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para
-          coordinar el pago y la entrega.
+          {pagado
+            ? <>Ya estamos preparando tu envío. Te escribimos a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> con las novedades.</>
+            : <>Te vamos a escribir a <strong style={{ color: "hsl(var(--st-text))" }}>{order.customer_email}</strong> para coordinar el pago y la entrega.</>}
         </p>
       </div>
+
+      {/* Pago pendiente con MercadoPago habilitado: se ofrece pagar ahora.
+          Sirve tanto si el link falló al confirmar como si el comprador
+          abandonó el checkout y volvió después. */}
+      {!pagado && order.payment_method === "mercadopago" && (
+        <div
+          className="mt-6 border p-4 text-center"
+          style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))", borderRadius: "var(--st-radius)" }}
+        >
+          <p className="text-sm font-medium">
+            {fallido ? "El pago no se completó" : "Tu pedido está esperando el pago"}
+          </p>
+          <p className="text-xs mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+            Podés pagarlo ahora con MercadoPago y lo preparamos enseguida.
+          </p>
+          <button
+            onClick={pagar}
+            disabled={pagando}
+            className="mt-3 w-full sm:w-auto px-6 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+          >
+            {pagando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+            Pagar {fmt(Number(order.total))}
+          </button>
+          {pagoError && <p className="text-xs mt-2 text-red-600">{pagoError}</p>}
+        </div>
+      )}
 
       <div
         className="mt-8 border p-4 space-y-3"
