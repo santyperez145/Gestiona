@@ -5701,6 +5701,7 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           name: string
+          notification_email: string | null
           org_id: string
           payment_methods: string[]
           primary_color: string
@@ -5724,6 +5725,7 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           name?: string
+          notification_email?: string | null
           org_id: string
           payment_methods?: string[]
           primary_color?: string
@@ -5747,6 +5749,7 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           name?: string
+          notification_email?: string | null
           org_id?: string
           payment_methods?: string[]
           primary_color?: string
@@ -19183,6 +19186,10 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      mark_store_order_paid: {
+        Args: { p_method?: string; p_order_id: string; p_payment_id?: string }
+        Returns: Json
+      }
       next_quote_number: { Args: { p_org_id: string }; Returns: string }
       process_drip_unsubscribe: {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }

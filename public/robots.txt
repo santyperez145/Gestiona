@@ -1,14 +1,22 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+
+# El panel de gestión no aporta nada en los buscadores y solo gasta
+# presupuesto de rastreo: lo que interesa indexar son las tiendas y catálogos.
+Disallow: /configuracion
+Disallow: /productos
+Disallow: /ventas
+Disallow: /clientes
+Disallow: /caja
+Disallow: /reportes
+Disallow: /admin
+Disallow: /perfil
+Disallow: /equipo
+Disallow: /integraciones
+Disallow: /onboarding
+
+# Las vidrieras públicas sí se indexan.
+Allow: /tienda/
+Allow: /catalogo/
+
+# El sitemap de cada tienda vive en /tienda/<slug>/sitemap.xml

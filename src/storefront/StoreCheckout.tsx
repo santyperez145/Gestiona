@@ -75,6 +75,12 @@ export default function StoreCheckout() {
     const orderNumber = (data as any)?.order_number;
     clearCart();
 
+    // Avisos por email, best-effort: si falla el envío la compra ya está hecha
+    // y no tiene sentido frenar al comprador por eso.
+    supabase.functions.invoke("store-order-email", {
+      body: { slug: store!.slug, orderNumber, baseUrl: window.location.origin },
+    }).catch(() => {});
+
     // Con MercadoPago se manda al checkout externo; el webhook confirma el
     // pago y de ahí vuelve a la página del pedido. Si falla la generación del
     // link no se pierde nada: la orden ya está creada y se puede pagar después

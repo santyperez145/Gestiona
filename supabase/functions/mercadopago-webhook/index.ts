@@ -183,6 +183,30 @@ Deno.serve(async (req) => {
           p_method: "mercado_pago",
         });
         if (paidErr) console.error("mark_store_order_paid:", paidErr.message);
+
+        // Confirmación por email, best-effort: el cobro ya se registró y un
+        // fallo de envío no debe hacer que MP reintente el webhook.
+        if (!paidErr) {
+          try {
+            const { data: ord } = await admin
+              .from("ecommerce_orders")
+              .select("order_number, ecommerce_stores(slug)")
+              .eq("id", orderId)
+              .maybeSingle();
+            const slug = (ord as any)?.ecommerce_stores?.slug;
+            if (slug && ord?.order_number) {
+              await admin.functions.invoke("store-order-email", {
+                body: {
+                  slug,
+                  orderNumber: ord.order_number,
+                  baseUrl: Deno.env.get("PUBLIC_BASE_URL") ?? "",
+                },
+              });
+            }
+          } catch (e) {
+            console.error("store-order-email:", e);
+          }
+        }
       } else if (isRejected) {
         await admin
           .from("ecommerce_orders")

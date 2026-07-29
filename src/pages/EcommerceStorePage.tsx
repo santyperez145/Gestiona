@@ -62,6 +62,7 @@ export default function EcommerceStorePage() {
     shipping_cost: "2500", is_active: false,
     payment_methods: ["mercadopago", "transferencia"],
     meta_title: "", meta_description: "",
+    description: "", notification_email: "",
   });
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [orderFilter, setOrderFilter] = useState<string | null>(null);
@@ -89,6 +90,8 @@ export default function EcommerceStorePage() {
             is_active: data.is_active ?? prev.is_active,
             payment_methods: data.payment_methods || ["mercadopago", "transferencia"],
             meta_title: data.meta_title ?? prev.meta_title,
+            description: data.description ?? prev.description,
+            notification_email: data.notification_email ?? prev.notification_email,
             meta_description: data.meta_description ?? prev.meta_description,
           }));
           setSelectedTheme(data.theme);
@@ -143,6 +146,8 @@ export default function EcommerceStorePage() {
       shipping_cost: Number(storeForm.shipping_cost),
       is_active: storeForm.is_active,
       payment_methods: storeForm.payment_methods,
+      description: storeForm.description || null,
+      notification_email: storeForm.notification_email || null,
       meta_title: storeForm.meta_title,
       meta_description: storeForm.meta_description,
     };
@@ -359,6 +364,30 @@ export default function EcommerceStorePage() {
                   <Input value={storeForm.slug} onChange={e => setStoreForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))} placeholder="mi-tienda" className="h-9" />
                 </div>
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Descripción</label>
+                <Input
+                  value={storeForm.description}
+                  onChange={e => setStoreForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Aparece en el encabezado de la tienda y en el pie"
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  Email para avisos de venta
+                </label>
+                <Input
+                  type="email"
+                  value={storeForm.notification_email}
+                  onChange={e => setStoreForm(p => ({ ...p, notification_email: e.target.value }))}
+                  placeholder="ventas@tunegocio.com"
+                  className="h-9"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Si lo dejás vacío, los pedidos llegan al email con el que iniciás sesión.
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Costo de envío</label>
@@ -369,6 +398,53 @@ export default function EcommerceStorePage() {
                   <Input type="number" value={storeForm.free_shipping_above} onChange={e => setStoreForm(p => ({ ...p, free_shipping_above: e.target.value }))} className="h-9" placeholder="dejar vacío para nunca" />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* SEO — estos campos se guardaban desde siempre pero no tenían
+              dónde escribirse. Son los que ve Google y los que aparecen al
+              pegar el link en WhatsApp o Instagram. */}
+          <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Globe className="w-4 h-4 text-primary" />SEO y vista previa al compartir
+            </h3>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Título ({storeForm.meta_title.length}/60)
+              </label>
+              <Input
+                value={storeForm.meta_title}
+                onChange={e => setStoreForm(p => ({ ...p, meta_title: e.target.value.slice(0, 60) }))}
+                placeholder={`${storeForm.name} — Perfumes importados`}
+                className="h-9"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Descripción ({storeForm.meta_description.length}/160)
+              </label>
+              <Input
+                value={storeForm.meta_description}
+                onChange={e => setStoreForm(p => ({ ...p, meta_description: e.target.value.slice(0, 160) }))}
+                placeholder="Perfumes árabes y de diseñador originales, con envío a todo el país."
+                className="h-9"
+              />
+            </div>
+
+            {/* Vista previa aproximada de cómo se ve el link compartido */}
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                Así se va a ver el link
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {window.location.host}/tienda/{storeForm.slug || "mi-tienda"}
+              </p>
+              <p className="text-sm font-medium text-primary truncate">
+                {storeForm.meta_title || `${storeForm.name} — Tienda online`}
+              </p>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {storeForm.meta_description || storeForm.description || "Agregá una descripción para que se vea mejor al compartir."}
+              </p>
             </div>
           </div>
 
