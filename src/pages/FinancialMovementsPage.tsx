@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
 import PageHeader from "@/components/shared/PageHeader";
+import PaymentSettlementsPanel from "@/components/finance/PaymentSettlementsPanel";
 import KPICard from "@/components/shared/KPICard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -211,6 +212,9 @@ export default function FinancialMovementsPage() {
           sub={filtered.length + " registros totales"}
         />
       </div>
+
+      {/* Qué te queda realmente de cada cobro digital */}
+      <PaymentSettlementsPanel />
 
       {/* Filters */}
       <div className="bg-card border border-border/60 rounded-xl p-4 shadow-card">
