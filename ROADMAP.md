@@ -617,6 +617,57 @@ salto de versión directo. Queda:
 --audit-level=critical` (gate que hoy pasa y frena lo urgente de verdad) más un
 audit completo informativo. Subir a `high` cuando se resuelva `xlsx`.
 
+### Sesión 85 — Seguridad enterprise, POS offline, crons y MercadoLibre (2026-07-29)
+
+**Los 13 cron jobs estaban fallando, todos.** Apareció buscando por qué no
+salían los emails de las secuencias: `cron.job_run_details` daba `failed` en
+todo. La mayoría llamaba `current_setting('app.supabase_url')` y
+`app.service_role_key`, ajustes nunca configurados; `send-drip-emails` tenía
+literalmente los placeholders del ejemplo de la doc. No corrían alertas de
+stock, avisos de deuda, reactivación, KPI diario, digest semanal,
+automatizaciones ni campañas. Se unificó todo en `invoke_edge_function()`, que
+lee del vault. Verificado: HTTP 200 `{"ok":true,"alerts":1}`. Ver `docs/CRON.md`.
+
+**2FA no protegía nada.** El perfil permitía enrolar TOTP, pero nada chequeaba
+el nivel AAL de la sesión: con la contraseña sola se entraba igual. Nuevo
+`MfaGate` + enforcement por organización. La decisión vive en `decideMfaState()`,
+función pura con 8 tests.
+
+**Los 16 módulos de permisos eran decorativos.** Solo 4 páginas los consultaban,
+y aunque el sidebar ocultara un ítem, con la URL se entraba igual. `moduleMap`
++ `PermissionsProvider` (una query en vez de una por módulo) + `ModuleGuard`.
+Alcance documentado: es una barrera de interfaz, el límite real es la RLS.
+
+**Derecho de supresión (Ley 25.326).** RPC `anonymize_customer`: no borra las
+ventas — AFIP exige conservarlas — sino que reemplaza el PII por un seudónimo
+estable. No lista las tablas a mano: recorre el catálogo, así que una tabla
+nueva queda cubierta sola. Más export completo a ZIP (33 tablas, 10 tests
+sobre el armado del CSV).
+
+**El POS no servía offline.** Tres bugs: las ventas offline quedaban invisibles
+al reabrir (se leía la clave `...default` porque `activeOrg` aún no había
+cargado, mientras se guardaba con el id real); el `Promise.all` de 5 consultas
+dejaba la caja cargando para siempre sin señal; y el caché de la API duraba 5
+minutos. Ahora hay snapshot local del catálogo, `allSettled`, caché de 24 h y
+auto-sincronización al recuperar señal.
+
+**Índices por `org_id`** en 59 tablas que no los tenían: cada lectura era un
+seq scan sobre las filas de todas las organizaciones.
+
+**Dependencias:** 35 vulnerabilidades → 18, las 2 críticas eliminadas. En
+producción 7 → 3. Nuevo job `security` en CI.
+
+**MercadoLibre — capa de conexión.** Esquema (`meli_connections`,
+`meli_listings`, `meli_orders`), Edge Functions `meli-oauth` y `meli-sync`
+(publicar, sincronizar stock/precio, bajar órdenes) y panel en Integraciones.
+Los tokens viven en una tabla con RLS y cero policies: la UI lee la vista
+`meli_connection_status`, que no los expone. **Bloquea la categoría `vaper`
+del lado del servidor**: ANMAT los tiene prohibidos y publicarlos trae sanción.
+Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
+con el predictor de categorías, importar órdenes como ventas, webhook de ML y
+cron multi-organización. **Bloqueado hasta que se cree la app en
+developers.mercadolibre.com.ar y se carguen las credenciales.**
+
 ---
 
 ## 7. ROADMAP DE PRODUCTO 2026–2028

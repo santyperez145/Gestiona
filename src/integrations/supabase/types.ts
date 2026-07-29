@@ -9439,6 +9439,180 @@ export type Database = {
           },
         ]
       }
+      meli_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          expires_at: string | null
+          last_error: string | null
+          meli_user_id: number | null
+          nickname: string | null
+          org_id: string
+          refresh_token: string | null
+          scopes: string | null
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          last_error?: string | null
+          meli_user_id?: number | null
+          nickname?: string | null
+          org_id: string
+          refresh_token?: string | null
+          scopes?: string | null
+          site_id?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          last_error?: string | null
+          meli_user_id?: number | null
+          nickname?: string | null
+          org_id?: string
+          refresh_token?: string | null
+          scopes?: string | null
+          site_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meli_listings: {
+        Row: {
+          created_at: string
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          listing_type: string | null
+          meli_item_id: string
+          org_id: string
+          permalink: string | null
+          product_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          listing_type?: string | null
+          meli_item_id: string
+          org_id: string
+          permalink?: string | null
+          product_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          listing_type?: string | null
+          meli_item_id?: string
+          org_id?: string
+          permalink?: string | null
+          product_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "meli_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meli_orders: {
+        Row: {
+          buyer_nickname: string | null
+          created_at: string
+          date_created: string | null
+          id: string
+          imported_at: string | null
+          items: Json
+          meli_order_id: number
+          org_id: string
+          raw: Json | null
+          sale_id: string | null
+          status: string | null
+          total_ars: number | null
+        }
+        Insert: {
+          buyer_nickname?: string | null
+          created_at?: string
+          date_created?: string | null
+          id?: string
+          imported_at?: string | null
+          items?: Json
+          meli_order_id: number
+          org_id: string
+          raw?: Json | null
+          sale_id?: string | null
+          status?: string | null
+          total_ars?: number | null
+        }
+        Update: {
+          buyer_nickname?: string | null
+          created_at?: string
+          date_created?: string | null
+          id?: string
+          imported_at?: string | null
+          items?: Json
+          meli_order_id?: number
+          org_id?: string
+          raw?: Json | null
+          sale_id?: string | null
+          status?: string | null
+          total_ars?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           commission_enabled: boolean | null
@@ -18264,6 +18438,50 @@ export type Database = {
           },
         ]
       }
+      meli_connection_status: {
+        Row: {
+          conectado: boolean | null
+          connected_at: string | null
+          expires_at: string | null
+          last_error: string | null
+          meli_user_id: number | null
+          nickname: string | null
+          org_id: string | null
+          site_id: string | null
+          token_vigente: boolean | null
+        }
+        Insert: {
+          conectado?: never
+          connected_at?: string | null
+          expires_at?: string | null
+          last_error?: string | null
+          meli_user_id?: number | null
+          nickname?: string | null
+          org_id?: string | null
+          site_id?: string | null
+          token_vigente?: never
+        }
+        Update: {
+          conectado?: never
+          connected_at?: string | null
+          expires_at?: string | null
+          last_error?: string | null
+          meli_user_id?: number | null
+          nickname?: string | null
+          org_id?: string | null
+          site_id?: string | null
+          token_vigente?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nps_survey_stats: {
         Row: {
           avg_score: number | null
@@ -18876,6 +19094,7 @@ export type Database = {
       }
       increment_kb_helpful: { Args: { article_id: string }; Returns: undefined }
       increment_kb_views: { Args: { article_id: string }; Returns: undefined }
+      invoke_edge_function: { Args: { p_name: string }; Returns: number }
       is_email_suppressed: {
         Args: { p_email: string; p_org_id: string }
         Returns: boolean
