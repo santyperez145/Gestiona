@@ -1,0 +1,241 @@
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useStore } from "./storeContext";
+import ProductCard from "./ProductCard";
+import { getCategoryLabel } from "@/lib/supabaseStore";
+import {
+  FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, taxLabel,
+} from "@/lib/scentTaxonomy";
+import { ChevronLeft, Minus, Plus, ShoppingBag, Check } from "lucide-react";
+
+export default function StoreProduct() {
+  const { productId } = useParams<{ productId: string }>();
+  const { store, products, perfumes, priceOf, fmt, addToCart } = useStore();
+  const navigate = useNavigate();
+  const [qty, setQty] = useState(1);
+  const [imgIdx, setImgIdx] = useState(0);
+  const [added, setAdded] = useState(false);
+
+  const base = `/tienda/${store?.slug ?? ""}`;
+  const p = products.find(x => x.id === productId);
+  const d = productId ? perfumes[productId] : undefined;
+
+  const relacionados = useMemo(() => {
+    if (!p) return [];
+    return products
+      .filter(x => x.id !== p.id && (x.category === p.category || x.brand === p.brand))
+      .slice(0, 4);
+  }, [p, products]);
+
+  if (!p) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-24 text-center">
+        <p className="font-medium">Producto no encontrado</p>
+        <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+          Puede que ya no esté disponible o se haya quedado sin stock.
+        </p>
+        <Link
+          to={`${base}/productos`}
+          className="inline-block mt-5 px-4 py-2 text-sm font-medium"
+          style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+        >
+          Ver productos
+        </Link>
+      </div>
+    );
+  }
+
+  const price = priceOf(p);
+  const list = Number(p.sale_price_ars);
+  const off = price < list ? Math.round((1 - price / list) * 100) : 0;
+  const imagenes = [p.image_url, ...(p.image_urls ?? [])].filter(Boolean) as string[];
+
+  const agregar = () => {
+    addToCart(p, qty);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
+  const notas = [
+    { t: "Salida", v: d?.notas_salida },
+    { t: "Corazón", v: d?.notas_corazon },
+    { t: "Fondo", v: d?.notas_fondo },
+  ].filter(n => n.v?.length);
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <button
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-1 text-sm mb-5 hover:underline"
+        style={{ color: "hsl(var(--st-muted))" }}
+      >
+        <ChevronLeft className="w-4 h-4" /> Volver
+      </button>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* ── Galería ─────────────────────────────────────────────── */}
+        <div>
+          <div
+            className="aspect-square overflow-hidden bg-black/5 border"
+            style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+          >
+            {imagenes[imgIdx]
+              ? <img src={imagenes[imgIdx]} alt={p.name} className="w-full h-full object-cover" />
+              : <div className="w-full h-full grid place-items-center opacity-20"><ShoppingBag className="w-12 h-12" /></div>}
+          </div>
+          {imagenes.length > 1 && (
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+              {imagenes.map((src, i) => (
+                <button
+                  key={src}
+                  onClick={() => setImgIdx(i)}
+                  className="w-16 h-16 shrink-0 overflow-hidden border-2 transition-colors"
+                  style={{
+                    borderColor: i === imgIdx ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
+                    borderRadius: "var(--st-radius)",
+                  }}
+                >
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Datos y compra ──────────────────────────────────────── */}
+        <div>
+          {p.brand && (
+            <p className="text-xs uppercase tracking-wide" style={{ color: "hsl(var(--st-muted))" }}>{p.brand}</p>
+          )}
+          <h1 className="text-2xl sm:text-3xl font-bold mt-1 leading-tight">{p.name}</h1>
+
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+            {p.category && <span>{getCategoryLabel(p.category)}</span>}
+            {p.gender && <span className="capitalize">· {p.gender}</span>}
+            {p.content_ml ? <span>· {p.content_ml} ml</span> : null}
+          </div>
+
+          <div className="mt-4 flex items-baseline gap-3 flex-wrap">
+            <span className="text-3xl font-bold">{fmt(price)}</span>
+            {off > 0 && (
+              <>
+                <span className="text-base line-through" style={{ color: "hsl(var(--st-muted))" }}>{fmt(list)}</span>
+                <span
+                  className="px-2 py-0.5 text-xs font-bold"
+                  style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+                >
+                  −{off}%
+                </span>
+              </>
+            )}
+          </div>
+
+          <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+            {p.stock > 3 ? "En stock" : `¡Últimas ${p.stock} unidades!`}
+          </p>
+
+          <div className="flex items-center gap-3 mt-6">
+            <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
+              <button className="px-3 py-2.5" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="px-3 tabular-nums font-medium">{qty}</span>
+              <button
+                className="px-3 py-2.5 disabled:opacity-30"
+                onClick={() => setQty(q => Math.min(p.stock, q + 1))}
+                disabled={qty >= p.stock}
+                aria-label="Sumar"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <button
+              onClick={agregar}
+              className="flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+            >
+              {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
+            </button>
+          </div>
+
+          {p.description && (
+            <p className="mt-6 text-sm leading-relaxed whitespace-pre-line" style={{ color: "hsl(var(--st-muted))" }}>
+              {p.description}
+            </p>
+          )}
+
+          {/* ── Ficha olfativa ───────────────────────────────────── */}
+          {d && (
+            <div className="mt-7 pt-6 border-t space-y-4" style={{ borderColor: "hsl(var(--st-border))" }}>
+              <h2 className="font-semibold">Perfil olfativo</h2>
+
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                {[
+                  { t: "Familia", v: d.familia_olfativa && taxLabel(FAMILIAS_OLFATIVAS, d.familia_olfativa) },
+                  { t: "Duración", v: d.duracion && taxLabel(DURACIONES, d.duracion) },
+                  { t: "Proyección", v: d.proyeccion && taxLabel(PROYECCIONES, d.proyeccion) },
+                ].filter(x => x.v).map(x => (
+                  <div key={x.t}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "hsl(var(--st-muted))" }}>{x.t}</p>
+                    <p className="font-medium">{x.v}</p>
+                  </div>
+                ))}
+              </div>
+
+              {notas.map(n => (
+                <div key={n.t}>
+                  <p className="text-[11px] uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+                    Notas de {n.t.toLowerCase()}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {n.v!.map(x => (
+                      <span
+                        key={x}
+                        className="px-2 py-0.5 text-xs border"
+                        style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                      >
+                        {taxLabel(NOTAS_COMUNES, x)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {(d.estacion?.length || d.ocasion?.length) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {d.estacion?.length ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide mb-1" style={{ color: "hsl(var(--st-muted))" }}>Estación</p>
+                      <p className="text-sm">{d.estacion.map(x => taxLabel(ESTACIONES, x)).join(", ")}</p>
+                    </div>
+                  ) : null}
+                  {d.ocasion?.length ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide mb-1" style={{ color: "hsl(var(--st-muted))" }}>Ocasión</p>
+                      <p className="text-sm">{d.ocasion.map(x => taxLabel(OCASIONES, x)).join(", ")}</p>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {d.inspiracion && (
+                <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+                  Inspirado en <strong style={{ color: "hsl(var(--st-text))" }}>{d.inspiracion}</strong>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {relacionados.length > 0 && (
+        <section className="mt-14">
+          <h2 className="text-lg font-semibold mb-4">También te puede gustar</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {relacionados.map(r => <ProductCard key={r.id} p={r} />)}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}

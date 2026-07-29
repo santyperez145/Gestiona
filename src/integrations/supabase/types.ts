@@ -18880,6 +18880,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_store_order: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_items: Json
+          p_notes?: string
+          p_payment_method: string
+          p_shipping: Json
+          p_slug: string
+        }
+        Returns: Json
+      }
       end_expired_promotions: { Args: never; Returns: number }
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
@@ -19068,6 +19081,51 @@ export type Database = {
           slug: string
           social_links: Json
           theme: string
+        }[]
+      }
+      get_store_categories: {
+        Args: { p_slug: string }
+        Returns: {
+          description: string
+          id: string
+          image_url: string
+          name: string
+          slug: string
+          sort_order: number
+        }[]
+      }
+      get_store_order: {
+        Args: { p_order_number: string; p_slug: string }
+        Returns: {
+          created_at: string
+          customer_email: string
+          customer_name: string
+          fulfillment_status: string
+          items: Json
+          order_number: string
+          payment_method: string
+          payment_status: string
+          shipping_address: Json
+          shipping_cost: number
+          subtotal: number
+          total: number
+        }[]
+      }
+      get_store_perfume_details: {
+        Args: { p_slug: string }
+        Returns: {
+          duracion: string
+          edad_recomendada: string
+          estacion: string[]
+          familia_olfativa: string
+          inspiracion: string
+          modelo: string
+          notas_corazon: string[]
+          notas_fondo: string[]
+          notas_salida: string[]
+          ocasion: string[]
+          product_id: string
+          proyeccion: string
         }[]
       }
       get_top_recommendations: {

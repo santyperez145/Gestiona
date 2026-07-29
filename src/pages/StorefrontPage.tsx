@@ -1,54 +1,31 @@
 /**
- * StorefrontPage — la vitrina pública en `/tienda/:slug`.
+ * StorefrontPage — la tienda online en `/tienda/:slug`.
  *
- * El panel "Tienda Online" venía guardando nombre, tema, colores, métodos de
- * pago y SEO para una tienda que no existía: no había ruta `/tienda/:slug` en
- * ningún lado y el botón "Ver tienda" apuntaba a un dominio hardcodeado que no
- * resuelve.
+ * Es una tienda de verdad, no el catálogo con otro nombre: home con hero y
+ * secciones, listado con filtros, ficha de producto con perfil olfativo,
+ * carrito persistente y checkout que crea una orden real en
+ * `ecommerce_orders`. El catálogo (`/catalogo/:userId`) sigue existiendo como
+ * vidriera rápida para mandar por WhatsApp.
  *
- * En vez de escribir una segunda vitrina, esta página resuelve el slug y
- * renderiza el catálogo público —que ya tiene carrito, checkout por WhatsApp,
- * decants, combos y promociones— con la marca de la tienda encima. Mantener
- * dos vitrinas en paralelo habría sido garantía de que una quedara vieja.
+ * El tema, los colores, los métodos de pago y el SEO salen del panel
+ * "Tienda Online", que hasta ahora configuraba una vitrina inexistente.
  */
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import PublicCatalogPage from "@/pages/PublicCatalogPage";
+import { useEffect } from "react";
+import { Link, Route, Routes, useParams } from "react-router-dom";
+import { StoreProvider, useStore } from "@/storefront/storeContext";
+import StoreLayout from "@/storefront/StoreLayout";
+import StoreHome from "@/storefront/StoreHome";
+import StoreProducts from "@/storefront/StoreProducts";
+import StoreProduct from "@/storefront/StoreProduct";
+import StoreCheckout from "@/storefront/StoreCheckout";
+import StoreOrder from "@/storefront/StoreOrder";
 import { Store, Loader2 } from "lucide-react";
 
-interface StoreRow {
-  org_id: string;
-  owner_user_id: string | null;
-  name: string;
-  description: string | null;
-  slug: string;
-  primary_color: string | null;
-  logo_url: string | null;
-  meta_title: string | null;
-  meta_description: string | null;
-}
-
-export default function StorefrontPage() {
+function StoreShell() {
+  const { loading, notFound, store } = useStore();
   const { slug } = useParams<{ slug: string }>();
-  const [store, setStore] = useState<StoreRow | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!slug) { setLoading(false); return; }
-    let cancelled = false;
-    supabase
-      .rpc("get_store_by_slug", { p_slug: slug })
-      .then(({ data }) => {
-        if (cancelled) return;
-        const row = Array.isArray(data) ? data[0] : data;
-        setStore((row as StoreRow) ?? null);
-        setLoading(false);
-      }, () => { if (!cancelled) { setStore(null); setLoading(false); } });
-    return () => { cancelled = true; };
-  }, [slug]);
-
-  // SEO: el panel deja configurar meta title/description, así que se usan.
+  // SEO: el panel deja configurar meta title y description.
   useEffect(() => {
     if (!store) return;
     document.title = store.meta_title || `${store.name} — Tienda online`;
@@ -65,17 +42,17 @@ export default function StorefrontPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen grid place-items-center bg-background">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!store || !store.owner_user_id) {
+  if (notFound || !store) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen grid place-items-center bg-background p-4">
         <div className="text-center max-w-sm">
-          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-full bg-muted grid place-items-center mx-auto mb-3">
             <Store className="w-5 h-5 text-muted-foreground" />
           </div>
           <h1 className="text-base font-semibold mb-1">Tienda no encontrada</h1>
@@ -90,13 +67,25 @@ export default function StorefrontPage() {
   }
 
   return (
-    <PublicCatalogPage
-      overrideUserId={store.owner_user_id}
-      storeBranding={{
-        name: store.name,
-        primary_color: store.primary_color,
-        logo_url: store.logo_url,
-      }}
-    />
+    <StoreLayout>
+      <Routes>
+        <Route index element={<StoreHome />} />
+        <Route path="productos" element={<StoreProducts />} />
+        <Route path="producto/:productId" element={<StoreProduct />} />
+        <Route path="checkout" element={<StoreCheckout />} />
+        <Route path="orden/:orderNumber" element={<StoreOrder />} />
+        <Route path="*" element={<StoreHome />} />
+      </Routes>
+    </StoreLayout>
+  );
+}
+
+export default function StorefrontPage() {
+  const { slug } = useParams<{ slug: string }>();
+  if (!slug) return null;
+  return (
+    <StoreProvider slug={slug}>
+      <StoreShell />
+    </StoreProvider>
   );
 }
