@@ -57,17 +57,31 @@ echo ""
 echo "[2/3] Deployando funciones..."
 echo ""
 
+# Deploy con reintentos.
+#
+# El bundler de Supabase resuelve los imports desde esm.sh y deno.land en cada
+# deploy, y bajo decenas seguidos esos CDN devuelven 521 o timeout cada tanto.
+# Dos corridas dejaron 12 y 15 funciones "fallando" que deployaban bien al
+# reintentarlas a mano. Un import realmente roto falla las tres veces igual, asi
+# que esto absorbe la red sin esconder errores de verdad.
 deploy() {
   local fn=$1
   local flags=${2:-""}
   echo "  -> $fn $flags"
-  if $SB functions deploy "$fn" $flags --project-ref "$PROJECT_REF" 2>&1; then
-    echo "     OK"
-    ((OK++)) || true
-  else
-    echo "     FALLO: $fn"
-    ERRORS+=("$fn")
-  fi
+  local intento
+  for intento in 1 2 3; do
+    if $SB functions deploy "$fn" $flags --project-ref "$PROJECT_REF" 2>&1; then
+      echo "     OK"
+      ((OK++)) || true
+      return 0
+    fi
+    if [ "$intento" -lt 3 ]; then
+      echo "     reintento $intento/2 en $((intento * 3))s..."
+      sleep $((intento * 3))
+    fi
+  done
+  echo "     FALLO: $fn"
+  ERRORS+=("$fn")
 }
 
 # ── FUNCIONES SIN JWT ─────────────────────────────────────────

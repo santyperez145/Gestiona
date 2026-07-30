@@ -148,25 +148,48 @@ Write-Host ""
 
 $errors = @()
 
+# Deploy con reintentos.
+#
+# El bundler de Supabase resuelve los imports desde esm.sh y deno.land en cada
+# deploy, y bajo 57 seguidos esos CDN devuelven 521 o timeout cada tanto. Dos
+# corridas dejaron 12 y 15 funciones "fallando" que deployaban bien al
+# reintentarlas a mano. Reintentar es parte del trabajo, no algo que deba hacer
+# la persona.
+#
+# Un import realmente roto (una version que ya no existe, por ejemplo) falla las
+# tres veces igual, asi que esto no esconde errores de verdad: solo absorbe la
+# red.
+function Deploy-Fn {
+    param([string]$Nombre, [bool]$Publica)
+    $flags = if ($Publica) { @("--no-verify-jwt") } else { @() }
+    for ($intento = 1; $intento -le 3; $intento++) {
+        Invoke-SB (@("functions", "deploy", $Nombre) + $flags + @("--project-ref", $PROJECT_REF))
+        if ($LASTEXITCODE -eq 0) { return $true }
+        if ($intento -lt 3) {
+            Write-Host "     reintento $intento/2 en $($intento * 3)s..." -ForegroundColor DarkYellow
+            Start-Sleep -Seconds ($intento * 3)
+        }
+    }
+    return $false
+}
+
 foreach ($fn in $publicos) {
     Write-Host "  -> $fn (no-verify-jwt)" -ForegroundColor Gray
-    Invoke-SB @("functions", "deploy", $fn, "--no-verify-jwt", "--project-ref", $PROJECT_REF)
-    if ($LASTEXITCODE -ne 0) {
+    if (Deploy-Fn -Nombre $fn -Publica $true) {
+        Write-Host "     OK" -ForegroundColor Green
+    } else {
         $errors += $fn
         Write-Host "     FALLO: $fn" -ForegroundColor Red
-    } else {
-        Write-Host "     OK" -ForegroundColor Green
     }
 }
 
 foreach ($fn in $withJwt) {
     Write-Host "  -> $fn (verify-jwt)" -ForegroundColor Gray
-    Invoke-SB @("functions", "deploy", $fn, "--project-ref", $PROJECT_REF)
-    if ($LASTEXITCODE -ne 0) {
+    if (Deploy-Fn -Nombre $fn -Publica $false) {
+        Write-Host "     OK" -ForegroundColor Green
+    } else {
         $errors += $fn
         Write-Host "     FALLO: $fn" -ForegroundColor Red
-    } else {
-        Write-Host "     OK" -ForegroundColor Green
     }
 }
 
