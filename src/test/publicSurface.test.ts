@@ -111,6 +111,38 @@ describe('superficie pública', () => {
   }
 });
 
+/**
+ * `publicDataSource.ts` es el ÚNICO lugar autorizado a leer las tablas crudas,
+ * como fallback mientras una migración no está aplicada. Por eso no entra en la
+ * lista de arriba — pero sí tiene que respetar las columnas: un fallback que
+ * expone costos es la misma filtración por otro camino.
+ */
+describe('publicDataSource (fallback de migración)', () => {
+  const src = readPage('src/lib/publicDataSource.ts');
+
+  it('existe', () => {
+    expect(src).not.toBeNull();
+  });
+
+  it('no pide columnas de credenciales, costos ni márgenes', () => {
+    if (!src) return;
+    const code = stripComments(src);
+    const encontradas = FORBIDDEN_COLUMNS.filter(c => code.includes(c));
+    expect(encontradas, 'el fallback expone columnas sensibles').toEqual([]);
+  });
+
+  it('sólo cae a la tabla cuando la relación o la función no existen', () => {
+    if (!src) return;
+    const code = stripComments(src);
+    // Cada fallback tiene que estar guardado por una de las dos detecciones:
+    // si no, un error de red o de permisos abriría la puerta en silencio.
+    const fallbacks = (code.match(/warnFallback\(/g) ?? []).length;
+    const guardas = (code.match(/isMissingRelation\(|isMissingFunction\(/g) ?? []).length;
+    expect(fallbacks).toBeGreaterThan(0);
+    expect(guardas).toBeGreaterThanOrEqual(fallbacks);
+  });
+});
+
 describe('vistas públicas', () => {
   const migration = readPage('supabase/migrations/20260731000001_rls_hardening.sql');
 

@@ -5,6 +5,7 @@ import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
+import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -108,21 +109,26 @@ export default function StoreCheckout() {
     setCotizando(true);
     setEnvioAviso(null);
 
-    supabase.rpc("quote_store_shipping", {
-      p_slug: store.slug,
-      p_province: form.provincia || null,
-      p_postal_code: form.cp || null,
-      p_items: cart.map(l => ({ product_id: l.productId, quantity: l.qty })),
-    }).then(({ data, error: err }) => {
+    quoteStoreShipping({
+      slug: store.slug,
+      province: form.provincia || null,
+      postalCode: form.cp || null,
+      items: cart.map(l => ({ product_id: l.productId, quantity: l.qty })),
+    }).then(rows => {
       if (cancelado) return;
       setCotizando(false);
-      const lista = (Array.isArray(data) ? data : []) as ShippingOption[];
-      setOpciones(lista);
 
-      if (err) {
-        setEnvioAviso("No pudimos calcular el envío. Probá de nuevo en un momento.");
+      // `null` = la cotización por zona todavía no está en la base. No es un
+      // error del comprador, así que no se le avisa nada: se cobra el envío
+      // plano de la tienda, como antes.
+      if (rows === null) {
+        setOpciones([]); setOpcionElegida(null); setEnvioAviso(null);
         return;
       }
+
+      const lista = rows as unknown as ShippingOption[];
+      setOpciones(lista);
+
       if (lista.length === 0) {
         setEnvioAviso(
           porZona
@@ -177,7 +183,7 @@ export default function StoreCheckout() {
     setError(null);
     setEnviando(true);
 
-    const { data, error: rpcError } = await supabase.rpc("create_store_order", {
+    const { data, error: rpcError } = await createStoreOrder({
       p_slug: store!.slug,
       p_items: cart.map(l => ({ product_id: l.productId, quantity: l.qty })),
       p_customer_name: form.nombre,

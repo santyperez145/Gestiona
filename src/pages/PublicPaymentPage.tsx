@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatARS } from "@/lib/supabaseStore";
+import {
+  fetchPublicPaymentLink, confirmPaymentLinkTransfer,
+} from "@/lib/publicDataSource";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -97,28 +100,26 @@ export default function PublicPaymentPage() {
     if (!linkId) { setNotFound(true); setLoading(false); return; }
     if (!silent) setLoading(true);
     try {
-      // RPC en vez de leer las tablas: el uuid del link es el secreto, y así no
-      // se puede enumerar el resto. Antes `payment_links` y `settings` estaban
-      // abiertas con USING(true) y se listaban los links y los datos bancarios
-      // de todos los comercios de la plataforma.
-      const { data: rows } = await supabase
-        .rpc("get_public_payment_link", { p_id: linkId });
-
-      const row = Array.isArray(rows) ? rows[0] : rows;
+      // Vía RPC: el uuid del link es el secreto, y así no se puede enumerar el
+      // resto. Antes `payment_links` y `settings` estaban abiertas con
+      // USING(true) y se listaban los links y los datos bancarios de todos los
+      // comercios de la plataforma.
+      const row = await fetchPublicPaymentLink(linkId);
       if (!row) { setNotFound(true); setLoading(false); return; }
 
       // `items` es jsonb en DB → llega como Json genérico
       setLink(row as unknown as PaymentLink);
 
       if (!org) {
+        const r = row as Record<string, string | null>;
         setOrg({
-          name: row.business_name || "Tienda",
-          logo_url: row.logo_url || null,
-          whatsapp_number: row.whatsapp_number || null,
-          bank_cbu: row.bank_cbu || null,
-          bank_alias: row.bank_alias || null,
-          bank_name: row.bank_name || null,
-          bank_holder: row.bank_holder || null,
+          name: r.business_name || "Tienda",
+          logo_url: r.logo_url || null,
+          whatsapp_number: r.whatsapp_number || null,
+          bank_cbu: r.bank_cbu || null,
+          bank_alias: r.bank_alias || null,
+          bank_name: r.bank_name || null,
+          bank_holder: r.bank_holder || null,
         });
       }
     } finally {
@@ -143,9 +144,7 @@ export default function PublicPaymentPage() {
       // RPC acotado: sólo avanza pending → pending_confirmation de ESTE link.
       // La política de UPDATE anterior era USING(true): cualquiera podía marcar
       // como pagado cualquier link de cualquier comercio.
-      const { data: ok, error } = await supabase
-        .rpc("confirm_payment_link_transfer", { p_id: link.id });
-      if (error) throw error;
+      const ok = await confirmPaymentLinkTransfer(link.id);
       if (!ok) {
         toast.error("Este link ya no está esperando el pago. Contactá al vendedor.");
         fetchLink(true);

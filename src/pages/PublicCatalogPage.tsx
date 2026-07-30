@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
 import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
 import {
+  fetchCatalogProducts, fetchCatalogSettings, fetchCatalogVariants,
+} from "@/lib/publicDataSource";
+import {
   Package,
   Tag,
   Search,
@@ -197,20 +200,10 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     if (!userId) { setValid(false); return; }
     const [pRes, sRes, fsRes] = await Promise.all([
       // Vistas públicas saneadas: sin costos, sin márgenes, sin credenciales.
-      // `catalog_products` ya trae los precios de decant calculados.
-      supabase
-        .from("catalog_products")
-        .select("id,org_id,name,brand,category,gender,sale_price_ars,discount_price_ars,price_2x_ars,stock,description,image_url,content_ml,total_sold,featured,offer_expires_at,user_id,created_at,decant_price_10ml,decant_price_5ml,decant_price_2_5ml")
-        .eq("user_id", userId)
-        .gt("stock", 0)
-        .order("category")
-        .order("name"),
+      // Los precios de decant vienen ya calculados desde la base.
+      fetchCatalogProducts(userId),
       supabase.from("settings_public").select("*").eq("user_id", userId).maybeSingle(),
-      supabase
-        .from("catalog_settings")
-        .select("exchange_rate,volume_discount_threshold,volume_discount_percent")
-        .eq("user_id", userId)
-        .maybeSingle(),
+      fetchCatalogSettings(userId),
     ]);
     if (!sRes.data) { setValid(false); return; }
 
@@ -218,7 +211,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     // cobraba otro. Se leen por RPC (la RLS de `promotions` exige auth) y se
     // vuelcan sobre `discount_price_ars`, que es el campo que usa toda la
     // página para badges, % OFF, combos y el mensaje de WhatsApp.
-    const rows = pRes.data || [];
+    const rows = pRes || [];
     const orgId = (rows[0] as any)?.org_id as string | undefined;
     let priced = rows;
     if (orgId) {
@@ -234,7 +227,7 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
     }
     setProducts(priced);
     setSettings(sRes.data);
-    setFullSettings(fsRes.data || null);
+    setFullSettings(fsRes || null);
     setValid(true);
   }, [userId]);
 
@@ -1154,12 +1147,8 @@ function ProductDetailModal({
   useEffect(() => {
     if (!isVaper) return;
     setVariantsLoading(true);
-    supabase
-      .from("catalog_product_variants")
-      .select("id,variant_name,stock,image_url")
-      .eq("product_id", p.id)
-      .order("variant_name")
-      .then(({ data }) => { setVariants(data || []); setVariantsLoading(false); });
+    fetchCatalogVariants(p.id)
+      .then(rows => { setVariants(rows || []); setVariantsLoading(false); });
   }, [p.id, isVaper]);
 
   const hasDiscount = p.discount_price_ars && p.discount_price_ars < p.sale_price_ars;

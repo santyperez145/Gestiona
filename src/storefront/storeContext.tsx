@@ -9,6 +9,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchStoreProducts } from "@/lib/publicDataSource";
 
 export interface StoreInfo {
   org_id: string;
@@ -128,21 +129,15 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       setStore(row);
 
       const [pRes, dRes] = await Promise.all([
-        // `catalog_products` y no `products`: la vista pública filtra a tiendas
-        // activas y no expone costos ni márgenes. La tabla cruda ya no es
-        // legible para un visitante anónimo (migración 20260731000001).
-        supabase
-          .from("catalog_products")
-          .select("id,name,brand,category,gender,description,sale_price_ars,discount_price_ars,stock,image_url,image_urls,content_ml,featured,total_sold,created_at")
-          .eq("org_id", row.org_id)
-          .gt("stock", 0)
-          .order("featured", { ascending: false })
-          .order("name"),
+        // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
+        // migración todavía no esté aplicada — si no, la tienda se muestra
+        // vacía aunque haya productos cargados.
+        fetchStoreProducts(row.org_id),
         supabase.rpc("get_store_perfume_details", { p_slug: slug }),
       ]);
       if (cancelled) return;
 
-      setProducts((pRes.data ?? []) as StoreProduct[]);
+      setProducts((pRes ?? []) as unknown as StoreProduct[]);
       const map: Record<string, PerfumeDetail> = {};
       ((dRes.data ?? []) as PerfumeDetail[]).forEach(d => { map[d.product_id] = d; });
       setPerfumes(map);
