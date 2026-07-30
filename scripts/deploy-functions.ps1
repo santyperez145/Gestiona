@@ -62,11 +62,42 @@ Write-Host " Proyecto: $PROJECT_REF" -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
 Write-Host ""
 
+# El CLI global no siempre esta instalado, pero `supabase` es devDependency del
+# repo. Se usa el binario global si existe y si no el local, igual que el .sh:
+# antes este script fallaba de entrada en cualquier maquina sin instalacion
+# global, aunque el CLI estuviera ahi nomas en node_modules.
+if (Get-Command supabase -ErrorAction SilentlyContinue) {
+    $SB = @("supabase")
+} elseif (Test-Path (Join-Path $PSScriptRoot "..\node_modules\supabase\package.json")) {
+    Write-Host "Usando el CLI de node_modules (no hay instalacion global)" -ForegroundColor Gray
+    $SB = @("npx", "--no-install", "supabase")
+} else {
+    Write-Host "ERROR: no encuentro el CLI de supabase." -ForegroundColor Red
+    Write-Host "  Instalalo con 'npm install -D supabase' o globalmente." -ForegroundColor Red
+    exit 1
+}
+
+function Invoke-SB {
+    param([string[]]$Arguments)
+    & $SB[0] @($SB[1..($SB.Count - 1)] + $Arguments)
+}
+
+# Sin token no hay deploy posible: mejor decirlo antes de intentar 56 veces.
+if (-not $env:SUPABASE_ACCESS_TOKEN) {
+    $logueado = Test-Path (Join-Path $env:USERPROFILE ".supabase\access-token")
+    if (-not $logueado) {
+        Write-Host "ERROR: falta autenticacion." -ForegroundColor Red
+        Write-Host "  Opcion A: correr 'npx supabase login' (abre el navegador)." -ForegroundColor Red
+        Write-Host "  Opcion B: poner SUPABASE_ACCESS_TOKEN como variable de usuario." -ForegroundColor Red
+        exit 1
+    }
+}
+
 # Vincular proyecto
 Write-Host "[1/3] Vinculando proyecto..." -ForegroundColor Yellow
-supabase link --project-ref $PROJECT_REF
+Invoke-SB @("link", "--project-ref", $PROJECT_REF)
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: Fallo al vincular. Ejecuta 'supabase login' primero." -ForegroundColor Red
+    Write-Host "ERROR: Fallo al vincular. Ejecuta 'npx supabase login' primero." -ForegroundColor Red
     exit 1
 }
 
@@ -98,7 +129,7 @@ $errors = @()
 
 foreach ($fn in $publicos) {
     Write-Host "  -> $fn (no-verify-jwt)" -ForegroundColor Gray
-    supabase functions deploy $fn --no-verify-jwt --project-ref $PROJECT_REF 2>&1
+    Invoke-SB @("functions", "deploy", $fn, "--no-verify-jwt", "--project-ref", $PROJECT_REF)
     if ($LASTEXITCODE -ne 0) {
         $errors += $fn
         Write-Host "     FALLO: $fn" -ForegroundColor Red
@@ -109,7 +140,7 @@ foreach ($fn in $publicos) {
 
 foreach ($fn in $withJwt) {
     Write-Host "  -> $fn (verify-jwt)" -ForegroundColor Gray
-    supabase functions deploy $fn --project-ref $PROJECT_REF 2>&1
+    Invoke-SB @("functions", "deploy", $fn, "--project-ref", $PROJECT_REF)
     if ($LASTEXITCODE -ne 0) {
         $errors += $fn
         Write-Host "     FALLO: $fn" -ForegroundColor Red

@@ -11,12 +11,27 @@ PROJECT_REF="hummeopatkniwkyrrhwc"
 ERRORS=()
 OK=0
 
-# Usar supabase CLI instalado o npx como fallback
+# CLI global si existe; si no, el que ya esta en node_modules como devDependency.
+# `npx supabase@latest` se descargaba de la red aunque el binario estuviera ahi,
+# y ademas podia traer una version distinta a la que el repo fijo.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if command -v supabase &> /dev/null; then
   SB="supabase"
+elif [ -f "$ROOT/node_modules/supabase/package.json" ]; then
+  echo "Usando el CLI de node_modules (no hay instalacion global)"
+  SB="npx --no-install supabase"
 else
-  echo "supabase CLI no encontrado — usando npx supabase (puede tardar en la primera ejecucion)"
-  SB="npx supabase@latest"
+  echo "ERROR: no encuentro el CLI de supabase."
+  echo "  Instalalo con 'npm install -D supabase' o globalmente."
+  exit 1
+fi
+
+# Sin token no hay deploy posible: mejor avisar antes de intentar 56 veces.
+if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && [ ! -f "$HOME/.supabase/access-token" ]; then
+  echo "ERROR: falta autenticacion."
+  echo "  Opcion A: correr 'npx supabase login' (abre el navegador)."
+  echo "  Opcion B: exportar SUPABASE_ACCESS_TOKEN."
+  exit 1
 fi
 
 echo ""
