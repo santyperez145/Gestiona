@@ -91,6 +91,68 @@ GROUP BY org_id, name
 HAVING count(*) > 1;
 
 
+-- ── 2c. ⚠️ PRE-FLIGHT: columnas de las que dependen las vistas y funciones ─
+--
+-- Postgres valida las vistas y las funciones `LANGUAGE sql` al CREARLAS: si
+-- referencian una columna que no existe, el bundle falla en el medio. Esta
+-- consulta lo detecta antes.
+--
+-- Esperado: SIN FILAS. Cualquier fila acá es algo que hay que resolver primero
+-- (probablemente una migración vieja que nunca se aplicó).
+SELECT tabla, columna
+FROM (
+  VALUES
+    -- catalog_products
+    ('products','sale_price_ars'), ('products','discount_price_ars'),
+    ('products','price_2x_ars'), ('products','stock'), ('products','content_ml'),
+    ('products','total_sold'), ('products','featured'), ('products','offer_expires_at'),
+    ('products','image_urls'), ('products','is_active'),
+    ('products','cost_usd'), ('products','total_cost_usd'),
+    ('products','brand'), ('products','category'), ('products','gender'),
+    ('products','org_id'), ('products','user_id'),
+    -- settings_public / catalog_settings / catalog_products (decants)
+    ('settings','org_id'), ('settings','user_id'), ('settings','business_name'),
+    ('settings','logo_url'), ('settings','primary_color'), ('settings','secondary_color'),
+    ('settings','whatsapp_number'), ('settings','exchange_rate'),
+    ('settings','volume_discount_threshold'), ('settings','volume_discount_percent'),
+    ('settings','decant_margin_10ml'), ('settings','decant_margin_5ml'),
+    ('settings','decant_margin_2_5ml'),
+    -- get_public_payment_link
+    ('settings','bank_cbu'), ('settings','bank_alias'),
+    ('settings','bank_name'), ('settings','bank_holder'),
+    ('payment_links','quote_number'), ('payment_links','customer_name'),
+    ('payment_links','customer_phone'), ('payment_links','items'),
+    ('payment_links','total_ars'), ('payment_links','mp_link'),
+    ('payment_links','paid_at'), ('payment_links','notes'),
+    ('payment_links','expires_at'),
+    -- catalog_product_variants
+    ('product_variants','variant_name'), ('product_variants','active'),
+    ('product_variants','product_id'),
+    -- get_store_by_slug / create_store_order
+    ('ecommerce_stores','payment_methods'), ('ecommerce_stores','social_links'),
+    ('ecommerce_stores','meta_title'), ('ecommerce_stores','meta_description'),
+    ('ecommerce_orders','carrier'), ('ecommerce_orders','store_customer_id'),
+    ('ecommerce_orders','coupon_code'), ('ecommerce_orders','order_number'),
+    ('ecommerce_orders','items'), ('ecommerce_orders','subtotal'),
+    ('ecommerce_orders','discount_amount'), ('ecommerce_orders','tax_amount'),
+    -- cupones
+    ('coupons','discount_percent'), ('coupons','discount_fixed_ars'),
+    ('coupons','current_uses'), ('coupons','max_uses'),
+    ('coupons','valid_from'), ('coupons','valid_until'), ('coupons','active'),
+    -- platform_roles / profiles
+    ('platform_admins','user_id'), ('profiles','id'),
+    ('memberships','joined_at'), ('memberships','role'),
+    ('organizations','plan_id')
+) AS req(tabla, columna)
+WHERE NOT EXISTS (
+  SELECT 1 FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = req.tabla
+    AND c.column_name = req.columna
+)
+ORDER BY tabla, columna;
+
+
 -- ── 3. ⚠️ Números de pedido duplicados ─────────────────────────────────────
 -- El bundle crea un índice único en (org_id, order_number). Si esta consulta
 -- devuelve filas, el índice va a FALLAR y hay que arreglar esos pedidos primero.

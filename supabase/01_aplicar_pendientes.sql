@@ -1,9 +1,12 @@
 -- ============================================================================
--- BUNDLE DE MIGRACIONES PENDIENTES  ·  regenerado el 2026-07-31 (v2)
+-- BUNDLE DE MIGRACIONES PENDIENTES  ·  regenerado el 2026-07-31 (v3)
 --
+-- v3: el bloque de registro usaba la condicion "undefined_schema", que NO
+--     existe en PL/pgSQL (el codigo 3F000 se llama invalid_schema_name). Ahora
+--     usa WHEN OTHERS y loguea el error real: es contabilidad interna, su falla
+--     nunca debe frenar el esquema.
 -- v2: reconcilia la colision con 20260523000075_logistics.sql, que ya habia
--- creado shipping_zones y shipping_rates con otra forma. La v1 fallaba con
--- "column carrier does not exist".
+--     creado shipping_zones y shipping_rates con otra forma.
 --
 -- Las 5 migraciones en orden de dependencias, en UNA transaccion: si algo
 -- falla, no queda nada aplicado a medias. Todo es idempotente.
@@ -1662,8 +1665,11 @@ GRANT EXECUTE ON FUNCTION public.create_store_order(
 
 -- ============================================================================
 -- Registrar las versiones para que el CLI no las quiera aplicar de nuevo.
--- En un DO con manejo de error: si nunca usaste el CLI esa tabla no existe, y
--- eso NO tiene que hacer fallar el bundle. Lo que importa es el esquema.
+--
+-- WHEN OTHERS a proposito: esto es contabilidad interna. Si la tabla no existe
+-- (nunca se uso el CLI) o falta permiso, da igual — lo que importa es que el
+-- esquema de arriba quedo aplicado. El error real se informa por NOTICE en vez
+-- de esconderse.
 -- ============================================================================
 DO $registro$
 BEGIN
@@ -1676,11 +1682,8 @@ BEGIN
     SELECT 1 FROM supabase_migrations.schema_migrations m WHERE m.version = t.v
   );
   RAISE NOTICE 'Versiones registradas en schema_migrations.';
-EXCEPTION
-  WHEN undefined_table OR undefined_schema THEN
-    RAISE NOTICE 'schema_migrations no existe: se omite el registro. El esquema SI quedo aplicado.';
-  WHEN insufficient_privilege THEN
-    RAISE NOTICE 'Sin permiso sobre schema_migrations: se omite el registro. El esquema SI quedo aplicado.';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'No se pudo registrar en schema_migrations (%). El esquema SI quedo aplicado.', SQLERRM;
 END
 $registro$;
 
