@@ -64,6 +64,33 @@ WHERE schemaname = 'public'
 ORDER BY tablename, policyname;
 
 
+-- ── 2b. Colisión con la logística vieja ────────────────────────────────────
+-- `20260523000075_logistics.sql` creó `shipping_zones` y `shipping_rates` con
+-- otra forma. El bundle las reconcilia solo, pero acá se ve qué va a hacer:
+--   · forma_vieja + 0 filas  → recrea la tabla limpia
+--   · forma_vieja + N filas  → conserva los datos y le agrega las columnas
+--   · forma_nueva            → nada que hacer
+SELECT
+  CASE
+    WHEN NOT EXISTS (SELECT 1 FROM information_schema.tables
+                     WHERE table_schema='public' AND table_name='shipping_rates')
+      THEN 'no existe — se crea'
+    WHEN EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema='public' AND table_name='shipping_rates' AND column_name='carrier')
+      THEN 'forma nueva — nada que hacer'
+    ELSE 'forma vieja (logistics)'
+  END AS shipping_rates_estado,
+  (SELECT count(*) FROM public.shipping_rates)  AS tarifas_cargadas,
+  (SELECT count(*) FROM public.shipping_zones)  AS zonas_cargadas;
+
+-- Nombres de zona repetidos por organización: el bundle necesita agregar una
+-- UNIQUE (org_id, name) y fallaría. Esperado: sin filas.
+SELECT org_id, name, count(*) AS repetidos
+FROM public.shipping_zones
+GROUP BY org_id, name
+HAVING count(*) > 1;
+
+
 -- ── 3. ⚠️ Números de pedido duplicados ─────────────────────────────────────
 -- El bundle crea un índice único en (org_id, order_number). Si esta consulta
 -- devuelve filas, el índice va a FALLAR y hay que arreglar esos pedidos primero.

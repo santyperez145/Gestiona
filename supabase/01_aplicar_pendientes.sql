@@ -1,11 +1,14 @@
 -- ============================================================================
--- BUNDLE DE MIGRACIONES PENDIENTES  ·  generado el 2026-07-31
+-- BUNDLE DE MIGRACIONES PENDIENTES  ·  regenerado el 2026-07-31 (v2)
 --
--- Las 5 migraciones pendientes, en orden de dependencias, en UNA transaccion.
--- Si algo falla, no queda nada aplicado a medias: se revierte todo.
+-- v2: reconcilia la colision con 20260523000075_logistics.sql, que ya habia
+-- creado shipping_zones y shipping_rates con otra forma. La v1 fallaba con
+-- "column carrier does not exist".
 --
--- Correr 00_diagnostico.sql ANTES. Todas las sentencias son idempotentes,
--- asi que volver a correr esto no rompe nada.
+-- Las 5 migraciones en orden de dependencias, en UNA transaccion: si algo
+-- falla, no queda nada aplicado a medias. Todo es idempotente.
+--
+-- Correr 00_diagnostico.sql ANTES y 02_verificar.sql DESPUES.
 --
 -- NO incluye 20260723000003_drop_orphaned_feature_tables.sql, que DROPEA ~75
 -- tablas. Eso es destructivo e irreversible: va aparte y con backup.
@@ -147,6 +150,123 @@ END $$;
 --   mode='api'   → cotiza en vivo contra el transportista y le suma el markup.
 -- ─────────────────────────────────────────────────────────────────
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ⚠️ COLISIÓN CON `20260523000075_logistics.sql`
+--
+-- Esa migración de mayo ya creó `shipping_zones` y `shipping_rates` para una
+-- feature de logística que nunca se conectó a ninguna pantalla (`carriers` y
+-- `shipments`, del mismo archivo, siguen sin un solo uso en el código).
+--
+-- `shipping_zones` quedó compatible de casualidad: ya tiene `provinces`.
+-- `shipping_rates` NO: usa `carrier_id` (FK a `carriers`) donde este modelo usa
+-- `carrier` (texto), y `base_cost`/`cost_per_kg`/`estimated_days` donde usa
+-- `price`/`price_per_extra_kg`/`delivery_days_*`.
+--
+-- Como `CREATE TABLE IF NOT EXISTS` no hace nada si la tabla existe, la primera
+-- versión de esta migración se aplicaba en silencio y después fallaba al crear
+-- el índice: `column "carrier" does not exist`.
+--
+-- Esta sección reconcilia el esquema antes de seguir. Si la tabla vieja está
+-- vacía se rehace con la forma nueva; si tiene datos NO se toca el contenido:
+-- se le agregan las columnas y se relaja lo que impide insertar. Nunca se borra
+-- información.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+DO $reconciliar$
+DECLARE
+  v_es_vieja boolean;
+  v_filas    bigint;
+BEGIN
+  -- ¿Existe `shipping_rates` con la forma vieja (carrier_id y sin carrier)?
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='shipping_rates' AND column_name='carrier_id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='shipping_rates' AND column_name='carrier'
+  ) INTO v_es_vieja;
+
+  IF NOT v_es_vieja THEN
+    RETURN;  -- o no existe, o ya está en la forma nueva
+  END IF;
+
+  EXECUTE 'SELECT count(*) FROM public.shipping_rates' INTO v_filas;
+
+  IF v_filas = 0 THEN
+    -- Vacía y sin uso: se rehace limpia en vez de arrastrar columnas muertas.
+    RAISE NOTICE 'shipping_rates estaba en la forma vieja de logistics y vacía: se recrea.';
+
+    -- `calculate_shipping_cost()` lee base_cost/cost_per_kg/carrier_id de la
+    -- forma vieja: al recrear la tabla quedaría roto en silencio. Está sin uso
+    -- en todo el código (igual que `carriers` y `shipments`, del mismo archivo),
+    -- y el modelo de cotización que sí se usa es `quote_store_shipping()`.
+    DROP FUNCTION IF EXISTS public.calculate_shipping_cost(uuid, uuid, uuid, numeric, numeric);
+    DROP FUNCTION IF EXISTS public.calculate_shipping_cost(uuid, uuid, uuid, numeric);
+
+    DROP TABLE public.shipping_rates;
+  ELSE
+    -- Con datos: se conserva todo y se adapta. Quedan columnas legacy sin uso,
+    -- que es mucho mejor que perder tarifas cargadas.
+    RAISE NOTICE 'shipping_rates tiene % filas: se adapta sin borrar nada.', v_filas;
+    ALTER TABLE public.shipping_rates
+      ADD COLUMN IF NOT EXISTS carrier text NOT NULL DEFAULT 'propio',
+      ADD COLUMN IF NOT EXISTS service text NOT NULL DEFAULT 'domicilio',
+      ADD COLUMN IF NOT EXISTS price numeric(12,2) NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS price_per_extra_kg numeric(12,2) NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS delivery_days_min int,
+      ADD COLUMN IF NOT EXISTS delivery_days_max int;
+
+    -- El modelo nuevo no usa `carrier_id`, así que no puede seguir siendo
+    -- obligatorio o ningún insert nuevo entraría.
+    BEGIN
+      ALTER TABLE public.shipping_rates ALTER COLUMN carrier_id DROP NOT NULL;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+
+    -- Traducción de los valores que ya estaban cargados
+    UPDATE public.shipping_rates
+       SET price              = COALESCE(NULLIF(price, 0), base_cost, 0),
+           price_per_extra_kg = COALESCE(NULLIF(price_per_extra_kg, 0), cost_per_kg, 0),
+           delivery_days_max  = COALESCE(delivery_days_max, estimated_days)
+     WHERE price = 0;
+  END IF;
+END
+$reconciliar$;
+
+-- `shipping_zones` de logistics ya trae `provinces`, así que sólo faltan las
+-- columnas nuevas. La UNIQUE va aparte: `seed_default_shipping_zones()` la
+-- necesita para su ON CONFLICT.
+ALTER TABLE IF EXISTS public.shipping_zones
+  ADD COLUMN IF NOT EXISTS sort_order int NOT NULL DEFAULT 0;
+
+DO $uniq$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema='public' AND table_name='shipping_zones'
+  ) THEN
+    RETURN;  -- la crea el CREATE TABLE de abajo, con la UNIQUE incluida
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shipping_zones_org_id_name_key'
+  ) THEN
+    RETURN;
+  END IF;
+
+  -- Sólo se puede agregar si no hay nombres repetidos por organización
+  IF EXISTS (
+    SELECT 1 FROM public.shipping_zones GROUP BY org_id, name HAVING count(*) > 1
+  ) THEN
+    RAISE EXCEPTION
+      'Hay zonas de envío con el mismo nombre en una organización. Renombralas y volvé a correr esto.';
+  END IF;
+
+  ALTER TABLE public.shipping_zones
+    ADD CONSTRAINT shipping_zones_org_id_name_key UNIQUE (org_id, name);
+END
+$uniq$;
+
 -- ── Zonas ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.shipping_zones (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -249,6 +369,14 @@ ALTER TABLE public.shipping_carriers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "org_shipping_zones" ON public.shipping_zones;
 DROP POLICY IF EXISTS "org_shipping_rates" ON public.shipping_rates;
 DROP POLICY IF EXISTS "org_shipping_carriers" ON public.shipping_carriers;
+
+-- Las políticas de `20260523000075_logistics.sql` sobre estas tablas siguen
+-- vivas si la tabla no se recreó. Las políticas son ADITIVAS (se evalúan con
+-- OR), así que la vieja `org_zones` — que da acceso total a cualquier miembro —
+-- dejaría a un vendedor editar zonas y tarifas por más que la nueva restrinja
+-- la escritura a owner/admin.
+DROP POLICY IF EXISTS "org_zones" ON public.shipping_zones;
+DROP POLICY IF EXISTS "org_rates" ON public.shipping_rates;
 
 -- Zonas y tarifas: cualquier miembro las lee (el vendedor necesita cotizar),
 -- sólo owner/admin las modifica.
@@ -1534,11 +1662,8 @@ GRANT EXECUTE ON FUNCTION public.create_store_order(
 
 -- ============================================================================
 -- Registrar las versiones para que el CLI no las quiera aplicar de nuevo.
---
--- Va en un DO con manejo de error a proposito: si nunca usaste el CLI, esa
--- tabla no existe, y eso NO tiene que hacer fallar todo el bundle. Lo que
--- importa es el esquema; el registro es solo para que `supabase db push` no
--- reintente despues.
+-- En un DO con manejo de error: si nunca usaste el CLI esa tabla no existe, y
+-- eso NO tiene que hacer fallar el bundle. Lo que importa es el esquema.
 -- ============================================================================
 DO $registro$
 BEGIN
