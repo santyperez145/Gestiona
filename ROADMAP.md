@@ -109,20 +109,19 @@ cupones · **envío por zona, Correo Argentino y Andreani** · retiro en local �
 clic) · comisiones descontadas del margen · cuentas de comprador con historial ·
 carritos abandonados con recuperación · emails transaccionales · SEO con Open
 Graph y sitemap servidos a los bots · **píxeles de Meta, GA4 y TikTok** ·
-5 temas · dominio propio.
+**reseñas de compra verificada** · **páginas de contenido** (devoluciones,
+FAQ, términos) con plantillas argentinas · 5 temas · dominio propio.
 
 ### Falta, en orden de impacto
 
 | # | Feature | Por qué importa | Esfuerzo |
 |---|---|---|---|
-| 1 | **Reseñas de productos** | Prueba social; en perfumería pesa mucho. No existe ni la tabla. | M |
-| 2 | **Páginas de contenido** | Sobre nosotros, Preguntas frecuentes, Cambios y devoluciones. Es lo que hace que una tienda parezca seria. | S |
-| 3 | **Banner / slider en la home** | Hoy `banner_url` es una sola imagen de fondo, sin enlaces ni rotación. | S |
-| 4 | **Lista de deseos + aviso de reposición** | Recupera ventas de lo que está sin stock. | M |
-| 5 | **Filtro por rango de precio** | Hoy sólo hay "solo ofertas". | S |
-| 6 | **Etiqueta de envío y tracking** | Cerrar el ciclo con los correos ya integrados. | M |
-| 7 | **Comisión por transacción** (`marketplace_fee`) | Monetizar por venta además de por suscripción. La base OAuth ya está. | M |
-| 8 | **AFIP en la tienda** | Sin factura no hay venta formal. | L |
+| 1 | **Banner / slider en la home** | Hoy `banner_url` es una sola imagen de fondo, sin enlaces ni rotación. | S |
+| 2 | **Lista de deseos + aviso de reposición** | Recupera ventas de lo que está sin stock. | M |
+| 3 | **Filtro por rango de precio** | Hoy sólo hay "solo ofertas". | S |
+| 4 | **Etiqueta de envío y tracking** | Cerrar el ciclo con los correos ya integrados. | M |
+| 5 | **Comisión por transacción** (`marketplace_fee`) | Monetizar por venta además de por suscripción. La base OAuth ya está. | M |
+| 6 | **AFIP en la tienda** | Sin factura no hay venta formal. | L |
 
 ---
 
@@ -149,6 +148,8 @@ Graph y sitemap servidos a los bots · **píxeles de Meta, GA4 y TikTok** ·
 - 59 tablas sin índice por `org_id`: cada lectura escaneaba las filas de todas
   las organizaciones.
 - Service worker que dejaba la app pegada a una versión vieja para siempre.
+- `types.ts` truncado: los `.rpc()` nuevos no tenían tipos y se tapaban con
+  `as unknown`. Regenerado completo; el typecheck vuelve a servir de red.
 
 ### Abierta
 
@@ -594,6 +595,28 @@ Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
 con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
+
+### Sesión 87 — Reseñas y páginas de contenido (2026-07-30)
+
+Dos huecos que separaban la tienda de una de Tiendanube, ninguno cosmético.
+
+**Reseñas** (`20260731000007`). La regla es una: sólo reseña quien compró y
+pagó, validado contra `ecommerce_orders`. Y se valida dos veces —
+`can_review_product` decide qué mostrar, `upsert_product_review` es la barrera.
+Una opinión por comprador y producto; editarla la republica. El comercio no
+puede editar lo que escribió el cliente: sólo ocultarlo o responderle. En la
+grilla la estrella aparece sólo si hay opiniones.
+
+**Páginas de contenido** (`20260731000008`). No es maquillaje: la Ley 24.240
+obliga a publicar el botón de arrepentimiento, y MercadoPago pide ver las
+políticas antes de habilitar la cuenta de vendedor. Cuatro páginas editables
+con URL propia, listadas en el footer, sembradas como borradores ya redactados
+para Argentina — una tienda que arranca con las páginas vacías las deja
+vacías. El markdown se parsea a elementos de React, nunca a HTML: el texto lo
+escribe el comercio y se sirve con la sesión del comprador viva.
+`miniMarkdown.test.tsx` fija eso como invariante.
+
+De paso, `types.ts` dejó de estar truncado.
 
 ### Sesión 86 — Tienda online completa: de vitrina a ecommerce (2026-07-30)
 
