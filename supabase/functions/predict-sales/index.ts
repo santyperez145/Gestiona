@@ -1,5 +1,6 @@
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0?target=deno";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import { requireUser } from "../_shared/requireUser.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,12 @@ const client = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (checkRateLimit(req, "predict-sales", { max: 10, windowMs: 60_000 })) return rateLimitResponse();
+
+  // El rate limit acota el daño pero no impide el abuso: la clave anónima es un
+  // JWT válido y pública, así que sin usuario real cualquiera puede gastar
+  // crédito de Anthropic hasta el tope, una y otra vez.
+  const auth = await requireUser(req, corsHeaders);
+  if (auth.response) return auth.response;
 
   try {
     const { sales } = await req.json();
