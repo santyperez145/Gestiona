@@ -668,6 +668,57 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 86 — Tienda online completa: de vitrina a ecommerce (2026-07-30)
+
+**La tienda online no existía.** El panel "Tienda Online" venía guardando tema,
+colores, métodos de pago y SEO desde hacía tiempo, pero **no había ruta
+`/tienda/:slug`**: era un formulario de configuración de una vitrina que nunca
+se renderizó, y el botón "Ver tienda" apuntaba a `gestiona.app`, un dominio
+hardcodeado que no resuelve. Se construyó la tienda entera:
+
+- Home, listado con filtros en la URL, ficha con perfil olfativo, carrito
+  persistente, checkout y confirmación.
+- Los 5 temas del panel ahora hacen algo: cada uno define variables CSS y el
+  `primary_color` del negocio pisa el acento, con el texto encima ajustado por
+  luminancia para que siga siendo legible.
+- **Cobro online con MercadoPago**: la venta entra al mismo libro que el resto
+  (`source='tienda_online'`), así aparece en Dashboard, Reportes y P&L sin
+  tratamiento especial. Idempotente, porque MP reintenta sus webhooks.
+- **Cuentas de comprador por tienda**, cupones, carritos abandonados con
+  recuperación por email, emails transaccionales, y OG/sitemap servidos desde
+  el borde para los bots (que no ejecutan JavaScript).
+- **OAuth de MercadoPago multi-tienda**: la plataforma tiene una aplicación y
+  cada comercio conecta su cuenta con un clic, como Tiendanube. El token pegado
+  a mano sigue andando para no romper a quien ya lo tenía.
+- **Variantes**: la organización tenía 26 cargadas y la vitrina las ignoraba.
+  Ahora cada una es una línea de carrito con precio y stock propios.
+- **Píxeles** de Meta, GA4 y TikTok con eventos de ecommerce completos. Los
+  scripts sólo cargan si el ID está configurado, y no se envía dato personal.
+
+**Bugs que habrían roto ventas reales, encontrados probando contra la base:**
+
+- `sales.source` tenía un CHECK sin el canal propio: **toda** venta online
+  fallaba al registrarse.
+- Se descontaba stock a mano **además** del trigger `trg_sale_stock_movement`:
+  con stock 2 y una compra de 2 quedaba en −2.
+- Al sumarle el cupón, `create_store_order` quedó con dos firmas y PostgREST
+  devolvía "Could not choose the best candidate function" — checkout entero
+  caído.
+- Las vistas `*_connection_status` usaban `security_invoker`, y como las tablas
+  de tokens tienen RLS sin policies devolvían siempre vacío: el panel decía
+  "sin conectar" con la cuenta vinculada, sin forma de desconectarla.
+- `handle_new_user_create_org` le daba organización, rol `owner` y trial a
+  **cada comprador** que se registraba en una tienda.
+- El guard anti-loop del service worker era un flag de sesión sin vencimiento:
+  tras la primera recarga, ningún deploy posterior volvía a aplicarse y la app
+  quedaba mostrando código viejo indefinidamente.
+
+**Pendiente para emparejar con Tiendanube/Empretienda**, en orden de impacto:
+reseñas de productos (no existe ni la tabla), páginas de contenido editables
+(Sobre nosotros, Preguntas frecuentes, Cambios y devoluciones), banner/slider
+con enlaces en la home, lista de deseos y aviso de reposición, y filtro por
+rango de precio.
+
 ---
 
 ## 7. ROADMAP DE PRODUCTO 2026–2028
@@ -1163,5 +1214,35 @@ Una funcionalidad se considera **production-ready** cuando:
 
 ---
 
-*Última revisión: 2026-05-29 · Autor: Gestiona Engineering*
+## 17. PARIDAD CON TIENDANUBE / EMPRETIENDA
+
+Estado de la tienda online frente a las plataformas con las que compite.
+
+### Ya está
+
+Home con secciones · listado con filtros y orden · ficha con galería y perfil
+olfativo · **variantes** con precio y stock propios · carrito persistente ·
+cupones · **envío por zona, Correo Argentino y Andreani** · retiro en local ·
+**cobro con MercadoPago por OAuth** (cada comercio conecta su cuenta) ·
+comisiones descontadas del margen · cuentas de comprador con historial ·
+carritos abandonados con recuperación · emails transaccionales · SEO con Open
+Graph y sitemap servidos a los bots · **píxeles de Meta, GA4 y TikTok** ·
+5 temas · dominio propio (usa el origen donde esté desplegada).
+
+### Falta, en orden de impacto
+
+| # | Feature | Por qué importa | Esfuerzo |
+|---|---|---|---|
+| 1 | **Reseñas de productos** | Prueba social; en perfumería pesa mucho. No existe ni la tabla. | M |
+| 2 | **Páginas de contenido** | Sobre nosotros, Preguntas frecuentes, Cambios y devoluciones. Es lo que hace que una tienda parezca seria. | S |
+| 3 | **Banner / slider en la home** | Hoy `banner_url` es una sola imagen de fondo, sin enlaces ni rotación. | S |
+| 4 | **Lista de deseos + aviso de reposición** | Recupera ventas de lo que está sin stock. | M |
+| 5 | **Filtro por rango de precio** | Hoy sólo hay "solo ofertas". | S |
+| 6 | **Etiqueta de envío y tracking** | Cerrar el ciclo con los correos ya integrados. | M |
+| 7 | **Comisión por transacción** (`marketplace_fee`) | Monetizar por venta además de por suscripción. La base OAuth ya está. | M |
+| 8 | **AFIP en la tienda** | Sin factura no hay venta formal. Gap crítico de siempre. | L |
+
+---
+
+*Última revisión: 2026-07-31 · Autor: Gestiona Engineering*
 *Este documento es el único source of truth del estado del producto.*

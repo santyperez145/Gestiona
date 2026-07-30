@@ -51,9 +51,23 @@ npm run dev          # Servidor de desarrollo en http://localhost:8080
 npm run build        # Build de producción
 npm run preview      # Preview del build
 npm run lint         # ESLint
+npm run typecheck    # Chequeo de tipos (ver la nota de abajo)
 npm run test         # Tests con Vitest
 npm run test:watch   # Tests en modo watch
+npm run db -- --file x.sql       # Ejecuta SQL contra la base
+npm run deploy:functions         # Despliega las Edge Functions
 ```
+
+Antes de commitear, los tres chequeos que corre el CI:
+
+```bash
+NODE_OPTIONS=--max-old-space-size=6144 npm run typecheck && npm run lint && npm test
+```
+
+> **No uses `npx tsc --noEmit`.** El `tsconfig.json` raíz tiene `"files": []`,
+> así que ese comando sale con éxito sin chequear ningún archivo. `npm run
+> typecheck` apunta a `tsconfig.app.json` y sí chequea; el `NODE_OPTIONS` evita
+> que se quede sin memoria (`types.ts` tiene ~20 mil líneas).
 
 ## Variables de entorno
 
@@ -94,20 +108,28 @@ Estos secretos se configuran en Supabase, **nunca** en el `.env` del frontend:
 
 ## Base de datos
 
-El proyecto usa Supabase. Las migraciones están en `supabase/migrations/` (62 archivos al 2026-05-05).
+El proyecto usa Supabase. Las migraciones están en `supabase/migrations/`.
 
-### Aplicar migraciones
+### Aplicar migraciones — a mano, no con `db push`
+
+> **`supabase db push` no sirve en este repo.** Cuatro grupos de migraciones
+> comparten prefijo de versión y el CLI usa ese prefijo como clave, así que
+> intentaría reaplicar migraciones ya corridas — una de ellas destructiva.
 
 ```bash
-# Conectar al proyecto
+# Conectar al proyecto (una sola vez)
 supabase link --project-ref <project-id>
 
-# Aplicar todas las migraciones pendientes
-supabase db push
+# Aplicar un archivo
+npm run db -- --file supabase/migrations/2026xxxx_lo_que_sea.sql
 
-# Ver estado de migraciones
-supabase migration list
+# Regenerar los tipos DESPUÉS de cada migración
+npx supabase gen types typescript --project-id <project-id> > src/integrations/supabase/types.ts
 ```
+
+Si no hay `SUPABASE_DB_URL`, el mismo SQL se pega en el SQL Editor del
+dashboard. Las migraciones se escriben **idempotentes** (`IF NOT EXISTS`,
+`CREATE OR REPLACE`) para poder reaplicarlas sin miedo.
 
 ### Tablas principales
 
@@ -151,6 +173,50 @@ supabase migration list
 | `0 18 * * *` | `daily-kpi-alert` | Alerta KPIs (diario) |
 | `*/5 * * * *` | `send-scheduled-campaigns` | Campañas programadas (cada 5 min) |
 | `* * * * *` | `run-automation-flows` | Automatizaciones (cada minuto) |
+| `15 * * * *` | `recover-abandoned-carts` | Carritos abandonados (cada hora) |
+
+> Todos los crons llaman `public.invoke_edge_function(nombre)`, que lee
+> `SUPABASE_URL` y `SUPABASE_ANON_KEY` del **vault de Supabase**. Sin esos dos
+> secretos fallan todos en silencio. Ver [docs/CRON.md](docs/CRON.md).
+
+## Las tres superficies
+
+| Superficie | Ruta | Quién entra | Aislamiento |
+|---|---|---|---|
+| Gestión | `/` | miembros de una organización (`memberships`) | RLS por `org_id` |
+| Plataforma | `/platform` | staff del SaaS (`platform_admins`) | no da permisos dentro de una org |
+| Tienda pública | `/tienda/:slug` | comprador anónimo o con cuenta | RPCs `security definer` con columnas saneadas |
+
+Ser staff de plataforma **no** habilita nada dentro de una organización, y un
+comprador con cuenta en una tienda **no** es usuario del panel de gestión.
+Detalle en [docs/permisos.md](docs/permisos.md).
+
+## Tienda online
+
+Una tienda completa por organización, en `/tienda/:slug`:
+
+- Home con hero, categorías y filas de ofertas, destacados y novedades
+- Listado con filtros (categoría, género, familia olfativa, ofertas) y orden,
+  todo reflejado en la URL para poder compartir un filtro
+- Ficha con galería, variantes (talle / sabor / mililitraje) con precio y stock
+  propios, y perfil olfativo
+- Carrito persistente y recuperación de carritos abandonados por email
+- Checkout con cupones, envío por zona o transportista, y cobro con MercadoPago
+- Cuentas de comprador con historial de pedidos
+- Píxeles de Meta, Google Analytics y TikTok, configurables por tienda
+
+Reglas que no se negocian:
+
+- **El precio nunca sale del navegador.** El checkout manda ids y cantidades;
+  el servidor relee productos, valida stock y recalcula todo.
+- **Las páginas públicas no leen tablas crudas.** Van por
+  [`src/lib/publicDataSource.ts`](src/lib/publicDataSource.ts), y
+  `publicSurface.test.ts` falla si alguien se saltea la regla o pide una columna
+  de costo, margen o credencial.
+
+Configuración de cobros en [docs/PAGOS.md](docs/PAGOS.md): la plataforma tiene
+**una** aplicación de MercadoPago y cada comercio conecta su cuenta por OAuth,
+igual que Tiendanube. El dinero va directo al comercio.
 
 ## Edge Functions
 

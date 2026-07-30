@@ -41,8 +41,16 @@ no de merge.
 **El CI es bloqueante.** Antes de cada commit:
 
 ```bash
-npx tsc --noEmit && npm run lint && npm test
+NODE_OPTIONS=--max-old-space-size=6144 npm run typecheck && npm run lint && npm test
 ```
+
+**No usar `npx tsc --noEmit`.** El `tsconfig.json` raíz tiene `"files": []` y
+sólo `references`, así que ese comando sale con éxito **sin chequear un solo
+archivo** — daba verde siempre. Por eso llegaron a producción errores que
+rompían páginas enteras (un `DialogFooter` sin importar dejó Productos en
+pantalla blanca). `npm run typecheck` apunta a `tsconfig.app.json` y sí chequea;
+el `NODE_OPTIONS` no es opcional, sin él se queda sin memoria a los 6 minutos
+(`types.ts` tiene ~20 mil líneas).
 
 `lint` tolera ~140 warnings de `exhaustive-deps`: son deuda conocida y **no se
 tocan en masa** (provoca loops de refetch). Errores: cero.
@@ -107,6 +115,59 @@ MercadoPago y las contraseñas SMTP de **todas** las organizaciones. Está cerra
 El staff de plataforma pasa por `MfaGate` sin excepción: es la cuenta más
 valiosa del sistema para un atacante.
 
+**Tablas de credenciales: RLS habilitada y CERO policies, a propósito.**
+`payment_connections`, `meli_connections` y `afip_padron_cache` sólo las tocan
+las Edge Functions con `service_role`. La UI lee vistas `*_status` que exponen
+si está conectado y con qué cuenta, nunca el token. Esas vistas van **sin**
+`security_invoker`: con él corren con permisos de quien consulta, y como la
+tabla de abajo no tiene policies devolvían siempre vacío — el panel decía "sin
+conectar" con la cuenta vinculada. El control lo hace la cláusula `WHERE
+is_org_member(...)` de la propia vista.
+
+**Los compradores de una tienda no son usuarios del SaaS.** El trigger
+`handle_new_user_create_org` le crea a cada alta una organización, rol `owner` y
+un trial de 14 días. Los registros de tienda llegan marcados con
+`account_type = 'store_customer'` en el metadata y el trigger los saltea. Sin
+eso, cada cliente que compraba un perfume se volvía dueño de una organización y
+ensuciaba las métricas.
+
+---
+
+## Cron: sin dos secretos en el vault, fallan los 13 en silencio
+
+Los cron jobs llaman Edge Functions vía `public.invoke_edge_function(nombre)`,
+que lee `SUPABASE_URL` y `SUPABASE_ANON_KEY` del **vault de Supabase**. Si
+faltan, **todos** fallan sin avisar: no corren alertas de stock, avisos de deuda,
+reactivación, KPI diario, digest semanal, automatizaciones, campañas ni los
+emails de las secuencias. Así estuvo hasta el 2026-07-29.
+
+Ante cualquier "no me llegan las alertas / los emails", mirar **primero**
+`cron.job_run_details` y el vault, no el código de la función:
+
+```sql
+SELECT j.jobname, d.status, d.end_time
+FROM cron.job_run_details d JOIN cron.job j ON j.jobid = d.jobid
+ORDER BY d.end_time DESC LIMIT 20;
+```
+
+Detalle en [docs/CRON.md](docs/CRON.md).
+
+---
+
+## Verificación: probar contra producción y limpiar
+
+No hay entorno de staging. Lo que se hizo en estas sesiones y funciona: un
+bloque `DO $$ ... $$` que inserta datos de prueba con prefijo `ZZ`, ejecuta el
+camino real (RPC incluido), guarda los resultados en una tabla temporal, y
+**borra todo antes de terminar**. La última fila del `SELECT` cuenta los restos,
+que tienen que dar `0`.
+
+Así aparecieron bugs que ningún test unitario iba a encontrar: un `CHECK` que
+no contemplaba el canal `tienda_online` y hacía fallar toda venta online, y un
+descuento de stock duplicado porque `trg_sale_stock_movement` ya lo hacía.
+**Antes de descontar stock o tocar totales, revisar si hay un trigger que ya lo
+haga.**
+
 ---
 
 ## Scripts
@@ -136,7 +197,27 @@ Pendientes conocidos al 2026-07-31:
   `supabase_migrations.schema_migrations`.
 - Las APIs de Correo Argentino y Andreani siguen **sin verificar contra un
   contrato real**: los payloads siguen la documentación publicada.
-- `src/integrations/supabase/types.ts` está truncado, así que los `.rpc()`
-  nuevos no tienen tipos estrictos. Regenerar con `supabase gen types`.
 - Falta AFIP, que es el gap crítico de siempre: sin factura no hay venta formal.
 - Falta etiqueta de envío y tracking automático con los correos.
+- MercadoLibre: falta el botón de publicar en la ficha, importar órdenes como
+  ventas y el cron multi-organización (ver `docs/MERCADOLIBRE.md`).
+
+**Regenerar los tipos después de cada migración**, o el typecheck reporta
+errores fantasma en archivos que no se tocaron:
+
+```bash
+npx supabase gen types typescript --project-id hummeopatkniwkyrrhwc > src/integrations/supabase/types.ts
+```
+
+### Secretos sin los cuales hay features muertas
+
+Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md). Los dos que más duelen:
+`ANTHROPIC_API_KEY` (toda la IA responde error) y `RESEND_API_KEY` (los crons de
+email corren, encuentran los destinatarios y no pueden enviar).
+
+### Brechas contra Tiendanube / Empretienda
+
+Lo que la tienda todavía no tiene, en orden de impacto: reseñas de productos
+(no existe ni la tabla), páginas de contenido editables (Sobre nosotros,
+Preguntas frecuentes, Cambios), banner/slider con enlaces en la home, lista de
+deseos y aviso de reposición, y filtro por rango de precio.
