@@ -9,7 +9,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchStoreProducts } from "@/lib/publicDataSource";
+import { fetchStoreProducts, fetchStoreVariants, type StoreVariant } from "@/lib/publicDataSource";
 
 export interface StoreInfo {
   org_id: string;
@@ -69,6 +69,8 @@ export interface PerfumeDetail {
 
 export interface CartLine {
   productId: string;
+  /** Variante elegida, si el producto tiene. El precio y el stock son suyos. */
+  variantId?: string | null;
   name: string;
   brand: string | null;
   price: number;
@@ -83,10 +85,14 @@ interface Ctx {
   store: StoreInfo | null;
   products: StoreProduct[];
   perfumes: Record<string, PerfumeDetail>;
+  /** Variantes con stock, agrupadas por producto. */
+  variantsByProduct: Record<string, StoreVariant[]>;
   cart: CartLine[];
-  addToCart: (p: StoreProduct, qty?: number) => void;
-  setQty: (productId: string, qty: number) => void;
-  removeFromCart: (productId: string) => void;
+  addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
+  setQty: (lineKey: string, qty: number) => void;
+  removeFromCart: (lineKey: string) => void;
+  /** Clave única de una línea: producto, o producto+variante. */
+  lineKeyOf: (l: CartLine) => string;
   clearCart: () => void;
   cartCount: number;
   subtotal: number;
@@ -106,6 +112,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [perfumes, setPerfumes] = useState<Record<string, PerfumeDetail>>({});
+  const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -128,12 +135,13 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       }
       setStore(row);
 
-      const [pRes, dRes] = await Promise.all([
+      const [pRes, dRes, vRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
         fetchStoreProducts(row.org_id),
         supabase.rpc("get_store_perfume_details", { p_slug: slug }),
+        fetchStoreVariants(slug),
       ]);
       if (cancelled) return;
 
@@ -141,6 +149,12 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       const map: Record<string, PerfumeDetail> = {};
       ((dRes.data ?? []) as PerfumeDetail[]).forEach(d => { map[d.product_id] = d; });
       setPerfumes(map);
+
+      // Variantes agrupadas por producto. Si el RPC todavía no existe llega
+      // vacío y la tienda sigue andando sin selector, como antes.
+      const vmap: Record<string, StoreVariant[]> = {};
+      (vRes ?? []).forEach(v => { (vmap[v.product_id] ??= []).push(v); });
+      setVariantsByProduct(vmap);
       setLoading(false);
     })().catch(() => {
       if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -194,32 +208,54 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     return () => clearTimeout(t);
   }, [cart, slug, loading, store]);
 
+  /**
+   * Clave de línea del carrito. Dos variantes del mismo producto son dos
+   * líneas distintas, así que el id del producto solo no alcanza.
+   * Definida fuera de los callbacks para que todos usen la misma regla.
+   */
+  const lineKeyOf = useCallback(
+    (l: CartLine) => (l.variantId ? `${l.productId}::${l.variantId}` : l.productId),
+    [],
+  );
+
   const priceOf = useCallback((p: StoreProduct) => {
     const d = Number(p.discount_price_ars) || 0;
     return d > 0 && d < Number(p.sale_price_ars) ? d : Number(p.sale_price_ars);
   }, []);
 
-  const addToCart = useCallback((p: StoreProduct, qty = 1) => {
-    const existing = cart.find(l => l.productId === p.id);
+  const addToCart = useCallback((p: StoreProduct, qty = 1, variant?: StoreVariant | null) => {
+    // Cada variante es una línea propia: 50ml y 100ml son productos
+    // distintos con su precio y su stock.
+    const key = variant ? `${p.id}::${variant.id}` : p.id;
+    const existing = cart.find(l => lineKeyOf(l) === key);
+    const stock = variant ? variant.stock : p.stock;
+    const precio = variant && Number(variant.price_override) > 0
+      ? Number(variant.price_override)
+      : priceOf(p);
     // Nunca se deja superar el stock: si no, el checkout falla al final,
     // que es el peor momento para enterarse.
-    const nextQty = Math.min(p.stock, (existing?.qty ?? 0) + qty);
+    const nextQty = Math.min(stock, (existing?.qty ?? 0) + qty);
     const line: CartLine = {
-      productId: p.id, name: p.name, brand: p.brand,
-      price: priceOf(p), qty: nextQty, image: p.image_url, stock: p.stock,
+      productId: p.id,
+      variantId: variant?.id ?? null,
+      name: variant ? `${p.name} — ${variant.variant_name}` : p.name,
+      brand: p.brand,
+      price: precio, qty: nextQty,
+      image: variant?.image_url ?? p.image_url,
+      stock,
     };
     persist(existing
-      ? cart.map(l => (l.productId === p.id ? line : l))
+      ? cart.map(l => (lineKeyOf(l) === key ? line : l))
       : [...cart, line]);
   }, [cart, persist, priceOf]);
 
-  const setQty = useCallback((productId: string, qty: number) => {
-    if (qty <= 0) { persist(cart.filter(l => l.productId !== productId)); return; }
-    persist(cart.map(l => (l.productId === productId ? { ...l, qty: Math.min(l.stock, qty) } : l)));
+  const setQty = useCallback((lineKey: string, qty: number) => {
+    if (qty <= 0) { persist(cart.filter(l => lineKeyOf(l) !== lineKey)); return; }
+    persist(cart.map(l => (lineKeyOf(l) === lineKey ? { ...l, qty: Math.min(l.stock, qty) } : l)));
   }, [cart, persist]);
 
-  const removeFromCart = useCallback((productId: string) => {
-    persist(cart.filter(l => l.productId !== productId));
+  const removeFromCart = useCallback((lineKey: string) => {
+    persist(cart.filter(l => lineKeyOf(l) !== lineKey));
   }, [cart, persist]);
 
   const clearCart = useCallback(() => persist([]), [persist]);
@@ -239,8 +275,8 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
-      loading, notFound, store, products, perfumes, cart,
-      addToCart, setQty, removeFromCart, clearCart,
+      loading, notFound, store, products, perfumes, variantsByProduct, cart,
+      addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
       shippingCost,
@@ -250,7 +286,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, store, products, perfumes, cart, addToCart, setQty, removeFromCart, clearCart, priceOf, fmt]);
+  }, [loading, notFound, store, products, perfumes, variantsByProduct, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

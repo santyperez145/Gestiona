@@ -202,16 +202,18 @@ export async function fetchPublicPaymentLink(linkId: string) {
   }
 
   warnFallback('get_public_payment_link()');
-  const { data: link } = await supabase
+  const { data: linkRaw } = await supabase
     .from('payment_links').select(PAYMENT_LINK_COLUMNS).eq('id', linkId).maybeSingle();
-  if (!link) return null;
+  if (!linkRaw) return null;
+  // La lista de columnas es dinámica, así que TS no puede inferir la forma.
+  const link = linkRaw as unknown as Record<string, unknown> & { org_id: string };
 
   const [{ data: st }, { data: org }] = await Promise.all([
     supabase.from('settings')
       .select('bank_cbu,bank_alias,bank_name,bank_holder,whatsapp_number,logo_url,business_name')
-      .eq('org_id', (link as { org_id: string }).org_id).maybeSingle(),
+      .eq('org_id', link.org_id).maybeSingle(),
     supabase.from('organizations')
-      .select('name').eq('id', (link as { org_id: string }).org_id).maybeSingle(),
+      .select('name').eq('id', link.org_id).maybeSingle(),
   ]);
 
   const s = (st ?? {}) as Record<string, string | null>;
@@ -280,16 +282,49 @@ export async function quoteStoreShipping(args: {
  * reintenta sin ese parámetro: mejor cobrar el envío plano que no poder vender.
  */
 export async function createStoreOrder(params: Record<string, unknown>) {
-  const conOpcion = await supabase.rpc('create_store_order', params);
+  // Los tipos generados exigen la forma exacta del RPC; el checkout arma el
+  // objeto y acá sólo se reintenta sin el parámetro nuevo si no existe aún.
+  type OrderArgs = Parameters<typeof supabase.rpc<'create_store_order'>>[1];
+  const conOpcion = await supabase.rpc('create_store_order', params as OrderArgs);
   if (!conOpcion.error) return conOpcion;
   if (!isMissingFunction(conOpcion.error)) return conOpcion;
 
   warnFallback('create_store_order(… p_shipping_option)');
   const { p_shipping_option: _omitido, ...sinOpcion } = params;
-  return supabase.rpc('create_store_order', sinOpcion);
+  return supabase.rpc('create_store_order', sinOpcion as OrderArgs);
 }
 
 /** Variantes de un producto publicado. */
+export interface StoreVariant {
+  id: string;
+  product_id: string;
+  variant_name: string;
+  variant_type: string | null;
+  stock: number;
+  price_override: number | null;
+  image_url: string | null;
+  sku: string | null;
+}
+
+/**
+ * Variantes de toda la tienda, en una sola llamada.
+ *
+ * La vitrina las necesita para la grilla y para la ficha, así que traerlas
+ * juntas evita una consulta por producto. Devuelve `null` —no `[]`— cuando el
+ * RPC todavía no existe, para que la tienda pueda distinguir "no hay
+ * variantes" de "no puedo saberlo" y no oculte productos por error.
+ */
+export async function fetchStoreVariants(slug: string): Promise<StoreVariant[] | null> {
+  const { data, error } = await supabase.rpc('get_store_variants', { p_slug: slug });
+  if (!error) return (data ?? []) as unknown as StoreVariant[];
+  if (isMissingFunction(error)) {
+    warnFallback('get_store_variants');
+    return null;
+  }
+  console.error('[tienda] error leyendo variantes:', error.message);
+  return null;
+}
+
 export async function fetchCatalogVariants(productId: string) {
   const cols = 'id,variant_name,stock,image_url';
 

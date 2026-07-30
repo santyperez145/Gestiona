@@ -113,7 +113,7 @@ export default function StoreCheckout() {
       slug: store.slug,
       province: form.provincia || null,
       postalCode: form.cp || null,
-      items: cart.map(l => ({ product_id: l.productId, quantity: l.qty })),
+      items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
     }).then(rows => {
       if (cancelado) return;
       setCotizando(false);
@@ -151,7 +151,7 @@ export default function StoreCheckout() {
     return () => { cancelado = true; };
   // `cart` se serializa para no recotizar en cada render por identidad de array
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store?.slug, form.provincia, form.cp, porZona, JSON.stringify(cart.map(l => [l.productId, l.qty]))]);
+  }, [store?.slug, form.provincia, form.cp, porZona, JSON.stringify(cart.map(l => [l.productId, l.variantId, l.qty]))]);
 
   const opcion = opciones.find(o => o.option_id === opcionElegida) ?? null;
   // Mientras no haya cotización se usa el costo del contexto, que es el plano.
@@ -185,7 +185,7 @@ export default function StoreCheckout() {
 
     const { data, error: rpcError } = await createStoreOrder({
       p_slug: store!.slug,
-      p_items: cart.map(l => ({ product_id: l.productId, quantity: l.qty })),
+      p_items: cart.map(l => ({ product_id: l.productId, variant_id: l.variantId ?? null, quantity: l.qty })),
       p_customer_name: form.nombre,
       p_customer_email: form.email,
       p_customer_phone: form.telefono || null,
@@ -427,7 +427,7 @@ export default function StoreCheckout() {
 
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {cart.map(l => (
-              <div key={l.productId} className="flex gap-2 text-sm">
+              <div key={(l.variantId ? l.productId + "::" + l.variantId : l.productId)} className="flex gap-2 text-sm">
                 <span className="tabular-nums shrink-0" style={{ color: "hsl(var(--st-muted))" }}>{l.qty}×</span>
                 <span className="flex-1 leading-tight line-clamp-2">{l.name}</span>
                 <span className="shrink-0">{fmt(l.price * l.qty)}</span>

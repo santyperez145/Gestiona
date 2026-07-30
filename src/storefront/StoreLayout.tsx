@@ -14,7 +14,7 @@ import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } fr
 import { useStoreAuth } from "./storeAuth";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, cart, cartCount, subtotal, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart } = useStore();
+  const { store, products, cart, cartCount, subtotal, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -248,7 +248,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               <>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {cart.map(l => (
-                    <div key={l.productId} className="flex gap-3">
+                    <div key={lineKeyOf(l)} className="flex gap-3">
                       <div
                         className="w-16 h-16 shrink-0 overflow-hidden bg-black/5"
                         style={{ borderRadius: "var(--st-radius)" }}
@@ -260,20 +260,20 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                         <p className="text-sm font-semibold mt-0.5">{fmt(l.price * l.qty)}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
-                            <button className="px-2 py-1" onClick={() => setQty(l.productId, l.qty - 1)} aria-label="Restar">
+                            <button className="px-2 py-1" onClick={() => setQty(lineKeyOf(l), l.qty - 1)} aria-label="Restar">
                               <Minus className="w-3 h-3" />
                             </button>
                             <span className="px-2 text-sm tabular-nums">{l.qty}</span>
                             <button
                               className="px-2 py-1 disabled:opacity-30"
-                              onClick={() => setQty(l.productId, l.qty + 1)}
+                              onClick={() => setQty(lineKeyOf(l), l.qty + 1)}
                               disabled={l.qty >= l.stock}
                               aria-label="Sumar"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
-                          <button onClick={() => removeFromCart(l.productId)} aria-label="Quitar">
+                          <button onClick={() => removeFromCart(lineKeyOf(l))} aria-label="Quitar">
                             <Trash2 className="w-3.5 h-3.5" style={{ color: "hsl(var(--st-muted))" }} />
                           </button>
                         </div>

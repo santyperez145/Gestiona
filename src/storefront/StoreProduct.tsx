@@ -10,11 +10,12 @@ import { ChevronLeft, Minus, Plus, ShoppingBag, Check } from "lucide-react";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
-  const { store, products, perfumes, priceOf, fmt, addToCart } = useStore();
+  const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart } = useStore();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
+  const [variantId, setVariantId] = useState<string | null>(null);
 
   const base = `/tienda/${store?.slug ?? ""}`;
   const p = products.find(x => x.id === productId);
@@ -45,13 +46,27 @@ export default function StoreProduct() {
     );
   }
 
-  const price = priceOf(p);
+  // Variantes con stock de este producto. Si hay, la compra es de una
+  // variante concreta: 50ml y 100ml tienen precio y stock propios.
+  const variantes = variantsByProduct[p.id] ?? [];
+  const variante = variantes.find(v => v.id === variantId) ?? null;
+  const faltaElegir = variantes.length > 0 && !variante;
+
+  const price = variante && Number(variante.price_override) > 0
+    ? Number(variante.price_override)
+    : priceOf(p);
+  const stockEfectivo = variante ? variante.stock : p.stock;
   const list = Number(p.sale_price_ars);
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
-  const imagenes = [p.image_url, ...(p.image_urls ?? [])].filter(Boolean) as string[];
+  // Se deduplica: `image_url` suele estar repetida dentro de `image_urls`, y
+  // eso generaba dos miniaturas iguales con la misma key de React.
+  const imagenes = [...new Set(
+    [p.image_url, ...(p.image_urls ?? [])].filter(Boolean) as string[],
+  )];
 
   const agregar = () => {
-    addToCart(p, qty);
+    if (faltaElegir) return;
+    addToCart(p, qty, variante);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
@@ -131,8 +146,49 @@ export default function StoreProduct() {
           </div>
 
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-            {p.stock > 3 ? "En stock" : `¡Últimas ${p.stock} unidades!`}
+            {stockEfectivo > 3 ? "En stock" : `¡Últimas ${stockEfectivo} unidades!`}
           </p>
+
+          {variantes.length > 0 && (
+            <div className="mt-5">
+              <p className="text-xs uppercase tracking-wide mb-2" style={{ color: "hsl(var(--st-muted))" }}>
+                {variantes[0].variant_type === "sabor" ? "Sabor"
+                  : variantes[0].variant_type === "color" ? "Color"
+                  : variantes[0].variant_type === "talle" ? "Talle"
+                  : "Opciones"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {variantes.map(v => {
+                  const sel = v.id === variantId;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => { setVariantId(sel ? null : v.id); setQty(1); }}
+                      className="px-3 py-1.5 text-sm border transition-colors"
+                      style={{
+                        borderColor: sel ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
+                        background: sel ? "hsl(var(--st-accent) / 0.1)" : "transparent",
+                        borderRadius: "var(--st-radius)",
+                      }}
+                    >
+                      {v.variant_name}
+                      {v.stock <= 3 && (
+                        <span className="ml-1.5 text-[10px]" style={{ color: "hsl(var(--st-muted))" }}>
+                          ({v.stock})
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {faltaElegir && (
+                <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
+                  Elegí una opción para continuar.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-3 mt-6">
             <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
@@ -142,8 +198,8 @@ export default function StoreProduct() {
               <span className="px-3 tabular-nums font-medium">{qty}</span>
               <button
                 className="px-3 py-2.5 disabled:opacity-30"
-                onClick={() => setQty(q => Math.min(p.stock, q + 1))}
-                disabled={qty >= p.stock}
+                onClick={() => setQty(q => Math.min(stockEfectivo, q + 1))}
+                disabled={qty >= stockEfectivo}
                 aria-label="Sumar"
               >
                 <Plus className="w-4 h-4" />
@@ -151,7 +207,8 @@ export default function StoreProduct() {
             </div>
             <button
               onClick={agregar}
-              className="flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              disabled={faltaElegir}
+              className="flex-1 py-3 font-medium inline-flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
             >
               {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
