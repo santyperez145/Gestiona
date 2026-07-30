@@ -10,7 +10,7 @@
  *   3. Error — no email provider configured
  */
 
-import { SMTPClient } from "https://deno.land/x/denomailer@1.1.2/mod.ts";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 export interface SmtpConfig {
   host: string;
