@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
+import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -61,7 +62,7 @@ interface FunnelRow {
 export default function EcommerceStorePage() {
   usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"overview" | "orders" | "design" | "settings">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "design" | "settings">("overview");
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [storeForm, setStoreForm] = useState({
@@ -250,6 +251,7 @@ export default function EcommerceStorePage() {
   const TABS = [
     { id: "overview",  label: "Overview" },
     { id: "orders",    label: "Órdenes" },
+    { id: "reviews",   label: "Opiniones" },
     { id: "design",    label: "Diseño & Tema" },
     { id: "settings",  label: "Configuración" },
   ];
@@ -309,7 +311,7 @@ export default function EcommerceStorePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+      <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-xl w-fit max-w-full">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -317,6 +319,8 @@ export default function EcommerceStorePage() {
           </button>
         ))}
       </div>
+
+      {tab === "reviews" && <ReviewsModeration />}
 
       {/* ─── Overview ─── */}
       {tab === "overview" && (

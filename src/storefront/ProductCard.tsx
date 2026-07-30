@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { useStore, type StoreProduct } from "./storeContext";
+import { Stars } from "./ProductReviews";
 import { ShoppingBag } from "lucide-react";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
-  const { store, priceOf, fmt, addToCart } = useStore();
+  const { store, priceOf, fmt, addToCart, reviewsByProduct } = useStore();
   const base = `/tienda/${store?.slug ?? ""}`;
+  const opiniones = reviewsByProduct[p.id];
   const price = priceOf(p);
   const list = Number(p.sale_price_ars);
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
@@ -51,6 +53,17 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
         <Link to={`${base}/producto/${p.id}`} className="text-sm font-medium leading-snug line-clamp-2 hover:underline">
           {p.name}
         </Link>
+
+        {/* Sólo si hay opiniones: cinco estrellas vacías en un producto nuevo
+            transmiten lo contrario de lo que se busca. */}
+        {opiniones && (
+          <div className="mt-1 flex items-center gap-1">
+            <Stars value={opiniones.avg} size={12} />
+            <span className="text-[11px]" style={{ color: "hsl(var(--st-muted))" }}>
+              ({opiniones.count})
+            </span>
+          </div>
+        )}
 
         <div className="mt-2 flex items-baseline gap-2">
           <span className="text-base font-bold">{fmt(price)}</span>

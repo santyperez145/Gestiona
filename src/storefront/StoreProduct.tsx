@@ -8,6 +8,7 @@ import {
 } from "@/lib/scentTaxonomy";
 import { ChevronLeft, Minus, Plus, ShoppingBag, Check } from "lucide-react";
 import { trackViewItem, trackAddToCart } from "./tracking";
+import ProductReviews from "./ProductReviews";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -299,6 +300,8 @@ export default function StoreProduct() {
           )}
         </div>
       </div>
+
+      <ProductReviews productId={p.id} />
 
       {relacionados.length > 0 && (
         <section className="mt-14">

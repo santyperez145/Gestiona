@@ -12175,6 +12175,121 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          author_name: string
+          body: string | null
+          created_at: string
+          id: string
+          order_id: string | null
+          org_id: string
+          product_id: string
+          rating: number
+          replied_at: string | null
+          reply: string | null
+          status: string
+          store_customer_id: string | null
+          store_id: string
+          title: string | null
+        }
+        Insert: {
+          author_name: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          org_id: string
+          product_id: string
+          rating: number
+          replied_at?: string | null
+          reply?: string | null
+          status?: string
+          store_customer_id?: string | null
+          store_id: string
+          title?: string | null
+        }
+        Update: {
+          author_name?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          org_id?: string
+          product_id?: string
+          rating?: number
+          replied_at?: string | null
+          reply?: string | null
+          status?: string
+          store_customer_id?: string | null
+          store_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_store_customer_id_fkey"
+            columns: ["store_customer_id"]
+            isOneToOne: false
+            referencedRelation: "store_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           active: boolean
@@ -19766,6 +19881,10 @@ export type Database = {
         Args: { p_cost: number; p_life_years: number; p_salvage: number }
         Returns: number
       }
+      can_review_product: {
+        Args: { p_product_id: string; p_slug: string }
+        Returns: Json
+      }
       check_overdue_debts: { Args: never; Returns: undefined }
       check_rotting_deals: { Args: { p_org_id: string }; Returns: number }
       check_store_coupon: {
@@ -20149,6 +20268,20 @@ export type Database = {
           proyeccion: string
         }[]
       }
+      get_store_reviews: {
+        Args: { p_slug: string }
+        Returns: {
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          product_id: string
+          rating: number
+          reply: string
+          title: string
+          verified: boolean
+        }[]
+      }
       get_store_variants: {
         Args: { p_slug: string }
         Returns: {
@@ -20409,6 +20542,16 @@ export type Database = {
       }
       sync_segment_members: { Args: { p_segment_id: string }; Returns: number }
       unaccent: { Args: { "": string }; Returns: string }
+      upsert_product_review: {
+        Args: {
+          p_body?: string
+          p_product_id: string
+          p_rating: number
+          p_slug: string
+          p_title?: string
+        }
+        Returns: Json
+      }
       upsert_store_customer: {
         Args: { p_name?: string; p_phone?: string; p_slug: string }
         Returns: Json

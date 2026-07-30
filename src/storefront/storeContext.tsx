@@ -90,6 +90,8 @@ interface Ctx {
   perfumes: Record<string, PerfumeDetail>;
   /** Variantes con stock, agrupadas por producto. */
   variantsByProduct: Record<string, StoreVariant[]>;
+  /** Promedio y cantidad de reseñas publicadas, por producto. */
+  reviewsByProduct: Record<string, { avg: number; count: number }>;
   cart: CartLine[];
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
   setQty: (lineKey: string, qty: number) => void;
@@ -116,6 +118,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [perfumes, setPerfumes] = useState<Record<string, PerfumeDetail>>({});
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
+  const [reviewsByProduct, setReviewsByProduct] = useState<Record<string, { avg: number; count: number }>>({});
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -138,13 +141,14 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       }
       setStore(row);
 
-      const [pRes, dRes, vRes] = await Promise.all([
+      const [pRes, dRes, vRes, rRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
         fetchStoreProducts(row.org_id),
         supabase.rpc("get_store_perfume_details", { p_slug: slug }),
         fetchStoreVariants(slug),
+        supabase.rpc("get_store_reviews", { p_slug: slug }),
       ]);
       if (cancelled) return;
 
@@ -158,6 +162,18 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       const vmap: Record<string, StoreVariant[]> = {};
       (vRes ?? []).forEach(v => { (vmap[v.product_id] ??= []).push(v); });
       setVariantsByProduct(vmap);
+
+      // Promedio por producto, para la estrella de la grilla. Se calcula acá
+      // una vez en vez de por tarjeta.
+      const acum: Record<string, { suma: number; n: number }> = {};
+      ((rRes?.data ?? []) as { product_id: string; rating: number }[]).forEach(r => {
+        const a = (acum[r.product_id] ??= { suma: 0, n: 0 });
+        a.suma += Number(r.rating) || 0;
+        a.n += 1;
+      });
+      const rmap: Record<string, { avg: number; count: number }> = {};
+      Object.entries(acum).forEach(([id, a]) => { rmap[id] = { avg: a.suma / a.n, count: a.n }; });
+      setReviewsByProduct(rmap);
       setLoading(false);
     })().catch(() => {
       if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -278,7 +294,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
-      loading, notFound, store, products, perfumes, variantsByProduct, cart,
+      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, cart,
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
@@ -289,7 +305,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, store, products, perfumes, variantsByProduct, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
+  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
