@@ -81,19 +81,39 @@ export interface CatalogProduct {
 /**
  * Productos de una organización, para la tienda online.
  * Ordenados con los destacados primero, igual que antes.
+ *
+ * A diferencia del catálogo por WhatsApp, acá **sí** vienen los agotados: la
+ * ficha sigue existiendo (con su URL indexada) y ofrece avisar cuando vuelva.
+ * Esconderlos pierde la visita, el lugar en Google y la señal de demanda. La
+ * tienda los muestra al final y con el botón de compra cambiado.
  */
 export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[]> {
+  // `store_catalog_products` es igual a `catalog_products` pero sin exigir
+  // stock. Si la migración todavía no está aplicada se cae a la vieja: la
+  // tienda pierde los agotados, no los productos.
   const view = await supabase
-    .from('catalog_products')
+    .from('store_catalog_products')
     .select(PRODUCT_COLUMNS_WITH_DECANTS)
     .eq('org_id', orgId)
-    .gt('stock', 0)
     .order('featured', { ascending: false })
     .order('name');
 
   if (!view.error) return (view.data ?? []) as unknown as CatalogProduct[];
   if (!isMissingRelation(view.error)) {
-    console.error('[catálogo] error leyendo catalog_products:', view.error.message);
+    console.error('[catálogo] error leyendo store_catalog_products:', view.error.message);
+    return [];
+  }
+
+  warnFallback('store_catalog_products');
+  const previa = await supabase
+    .from('catalog_products')
+    .select(PRODUCT_COLUMNS_WITH_DECANTS)
+    .eq('org_id', orgId)
+    .order('featured', { ascending: false })
+    .order('name');
+  if (!previa.error) return (previa.data ?? []) as unknown as CatalogProduct[];
+  if (!isMissingRelation(previa.error)) {
+    console.error('[catálogo] error leyendo catalog_products:', previa.error.message);
     return [];
   }
 
@@ -102,7 +122,6 @@ export async function fetchStoreProducts(orgId: string): Promise<CatalogProduct[
     .from('products')
     .select(PRODUCT_COLUMNS)
     .eq('org_id', orgId)
-    .gt('stock', 0)
     .gt('sale_price_ars', 0)
     .order('featured', { ascending: false })
     .order('name');

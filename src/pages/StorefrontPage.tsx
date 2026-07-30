@@ -23,6 +23,7 @@ import StoreOrder from "@/storefront/StoreOrder";
 import StoreAccount from "@/storefront/StoreAccount";
 import StoreCartRecovery from "@/storefront/StoreCartRecovery";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
+import { WishlistProvider } from "@/storefront/wishlist";
 import { Store, Loader2 } from "lucide-react";
 import { initTracking, trackPageView } from "@/storefront/tracking";
 
@@ -108,7 +109,9 @@ export default function StorefrontPage() {
   return (
     <StoreProvider slug={slug}>
       <StoreAuthProvider slug={slug}>
-        <StoreShell />
+        <WishlistProvider slug={slug}>
+          <StoreShell />
+        </WishlistProvider>
       </StoreAuthProvider>
     </StoreProvider>
   );

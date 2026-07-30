@@ -1,12 +1,15 @@
 import { Link } from "react-router-dom";
 import { useStore, type StoreProduct } from "./storeContext";
 import { Stars } from "./ProductReviews";
-import { ShoppingBag } from "lucide-react";
+import { useWishlist } from "./wishlist";
+import { ShoppingBag, Heart } from "lucide-react";
 
 export default function ProductCard({ p }: { p: StoreProduct }) {
   const { store, priceOf, fmt, addToCart, reviewsByProduct } = useStore();
   const base = `/tienda/${store?.slug ?? ""}`;
   const opiniones = reviewsByProduct[p.id];
+  const { has, toggle } = useWishlist();
+  const deseado = has(p.id);
   const price = priceOf(p);
   const list = Number(p.sale_price_ars);
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
@@ -36,14 +39,35 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
             −{off}%
           </span>
         )}
-        {p.stock <= 3 && (
+        {/* El corazón va sobre la imagen pero fuera del <Link>: adentro,
+            cada clic navegaría a la ficha además de guardar. */}
+        <button
+          onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(p.id); }}
+          aria-label={deseado ? "Quitar de mis deseos" : "Guardar en mis deseos"}
+          aria-pressed={deseado}
+          className="absolute bottom-2 right-2 p-2 rounded-full bg-white/85 hover:bg-white transition-colors"
+        >
+          <Heart
+            className={`w-4 h-4 ${deseado ? "fill-current" : ""}`}
+            style={{ color: deseado ? "hsl(var(--st-accent))" : "#555" }}
+          />
+        </button>
+
+        {p.stock <= 0 ? (
+          <span
+            className="absolute top-2 right-2 px-2 py-0.5 text-[11px] font-medium bg-black/70 text-white"
+            style={{ borderRadius: "var(--st-radius)" }}
+          >
+            Sin stock
+          </span>
+        ) : p.stock <= 3 ? (
           <span
             className="absolute top-2 right-2 px-2 py-0.5 text-[11px] font-medium bg-black/70 text-white"
             style={{ borderRadius: "var(--st-radius)" }}
           >
             ¡Últimas {p.stock}!
           </span>
-        )}
+        ) : null}
       </Link>
 
       <div className="p-3 flex flex-col flex-1">
@@ -72,13 +96,23 @@ export default function ProductCard({ p }: { p: StoreProduct }) {
           )}
         </div>
 
-        <button
-          onClick={() => addToCart(p)}
-          className="mt-3 w-full py-2 text-sm font-medium transition-opacity hover:opacity-90"
-          style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
-        >
-          Agregar
-        </button>
+        {p.stock > 0 ? (
+          <button
+            onClick={() => addToCart(p)}
+            className="mt-3 w-full py-2 text-sm font-medium transition-opacity hover:opacity-90"
+            style={{ background: "hsl(var(--st-accent))", color: "hsl(var(--st-accent-fg))", borderRadius: "var(--st-radius)" }}
+          >
+            Agregar
+          </button>
+        ) : (
+          <Link
+            to={`${base}/producto/${p.id}`}
+            className="mt-3 w-full py-2 text-sm font-medium text-center border"
+            style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+          >
+            Avisame cuando vuelva
+          </Link>
+        )}
       </div>
     </div>
   );

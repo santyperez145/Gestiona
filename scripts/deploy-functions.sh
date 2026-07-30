@@ -92,7 +92,7 @@ NO_JWT=(
   "check-overdue-debts" "check-stock-alerts" "daily-kpi-alert"
   "weekly-performance-digest" "send-scheduled-campaigns"
   "auto-recurring-expenses" "customer-reactivation-alerts" "fetch-usd-rate"
-  "recover-abandoned-carts" "send-drip-emails" "send-birthday-whatsapp"
+  "recover-abandoned-carts" "notify-back-in-stock" "send-drip-emails" "send-birthday-whatsapp"
   "daily-whatsapp-digest" "send-push"
 )
 

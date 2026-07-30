@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useWishlist } from "./wishlist";
+import ProductCard from "./ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
-import { User, Loader2, LogOut, Package, MailCheck } from "lucide-react";
+import { User, Loader2, LogOut, Package, MailCheck, Heart } from "lucide-react";
 
 interface Pedido {
   order_number: string;
@@ -29,7 +31,7 @@ const ESTADO_ENVIO: Record<string, string> = {
 };
 
 export default function StoreAccount() {
-  const { store, fmt } = useStore();
+  const { store, products, fmt } = useStore();
   const { loading, customer, signIn, signUp, signOut, resetPassword } = useStoreAuth();
   const base = `/tienda/${store?.slug ?? ""}`;
 
@@ -39,6 +41,10 @@ export default function StoreAccount() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
+  const deseos = useWishlist();
+  // Los deseos son ids: se cruzan con el catálogo ya cargado en vez de pedir
+  // los productos de nuevo.
+  const deseados = products.filter(x => deseos.has(x.id));
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
 
@@ -237,6 +243,24 @@ export default function StoreAccount() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Lista de deseos ─────────────────────────────────────────── */}
+      <h2 className="font-semibold mt-10 mb-3">Mi lista de deseos</h2>
+      {deseados.length === 0 ? (
+        <div
+          className="border p-8 text-center"
+          style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+        >
+          <Heart className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+            Tocá el corazón en cualquier producto para guardarlo acá.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {deseados.map(prod => <ProductCard key={prod.id} p={prod} />)}
         </div>
       )}
     </div>

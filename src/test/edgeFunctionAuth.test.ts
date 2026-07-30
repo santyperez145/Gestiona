@@ -43,6 +43,7 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'customer-reactivation-alerts': 'cron',
   'auto-recurring-expenses': 'cron',
   'recover-abandoned-carts': 'cron',
+  'notify-back-in-stock': 'cron',
   'execute-automations': 'cron',
   'run-automation-flows': 'cron',
   'fetch-usd-rate': 'cron',

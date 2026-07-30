@@ -9,12 +9,17 @@ export default function StoreHome() {
   const { store, products, banners, priceOf, fmt } = useStore();
   const base = `/tienda/${store?.slug ?? ""}`;
 
-  const destacados = products.filter(p => p.featured).slice(0, 8);
-  const ofertas = products
+  // Las vitrinas de la home son curadas: ofrecer un agotado en "Destacados"
+  // es prometer algo que no se puede cumplir. En el listado completo sí
+  // aparecen, con el aviso de reposición.
+  const disponibles = products.filter(p => Number(p.stock) > 0);
+
+  const destacados = disponibles.filter(p => p.featured).slice(0, 8);
+  const ofertas = disponibles
     .filter(p => priceOf(p) < Number(p.sale_price_ars))
     .sort((a, b) => (1 - priceOf(b) / Number(b.sale_price_ars)) - (1 - priceOf(a) / Number(a.sale_price_ars)))
     .slice(0, 8);
-  const nuevos = [...products]
+  const nuevos = [...disponibles]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
 

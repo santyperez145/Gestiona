@@ -183,7 +183,13 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       ]);
       if (cancelled) return;
 
-      setProducts((pRes ?? []) as unknown as StoreProduct[]);
+      // Los agotados se muestran, pero últimos: la tienda tiene que verse
+      // llena de lo que sí se puede comprar.
+      const lista = (pRes ?? []) as unknown as StoreProduct[];
+      setProducts([
+        ...lista.filter(x => Number(x.stock) > 0),
+        ...lista.filter(x => Number(x.stock) <= 0),
+      ]);
       const map: Record<string, PerfumeDetail> = {};
       ((dRes.data ?? []) as PerfumeDetail[]).forEach(d => { map[d.product_id] = d; });
       setPerfumes(map);

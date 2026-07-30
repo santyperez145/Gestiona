@@ -6,13 +6,16 @@ import { getCategoryLabel } from "@/lib/supabaseStore";
 import {
   FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, taxLabel,
 } from "@/lib/scentTaxonomy";
-import { ChevronLeft, Minus, Plus, ShoppingBag, Check } from "lucide-react";
+import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart } from "lucide-react";
 import { trackViewItem, trackAddToCart } from "./tracking";
 import ProductReviews from "./ProductReviews";
+import StockAlertForm from "./StockAlertForm";
+import { useWishlist } from "./wishlist";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
   const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart } = useStore();
+  const deseos = useWishlist();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
@@ -162,7 +165,9 @@ export default function StoreProduct() {
           </div>
 
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-            {stockEfectivo > 3 ? "En stock" : `¡Últimas ${stockEfectivo} unidades!`}
+            {stockEfectivo <= 0 ? "Sin stock"
+              : stockEfectivo > 3 ? "En stock"
+              : `¡Últimas ${stockEfectivo} unidades!`}
           </p>
 
           {variantes.length > 0 && (
@@ -206,6 +211,9 @@ export default function StoreProduct() {
             </div>
           )}
 
+          {stockEfectivo <= 0 ? (
+            <StockAlertForm productId={p.id} variantId={variantId} />
+          ) : (
           <div className="flex items-center gap-3 mt-6">
             <div className="flex items-center border" style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}>
               <button className="px-3 py-2.5" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Restar">
@@ -229,7 +237,20 @@ export default function StoreProduct() {
             >
               {added ? <><Check className="w-4 h-4" /> Agregado</> : <><ShoppingBag className="w-4 h-4" /> Agregar al carrito</>}
             </button>
+            <button
+              onClick={() => deseos.toggle(p.id)}
+              aria-label={deseos.has(p.id) ? "Quitar de mis deseos" : "Guardar en mis deseos"}
+              aria-pressed={deseos.has(p.id)}
+              className="p-3 border transition-colors"
+              style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+            >
+              <Heart
+                className={`w-4 h-4 ${deseos.has(p.id) ? "fill-current" : ""}`}
+                style={{ color: deseos.has(p.id) ? "hsl(var(--st-accent))" : "inherit" }}
+              />
+            </button>
           </div>
+          )}
 
           {p.description && (
             <p className="mt-6 text-sm leading-relaxed whitespace-pre-line" style={{ color: "hsl(var(--st-muted))" }}>
