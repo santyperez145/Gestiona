@@ -27,8 +27,13 @@ else
 fi
 
 # Sin token no hay deploy posible: mejor avisar antes de intentar 56 veces.
-if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && [ ! -f "$HOME/.supabase/access-token" ]; then
-  echo "ERROR: falta autenticacion."
+#
+# Se le pregunta AL CLI en vez de buscar el token en el disco: segun el sistema
+# lo guarda en un keyring y no en ~/.supabase/access-token, asi que buscar ese
+# archivo daba "falta autenticacion" a un usuario perfectamente logueado.
+echo "[0/3] Verificando autenticacion..."
+if ! $SB projects list > /dev/null 2>&1; then
+  echo "ERROR: el CLI no esta autenticado."
   echo "  Opcion A: correr 'npx supabase login' (abre el navegador)."
   echo "  Opcion B: exportar SUPABASE_ACCESS_TOKEN."
   exit 1

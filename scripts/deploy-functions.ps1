@@ -83,14 +83,17 @@ function Invoke-SB {
 }
 
 # Sin token no hay deploy posible: mejor decirlo antes de intentar 56 veces.
-if (-not $env:SUPABASE_ACCESS_TOKEN) {
-    $logueado = Test-Path (Join-Path $env:USERPROFILE ".supabase\access-token")
-    if (-not $logueado) {
-        Write-Host "ERROR: falta autenticacion." -ForegroundColor Red
-        Write-Host "  Opcion A: correr 'npx supabase login' (abre el navegador)." -ForegroundColor Red
-        Write-Host "  Opcion B: poner SUPABASE_ACCESS_TOKEN como variable de usuario." -ForegroundColor Red
-        exit 1
-    }
+#
+# Se le pregunta AL CLI en vez de buscar el token en el disco: en Windows lo
+# guarda en el keyring del sistema, no en ~/.supabase/access-token. Buscar ese
+# archivo daba "falta autenticacion" a un usuario perfectamente logueado.
+Write-Host "[0/3] Verificando autenticacion..." -ForegroundColor Yellow
+$null = Invoke-SB @("projects", "list") 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: el CLI no esta autenticado." -ForegroundColor Red
+    Write-Host "  Opcion A: correr 'npx supabase login' (abre el navegador)." -ForegroundColor Red
+    Write-Host "  Opcion B: poner SUPABASE_ACCESS_TOKEN como variable de usuario." -ForegroundColor Red
+    exit 1
 }
 
 # Vincular proyecto
