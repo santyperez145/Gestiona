@@ -73,6 +73,33 @@ Deno.serve(async (req) => {
       currency_id: "ARS",
     }));
 
+    // ── Comisión de la plataforma ────────────────────────────────────────
+    //
+    // `marketplace_fee` es lo que hace que la comisión se COBRE y no sólo se
+    // anote: MercadoPago la separa al acreditar y la manda a la cuenta de la
+    // aplicación. Sin esto, `payment_transactions` registraba una comisión que
+    // nunca salía de la cuenta del comercio.
+    //
+    // Sólo aplica con credenciales OAuth: ahí existe la relación marketplace
+    // entre la app y el vendedor. Con un token pegado a mano no hay tal
+    // relación y MercadoPago rechaza la preferencia, así que se omite — mejor
+    // cobrar sin comisión que no poder cobrar.
+    let marketplaceFee = 0;
+    if (creds.source === "oauth") {
+      try {
+        const { data: fee } = await admin.rpc("platform_commission_amount", {
+          p_org_id: store.org_id,
+          p_gross: Number(order.total),
+          p_channel: "online",
+        });
+        marketplaceFee = Number(fee) || 0;
+      } catch (e) {
+        // Una falla acá no puede frenar la venta: se cobra sin comisión y queda
+        // el registro para reconciliar.
+        console.error("platform_commission_amount:", e);
+      }
+    }
+
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
@@ -86,6 +113,7 @@ Deno.serve(async (req) => {
           unit_price: Number(order.total),
           currency_id: "ARS",
         }],
+        ...(marketplaceFee > 0 ? { marketplace_fee: marketplaceFee } : {}),
         payer: { name: order.customer_name, email: order.customer_email },
         // El prefijo `ecom:` le dice al webhook que esto es una orden de la
         // tienda y no un link de pago suelto.

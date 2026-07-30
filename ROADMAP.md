@@ -76,7 +76,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Deudas y cuotas | Anda | — |
 | Finanzas y P&L | Anda | — |
 | Tienda online | Anda | Ver §5 |
-| Cobro online (MercadoPago OAuth) | Anda | Comisión de plataforma (`marketplace_fee`) |
+| Cobro online (MercadoPago OAuth) | Anda | — (`marketplace_fee` ya se aplica; sólo con OAuth, no con token pegado a mano) |
 | Envíos por zona / Correo Argentino / Andreani | Parcial | **Los payloads siguen la doc publicada, sin verificar contra un contrato real.** Falta etiqueta y tracking |
 | Cuentas de comprador | Anda | — |
 | Carritos abandonados | Anda | Requiere `RESEND_API_KEY` |
