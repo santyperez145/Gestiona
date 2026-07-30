@@ -79,7 +79,19 @@ if (Get-Command supabase -ErrorAction SilentlyContinue) {
 
 function Invoke-SB {
     param([string[]]$Arguments)
-    & $SB[0] @($SB[1..($SB.Count - 1)] + $Arguments)
+    # OJO con el rango: `$SB[1..($SB.Count - 1)]` con un solo elemento es
+    # `$SB[1..0]`, y PowerShell devuelve los rangos descendentes AL REVES —
+    # o sea `$null, 'supabase'`. Eso hacia ejecutar `supabase "" supabase ...`,
+    # que fallaba, y el script lo reportaba como "no estas autenticado".
+    # Pasa justo en el camino mas comun: bajo `npm run`, npm pone
+    # node_modules/.bin en el PATH, asi que `Get-Command supabase` lo encuentra
+    # y $SB queda con un unico elemento.
+    $prefijo = if ($SB.Count -gt 1) { $SB[1..($SB.Count - 1)] } else { @() }
+    # `@(...)` es subexpresion de array, NO splatting: pasaba todo junto como un
+    # unico argumento y el CLI recibia el subcomando "projects list" en vez de
+    # "projects" y "list". Para splatear hace falta `@variable`.
+    $argumentos = @($prefijo) + @($Arguments)
+    & $SB[0] @argumentos
 }
 
 # Sin token no hay deploy posible: mejor decirlo antes de intentar 56 veces.
@@ -88,13 +100,18 @@ function Invoke-SB {
 # guarda en el keyring del sistema, no en ~/.supabase/access-token. Buscar ese
 # archivo daba "falta autenticacion" a un usuario perfectamente logueado.
 Write-Host "[0/3] Verificando autenticacion..." -ForegroundColor Yellow
-$null = Invoke-SB @("projects", "list") 2>&1
+$authOut = Invoke-SB @("projects", "list") 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: el CLI no esta autenticado." -ForegroundColor Red
-    Write-Host "  Opcion A: correr 'npx supabase login' (abre el navegador)." -ForegroundColor Red
-    Write-Host "  Opcion B: poner SUPABASE_ACCESS_TOKEN como variable de usuario." -ForegroundColor Red
+    # Se muestra la salida real: colapsar cualquier falla en "no estas
+    # autenticado" ya mando una vez a buscar un problema de login cuando lo que
+    # fallaba era como se invocaba el CLI.
+    Write-Host "ERROR: no se pudo consultar el CLI. Salida:" -ForegroundColor Red
+    $authOut | Select-Object -First 8 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+    Write-Host "  Si dice que falta login: 'npx supabase login', o poner" -ForegroundColor Red
+    Write-Host "  SUPABASE_ACCESS_TOKEN como variable de usuario." -ForegroundColor Red
     exit 1
 }
+Write-Host "  OK" -ForegroundColor Green
 
 # Vincular proyecto
 Write-Host "[1/3] Vinculando proyecto..." -ForegroundColor Yellow
