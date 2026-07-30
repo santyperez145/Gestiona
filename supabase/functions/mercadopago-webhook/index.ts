@@ -61,11 +61,18 @@ function mapMethod(mpType: string): string {
 }
 
 /**
- * Guarda el cobro con el desglose completo. Es idempotente por
- * (provider, external_id): MercadoPago reintenta el mismo webhook varias veces
- * y no podemos contar la misma comisión dos veces.
+ * Registra el cobro con su desglose de comisiones delegando en el RPC
+ * `record_payment_settlement`.
  *
- * Espeja `src/lib/paymentFees.ts` — si cambia la fórmula, cambian los dos.
+ * Antes esta cuenta estaba duplicada acá en TypeScript. Dos copias de la misma
+ * fórmula de plata terminan divergiendo — y de hecho divergieron: esta copia
+ * detectaba el canal con el prefijo `order:`, que es el que usaba un checkout
+ * que se descartó, mientras `store-pay` usa `ecom:`. Resultado: cada venta de
+ * la tienda online se liquidaba con la regla de comisión del local.
+ *
+ * Ahora la única implementación server-side vive en SQL (migración
+ * 20260731000002), espejo del módulo puro `src/lib/paymentFees.ts` que usa el
+ * front. El RPC es idempotente por (provider, external_id).
  */
 async function recordPaymentTransaction(
   admin: ReturnType<typeof createClient>,
@@ -82,110 +89,35 @@ async function recordPaymentTransaction(
   if (!orgId || gross <= 0) return;
 
   try {
-    const method = mapMethod(payment.payment_type_id || "");
-    const installments = Number(payment.installments) || 0;
-    const currency = payment.currency_id || "ARS";
-
-    // 1. Arancel: preferimos lo que MP dice que cobró de verdad
-    const mpFee = (payment.fee_details || [])
-      .filter((f: any) => f.type === "mercadopago_fee")
-      .reduce((sum: number, f: any) => sum + (Number(f.amount) || 0), 0);
-
-    const { data: feeRows } = await admin
-      .from("payment_provider_fees")
-      .select("*")
-      .eq("provider", "mercadopago")
-      .eq("currency", currency)
-      .lte("effective_from", new Date().toISOString().slice(0, 10))
-      .order("effective_from", { ascending: false });
-
-    const schedule = (feeRows || []) as any[];
-    const feeRow =
-      schedule.find((f) => f.method === method && f.installments === installments) ||
-      schedule.find((f) => f.method === method && f.installments === 0) ||
-      schedule.find((f) => f.method === "default") ||
-      null;
-
-    const providerFee = mpFee > 0
-      ? round2(mpFee)
-      : feeRow
-        ? round2(gross * (Number(feeRow.percent_fee) || 0) / 100 + (Number(feeRow.fixed_fee) || 0))
-        : 0;
-    const providerFeeIva = round2(providerFee * (Number(feeRow?.iva_on_fee_pct) || 0) / 100);
-
-    // 2. Comisión de plataforma: regla más específica (org > plan > default)
-    const { data: org } = await admin
-      .from("organizations").select("plan_id").eq("id", orgId).maybeSingle();
-    const planId = (org as any)?.plan_id || null;
-
-    const { data: ruleRows } = await admin
-      .from("platform_commission_rules")
-      .select("*")
-      .eq("is_active", true);
-
-    const channel = externalRef.startsWith("order:") ? "online" : "pos";
-    const candidates = ((ruleRows || []) as any[]).filter((r) => {
-      if (r.applies_to !== "all" && r.applies_to !== channel) return false;
-      if (r.org_id && r.org_id !== orgId) return false;
-      if (r.plan_id && r.plan_id !== planId) return false;
-      return true;
-    });
-    const score = (r: any) =>
-      (r.org_id ? 4 : 0) + (r.plan_id ? 2 : 0) + (r.applies_to !== "all" ? 1 : 0);
-    const rule = candidates.length
-      ? candidates.reduce((best, r) => (score(r) > score(best) ? r : best), candidates[0])
-      : null;
-
-    let platformFee = 0;
-    if (rule) {
-      platformFee = gross * (Number(rule.percent) || 0) / 100 + (Number(rule.fixed) || 0);
-      if (rule.max_per_transaction != null) {
-        platformFee = Math.min(platformFee, Number(rule.max_per_transaction));
-      }
-      if (rule.min_per_transaction) {
-        platformFee = Math.max(platformFee, Number(rule.min_per_transaction));
-      }
-      platformFee = round2(Math.min(platformFee, gross));
-    }
-
-    const net = round2(Math.max(0, gross - providerFee - providerFeeIva - platformFee));
-
-    const releaseDays = Number(feeRow?.release_days) || 0;
-    const expectedRelease = new Date();
-    expectedRelease.setDate(expectedRelease.getDate() + releaseDays);
-
-    // `source_id` sólo si el external_ref trae un uuid identificable
+    // El prefijo del external_reference define el canal, y el canal define qué
+    // regla de comisión aplica. `store-pay` marca sus preferencias con "ecom:".
+    const isStoreOrder = externalRef.startsWith("ecom:") || externalRef.startsWith("order:");
     const refId = externalRef.includes(":") ? externalRef.split(":")[1] : externalRef;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId);
 
-    await admin.from("payment_transactions").upsert({
-      org_id: orgId,
-      source: externalRef.startsWith("order:") ? "ecommerce" : "payment_link",
-      source_id: isUuid ? refId : null,
-      provider: "mercadopago",
-      method,
-      installments,
-      gross_amount: round2(gross),
-      provider_fee: providerFee,
-      provider_fee_iva: providerFeeIva,
-      platform_fee: platformFee,
-      net_amount: net,
-      currency,
-      status: mapStatus(status),
-      external_id: paymentId,
-      expected_release_at: expectedRelease.toISOString().slice(0, 10),
-      released_at: status === "approved" && releaseDays === 0 ? new Date().toISOString() : null,
-      raw: {
-        status_detail: payment.status_detail,
-        payment_type_id: payment.payment_type_id,
-        fee_details: payment.fee_details,
-        external_reference: externalRef,
-      },
-    }, { onConflict: "provider,external_id" });
+    // MP informa lo que efectivamente cobró: ese número gana sobre el tarifario.
+    const actualFee = (payment.fee_details || [])
+      .filter((f: any) => f.type === "mercadopago_fee")
+      .reduce((sum: number, f: any) => sum + (Number(f.amount) || 0), 0);
+
+    const { error } = await admin.rpc("record_payment_settlement", {
+      p_org_id: orgId,
+      p_source: isStoreOrder ? "ecommerce" : "payment_link",
+      p_source_id: isUuid ? refId : null,
+      p_provider: "mercadopago",
+      p_method: mapMethod(payment.payment_type_id || ""),
+      p_installments: Number(payment.installments) || 0,
+      p_gross: round2(gross),
+      p_external_id: paymentId,
+      p_actual_fee: actualFee > 0 ? round2(actualFee) : null,
+      p_currency: payment.currency_id || "ARS",
+      p_status: mapStatus(status),
+    });
+    if (error) throw error;
   } catch (e) {
     // No romper el webhook por esto: el pago ya está confirmado y MP no debe
     // reintentar. Queda en logs para reconciliar después.
-    console.error(`recordPaymentTransaction falló para ${paymentId}:`, e);
+    console.error(`record_payment_settlement falló para ${paymentId}:`, e);
   }
 }
 

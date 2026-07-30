@@ -24,6 +24,10 @@ export interface StoreInfo {
   payment_methods: string[] | null;
   shipping_cost: number | null;
   free_shipping_above: number | null;
+  /** 'flat' | 'zones' | 'free' — decide si el checkout cotiza por zona y peso */
+  shipping_mode: string | null;
+  pickup_enabled: boolean | null;
+  pickup_address: string | null;
   meta_title: string | null;
   meta_description: string | null;
   social_links: Record<string, string> | null;
@@ -124,8 +128,11 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       setStore(row);
 
       const [pRes, dRes] = await Promise.all([
+        // `catalog_products` y no `products`: la vista pública filtra a tiendas
+        // activas y no expone costos ni márgenes. La tabla cruda ya no es
+        // legible para un visitante anónimo (migración 20260731000001).
         supabase
-          .from("products")
+          .from("catalog_products")
           .select("id,name,brand,category,gender,description,sale_price_ars,discount_price_ars,stock,image_url,image_urls,content_ml,featured,total_sold,created_at")
           .eq("org_id", row.org_id)
           .gt("stock", 0)

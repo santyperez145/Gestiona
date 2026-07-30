@@ -3,7 +3,22 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { useStoreAuth } from "./storeAuth";
-import { Loader2, ShoppingBag, Lock, Tag } from "lucide-react";
+import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
+import { AR_PROVINCES } from "@/lib/shippingCalc";
+
+/** Fila que devuelve el RPC `quote_store_shipping`. */
+interface ShippingOption {
+  option_id: string;
+  carrier: string;
+  service: string;
+  label: string;
+  price: number;
+  is_free: boolean;
+  days_min: number | null;
+  days_max: number | null;
+  zone_id: string | null;
+  zone_name: string | null;
+}
 
 const METODO_LABEL: Record<string, string> = {
   mercadopago: "MercadoPago",
@@ -70,8 +85,74 @@ export default function StoreCheckout() {
     setCuponAplicado({ code: res.code, discount: Number(res.discount) || 0 });
   };
 
+  // ── Envío ───────────────────────────────────────────────────────────────
+  // La tienda puede cotizar por zona y peso, no sólo un precio plano. Las
+  // opciones y sus precios los calcula el servidor: acá sólo se eligen.
+  const [opciones, setOpciones] = useState<ShippingOption[]>([]);
+  const [opcionElegida, setOpcionElegida] = useState<string | null>(null);
+  const [cotizando, setCotizando] = useState(false);
+  const [envioAviso, setEnvioAviso] = useState<string | null>(null);
+
+  const porZona = store?.shipping_mode === "zones";
+
+  useEffect(() => {
+    if (!store) return;
+    // Sin provincia no hay zona que resolver. En modo plano o gratis se cotiza
+    // igual, para que el resumen muestre el mismo número que va a cobrar el RPC.
+    if (porZona && !form.provincia) {
+      setOpciones([]); setOpcionElegida(null); setEnvioAviso(null);
+      return;
+    }
+
+    let cancelado = false;
+    setCotizando(true);
+    setEnvioAviso(null);
+
+    supabase.rpc("quote_store_shipping", {
+      p_slug: store.slug,
+      p_province: form.provincia || null,
+      p_postal_code: form.cp || null,
+      p_items: cart.map(l => ({ product_id: l.productId, quantity: l.qty })),
+    }).then(({ data, error: err }) => {
+      if (cancelado) return;
+      setCotizando(false);
+      const lista = (Array.isArray(data) ? data : []) as ShippingOption[];
+      setOpciones(lista);
+
+      if (err) {
+        setEnvioAviso("No pudimos calcular el envío. Probá de nuevo en un momento.");
+        return;
+      }
+      if (lista.length === 0) {
+        setEnvioAviso(
+          porZona
+            ? "Todavía no hacemos envíos a esa provincia."
+            : null,
+        );
+        setOpcionElegida(null);
+        return;
+      }
+      // Preseleccionar la más barata: es lo que el RPC va a elegir si no se
+      // manda ninguna, así el resumen y el cobro coinciden.
+      setOpcionElegida(prev =>
+        prev && lista.some(o => o.option_id === prev) ? prev : lista[0].option_id);
+    }, () => {
+      if (cancelado) return;
+      setCotizando(false);
+      setEnvioAviso("No pudimos calcular el envío. Probá de nuevo en un momento.");
+    });
+
+    return () => { cancelado = true; };
+  // `cart` se serializa para no recotizar en cada render por identidad de array
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store?.slug, form.provincia, form.cp, porZona, JSON.stringify(cart.map(l => [l.productId, l.qty]))]);
+
+  const opcion = opciones.find(o => o.option_id === opcionElegida) ?? null;
+  // Mientras no haya cotización se usa el costo del contexto, que es el plano.
+  const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
+
   const descuento = cuponAplicado?.discount ?? 0;
-  const totalFinal = Math.max(0, subtotal - descuento) + shippingCost;
+  const totalFinal = Math.max(0, subtotal - descuento) + envio;
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -111,6 +192,9 @@ export default function StoreCheckout() {
       // El RPC revalida el cupón: entre que se escribió y se confirma pudo
       // agotarse o vencer.
       p_coupon: cuponAplicado?.code ?? null,
+      // Se manda CUÁL opción eligió, no cuánto cuesta: el precio lo recalcula
+      // el RPC contra las tarifas de la tienda.
+      p_shipping_option: opcionElegida,
     });
 
     setEnviando(false);
@@ -201,13 +285,94 @@ export default function StoreCheckout() {
                 <input value={form.ciudad} onChange={e => set("ciudad", e.target.value)} className={input} style={inputStyle} />
               </label>
               <label>
-                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Provincia</span>
-                <input value={form.provincia} onChange={e => set("provincia", e.target.value)} className={input} style={inputStyle} />
+                <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                  Provincia {porZona && "*"}
+                </span>
+                {/* Selector y no texto libre: la zona de envío se resuelve por
+                    código de provincia, y "Bs As" no matchea con nada. */}
+                <select
+                  required={porZona}
+                  value={form.provincia}
+                  onChange={e => set("provincia", e.target.value)}
+                  className={input}
+                  style={inputStyle}
+                >
+                  <option value="">Elegí tu provincia</option>
+                  {AR_PROVINCES.map(p => (
+                    <option key={p.code} value={p.code}>{p.name}</option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>Código postal</span>
                 <input value={form.cp} onChange={e => set("cp", e.target.value)} className={input} style={inputStyle} inputMode="numeric" />
               </label>
+            </div>
+
+            {/* Opciones de envío cotizadas por el servidor */}
+            <div className="mt-3 space-y-2">
+              {cotizando && (
+                <p className="text-xs flex items-center gap-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+                  <Loader2 className="w-3 h-3 animate-spin" /> Calculando el envío…
+                </p>
+              )}
+
+              {envioAviso && (
+                <p className="text-xs px-3 py-2 border" style={{ ...inputStyle, borderColor: "hsl(var(--st-border))" }}>
+                  {envioAviso}
+                </p>
+              )}
+
+              {porZona && !form.provincia && !cotizando && (
+                <p className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                  Elegí tu provincia para ver las formas de envío y su costo.
+                </p>
+              )}
+
+              {opciones.length > 1 && opciones.map(o => (
+                <label
+                  key={o.option_id}
+                  className="flex items-center gap-3 px-3 py-2.5 border cursor-pointer"
+                  style={{
+                    ...inputStyle,
+                    borderColor: opcionElegida === o.option_id
+                      ? "hsl(var(--st-accent))"
+                      : "hsl(var(--st-border))",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="envio"
+                    checked={opcionElegida === o.option_id}
+                    onChange={() => setOpcionElegida(o.option_id)}
+                  />
+                  <Truck className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--st-muted))" }} />
+                  <span className="flex-1 min-w-0">
+                    <span className="text-sm block truncate">{o.label}</span>
+                    {o.days_min != null && (
+                      <span className="text-xs" style={{ color: "hsl(var(--st-muted))" }}>
+                        {o.days_min}–{o.days_max ?? "?"} días hábiles
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm font-medium shrink-0">
+                    {o.is_free || Number(o.price) === 0 ? "Gratis" : fmt(Number(o.price))}
+                  </span>
+                </label>
+              ))}
+
+              {/* Una sola opción: no se hace elegir, se informa */}
+              {opciones.length === 1 && (
+                <p className="text-xs flex items-center gap-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+                  <Truck className="w-3 h-3" />
+                  {opciones[0].label}
+                  {opciones[0].days_min != null && ` · ${opciones[0].days_min}–${opciones[0].days_max ?? "?"} días hábiles`}
+                  {" · "}
+                  {opciones[0].is_free || Number(opciones[0].price) === 0
+                    ? "Gratis"
+                    : fmt(Number(opciones[0].price))}
+                </p>
+              )}
             </div>
           </section>
 
@@ -315,8 +480,13 @@ export default function StoreCheckout() {
               </div>
             )}
             <div className="flex justify-between">
-              <span style={{ color: "hsl(var(--st-muted))" }}>Envío</span>
-              <span>{shippingCost === 0 ? "Gratis" : fmt(shippingCost)}</span>
+              <span style={{ color: "hsl(var(--st-muted))" }}>
+                Envío
+                {opcion && (
+                  <span className="block text-[11px] truncate max-w-[160px]">{opcion.label}</span>
+                )}
+              </span>
+              <span>{envio === 0 ? "Gratis" : fmt(envio)}</span>
             </div>
             <div className="flex justify-between font-semibold text-base pt-1">
               <span>Total</span><span>{fmt(totalFinal)}</span>

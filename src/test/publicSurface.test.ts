@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
@@ -15,12 +15,29 @@ import { resolve } from 'node:path';
  * real es RLS — esto evita que alguien la intente esquivar sin darse cuenta.
  */
 
-const PUBLIC_PAGES = [
-  'src/pages/PublicCatalogPage.tsx',
-  'src/pages/PublicPaymentPage.tsx',
-  'src/pages/StorefrontPage.tsx',
-  'src/pages/InfluencerPortalPage.tsx',
-];
+/**
+ * Toda la superficie anónima. `src/storefront/` se enumera completo a propósito:
+ * la primera versión de este test sólo miraba `src/pages` y se le pasó que
+ * `storeContext.tsx` leía la tabla `products` cruda. Con la política cerrada eso
+ * habría dejado la tienda sin un solo producto en producción.
+ */
+function publicSources(): string[] {
+  const fijos = [
+    'src/pages/PublicCatalogPage.tsx',
+    'src/pages/PublicPaymentPage.tsx',
+    'src/pages/StorefrontPage.tsx',
+    'src/pages/InfluencerPortalPage.tsx',
+  ];
+  const dir = resolve(process.cwd(), 'src/storefront');
+  const storefront = existsSync(dir)
+    ? readdirSync(dir)
+        .filter(f => /\.(tsx?|ts)$/.test(f))
+        .map(f => `src/storefront/${f}`)
+    : [];
+  return [...fijos, ...storefront];
+}
+
+const PUBLIC_PAGES = publicSources();
 
 /** Columnas que nunca pueden salir a una superficie pública. */
 const FORBIDDEN_COLUMNS = [
