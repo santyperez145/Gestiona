@@ -11,29 +11,17 @@ import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Shield, Loader2, RotateCcw, Eye, Plus, Pencil, Trash2, Download, Lock } from "lucide-react";
-import { defaultsForRole } from "@/lib/usePermissions";
+import { defaultsForRole, PERMISSION_MODULES, PERMISSION_MODULE_LABEL } from "@/lib/usePermissions";
 import type { AppRole } from "@/lib/useUserRole";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const MODULES: { value: string; label: string }[] = [
-  { value: "sales", label: "Ventas" },
-  { value: "pos", label: "POS" },
-  { value: "products", label: "Productos" },
-  { value: "customers", label: "Clientes" },
-  { value: "crm", label: "CRM" },
-  { value: "reports", label: "Reportes" },
-  { value: "expenses", label: "Gastos" },
-  { value: "purchases", label: "Compras" },
-  { value: "invoices", label: "Facturas" },
-  { value: "inventory", label: "Inventario" },
-  { value: "analytics", label: "Analytics" },
-  { value: "marketing", label: "Marketing" },
-  { value: "support", label: "Soporte" },
-  { value: "settings", label: "Configuración" },
-  { value: "team", label: "Equipo" },
-  { value: "finance", label: "Finanzas" },
-];
+// Derivado de la única fuente de verdad para que un módulo nuevo aparezca acá
+// solo, en vez de quedar con filas en la base y sin toggle en la UI.
+const MODULES: { value: string; label: string }[] = PERMISSION_MODULES.map(m => ({
+  value: m,
+  label: PERMISSION_MODULE_LABEL[m],
+}));
 
 const ROLES: { value: AppRole; label: string }[] = [
   { value: "admin", label: "Administrador" },

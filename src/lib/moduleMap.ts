@@ -20,7 +20,9 @@ export const SECTION_MODULE: Record<string, string> = {
   finanzas: "finance",
   marketing: "marketing",
   analytics: "analytics",
-  ecommerce: "marketing",
+  // La tienda online dejó de ser "marketing": tiene su propio módulo desde que
+  // hay pedidos, envíos y cobros propios que un vendedor puede ver pero no configurar.
+  ecommerce: "ecommerce",
   admin: "settings",
 };
 
@@ -43,6 +45,12 @@ export const ROUTE_MODULE: Record<string, string> = {
   "/configuracion": "settings",
   "/integraciones": "settings",
   "/admin": "settings",
+  "/envios": "shipping",
+  "/tienda-online": "ecommerce",
+  "/links-de-pago": "payments",
+  "/movimientos": "payments",
+  "/canjes": "influencers",
+  "/influencers": "influencers",
 };
 
 /**

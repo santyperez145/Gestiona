@@ -3,19 +3,12 @@ import { useUserRole, AppRole } from '@/lib/useUserRole';
 import { useOrg, PlatformRole } from '@/lib/orgContext';
 import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Módulos sobre los que se puede dar/quitar permiso. Tiene que coincidir con
- * `seed_default_permissions()` (migración 20260729000001) para que la UI de
- * AdminPage y el enforcement en la base hablen del mismo vocabulario.
- */
-export const PERMISSION_MODULES = [
-  'sales', 'pos', 'products', 'customers', 'crm', 'reports',
-  'expenses', 'purchases', 'invoices', 'inventory', 'analytics',
-  'marketing', 'support', 'settings', 'team', 'finance',
-  'ecommerce', 'shipping', 'payments', 'influencers',
-] as const;
-
-export type PermissionModule = typeof PERMISSION_MODULES[number];
+// El vocabulario de módulos vive en un módulo puro para que lo puedan importar
+// el mapa de rutas y los tests sin arrastrar React ni el cliente de Supabase.
+export {
+  PERMISSION_MODULES, PERMISSION_MODULE_LABEL, isPermissionModule,
+  type PermissionModule,
+} from '@/lib/permissionModules';
 
 // ─── Role-based permission helpers ───────────────────────────────────────────
 

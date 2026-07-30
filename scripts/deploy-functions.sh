@@ -50,48 +50,65 @@ deploy() {
   fi
 }
 
-# ── SIN JWT (webhooks externos + crons) ──────────────────────
-deploy "stripe-webhook"              "--no-verify-jwt"
-deploy "mercadopago-webhook"         "--no-verify-jwt"
-deploy "tiendanube-webhook"          "--no-verify-jwt"
-deploy "tiendanube-oauth"            "--no-verify-jwt"
-deploy "resend-webhook"              "--no-verify-jwt"
-deploy "public-api"                  "--no-verify-jwt"
-deploy "weekly-backup"               "--no-verify-jwt"
-deploy "check-alerts"                "--no-verify-jwt"
-deploy "execute-automations"         "--no-verify-jwt"
-deploy "run-automation-flows"        "--no-verify-jwt"
-deploy "check-overdue-debts"         "--no-verify-jwt"
-deploy "check-stock-alerts"          "--no-verify-jwt"
-deploy "daily-kpi-alert"             "--no-verify-jwt"
-deploy "weekly-performance-digest"   "--no-verify-jwt"
-deploy "send-scheduled-campaigns"    "--no-verify-jwt"
-deploy "auto-recurring-expenses"     "--no-verify-jwt"
-deploy "customer-reactivation-alerts" "--no-verify-jwt"
-deploy "fetch-usd-rate"              "--no-verify-jwt"
+# ── FUNCIONES SIN JWT ─────────────────────────────────────────
+# Webhooks de terceros, crons y storefront publico. Ninguna puede confiar en un
+# JWT de usuario, asi que TODAS validan por su cuenta: firma HMAC, secreto de
+# cron, o revalidacion server-side de lo que manda el cliente.
+#
+# Regla de seguridad: una funcion solo va sin JWT si esta en esta lista.
+# Cualquier funcion nueva queda protegida por default.
+NO_JWT=(
+  # Webhooks de terceros — validan firma
+  "stripe-webhook" "mercadopago-webhook" "tiendanube-webhook"
+  "tiendanube-oauth" "resend-webhook"
+  # Storefront publico — el comprador no tiene sesion
+  "shipping-quote" "store-pay" "store-order-email"
+  # Links publicos de un solo uso
+  "drip-unsubscribe"
+  # API publica con su propio esquema de api keys
+  "public-api"
+  # Crons / tareas programadas
+  "weekly-backup" "check-alerts" "execute-automations" "run-automation-flows"
+  "check-overdue-debts" "check-stock-alerts" "daily-kpi-alert"
+  "weekly-performance-digest" "send-scheduled-campaigns"
+  "auto-recurring-expenses" "customer-reactivation-alerts" "fetch-usd-rate"
+  "recover-abandoned-carts" "send-drip-emails" "send-birthday-whatsapp"
+  "daily-whatsapp-digest" "send-push"
+)
 
-# ── CON JWT (llamadas desde el frontend) ─────────────────────
-deploy "ai-analysis"
-deploy "ai-chat"
-deploy "ai-offer-recommender"
-deploy "afip-authorize"
-deploy "cancel-subscription"
-deploy "create-billing-portal"
-deploy "create-checkout"
-deploy "generate-description"
-deploy "mercadopago-link"
-deploy "platform-admin-action"
-deploy "predict-sales"
-deploy "seed-demo"
-deploy "send-email-campaign"
-deploy "send-invoice-email"
-deploy "send-webhook"
-deploy "tiendanube-export"
-deploy "tiendanube-register-webhooks"
-deploy "tiendanube-sync"
+is_public() {
+  local needle=$1
+  for f in "${NO_JWT[@]}"; do
+    [ "$f" = "$needle" ] && return 0
+  done
+  return 1
+}
+
+# La lista de funciones se DERIVA del filesystem, no se mantiene a mano: antes
+# eran dos arrays hardcodeados y 20 de 56 funciones nunca se deployaban,
+# incluido store-pay, que es el checkout de la tienda.
+FN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/supabase/functions"
+ALL=()
+for d in "$FN_DIR"/*/; do
+  name=$(basename "$d")
+  case "$name" in _*) continue ;; esac
+  [ -f "$d/index.ts" ] || continue
+  ALL+=("$name")
+done
+
+TOTAL=${#ALL[@]}
+echo "  $TOTAL funciones encontradas"
+echo ""
+
+for fn in "${ALL[@]}"; do
+  if is_public "$fn"; then
+    deploy "$fn" "--no-verify-jwt"
+  else
+    deploy "$fn"
+  fi
+done
 
 # ── RESUMEN ───────────────────────────────────────────────────
-TOTAL=36
 echo ""
 echo "[3/3] Resumen"
 if [ ${#ERRORS[@]} -eq 0 ]; then
@@ -103,6 +120,14 @@ else
     echo "    - $e"
   done
 fi
+
+# Entradas muertas en la lista publica: si alguien crea despues una funcion con
+# ese nombre, se deployaria sin JWT sin que nadie lo haya revisado.
+for f in "${NO_JWT[@]}"; do
+  found=0
+  for a in "${ALL[@]}"; do [ "$a" = "$f" ] && found=1 && break; done
+  [ $found -eq 0 ] && echo "  AVISO: '$f' esta en NO_JWT pero no existe — quitala"
+done
 
 echo ""
 echo "URL base: https://$PROJECT_REF.supabase.co/functions/v1/<nombre>"

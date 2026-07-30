@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { moduleForRoute, SECTION_MODULE, ROUTE_MODULE } from "@/lib/moduleMap";
+import {
+  isPermissionModule, PERMISSION_MODULES, PERMISSION_MODULE_LABEL,
+} from "@/lib/permissionModules";
 
 describe("moduleForRoute", () => {
   it("usa la coincidencia exacta de ruta por encima de la sección", () => {
@@ -30,15 +33,18 @@ describe("moduleForRoute", () => {
   });
 
   it("todo módulo referenciado existe en la lista de módulos de permisos", () => {
-    // Debe coincidir con MODULES de PermissionsTab, si no el toggle no hace nada.
-    const known = new Set([
-      "sales", "pos", "products", "customers", "crm", "reports", "expenses",
-      "purchases", "invoices", "inventory", "analytics", "marketing", "support",
-      "settings", "team", "finance",
-    ]);
+    // Se compara contra la fuente de verdad, no contra una copia a mano: una
+    // lista duplicada acá es exactamente la desincronización que este test
+    // tiene que atrapar. Si el mapa referencia un módulo inexistente, el
+    // toggle de Admin → Permisos no hace nada.
     const used = [...Object.values(ROUTE_MODULE), ...Object.values(SECTION_MODULE)]
       .filter(Boolean);
-    const unknown = [...new Set(used)].filter(m => !known.has(m));
+    const unknown = [...new Set(used)].filter(m => !isPermissionModule(m));
     expect(unknown).toEqual([]);
+  });
+
+  it("todo módulo de permisos tiene un nombre visible", () => {
+    const sinLabel = PERMISSION_MODULES.filter(m => !PERMISSION_MODULE_LABEL[m]?.trim());
+    expect(sinLabel).toEqual([]);
   });
 });
