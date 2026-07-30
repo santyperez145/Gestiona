@@ -32,6 +32,9 @@ export interface StoreInfo {
   meta_title: string | null;
   meta_description: string | null;
   social_links: Record<string, string> | null;
+  meta_pixel_id: string | null;
+  ga_measurement_id: string | null;
+  tiktok_pixel_id: string | null;
 }
 
 export interface StoreProduct {

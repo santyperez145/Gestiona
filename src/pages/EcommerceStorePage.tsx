@@ -72,6 +72,7 @@ export default function EcommerceStorePage() {
     payment_methods: ["mercadopago", "transferencia"],
     meta_title: "", meta_description: "",
     description: "", notification_email: "",
+    meta_pixel_id: "", ga_measurement_id: "", tiktok_pixel_id: "",
     shipping_mode: "flat", pickup_enabled: false,
     pickup_address: "", pickup_instructions: "",
     default_item_weight_kg: "0.5",
@@ -114,6 +115,9 @@ export default function EcommerceStorePage() {
             meta_title: data.meta_title ?? prev.meta_title,
             description: data.description ?? prev.description,
             notification_email: data.notification_email ?? prev.notification_email,
+            meta_pixel_id: data.meta_pixel_id ?? prev.meta_pixel_id,
+            ga_measurement_id: data.ga_measurement_id ?? prev.ga_measurement_id,
+            tiktok_pixel_id: data.tiktok_pixel_id ?? prev.tiktok_pixel_id,
             meta_description: data.meta_description ?? prev.meta_description,
             // Estos se guardaban pero no se leían de vuelta: al recargar, una
             // tienda con envío por zona se veía como precio plano.
@@ -205,6 +209,9 @@ export default function EcommerceStorePage() {
       payment_methods: storeForm.payment_methods,
       description: storeForm.description || null,
       notification_email: storeForm.notification_email || null,
+      meta_pixel_id: storeForm.meta_pixel_id || null,
+      ga_measurement_id: storeForm.ga_measurement_id || null,
+      tiktok_pixel_id: storeForm.tiktok_pixel_id || null,
       meta_title: storeForm.meta_title,
       meta_description: storeForm.meta_description,
       shipping_mode: storeForm.shipping_mode,
@@ -626,6 +633,53 @@ export default function EcommerceStorePage() {
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {storeForm.meta_description || storeForm.description || "Agregá una descripción para que se vea mejor al compartir."}
               </p>
+            </div>
+          </div>
+
+          {/* Píxeles — sin esto no se puede publicitar: Meta no sabe qué
+              anuncio generó la venta y no puede armar públicos similares. */}
+          <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />Píxeles y analítica
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              La tienda dispara solo los eventos de ver producto, agregar al carrito,
+              iniciar compra y compra concretada. No se envían datos personales del
+              comprador, solo qué producto y por cuánto.
+            </p>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Píxel de Meta (Facebook / Instagram)
+              </label>
+              <Input
+                value={storeForm.meta_pixel_id}
+                onChange={e => setStoreForm(p => ({ ...p, meta_pixel_id: e.target.value.trim() }))}
+                placeholder="123456789012345"
+                className="h-9"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Google Analytics 4
+              </label>
+              <Input
+                value={storeForm.ga_measurement_id}
+                onChange={e => setStoreForm(p => ({ ...p, ga_measurement_id: e.target.value.trim() }))}
+                placeholder="G-XXXXXXXXXX"
+                className="h-9"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">
+                Píxel de TikTok
+              </label>
+              <Input
+                value={storeForm.tiktok_pixel_id}
+                onChange={e => setStoreForm(p => ({ ...p, tiktok_pixel_id: e.target.value.trim() }))}
+                placeholder="CXXXXXXXXXXXXXXXXXXX"
+                className="h-9"
+              />
             </div>
           </div>
 

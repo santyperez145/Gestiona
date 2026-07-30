@@ -11,7 +11,7 @@
  * "Tienda Online", que hasta ahora configuraba una vitrina inexistente.
  */
 import { useEffect } from "react";
-import { Link, Route, Routes, useParams } from "react-router-dom";
+import { Link, Route, Routes, useParams, useLocation } from "react-router-dom";
 import { StoreProvider, useStore } from "@/storefront/storeContext";
 import StoreLayout from "@/storefront/StoreLayout";
 import StoreHome from "@/storefront/StoreHome";
@@ -23,10 +23,25 @@ import StoreAccount from "@/storefront/StoreAccount";
 import StoreCartRecovery from "@/storefront/StoreCartRecovery";
 import { StoreAuthProvider } from "@/storefront/storeAuth";
 import { Store, Loader2 } from "lucide-react";
+import { initTracking, trackPageView } from "@/storefront/tracking";
 
 function StoreShell() {
   const { loading, notFound, store } = useStore();
   const { slug } = useParams<{ slug: string }>();
+  const { pathname } = useLocation();
+
+  // Píxeles: se inicializan una vez, en cuanto se conoce la tienda.
+  useEffect(() => {
+    if (!store) return;
+    initTracking({
+      metaPixelId: store.meta_pixel_id,
+      gaMeasurementId: store.ga_measurement_id,
+      tiktokPixelId: store.tiktok_pixel_id,
+    });
+  }, [store]);
+
+  // En una SPA el cambio de ruta no dispara PageView solo.
+  useEffect(() => { if (store) trackPageView(); }, [pathname, store]);
 
   // SEO: el panel deja configurar meta title y description.
   useEffect(() => {

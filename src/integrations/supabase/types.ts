@@ -5776,10 +5776,13 @@ export type Database = {
           description: string | null
           domain: string | null
           free_shipping_above: number | null
+          ga_measurement_id: string | null
+          google_ads_id: string | null
           id: string
           is_active: boolean
           logo_url: string | null
           meta_description: string | null
+          meta_pixel_id: string | null
           meta_title: string | null
           name: string
           notification_email: string | null
@@ -5795,6 +5798,7 @@ export type Database = {
           social_links: Json
           tax_included: boolean
           theme: string
+          tiktok_pixel_id: string | null
         }
         Insert: {
           banner_url?: string | null
@@ -5805,10 +5809,13 @@ export type Database = {
           description?: string | null
           domain?: string | null
           free_shipping_above?: number | null
+          ga_measurement_id?: string | null
+          google_ads_id?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
           meta_description?: string | null
+          meta_pixel_id?: string | null
           meta_title?: string | null
           name?: string
           notification_email?: string | null
@@ -5824,6 +5831,7 @@ export type Database = {
           social_links?: Json
           tax_included?: boolean
           theme?: string
+          tiktok_pixel_id?: string | null
         }
         Update: {
           banner_url?: string | null
@@ -5834,10 +5842,13 @@ export type Database = {
           description?: string | null
           domain?: string | null
           free_shipping_above?: number | null
+          ga_measurement_id?: string | null
+          google_ads_id?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
           meta_description?: string | null
+          meta_pixel_id?: string | null
           meta_title?: string | null
           name?: string
           notification_email?: string | null
@@ -5853,6 +5864,7 @@ export type Database = {
           social_links?: Json
           tax_included?: boolean
           theme?: string
+          tiktok_pixel_id?: string | null
         }
         Relationships: [
           {
@@ -20072,8 +20084,10 @@ export type Database = {
           currency: string
           description: string
           free_shipping_above: number
+          ga_measurement_id: string
           logo_url: string
           meta_description: string
+          meta_pixel_id: string
           meta_title: string
           name: string
           org_id: string
@@ -20087,6 +20101,7 @@ export type Database = {
           slug: string
           social_links: Json
           theme: string
+          tiktok_pixel_id: string
         }[]
       }
       get_store_categories: {

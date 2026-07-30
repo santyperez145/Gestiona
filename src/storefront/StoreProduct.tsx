@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
@@ -7,6 +7,7 @@ import {
   FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, taxLabel,
 } from "@/lib/scentTaxonomy";
 import { ChevronLeft, Minus, Plus, ShoppingBag, Check } from "lucide-react";
+import { trackViewItem, trackAddToCart } from "./tracking";
 
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -27,6 +28,16 @@ export default function StoreProduct() {
       .filter(x => x.id !== p.id && (x.category === p.category || x.brand === p.brand))
       .slice(0, 4);
   }, [p, products]);
+
+  // Ver producto: es el evento con el que Meta arma públicos similares.
+  // Va ANTES del early return: los hooks no pueden ser condicionales.
+  const precioParaTracking = p
+    ? (variantsByProduct[p.id]?.find(v => v.id === variantId)?.price_override || priceOf(p))
+    : 0;
+  useEffect(() => {
+    if (!p) return;
+    trackViewItem({ id: p.id, name: p.name, price: Number(precioParaTracking) }, store?.currency ?? "ARS");
+  }, [p, precioParaTracking, store?.currency]);
 
   if (!p) {
     return (
@@ -67,6 +78,10 @@ export default function StoreProduct() {
   const agregar = () => {
     if (faltaElegir) return;
     addToCart(p, qty, variante);
+    trackAddToCart(
+      { id: variante?.id ?? p.id, name: p.name, price, quantity: qty },
+      store?.currency ?? "ARS",
+    );
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };

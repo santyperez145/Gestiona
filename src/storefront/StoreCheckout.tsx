@@ -6,6 +6,7 @@ import { useStoreAuth } from "./storeAuth";
 import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
+import { trackBeginCheckout } from "./tracking";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -159,6 +160,18 @@ export default function StoreCheckout() {
 
   const descuento = cuponAplicado?.discount ?? 0;
   const totalFinal = Math.max(0, subtotal - descuento) + envio;
+
+  // Inicio de checkout: Meta y GA lo usan para medir abandono.
+  // Solo al montar, no en cada cambio del carrito.
+  useEffect(() => {
+    if (cart.length === 0) return;
+    trackBeginCheckout(
+      cart.map(l => ({ id: l.variantId ?? l.productId, name: l.name, price: l.price, quantity: l.qty })),
+      subtotal,
+      store?.currency ?? "ARS",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 

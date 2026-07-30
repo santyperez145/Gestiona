@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
+import { trackPurchase } from "./tracking";
 import { CheckCircle2, Loader2, MessageCircle, Clock, CreditCard } from "lucide-react";
 
 interface Order {
@@ -40,6 +41,23 @@ export default function StoreOrder() {
   }, [store?.slug, orderNumber]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  // Compra concretada. Se dispara una sola vez por pedido: el comprador puede
+  // recargar esta pagina y no queremos contar la venta dos veces.
+  const purchaseEnviado = useRef<string | null>(null);
+  useEffect(() => {
+    if (!order || purchaseEnviado.current === order.order_number) return;
+    purchaseEnviado.current = order.order_number;
+    trackPurchase(
+      order.order_number,
+      (order.items ?? []).map(i => ({
+        id: (i as { product_id?: string }).product_id ?? i.name,
+        name: i.name, price: Number(i.unit_price), quantity: Number(i.quantity),
+      })),
+      Number(order.total),
+      store?.currency ?? "ARS",
+    );
+  }, [order, store?.currency]);
 
   // Al volver de MercadoPago el webhook puede tardar unos segundos en
   // confirmar. Se reintenta un rato para no mostrarle "pendiente" a alguien
