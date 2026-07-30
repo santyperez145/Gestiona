@@ -11,6 +11,8 @@ import {
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
+import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -76,6 +78,16 @@ export default function EcommerceStorePage() {
   });
   const [selectedTheme, setSelectedTheme] = useState("minimal");
   const [orderFilter, setOrderFilter] = useState<string | null>(null);
+  // Señales de "¿puede vender?". Arrancan en el peor caso: mientras no se sepa,
+  // es más honesto mostrar que falta algo que decir que todo está listo.
+  const [signals, setSignals] = useState({
+    publishedProducts: 0,
+    productsWithoutWeight: 0,
+    shippingZones: 0,
+    zonesWithRates: 0,
+    coveredProvinces: 0,
+    paymentConnected: false,
+  });
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
 
@@ -103,6 +115,15 @@ export default function EcommerceStorePage() {
             description: data.description ?? prev.description,
             notification_email: data.notification_email ?? prev.notification_email,
             meta_description: data.meta_description ?? prev.meta_description,
+            // Estos se guardaban pero no se leían de vuelta: al recargar, una
+            // tienda con envío por zona se veía como precio plano.
+            shipping_mode: data.shipping_mode ?? prev.shipping_mode,
+            pickup_enabled: data.pickup_enabled ?? prev.pickup_enabled,
+            pickup_address: data.pickup_address ?? prev.pickup_address,
+            pickup_instructions: data.pickup_instructions ?? prev.pickup_instructions,
+            default_item_weight_kg: data.default_item_weight_kg != null
+              ? String(data.default_item_weight_kg)
+              : prev.default_item_weight_kg,
           }));
           setSelectedTheme(data.theme);
         }
@@ -117,6 +138,32 @@ export default function EcommerceStorePage() {
       .then(({ data }) => {
         if (data) setOrders(data as EcomOrder[]);
       });
+
+    // Señales para saber si la tienda puede vender de verdad. Se cuentan en la
+    // base (`head: true`) en vez de traer las filas: sólo interesa el número.
+    Promise.all([
+      supabase.from("products").select("id", { count: "exact", head: true })
+        .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0),
+      supabase.from("products").select("id", { count: "exact", head: true })
+        .eq("org_id", orgId).gt("stock", 0).gt("sale_price_ars", 0).is("weight_kg", null),
+      supabase.from("shipping_zones").select("id, provinces")
+        .eq("org_id", orgId).eq("is_active", true),
+      supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
+      supabase.from("settings").select("mp_enabled, mp_access_token").eq("org_id", orgId).maybeSingle(),
+    ]).then(([prods, sinPeso, zonas, tarifas, ajustes]) => {
+      const zonasList = (zonas.data ?? []) as { id: string; provinces: string[] | null }[];
+      const conTarifa = new Set(((tarifas.data ?? []) as { zone_id: string }[]).map(r => r.zone_id));
+      const provincias = new Set(zonasList.flatMap(z => z.provinces ?? []));
+      const st = ajustes.data as { mp_enabled?: boolean; mp_access_token?: string | null } | null;
+      setSignals({
+        publishedProducts: prods.count ?? 0,
+        productsWithoutWeight: sinPeso.count ?? 0,
+        shippingZones: zonasList.length,
+        zonesWithRates: zonasList.filter(z => conTarifa.has(z.id)).length,
+        coveredProvinces: provincias.size,
+        paymentConnected: !!(st?.mp_enabled && st?.mp_access_token),
+      });
+    }, () => { /* si falla, el panel muestra el estado conservador */ });
 
     supabase
       .from("ecommerce_cart_sessions")
@@ -173,6 +220,24 @@ export default function EcommerceStorePage() {
     setStore(row);
   };
 
+  // Se evalúa sobre el FORMULARIO y no sobre lo guardado: así el estado
+  // reacciona mientras el comercio configura, sin tener que guardar para ver.
+  const readiness = useMemo(() => evaluateStoreReadiness({
+    store: {
+      is_active: storeForm.is_active,
+      slug: storeForm.slug || store?.slug || null,
+      name: storeForm.name,
+      logo_url: store?.logo_url ?? null,
+      description: storeForm.description || null,
+      meta_title: storeForm.meta_title || null,
+      payment_methods: storeForm.payment_methods,
+      shipping_mode: storeForm.shipping_mode,
+      pickup_enabled: storeForm.pickup_enabled,
+      shipping_cost: Number(storeForm.shipping_cost) || 0,
+    },
+    ...signals,
+  }), [storeForm, store?.logo_url, store?.slug, signals]);
+
   const filteredOrders = orders.filter(o => !orderFilter || o.fulfillment_status === orderFilter);
 
   const TABS = [
@@ -204,8 +269,21 @@ export default function EcommerceStorePage() {
         description="Tu tienda online integrada con inventario y pagos"
         actions={
           <div className="flex items-center flex-wrap gap-2">
-            <Badge className={store?.is_active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"}>
-              {store?.is_active ? "● Activa" : "○ Inactiva"}
+            {/* Una tienda activa que no puede cobrar o no puede cotizar el envío
+                no está "Activa" en ningún sentido útil: se avisa acá, que es
+                donde se mira el estado. */}
+            <Badge className={
+              !store?.is_active
+                ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"
+                : readiness.canPublish
+                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                  : "bg-yellow-500/15 text-yellow-500 border-yellow-500/20"
+            }>
+              {!store?.is_active
+                ? "○ Inactiva"
+                : readiness.canPublish
+                  ? "● Activa"
+                  : `▲ ${readinessSummary(readiness)}`}
             </Badge>
             {store?.slug && (
               <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => window.open(`${window.location.origin}/tienda/${store.slug}`, "_blank")}>
@@ -576,13 +654,29 @@ export default function EcommerceStorePage() {
             </div>
           </div>
 
+          {/* Qué falta para que la tienda pueda vender */}
+          <StoreReadinessPanel readiness={readiness} />
+
           <div className="flex items-center justify-between bg-card border border-border/40 rounded-xl p-4">
             <div>
               <p className="text-sm font-semibold">Tienda Activa</p>
-              <p className="text-xs text-muted-foreground">Pública y visible en internet</p>
+              <p className="text-xs text-muted-foreground">
+                {readiness.canPublish
+                  ? "Pública y visible en internet"
+                  : "Resolvé lo que falta antes de publicarla: hoy un comprador no podría terminar la compra"}
+              </p>
             </div>
-            <button onClick={() => setStoreForm(p => ({ ...p, is_active: !p.is_active }))}
-              className={`w-10 h-5 rounded-full transition-all ${storeForm.is_active ? "bg-emerald-500" : "bg-muted"}`}>
+            {/* No se bloquea el toggle: si quiere publicar igual, es su negocio.
+                Lo que no puede pasar es que lo haga sin saber qué va a fallar. */}
+            <button
+              onClick={() => setStoreForm(p => ({ ...p, is_active: !p.is_active }))}
+              title={readiness.canPublish ? undefined : readinessSummary(readiness)}
+              className={`w-10 h-5 rounded-full transition-all shrink-0 ${
+                storeForm.is_active
+                  ? readiness.canPublish ? "bg-emerald-500" : "bg-yellow-500"
+                  : "bg-muted"
+              }`}
+            >
               <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${storeForm.is_active ? "translate-x-5" : "translate-x-0"}`} />
             </button>
           </div>
