@@ -18,6 +18,7 @@ import StoreHome from "@/storefront/StoreHome";
 import StoreProducts from "@/storefront/StoreProducts";
 import StoreProduct from "@/storefront/StoreProduct";
 import StoreCheckout from "@/storefront/StoreCheckout";
+import StorePage from "@/storefront/StorePage";
 import StoreOrder from "@/storefront/StoreOrder";
 import StoreAccount from "@/storefront/StoreAccount";
 import StoreCartRecovery from "@/storefront/StoreCartRecovery";
@@ -94,6 +95,7 @@ function StoreShell() {
         <Route path="orden/:orderNumber" element={<StoreOrder />} />
         <Route path="cuenta" element={<StoreAccount />} />
         <Route path="carrito/:token" element={<StoreCartRecovery />} />
+        <Route path="pagina/:pageSlug" element={<StorePage />} />
         <Route path="*" element={<StoreHome />} />
       </Routes>
     </StoreLayout>

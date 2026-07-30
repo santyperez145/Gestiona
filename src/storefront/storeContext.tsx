@@ -37,6 +37,17 @@ export interface StoreInfo {
   tiktok_pixel_id: string | null;
 }
 
+export interface StorePage {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  show_in_footer: boolean;
+  sort_order: number;
+  meta_description: string | null;
+  updated_at: string;
+}
+
 export interface StoreProduct {
   id: string;
   name: string;
@@ -92,6 +103,8 @@ interface Ctx {
   variantsByProduct: Record<string, StoreVariant[]>;
   /** Promedio y cantidad de reseñas publicadas, por producto. */
   reviewsByProduct: Record<string, { avg: number; count: number }>;
+  /** Páginas de contenido publicadas (sobre nosotros, devoluciones, …). */
+  pages: StorePage[];
   cart: CartLine[];
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
   setQty: (lineKey: string, qty: number) => void;
@@ -119,6 +132,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [perfumes, setPerfumes] = useState<Record<string, PerfumeDetail>>({});
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
   const [reviewsByProduct, setReviewsByProduct] = useState<Record<string, { avg: number; count: number }>>({});
+  const [pages, setPages] = useState<StorePage[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -141,7 +155,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       }
       setStore(row);
 
-      const [pRes, dRes, vRes, rRes] = await Promise.all([
+      const [pRes, dRes, vRes, rRes, gRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
@@ -149,6 +163,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         supabase.rpc("get_store_perfume_details", { p_slug: slug }),
         fetchStoreVariants(slug),
         supabase.rpc("get_store_reviews", { p_slug: slug }),
+        supabase.rpc("get_store_pages", { p_slug: slug }),
       ]);
       if (cancelled) return;
 
@@ -174,6 +189,8 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       const rmap: Record<string, { avg: number; count: number }> = {};
       Object.entries(acum).forEach(([id, a]) => { rmap[id] = { avg: a.suma / a.n, count: a.n }; });
       setReviewsByProduct(rmap);
+
+      setPages((gRes?.data ?? []) as unknown as StorePage[]);
       setLoading(false);
     })().catch(() => {
       if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -294,7 +311,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
-      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, cart,
+      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, cart,
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
@@ -305,7 +322,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
+  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

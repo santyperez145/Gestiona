@@ -14,7 +14,7 @@ import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } fr
 import { useStoreAuth } from "./storeAuth";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, cart, cartCount, subtotal, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, pages, cart, cartCount, subtotal, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -175,7 +175,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="border-t mt-16" style={{ borderColor: "hsl(var(--st-border))", background: "hsl(var(--st-surface))" }}>
-        <div className="max-w-6xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-3">
+        <div className="max-w-6xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="font-semibold mb-2">{store?.name}</p>
             {store?.description && (
@@ -190,6 +190,20 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               ))}
             </ul>
           </div>
+          {/* Información: es lo que mira el comprador antes de decidir, y lo
+              que MercadoPago pide ver publicado para aprobar la cuenta. */}
+          {pages.some(pg => pg.show_in_footer) && (
+            <div>
+              <p className="text-sm font-semibold mb-2">Información</p>
+              <ul className="space-y-1 text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+                {pages.filter(pg => pg.show_in_footer).map(pg => (
+                  <li key={pg.id}>
+                    <Link to={`${base}/pagina/${pg.slug}`} className="hover:underline">{pg.title}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div>
             <p className="text-sm font-semibold mb-2">Contacto</p>
             <div className="flex gap-3">

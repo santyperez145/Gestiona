@@ -16712,6 +16712,73 @@ export type Database = {
           },
         ]
       }
+      store_pages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          meta_description: string | null
+          org_id: string
+          show_in_footer: boolean
+          slug: string
+          sort_order: number
+          status: string
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          meta_description?: string | null
+          org_id: string
+          show_in_footer?: boolean
+          slug: string
+          sort_order?: number
+          status?: string
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          meta_description?: string | null
+          org_id?: string
+          show_in_footer?: boolean
+          slug?: string
+          sort_order?: number
+          status?: string
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_templates: {
         Row: {
           active: boolean | null
@@ -20251,6 +20318,19 @@ export type Database = {
           total: number
         }[]
       }
+      get_store_pages: {
+        Args: { p_slug: string }
+        Returns: {
+          content: string
+          id: string
+          meta_description: string
+          show_in_footer: boolean
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }[]
+      }
       get_store_perfume_details: {
         Args: { p_slug: string }
         Returns: {
@@ -20526,6 +20606,7 @@ export type Database = {
       }
       seed_journey_stages: { Args: { p_org_id: string }; Returns: undefined }
       seed_return_reasons: { Args: { p_org_id: string }; Returns: undefined }
+      seed_store_pages: { Args: { p_store_id: string }; Returns: Json }
       seed_tax_rates: { Args: { p_org_id: string }; Returns: undefined }
       store_cart_weight_kg: {
         Args: { p_default_weight?: number; p_items: Json; p_org_id: string }
