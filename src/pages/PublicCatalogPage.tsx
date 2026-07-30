@@ -2,7 +2,6 @@
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { safeChannel } from "@/lib/realtimeChannel";
-import { calculateDecantPrice } from "@/lib/supabaseStore";
 import { loadPublicPromotions, bestPromoPrice } from "@/lib/promotions";
 import {
   Package,
@@ -197,17 +196,19 @@ export default function PublicCatalogPage({ overrideUserId, storeBranding }: Pub
   const fetchData = useCallback(async () => {
     if (!userId) { setValid(false); return; }
     const [pRes, sRes, fsRes] = await Promise.all([
+      // Vistas públicas saneadas: sin costos, sin márgenes, sin credenciales.
+      // `catalog_products` ya trae los precios de decant calculados.
       supabase
-        .from("products")
-        .select("id,org_id,name,brand,category,gender,sale_price_ars,discount_price_ars,price_2x_ars,stock,description,image_url,content_ml,total_sold,featured,offer_expires_at,total_cost_usd,user_id,created_at")
+        .from("catalog_products")
+        .select("id,org_id,name,brand,category,gender,sale_price_ars,discount_price_ars,price_2x_ars,stock,description,image_url,content_ml,total_sold,featured,offer_expires_at,user_id,created_at,decant_price_10ml,decant_price_5ml,decant_price_2_5ml")
         .eq("user_id", userId)
         .gt("stock", 0)
         .order("category")
         .order("name"),
       supabase.from("settings_public").select("*").eq("user_id", userId).maybeSingle(),
       supabase
-        .from("settings")
-        .select("exchange_rate,customs_percent,volume_discount_threshold,volume_discount_percent,decant_margin_10ml,decant_margin_5ml,decant_margin_2_5ml")
+        .from("catalog_settings")
+        .select("exchange_rate,volume_discount_threshold,volume_discount_percent")
         .eq("user_id", userId)
         .maybeSingle(),
     ]);
@@ -1154,7 +1155,7 @@ function ProductDetailModal({
     if (!isVaper) return;
     setVariantsLoading(true);
     supabase
-      .from("product_variants")
+      .from("catalog_product_variants")
       .select("id,variant_name,stock,image_url")
       .eq("product_id", p.id)
       .order("variant_name")
@@ -1170,16 +1171,16 @@ function ProductDetailModal({
   const hasCountdown = p.offer_expires_at && new Date(p.offer_expires_at) > new Date();
   const contentMl = Number(p.content_ml || 100);
   const viewers = pseudoRandom(p.id || p.name, 3, 12);
-  const exchangeRate = Number(fullSettings?.exchange_rate || 1695);
-  const totalCostUSD = Number(p.total_cost_usd || p.cost_usd || 0);
-
+  // Los precios de decant llegan ya calculados desde `catalog_products`.
+  // Antes se calculaban acá, lo que obligaba a bajar al navegador el costo del
+  // producto y los márgenes de fraccionado — o sea, publicarlos.
   const decantSizes = isPerfume
     ? [
         { value: "full", label: `${contentMl}ml`, sublabel: "Completo", price: Number(p.discount_price_ars || p.sale_price_ars) },
-        { value: "10", label: "10ml", sublabel: "Decant", price: calculateDecantPrice(totalCostUSD, contentMl, 10, Number(fullSettings?.decant_margin_10ml || 250), exchangeRate) },
-        { value: "5", label: "5ml", sublabel: "Decant", price: calculateDecantPrice(totalCostUSD, contentMl, 5, Number(fullSettings?.decant_margin_5ml || 350), exchangeRate) },
-        { value: "2.5", label: "2.5ml", sublabel: "Decant", price: calculateDecantPrice(totalCostUSD, contentMl, 2.5, Number(fullSettings?.decant_margin_2_5ml || 500), exchangeRate) },
-      ]
+        { value: "10",  label: "10ml",  sublabel: "Decant", price: Number(p.decant_price_10ml || 0) },
+        { value: "5",   label: "5ml",   sublabel: "Decant", price: Number(p.decant_price_5ml || 0) },
+        { value: "2.5", label: "2.5ml", sublabel: "Decant", price: Number(p.decant_price_2_5ml || 0) },
+      ].filter(s => s.value === "full" || s.price > 0)
     : [];
 
   const currentPrice =
