@@ -110,18 +110,17 @@ clic) · comisiones descontadas del margen · cuentas de comprador con historial
 carritos abandonados con recuperación · emails transaccionales · SEO con Open
 Graph y sitemap servidos a los bots · **píxeles de Meta, GA4 y TikTok** ·
 **reseñas de compra verificada** · **páginas de contenido** (devoluciones,
-FAQ, términos) con plantillas argentinas · 5 temas · dominio propio.
+FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
+**filtro por rango de precio** · **lista de deseos** · **aviso de reposición**
+(sin necesidad de cuenta) · 5 temas · dominio propio.
 
 ### Falta, en orden de impacto
 
 | # | Feature | Por qué importa | Esfuerzo |
 |---|---|---|---|
-| 1 | **Banner / slider en la home** | Hoy `banner_url` es una sola imagen de fondo, sin enlaces ni rotación. | S |
-| 2 | **Lista de deseos + aviso de reposición** | Recupera ventas de lo que está sin stock. | M |
-| 3 | **Filtro por rango de precio** | Hoy sólo hay "solo ofertas". | S |
-| 4 | **Etiqueta de envío y tracking** | Cerrar el ciclo con los correos ya integrados. | M |
-| 5 | **Comisión por transacción** (`marketplace_fee`) | Monetizar por venta además de por suscripción. La base OAuth ya está. | M |
-| 6 | **AFIP en la tienda** | Sin factura no hay venta formal. | L |
+| 1 | **Etiqueta de envío y tracking** | Cerrar el ciclo con los correos ya integrados. | M |
+| 2 | **Comisión por transacción** (`marketplace_fee`) | Monetizar por venta además de por suscripción. La base OAuth ya está. | M |
+| 3 | **AFIP en la tienda** | Sin factura no hay venta formal. | L |
 
 ---
 
@@ -595,6 +594,33 @@ Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
 con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
+
+### Sesión 88 — Vitrina: banners, precio, deseos y reposición (2026-07-30)
+
+Tres ítems de paridad, y un arreglo que apareció haciéndolos.
+
+**Banners con vigencia** (`20260731000009`). Había un solo `banner_url` sin
+enlace ni fecha. Ahora hay filas con título, CTA, orden y ventana de vigencia
+resuelta en el servidor. El slider no aparece con un solo banner, frena el
+autoplay al pasar el mouse y respeta `prefers-reduced-motion`.
+
+**Filtro por rango de precio**, en la URL como el resto, con los extremos
+reales del catálogo como placeholders.
+
+**Deseos y aviso de reposición** (`20260731000010`/`11`). Los deseos piden
+cuenta; el aviso, no — quien ve "sin stock" y se va ya es una venta perdida.
+
+Haciéndolo apareció que **la tienda escondía lo agotado**: `catalog_products`
+filtra `stock > 0`, así que la ficha devolvía "Producto no encontrado" y con
+ella se perdían la URL indexada y la señal de qué reponer. Se agregó
+`store_catalog_products`, hermana sin ese filtro — hermana y no un cambio a la
+existente, que la leen el catálogo por WhatsApp y la página pública.
+
+Dos guardas hicieron su trabajo: el test de producción encontró que
+`UNIQUE (product_id, variant_id, email)` no deduplicaba con `variant_id` NULL
+(NULL nunca es igual a NULL, el `ON CONFLICT` no disparaba); y
+`edgeFunctionAuth.test.ts` falló apenas apareció una función que manda emails
+sin declararse como cron.
 
 ### Sesión 87 — Reseñas y páginas de contenido (2026-07-30)
 
