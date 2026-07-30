@@ -36,6 +36,60 @@ no de merge.
 
 ---
 
+## Cómo se trabaja acá
+
+Esta sección existe para que cualquier sesión, en cualquier PC, arranque con el
+mismo criterio. No es estilo: cada regla salió de algo que se rompió.
+
+**Una feature no está hecha hasta que se probó contra la base real.** No hay
+staging. El patrón, que ya encontró cinco bugs que ningún test unitario iba a
+encontrar, está más abajo en "Verificación". La última fila del `SELECT` cuenta
+los restos y tiene que dar `0`.
+
+**El navegador se verifica contra `localhost`, no contra Vercel.** El deploy va
+del `git push`, así que hasta que no se pushea, el sitio publicado tiene el
+código viejo aunque las migraciones ya estén aplicadas. Verificar contra
+`exentryimports.vercel.app` da falsos negativos garantizados.
+
+**No se toca dato real del negocio para verificar.** Ya pasó: para probar el
+aviso de reposición se puso en cero el stock de un perfume y el valor original
+se perdió — `stock_movements` no lo tenía. Si hace falta un producto agotado,
+se crea uno `ZZ` y se borra; si no hay más remedio que tocar uno real, se
+**guarda el valor antes** en la tabla temporal del test.
+
+**Antes de descontar stock o tocar totales, revisar si ya hay un trigger que lo
+haga.** `trg_sale_stock_movement` ya descuenta: sumarle un descuento manual
+dejó un stock de 2 en −2.
+
+**Una vista nueva no reemplaza a una existente: convive con ella.** Cambiarle el
+filtro por abajo a `catalog_products` habría afectado al catálogo por WhatsApp
+y a la página pública. La tienda lee `store_catalog_products`, hermana y sin el
+filtro de stock. Mismo criterio para los RPC.
+
+**No tragarse errores.** Un `?? []` convierte "no tengo permiso" en "no hay
+nada", y son problemas opuestos. Se distingue el error de relación inexistente
+(`42P01`/`42883`/`PGRST205`/`PGRST202`, que sí justifica el fallback) de
+cualquier otro, que se reporta.
+
+**Los tests guardia mandan.** `publicSurface`, `edgeFunctionAuth` y
+`moduleMap` no son burocracia: `edgeFunctionAuth` falló apenas apareció una
+función nueva que manda emails, antes de que llegara a producción. Si uno falla,
+se arregla el código o se documenta el motivo en la allowlist — nunca se afloja
+el test.
+
+**Los mensajes de commit son largos a propósito.** Explican *por qué* se hizo
+así y *qué encontró la verificación*, no qué archivos cambiaron. El estado del
+proyecto vive ahí y en `ROADMAP.md`; `git log --oneline -20` es el resumen.
+
+**Pushear es una decisión explícita.** Se commitea siempre, se pushea cuando el
+dueño lo pide: el push dispara el deploy de producción en Vercel.
+
+**Trabajo en slices.** Cada slice es migración → verificación en producción →
+UI → puerta completa (`typecheck` + `lint` + `test` + `build`) → navegador →
+commit → `ROADMAP.md`. No se acumulan tres features sin commitear.
+
+---
+
 ## Reglas del repo
 
 **El CI es bloqueante.** Antes de cada commit:
@@ -71,13 +125,19 @@ cantidades; precios, stock, cupones, envío y comisiones se recalculan en la bas
 comparten prefijo de versión (`20260506`, `20260507`, `20260519000001`,
 `20260523000006` — 13 archivos ya aplicados) y el CLI usa ese prefijo como clave.
 
-El flujo es: `supabase/00_diagnostico.sql` → `01_aplicar_pendientes.sql` →
-`02_verificar.sql`, pegados en el SQL Editor. Si hay credenciales, se puede usar
-el runner:
+Lo que se usa en la práctica, y funciona sin credenciales extra porque el
+proyecto ya está linkeado:
 
 ```bash
-npm run db -- --file supabase/00_diagnostico.sql
+npx supabase db query --linked --file supabase/migrations/2026XXXX_lo_que_sea.sql
 ```
+
+Sirve para aplicar la migración **y** para correr los bloques de verificación.
+Cada archivo tiene que ser idempotente (`IF NOT EXISTS`, `DROP POLICY IF
+EXISTS`, `CREATE OR REPLACE`) porque se corre más de una vez.
+
+Alternativa manual: `supabase/00_diagnostico.sql` → `01_aplicar_pendientes.sql`
+→ `02_verificar.sql` pegados en el SQL Editor, o `npm run db -- --file x.sql`.
 
 **Consecuencia que ya causó un incidente en producción:** el código cliente
 **no puede** asumir que la migración del mismo commit está aplicada. Se cambiaron
@@ -191,6 +251,12 @@ estado al día, `git log --oneline -20`.
 
 Pendientes conocidos al 2026-07-31:
 
+- **Stock de "AFNAN 9AM DIVE" quedó en 7 y ese número no es real.** Se puso en
+  cero para verificar el aviso de reposición y el valor original se perdió.
+  Corregirlo desde Productos con el número que corresponda.
+- Las 4 páginas de contenido de la tienda están **como borrador**, a la espera
+  de que el dueño las revise y publique.
+
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
 - Los 4 grupos de versiones duplicadas hay que resolverlos a mano en
@@ -217,7 +283,31 @@ email corren, encuentran los destinatarios y no pueden enviar).
 
 ### Brechas contra Tiendanube / Empretienda
 
-Lo que la tienda todavía no tiene, en orden de impacto: reseñas de productos
-(no existe ni la tabla), páginas de contenido editables (Sobre nosotros,
-Preguntas frecuentes, Cambios), banner/slider con enlaces en la home, lista de
-deseos y aviso de reposición, y filtro por rango de precio.
+Lo que la tienda todavía no tiene, en orden de impacto:
+
+1. **Etiqueta de envío y tracking automático** con Correo Argentino y Andreani.
+   Las APIs están integradas para cotizar, pero el ciclo no se cierra: no se
+   genera la etiqueta ni se actualiza el seguimiento solo.
+2. **Comisión por transacción** (`marketplace_fee`). Monetizar por venta además
+   de por suscripción; la base OAuth de MercadoPago ya está.
+3. **AFIP en la tienda.** Sin factura no hay venta formal. Es el gap crítico de
+   siempre, y aplica a toda la app, no sólo a la tienda.
+
+Ya resueltas (sesiones 87–88): reseñas de compra verificada, páginas de
+contenido, banners con vigencia, filtro por rango de precio, lista de deseos y
+aviso de reposición.
+
+---
+
+## Arrancar una sesión nueva
+
+```bash
+git fetch origin && git log --oneline -20
+```
+
+Los mensajes de commit son el estado del proyecto. `ROADMAP.md` §5 tiene lo que
+falta para la paridad con Tiendanube, en orden de impacto, y §11 el historial
+por sesión.
+
+Después: leer "Cómo se trabaja acá" arriba, elegir el primero de la lista de
+brechas, y trabajarlo como slice.
