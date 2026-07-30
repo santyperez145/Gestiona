@@ -149,14 +149,37 @@ async function main() {
     console.log(`⚠️  Corriendo con ${peligros.join(', ')} (--allow-destructive)\n`);
   }
 
-  // Certificado validado contra las CA del sistema. Si falla y estás seguro de
-  // la red, se puede relajar con PGSSL_INSECURE=1 — pero es explícito, no un
-  // default silencioso.
+  // TLS, de más seguro a menos:
+  //
+  //   1. SUPABASE_CA_CERT apuntando a la CA de Supabase → verificación real.
+  //      Se descarga del dashboard (Database → SSL Configuration).
+  //   2. Las CA del sistema. No alcanza para el pooler de Supabase, que está
+  //      firmado con su propia CA: da "self-signed certificate in chain".
+  //   3. PGSSL_INSECURE=1 → cifra pero NO verifica la identidad del servidor.
+  //      Sigue siendo vulnerable a un intermediario que capture la contraseña.
+  //      Es explícito a propósito, nunca un default silencioso.
+  let ssl;
+  const caPath = process.env.SUPABASE_CA_CERT;
+  if (caPath) {
+    try {
+      ssl = { ca: readFileSync(caPath, 'utf8'), rejectUnauthorized: true };
+    } catch (e) {
+      console.error(`No pude leer el certificado en ${caPath}: ${e.message}`);
+      process.exit(2);
+    }
+  } else if (process.env.PGSSL_INSECURE === '1') {
+    console.warn(
+      '⚠️  Conectando sin verificar el certificado del servidor. ' +
+      'Para verificarlo de verdad, poné SUPABASE_CA_CERT apuntando a prod-ca-2021.crt.',
+    );
+    ssl = { rejectUnauthorized: false };
+  } else {
+    ssl = { rejectUnauthorized: true };
+  }
+
   const client = new pg.Client({
     connectionString: url,
-    ssl: process.env.PGSSL_INSECURE === '1'
-      ? { rejectUnauthorized: false }
-      : { rejectUnauthorized: true },
+    ssl,
     // Un DDL grande puede tardar; sin esto se corta a los 30s por default.
     statement_timeout: 180_000,
   });
