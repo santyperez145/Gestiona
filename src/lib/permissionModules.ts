@@ -9,7 +9,7 @@
  * toggle que no hace nada.
  *
  * Al agregar un módulo acá hay que agregarlo también al array `modules` de
- * `seed_default_permissions()` (migración 20260729000001). El test
+ * `seed_default_permissions()` (migración 20260730000026). El test
  * `moduleMap.test.ts` verifica que el mapa de rutas no referencie módulos
  * inexistentes.
  */
