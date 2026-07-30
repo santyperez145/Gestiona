@@ -25,6 +25,11 @@ export default function StoreProducts() {
   const genero = params.get("genero") ?? "";
   const familia = params.get("familia") ?? "";
   const soloOferta = params.get("oferta") === "1";
+  // Los límites viven en la URL como el resto de los filtros, así que un
+  // enlace compartido conserva el rango. Un valor basura se ignora en vez de
+  // vaciar la grilla sin explicación.
+  const precioMin = Number(params.get("min")) || 0;
+  const precioMax = Number(params.get("max")) || 0;
   const orden = params.get("orden") ?? "relevancia";
 
   const setParam = (key: string, value: string) => {
@@ -52,6 +57,8 @@ export default function StoreProducts() {
       if (cat && p.category !== cat) return false;
       if (genero && p.gender !== genero) return false;
       if (soloOferta && priceOf(p) >= Number(p.sale_price_ars)) return false;
+      if (precioMin > 0 && priceOf(p) < precioMin) return false;
+      if (precioMax > 0 && priceOf(p) > precioMax) return false;
       if (familia && perfumes[p.id]?.familia_olfativa !== familia) return false;
       return true;
     });
@@ -62,9 +69,18 @@ export default function StoreProducts() {
     else if (orden === "nuevo") out.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     else if (orden === "vendidos") out.sort((a, b) => (Number(b.total_sold) || 0) - (Number(a.total_sold) || 0));
     return out;
-  }, [products, perfumes, q, cat, genero, familia, soloOferta, orden, priceOf]);
+  }, [products, perfumes, q, cat, genero, familia, soloOferta, precioMin, precioMax, orden, priceOf]);
 
-  const activos = [cat, genero, familia, soloOferta ? "1" : ""].filter(Boolean).length;
+  const activos = [cat, genero, familia, soloOferta ? "1" : "",
+    precioMin > 0 ? "min" : "", precioMax > 0 ? "max" : ""].filter(Boolean).length;
+
+  // Rango real del catálogo, para que los placeholders digan algo útil en vez
+  // de un 0 y un 999999 que no existen en la tienda.
+  const [rangoMin, rangoMax] = useMemo(() => {
+    if (products.length === 0) return [0, 0];
+    const precios = products.map(priceOf);
+    return [Math.floor(Math.min(...precios)), Math.ceil(Math.max(...precios))];
+  }, [products, priceOf]);
 
   const limpiar = () => {
     const next = new URLSearchParams();
@@ -143,7 +159,36 @@ export default function StoreProducts() {
           )}
 
           <Grupo titulo="Precio">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <div className="flex items-center gap-2">
+              <input
+                type="number" inputMode="numeric" min={0}
+                value={precioMin || ""}
+                onChange={e => setParam("min", e.target.value)}
+                placeholder={rangoMin ? String(rangoMin) : "Desde"}
+                aria-label="Precio mínimo"
+                className="w-full min-w-0 px-2 py-1.5 text-sm border bg-transparent outline-none"
+                style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+              />
+              <span className="text-xs shrink-0" style={{ color: "hsl(var(--st-muted))" }}>a</span>
+              <input
+                type="number" inputMode="numeric" min={0}
+                value={precioMax || ""}
+                onChange={e => setParam("max", e.target.value)}
+                placeholder={rangoMax ? String(rangoMax) : "Hasta"}
+                aria-label="Precio máximo"
+                className="w-full min-w-0 px-2 py-1.5 text-sm border bg-transparent outline-none"
+                style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+              />
+            </div>
+            {/* Un rango invertido devuelve cero productos sin motivo aparente:
+                se avisa antes de que el comprador crea que no hay stock. */}
+            {precioMin > 0 && precioMax > 0 && precioMax < precioMin && (
+              <p className="text-xs mt-1.5" style={{ color: "hsl(var(--st-muted))" }}>
+                El máximo es menor que el mínimo.
+              </p>
+            )}
+
+            <label className="flex items-center gap-2 text-sm cursor-pointer mt-3">
               <input
                 type="checkbox"
                 checked={soloOferta}

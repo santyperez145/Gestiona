@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
+import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -63,7 +64,7 @@ interface FunnelRow {
 export default function EcommerceStorePage() {
   usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "pages" | "design" | "settings">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "pages" | "banners" | "design" | "settings">("overview");
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [storeForm, setStoreForm] = useState({
@@ -254,6 +255,7 @@ export default function EcommerceStorePage() {
     { id: "orders",    label: "Órdenes" },
     { id: "reviews",   label: "Opiniones" },
     { id: "pages",     label: "Páginas" },
+    { id: "banners",   label: "Banners" },
     { id: "design",    label: "Diseño & Tema" },
     { id: "settings",  label: "Configuración" },
   ];
@@ -327,6 +329,8 @@ export default function EcommerceStorePage() {
       {tab === "pages" && (
         <StorePagesEditor storeId={store?.id ?? null} storeSlug={store?.slug ?? null} />
       )}
+
+      {tab === "banners" && <StoreBannersEditor storeId={store?.id ?? null} />}
 
       {/* ─── Overview ─── */}
       {tab === "overview" && (

@@ -16648,6 +16648,82 @@ export type Database = {
           },
         ]
       }
+      store_banners: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          cta_label: string | null
+          ends_at: string | null
+          id: string
+          image_url: string
+          image_url_mobile: string | null
+          is_active: boolean
+          link_url: string | null
+          org_id: string
+          sort_order: number
+          starts_at: string | null
+          store_id: string
+          subtitle: string | null
+          title: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          cta_label?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url: string
+          image_url_mobile?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          org_id: string
+          sort_order?: number
+          starts_at?: string | null
+          store_id: string
+          subtitle?: string | null
+          title?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          cta_label?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string
+          image_url_mobile?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          org_id?: string
+          sort_order?: number
+          starts_at?: string | null
+          store_id?: string
+          subtitle?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_banners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_banners_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_funnel"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_banners_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_customers: {
         Row: {
           accepts_marketing: boolean
@@ -20261,6 +20337,20 @@ export type Database = {
           new_contracts: number
           period_month: string
           recognized: number
+        }[]
+      }
+      get_store_banners: {
+        Args: { p_slug: string }
+        Returns: {
+          alt_text: string
+          cta_label: string
+          id: string
+          image_url: string
+          image_url_mobile: string
+          link_url: string
+          sort_order: number
+          subtitle: string
+          title: string
         }[]
       }
       get_store_by_slug: {

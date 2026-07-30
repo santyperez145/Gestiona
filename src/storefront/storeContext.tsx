@@ -37,6 +37,18 @@ export interface StoreInfo {
   tiktok_pixel_id: string | null;
 }
 
+export interface StoreBanner {
+  id: string;
+  image_url: string;
+  image_url_mobile: string | null;
+  title: string | null;
+  subtitle: string | null;
+  link_url: string | null;
+  cta_label: string | null;
+  alt_text: string | null;
+  sort_order: number;
+}
+
 export interface StorePage {
   id: string;
   slug: string;
@@ -105,6 +117,8 @@ interface Ctx {
   reviewsByProduct: Record<string, { avg: number; count: number }>;
   /** Páginas de contenido publicadas (sobre nosotros, devoluciones, …). */
   pages: StorePage[];
+  /** Banners vigentes de la home, ya filtrados por fecha en el servidor. */
+  banners: StoreBanner[];
   cart: CartLine[];
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
   setQty: (lineKey: string, qty: number) => void;
@@ -133,6 +147,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
   const [reviewsByProduct, setReviewsByProduct] = useState<Record<string, { avg: number; count: number }>>({});
   const [pages, setPages] = useState<StorePage[]>([]);
+  const [banners, setBanners] = useState<StoreBanner[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -155,7 +170,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       }
       setStore(row);
 
-      const [pRes, dRes, vRes, rRes, gRes] = await Promise.all([
+      const [pRes, dRes, vRes, rRes, gRes, bRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
@@ -164,6 +179,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         fetchStoreVariants(slug),
         supabase.rpc("get_store_reviews", { p_slug: slug }),
         supabase.rpc("get_store_pages", { p_slug: slug }),
+        supabase.rpc("get_store_banners", { p_slug: slug }),
       ]);
       if (cancelled) return;
 
@@ -191,6 +207,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       setReviewsByProduct(rmap);
 
       setPages((gRes?.data ?? []) as unknown as StorePage[]);
+      setBanners((bRes?.data ?? []) as unknown as StoreBanner[]);
       setLoading(false);
     })().catch(() => {
       if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -311,7 +328,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
-      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, cart,
+      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart,
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
@@ -322,7 +339,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
+  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

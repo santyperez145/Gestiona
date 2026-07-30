@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
+import StoreBanners from "./StoreBanners";
 import { getCategoryLabel } from "@/lib/supabaseStore";
 import { ArrowRight, Truck, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function StoreHome() {
-  const { store, products, priceOf, fmt } = useStore();
+  const { store, products, banners, priceOf, fmt } = useStore();
   const base = `/tienda/${store?.slug ?? ""}`;
 
   const destacados = products.filter(p => p.featured).slice(0, 8);
@@ -21,7 +22,13 @@ export default function StoreHome() {
 
   return (
     <>
+      {/* ── Banners ──────────────────────────────────────────────────── */}
+      {/* Si hay banners cargados reemplazan al hero: dos bloques grandes
+          seguidos empujan los productos abajo del pliegue. */}
+      <StoreBanners banners={banners} base={base} />
+
       {/* ── Hero ─────────────────────────────────────────────────────── */}
+      {banners.length === 0 && (
       <section
         className="relative overflow-hidden"
         style={{ background: "hsl(var(--st-surface))", borderBottom: "1px solid hsl(var(--st-border))" }}
@@ -45,6 +52,7 @@ export default function StoreHome() {
           </Link>
         </div>
       </section>
+      )}
 
       {/* ── Barra de confianza ───────────────────────────────────────── */}
       <section className="border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
