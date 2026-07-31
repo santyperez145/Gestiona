@@ -301,17 +301,21 @@ email corren, encuentran los destinatarios y no pueden enviar).
 
 Lo que la tienda todavía no tiene, en orden de impacto:
 
-1. **Terminar el CRM por `customer_id`.** La mitad de base está hecha: `sales`,
-   `debts` y `loyalty_points` tienen la columna, poblada y mantenida por
-   triggers. Falta que `CustomersPage.tsx` la lea, en 8 lugares que ya están
-   ubicados — líneas 572, 578, 676, 760, 1355-1359, 1395 y 1433, más la lógica
-   de fusión de clientes. **Es cambio de lectura: la parte segura.** Hasta que
-   se haga, el RFM y la fidelidad siguen cruzando por nombre en texto libre.
-2. **Etiqueta de envío y tracking automático** con Correo Argentino y Andreani.
+1. **Etiqueta de envío y tracking automático** con Correo Argentino y Andreani.
    Las APIs están integradas para cotizar, pero el ciclo no se cierra: no se
    genera la etiqueta ni se actualiza el seguimiento solo.
-3. **AFIP en la tienda.** Sin factura no hay venta formal. Es el gap crítico de
+2. **AFIP en la tienda.** Sin factura no hay venta formal. Es el gap crítico de
    siempre, y aplica a toda la app, no sólo a la tienda.
+
+El CRM por `customer_id` tampoco es ya una brecha: `CustomersPage` lee por id
+desde el commit 2a7d5c7. El cruce vive en `customerMatch.ts` (puro, 10 tests) y
+su `normalizeName` es espejo de `public.normalize_person_name` — si se toca una,
+se toca la otra. Una fila **enlazada** se cruza sólo por id; una sin enlazar,
+por nombre normalizado, porque no hay trigger que enlace lo viejo cuando se da
+de alta un cliente nuevo y leer sólo por id le mostraría la ficha vacía.
+
+Quedaron por nombre `quotes` y `customer_communications`: no tienen la columna,
+así que para esas hace falta migración, no sólo cambiar la lectura.
 
 `marketplace_fee` ya **no** es una brecha: se aplica en `store-pay` desde el
 commit 85fa7b1, con `platform_commission_amount()` como única fuente del número
