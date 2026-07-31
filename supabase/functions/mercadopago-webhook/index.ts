@@ -4,9 +4,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getMpCredentials } from "../_shared/mpToken.ts";
 
-// Verify Mercado Pago webhook signature
-// Header: x-signature = "ts=<epoch>,v1=<sha256hex>"
-// Template: id:<payment_id>;request-id:<x-request-id>;ts:<epoch>
+/**
+ * Verifica la firma del webhook de MercadoPago.
+ *
+ * Header: `x-signature: ts=<epoch>,v1=<sha256hex>`
+ *
+ * El manifiesto que MP firma lleva **punto y coma final**:
+ *
+ *     id:<data.id>;request-id:<x-request-id>;ts:<epoch>;
+ *
+ * Acá se armaba sin ese último `;`. Un byte de diferencia da otro HMAC, así
+ * que **toda** notificación daba firma inválida y se respondía 401. Resultado:
+ * una compra real quedaba pagada y acreditada en MercadoPago y la orden se
+ * quedaba en "esperando el pago" para siempre, sin venta, sin descuento de
+ * stock y sin aparecer en los tableros.
+ *
+ * Se prueban las dos formas porque la documentación de MP cambió de redacción
+ * más de una vez y el costo de aceptar ambas es un HMAC más. Lo que no se
+ * afloja es la exigencia de firma: sin ella, cualquiera podría marcar pedidos
+ * como pagados.
+ */
 async function verifyMpSignature(
   paymentId: string,
   requestId: string,
@@ -14,23 +31,30 @@ async function verifyMpSignature(
   secret: string,
 ): Promise<boolean> {
   try {
-    const parts = Object.fromEntries(signature.split(",").map(p => p.split("=")));
+    // `split("=")` parte de más si el valor trae "="; se corta en el primero.
+    // Y se recorta: MP a veces manda "ts=1, v1=abc" con espacio.
+    const parts: Record<string, string> = {};
+    for (const trozo of signature.split(",")) {
+      const i = trozo.indexOf("=");
+      if (i > 0) parts[trozo.slice(0, i).trim()] = trozo.slice(i + 1).trim();
+    }
     const ts = parts["ts"];
     const v1 = parts["v1"];
     if (!ts || !v1) return false;
 
-    const template = `id:${paymentId};request-id:${requestId};ts:${ts}`;
     const enc = new TextEncoder();
     const key = await crypto.subtle.importKey(
-      "raw",
-      enc.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"],
+      "raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
     );
-    const buf = await crypto.subtle.sign("HMAC", key, enc.encode(template));
-    const computed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-    return computed === v1;
+
+    const base = `id:${paymentId};request-id:${requestId};ts:${ts}`;
+    for (const template of [`${base};`, base]) {
+      const buf = await crypto.subtle.sign("HMAC", key, enc.encode(template));
+      const computed = Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, "0")).join("");
+      if (computed === v1) return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -161,6 +185,11 @@ Deno.serve(async (req) => {
     const signature = req.headers.get("x-signature") || "";
     const requestId = req.headers.get("x-request-id") || "";
 
+    // MP firma el `data.id` de la query string cuando la notificación llega
+    // por ahí. Suele coincidir con el del cuerpo, pero cuando no, la firma se
+    // valida contra el de la URL.
+    const signedId = new URL(req.url).searchParams.get("data.id") || paymentId;
+
     // We need to find the right org's MP token to verify and fetch the payment.
     // Strategy: use external_reference in URL query params or find by payment after fetch.
     // MP also sends ?id=<payment_id>&topic=payment in query string (IPN mode).
@@ -176,9 +205,14 @@ Deno.serve(async (req) => {
           status: 401, headers: { "Content-Type": "application/json" },
         });
       }
-      const valid = await verifyMpSignature(paymentId, requestId, signature, globalWebhookSecret);
+      const valid = await verifyMpSignature(signedId, requestId, signature, globalWebhookSecret);
       if (!valid) {
-        console.warn(`Invalid MP signature for payment ${paymentId}`);
+        // Sin filtrar el secreto: alcanza con saber qué se firmó para
+        // diagnosticar, y este log es lo único que había cuando una compra
+        // real quedó colgada.
+        console.warn(
+          `Invalid MP signature. payment=${paymentId} signedId=${signedId} requestId=${requestId ? "presente" : "AUSENTE"}`,
+        );
         return new Response(JSON.stringify({ ok: false, reason: "invalid signature" }), {
           status: 401, headers: { "Content-Type": "application/json" },
         });
