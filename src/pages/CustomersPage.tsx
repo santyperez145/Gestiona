@@ -24,6 +24,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
+import UnlinkedSalesPanel from "@/components/customers/UnlinkedSalesPanel";
 import { useModulePermissions } from "@/lib/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1950,6 +1951,9 @@ export default function CustomersPage() {
           </div>
         }
       />
+
+      {/* Compradores que nunca entraron a la lista */}
+      <UnlinkedSalesPanel />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
