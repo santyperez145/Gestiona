@@ -8,6 +8,7 @@ import {
   getCRMSegmentsDB, saveCRMSegmentsDB, type SavedCRMSegment,
 } from "@/lib/supabaseStore";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeName, belongsToCustomer, rowsOfCustomer, type CustomerRef } from "@/lib/customerMatch";
 import { useOrg } from "@/lib/orgContext";
 import {
   Users, ShoppingBag, Crown, AlertCircle,
@@ -39,6 +40,8 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────────────────────
 type CustomerData = {
   name: string;
+  /** Id en `customers`. Null mientras la persona no esté cargada en el CRM. */
+  customerId?: string | null;
   totalSpent: number;
   totalProfit: number;
   purchaseCount: number;
@@ -70,6 +73,8 @@ type CustomerData = {
 type CustomerProfile = {
   id: string;
   name: string;
+  /** Viene del select(*); desempata homónimos igual que el trigger en SQL. */
+  created_at?: string;
   company?: string;
   email?: string;
   phone?: string;
@@ -555,10 +560,12 @@ const PAY_COLOR: Record<string, string> = {
 
 function CustomerSalesTimeline({
   customerName,
+  customerRef,
   sales,
   debts,
   onCreateInvoice,
 }: {
+  customerRef: CustomerRef;
   customerName: string;
   sales: any[];
   debts: any[];
@@ -569,14 +576,14 @@ function CustomerSalesTimeline({
   const customerSales = useMemo(
     () =>
       sales
-        .filter((s: any) => s.customer_name?.toLowerCase() === customerName.toLowerCase())
+        .filter((s: any) => belongsToCustomer(s, customerRef))
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    [sales, customerName],
+    [sales, customerRef],
   );
 
   const customerDebts = useMemo(
-    () => debts.filter((d: any) => d.customer_name?.toLowerCase() === customerName.toLowerCase()),
-    [debts, customerName],
+    () => debts.filter((d: any) => belongsToCustomer(d, customerRef)),
+    [debts, customerRef],
   );
 
   const shown = showAll ? customerSales : customerSales.slice(0, 5);
@@ -1351,14 +1358,32 @@ export default function CustomersPage() {
     setMerging(true);
     try {
       const orgId = activeOrg.id;
-      // Update sales
-      await supabase.from("sales").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
-      // Update debts
-      await supabase.from("debts").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
-      // Update loyalty_points
-      await supabase.from("loyalty_points").update({ customer_name: target }).eq("org_id", orgId).eq("customer_name", mergingCustomer);
-      // Delete source profile (if exists)
-      const srcProfile = profiles.find(p => p.name.toLowerCase() === mergingCustomer.toLowerCase());
+      const srcProfile = profiles.find(p => normalizeName(p.name) === normalizeName(mergingCustomer));
+      const dstProfile = profiles.find(p => normalizeName(p.name) === normalizeName(target));
+
+      // Se reasigna por id cuando el origen está cargado en el CRM. El filtro
+      // por `customer_name` exacto que había antes se saltaba las filas escritas
+      // con otra capitalización o espacios de más — que es justamente el motivo
+      // por el que hace falta fusionar.
+      const reasignar = async (tabla: "sales" | "debts" | "loyalty_points") => {
+        const patch: Record<string, unknown> = { customer_name: target };
+        if (dstProfile) patch.customer_id = dstProfile.id;
+
+        if (srcProfile) {
+          await supabase.from(tabla).update(patch).eq("org_id", orgId).eq("customer_id", srcProfile.id);
+        }
+        // Y las que nunca se enlazaron, por nombre exacto: es lo único que se
+        // puede filtrar del lado del servidor sin traerlas todas.
+        await supabase.from(tabla).update(patch)
+          .eq("org_id", orgId).is("customer_id", null).eq("customer_name", mergingCustomer);
+      };
+
+      await reasignar("sales");
+      await reasignar("debts");
+      await reasignar("loyalty_points");
+
+      // El perfil de origen se borra al final: mientras existe, su id es lo que
+      // permite encontrar las filas a reasignar.
       if (srcProfile) {
         await supabase.from("customers").delete().eq("id", srcProfile.id);
       }
@@ -1380,7 +1405,7 @@ export default function CustomersPage() {
     Promise.all([
       supabase
         .from("loyalty_points")
-        .select("customer_name, delta")
+        .select("customer_name, customer_id, delta")
         .eq("org_id", activeOrg.id),
       supabase
         .from("settings")
@@ -1390,9 +1415,14 @@ export default function CustomersPage() {
     ]).then(([{ data: pts }, { data: sett }]) => {
       if (sett) setLoyaltyEnabled(!!sett.loyalty_enabled);
       if (pts) {
+        // Se acumula por id cuando lo hay: con el nombre crudo como clave, los
+        // puntos de "Juan Perez" y "juan  perez" eran dos saldos distintos y
+        // ninguno era el saldo real.
         const map: Record<string, number> = {};
-        for (const row of pts) {
-          map[row.customer_name] = (map[row.customer_name] || 0) + Number(row.delta);
+        for (const row of pts as { customer_name: string | null; customer_id: string | null; delta: number }[]) {
+          const key = row.customer_id ?? normalizeName(row.customer_name);
+          if (!key) continue;
+          map[key] = (map[key] || 0) + Number(row.delta);
         }
         setLoyaltyBalances(map);
       }
@@ -1424,21 +1454,65 @@ export default function CustomersPage() {
     return map;
   }, [profiles]);
 
+  /**
+   * Saldo de puntos de un cliente. El mapa está indexado por id cuando lo hay,
+   * así que leerlo por nombre devolvía 0 para todo el que ya estaba enlazado.
+   */
+  const saldoDe = useCallback(
+    (c: CustomerData) => loyaltyBalances[c.customerId ?? normalizeName(c.name) ?? ""] || 0,
+    [loyaltyBalances],
+  );
+
+  /** Referencia del cliente para cruzar filas. Se arma en un solo lugar. */
+  const refDe = useCallback((c: CustomerData): CustomerRef => ({ id: c.customerId, name: c.name }), []);
+
+  // Nombre normalizado → id del cliente. Espejo de lo que hace el trigger
+  // `trg_sales_link_customer` en la base, para que una fila todavía sin
+  // `customer_id` caiga en la misma ficha que las ya enlazadas.
+  const profileIdByName = useMemo(() => {
+    const map: Record<string, string> = {};
+    // El más antiguo gana ante homónimos, igual que en SQL.
+    [...profiles]
+      .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")))
+      .forEach(pr => {
+        const n = normalizeName(pr.name);
+        if (n && !map[n]) map[n] = pr.id;
+      });
+    return map;
+  }, [profiles]);
+
   // Aggregate customer data from sales
   const customers = useMemo(() => {
     const map: Record<string, CustomerData> = {};
     const now = Date.now();
 
+    /**
+     * Clave de agrupación. El id manda; si la fila no está enlazada se usa el
+     * id que le correspondería por nombre, y recién si tampoco existe se
+     * agrupa por el nombre normalizado.
+     *
+     * Con el nombre crudo como clave, "Juan Perez" y "juan  perez" eran dos
+     * clientes distintos en la lista, cada uno con la mitad de las compras.
+     */
+    const claveDe = (row: { customer_id?: string | null; customer_name?: string | null }) => {
+      if (row.customer_id) return row.customer_id;
+      const n = normalizeName(row.customer_name);
+      if (!n) return "__anonimo__";
+      return profileIdByName[n] ?? n;
+    };
+
     sales.forEach((s: any) => {
       const name = s.customer_name || "Cliente anónimo";
-      if (!map[name]) {
-        map[name] = {
-          name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0, avgTicket: 0,
+      const key = claveDe(s);
+      if (!map[key]) {
+        map[key] = {
+          name, customerId: s.customer_id ?? profileIdByName[normalizeName(name) ?? ""] ?? null,
+          totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0, avgTicket: 0,
           lastPurchase: s.date, firstPurchase: s.date, daysSinceLastPurchase: 0,
           frequency: 0, pendingDebt: 0, products: {}, segment: "", segmentColor: "", sellers: [], clv: 0, churnRisk: 0, healthScore: 0,
         };
       }
-      const c = map[name];
+      const c = map[key];
       c.totalSpent += Number(s.total_ars);
       c.totalProfit += Number(s.profit_ars);
       c.purchaseCount++;
@@ -1453,32 +1527,37 @@ export default function CustomersPage() {
     });
 
     debts.filter(d => d.status !== "paid").forEach((d: any) => {
-      const name = d.customer_name || "Cliente anónimo";
-      if (map[name]) map[name].pendingDebt += Number(d.remaining_ars);
+      const key = claveDe(d);
+      if (map[key]) map[key].pendingDebt += Number(d.remaining_ars);
     });
 
     // Merge profiles
     profiles.forEach(p => {
-      if (!map[p.name]) {
+      // Por id: así el perfil cae sobre el mismo grupo que sus ventas, aunque
+      // el nombre esté escrito distinto en una y otra tabla.
+      if (!map[p.id]) {
         // Profile exists but no sales yet — show it anyway
-        map[p.name] = {
-          name: p.name, totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0,
+        map[p.id] = {
+          name: p.name, customerId: p.id,
+          totalSpent: 0, totalProfit: 0, purchaseCount: 0, totalUnits: 0,
           avgTicket: 0, lastPurchase: new Date().toISOString(), firstPurchase: new Date().toISOString(),
           daysSinceLastPurchase: 999, frequency: 999, pendingDebt: 0, products: {},
           segment: "Sin compras", segmentColor: "bg-muted text-muted-foreground", sellers: [], clv: 0, churnRisk: 0, healthScore: 0,
         };
       }
-      const prof = profileByName[p.name.toLowerCase()];
-      if (prof) {
-        const c = map[p.name];
-        c.profileId = prof.id;
-        c.company = prof.company;
-        c.email = prof.email;
-        c.phone = prof.phone;
-        c.address = prof.address;
-        c.birthday = prof.birthday;
-        c.tags = prof.tags;
-        c.profileNotes = prof.notes;
+      const c = map[p.id];
+      if (c) {
+        // El nombre del perfil es el bueno: es el que el comercio mantiene.
+        c.name = p.name;
+        c.customerId = p.id;
+        c.profileId = p.id;
+        c.company = p.company;
+        c.email = p.email;
+        c.phone = p.phone;
+        c.address = p.address;
+        c.birthday = p.birthday;
+        c.tags = p.tags;
+        c.profileNotes = p.notes;
       }
     });
 
@@ -1508,7 +1587,7 @@ export default function CustomersPage() {
       c.churnRisk = computeChurnRisk(c);
     });
     return list;
-  }, [sales, debts, profiles, profileByName]);
+  }, [sales, debts, profiles, profileIdByName]);
 
   // Helper: check if a birthday falls within a range relative to today (comparing month+day only)
   const bdayInRange = (birthday: string | undefined, range: string): boolean => {
@@ -2874,7 +2953,7 @@ export default function CustomersPage() {
                         className="gap-1.5 text-xs text-muted-foreground"
                         onClick={() => exportCustomer360PDF(
                           c,
-                          sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase())
+                          rowsOfCustomer(sales as any[], refDe(c))
                             .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()),
                           settings?.business_name || 'Mi Negocio'
                         )}
@@ -2888,8 +2967,8 @@ export default function CustomersPage() {
                         className="gap-1.5 text-xs text-muted-foreground"
                         onClick={() => exportAccountStatementPDF(
                           c,
-                          sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase()),
-                          debts.filter((d: any) => d.customer_name?.toLowerCase() === c.name.toLowerCase()),
+                          rowsOfCustomer(sales as any[], refDe(c)),
+                          rowsOfCustomer(debts as any[], refDe(c)),
                           settings?.business_name || 'Mi Negocio'
                         )}
                         title="Estado de cuenta formal para enviar al cliente"
@@ -2973,7 +3052,7 @@ export default function CustomersPage() {
                     <Tabs defaultValue="resumen" className="w-full">
                       <TabsList className="h-8 text-xs mb-3">
                         <TabsTrigger value="resumen" className="text-xs h-7 gap-1"><TrendingUp className="w-3 h-3" />Resumen</TabsTrigger>
-                        <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({sales.filter((s: any) => s.customer_name?.toLowerCase() === c.name.toLowerCase()).length})</TabsTrigger>
+                        <TabsTrigger value="compras" className="text-xs h-7 gap-1"><Package className="w-3 h-3" />Compras ({rowsOfCustomer(sales as any[], refDe(c)).length})</TabsTrigger>
                         <TabsTrigger value="deudas" className="text-xs h-7 gap-1"><CreditCard className="w-3 h-3" />Cuotas/Deudas</TabsTrigger>
                         <TabsTrigger value="presupuestos" className="text-xs h-7 gap-1"><FileText className="w-3 h-3" />Presupuestos</TabsTrigger>
                         <TabsTrigger value="contacto" className="text-xs h-7 gap-1"><MessageCircle className="w-3 h-3" />Contacto</TabsTrigger>
@@ -2999,18 +3078,18 @@ export default function CustomersPage() {
                         {/* Loyalty points badge */}
                         {loyaltyEnabled && (
                           <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs ${
-                            (loyaltyBalances[c.name] || 0) > 0
+                            saldoDe(c) > 0
                               ? "bg-yellow-500/10 border border-yellow-500/20"
                               : "bg-muted/30 border border-border"
                           }`}>
-                            <Gift className={`w-4 h-4 shrink-0 ${(loyaltyBalances[c.name] || 0) > 0 ? "text-yellow-400" : "text-muted-foreground"}`} />
+                            <Gift className={`w-4 h-4 shrink-0 ${saldoDe(c) > 0 ? "text-yellow-400" : "text-muted-foreground"}`} />
                             <div className="flex-1">
                               <span className="text-muted-foreground">Puntos de fidelidad</span>
-                              <span className={`ml-2 font-mono font-bold ${(loyaltyBalances[c.name] || 0) > 0 ? "text-yellow-400" : "text-muted-foreground"}`}>
-                                {(loyaltyBalances[c.name] || 0).toLocaleString("es-AR")} pts
+                              <span className={`ml-2 font-mono font-bold ${saldoDe(c) > 0 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                                {saldoDe(c).toLocaleString("es-AR")} pts
                               </span>
                             </div>
-                            {(loyaltyBalances[c.name] || 0) > 0 && (
+                            {saldoDe(c) > 0 && (
                               <a href="/fidelidad" className="text-yellow-400 hover:text-yellow-300 text-[10px] underline shrink-0">
                                 Ver fidelidad →
                               </a>
@@ -3157,6 +3236,7 @@ export default function CustomersPage() {
                         })()}
                         <CustomerSalesTimeline
                           customerName={c.name}
+                          customerRef={refDe(c)}
                           sales={sales}
                           debts={debts}
                           onCreateInvoice={(sale) => {
@@ -3170,7 +3250,7 @@ export default function CustomersPage() {
                         {/* Cuotas pendientes */}
                         {(() => {
                           const customerInstallments = installments.filter(
-                            i => i.sale?.customer_name?.toLowerCase() === c.name.toLowerCase()
+                            i => i.sale && belongsToCustomer(i.sale, refDe(c))
                           );
                           if (customerInstallments.length === 0) return (
                             <p className="text-xs text-muted-foreground text-center py-4">Sin cuotas pendientes</p>
@@ -3214,14 +3294,14 @@ export default function CustomersPage() {
                         })()}
 
                         {/* Active debts */}
-                        {debts.filter((d: any) => d.customer_name?.toLowerCase() === c.name.toLowerCase() && d.status !== 'paid').length > 0 && (
+                        {rowsOfCustomer(debts as any[], refDe(c)).filter((d: any) => d.status !== 'paid').length > 0 && (
                           <div>
                             <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                               <AlertCircle className="w-3 h-3 text-destructive" />Deudas activas
                             </h3>
                             <div className="space-y-1.5">
                               {debts
-                                .filter((d: any) => d.customer_name?.toLowerCase() === c.name.toLowerCase() && d.status !== 'paid')
+                                .filter((d: any) => belongsToCustomer(d, refDe(c)) && d.status !== 'paid')
                                 .map((d: any) => (
                                   <div key={d.id} className="flex items-center justify-between rounded-lg bg-destructive/8 border border-destructive/20 px-3 py-2">
                                     <div>
@@ -3493,7 +3573,7 @@ export default function CustomersPage() {
                     {/* Cuotas pendientes */}
                     {(() => {
                       const customerInstallments = installments.filter(
-                        i => i.sale?.customer_name?.toLowerCase() === c.name.toLowerCase()
+                        i => i.sale && belongsToCustomer(i.sale, refDe(c))
                       );
                       if (customerInstallments.length === 0) return null;
                       const today = new Date();
@@ -3537,6 +3617,7 @@ export default function CustomersPage() {
                     {/* 360 — Sales timeline & debts */}
                     <CustomerSalesTimeline
                       customerName={c.name}
+                      customerRef={refDe(c)}
                       sales={sales}
                       debts={debts}
                       onCreateInvoice={(sale) => {
