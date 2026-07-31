@@ -121,9 +121,31 @@ cantidades; precios, stock, cupones, envío y comisiones se recalculan en la bas
 
 ## Migraciones: se aplican A MANO
 
-`supabase db push` **no sirve** en este repo: cuatro grupos de migraciones
-comparten prefijo de versión (`20260506`, `20260507`, `20260519000001`,
-`20260523000006` — 13 archivos ya aplicados) y el CLI usa ese prefijo como clave.
+### ☠️ `supabase db push` borraría ~75 tablas
+
+Los prefijos duplicados ya no existen (se renombraron 9 archivos), pero eso era
+lo **menor**. El problema real es que el libro de migraciones está muy atrás de
+la realidad: **280 archivos en el repo, 107 registrados** en
+`supabase_migrations.schema_migrations`.
+
+Las migraciones se aplican con `db query --file`, que **no toca el libro**. Así
+que el CLI cree que faltan 173 — y entre esas está
+`20260723000003_drop_orphaned_feature_tables.sql`, que dropea unas 75 tablas.
+Un `db push` la correría.
+
+Arreglar sólo los prefijos habría sido peor que no tocar nada: dejaba el comando
+con pinta de usable. **Hasta que el libro no se reconcilie, `db push` no se
+corre.** Reconciliarlo es determinar cuáles de esas 173 ya están aplicadas —
+tarea aparte, con backup, y verificando objeto por objeto.
+
+Al aplicar una migración a mano, **anotarla**:
+
+```sql
+INSERT INTO supabase_migrations.schema_migrations (version, name)
+VALUES ('20260731000021', 'order_shipping') ON CONFLICT DO NOTHING;
+```
+
+Es lo único que frena que la brecha siga creciendo.
 
 Lo que se usa en la práctica, y funciona sin credenciales extra porque el
 proyecto ya está linkeado:
@@ -317,8 +339,9 @@ Pendientes conocidos al 2026-07-31:
 
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
-- Los 4 grupos de versiones duplicadas hay que resolverlos a mano en
-  `supabase_migrations.schema_migrations`.
+- **El libro de migraciones está 173 atrás** (280 archivos, 107 registrados).
+  Reconciliarlo es lo que haría usable a `db push`; hasta entonces el comando
+  borraría ~75 tablas. Los prefijos duplicados ya se resolvieron.
 - Las APIs de Correo Argentino y Andreani siguen **sin verificar contra un
   contrato real**: los payloads siguen la documentación publicada.
 - Falta AFIP, que es el gap crítico de siempre: sin factura no hay venta formal.
