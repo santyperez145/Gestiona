@@ -257,6 +257,13 @@ Pendientes conocidos al 2026-07-31:
 - Las 4 páginas de contenido de la tienda están **como borrador**, a la espera
   de que el dueño las revise y publique.
 
+- **`send-team-invite` corre en producción sin código en el repo.** Está ACTIVE
+  desde 2026-05-12, con `verify_jwt=true`. No es urgente porque está protegida,
+  pero es una función que nadie puede revisar ni versionar, y que `npm run
+  deploy:functions` **no** actualiza — deriva la lista del filesystem, así que
+  esta no existe para el script. Dos salidas: bajar el código del dashboard y
+  commitearlo, o borrarla si el flujo de invitaciones ya no la usa. Chequeo:
+  comparar `supabase functions list` contra `supabase/functions/*/index.ts`.
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
 - Los 4 grupos de versiones duplicadas hay que resolverlos a mano en
