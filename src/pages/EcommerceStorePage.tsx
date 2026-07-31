@@ -17,6 +17,7 @@ import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
+import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -175,7 +176,7 @@ export default function EcommerceStorePage() {
       supabase.from("shipping_zones").select("id, provinces")
         .eq("org_id", orgId).eq("is_active", true),
       supabase.from("shipping_rates").select("zone_id").eq("org_id", orgId).eq("is_active", true),
-      supabase.from("settings").select("mp_enabled, mp_access_token").eq("org_id", orgId).maybeSingle(),
+      fetchPaymentStatus(orgId),
     ]).then(([prods, sinPeso, zonas, tarifas, ajustes]) => {
       const zonasList = (zonas.data ?? []) as { id: string; provinces: string[] | null }[];
       const conTarifa = new Set(((tarifas.data ?? []) as { zone_id: string }[]).map(r => r.zone_id));
@@ -186,14 +187,14 @@ export default function EcommerceStorePage() {
       const provincias = new Set(
         zonasList.filter(z => conTarifa.has(z.id)).flatMap(z => z.provinces ?? []),
       );
-      const st = ajustes.data as { mp_enabled?: boolean; mp_access_token?: string | null } | null;
+      const cobro = ajustes;
       setSignals({
         publishedProducts: prods.count ?? 0,
         productsWithoutWeight: sinPeso.count ?? 0,
         shippingZones: zonasList.length,
         zonesWithRates: zonasList.filter(z => conTarifa.has(z.id)).length,
         coveredProvinces: provincias.size,
-        paymentConnected: !!(st?.mp_enabled && st?.mp_access_token),
+        paymentConnected: cobro.connected,
       });
     }, () => { /* si falla, el panel muestra el estado conservador */ });
 

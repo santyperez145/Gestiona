@@ -85,18 +85,10 @@ export default function IntegrationsPage() {
   const [registeringWebhooks, setRegisteringWebhooks] = useState(false);
 
   // Mercado Pago settings
-  const [mpToken, setMpToken] = useState("");
-  const [mpEnabled, setMpEnabled] = useState(false);
-  const [mpTokenVisible, setMpTokenVisible] = useState(false);
-  const [savingMp, setSavingMp] = useState(false);
   const [mpLoaded, setMpLoaded] = useState(false);
 
   // MercadoLibre marketplace
-  const [mlToken, setMlToken] = useState("");
   const [mlUserId, setMlUserId] = useState("");
-  const [mlEnabled, setMlEnabled] = useState(false);
-  const [mlTokenVisible, setMlTokenVisible] = useState(false);
-  const [savingMl, setSavingMl] = useState(false);
 
   // Shopify
   const [shopifyUrl, setShopifyUrl] = useState("");
@@ -145,7 +137,7 @@ export default function IntegrationsPage() {
       // Get org settings to know what's configured
       const { data: settings } = await supabase
         .from("settings")
-        .select("mp_access_token, mp_enabled, api_key")
+        .select("api_key")
         .eq("org_id", activeOrg.id)
         .maybeSingle();
 
@@ -191,12 +183,13 @@ export default function IntegrationsPage() {
         mercadopago: {
           integration: "mercadopago", label: "Mercado Pago",
           icon: <span className="text-blue-400 font-bold text-sm">$</span>,
-          status: settings?.mp_enabled && settings?.mp_access_token
-            ? buildStatus("mercadopago")
-            : "unknown",
+          // Desde la conexión OAuth, no desde `settings`: con el token pegado
+          // fuera de juego, mirar `mp_access_token` daba "Sin configurar"
+          // eternamente aunque la cuenta estuviera conectada.
+          status: mpConectado ? buildStatus("mercadopago") : "unknown",
           lastSeen: fmtAge(latest.mercadopago?.created_at || null),
           message: latest.mercadopago?.message || null,
-          configured: !!settings?.mp_enabled && !!settings?.mp_access_token,
+          configured: mpConectado,
         },
         stripe: {
           integration: "stripe", label: "Stripe",
@@ -239,25 +232,41 @@ export default function IntegrationsPage() {
     setLoadingConn(false);
   };
 
+  /**
+   * ¿Hay cuenta de MercadoPago conectada?
+   *
+   * Se lee de `payment_connection_status`, la vista que dice si está conectado
+   * y con qué cuenta sin exponer el token. La tabla de abajo tiene RLS con cero
+   * policies a propósito: sólo la tocan las Edge Functions.
+   */
+  const [mpConectado, setMpConectado] = useState(false);
+
+  useEffect(() => {
+    if (!activeOrg) return;
+    supabase
+      .from("payment_connection_status")
+      .select("provider, connected")
+      .eq("org_id", activeOrg.id)
+      .eq("provider", "mercadopago")
+      .maybeSingle()
+      .then(({ data }) => setMpConectado(!!(data as { connected?: boolean } | null)?.connected),
+            () => setMpConectado(false));
+  }, [activeOrg]);
+
   const loadMpSettings = async () => {
     if (!activeOrg) return;
     const { data } = await supabase
       .from("settings")
-      .select("mp_access_token, mp_enabled, api_key, webhook_url, webhook_enabled, webhook_events, webhook_secret, ml_access_token, ml_user_id, ml_enabled, shopify_store_url, shopify_api_key, shopify_api_secret, shopify_enabled")
+      .select("api_key, webhook_url, webhook_enabled, webhook_events, webhook_secret, ml_user_id, shopify_store_url, shopify_api_key, shopify_api_secret, shopify_enabled")
       .eq("org_id", activeOrg.id)
       .maybeSingle();
     if (data) {
-      setMpToken(data.mp_access_token || "");
-      setMpEnabled(!!data.mp_enabled);
       setApiKey(data.api_key || null);
       setWebhookUrl(data.webhook_url || "");
       setWebhookEnabled(!!data.webhook_enabled);
       setWebhookSecret(data.webhook_secret || "");
       if (data.webhook_events) setWebhookEvents(data.webhook_events as string[]);
-      // MercadoLibre
-      setMlToken(data.ml_access_token || "");
       setMlUserId(data.ml_user_id || "");
-      setMlEnabled(!!(data as any).ml_enabled);
       // Shopify
       setShopifyUrl((data as any).shopify_store_url || "");
       setShopifyKey((data as any).shopify_api_key || "");
@@ -358,34 +367,6 @@ export default function IntegrationsPage() {
       toast.success("Webhook de prueba enviado — revisá tu endpoint");
     } catch { toast.error("Error al enviar prueba"); }
     finally { setTestingWebhook(false); }
-  };
-
-  const handleSaveMp = async () => {
-    if (!activeOrg) return;
-    setSavingMp(true);
-    const { error } = await supabase
-      .from("settings")
-      .upsert({ org_id: activeOrg.id, user_id: user!.id, mp_access_token: mpToken, mp_enabled: mpEnabled }, { onConflict: "org_id" });
-    setSavingMp(false);
-    if (error) {
-      toast.error("Error al guardar: " + error.message);
-    } else {
-      toast.success("Configuración de Mercado Pago guardada");
-    }
-  };
-
-  const handleSaveMl = async () => {
-    if (!activeOrg) return;
-    setSavingMl(true);
-    const { error } = await supabase.from("settings").upsert({
-      org_id: activeOrg.id,
-      ml_access_token: mlToken.trim() || null,
-      ml_user_id: mlUserId.trim() || null,
-      ml_enabled: mlEnabled,
-    } as any, { onConflict: "org_id" });
-    setSavingMl(false);
-    if (error) toast.error("Error al guardar: " + error.message);
-    else toast.success("Configuración de MercadoLibre guardada");
   };
 
   const handleSaveShopify = async () => {
@@ -807,160 +788,16 @@ export default function IntegrationsPage() {
         )}
       </div>
 
-      {/* Mercado Pago */}
-      <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-blue-400 font-bold text-lg">$</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold">Mercado Pago</h2>
-                {mpEnabled && mpToken ? (
-                  <Badge className="text-[10px] h-4 px-1.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">Activo</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Generá links de pago desde el POS y recibí cobros
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {mpLoaded && (
-          <div className="px-5 py-4 space-y-4">
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1.5">
-                Access Token de producción
-              </label>
-              <div className="relative">
-                <Input
-                  type={mpTokenVisible ? "text" : "password"}
-                  value={mpToken}
-                  onChange={e => setMpToken(e.target.value)}
-                  placeholder="APP_USR-..."
-                  className="bg-muted border-border pr-10 font-mono text-xs"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setMpTokenVisible(v => !v)}
-                >
-                  {mpTokenVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Encontralo en{" "}
-                <a
-                  href="https://www.mercadopago.com.ar/developers/panel/app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  Mercado Pago → Developers → Credenciales
-                </a>
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Habilitar Mercado Pago</p>
-                <p className="text-[11px] text-muted-foreground">Activa el botón de link de pago en el POS</p>
-              </div>
-              <Switch checked={mpEnabled} onCheckedChange={setMpEnabled} />
-            </div>
-
-            <Button
-              className="w-full h-9 text-sm gradient-gold text-primary-foreground shadow-gold"
-              onClick={handleSaveMp}
-              disabled={savingMp}
-            >
-              {savingMp ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar configuración
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* ── MercadoLibre Marketplace ─────────────────────────────── */}
-      {mpLoaded && (
-        <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-card">
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0">
-                <span className="text-yellow-400 font-extrabold text-base">ML</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold">MercadoLibre</h2>
-                  {mlEnabled && mlToken ? (
-                    <Badge className="text-[10px] h-4 px-1.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">Activo</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Sin configurar</Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">Sincronizá publicaciones, pedidos y stock con MercadoLibre</p>
-              </div>
-            </div>
-          </div>
-          <div className="px-5 py-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1.5">Access Token</label>
-                <div className="relative">
-                  <Input
-                    type={mlTokenVisible ? "text" : "password"}
-                    value={mlToken}
-                    onChange={e => setMlToken(e.target.value)}
-                    placeholder="APP_USR-..."
-                    className="bg-muted border-border pr-10 font-mono text-xs"
-                  />
-                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setMlTokenVisible(v => !v)}>
-                    {mlTokenVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  <a href="https://developers.mercadolibre.com.ar/es_ar/autenticacion-y-autorizacion" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                    Obtener en ML Developers → Credenciales
-                  </a>
-                </p>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1.5">User ID (Seller ID)</label>
-                <Input
-                  value={mlUserId}
-                  onChange={e => setMlUserId(e.target.value)}
-                  placeholder="Ej: 123456789"
-                  className="bg-muted border-border font-mono text-xs"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Habilitar MercadoLibre</p>
-                <p className="text-[11px] text-muted-foreground">Activa la sincronización de productos y pedidos</p>
-              </div>
-              <Switch checked={mlEnabled} onCheckedChange={setMlEnabled} />
-            </div>
-            <div className="rounded-lg bg-yellow-500/5 border border-yellow-500/15 p-3 space-y-1">
-              <p className="text-[10px] font-semibold text-yellow-400">Funciones disponibles (próximamente)</p>
-              <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc list-inside">
-                <li>Sincronización de publicaciones y fotos</li>
-                <li>Importación de pedidos como ventas</li>
-                <li>Actualización automática de stock</li>
-                <li>Alertas de preguntas sin responder</li>
-              </ul>
-            </div>
-            <Button className="w-full h-9 text-sm gradient-gold text-primary-foreground shadow-gold" onClick={handleSaveMl} disabled={savingMl}>
-              {savingMl ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar configuración
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Mercado Pago y MercadoLibre se conectan por OAuth, arriba.
+          Acá vivían dos formularios para pegar el access token a mano, en la
+          misma página que ya monta `PaymentConnectionsPanel` y
+          `MercadoLibrePanel`. Dos caminos para lo mismo, y el peor de los dos:
+          un token pegado queda guardado en `settings`, que la UI lee, mientras
+          que el de OAuth vive en tablas con RLS y cero policies que sólo tocan
+          las Edge Functions. Además MercadoPago rechaza el `marketplace_fee`
+          con un token pegado a mano, así que esa vía ni siquiera podía cobrar
+          comisión. Ninguna organización tenía uno cargado: sacarlo no rompe
+          nada. */}
 
       {/* ── Shopify ──────────────────────────────────────────────── */}
       {mpLoaded && (

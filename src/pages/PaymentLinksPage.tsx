@@ -2,6 +2,7 @@
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/orgContext";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import { formatARS, getSettingsDB } from "@/lib/supabaseStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,7 @@ interface PaymentLink {
 
 interface OrgSettings {
   mp_enabled: boolean;
-  mp_access_token: string | null;
+  mp_conectado: boolean;
   whatsapp_number: string | null;
   business_name: string;
 }
@@ -72,7 +73,7 @@ export default function PaymentLinksPage() {
   const { activeOrg } = useOrg();
 
   const [links, setLinks] = useState<PaymentLink[]>([]);
-  const [orgSettings, setOrgSettings] = useState<OrgSettings>({ mp_enabled: false, mp_access_token: null, whatsapp_number: null, business_name: "Mi Negocio" });
+  const [orgSettings, setOrgSettings] = useState<OrgSettings>({ mp_enabled: false, mp_conectado: false, whatsapp_number: null, business_name: "Mi Negocio" });
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -95,15 +96,16 @@ export default function PaymentLinksPage() {
     if (!activeOrg || !user) return;
     setLoading(true);
     try {
-      const [{ data: linksData }, { data: orgSettingsData }, userSettings] = await Promise.all([
+      const [{ data: linksData }, { data: orgSettingsData }, estadoCobro, userSettings] = await Promise.all([
         supabase.from("payment_links").select("*").eq("org_id", activeOrg.id).order("created_at", { ascending: false }),
-        supabase.from("settings").select("mp_enabled, mp_access_token, whatsapp_number, business_name").eq("org_id", activeOrg.id).maybeSingle(),
+        supabase.from("settings").select("mp_enabled, whatsapp_number, business_name").eq("org_id", activeOrg.id).maybeSingle(),
+        fetchPaymentStatus(activeOrg.id),
         getSettingsDB(user.id),
       ]);
       setLinks((linksData || []) as unknown as PaymentLink[]);
       setOrgSettings({
         mp_enabled: orgSettingsData?.mp_enabled ?? false,
-        mp_access_token: orgSettingsData?.mp_access_token ?? null,
+        mp_conectado: estadoCobro.connected,
         whatsapp_number: orgSettingsData?.whatsapp_number ?? null,
         business_name: userSettings?.business_name || orgSettingsData?.business_name || "Mi Negocio",
       });
@@ -162,7 +164,7 @@ export default function PaymentLinksPage() {
       if (error) throw error;
 
       // Generate Mercado Pago link if configured
-      if (orgSettings.mp_enabled && orgSettings.mp_access_token && newLink) {
+      if (orgSettings.mp_conectado && newLink) {
         try {
           const { data: mpData } = await supabase.functions.invoke("mercadopago-link", {
             body: {
