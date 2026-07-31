@@ -160,7 +160,13 @@ export default function EcommerceStorePage() {
     ]).then(([prods, sinPeso, zonas, tarifas, ajustes]) => {
       const zonasList = (zonas.data ?? []) as { id: string; provinces: string[] | null }[];
       const conTarifa = new Set(((tarifas.data ?? []) as { zone_id: string }[]).map(r => r.zone_id));
-      const provincias = new Set(zonasList.flatMap(z => z.provinces ?? []));
+      // Una provincia está cubierta si su zona tiene al menos una tarifa. Antes
+      // se contaban las provincias con zona, tuviera tarifas o no, y por eso una
+      // tienda con 6 zonas y tarifas en una sola figuraba como cubierta entera
+      // mientras el checkout le fallaba a 22 de 23 provincias.
+      const provincias = new Set(
+        zonasList.filter(z => conTarifa.has(z.id)).flatMap(z => z.provinces ?? []),
+      );
       const st = ajustes.data as { mp_enabled?: boolean; mp_access_token?: string | null } | null;
       setSignals({
         publishedProducts: prods.count ?? 0,

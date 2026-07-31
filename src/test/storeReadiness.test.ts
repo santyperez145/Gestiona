@@ -85,6 +85,41 @@ describe('evaluateStoreReadiness — bloqueantes', () => {
     expect(r.canPublish).toBe(false);
   });
 
+  // El caso real que se escapó: la tienda decía "Activa" mientras 22 de 23
+  // provincias no podían terminar la compra, porque alcanzaba con que UNA zona
+  // tuviera tarifa. Un comprador de Santa Fe recibía "No hay envío disponible
+  // para esa provincia" en el checkout.
+  it('tarifas en una sola zona no es estar listo: falta casi todo el país', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      shippingZones: 6,
+      zonesWithRates: 1,
+      coveredProvinces: 1,
+    }));
+    expect(idsDe(r.blockers)).toContain('coverage');
+    expect(r.canPublish).toBe(false);
+  });
+
+  it('con retiro en local, la falta de cobertura molesta pero no bloquea', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      store: { ...tiendaLista().store!, pickup_enabled: true },
+      shippingZones: 6,
+      zonesWithRates: 1,
+      coveredProvinces: 1,
+    }));
+    expect(idsDe(r.blockers)).not.toContain('coverage');
+    expect(idsDe(r.warnings)).toContain('coverage');
+  });
+
+  it('faltar unas pocas provincias sigue siendo aviso, no bloqueo', () => {
+    const r = evaluateStoreReadiness(tiendaLista({
+      shippingZones: 6,
+      zonesWithRates: 5,
+      coveredProvinces: 20,
+    }));
+    expect(idsDe(r.blockers)).not.toContain('coverage');
+    expect(idsDe(r.warnings)).toContain('coverage');
+  });
+
   it('con retiro en tienda, la falta de tarifas molesta pero no bloquea', () => {
     const r = evaluateStoreReadiness(tiendaLista({
       store: { ...tiendaLista().store!, pickup_enabled: true },

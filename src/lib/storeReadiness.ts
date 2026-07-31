@@ -129,11 +129,16 @@ export function evaluateStoreReadiness(input: StoreReadinessInput): StoreReadine
 
     if (canQuote && input.coveredProvinces < TOTAL_PROVINCES) {
       const faltan = TOTAL_PROVINCES - input.coveredProvinces;
+      // Que "alguna" zona cotice no consuela a quien vive en las otras: si
+      // falta más de la mitad del país, la tienda no está para vender, está
+      // para vender en una ciudad. Con retiro en local hay salida, así que ahí
+      // molesta en vez de bloquear.
+      const casiTodoElPais = faltan > TOTAL_PROVINCES / 2;
       checks.push({
         id: 'coverage',
         title: 'Cubrir todo el país',
-        detail: `${faltan} ${faltan === 1 ? 'provincia' : 'provincias'} sin zona: un comprador de ahí no puede elegir envío.`,
-        severity: 'warning',
+        detail: `${faltan} ${faltan === 1 ? 'provincia' : 'provincias'} sin tarifa de envío: un comprador de ahí no puede terminar la compra.`,
+        severity: casiTodoElPais && !pickup ? 'blocker' : 'warning',
         done: false,
         actionLabel: 'Ver zonas',
         actionHref: '/envios?tab=zonas',
