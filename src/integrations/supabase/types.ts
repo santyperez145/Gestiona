@@ -530,6 +530,62 @@ export type Database = {
           },
         ]
       }
+      afip_credentials: {
+        Row: {
+          certificate: string | null
+          cuit: string | null
+          domicilio: string | null
+          environment: string
+          org_id: string
+          private_key: string | null
+          punto_venta: number
+          razon_social: string | null
+          ta_expires_at: string | null
+          ta_sign: string | null
+          ta_token: string | null
+          tipo_emisor: string | null
+          updated_at: string
+        }
+        Insert: {
+          certificate?: string | null
+          cuit?: string | null
+          domicilio?: string | null
+          environment?: string
+          org_id: string
+          private_key?: string | null
+          punto_venta?: number
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ta_sign?: string | null
+          ta_token?: string | null
+          tipo_emisor?: string | null
+          updated_at?: string
+        }
+        Update: {
+          certificate?: string | null
+          cuit?: string | null
+          domicilio?: string | null
+          environment?: string
+          org_id?: string
+          private_key?: string | null
+          punto_venta?: number
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ta_sign?: string | null
+          ta_token?: string | null
+          tipo_emisor?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       afip_padron_cache: {
         Row: {
           actividades: Json
@@ -15697,16 +15753,12 @@ export type Database = {
       }
       settings: {
         Row: {
-          afip_certificate: string | null
           afip_cuit: string | null
           afip_domicilio: string | null
           afip_environment: string | null
-          afip_private_key: string | null
           afip_punto_venta: number | null
           afip_razon_social: string | null
           afip_ta_expires_at: string | null
-          afip_ta_sign: string | null
-          afip_ta_token: string | null
           afip_tipo_emisor: string | null
           ai_tone: string | null
           api_key: string | null
@@ -15801,16 +15853,12 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
-          afip_certificate?: string | null
           afip_cuit?: string | null
           afip_domicilio?: string | null
           afip_environment?: string | null
-          afip_private_key?: string | null
           afip_punto_venta?: number | null
           afip_razon_social?: string | null
           afip_ta_expires_at?: string | null
-          afip_ta_sign?: string | null
-          afip_ta_token?: string | null
           afip_tipo_emisor?: string | null
           ai_tone?: string | null
           api_key?: string | null
@@ -15905,16 +15953,12 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
-          afip_certificate?: string | null
           afip_cuit?: string | null
           afip_domicilio?: string | null
           afip_environment?: string | null
-          afip_private_key?: string | null
           afip_punto_venta?: number | null
           afip_razon_social?: string | null
           afip_ta_expires_at?: string | null
-          afip_ta_sign?: string | null
-          afip_ta_token?: string | null
           afip_tipo_emisor?: string | null
           ai_tone?: string | null
           api_key?: string | null
@@ -19477,6 +19521,53 @@ export type Database = {
           },
         ]
       }
+      afip_connection_status: {
+        Row: {
+          configured: boolean | null
+          cuit: string | null
+          environment: string | null
+          org_id: string | null
+          punto_venta: number | null
+          razon_social: string | null
+          ta_expires_at: string | null
+          ticket_vigente: boolean | null
+          tipo_emisor: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          configured?: never
+          cuit?: string | null
+          environment?: string | null
+          org_id?: string | null
+          punto_venta?: number | null
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ticket_vigente?: never
+          tipo_emisor?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          configured?: never
+          cuit?: string | null
+          environment?: string | null
+          org_id?: string | null
+          punto_venta?: number | null
+          razon_social?: string | null
+          ta_expires_at?: string | null
+          ticket_vigente?: never
+          tipo_emisor?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afip_credentials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_summary: {
         Row: {
           action: string | null
@@ -21080,6 +21171,17 @@ export type Database = {
       run_abc_analysis: {
         Args: { p_org_id: string; p_period_days?: number }
         Returns: number
+      }
+      save_afip_config: {
+        Args: {
+          p_cuit: string
+          p_domicilio?: string
+          p_environment: string
+          p_punto_venta: number
+          p_razon_social?: string
+          p_tipo_emisor?: string
+        }
+        Returns: Json
       }
       save_store_cart: {
         Args: {

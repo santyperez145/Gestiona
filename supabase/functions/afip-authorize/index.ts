@@ -2,7 +2,7 @@
  * afip-authorize — Facturación Electrónica Argentina (AFIP WSFE)
  *
  * Flow:
- *   1. Load org AFIP credentials from settings
+ *   1. Load org AFIP credentials from `afip_credentials`
  *   2. Obtain / reuse Ticket de Acceso (WSAA)
  *   3. Get last authorized invoice number (FECompUltimoAutorizado)
  *   4. Request CAE (FECAESolicitar)
@@ -12,9 +12,14 @@
  *   homologacion → wsaahomo / wswhomo (testing)
  *   produccion   → wsaa    / servicios1 (live)
  *
- * Required org settings fields:
- *   afip_cuit, afip_certificate (PEM), afip_private_key (PEM),
- *   afip_punto_venta, afip_environment, afip_tipo_emisor
+ * Las credenciales viven en `afip_credentials`, una tabla con RLS y **cero
+ * policies**: sólo se llega con `service_role`, o sea desde acá. Antes estaban
+ * en `settings`, que tiene una policy SELECT para todos los miembros de la
+ * organización — y RLS es a nivel de fila, no de columna, así que cualquier
+ * empleado podía leer la clave privada con la que se firman las facturas.
+ *
+ * Campos: cuit, certificate (PEM), private_key (PEM), punto_venta,
+ * environment, tipo_emisor.
  */
 
 // @ts-ignore
@@ -64,18 +69,17 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!membership) return err("Sin acceso a esta organización");
 
-    // Load AFIP settings for this org
-    const { data: settings } = await supabase
-      .from("settings")
+    const { data: cred } = await supabase
+      .from("afip_credentials")
       .select("*")
       .eq("org_id", invoice.org_id)
       .maybeSingle();
 
-    if (!settings?.afip_cuit) return err("AFIP no configurado: falta CUIT");
-    if (!settings?.afip_certificate) return err("AFIP no configurado: falta certificado PEM");
-    if (!settings?.afip_private_key) return err("AFIP no configurado: falta clave privada PEM");
+    if (!cred?.cuit) return err("AFIP no configurado: falta CUIT");
+    if (!cred?.certificate) return err("AFIP no configurado: falta certificado PEM");
+    if (!cred?.private_key) return err("AFIP no configurado: falta clave privada PEM");
 
-    const isProd = settings.afip_environment === "produccion";
+    const isProd = cred.environment === "produccion";
     const wsaaUrl = isProd
       ? "https://wsaa.afip.gov.ar/ws/services/LoginCms"
       : "https://wsaahomo.afip.gov.ar/ws/services/LoginCms";
@@ -87,37 +91,34 @@ Deno.serve(async (req) => {
     let token_ta: string;
     let sign_ta: string;
 
-    const taExpires = settings.afip_ta_expires_at
-      ? new Date(settings.afip_ta_expires_at)
-      : null;
+    const taExpires = cred.ta_expires_at ? new Date(cred.ta_expires_at) : null;
     const taStillValid = taExpires && taExpires > new Date(Date.now() + 5 * 60 * 1000);
 
-    if (taStillValid && settings.afip_ta_token && settings.afip_ta_sign) {
-      token_ta = settings.afip_ta_token;
-      sign_ta = settings.afip_ta_sign;
+    if (taStillValid && cred.ta_token && cred.ta_sign) {
+      token_ta = cred.ta_token;
+      sign_ta = cred.ta_sign;
     } else {
-      const ta = await getTicketAcceso(
-        wsaaUrl,
-        settings.afip_certificate,
-        settings.afip_private_key,
-      );
+      const ta = await getTicketAcceso(wsaaUrl, cred.certificate, cred.private_key);
       token_ta = ta.token;
       sign_ta = ta.sign;
 
-      // Cache TA (valid 12h, refresh 30 min before expiry)
+      // El ticket dura 12 h; se guarda para no pedir uno por factura. WSAA
+      // rechaza pedidos repetidos en poco tiempo, así que reusarlo no es sólo
+      // una optimización.
       await supabase
-        .from("settings")
+        .from("afip_credentials")
         .update({
-          afip_ta_token: token_ta,
-          afip_ta_sign: sign_ta,
-          afip_ta_expires_at: ta.expiresAt,
+          ta_token: token_ta,
+          ta_sign: sign_ta,
+          ta_expires_at: ta.expiresAt,
+          updated_at: new Date().toISOString(),
         })
         .eq("org_id", invoice.org_id);
     }
 
-    const cuit = settings.afip_cuit.replace(/[-\s]/g, "");
-    const puntoVenta = settings.afip_punto_venta || 1;
-    const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(settings.afip_tipo_emisor);
+    const cuit = String(cred.cuit).replace(/[-\s]/g, "");
+    const puntoVenta = cred.punto_venta || 1;
+    const tipoCbte = invoice.tipo_comprobante || defaultTipoCbte(cred.tipo_emisor);
 
     // ── Step 2: Get last authorized number ───────────────────
     const lastNumber = await getUltimoAutorizado(

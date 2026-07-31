@@ -1991,26 +1991,29 @@ function AfipSection() {
   const [certificate, setCertificate] = useState("");
   const [privateKey, setPrivateKey] = useState("");
   const [taStatus, setTaStatus] = useState<"none" | "valid" | "expired">("none");
+  /** Hay certificado cargado. No se sabe cuál: eso no vuelve del servidor. */
+  const [certConfigurado, setCertConfigurado] = useState(false);
 
   useEffect(() => {
     if (!activeOrg) return;
     (async () => {
+      // `afip_connection_status` dice si hay certificado cargado y cuándo
+      // vence el ticket, pero nunca devuelve el certificado ni la clave: viven
+      // en una tabla con RLS y cero policies, fuera del alcance del navegador.
       const { data } = await supabase
-        .from("settings")
-        .select("afip_cuit,afip_razon_social,afip_domicilio,afip_punto_venta,afip_environment,afip_tipo_emisor,afip_certificate,afip_private_key,afip_ta_expires_at")
+        .from("afip_connection_status")
+        .select("cuit, razon_social, punto_venta, environment, tipo_emisor, configured, ta_expires_at")
         .eq("org_id", activeOrg.id)
         .maybeSingle();
       if (data) {
-        setCuit(data.afip_cuit || "");
-        setRazonSocial(data.afip_razon_social || "");
-        setDomicilio(data.afip_domicilio || "");
-        setPuntoVenta(String(data.afip_punto_venta || 1));
-        setEnvironment(data.afip_environment || "homologacion");
-        setTipoEmisor(data.afip_tipo_emisor || "monotributo");
-        setCertificate(data.afip_certificate || "");
-        setPrivateKey(data.afip_private_key || "");
-        if (data.afip_ta_expires_at) {
-          setTaStatus(new Date(data.afip_ta_expires_at) > new Date() ? "valid" : "expired");
+        setCuit(data.cuit || "");
+        setRazonSocial(data.razon_social || "");
+        setPuntoVenta(String(data.punto_venta || 1));
+        setEnvironment(data.environment || "homologacion");
+        setTipoEmisor(data.tipo_emisor || "monotributo");
+        setCertConfigurado(!!data.configured);
+        if (data.ta_expires_at) {
+          setTaStatus(new Date(data.ta_expires_at) > new Date() ? "valid" : "expired");
         }
       }
       setLoading(false);
@@ -2019,19 +2022,31 @@ function AfipSection() {
 
   const doSave = async () => {
     if (!activeOrg) return;
-    await supabase.from("settings").update({
-      afip_cuit: cuit.replace(/[-\s]/g, "") || null,
-      afip_razon_social: razonSocial || null,
-      afip_domicilio: domicilio || null,
-      afip_punto_venta: parseInt(puntoVenta) || 1,
-      afip_environment: environment,
-      afip_tipo_emisor: tipoEmisor,
-      afip_certificate: certificate || null,
-      afip_private_key: privateKey || null,
-      afip_ta_token: null,
-      afip_ta_sign: null,
-      afip_ta_expires_at: null,
-    }).eq("org_id", activeOrg.id);
+
+    // Lo que no es secreto va por RPC, que además valida CUIT y entorno.
+    const { error: cfgErr } = await supabase.rpc("save_afip_config", {
+      p_cuit: cuit,
+      p_punto_venta: parseInt(puntoVenta) || 1,
+      p_environment: environment,
+      p_tipo_emisor: tipoEmisor,
+      p_razon_social: razonSocial || null,
+      p_domicilio: domicilio || null,
+    });
+    if (cfgErr) throw new Error(cfgErr.message.replace(/^.*?:\s*/, ""));
+
+    // El certificado sólo si se pegó uno nuevo. La Edge Function lo escribe con
+    // `service_role`; desde el navegador no hay forma de llegar a esa tabla.
+    if (certificate.trim() || privateKey.trim()) {
+      const { data, error } = await supabase.functions.invoke("afip-credentials", {
+        body: { certificate, privateKey },
+      });
+      const err = (data as { error?: string } | null)?.error ?? error?.message;
+      if (err) throw new Error(err);
+      setCertConfigurado(true);
+      // No se conservan en memoria más de lo necesario.
+      setCertificate("");
+      setPrivateKey("");
+    }
   };
 
   const handleSave = async () => {

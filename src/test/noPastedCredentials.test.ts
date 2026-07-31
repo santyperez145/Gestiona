@@ -24,6 +24,13 @@ const COLUMNAS_PROHIBIDAS = [
   'mp_access_token',
   'ml_access_token',
   'ml_refresh_token',
+  // AFIP: el certificado y su clave firman facturas fiscales a nombre del
+  // contribuyente. Vivían en `settings`, que cualquier miembro de la org puede
+  // leer — RLS es por fila, no por columna. Ahora entran por Edge Function y
+  // la UI sólo ve `afip_connection_status`.
+  'afip_certificate',
+  'afip_private_key',
+  'private_key',
 ];
 
 /** Dónde vive la UI de la organización. */
