@@ -79,9 +79,31 @@ export default function ProfilePage() {
 
   useEffect(() => { loadMfaFactors(); }, [loadMfaFactors]);
 
+  /**
+   * Borra los factores TOTP que quedaron a medio activar.
+   *
+   * `enroll` crea el factor **antes** de que la persona escanee el QR, así que
+   * cerrar el diálogo deja uno en estado `unverified`. Como Supabase exige que
+   * el nombre no se repita, el siguiente intento fallaba con "A factor with the
+   * friendly name ... already exists" — y ese factor no se muestra en ninguna
+   * parte de la UI, así que no había forma de salir: la cuenta quedaba sin
+   * poder activar 2FA para siempre.
+   *
+   * Borrarlos es seguro: un factor sin verificar no protege nada.
+   */
+  const limpiarFactoresAMedias = useCallback(async () => {
+    const { data } = await supabase.auth.mfa.listFactors();
+    const pendientes = (data?.all ?? []).filter(f => f.status !== 'verified');
+    for (const f of pendientes) {
+      await supabase.auth.mfa.unenroll({ factorId: f.id });
+    }
+    return pendientes.length;
+  }, []);
+
   // ── Start MFA enrollment ───────────────────────────────────────────────────
   const handleEnrollMfa = async () => {
     setEnrolling(true);
+    await limpiarFactoresAMedias();
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App' });
     setEnrolling(false);
     if (error || !data) { toast.error(error?.message ?? 'Error al iniciar MFA'); return; }
@@ -91,6 +113,17 @@ export default function ProfilePage() {
       secret:   data.totp.secret,
     });
     setTotpCode('');
+  };
+
+  /**
+   * Cancelar tiene que deshacer el enroll, no sólo cerrar el cuadro. Si no, el
+   * factor a medias queda en la cuenta y es el que rompe el próximo intento.
+   */
+  const handleCancelEnroll = async () => {
+    const pendiente = enrollData?.factorId;
+    setEnrollData(null);
+    setTotpCode('');
+    if (pendiente) await supabase.auth.mfa.unenroll({ factorId: pendiente });
   };
 
   // ── Verify & activate TOTP ─────────────────────────────────────────────────
@@ -475,7 +508,7 @@ export default function ProfilePage() {
                       <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                       {verifying ? 'Verificando...' : 'Activar 2FA'}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEnrollData(null)} className="text-xs text-muted-foreground">
+                    <Button size="sm" variant="ghost" onClick={handleCancelEnroll} className="text-xs text-muted-foreground">
                       Cancelar
                     </Button>
                   </div>
