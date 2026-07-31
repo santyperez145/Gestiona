@@ -344,6 +344,25 @@ Deno.serve(async (req) => {
           .neq("payment_status", "paid");
       }
 
+      // La liquidación va ANTES del return, no al final del handler.
+      //
+      // Esta rama salía temprano y se salteaba el registro del cobro, así que
+      // justo el canal que cobra comisión de plataforma era el único que no la
+      // anotaba: MercadoPago descontaba el `application_fee` y en la base no
+      // quedaba rastro. La primera compra real lo dejó a la vista —dos ventas
+      // acreditadas y `payment_transactions` vacía.
+      //
+      // El RPC es idempotente por (provider, external_id), así que los
+      // reintentos de MP no duplican nada.
+      await recordPaymentTransaction(admin, {
+        orgId,
+        paymentId: String(paymentId),
+        payment,
+        status,
+        gross: paidAmount,
+        externalRef,
+      });
+
       console.log(`MP ecom order ${orderId}: ${status} (${statusDetail})`);
       return new Response(JSON.stringify({ ok: true, status, paymentId, scope: "ecommerce" }), {
         headers: { "Content-Type": "application/json" },
