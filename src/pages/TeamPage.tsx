@@ -112,15 +112,34 @@ export default function TeamPage() {
       }
 
       const user = authRes.data.user;
-      const { error } = await supabase.from('org_invitations').insert({
-        org_id: activeOrg.id,
-        email: email.trim().toLowerCase(),
-        role,
-        invited_by: user!.id,
-      });
+      const { data: inv, error } = await supabase
+        .from('org_invitations')
+        .insert({
+          org_id: activeOrg.id,
+          email: email.trim().toLowerCase(),
+          role,
+          invited_by: user!.id,
+        })
+        .select('id')
+        .single();
       if (error) throw error;
 
-      toast.success('Invitación creada');
+      // Mandar el email. Hasta acá la invitación se creaba y no se enviaba
+      // nada: la persona invitada no se enteraba nunca. Pasaba desapercibido
+      // porque al lado hay un "copiar link" y el admin lo mandaba a mano.
+      const { data: envio, error: envioErr } = await supabase.functions.invoke(
+        'send-team-invite',
+        { body: { invitationId: inv.id, appUrl: window.location.origin } },
+      );
+      const falla = (envio as { error?: string } | null)?.error ?? envioErr?.message;
+
+      // Si el envío falla, la invitación **igual vale**: el link sirve. Lo que
+      // no se puede hacer es decir que se mandó cuando no se mandó.
+      if (falla) {
+        toast.warning('Invitación creada, pero no se pudo enviar el email. Copiá el link y mandáselo.');
+      } else {
+        toast.success(`Invitación enviada a ${email.trim().toLowerCase()}`);
+      }
       setEmail('');
       load();
     } catch (err: any) {
