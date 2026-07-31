@@ -60,7 +60,6 @@ const allNavItems = [
   { to: "/tienda-online", label: "Tienda Online", icon: ShoppingBag, roles: ['admin'], section: 'ecommerce' },
   { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'ecommerce' },
   { to: "/sucursales", label: "Sucursales & Depósitos", icon: Warehouse, roles: ['admin'], section: 'ecommerce' },
-  { to: "/tiendanube", label: "Tiendanube Export", icon: Globe, roles: ['admin'], section: 'ecommerce' },
   { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'ecommerce' },
   // ── Finanzas ────────────────────────────────────────────────────────────────
   { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },

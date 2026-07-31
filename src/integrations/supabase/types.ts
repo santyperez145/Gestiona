@@ -15771,10 +15771,6 @@ export type Database = {
           referral_bonus_points: number | null
           referral_enabled: boolean | null
           secondary_color: string | null
-          shopify_api_key: string | null
-          shopify_api_secret: string | null
-          shopify_enabled: boolean | null
-          shopify_store_url: string | null
           smtp_from_email: string | null
           smtp_from_name: string | null
           smtp_host: string | null
@@ -15879,10 +15875,6 @@ export type Database = {
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
           secondary_color?: string | null
-          shopify_api_key?: string | null
-          shopify_api_secret?: string | null
-          shopify_enabled?: boolean | null
-          shopify_store_url?: string | null
           smtp_from_email?: string | null
           smtp_from_name?: string | null
           smtp_host?: string | null
@@ -15987,10 +15979,6 @@ export type Database = {
           referral_bonus_points?: number | null
           referral_enabled?: boolean | null
           secondary_color?: string | null
-          shopify_api_key?: string | null
-          shopify_api_secret?: string | null
-          shopify_enabled?: boolean | null
-          shopify_store_url?: string | null
           smtp_from_email?: string | null
           smtp_from_name?: string | null
           smtp_host?: string | null
@@ -18243,215 +18231,6 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tiendanube_connections: {
-        Row: {
-          access_token: string
-          client_secret: string | null
-          connected_at: string
-          id: string
-          last_sync_orders_at: string | null
-          last_sync_products_at: string | null
-          org_id: string
-          store_id: string
-          store_name: string | null
-          store_url: string | null
-          sync_orders: boolean
-          sync_products: boolean
-          webhook_id: string | null
-        }
-        Insert: {
-          access_token: string
-          client_secret?: string | null
-          connected_at?: string
-          id?: string
-          last_sync_orders_at?: string | null
-          last_sync_products_at?: string | null
-          org_id: string
-          store_id: string
-          store_name?: string | null
-          store_url?: string | null
-          sync_orders?: boolean
-          sync_products?: boolean
-          webhook_id?: string | null
-        }
-        Update: {
-          access_token?: string
-          client_secret?: string | null
-          connected_at?: string
-          id?: string
-          last_sync_orders_at?: string | null
-          last_sync_products_at?: string | null
-          org_id?: string
-          store_id?: string
-          store_name?: string | null
-          store_url?: string | null
-          sync_orders?: boolean
-          sync_products?: boolean
-          webhook_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tiendanube_connections_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tiendanube_integrations: {
-        Row: {
-          access_token: string
-          created_at: string
-          default_category_id: string | null
-          id: string
-          last_sync_at: string | null
-          markup_percent: number
-          org_id: string
-          payment_fee_percent: number
-          platform_fee_percent: number
-          price_mode: string
-          publish_status: string
-          round_to: number
-          store_id: string
-          store_name: string | null
-          store_url: string | null
-          sync_images: boolean
-          sync_stock: boolean
-          updated_at: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          default_category_id?: string | null
-          id?: string
-          last_sync_at?: string | null
-          markup_percent?: number
-          org_id: string
-          payment_fee_percent?: number
-          platform_fee_percent?: number
-          price_mode?: string
-          publish_status?: string
-          round_to?: number
-          store_id: string
-          store_name?: string | null
-          store_url?: string | null
-          sync_images?: boolean
-          sync_stock?: boolean
-          updated_at?: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          default_category_id?: string | null
-          id?: string
-          last_sync_at?: string | null
-          markup_percent?: number
-          org_id?: string
-          payment_fee_percent?: number
-          platform_fee_percent?: number
-          price_mode?: string
-          publish_status?: string
-          round_to?: number
-          store_id?: string
-          store_name?: string | null
-          store_url?: string | null
-          sync_images?: boolean
-          sync_stock?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tiendanube_integrations_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: true
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tiendanube_sync_log: {
-        Row: {
-          action: string
-          created_at: string
-          error_message: string | null
-          id: string
-          org_id: string
-          product_id: string | null
-          product_name: string | null
-          status: string
-          tiendanube_product_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          org_id: string
-          product_id?: string | null
-          product_name?: string | null
-          status: string
-          tiendanube_product_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          org_id?: string
-          product_id?: string | null
-          product_name?: string | null
-          status?: string
-          tiendanube_product_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tiendanube_sync_log_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tiendanube_sync_log_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "catalog_products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tiendanube_sync_log_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "product_availability"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "tiendanube_sync_log_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tiendanube_sync_log_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tiendanube_sync_log_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "store_catalog_products"
             referencedColumns: ["id"]
           },
         ]

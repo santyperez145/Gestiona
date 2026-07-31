@@ -23,8 +23,6 @@ $noJwt = @(
     # Webhooks de terceros — validan firma
     "stripe-webhook",
     "mercadopago-webhook",
-    "tiendanube-webhook",
-    "tiendanube-oauth",
     "resend-webhook",
     # Storefront publico — el comprador no tiene sesion.
     # Revalidan precios, stock y envio contra la base.

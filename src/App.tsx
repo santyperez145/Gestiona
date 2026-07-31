@@ -39,7 +39,6 @@ const CustomersPage          = lazy(() => import("@/pages/CustomersPage"));
 const InfluencerExchangesPage= lazy(() => import("@/pages/InfluencerExchangesPage"));
 const InfluencersPage        = lazy(() => import("@/pages/InfluencersPage"));
 const CatalogPage            = lazy(() => import("@/pages/CatalogPage"));
-const TiendanubeExportPage   = lazy(() => import("@/pages/TiendanubeExportPage"));
 const AdminPage              = lazy(() => import("@/pages/AdminPage"));
 const ResetPasswordPage      = lazy(() => import("@/pages/ResetPasswordPage"));
 const PublicCatalogPage      = lazy(() => import("@/pages/PublicCatalogPage"));
@@ -271,7 +270,6 @@ function ProtectedRoutes() {
               <Route path="/marca-ia" element={<Navigate to="/marketing" replace />} />
               <Route path="/combos-banners" element={<Navigate to="/marketing" replace />} />
               <Route path="/catalogo" element={<CatalogPage />} />
-              <Route path="/tiendanube" element={<TiendanubeExportPage />} />
               <Route path="/ia" element={<AIInsightsPage />} />
               <Route path="/chat-ia" element={<AIChatAdvancedPage />} />
               <Route path="/automatizaciones" element={<Navigate to="/marketing" replace />} />

@@ -93,8 +93,7 @@ deploy() {
 # Cualquier funcion nueva queda protegida por default.
 NO_JWT=(
   # Webhooks de terceros — validan firma
-  "stripe-webhook" "mercadopago-webhook" "tiendanube-webhook"
-  "tiendanube-oauth" "resend-webhook"
+  "stripe-webhook" "mercadopago-webhook" "resend-webhook"
   # Storefront publico — el comprador no tiene sesion
   "shipping-quote" "store-pay" "store-order-email"
   # Links publicos de un solo uso

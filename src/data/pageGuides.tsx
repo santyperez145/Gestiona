@@ -326,7 +326,7 @@ export const PAGE_GUIDES: Record<string, GuideConfig> = {
       { icon: Plug, title: "Estado de salud por integración", desc: "Cada integración muestra su estado (activa / error / no configurada) basado en los últimos logs de conexión." },
       { icon: RefreshCw, title: "Retry de webhooks fallidos", desc: "Si un webhook falló, podés reintentar la entrega directamente desde la cola de dead-letters sin perder el evento." },
       { icon: Shield, title: "Webhooks con HMAC", desc: "Todos los webhooks salientes están firmados con HMAC-SHA256. Las integraciones entrantes también validan la firma." },
-      { icon: Building2, title: "Tiendanube y Mercado Pago", desc: "La integración con Tiendanube sincroniza productos y órdenes. Mercado Pago permite cobros con link y QR desde el POS." },
+      { icon: Building2, title: "Mercado Pago y MercadoLibre", desc: "Se conectan por OAuth: el comercio autoriza su cuenta y la app nunca ve sus credenciales. Mercado Pago habilita los cobros con link y QR desde el POS." },
     ],
   },
 

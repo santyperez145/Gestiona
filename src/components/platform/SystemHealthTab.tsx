@@ -45,7 +45,6 @@ const EXPECTED_SECRETS: Omit<SecretStatus, "configured">[] = [
   { name: "MP_WEBHOOK_SECRET", required: false, category: "payments", description: "Verifica webhooks de Mercado Pago" },
 
   // Integrations
-  { name: "TIENDANUBE_CLIENT_SECRET", required: false, category: "integrations", description: "Verifica webhooks de Tiendanube" },
 
   // WhatsApp (optional)
   { name: "TWILIO_ACCOUNT_SID", required: false, category: "whatsapp", description: "Mensajes de WhatsApp en automatizaciones" },

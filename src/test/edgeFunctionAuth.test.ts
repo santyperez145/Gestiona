@@ -50,7 +50,6 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   // Webhooks: los llama un tercero que firma el request
   'stripe-webhook': 'webhook firmado',
   'mercadopago-webhook': 'webhook firmado',
-  'tiendanube-webhook': 'webhook firmado',
   'resend-webhook': 'webhook firmado',
   // Storefront: el comprador no tiene sesión; validan todo server-side
   'store-order-email': 'storefront público',
