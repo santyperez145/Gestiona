@@ -5684,6 +5684,7 @@ export type Database = {
           notes: string | null
           order_number: string
           org_id: string
+          payment_id: string | null
           payment_method: string
           payment_status: string
           shipping_address: Json
@@ -5721,6 +5722,7 @@ export type Database = {
           notes?: string | null
           order_number: string
           org_id: string
+          payment_id?: string | null
           payment_method?: string
           payment_status?: string
           shipping_address?: Json
@@ -5758,6 +5760,7 @@ export type Database = {
           notes?: string | null
           order_number?: string
           org_id?: string
+          payment_id?: string | null
           payment_method?: string
           payment_status?: string
           shipping_address?: Json

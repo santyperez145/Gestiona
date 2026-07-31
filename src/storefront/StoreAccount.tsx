@@ -236,7 +236,10 @@ export default function StoreAccount() {
 
                 <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: "hsl(var(--st-muted))" }}>
                   <span>{ESTADO_ENVIO[p.fulfillment_status] ?? p.fulfillment_status}</span>
-                  {p.tracking_number && p.payment_status !== "paid" && (
+                  {/* La condición estaba invertida: mostraba el seguimiento
+                      sólo si el pedido NO estaba pago, o sea nunca — un pedido
+                      impago no se despacha. */}
+                  {p.tracking_number && (
                     <span>· Seguimiento: {p.tracking_number}</span>
                   )}
                 </div>

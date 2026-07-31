@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
-  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin
+  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin, Truck
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
+import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
@@ -47,9 +48,12 @@ interface EcomOrder {
   order_number: string;
   customer_name: string;
   customer_email: string;
+  customer_phone: string | null;
   total: number;
   payment_status: string;
   fulfillment_status: string;
+  tracking_number: string | null;
+  shipping_address: Record<string, string> | null;
   items: unknown[];
   created_at: string;
 }
@@ -93,7 +97,20 @@ export default function EcommerceStorePage() {
     paymentConnected: false,
   });
   const [orders, setOrders] = useState<EcomOrder[]>([]);
+  const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
+
+  /** Releer las órdenes. Se usa al montar y después de despachar una. */
+  const loadOrders = useCallback(async () => {
+    if (!orgId) return;
+    const { data } = await supabase
+      .from("ecommerce_orders")
+      .select("id, order_number, customer_name, customer_email, customer_phone, total, payment_status, fulfillment_status, tracking_number, shipping_address, items, created_at")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (data) setOrders(data as EcomOrder[]);
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -136,15 +153,7 @@ export default function EcommerceStorePage() {
         }
       });
 
-    supabase
-      .from("ecommerce_orders")
-      .select("id, order_number, customer_name, customer_email, total, payment_status, fulfillment_status, items, created_at")
-      .eq("org_id", orgId)
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (data) setOrders(data as EcomOrder[]);
-      });
+    loadOrders();
 
     // Señales para saber si la tienda puede vender de verdad. Se cuentan en la
     // base (`head: true`) en vez de traer las filas: sólo interesa el número.
@@ -338,6 +347,13 @@ export default function EcommerceStorePage() {
 
       {tab === "banners" && <StoreBannersEditor storeId={store?.id ?? null} />}
 
+      <OrderShipmentDialog
+        order={envioDe as OrderForShipment | null}
+        storeName={store?.name ?? storeForm.name}
+        onClose={() => setEnvioDe(null)}
+        onDone={loadOrders}
+      />
+
       {/* ─── Overview ─── */}
       {tab === "overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -408,7 +424,7 @@ export default function EcommerceStorePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
-                    {["Orden", "Cliente", "Email", "Total", "Pago", "Estado", "Fecha"].map(h => (
+                    {["Orden", "Cliente", "Email", "Total", "Pago", "Estado", "Fecha", "Envío"].map(h => (
                       <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -423,6 +439,22 @@ export default function EcommerceStorePage() {
                       <td className="px-4 py-3"><Badge className={`text-xs ${o.payment_status === "paid" ? "bg-emerald-500/15 text-emerald-400 border-0" : "bg-yellow-500/15 text-yellow-400 border-0"}`}>{o.payment_status}</Badge></td>
                       <td className="px-4 py-3"><Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>{o.fulfillment_status}</Badge></td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{o.created_at.slice(0, 10)}</td>
+                      <td className="px-4 py-3">
+                        {/* Sólo se despacha lo que está pago: ofrecer el botón
+                            en una orden impaga invita a un error caro. */}
+                        {o.payment_status === "paid" ? (
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 px-2 gap-1.5 text-xs"
+                            onClick={() => setEnvioDe(o)}
+                          >
+                            <Truck className="w-3 h-3" />
+                            {o.tracking_number ? "Ver envío" : "Preparar"}
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

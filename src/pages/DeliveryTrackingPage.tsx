@@ -81,10 +81,8 @@ const PRIORITY_CFG: Record<string, string> = {
   high: "text-yellow-500", urgent: "text-destructive font-bold",
 };
 
-const CARRIER_LABELS: Record<string, string> = {
-  propio: "Envío propio", oca: "OCA", andreani: "Andreani",
-  correo_arg: "Correo Argentino", mercado_envios: "Mercado Envíos", otro: "Otro",
-};
+// El vocabulario vive en `@/lib/carriers`: lo fija el CHECK de la base.
+import { CARRIER_LABELS } from "@/lib/carriers";
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });

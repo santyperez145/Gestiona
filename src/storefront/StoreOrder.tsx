@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import OrderTracking from "./OrderTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./storeContext";
 import { trackPurchase } from "./tracking";
@@ -203,6 +204,8 @@ export default function StoreOrder() {
           </div>
         )}
       </div>
+
+      <OrderTracking orderNumber={order.order_number} email={order.customer_email} />
 
       <div className="mt-6 flex flex-col sm:flex-row gap-2">
         <a
