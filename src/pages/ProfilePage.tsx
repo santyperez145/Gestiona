@@ -109,7 +109,11 @@ export default function ProfilePage() {
     if (error || !data) { toast.error(error?.message ?? 'Error al iniciar MFA'); return; }
     setEnrollData({
       factorId: data.id,
-      qrUri:    data.totp.qr_code,
+      // `uri`, no `qr_code`: éste último ya viene dibujado como SVG, y pedirle
+      // al codificador que meta un SVG entero adentro de un QR reventaba la
+      // página con "RangeError: Data too long". Lo que la app de
+      // autenticación espera es el `otpauth://totp/...`.
+      qrUri:    data.totp.uri,
       secret:   data.totp.secret,
     });
     setTotpCode('');
@@ -478,7 +482,18 @@ export default function ProfilePage() {
                   </p>
                   <div className="flex items-center gap-5 flex-wrap">
                     <div className="rounded-[8px] p-2 bg-white inline-block">
-                      <QRCodeSVG value={enrollData.qrUri} size={140} level="M" />
+                      {/* Si por lo que sea el valor no entra en un QR, se cae
+                          al secreto escrito a mano en vez de tirar la página
+                          abajo: el ErrorBoundary dejaba Perfil en blanco. */}
+                      {enrollData.qrUri && enrollData.qrUri.length <= 1200 ? (
+                        <QRCodeSVG value={enrollData.qrUri} size={140} level="M" />
+                      ) : (
+                        <div className="w-[140px] h-[140px] grid place-items-center text-center px-2 rounded-[8px] border border-border/60">
+                          <p className="text-[10px] text-muted-foreground">
+                            No se pudo dibujar el QR. Cargá el código de abajo a mano en tu app.
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <p className="text-[9px] uppercase tracking-wider text-muted-foreground/50 font-semibold">Clave manual</p>
