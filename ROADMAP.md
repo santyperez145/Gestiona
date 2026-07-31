@@ -112,15 +112,22 @@ Graph y sitemap servidos a los bots · **píxeles de Meta, GA4 y TikTok** ·
 **reseñas de compra verificada** · **páginas de contenido** (devoluciones,
 FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
 **filtro por rango de precio** · **lista de deseos** · **aviso de reposición**
-(sin necesidad de cuenta) · 5 temas · dominio propio.
+(sin necesidad de cuenta) · **etiqueta de envío imprimible y seguimiento** que
+el comprador ve sin cuenta · **comisión por transacción cobrada de verdad** ·
+5 temas · dominio propio.
 
 ### Falta, en orden de impacto
 
 | # | Feature | Por qué importa | Esfuerzo |
 |---|---|---|---|
-| 1 | **Etiqueta de envío y tracking** | Cerrar el ciclo con los correos ya integrados. | M |
-| 2 | **Comisión por transacción** (`marketplace_fee`) | Monetizar por venta además de por suscripción. La base OAuth ya está. | M |
-| 3 | **AFIP en la tienda** | Sin factura no hay venta formal. | L |
+| 1 | **Cargar las tarifas de envío** | No es código: es configuración. Hay 6 zonas y tarifas en **una sola**. Sin retiro en local habilitado, la tienda sólo puede venderle a CABA. Es lo que más plata cuesta hoy. | — |
+| 2 | **AFIP de punta a punta** | La estructura está y las credenciales ya no se pueden leer desde el cliente, pero no hay certificado cargado ni factura emitida. Hace falta uno de homologación para verificar el ciclo. | L |
+| 3 | **Etiqueta por API del correo** | La imprimible ya funciona. La de Correo Argentino y Andreani necesita un contrato: sin credenciales no hay forma de verificar el payload. | M |
+
+**El circuito de plata corrió entero por primera vez.** Dos compras reales de $1
+acreditadas, con el `application_fee` de $0,05 derivado a la plataforma. Ver
+"Sesión 90" en el historial: llegar hasta ahí destapó cuatro bugs que ninguna
+lectura del código encontró.
 
 ---
 
@@ -149,6 +156,15 @@ FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
 - Service worker que dejaba la app pegada a una versión vieja para siempre.
 - `types.ts` truncado: los `.rpc()` nuevos no tenían tipos y se tapaban con
   `as unknown`. Regenerado completo; el typecheck vuelve a servir de red.
+- La firma del webhook de MercadoPago **nunca validaba**: faltaba el punto y
+  coma final del manifiesto y el parseo del header se rompía con un espacio.
+  Toda compra quedaba pagada en MercadoPago e impaga en la tienda.
+- El id de pago se guardaba en `tracking_number`, la columna del envío. Al
+  comprador se le mostraba como número de seguimiento.
+- `afip_private_key` en `settings`, tabla que cualquier miembro de la
+  organización puede leer. RLS es por fila, no por columna.
+- Tokens pegados a mano conviviendo con OAuth en la misma pantalla, y tres
+  lecturas que preguntaban "¿hay MercadoPago?" mirando la columna vacía.
 
 ### Abierta
 
@@ -161,6 +177,8 @@ FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
 | `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
 | ~140 warnings de `exhaustive-deps` | Deuda conocida; tocarlos en masa provoca loops de refetch | L |
 | APIs de correos sin contrato verificado | Una cotización mal armada cobra de menos | M |
+| `send-team-invite` corre en producción **sin código en el repo** | Nadie puede revisarla ni versionarla; `deploy:functions` no la actualiza | S |
+| AFIP sin probar contra el organismo | La estructura está, pero no hay certificado ni factura emitida | M |
 
 ---
 
@@ -171,7 +189,7 @@ FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
 | R01 | Brecha entre organizaciones por un bug de RLS | Baja | Crítico | `publicSurface.test.ts` y la vista `rls_audit_open_policies` |
 | R02 | Webhook duplicado cobra o descuenta stock dos veces | Media | Alto | Todos los caminos de pago son idempotentes |
 | R03 | Un comercio pega mal su token y no cobra | Media | Alto | OAuth reemplazó el token a mano; se renueva solo |
-| R04 | AFIP cambia su API | Media | Alto | Servicio abstraído, pero **falta la integración misma** |
+| R04 | AFIP cambia su API | Media | Alto | Servicio abstraído y credenciales encerradas; **falta probarlo contra el organismo** |
 | R05 | Costo de IA sin techo | Media | Alto | Falta límite por plan |
 | R06 | Cotización de envío mal calculada contra el correo real | Media | Alto | Verificar contra un contrato real antes de escalar |
 | R07 | Un solo desarrollador | Alta | Alto | CLAUDE.md, docs/ y commits largos a propósito |
@@ -594,6 +612,68 @@ Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
 con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
+
+### Sesión 90 — La primera venta real, y los cuatro bugs que destapó (2026-07-31)
+
+La sesión empezó queriendo cerrar el ciclo de envío y terminó siendo, sobre
+todo, la primera vez que una compra de verdad recorrió el sistema entero. Dos
+compras de $1, acreditadas en MercadoPago, con el `application_fee` de $0,05
+derivado a la plataforma. El circuito de plata funciona.
+
+Llegar hasta ahí destapó cosas que ninguna lectura del código encontró:
+
+**La firma del webhook nunca validaba.** Con `MP_WEBHOOK_SECRET` configurado,
+toda notificación con firma inválida devuelve 401 — y ninguna validaba jamás,
+por dos causas independientes: faltaba el punto y coma final del manifiesto que
+MercadoPago firma, y el parseo del header se rompía con un espacio
+(`Object.fromEntries` dejaba la clave como `" v1"`). Resultado: la compra
+quedaba pagada y acreditada del lado de MercadoPago y en "esperando el pago" del
+lado de la tienda, para siempre. Lo peor era que **no había dónde mirar**: el
+401 era mudo, `payment_transactions` vacía, y la orden simplemente no cambiaba.
+
+**La venta online era la única que no registraba su liquidación.** La rama de
+`ecom:` salía por un `return` temprano y nunca llegaba a
+`recordPaymentTransaction`. Justo el canal que cobra comisión de plataforma era
+el único que no la anotaba.
+
+**La tienda decía "Activa" mientras 22 de 23 provincias no podían comprar.**
+`canQuote` se conformaba con que **alguna** zona tuviera tarifa, y
+`coveredProvinces` contaba provincias con zona, tuviera tarifas o no. Como las
+6 zonas cubren las 23 provincias, daba cobertura completa. Se descubrió porque
+la primera orden de prueba, a Santa Fe, murió antes de llegar al pago.
+
+**El id de pago vivía en `tracking_number`.** Al comprador se le mostraba
+"Seguimiento: 170468158111", un número que no le sirve a ningún correo, y al
+despachar de verdad el número de envío pisaba el id de pago.
+
+Y dos de MFA, encadenados: cancelar el alta de 2FA una sola vez dejaba un factor
+sin verificar que **bloqueaba la activación para siempre** —y ese factor no se
+veía en ninguna parte de la UI—; arreglarlo destapó que el QR se armaba con el
+SVG del QR en vez de con la URI, lo que tiraba Perfil en pantalla blanca.
+Nunca se había podido completar el alta de 2FA de punta a punta.
+
+**Lo construido:** despachar una orden con etiqueta imprimible y seguimiento que
+el comprador ve sin cuenta; el CRM cruzando por `customer_id` en vez de por
+cómo se escribió el nombre; y una limpieza grande de credenciales.
+
+**Credenciales.** Integraciones ofrecía OAuth y, más abajo, un campo para pegar
+el token a mano — dos caminos para lo mismo, y el peor de los dos. Escribir el
+test guardia encontró lo que la limpieza a ojo no: tres pantallas preguntaban
+"¿hay MercadoPago?" mirando la columna vacía, así que respondían que no se podía
+cobrar mientras la cuenta estaba conectada. Y la clave privada de AFIP vivía en
+`settings`, que cualquier miembro de la organización puede leer.
+
+**Se fueron Tiendanube (API) y Shopify**, con 0 conexiones cada una: cinco Edge
+Functions borradas también de producción, tres tablas y cuatro columnas.
+Sobrevive el importador de planillas, que no usa API y es el camino de entrada
+para quien se cambia. **Stripe no se tocó**: parece una integración más y es la
+facturación del propio SaaS, con dos suscripciones vivas.
+
+Sobre OAuth donde se pidió: MercadoPago, MercadoLibre y Tiendanube ya lo tenían.
+Correo Argentino, Andreani, AFIP y Evolution **no lo ofrecen** — no es que falte
+implementarlo. Para AFIP lo más parecido es que cada comercio delegue el
+servicio WSFE al CUIT de la plataforma desde "Administrador de Relaciones"; la
+estructura nueva sirve para ese modelo sin cambios.
 
 ### Sesión 88 — Vitrina: banners, precio, deseos y reposición (2026-07-30)
 

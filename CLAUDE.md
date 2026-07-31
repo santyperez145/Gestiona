@@ -202,6 +202,37 @@ ensuciaba las métricas.
 
 ---
 
+## Credenciales: ninguna pasa por el navegador
+
+El patrón ya está aplicado a las cuatro que había, y `noPastedCredentials.test.ts`
+falla si alguna vuelve a aparecer en una pantalla.
+
+**Lo que tiene OAuth, se conecta por OAuth.** MercadoPago (`mp-connect`),
+MercadoLibre (`meli-oauth`) y Tiendanube lo tenían desde antes, pero
+Integraciones seguía ofreciendo **en paralelo** un campo para pegar el token a
+mano. Dos caminos para lo mismo, y el peor de los dos: un token pegado queda en
+`settings`, que la UI lee, mientras que el de OAuth vive en tablas con RLS y
+cero policies. Además MercadoPago **rechaza el `marketplace_fee`** con un token
+pegado a mano, así que esa vía ni siquiera podía cobrar comisión.
+
+**Lo que no tiene OAuth, no es que falte hacerlo.** Correo Argentino y Andreani
+usan usuario y clave de contrato; AFIP usa un certificado X.509; Evolution API
+una clave de instancia propia. Para AFIP lo más parecido al modelo marketplace
+es que cada comercio delegue el servicio WSFE al CUIT de la plataforma desde
+"Administrador de Relaciones" — ahí no sube ninguna clave.
+
+**Para las que no la tienen, el secreto entra por Edge Function y nunca vuelve.**
+`afip_credentials` es el ejemplo: RLS habilitada, cero policies, y la UI lee
+`afip_connection_status`. Probado con el rol `authenticated` y el JWT del dueño:
+la tabla devuelve **0 filas**.
+
+⚠️ **RLS es por fila, no por columna.** `settings` tiene una policy `SELECT`
+para todos los miembros de la organización, así que **cualquier secreto que se
+guarde ahí lo puede leer cualquier empleado**. Ahí estaba la clave privada de
+AFIP. Antes de agregar una columna a `settings`, preguntarse si es un secreto.
+
+---
+
 ## Cron: sin dos secretos en el vault, fallan los 13 en silencio
 
 Los cron jobs llaman Edge Functions vía `public.invoke_edge_function(nombre)`,
@@ -260,11 +291,20 @@ estado al día, `git log --oneline -20`.
 
 Pendientes conocidos al 2026-07-31:
 
+**Lo que espera al dueño, no al código:**
+
+- **Cargar las tarifas de envío.** Hay 6 zonas activas y tarifas en **una
+  sola**: CABA. Sin retiro en local habilitado, un comprador de cualquier otra
+  provincia recibe "No hay envío disponible" en el checkout. Es lo que más
+  plata cuesta hoy y no se arregla programando.
+- **Un certificado de AFIP de homologación** para verificar el ciclo de
+  facturación. Es gratis y no emite comprobantes reales.
+- **Contrato con Correo Argentino o Andreani** para la etiqueta por API.
 - **Stock de "AFNAN 9AM DIVE" quedó en 7 y ese número no es real.** Se puso en
   cero para verificar el aviso de reposición y el valor original se perdió.
-  Corregirlo desde Productos con el número que corresponda.
-- Las 4 páginas de contenido de la tienda están **como borrador**, a la espera
-  de que el dueño las revise y publique.
+- Hay un producto **"ZZ NO COMPRAR - Prueba de pago"** publicado en la tienda,
+  con stock 1. Se creó para verificar el cobro real; borrarlo cuando no haga
+  falta más.
 
 - **`send-team-invite` corre en producción sin código en el repo.** Está ACTIVE
   desde 2026-05-12, con `verify_jwt=true`. No es urgente porque está protegida,
@@ -273,6 +313,8 @@ Pendientes conocidos al 2026-07-31:
   esta no existe para el script. Dos salidas: bajar el código del dashboard y
   commitearlo, o borrarla si el flujo de invitaciones ya no la usa. Chequeo:
   comparar `supabase functions list` contra `supabase/functions/*/index.ts`.
+**Lo que espera trabajo:**
+
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
 - Los 4 grupos de versiones duplicadas hay que resolverlos a mano en
@@ -301,11 +343,23 @@ email corren, encuentran los destinatarios y no pueden enviar).
 
 Lo que la tienda todavía no tiene, en orden de impacto:
 
-1. **Etiqueta de envío y tracking automático** con Correo Argentino y Andreani.
-   Las APIs están integradas para cotizar, pero el ciclo no se cierra: no se
-   genera la etiqueta ni se actualiza el seguimiento solo.
-2. **AFIP en la tienda.** Sin factura no hay venta formal. Es el gap crítico de
-   siempre, y aplica a toda la app, no sólo a la tienda.
+1. **Las tarifas de envío cargadas.** No es código: hay 6 zonas y tarifas en una
+   sola. Hoy sólo se le puede vender a CABA.
+2. **AFIP probado contra el organismo.** La estructura está y las credenciales
+   ya no se pueden leer desde el cliente, pero no hay certificado cargado ni
+   factura emitida.
+3. **Etiqueta por API del correo.** La imprimible ya funciona; la de Correo
+   Argentino y Andreani necesita un contrato para poder verificar el payload.
+
+**El circuito de plata ya corrió entero.** Dos compras reales de $1 acreditadas,
+con el `application_fee` de $0,05 derivado a la plataforma. Llegar hasta ahí
+destapó cuatro bugs que ninguna lectura del código encontró — están en
+`ROADMAP.md` §11, sesión 90. El más caro: **la firma del webhook de MercadoPago
+nunca validaba**, así que toda compra quedaba pagada del lado de MercadoPago e
+impaga del lado de la tienda, en silencio.
+
+El despacho ya está: preparar el envío desde la orden, etiqueta imprimible, y
+seguimiento que el comprador ve con número de orden + email, sin cuenta.
 
 El CRM por `customer_id` tampoco es ya una brecha: `CustomersPage` lee por id
 desde el commit 2a7d5c7. El cruce vive en `customerMatch.ts` (puro, 10 tests) y
@@ -317,20 +371,30 @@ de alta un cliente nuevo y leer sólo por id le mostraría la ficha vacía.
 Quedaron por nombre `quotes` y `customer_communications`: no tienen la columna,
 así que para esas hace falta migración, no sólo cambiar la lectura.
 
-`marketplace_fee` ya **no** es una brecha: se aplica en `store-pay` desde el
-commit 85fa7b1, con `platform_commission_amount()` como única fuente del número
-para que el checkout cobre exactamente lo que la liquidación registra. Sólo se
+`marketplace_fee` **cobra de verdad**, confirmado contra MercadoPago: se aplica
+en `store-pay` desde el commit 85fa7b1, con `platform_commission_amount()` como
+única fuente del número para que el checkout cobre exactamente lo que la
+liquidación registra. Sólo se
 aplica con credenciales OAuth — con un token pegado a mano MercadoPago rechaza
 la preferencia.
 
-⚠️ **Nada de esto cobró todavía.** La regla base de comisión está en 0% y no hay
-ninguna compra completada: el circuito de plata está verificado por partes pero
-nunca corrió entero. Confirmarlo con una compra real es lo primero a hacer,
-porque si algo falla ahí cambia el orden de todo lo demás.
+✅ **Ya cobró.** Dos compras reales de $1, `approved`/`accredited`, con la
+comisión de plataforma descontada — MercadoPago informa `application_fee: 0.05`
+en las dos. **La regla base está en 5%, no en 0%** como decía este archivo: si
+se hace una compra ahora, ese 5% se va a la cuenta de MercadoPago dueña de la
+aplicación (`MP_APP_ID`). Conviene confirmar cuál es antes de escalar.
 
-Ya resueltas (sesiones 87–88): reseñas de compra verificada, páginas de
-contenido, banners con vigencia, filtro por rango de precio, lista de deseos y
-aviso de reposición.
+Cómo se derivó la comisión, porque no es obvio: MercadoPago **no necesita que le
+digas la cuenta**. La deduce de quién emitió el token. El comercio autoriza la
+app de la plataforma por OAuth, MP devuelve un token del vendedor emitido por
+esa app, y al acreditar el pago el neto va al vendedor y el `marketplace_fee` al
+dueño de la aplicación. Por eso con un token pegado a mano MP rechaza la
+preferencia: no existe la relación marketplace.
+
+Ya resueltas (sesiones 87–90): reseñas de compra verificada, páginas de
+contenido, banners con vigencia, filtro por rango de precio, lista de deseos,
+aviso de reposición, CRM por `customer_id`, despacho con etiqueta y
+seguimiento, y la limpieza de credenciales.
 
 ---
 
