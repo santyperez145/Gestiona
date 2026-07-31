@@ -35,6 +35,16 @@ const SHIPPING_MODES = [
   { id: "free",  label: "Envío gratis",   hint: "Sin costo de envío para el comprador." },
 ];
 
+/** Los estados de entrega, en el idioma en que se trabaja. */
+const ESTADO_ENTREGA: Record<string, string> = {
+  pending: "Pendiente",
+  unfulfilled: "Pendiente",
+  processing: "Para despachar",
+  shipped: "Enviada",
+  delivered: "Entregada",
+  cancelled: "Cancelada",
+};
+
 const PAYMENT_METHODS = [
   { id: "mercadopago",    label: "MercadoPago",    logo: "🔵" },
   { id: "transferencia",  label: "Transferencia",  logo: "🏦" },
@@ -424,29 +434,48 @@ export default function EcommerceStorePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
-                    {["Orden", "Cliente", "Email", "Total", "Pago", "Estado", "Fecha", "Envío"].map(h => (
+                    {["Orden", "Cliente", "Email", "Total", "Pago", "Estado", "Fecha"].map(h => (
                       <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
                     ))}
+                    {/* Pegada al borde: con ocho columnas y un email largo, la
+                        última cae fuera de la pantalla y el botón de despachar
+                        deja de existir para quien no piensa en scrollear. */}
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground sticky right-0 bg-muted/20 backdrop-blur">
+                      Envío
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOrders.map(o => (
-                    <tr key={o.id} className="border-b border-border/20 hover:bg-muted/20">
+                    <tr
+                      key={o.id}
+                      className={`border-b border-border/20 hover:bg-muted/20 ${o.payment_status === "paid" ? "cursor-pointer" : ""}`}
+                      onClick={() => o.payment_status === "paid" && setEnvioDe(o)}
+                    >
                       <td className="px-4 py-3 font-mono text-xs">{o.order_number}</td>
                       <td className="px-4 py-3 text-sm font-medium">{o.customer_name}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{o.customer_email}</td>
                       <td className="px-4 py-3 text-sm font-semibold">${Number(o.total).toLocaleString("es-AR")}</td>
                       <td className="px-4 py-3"><Badge className={`text-xs ${o.payment_status === "paid" ? "bg-emerald-500/15 text-emerald-400 border-0" : "bg-yellow-500/15 text-yellow-400 border-0"}`}>{o.payment_status}</Badge></td>
-                      <td className="px-4 py-3"><Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>{o.fulfillment_status}</Badge></td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.created_at.slice(0, 10)}</td>
                       <td className="px-4 py-3">
+                        <Badge className={`text-xs ${o.fulfillment_status === "delivered" ? "bg-emerald-500/15 text-emerald-400 border-0" : o.fulfillment_status === "shipped" ? "bg-blue-500/15 text-blue-400 border-0" : "bg-zinc-500/15 text-zinc-400 border-0"}`}>
+                          {ESTADO_ENTREGA[o.fulfillment_status] ?? o.fulfillment_status}
+                        </Badge>
+                        {/* El seguimiento acá y no sólo dentro del diálogo: es
+                            la señal de que el despacho quedó hecho. */}
+                        {o.tracking_number && (
+                          <p className="text-[10px] font-mono text-muted-foreground mt-1">{o.tracking_number}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{o.created_at.slice(0, 10)}</td>
+                      <td className="px-4 py-3 sticky right-0 bg-card">
                         {/* Sólo se despacha lo que está pago: ofrecer el botón
                             en una orden impaga invita a un error caro. */}
                         {o.payment_status === "paid" ? (
                           <Button
                             size="sm" variant="outline"
                             className="h-7 px-2 gap-1.5 text-xs"
-                            onClick={() => setEnvioDe(o)}
+                            onClick={e => { e.stopPropagation(); setEnvioDe(o); }}
                           >
                             <Truck className="w-3 h-3" />
                             {o.tracking_number ? "Ver envío" : "Preparar"}
