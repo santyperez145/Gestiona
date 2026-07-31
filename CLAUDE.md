@@ -285,17 +285,62 @@ email corren, encuentran los destinatarios y no pueden enviar).
 
 Lo que la tienda todavía no tiene, en orden de impacto:
 
-1. **Etiqueta de envío y tracking automático** con Correo Argentino y Andreani.
+1. **Terminar el CRM por `customer_id`.** La mitad de base está hecha: `sales`,
+   `debts` y `loyalty_points` tienen la columna, poblada y mantenida por
+   triggers. Falta que `CustomersPage.tsx` la lea, en 8 lugares que ya están
+   ubicados — líneas 572, 578, 676, 760, 1355-1359, 1395 y 1433, más la lógica
+   de fusión de clientes. **Es cambio de lectura: la parte segura.** Hasta que
+   se haga, el RFM y la fidelidad siguen cruzando por nombre en texto libre.
+2. **Etiqueta de envío y tracking automático** con Correo Argentino y Andreani.
    Las APIs están integradas para cotizar, pero el ciclo no se cierra: no se
    genera la etiqueta ni se actualiza el seguimiento solo.
-2. **Comisión por transacción** (`marketplace_fee`). Monetizar por venta además
-   de por suscripción; la base OAuth de MercadoPago ya está.
 3. **AFIP en la tienda.** Sin factura no hay venta formal. Es el gap crítico de
    siempre, y aplica a toda la app, no sólo a la tienda.
+
+`marketplace_fee` ya **no** es una brecha: se aplica en `store-pay` desde el
+commit 85fa7b1, con `platform_commission_amount()` como única fuente del número
+para que el checkout cobre exactamente lo que la liquidación registra. Sólo se
+aplica con credenciales OAuth — con un token pegado a mano MercadoPago rechaza
+la preferencia.
+
+⚠️ **Nada de esto cobró todavía.** La regla base de comisión está en 0% y no hay
+ninguna compra completada: el circuito de plata está verificado por partes pero
+nunca corrió entero. Confirmarlo con una compra real es lo primero a hacer,
+porque si algo falla ahí cambia el orden de todo lo demás.
 
 Ya resueltas (sesiones 87–88): reseñas de compra verificada, páginas de
 contenido, banners con vigencia, filtro por rango de precio, lista de deseos y
 aviso de reposición.
+
+---
+
+## Acceso directo a la base
+
+**Ya está configurado y verificado.** Es lo que convierte "creo que el esquema
+es así" en "lo miré". Sin esto se escriben migraciones a ciegas, que fue lo que
+costó tres idas y vueltas en la sesión 89.
+
+```bash
+npm run db -- --sql "select count(*) from public.sales"
+npm run db -- --file supabase/00_diagnostico.sql
+```
+
+Dos variables de usuario, ya puestas en la máquina de Santiago: `SUPABASE_DB_URL`
+(pooler **session**, `aws-1-us-east-1`, puerto 5432 — la conexión directa
+`db.<ref>.supabase.co` **no responde**, es IPv6) y `SUPABASE_CA_CERT` apuntando a
+`prod-ca-2021.crt`, que hace que el TLS se verifique de verdad en vez de usar
+`PGSSL_INSECURE=1`.
+
+Si el shell no las ve, la app arrancó antes de que se definieran:
+
+```powershell
+$env:SUPABASE_DB_URL = [Environment]::GetEnvironmentVariable('SUPABASE_DB_URL','User')
+```
+
+El runner **nunca imprime la credencial** y se niega a correr `DROP TABLE`,
+`TRUNCATE`, `DROP COLUMN` o un `DELETE` sin `WHERE` salvo que se le pase
+`--allow-destructive`. Para probar algo contra datos reales sin riesgo: envolver
+en `BEGIN; ... ROLLBACK;` — así se verificaron los triggers de CRM.
 
 ---
 
