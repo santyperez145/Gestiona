@@ -4094,6 +4094,7 @@ export type Database = {
         Row: {
           amount_ars: number
           created_at: string
+          customer_id: string | null
           customer_name: string
           date: string
           description: string | null
@@ -4110,6 +4111,7 @@ export type Database = {
         Insert: {
           amount_ars?: number
           created_at?: string
+          customer_id?: string | null
           customer_name: string
           date?: string
           description?: string | null
@@ -4126,6 +4128,7 @@ export type Database = {
         Update: {
           amount_ars?: number
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
           date?: string
           description?: string | null
@@ -4140,6 +4143,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "debts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "debts_org_id_fkey"
             columns: ["org_id"]
@@ -4187,6 +4197,7 @@ export type Database = {
           delivered_at: string | null
           driver_name: string | null
           driver_phone: string | null
+          ecommerce_order_id: string | null
           external_tracking: string | null
           id: string
           notes: string | null
@@ -4219,6 +4230,7 @@ export type Database = {
           delivered_at?: string | null
           driver_name?: string | null
           driver_phone?: string | null
+          ecommerce_order_id?: string | null
           external_tracking?: string | null
           id?: string
           notes?: string | null
@@ -4251,6 +4263,7 @@ export type Database = {
           delivered_at?: string | null
           driver_name?: string | null
           driver_phone?: string | null
+          ecommerce_order_id?: string | null
           external_tracking?: string | null
           id?: string
           notes?: string | null
@@ -4268,6 +4281,13 @@ export type Database = {
           weight_kg?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "deliveries_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deliveries_org_id_fkey"
             columns: ["org_id"]
@@ -8992,6 +9012,7 @@ export type Database = {
       loyalty_points: {
         Row: {
           created_at: string | null
+          customer_id: string | null
           customer_name: string
           delta: number
           id: string
@@ -9001,6 +9022,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          customer_id?: string | null
           customer_name: string
           delta: number
           id?: string
@@ -9010,6 +9032,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          customer_id?: string | null
           customer_name?: string
           delta?: number
           id?: string
@@ -9018,6 +9041,13 @@ export type Database = {
           reference_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "loyalty_points_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loyalty_points_org_id_fkey"
             columns: ["org_id"]
@@ -14865,6 +14895,7 @@ export type Database = {
           coupon_code: string | null
           coupon_id: string | null
           created_at: string
+          customer_id: string | null
           customer_name: string | null
           date: string
           discount_applied: boolean
@@ -14904,6 +14935,7 @@ export type Database = {
           coupon_code?: string | null
           coupon_id?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
@@ -14943,6 +14975,7 @@ export type Database = {
           coupon_code?: string | null
           coupon_id?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string | null
           date?: string
           discount_applied?: boolean
@@ -14976,6 +15009,13 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -20412,6 +20452,24 @@ export type Database = {
           },
         ]
       }
+      sales_sin_cliente: {
+        Row: {
+          customer_name: string | null
+          org_id: string | null
+          total_ars: number | null
+          ultima_venta: string | null
+          ventas: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings_public: {
         Row: {
           business_name: string | null
@@ -20829,6 +20887,10 @@ export type Database = {
         Args: { p_org_id: string; p_punto_venta: number; p_tipo_cbte: number }
         Returns: number
       }
+      get_order_tracking: {
+        Args: { p_email: string; p_order_number: string }
+        Returns: Json
+      }
       get_org_role: {
         Args: { _org_id: string; _user_id: string }
         Returns: string
@@ -21086,6 +21148,7 @@ export type Database = {
       }
       next_quote_number: { Args: { p_org_id: string }; Returns: string }
       next_store_order_number: { Args: never; Returns: string }
+      normalize_person_name: { Args: { p_name: string }; Returns: string }
       pending_abandoned_carts: {
         Args: { p_hours?: number }
         Returns: {
@@ -21113,7 +21176,15 @@ export type Database = {
           variant_name: string
         }[]
       }
+      platform_commission_amount: {
+        Args: { p_channel?: string; p_gross: number; p_org_id: string }
+        Returns: number
+      }
       platform_role: { Args: { _user_id?: string }; Returns: string }
+      prepare_order_shipment: {
+        Args: { p_carrier?: string; p_order_id: string; p_weight_kg?: number }
+        Returns: Json
+      }
       process_drip_unsubscribe: {
         Args: { p_ip?: unknown; p_token: string; p_user_agent?: string }
         Returns: Json
@@ -21276,6 +21347,10 @@ export type Database = {
       seed_return_reasons: { Args: { p_org_id: string }; Returns: undefined }
       seed_store_pages: { Args: { p_store_id: string }; Returns: Json }
       seed_tax_rates: { Args: { p_org_id: string }; Returns: undefined }
+      set_order_tracking: {
+        Args: { p_carrier: string; p_order_id: string; p_tracking: string }
+        Returns: Json
+      }
       store_cart_weight_kg: {
         Args: { p_default_weight?: number; p_items: Json; p_org_id: string }
         Returns: number
@@ -21295,6 +21370,10 @@ export type Database = {
         Returns: Json
       }
       unaccent: { Args: { "": string }; Returns: string }
+      upsert_customer_from_order: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       upsert_product_review: {
         Args: {
           p_body?: string

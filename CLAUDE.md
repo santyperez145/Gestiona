@@ -152,6 +152,15 @@ NOT EXISTS` es un no-op silencioso y después falla el índice. Pasó con
 `shipping_zones`/`shipping_rates`, que ya existían desde
 `20260523000075_logistics.sql` con otra forma.
 
+**El número de la migración se elige DESPUÉS de traer el remoto, no antes.**
+Las dos PCs numeran a partir de lo que ven, así que dos sesiones en paralelo
+eligen el mismo. Ya pasó: `20260731000013` salió dos veces, una como
+`marketplace_fee` en el remoto y otra como `order_shipping` local. Se arregla
+renombrando el archivo — el contenido es idempotente y ya aplicado, no hace
+falta tocar la base — pero es justamente lo que engorda la lista de prefijos
+duplicados que tiene inutilizable a `db push`. Antes de crear el archivo:
+`git fetch origin && ls supabase/migrations | tail -5`.
+
 ---
 
 ## Seguridad — invariantes con test
@@ -323,25 +332,47 @@ aviso de reposición.
 
 ## Acceso directo a la base
 
-**Ya está configurado y verificado.** Es lo que convierte "creo que el esquema
-es así" en "lo miré". Sin esto se escriben migraciones a ciegas, que fue lo que
-costó tres idas y vueltas en la sesión 89.
+Es lo que convierte "creo que el esquema es así" en "lo miré". Sin esto se
+escriben migraciones a ciegas, que fue lo que costó tres idas y vueltas en la
+sesión 89.
+
+Hay dos caminos, y conviene saber cuál está disponible **antes** de planificar:
+
+**1. El runner del repo — el bueno, pero es por máquina.**
 
 ```bash
 npm run db -- --sql "select count(*) from public.sales"
 npm run db -- --file supabase/00_diagnostico.sql
 ```
 
-Dos variables de usuario, ya puestas en la máquina de Santiago: `SUPABASE_DB_URL`
-(pooler **session**, `aws-1-us-east-1`, puerto 5432 — la conexión directa
-`db.<ref>.supabase.co` **no responde**, es IPv6) y `SUPABASE_CA_CERT` apuntando a
-`prod-ca-2021.crt`, que hace que el TLS se verifique de verdad en vez de usar
-`PGSSL_INSECURE=1`.
+Necesita dos variables de usuario: `SUPABASE_DB_URL` (pooler **session**,
+`aws-1-us-east-1`, puerto 5432 — la conexión directa `db.<ref>.supabase.co`
+**no responde**, es IPv6) y `SUPABASE_CA_CERT` apuntando a `prod-ca-2021.crt`,
+que hace que el TLS se verifique de verdad en vez de usar `PGSSL_INSECURE=1`.
 
-Si el shell no las ve, la app arrancó antes de que se definieran:
+**Están puestas en una sola de las dos PCs.** Se trabaja desde dos, así que no
+se puede dar por hecho: comprobar antes de contar con esto.
+
+```powershell
+[Environment]::GetEnvironmentVariable('SUPABASE_DB_URL','User')
+```
+
+Vacío ⇒ esta máquina no lo tiene. Si devuelve algo pero el shell no la ve, la
+app arrancó antes de que se definieran, y alcanza con:
 
 ```powershell
 $env:SUPABASE_DB_URL = [Environment]::GetEnvironmentVariable('SUPABASE_DB_URL','User')
+```
+
+Y si el runner falla con `Cannot find package 'pg'`, faltan dependencias:
+`npm install`.
+
+**2. El CLI de Supabase — anda en cualquier máquina, sin configurar nada**,
+porque el proyecto ya está linkeado. Es lo que se usa para aplicar migraciones
+y sirve igual para consultar, sólo que pide un archivo en vez de `--sql`:
+
+```bash
+npx supabase db query --linked --file consulta.sql
 ```
 
 El runner **nunca imprime la credencial** y se niega a correr `DROP TABLE`,
