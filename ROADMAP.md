@@ -136,10 +136,15 @@ lectura del código encontró.
 | # | Feature | Por qué | Esfuerzo |
 |---|---|---|---|
 | 1 | **AFIP: factura electrónica** | Es el gap crítico del producto entero. | L |
-| 2 | **Recepción parcial de órdenes de compra** | Hoy la orden se recibe entera o nada. | M |
-| 3 | **Stock real por depósito** | Existe la tabla pero el POS no descuenta por sucursal. | M |
-| 4 | **Tests E2E (Playwright)** | 342 unitarios cubren cálculos, no flujos. Los bugs que dolieron fueron de integración. | L |
-| 5 | **Entorno de staging** | Hoy se verifica contra producción con datos `ZZ` y limpieza. Funciona, pero es frágil. | M |
+| 2 | **Stock real por depósito** | Existe la tabla pero el POS no descuenta por sucursal. | M |
+| 3 | **Tests E2E (Playwright)** | 377 unitarios cubren cálculos, no flujos. Los bugs que dolieron fueron de integración. | L |
+| 4 | **Entorno de staging** | Hoy se verifica contra producción con datos `ZZ` y limpieza. Funciona, pero es frágil. | M |
+
+✅ **Recepción parcial de órdenes de compra** — hecho (sesión 91). El ROADMAP lo
+anotaba como "se recibe entera o nada"; mirando el código era peor: **no se
+recibía nada**. "Marcar recibida" cambiaba `status` y `received_date` y no tocaba
+`quantity_received` ni movía una unidad de stock. El módulo de OC estaba
+desconectado del inventario.
 
 ---
 
@@ -708,6 +713,26 @@ Otra cosa que quedó documentada porque cuesta una hora descubrirla: **esta PC n
 tiene `.env`**, así que el front local levanta pero no se conecta a ninguna base
 y la tienda pública dice "Tienda no encontrada" teniendo la tienda activa. No es
 un bug. Sin `.env`, el navegador sólo prueba que compila.
+
+**Recepción parcial de órdenes de compra.** El ROADMAP decía "se recibe entera o
+nada"; el código no recibía nada: "Marcar recibida" cambiaba el estado y la
+fecha, sin tocar `quantity_received` —que existía y quedaba en 0 para siempre—
+ni mover una unidad de stock. El estado `partially_received` estaba en el
+vocabulario y en la UI con su color ámbar, y no había forma de alcanzarlo.
+
+Ahora todo pasa por el RPC `receive_purchase_order`, que valida contra lo
+pendiente, **inserta en `purchases`** para que `trg_purchase_stock_movement`
+mueva el stock —escribirlo a mano habría duplicado el movimiento, el error que
+este repo ya cometió una vez— deja la entrega en `purchase_order_receipts` y
+recalcula el estado desde los renglones. Recibir de más se rechaza con el nombre
+del producto y el faltante, en vez de recortar en silencio.
+
+En el camino apareció un bug de aislamiento entre organizaciones:
+`trg_purchase_stock_movement` derivaba la organización de la **primera membresía
+del usuario** en vez de usar `NEW.org_id`, que existe y es NOT NULL. Para alguien
+que pertenece a dos organizaciones, una compra cargada en la segunda movía el
+stock de la primera. Había que arreglarlo igual, porque la recepción de OC
+depende de eso.
 
 De paso, el informe destapó que 6 tablas creadas en las sesiones 86–90
 (`store_banners`, `store_pages`, `store_stock_alerts`, `store_wishlists`,

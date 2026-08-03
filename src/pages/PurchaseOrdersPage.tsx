@@ -417,16 +417,162 @@ function POForm({ open, order, suppliers, products, orgId, onClose, onSaved, pre
   );
 }
 
+// ─── Recepción de mercadería ──────────────────────────────────────────────────
+
+/** Lo que falta de un renglón. Nunca negativo, aunque el dato venga sucio. */
+function pendienteDe(item: POItem): number {
+  return Math.max(0, Number(item.quantity_ordered ?? 0) - Number(item.quantity_received ?? 0));
+}
+
+/**
+ * Registrar una entrega, total o parcial.
+ *
+ * Antes el único botón era "Marcar recibida", que corría un UPDATE de `status`
+ * y `received_date` y **nada más**: no tocaba `quantity_received` ni movía una
+ * sola unidad de stock. Es decir que el módulo de órdenes de compra estaba
+ * desconectado del inventario, y el estado `partially_received` —que ya estaba
+ * en el vocabulario y en la UI, con su color ámbar— no se podía alcanzar.
+ *
+ * Todo pasa por el RPC `receive_purchase_order`: valida contra lo pendiente,
+ * inserta en `purchases` para que el trigger mueva el stock, deja la entrega en
+ * `purchase_order_receipts` y recalcula el estado desde los renglones. Acá no se
+ * calcula nada de eso — si la pantalla decidiera el estado o el stock, dos
+ * recepciones simultáneas se pisarían.
+ */
+function ReceiveDialog({ order, open, onOpenChange, onDone }: {
+  order: PurchaseOrder;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onDone: () => void;
+}) {
+  const items = order.items ?? [];
+  // Por default llega todo lo que falta: es el caso común, y así el parcial es
+  // corregir un número en vez de cargar todos.
+  const [cantidades, setCantidades] = useState<Record<string, string>>({});
+  const [notas, setNotas] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setCantidades(Object.fromEntries(items.map(i => [i.id, String(pendienteDe(i))])));
+      setNotas("");
+    }
+  }, [open, order.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const aRecibir = items
+    .map(i => ({ item_id: i.id, quantity: Number(cantidades[i.id] ?? 0) }))
+    .filter(x => x.quantity > 0);
+
+  const excedido = items.some(i => Number(cantidades[i.id] ?? 0) > pendienteDe(i));
+
+  const confirmar = async () => {
+    setGuardando(true);
+    try {
+      const { data, error } = await supabase.rpc("receive_purchase_order", {
+        p_order_id: order.id,
+        p_items: aRecibir,
+        p_notes: notas.trim() || null,
+      });
+      if (error) throw error;
+      const res = data as { status?: string; pendientes?: number } | null;
+      toast.success(
+        res?.status === "received"
+          ? "Orden recibida completa"
+          : `Entrega registrada — quedan ${Number(res?.pendientes ?? 0)} unidades`,
+      );
+      onOpenChange(false);
+      onDone();
+    } catch (e) {
+      // El RPC explica qué renglón y por cuánto se pasó; mostrarlo es más útil
+      // que un "error al recibir" genérico.
+      toast.error(e instanceof Error ? e.message : "No se pudo registrar la entrega");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Recibir mercadería — {order.order_number}</DialogTitle>
+        </DialogHeader>
+
+        <div className="rounded-lg border border-border overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/20">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">Producto</th>
+                <th className="text-right px-3 py-2 font-medium">Pedido</th>
+                <th className="text-right px-3 py-2 font-medium">Ya recibido</th>
+                <th className="text-right px-3 py-2 font-medium">Falta</th>
+                <th className="text-right px-3 py-2 font-medium w-28">Llega ahora</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {items.map(i => {
+                const falta = pendienteDe(i);
+                const valor = Number(cantidades[i.id] ?? 0);
+                return (
+                  <tr key={i.id} className={falta === 0 ? "opacity-50" : ""}>
+                    <td className="px-3 py-2">{i.product_name}</td>
+                    <td className="px-3 py-2 text-right">{i.quantity_ordered}</td>
+                    <td className="px-3 py-2 text-right">{i.quantity_received}</td>
+                    <td className="px-3 py-2 text-right font-medium">{falta}</td>
+                    <td className="px-3 py-2 text-right">
+                      <Input
+                        type="number" min={0} max={falta} disabled={falta === 0}
+                        value={cantidades[i.id] ?? ""}
+                        onChange={e => setCantidades(p => ({ ...p, [i.id]: e.target.value }))}
+                        className={`h-7 text-xs text-right ${valor > falta ? "border-destructive" : ""}`}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Nota de la entrega (opcional)</Label>
+          <Input
+            value={notas} onChange={e => setNotas(e.target.value)}
+            placeholder="Remito 1234, faltó una caja…" className="text-xs"
+          />
+        </div>
+
+        {excedido && (
+          <p className="text-xs text-destructive">
+            Hay renglones con más unidades de las que faltan. Recibir de más se rechaza:
+            si el proveedor mandó de más, corregí la orden primero.
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={confirmar} disabled={guardando || excedido || aRecibir.length === 0}>
+            <Package className="w-3.5 h-3.5 mr-1" />
+            {guardando ? "Registrando…" : `Recibir ${aRecibir.reduce((s, x) => s + x.quantity, 0)} unidades`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── PO Row ───────────────────────────────────────────────────────────────────
 
 interface PORowProps {
   order: PurchaseOrder;
   onEdit: () => void;
   onAdvanceStatus: (status: string) => void;
+  onReceived: () => void;
   onDelete: () => void;
 }
 
-function PORow({ order, onEdit, onAdvanceStatus, onDelete }: PORowProps) {
+function PORow({ order, onEdit, onAdvanceStatus, onReceived, onDelete }: PORowProps) {
+  const [recibiendo, setRecibiendo] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const sc = STATUS_CONFIG[order.status];
   const StatusIcon = sc.icon;
@@ -463,20 +609,25 @@ function PORow({ order, onEdit, onAdvanceStatus, onDelete }: PORowProps) {
                     <th className="text-left px-3 py-1.5 font-medium">Producto</th>
                     <th className="text-right px-3 py-1.5 font-medium">Pedido</th>
                     <th className="text-right px-3 py-1.5 font-medium">Recibido</th>
+                    <th className="text-right px-3 py-1.5 font-medium">Falta</th>
                     <th className="text-right px-3 py-1.5 font-medium">Costo unit.</th>
                     <th className="text-right px-3 py-1.5 font-medium">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {order.items.map(item => (
+                  {order.items.map(item => {
+                    const falta = pendienteDe(item);
+                    return (
                     <tr key={item.id}>
                       <td className="px-3 py-1.5">{item.product_name}{item.sku ? ` (${item.sku})` : ""}</td>
                       <td className="px-3 py-1.5 text-right">{item.quantity_ordered}</td>
-                      <td className={`px-3 py-1.5 text-right ${item.quantity_received < item.quantity_ordered ? "text-amber-400" : "text-emerald-400"}`}>{item.quantity_received}</td>
+                      <td className={`px-3 py-1.5 text-right ${falta > 0 ? "text-amber-400" : "text-emerald-400"}`}>{item.quantity_received}</td>
+                      <td className={`px-3 py-1.5 text-right ${falta > 0 ? "text-amber-400 font-medium" : "text-muted-foreground"}`}>{falta}</td>
                       <td className="px-3 py-1.5 text-right">{fmtCurrency(item.unit_cost, order.currency)}</td>
                       <td className="px-3 py-1.5 text-right font-medium">{fmtCurrency(item.total_cost, order.currency)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -494,8 +645,8 @@ function PORow({ order, onEdit, onAdvanceStatus, onDelete }: PORowProps) {
               </Button>
             )}
             {(order.status === "confirmed" || order.status === "partially_received") && (
-              <Button size="sm" variant="outline" onClick={() => onAdvanceStatus("received")}>
-                <Package className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Marcar recibida
+              <Button size="sm" variant="outline" onClick={() => setRecibiendo(true)}>
+                <Package className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Recibir mercadería
               </Button>
             )}
             {order.status !== "cancelled" && order.status !== "received" && (
@@ -514,6 +665,13 @@ function PORow({ order, onEdit, onAdvanceStatus, onDelete }: PORowProps) {
           </div>
         </div>
       )}
+
+      <ReceiveDialog
+        order={order}
+        open={recibiendo}
+        onOpenChange={setRecibiendo}
+        onDone={onReceived}
+      />
     </div>
   );
 }
@@ -664,6 +822,7 @@ export default function PurchaseOrdersPage() {
                   order={order}
                   onEdit={() => { setEditingOrder(order); setFormOpen(true); }}
                   onAdvanceStatus={status => handleAdvanceStatus(order, status)}
+                  onReceived={loadAll}
                   onDelete={() => handleDelete(order)}
                 />
               ))}

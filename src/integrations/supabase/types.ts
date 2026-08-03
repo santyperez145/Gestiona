@@ -10842,6 +10842,71 @@ export type Database = {
           },
         ]
       }
+      purchase_order_receipts: {
+        Row: {
+          id: string
+          notes: string | null
+          order_id: string
+          order_item_id: string
+          org_id: string
+          purchase_id: string | null
+          quantity: number
+          received_at: string
+          received_by: string | null
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          order_id: string
+          order_item_id: string
+          org_id: string
+          purchase_id?: string | null
+          quantity: number
+          received_at?: string
+          received_by?: string | null
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          order_id?: string
+          order_item_id?: string
+          org_id?: string
+          purchase_id?: string | null
+          quantity?: number
+          received_at?: string
+          received_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_receipts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_receipts_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_orders: {
         Row: {
           confirmed_at: string | null
@@ -17442,6 +17507,10 @@ export type Database = {
         }[]
       }
       rebuild_cooccurrences: { Args: { p_org_id: string }; Returns: undefined }
+      receive_purchase_order: {
+        Args: { p_items: Json; p_notes?: string; p_order_id: string }
+        Returns: Json
+      }
       record_debt_payment_cash_entry: {
         Args: {
           p_amount_ars: number
