@@ -670,6 +670,49 @@ const QUOTE_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   expired:  { label: "Vencido",  color: "text-amber-400 bg-amber-500/10" },
 };
 
+/**
+ * Agrega una nota al perfil del cliente, con fecha y hora.
+ *
+ * Escribe en `customers.notes`, que es **de donde la ficha la lee**
+ * (`profileNotes`). Antes los dos caminos de nota escribían en `customer_notes`
+ * con `onConflict: 'org_id,customer_name'`, y eso estaba mal por partida doble:
+ *
+ * 1. Esa constraint no existe — la de la tabla es `UNIQUE (user_id,
+ *    customer_name)` — así que Postgres rechazaba con `42P10`.
+ * 2. Aun si hubiera entrado, `customer_notes` no la lee nadie en el CRM, así
+ *    que la nota no habría aparecido igual.
+ *
+ * Y no se notaba porque `upsert()` no lanza: devuelve el error en `.error`, que
+ * ningún llamador miraba. El `catch` nunca corría, la UI decía "Nota guardada"
+ * y la tabla quedaba con cero filas. Por eso esto devuelve el error lanzándolo:
+ * un fallo tiene que llegar al `catch` del llamador, no perderse.
+ *
+ * Si el cliente todavía no tiene perfil se lo crea. Una nota sobre alguien es
+ * justamente el motivo para tenerlo en el CRM, y sin perfil la nota no tiene
+ * dónde vivir. Sus compras se siguen viendo en la ficha: `belongsToCustomer`
+ * cruza por nombre las filas que no tienen `customer_id`.
+ */
+async function appendCustomerNote(
+  orgId: string,
+  userId: string,
+  customer: Pick<CustomerData, "name" | "profileId" | "profileNotes">,
+  text: string,
+): Promise<void> {
+  const timestamp = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const entry = `[${timestamp}] ${text.trim()}`;
+  const notes = customer.profileNotes ? `${customer.profileNotes}\n${entry}` : entry;
+
+  if (customer.profileId) {
+    const { error } = await supabase.from("customers").update({ notes }).eq("id", customer.profileId);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await supabase.from("customers")
+    .insert({ org_id: orgId, user_id: userId, name: customer.name, notes });
+  if (error) throw error;
+}
+
 function CustomerQuotesTab({ customerName, orgId }: { customerName: string; orgId: string }) {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1861,18 +1904,11 @@ export default function CustomersPage() {
     setImporting(false);
   };
 
-  const saveQuickNote = async (customerName: string) => {
+  const saveQuickNote = async (customer: CustomerData) => {
     if (!quickNoteText.trim() || !user || !activeOrg) return;
     setQuickNoteSaving(true);
     try {
-      const timestamp = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const newEntry = `[${timestamp}] ${quickNoteText.trim()}`;
-      const existing = customers.find(c => c.name === customerName)?.profileNotes || "";
-      const updated = existing ? `${existing}\n${newEntry}` : newEntry;
-      await supabase.from('customer_notes').upsert(
-        { org_id: activeOrg.id, user_id: user.id, customer_name: customerName, notes: updated },
-        { onConflict: 'org_id,customer_name' }
-      );
+      await appendCustomerNote(activeOrg.id, user.id, customer, quickNoteText);
       toast.success("Nota guardada");
       setQuickNoteCustomer(null);
       setQuickNoteText("");
@@ -2629,21 +2665,21 @@ export default function CustomersPage() {
                   if (!user || !activeOrg || !bulkNoteText.trim()) return;
                   setBulkNoteSaving(true);
                   try {
-                    const timestamp = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                    const newEntry = `[${timestamp}] ${bulkNoteText.trim()}`;
                     const selectedList = filtered.filter(c => selectedCustomerNames.has(c.name));
-                    await Promise.all(selectedList.map(async c => {
-                      const existing = c.profileNotes || "";
-                      const updated = existing ? `${existing}\n${newEntry}` : newEntry;
-                      await supabase.from('customer_notes').upsert(
-                        { org_id: activeOrg.id, user_id: user.id, customer_name: c.name, notes: updated },
-                        { onConflict: 'org_id,customer_name' }
-                      );
-                    }));
-                    toast.success(`Nota agregada a ${selectedList.length} cliente${selectedList.length !== 1 ? 's' : ''}`);
+                    // Se cuenta lo que entró de verdad. `Promise.all` con un
+                    // await que no lanza daba siempre el total de seleccionados,
+                    // aunque no se hubiera guardado ninguna.
+                    const results = await Promise.allSettled(
+                      selectedList.map(c => appendCustomerNote(activeOrg.id, user.id, c, bulkNoteText))
+                    );
+                    const ok = results.filter(r => r.status === "fulfilled").length;
+                    const fallaron = results.length - ok;
+                    if (ok > 0) toast.success(`Nota agregada a ${ok} cliente${ok !== 1 ? 's' : ''}`);
+                    if (fallaron > 0) toast.error(`${fallaron} cliente${fallaron !== 1 ? 's' : ''} sin guardar`);
                     setBulkNoteOpen(false);
                     setBulkNoteText("");
                     setSelectedCustomerNames(new Set());
+                    await loadData();
                   } catch {
                     toast.error("Error al guardar notas");
                   } finally {
@@ -3000,10 +3036,10 @@ export default function CustomersPage() {
                           rows={2}
                           maxLength={500}
                           className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2 resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                          onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveQuickNote(c.name); }}
+                          onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveQuickNote(c); }}
                         />
                         <div className="flex gap-2">
-                          <Button size="sm" className="h-7 text-xs gap-1 flex-1" disabled={!quickNoteText.trim() || quickNoteSaving} onClick={() => saveQuickNote(c.name)}>
+                          <Button size="sm" className="h-7 text-xs gap-1 flex-1" disabled={!quickNoteText.trim() || quickNoteSaving} onClick={() => saveQuickNote(c)}>
                             {quickNoteSaving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3 h-3" />}
                             Guardar nota
                           </Button>

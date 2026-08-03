@@ -843,19 +843,21 @@ export function getExpenseCategoryLabel(cat: string, settings?: any) {
 }
 
 // ========= CUSTOMER NOTES =========
+// `customer_notes` es una tabla heredada y hoy está vacía. La nota que el CRM
+// muestra vive en `customers.notes` — la escribe `appendCustomerNote` en
+// CustomersPage. Esto se conserva sólo para que el backup de Configuración
+// siga exportando la tabla si alguna organización tuviera filas viejas.
+//
+// El `upsertCustomerNoteDB` que estaba acá se borró en vez de arreglarse: no lo
+// llamaba nadie y escribía con `onConflict: 'org_id,customer_name'`, una
+// constraint que no existe (la real es `user_id,customer_name`), así que fallaba
+// con 42P10. Aun arreglado habría guardado en una tabla que el CRM no lee, que
+// es el bug que se acaba de sacar de CustomersPage.
 export async function getCustomerNotesDB(userId: string) {
   const orgId = await orgIdFor(userId);
   const { data, error } = await supabase.from('customer_notes').select('*').eq('org_id', orgId);
   if (error) throw error;
   return data || [];
-}
-
-export async function upsertCustomerNoteDB(userId: string, customerName: string, notes: string) {
-  const orgId = await orgIdFor(userId);
-  const { error } = await supabase
-    .from('customer_notes')
-    .upsert({ org_id: orgId, user_id: userId, customer_name: customerName, notes }, { onConflict: 'org_id,customer_name' });
-  if (error) throw error;
 }
 
 // ========= CUSTOMERS (perfil completo) =========
