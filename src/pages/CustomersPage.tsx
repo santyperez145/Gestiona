@@ -713,21 +713,71 @@ async function appendCustomerNote(
   if (error) throw error;
 }
 
-function CustomerQuotesTab({ customerName, orgId }: { customerName: string; orgId: string }) {
+/**
+ * Trae las filas de una tabla del CRM que son de un cliente, con la misma regla
+ * que `belongsToCustomer`: si la fila está enlazada manda el `customer_id`, y si
+ * no, se cruza por nombre.
+ *
+ * Son dos consultas y no un `.or()` a propósito. El `or` de PostgREST se arma
+ * concatenando todo en una sola cadena, así que un nombre con coma o paréntesis
+ * —"Pérez, Juan", "Ana (mayorista)"— rompe el filtro o, peor, lo convierte
+ * calladamente en otro. Dos consultas explícitas no tienen ese problema.
+ *
+ * La segunda pide sólo filas con `customer_id IS NULL`. Una fila enlazada a OTRO
+ * cliente no puede volver por la ventana del nombre: es lo que garantiza que dos
+ * homónimos no se mezclen. Y el resultado se pasa igual por `belongsToCustomer`,
+ * que normaliza acentos — el `ilike` de la consulta no.
+ */
+async function crmRowsForCustomer<T extends { id: string; created_at?: string }>(
+  table: "quotes" | "customer_communications",
+  columns: string,
+  orgId: string,
+  customer: CustomerRef,
+  limit: number,
+): Promise<T[]> {
+  const base = () => supabase.from(table).select(columns).eq("org_id", orgId)
+    .order("created_at", { ascending: false }).limit(limit);
+
+  const nombre = (customer.name ?? "").trim();
+  const consultas = [];
+  if (customer.id) consultas.push(base().eq("customer_id", customer.id));
+  // `%` y `_` son comodines de LIKE: sin escapar, un nombre que los tenga
+  // traería filas de otra gente.
+  if (nombre) consultas.push(base().is("customer_id", null).ilike("customer_name", nombre.replace(/[%_]/g, m => `\\${m}`)));
+
+  const resultados = await Promise.all(consultas);
+  const err = resultados.find(r => r.error)?.error;
+  if (err) throw err;   // no se traga: "no tengo permiso" y "no hay nada" son problemas opuestos
+
+  const porId = new Map<string, T>();
+  for (const r of resultados) {
+    for (const fila of (r.data ?? []) as unknown as T[]) porId.set(fila.id, fila);
+  }
+  return [...porId.values()]
+    .filter(f => belongsToCustomer(f as any, customer))
+    .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+    .slice(0, limit);
+}
+
+function CustomerQuotesTab({ customer, orgId }: { customer: CustomerRef; orgId: string }) {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const customerId = customer.id;
+  const customerName = customer.name;
 
   useEffect(() => {
     setLoading(true);
-    supabase
-      .from("quotes")
-      .select("id,quote_number,valid_until,status,total_ars,created_at,notes")
-      .eq("org_id", orgId)
-      .ilike("customer_name", customerName)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => { setQuotes(data || []); setLoading(false); });
-  }, [customerName, orgId]);
+    crmRowsForCustomer<any>(
+      "quotes",
+      "id,quote_number,valid_until,status,total_ars,created_at,notes,customer_id,customer_name",
+      orgId,
+      { id: customerId, name: customerName },
+      20,
+    )
+      .then(filas => setQuotes(filas))
+      .catch(() => toast.error("No se pudieron cargar los presupuestos"))
+      .finally(() => setLoading(false));
+  }, [customerId, customerName, orgId]);
 
   if (loading) return <p className="text-xs text-muted-foreground text-center py-6">Cargando...</p>;
   if (quotes.length === 0) return (
@@ -789,7 +839,9 @@ function CustomerQuotesTab({ customerName, orgId }: { customerName: string; orgI
   );
 }
 
-function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; userId: string; customerName: string }) {
+function CommunicationsLog({ orgId, userId, customer }: { orgId: string; userId: string; customer: CustomerRef }) {
+  const customerId = customer.id;
+  const customerName = customer.name ?? "";
   const [entries, setEntries] = useState<CommEntry[]>([]);
   const [type, setType] = useState("note");
   const [summary, setSummary] = useState("");
@@ -803,15 +855,16 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
   });
 
   useEffect(() => {
-    supabase
-      .from("customer_communications")
-      .select("id,type,summary,created_at,follow_up_date,outcome")
-      .eq("org_id", orgId)
-      .eq("customer_name", customerName)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => setEntries((data || []) as CommEntry[]));
-  }, [orgId, customerName]);
+    crmRowsForCustomer<CommEntry & { id: string; created_at?: string }>(
+      "customer_communications",
+      "id,type,summary,created_at,follow_up_date,outcome,customer_id,customer_name",
+      orgId,
+      { id: customerId, name: customerName },
+      20,
+    )
+      .then(filas => setEntries(filas as CommEntry[]))
+      .catch(() => toast.error("No se pudo cargar el historial de comunicaciones"));
+  }, [orgId, customerId, customerName]);
 
   const handleAdd = async () => {
     if (!summary.trim()) return;
@@ -822,6 +875,10 @@ function CommunicationsLog({ orgId, userId, customerName }: { orgId: string; use
         .insert({
           org_id: orgId,
           user_id: userId,
+          // Se manda el id que la ficha ya conoce en vez de dejar que el trigger
+          // lo deduzca del nombre: acá se sabe con certeza de quién es, y el
+          // trigger respeta un customer_id ya provisto.
+          customer_id: customerId ?? null,
           customer_name: customerName,
           type,
           summary: summary.trim(),
@@ -3355,7 +3412,7 @@ export default function CustomersPage() {
                       {/* ── Tab: Presupuestos ── */}
                       <TabsContent value="presupuestos" className="mt-0">
                         {activeOrg && (
-                          <CustomerQuotesTab customerName={c.name} orgId={activeOrg.id} />
+                          <CustomerQuotesTab customer={refDe(c)} orgId={activeOrg.id} />
                         )}
                       </TabsContent>
 
@@ -3427,7 +3484,7 @@ export default function CustomersPage() {
                           <CommunicationsLog
                             orgId={activeOrg.id}
                             userId={user.id}
-                            customerName={c.name}
+                            customer={refDe(c)}
                           />
                         )}
 
@@ -3666,7 +3723,7 @@ export default function CustomersPage() {
                       <CommunicationsLog
                         orgId={activeOrg.id}
                         userId={user.id}
-                        customerName={c.name}
+                        customer={refDe(c)}
                       />
                     )}
 

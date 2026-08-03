@@ -3314,6 +3314,7 @@ export type Database = {
       customer_communications: {
         Row: {
           created_at: string | null
+          customer_id: string | null
           customer_name: string
           follow_up_date: string | null
           id: string
@@ -3325,6 +3326,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          customer_id?: string | null
           customer_name: string
           follow_up_date?: string | null
           id?: string
@@ -3336,6 +3338,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          customer_id?: string | null
           customer_name?: string
           follow_up_date?: string | null
           id?: string
@@ -3346,6 +3349,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_communications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customer_communications_org_id_fkey"
             columns: ["org_id"]
@@ -13750,6 +13760,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_email: string | null
+          customer_id: string | null
           customer_name: string
           customer_phone: string | null
           discount_amount: number
@@ -13768,6 +13779,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
           discount_amount?: number
@@ -13786,6 +13798,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
           discount_amount?: number
@@ -13801,6 +13814,13 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotes_org_id_fkey"
             columns: ["org_id"]
