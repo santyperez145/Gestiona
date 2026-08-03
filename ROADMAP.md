@@ -165,20 +165,33 @@ lectura del código encontró.
   organización puede leer. RLS es por fila, no por columna.
 - Tokens pegados a mano conviviendo con OAuth en la misma pantalla, y tres
   lecturas que preguntaban "¿hay MercadoPago?" mirando la columna vacía.
+- Los 4 grupos de migraciones con prefijo de versión duplicado (se renombraron
+  9 archivos). Era lo menos grave: el problema real es el libro desfasado.
+- `send-team-invite` corría en producción sin código en el repo. Ya está
+  versionada y `deploy:functions` la actualiza.
+- Las notas de cliente: los dos caminos escribían en `customer_notes` con
+  `onConflict` sobre una constraint que no existe (`42P10`) y sin mirar
+  `.error`, que `upsert()` devuelve en vez de lanzar. La UI decía "Nota
+  guardada" y la tabla tenía 0 filas con 26 perfiles cargados. Y aun si hubiera
+  entrado, la ficha lee `customers.notes` — otra tabla.
 
 ### Abierta
 
 | Ítem | Riesgo | Esfuerzo |
 |---|---|---|
+| **El libro de migraciones está 168 atrás** (281 archivos, 113 registradas) | `db push` correría la destructiva y borraría ~75 tablas | M |
 | `20260723000003_drop_orphaned_feature_tables.sql` sin aplicar y **destructiva** (~75 tablas) | Aplicarla sin backup borra datos | M |
-| 4 grupos de migraciones con prefijo de versión duplicado | `supabase db push` inutilizable | M |
 | Sin tests E2E | Las regresiones de integración no se detectan | L |
 | Sin staging | Se verifica contra producción | M |
 | `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
 | ~140 warnings de `exhaustive-deps` | Deuda conocida; tocarlos en masa provoca loops de refetch | L |
 | APIs de correos sin contrato verificado | Una cotización mal armada cobra de menos | M |
-| `send-team-invite` corre en producción **sin código en el repo** | Nadie puede revisarla ni versionarla; `deploy:functions` no la actualiza | S |
 | AFIP sin probar contra el organismo | La estructura está, pero no hay certificado ni factura emitida | M |
+
+La brecha del libro deja de crecer si cada migración nueva se anota al aplicarla
+(`INSERT INTO supabase_migrations.schema_migrations`), que es lo que se viene
+haciendo desde `20260731000021`. Reconciliar las 168 viejas es tarea aparte:
+hay que verificar objeto por objeto cuáles ya están aplicadas, con backup.
 
 ---
 
@@ -612,6 +625,55 @@ Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
 con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
+
+### Sesión 91 — El CRM deja de cruzar por nombre, y dos bugs mudos (2026-08-02)
+
+Arrancó con una colisión: dos commits locales sin pushear hacían lo mismo que
+dos del remoto —el CRM por `customer_id`, escrito en paralelo en las dos PCs—.
+Se preguntó cuál sobrevivía, como manda CLAUDE.md, y ganó el remoto: es el
+tronco compartido, ya tenía 15 commits encima y se había verificado forzando el
+caso. Los locales quedaron en la rama `descartado/crm-customer-id-local` por si
+hiciera falta rescatar algo. Es la segunda vez que pasa lo mismo; la regla de
+traer el remoto **antes** de planificar no es ceremonia.
+
+Después, los dos bugs que la pantalla no dejaba ver:
+
+**Las notas de cliente decían "guardada" y no guardaban nada.** Los dos caminos
+—la nota rápida y la masiva— escribían en `customer_notes` con
+`onConflict: 'org_id,customer_name'`. Esa constraint no existe (la real es
+`user_id,customer_name`), así que Postgres rechazaba con `42P10`. Y aun si
+hubiera entrado, la ficha lee `customers.notes`, otra tabla: la nota no se vería
+igual. No se notaba porque `upsert()` no lanza, devuelve el error en `.error`, y
+nadie lo miraba — el `catch` nunca corría. La masiva era peor: `Promise.all`
+sobre awaits que no lanzan informaba "Nota agregada a N clientes" con N =
+seleccionados, aunque no hubiera entrado ninguna. La prueba de que estuvo roto
+desde siempre: 26 perfiles y `customer_notes` con **0 filas**.
+
+**Presupuestos y comunicaciones mostraban un tercio del historial.** Eran las
+dos últimas tablas del CRM sin `customer_id`, y ni siquiera cruzaban igual entre
+sí: `quotes` con `.ilike` y `customer_communications` con `.eq` exacto y
+sensible a mayúsculas y tildes. Forzando el caso en producción —el mismo
+cliente escrito "ZZ Ana Gómez", "zz ana gomez" y "ZZ  Ana  GÓMEZ"— la lectura
+vieja veía **1 de 3** de cada una. No había forma de notarlo desde la UI: los
+otros dos tercios no aparecían en ningún lado. Un presupuesto que no se ve es
+plata que nadie cobra porque nadie lo siguió.
+
+No hizo falta función nueva: `trg_sales_link_customer` ya era genérica, así que
+ahora sirve a las cinco tablas. Del lado del cliente, `crmRowsForCustomer` hace
+**dos consultas en vez de un `.or()`** — el `or` de PostgREST se arma
+concatenando en una sola cadena, y un nombre con coma o paréntesis ("Pérez,
+Juan", "Ana (mayorista)") rompe el filtro o lo convierte calladamente en otro.
+
+También se anotó la migración en el libro al aplicarla, que es lo único que
+frena que la brecha de 168 siga creciendo, y se limpiaron tres pendientes que
+ya estaban resueltos y seguían documentados como abiertos (`send-team-invite`,
+los prefijos duplicados, y el CRM por nombre).
+
+Lo que **no** se verificó: el flujo logueado en el navegador. `/clientes` está
+detrás del login y no corresponde que la sesión cargue credenciales, así que se
+comprobó que compila y carga sin errores de consola, y el resto se verificó
+contra la base ejecutando como rol `authenticated` con los claims de un miembro
+real, para que la RLS se evaluara de verdad.
 
 ### Sesión 90 — La primera venta real, y los cuatro bugs que destapó (2026-07-31)
 

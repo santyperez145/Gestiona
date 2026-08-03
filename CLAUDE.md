@@ -125,11 +125,11 @@ cantidades; precios, stock, cupones, envío y comisiones se recalculan en la bas
 
 Los prefijos duplicados ya no existen (se renombraron 9 archivos), pero eso era
 lo **menor**. El problema real es que el libro de migraciones está muy atrás de
-la realidad: **280 archivos en el repo, 107 registrados** en
+la realidad: al 2026-08-02, **281 archivos en el repo, 113 registradas** en
 `supabase_migrations.schema_migrations`.
 
 Las migraciones se aplican con `db query --file`, que **no toca el libro**. Así
-que el CLI cree que faltan 173 — y entre esas está
+que el CLI cree que faltan 168 — y entre esas está
 `20260723000003_drop_orphaned_feature_tables.sql`, que dropea unas 75 tablas.
 Un `db push` la correría.
 
@@ -328,20 +328,15 @@ Pendientes conocidos al 2026-07-31:
   con stock 1. Se creó para verificar el cobro real; borrarlo cuando no haga
   falta más.
 
-- **`send-team-invite` corre en producción sin código en el repo.** Está ACTIVE
-  desde 2026-05-12, con `verify_jwt=true`. No es urgente porque está protegida,
-  pero es una función que nadie puede revisar ni versionar, y que `npm run
-  deploy:functions` **no** actualiza — deriva la lista del filesystem, así que
-  esta no existe para el script. Dos salidas: bajar el código del dashboard y
-  commitearlo, o borrarla si el flujo de invitaciones ya no la usa. Chequeo:
-  comparar `supabase functions list` contra `supabase/functions/*/index.ts`.
 **Lo que espera trabajo:**
 
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
-- **El libro de migraciones está 173 atrás** (280 archivos, 107 registrados).
+- **El libro de migraciones está 168 atrás** (281 archivos, 113 registradas).
   Reconciliarlo es lo que haría usable a `db push`; hasta entonces el comando
-  borraría ~75 tablas. Los prefijos duplicados ya se resolvieron.
+  borraría ~75 tablas. Los prefijos duplicados ya se resolvieron. La brecha deja
+  de crecer si cada migración nueva se anota al aplicarla, que es lo que se
+  viene haciendo desde `20260731000021`.
 - Las APIs de Correo Argentino y Andreani siguen **sin verificar contra un
   contrato real**: los payloads siguen la documentación publicada.
 - Falta AFIP, que es el gap crítico de siempre: sin factura no hay venta formal.
@@ -391,8 +386,23 @@ se toca la otra. Una fila **enlazada** se cruza sólo por id; una sin enlazar,
 por nombre normalizado, porque no hay trigger que enlace lo viejo cuando se da
 de alta un cliente nuevo y leer sólo por id le mostraría la ficha vacía.
 
-Quedaron por nombre `quotes` y `customer_communications`: no tienen la columna,
-así que para esas hace falta migración, no sólo cambiar la lectura.
+**Ya no queda nada del CRM cruzando por nombre.** `quotes` y
+`customer_communications` recibieron la columna en `20260802000001` y usan el
+mismo trigger genérico que las otras tres, así que `trg_sales_link_customer`
+sirve hoy a cinco tablas. Verificado forzando el caso: con el mismo cliente
+escrito de tres formas, la lectura vieja mostraba **1 de 3** presupuestos y 1 de
+3 comunicaciones.
+
+Del lado del cliente el cruce va por `crmRowsForCustomer`, que hace **dos
+consultas en vez de un `.or()`**: el `or` de PostgREST se arma concatenando en
+una sola cadena, así que un nombre con coma o paréntesis —"Pérez, Juan", "Ana
+(mayorista)"— rompe el filtro o lo convierte calladamente en otro.
+
+**Las notas del cliente viven en `customers.notes`**, no en `customer_notes`.
+Esa tabla es heredada y está vacía: los dos caminos de nota escribían ahí con
+una constraint que no existe (`42P10`) y sin mirar `.error`, así que la UI decía
+"Nota guardada" con cero filas guardadas. Se escribe con `appendCustomerNote`,
+que lanza si falla.
 
 `marketplace_fee` **cobra de verdad**, confirmado contra MercadoPago: se aplica
 en `store-pay` desde el commit 85fa7b1, con `platform_commission_amount()` como
@@ -414,10 +424,11 @@ esa app, y al acreditar el pago el neto va al vendedor y el `marketplace_fee` al
 dueño de la aplicación. Por eso con un token pegado a mano MP rechaza la
 preferencia: no existe la relación marketplace.
 
-Ya resueltas (sesiones 87–90): reseñas de compra verificada, páginas de
+Ya resueltas (sesiones 87–91): reseñas de compra verificada, páginas de
 contenido, banners con vigencia, filtro por rango de precio, lista de deseos,
-aviso de reposición, CRM por `customer_id`, despacho con etiqueta y
-seguimiento, y la limpieza de credenciales.
+aviso de reposición, CRM por `customer_id` **completo** (las cinco tablas),
+despacho con etiqueta y seguimiento, la limpieza de credenciales, y las notas
+de cliente, que decían guardarse y no guardaban nada.
 
 ---
 
