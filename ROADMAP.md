@@ -179,8 +179,8 @@ lectura del código encontró.
 
 | Ítem | Riesgo | Esfuerzo |
 |---|---|---|
-| **El libro de migraciones está 168 atrás** (281 archivos, 113 registradas) | `db push` correría la destructiva y borraría ~75 tablas | M |
-| `20260723000003_drop_orphaned_feature_tables.sql` sin aplicar y **destructiva** (~75 tablas) | Aplicarla sin backup borra datos | M |
+| `20260723000003_drop_orphaned_feature_tables.sql` sin aplicar y sin registrar | `db push` la correría y dropearía 57 tablas — **todas vacías**, así que no se pierde dato, pero es irreversible | S |
+| El libro de migraciones está **32** atrás (281 archivos, 249 registradas; era 168) | Ninguna de las 32 hay que aplicarla: 20 duplicados superados, 11 de features que se sacaron | S |
 | Sin tests E2E | Las regresiones de integración no se detectan | L |
 | Sin staging | Se verifica contra producción | M |
 | `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
@@ -664,10 +664,35 @@ ahora sirve a las cinco tablas. Del lado del cliente, `crmRowsForCustomer` hace
 concatenando en una sola cadena, y un nombre con coma o paréntesis ("Pérez,
 Juan", "Ana (mayorista)") rompe el filtro o lo convierte calladamente en otro.
 
-También se anotó la migración en el libro al aplicarla, que es lo único que
-frena que la brecha de 168 siga creciendo, y se limpiaron tres pendientes que
-ya estaban resueltos y seguían documentados como abiertos (`send-team-invite`,
-los prefijos duplicados, y el CRM por nombre).
+También se limpiaron tres pendientes que ya estaban resueltos y seguían
+documentados como abiertos (`send-team-invite`, los prefijos duplicados, y el
+CRM por nombre).
+
+**El libro de migraciones bajó de 168 a 32 de brecha.** Se escribió
+`scripts/reconciliar-migraciones.mjs`, que deduce si una migración está aplicada
+extrayendo los objetos que crea y preguntándole al catálogo cuáles existen —
+ignorando lo que esté dentro de un bloque `DO`, donde el SQL se arma con
+`format()` y los nombres no están en el archivo. Confirmó 131; otras 5 se
+verificaron a mano una por una porque son `COMMENT`, `ALTER CONSTRAINT`,
+`DROP FUNCTION`, `cron.schedule` y un `DO` dinámico, que el análisis estático no
+puede leer.
+
+Las 32 que quedan **no hay que aplicarlas**: 20 son duplicados superados (por
+ejemplo `20260523000013_product_bundles` con 2/12 objetos, porque
+`20260523000004` ya creó la feature con otros nombres de índice) y 11 crean
+módulos que se sacaron del producto.
+
+Y el hallazgo que cambia la evaluación del riesgo: **la migración destructiva
+borraría 57 tablas que entre todas tienen 0 filas.** Estaba documentada como
+"aplicarla sin backup borra datos"; no borra ninguno. Sigue siendo irreversible
+y sigue siendo decisión del dueño, pero no es lo que parecía.
+
+De paso, el informe destapó que 6 tablas creadas en las sesiones 86–90
+(`store_banners`, `store_pages`, `store_stock_alerts`, `store_wishlists`,
+`platform_commission_rules`, `oauth_states`) habían quedado **sin índice por
+`org_id`** — el mismo problema que `20260730000006` había arreglado para 59
+tablas. Se volvió a correr esa migración, que es idempotente por diseño, y ahora
+no queda ninguna.
 
 Lo que **no** se verificó: el flujo logueado en el navegador. `/clientes` está
 detrás del login y no corresponde que la sesión cargue credenciales, así que se

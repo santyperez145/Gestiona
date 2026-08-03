@@ -124,19 +124,45 @@ cantidades; precios, stock, cupones, envío y comisiones se recalculan en la bas
 ### ☠️ `supabase db push` borraría ~75 tablas
 
 Los prefijos duplicados ya no existen (se renombraron 9 archivos), pero eso era
-lo **menor**. El problema real es que el libro de migraciones está muy atrás de
-la realidad: al 2026-08-02, **281 archivos en el repo, 113 registradas** en
-`supabase_migrations.schema_migrations`.
+lo **menor**. El problema real es que el libro de migraciones está atrás de la
+realidad, porque `db query --file` ejecuta el SQL y **no toca el libro**.
 
-Las migraciones se aplican con `db query --file`, que **no toca el libro**. Así
-que el CLI cree que faltan 168 — y entre esas está
-`20260723000003_drop_orphaned_feature_tables.sql`, que dropea unas 75 tablas.
-Un `db push` la correría.
+El grueso ya se reconcilió con `scripts/reconciliar-migraciones.mjs`: al
+2026-08-02 van **281 archivos y 249 registradas**, o sea una brecha de **32**
+(era 168).
 
-Arreglar sólo los prefijos habría sido peor que no tocar nada: dejaba el comando
-con pinta de usable. **Hasta que el libro no se reconcilie, `db push` no se
-corre.** Reconciliarlo es determinar cuáles de esas 173 ya están aplicadas —
-tarea aparte, con backup, y verificando objeto por objeto.
+```bash
+node scripts/reconciliar-migraciones.mjs             # informe, no escribe
+node scripts/reconciliar-migraciones.mjs --detalle   # + qué objeto falta
+node scripts/reconciliar-migraciones.mjs --registrar # anota las confirmadas
+```
+
+Deduce si una migración está aplicada extrayendo del archivo los objetos que
+crea y preguntándole al catálogo cuáles existen. Ignora lo que esté dentro de un
+bloque `DO`: ahí el SQL se arma con `format()` y los nombres no están escritos.
+
+⚠️ **`db push` sigue sin correrse, y la razón ahora es una sola.**
+`20260723000003_drop_orphaned_feature_tables.sql` está **sin aplicar de verdad**
+—57 de las 77 tablas que dropea siguen existiendo— y no está registrada, así que
+un `db push` la correría.
+
+Pero el riesgo no es el que decía este archivo: **esas 57 tablas tienen 0 filas
+entre todas**. Son módulos que se sacaron del producto (RRHH, e-learning,
+eventos, alquileres, flota, proyectos, gamificación, NPS, SLA…) y nunca se
+usaron. Aplicarla no pierde ningún dato; sigue siendo irreversible, así que es
+decisión del dueño y va con backup.
+
+Las 32 que faltan, por qué:
+
+| Grupo | Cuántas | Qué son |
+|---|---|---|
+| PARCIAL | 20 | Duplicados superados. Ej.: `20260523000013_product_bundles` tiene 2/12 objetos porque `20260523000004_product_bundles` ya creó la feature con otros nombres de índice. Correrlas no aporta nada. |
+| NO APLICADA | 11 | Crean features que se sacaron del producto (`sla_rules`, `elearning`, `carbon_footprint`, `franchise_management`…). Nunca corrieron, y no deberían. |
+| DESTRUCTIVA | 1 | La de arriba. |
+
+Ninguna de las 32 hay que aplicarla. Lo que falta para cerrar el tema es decidir
+qué hacer con la destructiva; las otras 31 se registran o se borran del repo,
+pero es una decisión de producto, no de merge.
 
 Al aplicar una migración a mano, **anotarla**:
 
@@ -332,11 +358,11 @@ Pendientes conocidos al 2026-07-31:
 
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
-- **El libro de migraciones está 168 atrás** (281 archivos, 113 registradas).
-  Reconciliarlo es lo que haría usable a `db push`; hasta entonces el comando
-  borraría ~75 tablas. Los prefijos duplicados ya se resolvieron. La brecha deja
-  de crecer si cada migración nueva se anota al aplicarla, que es lo que se
-  viene haciendo desde `20260731000021`.
+- **El libro de migraciones está 32 atrás** (281 archivos, 249 registradas; era
+  168). Ninguna de las 32 hay que aplicarla: 20 son duplicados superados y 11
+  crean features que se sacaron del producto. Lo único que queda por decidir es
+  la destructiva — ver arriba. La brecha deja de crecer si cada migración nueva
+  se anota al aplicarla, que es lo que se viene haciendo desde `20260731000021`.
 - Las APIs de Correo Argentino y Andreani siguen **sin verificar contra un
   contrato real**: los payloads siguen la documentación publicada.
 - Falta AFIP, que es el gap crítico de siempre: sin factura no hay venta formal.
