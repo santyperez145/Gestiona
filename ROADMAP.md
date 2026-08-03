@@ -183,7 +183,6 @@ lectura del código encontró.
 
 | Ítem | Riesgo | Esfuerzo |
 |---|---|---|
-| El libro está **31** atrás (281 archivos, 250 registradas; era 168) y 11 de esas crean módulos que se sacaron | `db push` ya no destruye nada, pero **resucitaría** los 11 módulos muertos. Cierre: registrar las 20 superadas y borrar del repo las 11 | S |
 | Sin tests E2E | Las regresiones de integración no se detectan | L |
 | Sin staging | Se verifica contra producción | M |
 | `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
@@ -191,10 +190,10 @@ lectura del código encontró.
 | APIs de correos sin contrato verificado | Una cotización mal armada cobra de menos | M |
 | AFIP sin probar contra el organismo | La estructura está, pero no hay certificado ni factura emitida | M |
 
-La brecha del libro deja de crecer si cada migración nueva se anota al aplicarla
-(`INSERT INTO supabase_migrations.schema_migrations`), que es lo que se viene
-haciendo desde `20260731000021`. Reconciliar las 168 viejas es tarea aparte:
-hay que verificar objeto por objeto cuáles ya están aplicadas, con backup.
+El libro de migraciones **ya no está acá**: se reconcilió entero (268 archivos,
+268 registradas). Se mantiene así anotando cada migración al aplicarla
+(`INSERT INTO supabase_migrations.schema_migrations`) y el chequeo de salud es
+`npx supabase db push --linked --dry-run`, que tiene que decir `upToDate`.
 
 ---
 
@@ -693,10 +692,17 @@ de que ningún código las referenciara y posterior de que el `CASCADE` no se
 hubiera llevado nada de la tienda pública — las 15 relaciones y funciones del
 storefront siguen ahí y `get_store_by_slug` responde como rol `anon`.
 
-`db push` todavía no se corre, pero el motivo cambió: ya no destruye nada,
-ahora **resucitaría** los módulos muertos, porque 11 de las 31 migraciones sin
-registrar crean justamente esas tablas. El cierre es registrar las 20 superadas
-y borrar del repo las 11.
+**Y `db push` volvió a servir.** Cerrarlo necesitó dos cosas más que el libro:
+registrar las 18 migraciones superadas por un duplicado, borrar del repo las 13
+que crean módulos retirados (44 tablas que no existen ni usa ningún código —
+dejarlas sólo servía para que un `push` las resucitara), y renombrar 12 archivos
+cuya versión no tenía **14 dígitos exactos**. Eso último era el bloqueo real y
+el más difícil de leer: con 8, 10 o 16 dígitos el CLI no ve el archivo, y el
+error que tira —`LegacyDbPushMissingLocalError`, "remote migration versions not
+found in local migrations directory"— apunta a la parte equivocada del problema.
+Se renombraron preservando el orden lexicográfico y actualizando el libro en la
+misma pasada. Hoy `db push --dry-run` responde
+`{"upToDate":true,"migrations":[]}`.
 
 Otra cosa que quedó documentada porque cuesta una hora descubrirla: **esta PC no
 tiene `.env`**, así que el front local levanta pero no se conecta a ninguna base

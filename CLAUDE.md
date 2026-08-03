@@ -135,17 +135,27 @@ cantidades; precios, stock, cupones, envío y comisiones se recalculan en la bas
 
 ---
 
-## Migraciones: se aplican A MANO
+## Migraciones
 
-### ☠️ `supabase db push` borraría ~75 tablas
+### ✅ `db push` volvió a servir — y hay que mantenerlo así
 
-Los prefijos duplicados ya no existen (se renombraron 9 archivos), pero eso era
-lo **menor**. El problema real es que el libro de migraciones está atrás de la
-realidad, porque `db query --file` ejecuta el SQL y **no toca el libro**.
+Durante meses fue un comando prohibido: el libro estaba 168 atrás y un `push`
+habría corrido la migración que dropea tablas. Al 2026-08-02 está reconciliado:
+**268 archivos, 268 registradas, brecha 0**, y el CLI lo confirma.
 
-El grueso ya se reconcilió con `scripts/reconciliar-migraciones.mjs`: al
-2026-08-02 van **281 archivos y 249 registradas**, o sea una brecha de **32**
-(era 168).
+```bash
+npx supabase db push --linked --dry-run
+# {"upToDate":true,"migrations":[],"message":"Remote database is up to date."}
+```
+
+**Ese `--dry-run` es el chequeo de salud del libro.** Si algún día devuelve
+migraciones en la lista, el libro se volvió a desfasar y hay que mirar por qué
+antes de correr nada.
+
+Se llegó ahí por tres caminos, y conviene saber cuál aplica a cada problema:
+
+**1. Reconciliar lo aplicado sin registrar** —
+`scripts/reconciliar-migraciones.mjs`:
 
 ```bash
 node scripts/reconciliar-migraciones.mjs             # informe, no escribe
@@ -155,32 +165,36 @@ node scripts/reconciliar-migraciones.mjs --registrar # anota las confirmadas
 
 Deduce si una migración está aplicada extrayendo del archivo los objetos que
 crea y preguntándole al catálogo cuáles existen. Ignora lo que esté dentro de un
-bloque `DO`: ahí el SQL se arma con `format()` y los nombres no están escritos.
+bloque `DO`: ahí el SQL se arma con `format()` y los nombres no están escritos,
+así que buscarlos daría falsos negativos.
 
-**La destructiva ya se aplicó** (2026-08-02). Dropeó 57 tablas de módulos que se
-sacaron del producto —RRHH, e-learning, eventos, alquileres, flota, proyectos,
-gamificación, NPS, SLA…— que entre todas tenían **0 filas**. La documentación
-decía "aplicarla sin backup borra datos"; no había ninguno. Se verificó antes de
-correrla que ningún código de `src/**` ni `supabase/functions/**` las
-referenciara, y después que el `CASCADE` no se hubiera llevado nada de la tienda
-pública: las 15 relaciones y funciones que usa el storefront siguen ahí y
-`get_store_by_slug` responde como rol `anon`. `types.ts` bajó de 21.449 a 17.779
-líneas y el typecheck quedó limpio.
+**2. Los nombres de archivo tienen que tener 14 dígitos exactos.** Es lo que
+espera el CLI, y era el bloqueo real que quedaba después de reconciliar: con 8,
+10 o 16 dígitos el archivo le resulta **invisible**, y entonces la versión que sí
+está en el libro "no existe localmente" y aborta con
+`LegacyDbPushMissingLocalError`. Se renombraron 12 preservando el orden
+lexicográfico y actualizando el libro en la misma pasada.
 
-⚠️ **`db push` todavía no se corre, pero por otro motivo.** Ya no destruye nada:
-ahora **resucitaría** los módulos muertos. De las 31 sin registrar, 11 crean
-justamente las tablas que se acaban de dropear.
+**3. Lo que no va a correr nunca, se borra del repo.** Había 13 migraciones que
+creaban módulos sacados del producto (`sla_rules`, `elearning`,
+`carbon_footprint`, `franchise_management`, `hr_portal`…). No estaban aplicadas
+y sus 44 tablas no existen ni las usa ningún código, así que dejarlas sólo servía
+para que un `db push` **resucitara** módulos muertos. Están en la historia de git
+si alguna vez hacen falta.
 
-| Grupo | Cuántas | Qué son | Qué haría `db push` |
-|---|---|---|---|
-| PARCIAL | 20 | Duplicados superados. Ej.: `20260523000013_product_bundles` da 2/12 porque `20260523000004` ya creó la feature con otros nombres de índice. | Nada útil |
-| NO APLICADA | 11 | Crean módulos que se sacaron del producto (`sla_rules`, `elearning`, `carbon_footprint`, `franchise_management`…). | **Los recrea** |
+**La destructiva se aplicó** (2026-08-02). Dropeó 57 tablas de módulos retirados
+que entre todas tenían **0 filas**. La documentación decía "aplicarla sin backup
+borra datos"; no había ninguno, y ese rótulo fue lo único que la frenó un año.
+Se verificó antes que ningún código las referenciara, y después que el `CASCADE`
+no se hubiera llevado nada de la tienda pública: las 15 relaciones y funciones
+del storefront siguen ahí y `get_store_by_slug` responde como rol `anon`.
 
-Ninguna de las 31 hay que aplicarla. Para cerrar el tema: registrar las 20
-—están superadas— y **borrar del repo las 11**, que es lo que evita que alguien
-las resucite con un `db push`. Es decisión de producto, no de merge.
+⚠️ **Que `db push` sirva no lo vuelve el camino por default.** Sigue siendo más
+seguro `db query --file` para aplicar una migración y verificarla en el mismo
+paso, sobre todo porque permite correr los bloques `DO` de verificación. Lo que
+cambia es que ya no es un comando que destruye la base si alguien lo tipea.
 
-Al aplicar una migración a mano, **anotarla**:
+Al aplicar una migración a mano, **anotarla** — es lo que evita volver al pozo:
 
 ```sql
 INSERT INTO supabase_migrations.schema_migrations (version, name)
@@ -216,14 +230,22 @@ NOT EXISTS` es un no-op silencioso y después falla el índice. Pasó con
 `shipping_zones`/`shipping_rates`, que ya existían desde
 `20260523000075_logistics.sql` con otra forma.
 
-**El número de la migración se elige DESPUÉS de traer el remoto, no antes.**
-Las dos PCs numeran a partir de lo que ven, así que dos sesiones en paralelo
-eligen el mismo. Ya pasó: `20260731000013` salió dos veces, una como
-`marketplace_fee` en el remoto y otra como `order_shipping` local. Se arregla
-renombrando el archivo — el contenido es idempotente y ya aplicado, no hace
-falta tocar la base — pero es justamente lo que engorda la lista de prefijos
-duplicados que tiene inutilizable a `db push`. Antes de crear el archivo:
-`git fetch origin && ls supabase/migrations | tail -5`.
+**El número de la migración se elige DESPUÉS de traer el remoto, no antes, y va
+con 14 dígitos exactos.** Las dos PCs numeran a partir de lo que ven, así que dos
+sesiones en paralelo eligen el mismo. Ya pasó: `20260731000013` salió dos veces,
+una como `marketplace_fee` en el remoto y otra como `order_shipping` local. Se
+arregla renombrando el archivo —el contenido es idempotente y ya aplicado, no
+hace falta tocar la base— pero si además queda registrado en el libro con el
+número viejo, hay que corregir las dos puntas. Antes de crear el archivo:
+
+```bash
+git fetch origin && ls supabase/migrations | tail -5
+```
+
+Los 14 dígitos no son estética: con 8, 10 o 16 el CLI no ve el archivo y
+`db push` aborta con `LegacyDbPushMissingLocalError` diciendo que la versión del
+libro no existe localmente. Pasó con 12 archivos y costó entender el mensaje,
+que apunta a la parte equivocada del problema.
 
 ---
 
@@ -374,11 +396,9 @@ Pendientes conocidos al 2026-07-31:
 
 - `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
   (~75 tablas). Va aparte, con backup.
-- **El libro de migraciones está 32 atrás** (281 archivos, 249 registradas; era
-  168). Ninguna de las 32 hay que aplicarla: 20 son duplicados superados y 11
-  crean features que se sacaron del producto. Lo único que queda por decidir es
-  la destructiva — ver arriba. La brecha deja de crecer si cada migración nueva
-  se anota al aplicarla, que es lo que se viene haciendo desde `20260731000021`.
+- ~~El libro de migraciones desfasado~~ **resuelto**: 268 archivos, 268
+  registradas, `db push --dry-run` dice `upToDate`. Se mantiene así anotando
+  cada migración al aplicarla.
 - Las APIs de Correo Argentino y Andreani siguen **sin verificar contra un
   contrato real**: los payloads siguen la documentación publicada.
 - Falta AFIP, que es el gap crítico de siempre: sin factura no hay venta formal.
