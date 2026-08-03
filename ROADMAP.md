@@ -163,6 +163,10 @@ lectura del código encontró.
   comprador se le mostraba como número de seguimiento.
 - `afip_private_key` en `settings`, tabla que cualquier miembro de la
   organización puede leer. RLS es por fila, no por columna.
+- Las 57 tablas huérfanas de módulos que se sacaron del producto. Estuvieron
+  un año ocupando el esquema porque la migración que las borraba figuraba como
+  "destructiva, borra datos" y nadie la corría. Tenían **0 filas entre todas**:
+  el miedo era a un dato que no existía.
 - Tokens pegados a mano conviviendo con OAuth en la misma pantalla, y tres
   lecturas que preguntaban "¿hay MercadoPago?" mirando la columna vacía.
 - Los 4 grupos de migraciones con prefijo de versión duplicado (se renombraron
@@ -179,8 +183,7 @@ lectura del código encontró.
 
 | Ítem | Riesgo | Esfuerzo |
 |---|---|---|
-| `20260723000003_drop_orphaned_feature_tables.sql` sin aplicar y sin registrar | `db push` la correría y dropearía 57 tablas — **todas vacías**, así que no se pierde dato, pero es irreversible | S |
-| El libro de migraciones está **32** atrás (281 archivos, 249 registradas; era 168) | Ninguna de las 32 hay que aplicarla: 20 duplicados superados, 11 de features que se sacaron | S |
+| El libro está **31** atrás (281 archivos, 250 registradas; era 168) y 11 de esas crean módulos que se sacaron | `db push` ya no destruye nada, pero **resucitaría** los 11 módulos muertos. Cierre: registrar las 20 superadas y borrar del repo las 11 | S |
 | Sin tests E2E | Las regresiones de integración no se detectan | L |
 | Sin staging | Se verifica contra producción | M |
 | `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
@@ -682,10 +685,23 @@ ejemplo `20260523000013_product_bundles` con 2/12 objetos, porque
 `20260523000004` ya creó la feature con otros nombres de índice) y 11 crean
 módulos que se sacaron del producto.
 
-Y el hallazgo que cambia la evaluación del riesgo: **la migración destructiva
-borraría 57 tablas que entre todas tienen 0 filas.** Estaba documentada como
-"aplicarla sin backup borra datos"; no borra ninguno. Sigue siendo irreversible
-y sigue siendo decisión del dueño, pero no es lo que parecía.
+Y el hallazgo que cambió la evaluación del riesgo: **la migración destructiva
+borraba 57 tablas que entre todas tenían 0 filas.** Estaba documentada como
+"aplicarla sin backup borra datos"; no borraba ninguno. Estuvo sin correr un año
+por miedo a un dato que no existía. Con eso claro se aplicó, previa verificación
+de que ningún código las referenciara y posterior de que el `CASCADE` no se
+hubiera llevado nada de la tienda pública — las 15 relaciones y funciones del
+storefront siguen ahí y `get_store_by_slug` responde como rol `anon`.
+
+`db push` todavía no se corre, pero el motivo cambió: ya no destruye nada,
+ahora **resucitaría** los módulos muertos, porque 11 de las 31 migraciones sin
+registrar crean justamente esas tablas. El cierre es registrar las 20 superadas
+y borrar del repo las 11.
+
+Otra cosa que quedó documentada porque cuesta una hora descubrirla: **esta PC no
+tiene `.env`**, así que el front local levanta pero no se conecta a ninguna base
+y la tienda pública dice "Tienda no encontrada" teniendo la tienda activa. No es
+un bug. Sin `.env`, el navegador sólo prueba que compila.
 
 De paso, el informe destapó que 6 tablas creadas en las sesiones 86–90
 (`store_banners`, `store_pages`, `store_stock_alerts`, `store_wishlists`,

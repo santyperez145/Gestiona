@@ -51,6 +51,22 @@ del `git push`, así que hasta que no se pushea, el sitio publicado tiene el
 código viejo aunque las migraciones ya estén aplicadas. Verificar contra
 `exentryimports.vercel.app` da falsos negativos garantizados.
 
+⚠️ **Pero eso necesita un `.env`, y no está en las dos PCs.** Sin
+`VITE_SUPABASE_URL` el cliente se construye con la URL vacía (ver
+`src/integrations/supabase/client.ts`) y la app levanta pero no se conecta a
+nada: la tienda pública dice "Tienda no encontrada" con la tienda activa en la
+base. **Eso no es un bug, es la falta del archivo** — y confundirlo cuesta una
+hora. Comprobar antes de planificar una verificación en navegador:
+
+```bash
+ls .env .env.local 2>/dev/null || echo "sin .env: el navegador no llega a la base"
+```
+
+Sin `.env`, lo único que el navegador prueba es que compila y que no hay errores
+de consola. Todo lo demás se verifica contra la base, y conviene hacerlo
+ejecutando como el rol real (`SET LOCAL ROLE anon` o `authenticated` con
+`request.jwt.claims`) para que la RLS se evalúe de verdad y no como superusuario.
+
 **No se toca dato real del negocio para verificar.** Ya pasó: para probar el
 aviso de reposición se puso en cero el stock de un perfume y el valor original
 se perdió — `stock_movements` no lo tenía. Si hace falta un producto agotado,
@@ -141,28 +157,28 @@ Deduce si una migración está aplicada extrayendo del archivo los objetos que
 crea y preguntándole al catálogo cuáles existen. Ignora lo que esté dentro de un
 bloque `DO`: ahí el SQL se arma con `format()` y los nombres no están escritos.
 
-⚠️ **`db push` sigue sin correrse, y la razón ahora es una sola.**
-`20260723000003_drop_orphaned_feature_tables.sql` está **sin aplicar de verdad**
-—57 de las 77 tablas que dropea siguen existiendo— y no está registrada, así que
-un `db push` la correría.
+**La destructiva ya se aplicó** (2026-08-02). Dropeó 57 tablas de módulos que se
+sacaron del producto —RRHH, e-learning, eventos, alquileres, flota, proyectos,
+gamificación, NPS, SLA…— que entre todas tenían **0 filas**. La documentación
+decía "aplicarla sin backup borra datos"; no había ninguno. Se verificó antes de
+correrla que ningún código de `src/**` ni `supabase/functions/**` las
+referenciara, y después que el `CASCADE` no se hubiera llevado nada de la tienda
+pública: las 15 relaciones y funciones que usa el storefront siguen ahí y
+`get_store_by_slug` responde como rol `anon`. `types.ts` bajó de 21.449 a 17.779
+líneas y el typecheck quedó limpio.
 
-Pero el riesgo no es el que decía este archivo: **esas 57 tablas tienen 0 filas
-entre todas**. Son módulos que se sacaron del producto (RRHH, e-learning,
-eventos, alquileres, flota, proyectos, gamificación, NPS, SLA…) y nunca se
-usaron. Aplicarla no pierde ningún dato; sigue siendo irreversible, así que es
-decisión del dueño y va con backup.
+⚠️ **`db push` todavía no se corre, pero por otro motivo.** Ya no destruye nada:
+ahora **resucitaría** los módulos muertos. De las 31 sin registrar, 11 crean
+justamente las tablas que se acaban de dropear.
 
-Las 32 que faltan, por qué:
+| Grupo | Cuántas | Qué son | Qué haría `db push` |
+|---|---|---|---|
+| PARCIAL | 20 | Duplicados superados. Ej.: `20260523000013_product_bundles` da 2/12 porque `20260523000004` ya creó la feature con otros nombres de índice. | Nada útil |
+| NO APLICADA | 11 | Crean módulos que se sacaron del producto (`sla_rules`, `elearning`, `carbon_footprint`, `franchise_management`…). | **Los recrea** |
 
-| Grupo | Cuántas | Qué son |
-|---|---|---|
-| PARCIAL | 20 | Duplicados superados. Ej.: `20260523000013_product_bundles` tiene 2/12 objetos porque `20260523000004_product_bundles` ya creó la feature con otros nombres de índice. Correrlas no aporta nada. |
-| NO APLICADA | 11 | Crean features que se sacaron del producto (`sla_rules`, `elearning`, `carbon_footprint`, `franchise_management`…). Nunca corrieron, y no deberían. |
-| DESTRUCTIVA | 1 | La de arriba. |
-
-Ninguna de las 32 hay que aplicarla. Lo que falta para cerrar el tema es decidir
-qué hacer con la destructiva; las otras 31 se registran o se borran del repo,
-pero es una decisión de producto, no de merge.
+Ninguna de las 31 hay que aplicarla. Para cerrar el tema: registrar las 20
+—están superadas— y **borrar del repo las 11**, que es lo que evita que alguien
+las resucite con un `db push`. Es decisión de producto, no de merge.
 
 Al aplicar una migración a mano, **anotarla**:
 
