@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
-  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin, Truck
+  Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin, Truck,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
@@ -16,6 +17,7 @@ import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
+import ImageUpload from "@/components/shared/ImageUpload";
 import { evaluateStoreReadiness, readinessSummary } from "@/lib/storeReadiness";
 import { fetchPaymentStatus } from "@/lib/paymentStatus";
 import PageHeader from "@/components/shared/PageHeader";
@@ -91,6 +93,7 @@ export default function EcommerceStorePage() {
     meta_title: "", meta_description: "",
     description: "", notification_email: "",
     meta_pixel_id: "", ga_measurement_id: "", tiktok_pixel_id: "",
+    logo_url: "", banner_url: "",
     shipping_mode: "flat", pickup_enabled: false,
     pickup_address: "", pickup_instructions: "",
     default_item_weight_kg: "0.5",
@@ -146,6 +149,8 @@ export default function EcommerceStorePage() {
             meta_title: data.meta_title ?? prev.meta_title,
             description: data.description ?? prev.description,
             notification_email: data.notification_email ?? prev.notification_email,
+            logo_url: data.logo_url ?? prev.logo_url,
+            banner_url: data.banner_url ?? prev.banner_url,
             meta_pixel_id: data.meta_pixel_id ?? prev.meta_pixel_id,
             ga_measurement_id: data.ga_measurement_id ?? prev.ga_measurement_id,
             tiktok_pixel_id: data.tiktok_pixel_id ?? prev.tiktok_pixel_id,
@@ -237,6 +242,8 @@ export default function EcommerceStorePage() {
       is_active: storeForm.is_active,
       payment_methods: storeForm.payment_methods,
       description: storeForm.description || null,
+      logo_url: storeForm.logo_url || null,
+      banner_url: storeForm.banner_url || null,
       notification_email: storeForm.notification_email || null,
       meta_pixel_id: storeForm.meta_pixel_id || null,
       ga_measurement_id: storeForm.ga_measurement_id || null,
@@ -511,6 +518,37 @@ export default function EcommerceStorePage() {
               ))}
             </div>
           </div>
+          {/* Logo y portada. Antes no había forma de cargarlos desde la app:
+              las columnas existían en `ecommerce_stores` y ninguna pantalla las
+              editaba, así que la tienda salía siempre sin logo. */}
+          <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-primary" />Identidad
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ImageUpload
+                value={storeForm.logo_url || null}
+                onChange={url => setStoreForm(p => ({ ...p, logo_url: url ?? "" }))}
+                orgId={orgId ?? null}
+                carpeta="tienda"
+                preset="logo"
+                alto="h-24"
+                etiqueta="Logo"
+                ayuda="Cuadrado. Se ve en el encabezado y al compartir el link."
+              />
+              <ImageUpload
+                value={storeForm.banner_url || null}
+                onChange={url => setStoreForm(p => ({ ...p, banner_url: url ?? "" }))}
+                orgId={orgId ?? null}
+                carpeta="tienda"
+                preset="banner"
+                alto="h-24"
+                etiqueta="Portada"
+                ayuda="Fondo del encabezado, cuando no hay banners cargados."
+              />
+            </div>
+          </div>
+
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-4">
             <h3 className="font-semibold">Color Principal</h3>
             <div className="flex items-center gap-3">

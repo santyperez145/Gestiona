@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import ImageUpload from "@/components/shared/ImageUpload";
 import {
   Image as ImageIcon, Plus, Trash2, Loader2, ArrowUp, ArrowDown, AlertTriangle, Save,
 } from "lucide-react";
@@ -159,19 +160,16 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
       {banners.map((b, idx) => (
         <div key={b.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3 flex-wrap">
-            {/* Vista previa: si la URL no carga, el hueco se ve acá y no en la tienda */}
-            <div className="w-32 h-16 rounded-lg overflow-hidden bg-muted/40 shrink-0 grid place-items-center">
-              {b.image_url
-                ? <img src={b.image_url} alt="" className="w-full h-full object-cover" />
-                : <ImageIcon className="w-5 h-5 text-muted-foreground/40" />}
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-xs text-muted-foreground">URL de la imagen</label>
-              <Input
-                value={b.image_url}
-                onChange={e => editar(b.id, { image_url: e.target.value })}
-                placeholder="https://…"
-                className="mt-1 text-xs font-mono"
+            <div className="flex-1 min-w-[240px]">
+              <ImageUpload
+                value={b.image_url || null}
+                onChange={url => editar(b.id, { image_url: url ?? "" })}
+                orgId={orgId ?? null}
+                carpeta="banners"
+                preset="banner"
+                alto="h-28"
+                etiqueta="Imagen del banner"
+                ayuda="Apaisada, idealmente 1600×600 o más."
               />
             </div>
             <div className="flex flex-col gap-1 pt-5">
@@ -187,15 +185,16 @@ export default function StoreBannersEditor({ storeId }: { storeId: string | null
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs text-muted-foreground">Imagen para celular (opcional)</label>
-              <Input
-                value={b.image_url_mobile ?? ""}
-                onChange={e => editar(b.id, { image_url_mobile: e.target.value })}
-                placeholder="Recorte vertical"
-                className="mt-1 text-xs font-mono"
-              />
-            </div>
+            <ImageUpload
+              value={b.image_url_mobile}
+              onChange={url => editar(b.id, { image_url_mobile: url })}
+              orgId={orgId ?? null}
+              carpeta="banners"
+              preset="banner"
+              alto="h-28"
+              etiqueta="Imagen para celular (opcional)"
+              ayuda="Un recorte más vertical; si falta, se usa la de arriba."
+            />
             <div>
               <label className="text-xs text-muted-foreground">
                 Texto alternativo {!b.alt_text && <span className="text-yellow-500">— falta</span>}

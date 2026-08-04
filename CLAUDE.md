@@ -143,6 +143,18 @@ a otro lado si hace falta. Vitest sólo mira `src/**`, así que no se pisan.
 Cuando la misma cuenta existe en SQL (para que el servidor sea la autoridad), el
 comentario de cada lado dice que son espejos.
 
+**Las imágenes se suben por archivo, nunca por URL pegada.** `ImageUpload` es
+el componente único: elegir, arrastrar o pegar, y comprime en el navegador
+antes de subir — una foto de teléfono pesa 3 a 8 MB y un banner así arruina la
+carga de la home. Las reglas puras viven en `imageUpload.ts` con 19 tests.
+Pedir una URL obliga a subir el archivo a otro lado primero y termina en
+banners que apuntan a un Drive que alguien despublica.
+
+⚠️ **El repo compila con `strictNullChecks: false`.** TypeScript no estrecha
+uniones discriminadas por booleano: un `{ok:true} | {ok:false;motivo}` deja
+`motivo` inaccesible en la rama del error. Usar un objeto con el campo
+opcional.
+
 **Nada de precios ni stock desde el cliente.** El checkout manda ids y
 cantidades; precios, stock, cupones, envío y comisiones se recalculan en la base.
 
