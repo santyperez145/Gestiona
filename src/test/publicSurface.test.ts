@@ -16,10 +16,19 @@ import { resolve } from 'node:path';
  */
 
 /**
- * Toda la superficie anónima. `src/storefront/` se enumera completo a propósito:
- * la primera versión de este test sólo miraba `src/pages` y se le pasó que
- * `storeContext.tsx` leía la tabla `products` cruda. Con la política cerrada eso
- * habría dejado la tienda sin un solo producto en producción.
+ * Toda la superficie anónima. Los directorios se enumeran completos a propósito,
+ * y cada ampliación salió de un bug que se escapó:
+ *
+ * - `src/storefront/`: la primera versión sólo miraba `src/pages` y se le pasó
+ *   que `storeContext.tsx` leía la tabla `products` cruda. Con la política
+ *   cerrada eso habría dejado la tienda sin un solo producto en producción.
+ *
+ * - `api/`: los handlers de Vercel que sirven el sitemap, el Open Graph y el
+ *   feed de productos corren con la clave anónima y **no estaban cubiertos**.
+ *   Los tres leían `products` cruda; con la política cerrada devolvían cero
+ *   filas, así que el sitemap no listaba ni una ficha, las vistas previas de
+ *   WhatsApp mostraban la tienda genérica en vez del producto, y nadie se
+ *   enteró porque un XML vacío se ve igual que uno que funciona.
  */
 function publicSources(): string[] {
   const fijos = [
@@ -28,13 +37,13 @@ function publicSources(): string[] {
     'src/pages/StorefrontPage.tsx',
     'src/pages/InfluencerPortalPage.tsx',
   ];
-  const dir = resolve(process.cwd(), 'src/storefront');
-  const storefront = existsSync(dir)
-    ? readdirSync(dir)
-        .filter(f => /\.(tsx?|ts)$/.test(f))
-        .map(f => `src/storefront/${f}`)
-    : [];
-  return [...fijos, ...storefront];
+  const listar = (dir: string) => {
+    const abs = resolve(process.cwd(), dir);
+    return existsSync(abs)
+      ? readdirSync(abs).filter(f => /\.(tsx?|ts)$/.test(f)).map(f => `${dir}/${f}`)
+      : [];
+  };
+  return [...fijos, ...listar('src/storefront'), ...listar('api')];
 }
 
 const PUBLIC_PAGES = publicSources();
@@ -101,7 +110,16 @@ describe('superficie pública', () => {
         if (raw === null) return;
         const code = stripComments(raw);
         const encontradas = Object.keys(FORBIDDEN_TABLES).filter(t =>
-          new RegExp(`\\.from\\(\\s*["'\`]${t}["'\`]\\s*\\)`).test(code));
+          // Dos formas de consultar, y las dos cuentan:
+          //
+          //   supabase.from("products")            ← el cliente JS
+          //   fetch(`${URL}/rest/v1/products?...`) ← PostgREST a mano
+          //
+          // La segunda la usan los handlers de `api/`, y durante meses no se
+          // miraba: el sitemap, el Open Graph y el feed leían `products` cruda
+          // y devolvían cero filas sin que nada fallara a la vista.
+          new RegExp(`\\.from\\(\\s*["'\`]${t}["'\`]\\s*\\)`).test(code) ||
+          new RegExp(`/rest/v1/${t}(?![a-z_])`).test(code));
         const detalle = encontradas
           .map(t => `${t} → usar ${FORBIDDEN_TABLES[t]}`)
           .join('; ');

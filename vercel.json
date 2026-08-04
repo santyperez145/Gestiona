@@ -5,6 +5,10 @@
       "destination": "/api/sitemap?path=/tienda/:slug"
     },
     {
+      "source": "/tienda/:slug/feed.xml",
+      "destination": "/api/feed?path=/tienda/:slug"
+    },
+    {
       "source": "/tienda/:path*",
       "has": [
         {

@@ -111,8 +111,17 @@ export default async function handler(req: Request): Promise<Response> {
   // ── Ficha de producto ────────────────────────────────────────────────
   if (productId && SUPABASE_URL && SUPABASE_KEY) {
     try {
+      // `store_catalog_products`, no `products`: la tabla cruda está cerrada a
+      // la clave anónima desde el hardening de RLS, así que esta consulta venía
+      // devolviendo **cero filas** y toda ficha compartida por WhatsApp o
+      // Facebook mostraba la vista previa genérica de la tienda en vez del
+      // producto. La vista es la superficie pública y ya trae las columnas
+      // saneadas, sin costos ni márgenes.
+      //
+      // Se filtra además por `org_id`: sin eso, el id de un producto de otra
+      // tienda devolvía su ficha bajo esta marca.
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(productId)}&select=name,brand,description,sale_price_ars,discount_price_ars,image_url&limit=1`,
+        `${SUPABASE_URL}/rest/v1/store_catalog_products?id=eq.${encodeURIComponent(productId)}&org_id=eq.${encodeURIComponent(store.org_id)}&select=name,brand,description,sale_price_ars,discount_price_ars,image_url&limit=1`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
       );
       const rows = res.ok ? await res.json() : [];

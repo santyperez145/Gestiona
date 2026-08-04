@@ -48,8 +48,15 @@ export default async function handler(req: Request): Promise<Response> {
     const store = Array.isArray(stores) ? stores[0] : stores;
     if (!store?.org_id) return xml(`  <url><loc>${esc(origin)}</loc></url>`);
 
+    // `store_catalog_products`, no `products`: la tabla cruda está cerrada a la
+    // clave anónima desde el hardening de RLS, así que esto devolvía **cero
+    // filas** y el sitemap sólo listaba la home y el listado. Ni una ficha de
+    // producto indexada — que es justo el tráfico que se buscaba.
+    //
+    // La vista no tiene `updated_at`, así que se ordena y fecha por
+    // `created_at`, que sí trae.
     const pRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/products?org_id=eq.${store.org_id}&stock=gt.0&select=id,updated_at&limit=5000`,
+      `${SUPABASE_URL}/rest/v1/store_catalog_products?org_id=eq.${store.org_id}&stock=gt.0&select=id,created_at&limit=5000`,
       { headers },
     );
     const products = pRes.ok ? await pRes.json() : [];
@@ -61,7 +68,7 @@ export default async function handler(req: Request): Promise<Response> {
       `  <url><loc>${esc(base)}</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${hoy}</lastmod></url>`,
       `  <url><loc>${esc(base)}/productos</loc><changefreq>daily</changefreq><priority>0.9</priority><lastmod>${hoy}</lastmod></url>`,
       ...(products as any[]).map(p =>
-        `  <url><loc>${esc(base)}/producto/${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>0.8</priority><lastmod>${esc(String(p.updated_at ?? hoy).slice(0, 10))}</lastmod></url>`,
+        `  <url><loc>${esc(base)}/producto/${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>0.8</priority><lastmod>${esc(String(p.created_at ?? hoy).slice(0, 10))}</lastmod></url>`,
       ),
     ];
 
