@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
+import { mejorDescuento, nombreMedio, totalConDescuento } from "@/lib/paymentDiscount";
 import ProductCard from "./ProductCard";
 import { getCategoryLabel } from "@/lib/supabaseStore";
 import {
@@ -15,6 +16,9 @@ import { useWishlist } from "./wishlist";
 export default function StoreProduct() {
   const { productId } = useParams<{ productId: string }>();
   const { store, products, perfumes, variantsByProduct, priceOf, fmt, addToCart } = useStore();
+
+  // El mejor descuento por medio de pago que ofrece la tienda, o null.
+  const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
   const deseos = useWishlist();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
@@ -163,6 +167,22 @@ export default function StoreProduct() {
               </>
             )}
           </div>
+
+          {/* Precio con el mejor medio de pago. Va acá, pegado al precio, que es
+              donde se decide: en Argentina el mismo producto "sale distinto"
+              según cómo se pague, y esconderlo hasta el checkout es perder la
+              venta antes de llegar. El monto exacto lo recalcula la base al
+              crear la orden; esto es el espejo. */}
+          {descuentoPago && (
+            <p className="mt-1.5 text-sm">
+              <strong style={{ color: "hsl(var(--st-accent))" }}>
+                {fmt(totalConDescuento(price, descuentoPago.metodo, store?.payment_discounts))}
+              </strong>{" "}
+              <span style={{ color: "hsl(var(--st-muted))" }}>
+                con {nombreMedio(descuentoPago.metodo)} ({descuentoPago.porcentaje}% OFF)
+              </span>
+            </p>
+          )}
 
           <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
             {stockEfectivo <= 0 ? "Sin stock"

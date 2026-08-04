@@ -4,6 +4,8 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MAX_DESCUENTO_PORCENTAJE, type PaymentDiscounts } from "@/lib/paymentDiscount";
 import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
@@ -90,6 +92,7 @@ export default function EcommerceStorePage() {
     tax_included: true, free_shipping_above: "50000",
     shipping_cost: "2500", is_active: false,
     payment_methods: ["mercadopago", "transferencia"],
+    payment_discounts: {} as PaymentDiscounts,
     meta_title: "", meta_description: "",
     description: "", notification_email: "",
     meta_pixel_id: "", ga_measurement_id: "", tiktok_pixel_id: "",
@@ -146,6 +149,7 @@ export default function EcommerceStorePage() {
             shipping_cost: data.shipping_cost != null ? String(data.shipping_cost) : prev.shipping_cost,
             is_active: data.is_active ?? prev.is_active,
             payment_methods: data.payment_methods || ["mercadopago", "transferencia"],
+            payment_discounts: (data.payment_discounts as PaymentDiscounts) ?? prev.payment_discounts,
             meta_title: data.meta_title ?? prev.meta_title,
             description: data.description ?? prev.description,
             notification_email: data.notification_email ?? prev.notification_email,
@@ -241,6 +245,7 @@ export default function EcommerceStorePage() {
       shipping_cost: Number(storeForm.shipping_cost),
       is_active: storeForm.is_active,
       payment_methods: storeForm.payment_methods,
+      payment_discounts: storeForm.payment_discounts,
       description: storeForm.description || null,
       logo_url: storeForm.logo_url || null,
       banner_url: storeForm.banner_url || null,
@@ -805,23 +810,56 @@ export default function EcommerceStorePage() {
 
           <div className="bg-card border border-border/40 rounded-xl p-5 space-y-3">
             <h3 className="font-semibold">Métodos de Pago</h3>
+            <p className="text-xs text-muted-foreground">
+              El descuento se aplica sobre la mercadería, nunca sobre el envío. Sirve
+              para empujar las ventas al medio que menos comisión te cobra: una
+              transferencia te cuesta 0% y MercadoPago se lleva alrededor del 6%.
+            </p>
             <div className="space-y-2">
               {PAYMENT_METHODS.map(pm => {
                 const enabled = storeForm.payment_methods.includes(pm.id);
+                const pct = Number(storeForm.payment_discounts?.[pm.id] ?? 0);
                 return (
-                  <div key={pm.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span>{pm.logo}</span>
-                      <span className="text-sm">{pm.label}</span>
+                  <div key={pm.id} className="p-3 bg-muted/20 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span>{pm.logo}</span>
+                        <span className="text-sm">{pm.label}</span>
+                      </div>
+                      <button onClick={() => setStoreForm(p => ({
+                        ...p,
+                        payment_methods: enabled
+                          ? p.payment_methods.filter(x => x !== pm.id)
+                          : [...p.payment_methods, pm.id]
+                      }))} className={`w-10 h-5 rounded-full transition-all ${enabled ? "bg-emerald-500" : "bg-muted"}`}>
+                        <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
                     </div>
-                    <button onClick={() => setStoreForm(p => ({
-                      ...p,
-                      payment_methods: enabled
-                        ? p.payment_methods.filter(x => x !== pm.id)
-                        : [...p.payment_methods, pm.id]
-                    }))} className={`w-10 h-5 rounded-full transition-all ${enabled ? "bg-emerald-500" : "bg-muted"}`}>
-                      <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
-                    </button>
+                    {/* El descuento sólo se ofrece si el medio está habilitado:
+                        configurarlo para uno que no se acepta no haría nada y
+                        además se anunciaría mal en la vitrina. */}
+                    {enabled && (
+                      <div className="flex items-center gap-2 pl-7">
+                        <Label className="text-xs text-muted-foreground">Descuento</Label>
+                        <Input
+                          type="number" min={0} max={MAX_DESCUENTO_PORCENTAJE} step={1}
+                          value={pct || ""}
+                          placeholder="0"
+                          onChange={e => {
+                            const v = Math.max(0, Math.min(MAX_DESCUENTO_PORCENTAJE, Number(e.target.value) || 0));
+                            setStoreForm(p => {
+                              const next = { ...(p.payment_discounts ?? {}) };
+                              if (v > 0) next[pm.id] = v; else delete next[pm.id];
+                              return { ...p, payment_discounts: next };
+                            });
+                          }}
+                          className="h-8 w-20 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          %{pct > 0 && " — se muestra en la tienda"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}

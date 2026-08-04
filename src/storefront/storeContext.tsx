@@ -25,6 +25,8 @@ export interface StoreInfo {
   payment_methods: string[] | null;
   shipping_cost: number | null;
   free_shipping_above: number | null;
+  /** `{"transferencia": 10}` — porcentaje de descuento por medio de pago. */
+  payment_discounts: Record<string, number> | null;
   /** 'flat' | 'zones' | 'free' — decide si el checkout cotiza por zona y peso */
   shipping_mode: string | null;
   pickup_enabled: boolean | null;

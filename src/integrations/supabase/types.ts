@@ -364,6 +364,13 @@ export type Database = {
             foreignKeyName: "afip_alicuotas_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "afip_alicuotas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -1655,6 +1662,13 @@ export type Database = {
             foreignKeyName: "bin_stock_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -1963,6 +1977,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "bundle_items_product_id_fkey"
@@ -4163,6 +4184,13 @@ export type Database = {
             foreignKeyName: "demand_forecasts_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "demand_forecasts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -4247,6 +4275,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_signals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "demand_signals_product_id_fkey"
@@ -5094,6 +5129,7 @@ export type Database = {
           name: string
           notification_email: string | null
           org_id: string
+          payment_discounts: Json
           payment_methods: string[]
           pickup_address: string | null
           pickup_enabled: boolean
@@ -5127,6 +5163,7 @@ export type Database = {
           name?: string
           notification_email?: string | null
           org_id: string
+          payment_discounts?: Json
           payment_methods?: string[]
           pickup_address?: string | null
           pickup_enabled?: boolean
@@ -5160,6 +5197,7 @@ export type Database = {
           name?: string
           notification_email?: string | null
           org_id?: string
+          payment_discounts?: Json
           payment_methods?: string[]
           pickup_address?: string | null
           pickup_enabled?: boolean
@@ -5932,6 +5970,13 @@ export type Database = {
             foreignKeyName: "forecast_configs_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "forecast_configs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -6614,6 +6659,13 @@ export type Database = {
             foreignKeyName: "inventory_abc_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -6692,6 +6744,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_snapshots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "inventory_snapshots_product_id_fkey"
@@ -6781,6 +6840,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "inventory_transfer_items_product_id_fkey"
@@ -7415,6 +7481,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "location_stock_product_id_fkey"
@@ -8083,6 +8156,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meli_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "meli_listings_product_id_fkey"
@@ -9215,6 +9295,13 @@ export type Database = {
             foreignKeyName: "plm_products_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "plm_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -9676,6 +9763,13 @@ export type Database = {
             foreignKeyName: "price_history_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -9757,6 +9851,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "price_list_items_product_id_fkey"
@@ -9922,6 +10023,13 @@ export type Database = {
             foreignKeyName: "product_batches_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -10001,6 +10109,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_bundle_items_product_id_fkey"
@@ -10184,6 +10299,13 @@ export type Database = {
             foreignKeyName: "product_cooccurrences_product_a_id_fkey"
             columns: ["product_a_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_product_a_id_fkey"
+            columns: ["product_a_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -10221,6 +10343,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_cooccurrences_product_b_id_fkey"
+            columns: ["product_b_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_cooccurrences_product_b_id_fkey"
@@ -10333,6 +10462,13 @@ export type Database = {
             foreignKeyName: "product_perfume_details_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: true
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_perfume_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -10436,6 +10572,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_reviews_product_id_fkey"
@@ -10555,6 +10698,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_variants_product_id_fkey"
@@ -10984,6 +11134,13 @@ export type Database = {
             foreignKeyName: "purchase_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -11214,6 +11371,13 @@ export type Database = {
             foreignKeyName: "purchase_request_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -11407,6 +11571,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "purchases_product_id_fkey"
@@ -11637,6 +11808,13 @@ export type Database = {
             foreignKeyName: "recipe_ingredients_ingredient_product_id_fkey"
             columns: ["ingredient_product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_product_id_fkey"
+            columns: ["ingredient_product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -11799,6 +11977,13 @@ export type Database = {
             foreignKeyName: "recipes_output_product_id_fkey"
             columns: ["output_product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recipes_output_product_id_fkey"
+            columns: ["output_product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -11889,6 +12074,13 @@ export type Database = {
             foreignKeyName: "recommendation_events_recommended_product_id_fkey"
             columns: ["recommended_product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_recommended_product_id_fkey"
+            columns: ["recommended_product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -11926,6 +12118,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_events_trigger_product_id_fkey"
+            columns: ["trigger_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "recommendation_events_trigger_product_id_fkey"
@@ -12017,6 +12216,13 @@ export type Database = {
             foreignKeyName: "recommendation_rules_recommended_product_id_fkey"
             columns: ["recommended_product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_recommended_product_id_fkey"
+            columns: ["recommended_product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -12054,6 +12260,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_rules_trigger_product_id_fkey"
+            columns: ["trigger_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "recommendation_rules_trigger_product_id_fkey"
@@ -12214,6 +12427,13 @@ export type Database = {
             foreignKeyName: "return_requests_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "return_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -12314,6 +12534,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "returns_product_id_fkey"
@@ -12595,6 +12822,13 @@ export type Database = {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -12725,6 +12959,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_forecasts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_forecasts_product_id_fkey"
@@ -13049,6 +13290,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "service_order_items_product_id_fkey"
@@ -13961,6 +14209,13 @@ export type Database = {
             foreignKeyName: "stock_history_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -14096,6 +14351,13 @@ export type Database = {
             foreignKeyName: "stock_movements_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -14218,6 +14480,13 @@ export type Database = {
             foreignKeyName: "stock_reservations_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -14323,6 +14592,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_transfers_product_id_fkey"
@@ -14628,6 +14904,13 @@ export type Database = {
             foreignKeyName: "store_stock_alerts_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_stock_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -14721,6 +15004,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_wishlists_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "store_wishlists_product_id_fkey"
@@ -16420,6 +16710,13 @@ export type Database = {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -16777,6 +17074,13 @@ export type Database = {
             foreignKeyName: "stock_movements_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -17064,6 +17368,13 @@ export type Database = {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "stock_sucursal_descuadrado"
             referencedColumns: ["product_id"]
           },
@@ -17130,6 +17441,35 @@ export type Database = {
             foreignKeyName: "settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_negativo: {
+        Row: {
+          name: string | null
+          org_id: string | null
+          product_id: string | null
+          stock: number | null
+        }
+        Insert: {
+          name?: string | null
+          org_id?: string | null
+          product_id?: string | null
+          stock?: number | null
+        }
+        Update: {
+          name?: string | null
+          org_id?: string | null
+          product_id?: string | null
+          stock?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -17628,6 +17968,7 @@ export type Database = {
           name: string
           org_id: string
           owner_user_id: string
+          payment_discounts: Json
           payment_methods: string[]
           pickup_address: string
           pickup_enabled: boolean
@@ -18009,6 +18350,10 @@ export type Database = {
       }
       store_cart_weight_kg: {
         Args: { p_default_weight?: number; p_items: Json; p_org_id: string }
+        Returns: number
+      }
+      store_payment_discount_pct: {
+        Args: { p_descuentos: Json; p_metodo: string }
         Returns: number
       }
       submit_influencer_content: {

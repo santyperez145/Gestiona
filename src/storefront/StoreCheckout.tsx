@@ -7,6 +7,7 @@ import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
 import { trackBeginCheckout } from "./tracking";
+import { montoDescuento, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -159,7 +160,15 @@ export default function StoreCheckout() {
   const envio = opcion ? Number(opcion.price) : (opciones.length > 0 ? 0 : shippingCost);
 
   const descuento = cuponAplicado?.discount ?? 0;
-  const totalFinal = Math.max(0, subtotal - descuento) + envio;
+
+  // Mismo orden que `create_store_order`: el cupón sobre el subtotal, y el
+  // descuento del medio de pago sobre lo que queda de mercadería. El envío se
+  // suma después y no se descuenta — sería regalar lo que se le paga al correo.
+  //
+  // Esto es sólo para mostrar: el número que se cobra lo recalcula la base.
+  const baseMercaderia = Math.max(0, subtotal - descuento);
+  const descuentoPago = montoDescuento(baseMercaderia, form.metodo, store?.payment_discounts);
+  const totalFinal = Math.max(0, baseMercaderia - descuentoPago) + envio;
 
   // Inicio de checkout: Meta y GA lo usan para medir abandono.
   // Solo al montar, no en cada cambio del carrito.
@@ -398,23 +407,39 @@ export default function StoreCheckout() {
           <section>
             <h2 className="font-semibold mb-3">Medio de pago</h2>
             <div className="space-y-2">
-              {metodos.map(m => (
-                <label
-                  key={m}
-                  className="flex items-center gap-3 px-3 py-2.5 border cursor-pointer"
-                  style={{
-                    ...inputStyle,
-                    borderColor: form.metodo === m ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
-                  }}
-                >
-                  <input
-                    type="radio" name="metodo" value={m}
-                    checked={form.metodo === m}
-                    onChange={() => set("metodo", m)}
-                  />
-                  <span className="text-sm">{METODO_LABEL[m] ?? m}</span>
-                </label>
-              ))}
+              {metodos.map(m => {
+                const pct = porcentajeDe(m, store?.payment_discounts);
+                const ahorro = montoDescuento(baseMercaderia, m, store?.payment_discounts);
+                return (
+                  <label
+                    key={m}
+                    className="flex items-center gap-3 px-3 py-2.5 border cursor-pointer"
+                    style={{
+                      ...inputStyle,
+                      borderColor: form.metodo === m ? "hsl(var(--st-accent))" : "hsl(var(--st-border))",
+                    }}
+                  >
+                    <input
+                      type="radio" name="metodo" value={m}
+                      checked={form.metodo === m}
+                      onChange={() => set("metodo", m)}
+                    />
+                    <span className="text-sm flex-1">{METODO_LABEL[m] ?? m}</span>
+                    {/* Se muestra el ahorro en pesos y no sólo el porcentaje:
+                        "ahorrás $2.000" decide una compra, "10% off" hay que
+                        calcularlo. El número que se cobra igual lo recalcula la
+                        base — esto es el espejo. */}
+                    {pct > 0 && (
+                      <span
+                        className="text-xs font-medium px-2 py-0.5 rounded"
+                        style={{ background: "hsl(var(--st-accent) / 0.12)", color: "hsl(var(--st-accent))" }}
+                      >
+                        {pct}% — ahorrás {fmt(ahorro)}
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
             </div>
             <p className="text-xs mt-2" style={{ color: "hsl(var(--st-muted))" }}>
               Te contactamos para coordinar el pago y la entrega apenas recibamos el pedido.
@@ -495,7 +520,13 @@ export default function StoreCheckout() {
             </div>
             {descuento > 0 && (
               <div className="flex justify-between" style={{ color: "hsl(var(--st-accent))" }}>
-                <span>Descuento</span><span>−{fmt(descuento)}</span>
+                <span>Cupón {cuponAplicado?.code}</span><span>−{fmt(descuento)}</span>
+              </div>
+            )}
+            {descuentoPago > 0 && (
+              <div className="flex justify-between" style={{ color: "hsl(var(--st-accent))" }}>
+                <span>Pagando con {nombreMedio(form.metodo)}</span>
+                <span>−{fmt(descuentoPago)}</span>
               </div>
             )}
             <div className="flex justify-between">

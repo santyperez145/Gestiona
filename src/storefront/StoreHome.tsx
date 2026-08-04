@@ -3,10 +3,16 @@ import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
 import StoreBanners from "./StoreBanners";
 import { getCategoryLabel } from "@/lib/supabaseStore";
-import { ArrowRight, Truck, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { mejorDescuento, nombreMedio } from "@/lib/paymentDiscount";
 
 export default function StoreHome() {
   const { store, products, banners, priceOf, fmt } = useStore();
+
+  // El mejor descuento que la tienda ofrece hoy, o null. Sólo cuenta los
+  // medios que además están habilitados: anunciar uno que no se acepta sería
+  // prometer algo que en el checkout no aparece.
+  const descuentoPago = mejorDescuento(store?.payment_methods ?? null, store?.payment_discounts ?? null);
   const base = `/tienda/${store?.slug ?? ""}`;
 
   // Las vitrinas de la home son curadas: ofrecer un agotado en "Destacados"
@@ -61,8 +67,16 @@ export default function StoreHome() {
 
       {/* ── Barra de confianza ───────────────────────────────────────── */}
       <section className="border-b" style={{ borderColor: "hsl(var(--st-border))" }}>
-        <div className="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div className={`max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 gap-4 text-sm ${descuentoPago ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
           {[
+            // El descuento por medio de pago va primero cuando existe: es la
+            // razón más concreta para comprar acá y no en otro lado. Sale de
+            // `mejorDescuento`, que sólo mira los medios que la tienda acepta.
+            ...(descuentoPago ? [{
+              icon: Wallet,
+              t: `${descuentoPago.porcentaje}% OFF con ${nombreMedio(descuentoPago.metodo)}`,
+              s: "Se aplica solo al elegir el medio de pago",
+            }] : []),
             { icon: Truck, t: (store?.free_shipping_above ?? 0) > 0 ? `Envío gratis desde ${fmt(Number(store?.free_shipping_above))}` : "Envíos a todo el país", s: "Coordinamos la entrega con vos" },
             { icon: ShieldCheck, t: "Productos originales", s: "Importación propia, con garantía" },
             { icon: Sparkles, t: "Asesoramiento", s: "Te ayudamos a elegir tu fragancia" },
