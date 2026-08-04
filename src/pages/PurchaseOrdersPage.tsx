@@ -451,6 +451,8 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [notas, setNotas] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [sucursales, setSucursales] = useState<Array<{ id: string; name: string }>>([]);
+  const [sucursalId, setSucursalId] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -458,6 +460,26 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
       setNotas("");
     }
   }, [open, order.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A qué sucursal entra la mercadería. Sólo se pregunta si la organización
+  // tiene sucursales cargadas: sin ellas el stock es uno solo y preguntar sería
+  // ruido. La principal viene elegida porque es donde entra casi siempre.
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("locations")
+      .select("id, name, is_main")
+      .eq("org_id", order.org_id)
+      .eq("active", true)
+      .order("is_main", { ascending: false })
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) { toast.error("No se pudieron cargar las sucursales"); return; }
+        const filas = data ?? [];
+        setSucursales(filas);
+        setSucursalId(prev => prev || filas[0]?.id || "");
+      });
+  }, [open, order.org_id]);
 
   const aRecibir = items
     .map(i => ({ item_id: i.id, quantity: Number(cantidades[i.id] ?? 0) }))
@@ -472,6 +494,7 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
         p_order_id: order.id,
         p_items: aRecibir,
         p_notes: notas.trim() || null,
+        p_location_id: sucursalId || null,
       });
       if (error) throw error;
       const res = data as { status?: string; pendientes?: number } | null;
@@ -533,6 +556,18 @@ function ReceiveDialog({ order, open, onOpenChange, onDone }: {
             </tbody>
           </table>
         </div>
+
+        {sucursales.length > 0 && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Entra en</Label>
+            <Select value={sucursalId} onValueChange={setSucursalId}>
+              <SelectTrigger className="text-xs"><SelectValue placeholder="Sucursal de destino" /></SelectTrigger>
+              <SelectContent>
+                {sucursales.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <Label className="text-xs">Nota de la entrega (opcional)</Label>

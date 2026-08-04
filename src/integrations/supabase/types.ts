@@ -18025,6 +18025,16 @@ export type Database = {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
       }
+      transfer_stock_between_locations: {
+        Args: {
+          p_from_location_id: string
+          p_notes?: string
+          p_product_id: string
+          p_quantity: number
+          p_to_location_id: string
+        }
+        Returns: Json
+      }
       unaccent: { Args: { "": string }; Returns: string }
       upsert_customer_from_order: {
         Args: { p_order_id: string }

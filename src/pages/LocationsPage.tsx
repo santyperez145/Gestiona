@@ -82,15 +82,14 @@ function LocationForm({
 function TransferDialog({
   locations,
   products,
-  orgId,
-  userId,
+  locationStock,
   onClose,
   onDone,
 }: {
   locations: Location[];
   products: any[];
-  orgId: string;
-  userId: string;
+  /** Stock por sucursal, indexado por `location_id`. */
+  locationStock: Record<string, LocationStock[]>;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -101,38 +100,58 @@ function TransferDialog({
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Lo que realmente hay en la sucursal de origen. El nombre sale del catálogo
+  // si está; si no, del que guardó `location_stock`.
+  const disponibles = (locationStock[fromLoc] ?? [])
+    .filter(ls => ls.stock > 0)
+    .map(ls => ({
+      product_id: ls.product_id,
+      stock: ls.stock,
+      product_name: products.find(p => p.id === ls.product_id)?.name ?? ls.product_name ?? "Producto",
+    }))
+    .sort((a, b) => a.product_name.localeCompare(b.product_name));
+
+  const maxDisponible = disponibles.find(d => d.product_id === productId)?.stock ?? 0;
+
+  /**
+   * Transferir por RPC, no escribiendo `location_stock` desde acá.
+   *
+   * Antes esta pantalla insertaba el `stock_transfers` y después ajustaba las
+   * dos sucursales con un read-modify-write. Con `Math.max(0, stock + delta)`
+   * en el origen y un INSERT del delta completo en el destino, **inventaba
+   * mercadería**: verificado contra la base, transferir 50 unidades teniendo 10
+   * dejaba origen 0 y destino 50, con el total de la organización todavía en 10.
+   * Además dos transferencias simultáneas se pisaban, y ninguna dejaba asiento
+   * en el Kardex.
+   *
+   * `transfer_stock_between_locations` valida contra lo que hay, serializa con
+   * `FOR UPDATE` y deja los dos movimientos. La validación de acá abajo es sólo
+   * para no ir al servidor por gusto: la que manda es la del RPC.
+   */
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fromLoc || !toLoc || !productId || !qty) { toast.error("Completá todos los campos"); return; }
     if (fromLoc === toLoc) { toast.error("Los locales de origen y destino deben ser distintos"); return; }
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("stock_transfers").insert({
-        org_id: orgId,
-        from_location_id: fromLoc,
-        to_location_id: toLoc,
-        product_id: productId,
-        product_name: product.name,
-        quantity: Number(qty),
-        notes: notes.trim() || null,
-        transferred_by: userId,
+      const { data, error } = await supabase.rpc("transfer_stock_between_locations", {
+        p_from_location_id: fromLoc,
+        p_to_location_id: toLoc,
+        p_product_id: productId,
+        p_quantity: Number(qty),
+        p_notes: notes.trim() || null,
       });
       if (error) throw error;
-
-      // Adjust location_stock for both locations
-      const q = Number(qty);
-      await Promise.all([
-        upsertLocationStock(orgId, fromLoc, productId, -q),
-        upsertLocationStock(orgId, toLoc, productId, q),
-      ]);
-
-      toast.success(`Transferencia de ${qty} u. de ${product.name} registrada`);
+      const r = data as { producto?: string; origen?: number; destino?: number } | null;
+      toast.success(
+        `${qty} u. de ${r?.producto ?? "el producto"} — origen ${r?.origen ?? 0}, destino ${r?.destino ?? 0}`,
+      );
       onDone();
       onClose();
-    } catch (e: any) {
-      toast.error(e.message || "Error al transferir");
+    } catch (e) {
+      // El RPC dice cuántas unidades hay y cuántas se pedían; eso es más útil
+      // que "error al transferir".
+      toast.error(e instanceof Error ? e.message : "Error al transferir");
     } finally {
       setSaving(false);
     }
@@ -158,25 +177,47 @@ function TransferDialog({
       </div>
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Producto</label>
-        <Select value={productId} onValueChange={setProductId}>
-          <SelectTrigger><SelectValue placeholder="Seleccioná producto" /></SelectTrigger>
+        <Select value={productId} onValueChange={setProductId} disabled={!fromLoc}>
+          <SelectTrigger>
+            <SelectValue placeholder={fromLoc ? "Seleccioná producto" : "Elegí primero el origen"} />
+          </SelectTrigger>
           <SelectContent>
-            {products.filter(p => p.stock > 0).map(p => (
-              <SelectItem key={p.id} value={p.id}>{p.name} ({p.stock} u.)</SelectItem>
+            {disponibles.length === 0 && (
+              <div className="px-2 py-3 text-xs text-muted-foreground">
+                Esa sucursal no tiene stock cargado.
+              </div>
+            )}
+            {disponibles.map(d => (
+              <SelectItem key={d.product_id} value={d.product_id}>
+                {d.product_name} ({d.stock} u. acá)
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {/* Se ofrece lo que hay EN EL ORIGEN, no el total de la organización:
+            antes listaba `products.stock > 0` y dejaba elegir un producto con
+            0 unidades en esa sucursal, que el servidor iba a rechazar igual. */}
       </div>
       <div>
-        <label className="text-xs text-muted-foreground mb-1 block">Cantidad</label>
-        <Input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} />
+        <label className="text-xs text-muted-foreground mb-1 block">
+          Cantidad{maxDisponible > 0 && <span className="text-muted-foreground/70"> — hay {maxDisponible}</span>}
+        </label>
+        <Input
+          type="number" min="1" max={maxDisponible || undefined}
+          value={qty} onChange={e => setQty(e.target.value)}
+          className={Number(qty) > maxDisponible && maxDisponible > 0 ? "border-destructive" : ""}
+        />
       </div>
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Notas (opcional)</label>
         <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Motivo de la transferencia…" />
       </div>
       <div className="flex gap-2 pt-2">
-        <Button type="submit" className="flex-1 gradient-gold text-primary-foreground font-semibold" disabled={saving}>
+        <Button
+          type="submit"
+          className="flex-1 gradient-gold text-primary-foreground font-semibold"
+          disabled={saving || !productId || Number(qty) < 1 || Number(qty) > maxDisponible}
+        >
           <ArrowLeftRight className="w-4 h-4 mr-1.5" />{saving ? "Transfiriendo…" : "Transferir"}
         </Button>
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
@@ -185,22 +226,10 @@ function TransferDialog({
   );
 }
 
-async function upsertLocationStock(orgId: string, locationId: string, productId: string, delta: number) {
-  const { data: existing } = await supabase
-    .from("location_stock")
-    .select("id, stock")
-    .eq("location_id", locationId)
-    .eq("product_id", productId)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase.from("location_stock")
-      .update({ stock: Math.max(0, existing.stock + delta), updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
-  } else if (delta > 0) {
-    await supabase.from("location_stock").insert({ org_id: orgId, location_id: locationId, product_id: productId, stock: delta });
-  }
-}
+// `upsertLocationStock` se borró: ajustaba `location_stock` desde el navegador y
+// era por donde se inventaba mercadería. Ahora esa tabla es de sólo lectura para
+// la UI — la escriben `record_stock_movement` y
+// `transfer_stock_between_locations`, que validan.
 
 export default function LocationsPage() {
   usePageTitle("Sucursales & Depósitos");
@@ -502,8 +531,7 @@ export default function LocationsPage() {
             <TransferDialog
               locations={locations}
               products={products}
-              orgId={activeOrg.id}
-              userId={user.id}
+              locationStock={locationStock}
               onClose={() => setShowTransfer(false)}
               onDone={load}
             />
