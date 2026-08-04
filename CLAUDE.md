@@ -73,9 +73,30 @@ se perdió — `stock_movements` no lo tenía. Si hace falta un producto agotado
 se crea uno `ZZ` y se borra; si no hay más remedio que tocar uno real, se
 **guarda el valor antes** en la tabla temporal del test.
 
-**Antes de descontar stock o tocar totales, revisar si ya hay un trigger que lo
-haga.** `trg_sale_stock_movement` ya descuenta: sumarle un descuento manual
-dejó un stock de 2 en −2.
+**El stock lo mueve la base, y sólo la base. El cliente nunca escribe
+`products.stock`.** No es una preferencia de estilo: se rompió dos veces por lo
+mismo. La segunda fue peor — `addSaleDB`, `addSaleWithVariantDB` y
+`addPurchaseDB` ajustaban el stock **después** de insertar la fila, que ya había
+disparado el trigger, así que **vender 3 unidades bajaba 6 y comprar 5 subía
+10**, en el POS, en Ventas, en Presupuestos y en el chat de IA. Estuvo así
+meses; se veía en el Kardex en negativo con el stock real positivo, porque los
+números se venían corrigiendo a mano.
+
+`trg_sale_stock_movement` y `trg_purchase_stock_movement` cubren INSERT, UPDATE
+y DELETE, y `record_stock_movement` es el único lugar que toca `products.stock`,
+`product_variants.stock` y `location_stock`. Para mover stock por un camino
+nuevo, se llama a esa función — no se escribe la columna.
+
+La regla general: **antes de tocar stock o totales, buscar el trigger.**
+
+```bash
+npm run db -- --sql "select c.relname, t.tgname from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal"
+```
+
+Y **no tapar el resultado con `GREATEST(0, ...)` ni `Math.max(0, ...)`**: eso fue
+lo que hizo que el descuento doble pasara desapercibido y lo que permitió que
+una transferencia entre sucursales inventara 40 unidades. Un stock negativo es
+un dato que hay que mirar. La vista `stock_negativo` tiene que estar vacía.
 
 **Una vista nueva no reemplaza a una existente: convive con ella.** Cambiarle el
 filtro por abajo a `catalog_products` habría afectado al catálogo por WhatsApp
@@ -430,8 +451,27 @@ Pendientes conocidos al 2026-07-31:
 - **Un certificado de AFIP de homologación** para verificar el ciclo de
   facturación. Es gratis y no emite comprobantes reales.
 - **Contrato con Correo Argentino o Andreani** para la etiqueta por API.
-- **Stock de "AFNAN 9AM DIVE" quedó en 7 y ese número no es real.** Se puso en
-  cero para verificar el aviso de reposición y el valor original se perdió.
+- ⚠️ **Hay que contar el inventario físico y corregir el stock.** Durante meses
+  cada venta descontó el doble y cada compra sumó el doble (arreglado en la
+  sesión 91). Los números se venían corrigiendo a mano desde la pantalla, que no
+  deja asiento, así que **el stock de la base no es confiable hoy**. Se ve
+  comparando el Kardex contra el stock actual: 15 productos no coinciden y
+  varios tienen el Kardex en negativo con el stock real positivo.
+
+  ```sql
+  SELECT p.name, u.stock_after AS kardex, p.stock, p.stock - u.stock_after AS dif
+  FROM (SELECT DISTINCT ON (product_id) product_id, stock_after
+          FROM public.stock_movements WHERE product_id IS NOT NULL
+         ORDER BY product_id, created_at DESC, id DESC) u
+  JOIN public.products p ON p.id = u.product_id
+  WHERE p.stock <> u.stock_after ORDER BY abs(p.stock - u.stock_after) DESC;
+  ```
+
+  No se corrigió por código a propósito: reconstruirlo exige saber qué ventas
+  pasaron por el camino duplicado y cuáles no (las de la tienda online van por
+  `mark_store_order_paid`, que nunca duplicó). Se corrige contando.
+  Incluye a **"AFNAN 9AM DIVE"**, que quedó en 7 tras una verificación del aviso
+  de reposición y ese número tampoco es real.
 - Hay un producto **"ZZ NO COMPRAR - Prueba de pago"** publicado en la tienda,
   con stock 1. Se creó para verificar el cobro real; borrarlo cuando no haga
   falta más.

@@ -90,7 +90,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | MercadoLibre | Parcial | Falta publicar desde la ficha, importar órdenes y cron multi-org |
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
-| Multi-sucursal | Parcial | Transferencias sí; stock por depósito a medias |
+| Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
 | Tests | Anda | 342 unitarios. Sin E2E |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
@@ -136,9 +136,9 @@ lectura del código encontró.
 | # | Feature | Por qué | Esfuerzo |
 |---|---|---|---|
 | 1 | **AFIP: factura electrónica** | Es el gap crítico del producto entero. | L |
-| 2 | **Stock real por depósito** | Existe la tabla pero el POS no descuenta por sucursal. | M |
-| 3 | **Ampliar los E2E** | La tienda ya está cubierta (16 tests, escritorio y teléfono). Falta el POS y el panel, que son autenticados. | M |
-| 4 | **Entorno de staging** | Hoy se verifica contra producción con datos `ZZ` y limpieza. Funciona, pero es frágil. | M |
+| 2 | **Ampliar los E2E** | La tienda ya está cubierta (16 tests, escritorio y teléfono). Falta el POS y el panel, que son autenticados. | M |
+| 3 | **Entorno de staging** | Hoy se verifica contra producción con datos `ZZ` y limpieza. Funciona, pero es frágil. | M |
+| 4 | **Revisar el stock real contra el inventario físico** | No es código: durante meses cada venta descontó el doble y cada compra sumó el doble. Los números se fueron corrigiendo a mano, así que hay que contar. | — |
 
 ✅ **Recepción parcial de órdenes de compra** — hecho (sesión 91). El ROADMAP lo
 anotaba como "se recibe entera o nada"; mirando el código era peor: **no se
@@ -146,12 +146,29 @@ recibía nada**. "Marcar recibida" cambiaba `status` y `received_date` y no toca
 `quantity_received` ni movía una unidad de stock. El módulo de OC estaba
 desconectado del inventario.
 
+✅ **Stock real por depósito** — hecho (sesión 91). Faltaba el eslabón del medio:
+`record_stock_movement` no sabía de sucursales, así que `location_stock` nunca se
+escribía aunque el POS ya guardara en qué sucursal era la venta. De paso se
+cerró que la transferencia entre sucursales **inventaba mercadería** (transferir
+50 teniendo 10 dejaba origen 0 y destino 50).
+
 ---
 
 ## 7. Deuda técnica
 
 ### Resuelta (queda anotada para no repetirla)
 
+- **El stock se movía dos veces en cada venta y en cada compra.** El cliente
+  ajustaba `products.stock` después de insertar la fila, y el trigger ya lo
+  había hecho: vender 3 bajaba 6, comprar 5 subía 10. Estaba en los tres
+  caminos de alta (`addSaleDB`, `addSaleWithVariantDB`, `addPurchaseDB`), que
+  usan el POS, Ventas, Presupuestos y el chat de IA. Se arregla llevando **todo**
+  el movimiento a la base: mientras el cálculo esté repartido entre cliente y
+  trigger, alguno de los seis lugares que insertan ventas se va a equivocar.
+- Borrar una venta o una compra no devolvía el stock, y una compra programada
+  sumaba mercadería el día que se pedía en vez del día que llegaba.
+- La transferencia entre sucursales inventaba unidades: `Math.max(0, ...)` en el
+  origen y un INSERT del delta completo en el destino.
 - Políticas RLS `USING (true)` que exponían tokens de MercadoPago y contraseñas
   SMTP de todas las organizaciones con la clave anónima.
 - `npx tsc --noEmit` como chequeo de CI: no chequeaba nada.
@@ -632,6 +649,55 @@ Falta (ver `docs/MERCADOLIBRE.md`): botón de publicar en la ficha del producto
 con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
+
+### Sesión 92 — El stock se movía dos veces, y nadie lo veía (2026-08-02)
+
+Empezó siendo "stock real por depósito" del §6 y terminó destapando el bug más
+caro que había en el sistema.
+
+**Stock por sucursal.** La estructura estaba entera y sin usar: `locations`,
+`location_stock`, la página, el `StoreFilter` y un selector en el POS que **ya
+guardaba `sales.location_id`**. Faltaba el eslabón del medio —
+`record_stock_movement` no sabía de sucursales— así que la venta sabía dónde se
+hizo y el stock no.
+
+**La transferencia entre sucursales inventaba mercadería.** Se hacía desde el
+navegador con `Math.max(0, stock + delta)` en el origen y un INSERT del delta
+completo en el destino. Reproducido: con 10 unidades, transferir 50 dejaba
+origen 0 y destino 50, con el total todavía en 10. Cuarenta unidades de la nada.
+Ahora va por RPC con `FOR UPDATE`, y `location_stock` pasó a sólo lectura para
+la UI — tenía una policy `ALL`, que es por donde se colaba.
+
+**Y el hallazgo grande: cada venta y cada compra movían el stock DOS veces.**
+`addSaleDB`, `addSaleWithVariantDB` y `addPurchaseDB` ajustaban `products.stock`
+después de insertar la fila, que ya había disparado el trigger. Vender 3 bajaba
+6; comprar 5 subía 10. Lo usan el POS, Ventas, Presupuestos y el chat de IA — o
+sea, todos los caminos de venta.
+
+Se ve el rastro en producción: 15 productos con el Kardex distinto del stock
+real, y varios con el Kardex en **negativo** y el stock positivo. La lectura es
+que el doble descuento empujó los números abajo y se los venía corrigiendo a
+mano, lo que no deja asiento. El pendiente de "AFNAN 9AM DIVE quedó en 7 y ese
+número no es real" era un síntoma de esto.
+
+**No se corrigieron los números.** Reconstruirlos exige saber qué ventas pasaron
+por el camino duplicado y cuáles no, y es dato real del negocio: se corrige
+contando el inventario. Queda como pendiente del dueño.
+
+Al mirarlo aparecieron tres agujeros más: borrar una venta o una compra no
+devolvía el stock; una compra programada sumaba mercadería el día que se pedía
+en vez del día que llegaba; y editar sólo ajustaba por diferencia de cantidad,
+sin cubrir el cambio de producto, de variante ni de sucursal.
+
+La solución no fue sacar un descuento y dejar el otro, sino que **todo el
+movimiento viva en la base**, en INSERT, UPDATE y DELETE. Mientras el cálculo
+esté repartido entre cliente y trigger, alguno de los seis lugares que insertan
+ventas se va a equivocar — y de hecho se equivocó.
+
+Queda la vista `stock_negativo` como control, y una regla nueva en CLAUDE.md: no
+tapar el resultado con `GREATEST(0, ...)`. Eso fue lo que hizo que el descuento
+doble pasara desapercibido meses y lo que permitió que la transferencia inventara
+unidades.
 
 ### Sesión 91 — El CRM deja de cruzar por nombre, y dos bugs mudos (2026-08-02)
 
