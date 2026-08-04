@@ -137,7 +137,7 @@ lectura del código encontró.
 |---|---|---|---|
 | 1 | **AFIP: factura electrónica** | Es el gap crítico del producto entero. | L |
 | 2 | **Stock real por depósito** | Existe la tabla pero el POS no descuenta por sucursal. | M |
-| 3 | **Tests E2E (Playwright)** | 377 unitarios cubren cálculos, no flujos. Los bugs que dolieron fueron de integración. | L |
+| 3 | **Ampliar los E2E** | La tienda ya está cubierta (16 tests, escritorio y teléfono). Falta el POS y el panel, que son autenticados. | M |
 | 4 | **Entorno de staging** | Hoy se verifica contra producción con datos `ZZ` y limpieza. Funciona, pero es frágil. | M |
 
 ✅ **Recepción parcial de órdenes de compra** — hecho (sesión 91). El ROADMAP lo
@@ -188,7 +188,7 @@ desconectado del inventario.
 
 | Ítem | Riesgo | Esfuerzo |
 |---|---|---|
-| Sin tests E2E | Las regresiones de integración no se detectan | L |
+| Los E2E cubren la tienda, no el panel ni el POS | Una regresión en la gestión no se detecta sola | M |
 | Sin staging | Se verifica contra producción | M |
 | `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
 | ~140 warnings de `exhaustive-deps` | Deuda conocida; tocarlos en masa provoca loops de refetch | L |

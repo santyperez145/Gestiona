@@ -125,6 +125,19 @@ el `NODE_OPTIONS` no es opcional, sin él se queda sin memoria a los 6 minutos
 `lint` tolera ~140 warnings de `exhaustive-deps`: son deuda conocida y **no se
 tocan en masa** (provoca loops de refetch). Errores: cero.
 
+**Los flujos se cubren con Playwright, los cálculos con vitest.** Los 377
+unitarios verifican cuentas; los bugs que costaron plata fueron todos de
+integración y ninguno los habría agarrado. Los E2E viven en `e2e/` y leen la
+base de producción, así que son **de sólo lectura**: ninguno crea una orden.
+
+```bash
+npm run test:e2e            # chromium + un teléfono
+npx playwright install      # la primera vez, baja el navegador
+```
+
+Corren contra `localhost` levantando el dev server solo. `E2E_BASE_URL` apunta
+a otro lado si hace falta. Vitest sólo mira `src/**`, así que no se pisan.
+
 **Los cálculos de plata van a funciones puras testeadas**, nunca inline:
 `businessCalc.ts`, `shippingCalc.ts`, `paymentFees.ts`, `storeReadiness.ts`.
 Cuando la misma cuenta existe en SQL (para que el servidor sea la autoridad), el
@@ -394,15 +407,18 @@ Pendientes conocidos al 2026-07-31:
 
 **Lo que espera trabajo:**
 
-- `20260723000003_drop_orphaned_feature_tables.sql` **sin aplicar y DESTRUCTIVA**
-  (~75 tablas). Va aparte, con backup.
-- ~~El libro de migraciones desfasado~~ **resuelto**: 268 archivos, 268
-  registradas, `db push --dry-run` dice `upToDate`. Se mantiene así anotando
-  cada migración al aplicarla.
+- ~~La migración destructiva~~ **aplicada**: 57 tablas huérfanas, 0 filas entre
+  todas. Verificado al traerla: 269 archivos, 270 registradas.
+- ~~El libro de migraciones desfasado~~ **resuelto**. Se mantiene así anotando
+  cada migración al aplicarla — es lo único que frena que la brecha vuelva.
 - Las APIs de Correo Argentino y Andreani siguen **sin verificar contra un
   contrato real**: los payloads siguen la documentación publicada.
-- Falta AFIP, que es el gap crítico de siempre: sin factura no hay venta formal.
-- Falta etiqueta de envío y tracking automático con los correos.
+- **AFIP: falta probarlo contra el organismo.** La estructura está y las
+  credenciales ya no se pueden leer desde el cliente (`afip_credentials`, RLS
+  con cero policies), pero no hay certificado cargado ni factura emitida.
+- **Etiqueta de envío: la imprimible ya está**, con seguimiento que el comprador
+  ve con número de orden + email, sin cuenta. Lo que falta es pedirle la
+  etiqueta por API al correo, y eso necesita contrato.
 - MercadoLibre: falta el botón de publicar en la ficha, importar órdenes como
   ventas y el cron multi-organización (ver `docs/MERCADOLIBRE.md`).
 

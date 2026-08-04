@@ -204,9 +204,19 @@ export default function StoreProducts() {
           {filtrados.length === 0 ? (
             <div className="py-20 text-center">
               <p className="font-medium">No encontramos productos con esos filtros</p>
-              <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
-                Probá quitando alguno o buscando otra cosa.
-              </p>
+              {/* El aviso del rango invertido también vive en la barra de
+                  filtros, pero en el teléfono esa barra arranca colapsada: el
+                  comprador veía la grilla vacía y ninguna explicación. Acá está
+                  donde efectivamente mira. */}
+              {precioMin > 0 && precioMax > 0 && precioMax < precioMin ? (
+                <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+                  El máximo es menor que el mínimo.
+                </p>
+              ) : (
+                <p className="text-sm mt-1" style={{ color: "hsl(var(--st-muted))" }}>
+                  Probá quitando alguno o buscando otra cosa.
+                </p>
+              )}
               {activos > 0 && (
                 <button
                   onClick={limpiar}
