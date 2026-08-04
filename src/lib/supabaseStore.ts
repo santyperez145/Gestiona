@@ -129,13 +129,11 @@ export async function addPurchaseDB(purchase: any) {
   const orgId = purchase.org_id || requireActiveOrgId();
   const { error } = await supabase.from('purchases').insert({ ...purchase, org_id: orgId });
   if (error) throw error;
-  // Skip stock update for scheduled (future) purchases — they aren't received yet
-  if (purchase.product_id && !purchase.is_scheduled) {
-    const { data: prod } = await supabase.from('products').select('stock').eq('id', purchase.product_id).single();
-    if (prod) {
-      await supabase.from('products').update({ stock: prod.stock + purchase.quantity }).eq('id', purchase.product_id);
-    }
-  }
+  // El stock lo mueve `trg_purchase_stock_movement`. Acá había un ajuste manual
+  // que lo sumaba OTRA vez: comprar 5 unidades subía el stock 10. El trigger
+  // además respeta `is_scheduled`, así que la mercadería entra cuando llega y
+  // no cuando se programa el pedido — que es lo que este bloque intentaba y no
+  // lograba, porque el trigger sumaba igual.
   // Ledger entry
   if (!purchase.is_scheduled) {
     await recordFinancialMovement({
@@ -207,29 +205,10 @@ export async function addSaleDB(sale: any) {
       .eq('id', attributedExchangeId);
   }
 
-  if (sale.product_id) {
-    const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
-    if (prod) {
-      const newStock = Math.max(0, prod.stock - sale.quantity);
-      await supabase.from('products').update({ stock: newStock }).eq('id', sale.product_id);
-    }
-    // Multi-tienda: descontar también del stock de la sucursal, si la venta
-    // se registró en una sucursal concreta y hay stock por sucursal cargado.
-    if (sale.location_id) {
-      const { data: ls } = await supabase
-        .from('location_stock')
-        .select('id, stock')
-        .eq('location_id', sale.location_id)
-        .eq('product_id', sale.product_id)
-        .maybeSingle();
-      if (ls) {
-        await supabase
-          .from('location_stock')
-          .update({ stock: Math.max(0, Number(ls.stock) - sale.quantity), updated_at: new Date().toISOString() })
-          .eq('id', ls.id);
-      }
-    }
-  }
+  // El stock —total y por sucursal— lo mueve `trg_sale_stock_movement`. Acá
+  // había un descuento manual que lo restaba OTRA vez: vender 3 unidades bajaba
+  // el stock 6. Verificado contra la base. Lo mismo con `location_stock`, que
+  // el trigger mantiene desde que conoce `sales.location_id`.
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
@@ -450,30 +429,23 @@ export async function attributeSaleToExchange(exchangeId: string, saleAmount: nu
 }
 
 // ========= SALES EDIT =========
-export async function updateSaleDB(id: string, updates: any, oldSale?: any) {
+// `oldSale` queda en la firma para no tocar los seis llamadores: ya no se usa
+// para el stock, que lo reacomoda `trg_sale_stock_movement` en el UPDATE.
+// Hacerlo en la base cubre además el cambio de producto, de variante y de
+// sucursal, que el ajuste por diferencia de acá no contemplaba.
+export async function updateSaleDB(id: string, updates: any, _oldSale?: any) {
   const { error } = await supabase.from('sales').update(updates).eq('id', id);
   if (error) throw error;
-  // Adjust stock if product changed or quantity changed
-  if (oldSale?.product_id && updates.quantity !== undefined) {
-    const diff = (oldSale.quantity || 0) - (updates.quantity || 0);
-    if (diff !== 0) {
-      const { data: prod } = await supabase.from('products').select('stock').eq('id', oldSale.product_id).single();
-      if (prod) await supabase.from('products').update({ stock: Math.max(0, prod.stock + diff) }).eq('id', oldSale.product_id);
-    }
-  }
 }
 
 // ========= PURCHASES EDIT =========
-export async function updatePurchaseDB(id: string, updates: any, oldPurchase?: any) {
+// Igual que `updateSaleDB`: el stock lo reacomoda el trigger, que además
+// entiende la transición de compra programada a recibida — el ajuste por
+// diferencia que estaba acá no la cubría, así que marcar una compra como
+// recibida no sumaba nada.
+export async function updatePurchaseDB(id: string, updates: any, _oldPurchase?: any) {
   const { error } = await supabase.from('purchases').update(updates).eq('id', id);
   if (error) throw error;
-  if (oldPurchase?.product_id && updates.quantity !== undefined) {
-    const diff = (updates.quantity || 0) - (oldPurchase.quantity || 0);
-    if (diff !== 0) {
-      const { data: prod } = await supabase.from('products').select('stock').eq('id', oldPurchase.product_id).single();
-      if (prod) await supabase.from('products').update({ stock: Math.max(0, prod.stock + diff) }).eq('id', oldPurchase.product_id);
-    }
-  }
 }
 
 // ========= AUDIT LOGS =========
@@ -619,21 +591,10 @@ export async function addSaleWithVariantDB(sale: any, variantId?: string) {
   const orgId = sale.org_id || requireActiveOrgId();
   const { error } = await supabase.from('sales').insert({ ...sale, org_id: orgId });
   if (error) throw error;
-  if (variantId) {
-    // Deduct variant stock
-    const { data: variant } = await supabase.from('product_variants').select('stock, product_id').eq('id', variantId).single();
-    if (variant) {
-      const newStock = Math.max(0, variant.stock - sale.quantity);
-      await supabase.from('product_variants').update({ stock: newStock }).eq('id', variantId);
-      await syncProductStockFromVariants(variant.product_id);
-    }
-  } else if (sale.product_id) {
-    const { data: prod } = await supabase.from('products').select('stock').eq('id', sale.product_id).single();
-    if (prod) {
-      const newStock = Math.max(0, prod.stock - sale.quantity);
-      await supabase.from('products').update({ stock: newStock }).eq('id', sale.product_id);
-    }
-  }
+  // Igual que en `addSaleDB`: el descuento lo hace el trigger. Acá se descontaba
+  // de nuevo, variante incluida. `record_stock_movement` ya baja la variante y
+  // recalcula el total del producto desde sus variantes, así que tampoco hace
+  // falta `syncProductStockFromVariants`.
   if (!sale.paid) {
     await supabase.from('debts').insert({
       user_id: sale.user_id,
