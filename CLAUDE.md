@@ -138,6 +138,25 @@ npx playwright install      # la primera vez, baja el navegador
 Corren contra `localhost` levantando el dev server solo. `E2E_BASE_URL` apunta
 a otro lado si hace falta. Vitest sólo mira `src/**`, así que no se pisan.
 
+**Los specs del panel necesitan un usuario de prueba.** Sin él se saltean y la
+suite sigue verde — un test rojo por falta de configuración enseña a ignorar
+los tests rojos. Para activarlos, crear un usuario en Supabase (Authentication
+→ Add user, con "Auto Confirm"), darle membresía `owner` o `admin` en la
+organización, y exportar:
+
+```bash
+export E2E_USER=pruebas@tudominio.com
+export E2E_PASSWORD=...
+```
+
+`auth.setup.ts` inicia sesión **contra la API, no contra el formulario**, y
+guarda la sesión en `e2e/.auth/usuario.json` para que el resto la reuse. Ese
+archivo es un token válido y está en `.gitignore`: se trata como cualquier otro
+secreto. La contraseña nunca se imprime, ni siquiera cuando el login falla.
+
+Ese usuario es de prueba y ve datos reales de producción: conviene que no tenga
+más permisos de los que el spec necesita.
+
 **Los cálculos de plata van a funciones puras testeadas**, nunca inline:
 `businessCalc.ts`, `shippingCalc.ts`, `paymentFees.ts`, `storeReadiness.ts`.
 Cuando la misma cuenta existe en SQL (para que el servidor sea la autoridad), el

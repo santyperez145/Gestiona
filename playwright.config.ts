@@ -14,6 +14,15 @@
  */
 import { defineConfig, devices } from "@playwright/test";
 
+// El .env del proyecto alimenta al setup de sesión: de ahí salen la URL y la
+// clave anónima, que son públicas. Las credenciales del usuario de prueba van
+// aparte, en el entorno, y nunca en un archivo del repo.
+import { config as cargarEnv } from "dotenv";
+cargarEnv();
+
+// Relativa a la raíz del proyecto: `__dirname` no existe en módulos ES.
+const ARCHIVO_SESION = "e2e/.auth/usuario.json";
+
 const PORT = 8080;
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 
@@ -38,10 +47,28 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // La tienda es pública: no necesita sesión.
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: "**/panel.spec.ts",
+    },
     // El comprador argentino promedio entra desde el teléfono; los desbordes
     // de 375px son la clase de bug que sólo se ve ahí.
-    { name: "mobile", use: { ...devices["Pixel 5"] } },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 5"] },
+      testIgnore: "**/panel.spec.ts",
+    },
+
+    // El panel sí. La sesión se obtiene una vez y se reusa.
+    { name: "setup", testMatch: "**/auth.setup.ts" },
+    {
+      name: "panel",
+      testMatch: "**/panel.spec.ts",
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], storageState: ARCHIVO_SESION },
+    },
   ],
 
   // Reusa el server si ya está levantado: en desarrollo uno lo tiene abierto.
