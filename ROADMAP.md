@@ -71,7 +71,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Variantes | Anda | — |
 | POS y caja | Anda | — |
 | Ventas y reportes | Anda | — |
-| Compras y proveedores | Anda | Recepción parcial de órdenes |
+| Compras y proveedores | Anda | — |
 | Clientes y CRM | Anda | — |
 | Deudas y cuotas | Anda | — |
 | Finanzas y P&L | Anda | — |
@@ -91,7 +91,7 @@ Sin porcentajes: **anda**, **parcial** (funciona pero le falta algo concreto) o
 | Tiendanube | Parcial | Requiere `TIENDANUBE_CLIENT_SECRET` |
 | **AFIP** | **Falta** | **Sin factura no hay venta formal. Gap crítico.** |
 | Multi-sucursal | Anda | Stock por sucursal, transferencias validadas y recepción de OC por depósito |
-| Tests | Anda | 342 unitarios. Sin E2E |
+| Tests | Anda | 418 unitarios + 16 E2E de la tienda. Falta E2E del POS y el panel |
 
 Lo que dice "requiere una clave" no está roto: está construido y esperando un
 secreto. Ver [docs/CONFIGURACION.md](docs/CONFIGURACION.md).
@@ -114,7 +114,8 @@ FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
 **filtro por rango de precio** · **lista de deseos** · **aviso de reposición**
 (sin necesidad de cuenta) · **etiqueta de envío imprimible y seguimiento** que
 el comprador ve sin cuenta · **comisión por transacción cobrada de verdad** ·
-5 temas · dominio propio.
+**descuento por medio de pago** (10% con transferencia, calculado en la base) ·
+**feed de productos para Google Shopping y Meta** · 5 temas · dominio propio.
 
 ### Falta, en orden de impacto
 
@@ -157,6 +158,14 @@ cerró que la transferencia entre sucursales **inventaba mercadería** (transfer
 ## 7. Deuda técnica
 
 ### Resuelta (queda anotada para no repetirla)
+
+- **El sitemap y las vistas previas de producto estaban rotos desde el hardening
+  de RLS.** `api/sitemap.ts` y `api/og.ts` leían `products` cruda con la clave
+  anónima: 0 filas. Google no indexaba ni una ficha y compartir un producto por
+  WhatsApp mostraba la tarjeta genérica de la tienda. Los dos fallan en
+  silencio, que es por lo que duró. El guardia `publicSurface.test.ts` no cubría
+  `api/` **ni** detectaba la forma `fetch(.../rest/v1/tabla)`; ahora hace las
+  dos cosas.
 
 - **El stock se movía dos veces en cada venta y en cada compra.** El cliente
   ajustaba `products.stock` después de insertar la fila, y el trigger ya lo
