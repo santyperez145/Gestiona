@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { getCategoryLabel } from "@/lib/supabaseStore";
-import { resolveTheme } from "./theme";
+import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 
@@ -26,6 +26,33 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     () => resolveTheme(store?.theme, store?.primary_color),
     [store?.theme, store?.primary_color],
   );
+
+  // Tipografía elegida por el comercio, o la del tema.
+  const font = useMemo(() => resolveFont(store?.font), [store?.font]);
+
+  /**
+   * Se carga SÓLO la fuente elegida, y desde la tienda.
+   *
+   * El `@import` de `index.css` trae las tres del panel para toda la app; meter
+   * seis más ahí haría que cada comprador descargue cinco que no va a ver. Con
+   * el `<link>` acá, una tienda con la fuente del sistema no pide nada y una
+   * con Playfair pide sólo Playfair.
+   *
+   * El `<link>` se saca al desmontar para no dejar hojas de estilo acumuladas
+   * al cambiar de tienda.
+   */
+  useEffect(() => {
+    const href = googleFontHref(font);
+    if (!href) return;
+    if (document.querySelector(`link[data-store-font="${href}"]`)) return;
+
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.storeFont = href;
+    document.head.appendChild(link);
+    return () => { link.remove(); };
+  }, [font]);
 
   // Al navegar se cierran los paneles: dejarlos abiertos sobre otra página
   // desorienta, sobre todo en el celular.
@@ -57,12 +84,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   return (
     <div
-      className={`min-h-screen ${theme.rootClass}`}
+      className={`min-h-screen ${font ? "" : theme.rootClass}`}
       style={{
         ...(theme.vars as React.CSSProperties),
         ["--st-radius" as string]: theme.radius,
         background: "hsl(var(--st-bg))",
         color: "hsl(var(--st-text))",
+        // La elegida pisa la del tema. Sin fuente elegida se deja `rootClass`,
+        // que es como se veían todas hasta ahora.
+        ...(font ? { fontFamily: font.stack } : {}),
       }}
     >
       {/* ── Header ───────────────────────────────────────────────────── */}

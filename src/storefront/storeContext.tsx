@@ -27,6 +27,8 @@ export interface StoreInfo {
   free_shipping_above: number | null;
   /** `{"transferencia": 10}` — porcentaje de descuento por medio de pago. */
   payment_discounts: Record<string, number> | null;
+  /** Id de la tipografía elegida. null = la que trae el tema. */
+  font: string | null;
   /** 'flat' | 'zones' | 'free' — decide si el checkout cotiza por zona y peso */
   shipping_mode: string | null;
   pickup_enabled: boolean | null;

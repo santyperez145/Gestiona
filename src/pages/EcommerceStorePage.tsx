@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MAX_DESCUENTO_PORCENTAJE, type PaymentDiscounts } from "@/lib/paymentDiscount";
+import { STORE_FONTS } from "@/storefront/theme";
 import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Globe, Package, ShoppingCart, TrendingUp, Settings,
   Plus, Eye, RefreshCw, ExternalLink, Palette, Zap, BarChart3,
   Check, AlertTriangle, Tag, Users, DollarSign, ArrowRight, Loader2, MapPin, Truck,
-  Image as ImageIcon,
+  Image as ImageIcon, Type,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
@@ -32,6 +33,8 @@ const THEMES = [
   { id: "luxury",  label: "Luxury",  desc: "Dark & premium",   preview: "bg-zinc-900" },
   { id: "sport",   label: "Sport",   desc: "Dinámico",         preview: "bg-blue-600" },
   { id: "natural", label: "Natural", desc: "Orgánico, verde",   preview: "bg-emerald-600" },
+  { id: "noche",   label: "Noche",   desc: "Oscuro y neutro",   preview: "bg-slate-900" },
+  { id: "pastel",  label: "Pastel",  desc: "Claro y cálido",    preview: "bg-rose-200" },
 ];
 
 const SHIPPING_MODES = [
@@ -93,6 +96,7 @@ export default function EcommerceStorePage() {
     shipping_cost: "2500", is_active: false,
     payment_methods: ["mercadopago", "transferencia"],
     payment_discounts: {} as PaymentDiscounts,
+    font: "sistema",
     meta_title: "", meta_description: "",
     description: "", notification_email: "",
     meta_pixel_id: "", ga_measurement_id: "", tiktok_pixel_id: "",
@@ -150,6 +154,7 @@ export default function EcommerceStorePage() {
             is_active: data.is_active ?? prev.is_active,
             payment_methods: data.payment_methods || ["mercadopago", "transferencia"],
             payment_discounts: (data.payment_discounts as PaymentDiscounts) ?? prev.payment_discounts,
+            font: data.font ?? prev.font,
             meta_title: data.meta_title ?? prev.meta_title,
             description: data.description ?? prev.description,
             notification_email: data.notification_email ?? prev.notification_email,
@@ -246,6 +251,7 @@ export default function EcommerceStorePage() {
       is_active: storeForm.is_active,
       payment_methods: storeForm.payment_methods,
       payment_discounts: storeForm.payment_discounts,
+      font: storeForm.font,
       description: storeForm.description || null,
       logo_url: storeForm.logo_url || null,
       banner_url: storeForm.banner_url || null,
@@ -511,7 +517,7 @@ export default function EcommerceStorePage() {
         <div className="space-y-5">
           <div className="bg-card border border-border/40 rounded-xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4"><Palette className="w-4 h-4 text-primary" />Tema de la Tienda</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
               {THEMES.map(t => (
                 <button key={t.id} onClick={() => setSelectedTheme(t.id)}
                   className={`p-3 rounded-xl border-2 text-center transition-all ${selectedTheme === t.id ? "border-primary" : "border-border/40 hover:border-primary/40"}`}>
@@ -523,6 +529,38 @@ export default function EcommerceStorePage() {
               ))}
             </div>
           </div>
+          <div className="bg-card border border-border/40 rounded-xl p-5">
+            <h3 className="font-semibold flex items-center gap-2 mb-1">
+              <Type className="w-4 h-4 text-primary" />Tipografía
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Es lo que más cambia la cara de una tienda. La vista previa usa la
+              fuente de verdad, así que si no se ve distinta es que todavía está
+              cargando.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {STORE_FONTS.map(f => {
+                const elegida = (storeForm.font || "sistema") === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setStoreForm(p => ({ ...p, font: f.id }))}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${elegida ? "border-primary" : "border-border/40 hover:border-primary/40"}`}
+                  >
+                    {/* La previa se renderiza con la fuente real: elegir a ciegas
+                        por el nombre es cómo se termina con una tienda ilegible. */}
+                    <p className="text-lg leading-tight" style={{ fontFamily: f.stack }}>
+                      Aa <span className="text-sm">Perfume 100ml</span>
+                    </p>
+                    <p className="text-xs font-semibold mt-1.5">{f.label}</p>
+                    <p className="text-[10px] text-muted-foreground leading-snug">{f.hint}</p>
+                    {elegida && <Check className="w-3 h-3 text-primary mt-1" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Logo y portada. Antes no había forma de cargarlos desde la app:
               las columnas existían en `ecommerce_stores` y ninguna pantalla las
               editaba, así que la tienda salía siempre sin logo. */}

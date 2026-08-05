@@ -101,6 +101,42 @@ const THEMES: Record<string, StoreTheme> = {
       "--st-header": "158 64% 32%",
     },
   },
+  // Oscuro sin ser Luxury: Luxury es dorado y serif, muy marcado. Éste es
+  // neutro, para marcas que quieren fondo oscuro sin la carga de "premium".
+  noche: {
+    id: "noche",
+    label: "Noche",
+    rootClass: "font-sans",
+    radius: "0.625rem",
+    vars: {
+      "--st-bg": "222 18% 9%",
+      "--st-surface": "222 16% 13%",
+      "--st-border": "222 12% 24%",
+      "--st-text": "210 20% 96%",
+      "--st-muted": "215 14% 62%",
+      "--st-accent": "199 89% 55%",
+      "--st-accent-fg": "222 18% 9%",
+      "--st-header": "222 18% 9%",
+    },
+  },
+  // Claro y cálido, con mucho aire. Es el que mejor le sienta a catálogos de
+  // pocas fotos grandes, donde Minimal se ve vacío.
+  pastel: {
+    id: "pastel",
+    label: "Pastel",
+    rootClass: "font-sans",
+    radius: "1.5rem",
+    vars: {
+      "--st-bg": "20 60% 98%",
+      "--st-surface": "0 0% 100%",
+      "--st-border": "20 30% 90%",
+      "--st-text": "340 15% 16%",
+      "--st-muted": "340 8% 46%",
+      "--st-accent": "340 65% 62%",
+      "--st-accent-fg": "0 0% 100%",
+      "--st-header": "0 0% 100%",
+    },
+  },
 };
 
 /** Convierte "#f59e0b" al formato "H S% L%" que usan las variables. */
@@ -159,3 +195,90 @@ export function resolveTheme(themeId?: string | null, primaryColor?: string | nu
 }
 
 export const THEME_IDS = Object.keys(THEMES);
+
+/**
+ * Tipografías que puede elegir el comercio.
+ *
+ * La `rootClass` del tema define una por defecto; esto la pisa. Son pocas y
+ * curadas a propósito: un selector con 200 fuentes de Google termina en tiendas
+ * ilegibles, y cada fuente es una descarga más para el comprador.
+ *
+ * `google` es lo que se le pide a Google Fonts; `null` significa que no hay
+ * nada que descargar. Las que ya carga la app (Inter, Space Grotesk) tampoco
+ * cuestan un pedido extra en el panel, pero sí en la tienda, que es una página
+ * aparte — por eso también se listan con su nombre de Google.
+ */
+export interface StoreFont {
+  id: string;
+  label: string;
+  /** Qué se le pide a Google Fonts, o null si es una del sistema. */
+  google: string | null;
+  /** El `font-family` que termina en CSS. */
+  stack: string;
+  /** Para que el panel muestre cómo se ve sin cargarla. */
+  hint: string;
+}
+
+const FONTS: Record<string, StoreFont> = {
+  sistema: {
+    id: "sistema",
+    label: "Del sistema",
+    google: null,
+    stack: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    hint: "La más rápida: no descarga nada",
+  },
+  inter: {
+    id: "inter",
+    label: "Inter",
+    google: "Inter:wght@300;400;500;600;700",
+    stack: '"Inter", system-ui, sans-serif',
+    hint: "Neutra y muy legible en pantalla",
+  },
+  poppins: {
+    id: "poppins",
+    label: "Poppins",
+    google: "Poppins:wght@300;400;500;600;700",
+    stack: '"Poppins", system-ui, sans-serif',
+    hint: "Redonda y amigable",
+  },
+  space: {
+    id: "space",
+    label: "Space Grotesk",
+    google: "Space+Grotesk:wght@300;400;500;600;700",
+    stack: '"Space Grotesk", system-ui, sans-serif',
+    hint: "Técnica, con carácter",
+  },
+  playfair: {
+    id: "playfair",
+    label: "Playfair Display",
+    google: "Playfair+Display:wght@400;500;600;700",
+    stack: '"Playfair Display", Georgia, serif',
+    hint: "Serif elegante, para perfumería y moda",
+  },
+  lora: {
+    id: "lora",
+    label: "Lora",
+    google: "Lora:wght@400;500;600;700",
+    stack: '"Lora", Georgia, serif',
+    hint: "Serif suave, buena para textos largos",
+  },
+};
+
+export const STORE_FONTS: StoreFont[] = Object.values(FONTS);
+
+/**
+ * La tipografía elegida, o `null` si hay que usar la del tema.
+ *
+ * Un id desconocido —una fuente que se sacó del catálogo, o un valor viejo en
+ * la base— devuelve `null` en vez de romper: la tienda se ve con la del tema.
+ */
+export function resolveFont(fontId?: string | null): StoreFont | null {
+  if (!fontId) return null;
+  return FONTS[fontId] ?? null;
+}
+
+/** La URL de Google Fonts para una fuente, o null si no hay que cargar nada. */
+export function googleFontHref(font: StoreFont | null): string | null {
+  if (!font?.google) return null;
+  return `https://fonts.googleapis.com/css2?family=${font.google}&display=swap`;
+}

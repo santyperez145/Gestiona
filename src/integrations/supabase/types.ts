@@ -5117,6 +5117,7 @@ export type Database = {
           default_item_weight_kg: number
           description: string | null
           domain: string | null
+          font: string | null
           free_shipping_above: number | null
           ga_measurement_id: string | null
           google_ads_id: string | null
@@ -5151,6 +5152,7 @@ export type Database = {
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
+          font?: string | null
           free_shipping_above?: number | null
           ga_measurement_id?: string | null
           google_ads_id?: string | null
@@ -5185,6 +5187,7 @@ export type Database = {
           default_item_weight_kg?: number
           description?: string | null
           domain?: string | null
+          font?: string | null
           free_shipping_above?: number | null
           ga_measurement_id?: string | null
           google_ads_id?: string | null
@@ -17959,6 +17962,7 @@ export type Database = {
           banner_url: string
           currency: string
           description: string
+          font: string
           free_shipping_above: number
           ga_measurement_id: string
           logo_url: string

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveTheme, hexToHsl, THEME_IDS } from "@/storefront/theme";
+import { resolveTheme, hexToHsl, THEME_IDS, resolveFont, googleFontHref, STORE_FONTS } from "@/storefront/theme";
 
 describe("hexToHsl", () => {
   it("convierte un hex a la forma que usan las variables CSS", () => {
@@ -20,8 +20,11 @@ describe("hexToHsl", () => {
 });
 
 describe("resolveTheme", () => {
-  it("los 5 temas del panel existen y definen todas las variables", () => {
-    expect(THEME_IDS).toHaveLength(5);
+  it("todos los temas del panel existen y definen todas las variables", () => {
+    // El número sale de la lista, no de una constante escrita a mano: agregar
+    // un tema no tiene que obligar a tocar el test, pero olvidarse una variable
+    // sí tiene que fallar.
+    expect(THEME_IDS.length).toBeGreaterThanOrEqual(5);
     const requeridas = ["--st-bg", "--st-surface", "--st-border", "--st-text", "--st-muted", "--st-accent", "--st-accent-fg", "--st-header"];
     for (const id of THEME_IDS) {
       const t = resolveTheme(id, null);
@@ -50,5 +53,45 @@ describe("resolveTheme", () => {
     const base = resolveTheme("sport", null);
     const conBasura = resolveTheme("sport", "rojo");
     expect(conBasura.vars["--st-accent"]).toBe(base.vars["--st-accent"]);
+  });
+});
+
+describe("tipografías de la tienda", () => {
+  it("el catálogo trae etiqueta y stack en todas", () => {
+    expect(STORE_FONTS.length).toBeGreaterThan(1);
+    for (const f of STORE_FONTS) {
+      expect(f.stack, `fuente ${f.id}`).toBeTruthy();
+      expect(f.label, `fuente ${f.id}`).toBeTruthy();
+    }
+  });
+
+  it("resuelve una del catálogo", () => {
+    expect(resolveFont("playfair")?.label).toBe("Playfair Display");
+  });
+
+  // El caso que importa: una fuente que se saca del catálogo, o un valor viejo
+  // guardado en la base, no puede dejar la vitrina sin renderizar. Cae en la
+  // del tema, que es como se veía antes.
+  it("una fuente desconocida devuelve null en vez de romper", () => {
+    expect(resolveFont("fuente-que-no-existe")).toBeNull();
+    expect(resolveFont(null)).toBeNull();
+    expect(resolveFont("")).toBeNull();
+  });
+
+  it("la del sistema no descarga nada", () => {
+    expect(googleFontHref(resolveFont("sistema"))).toBeNull();
+    expect(googleFontHref(null)).toBeNull();
+  });
+
+  // La CSP de vercel.json sólo permite hojas de estilo de fonts.googleapis.com:
+  // si alguna fuente apuntara a otro lado, el navegador la bloquearía y la
+  // tienda se vería con la del sistema sin que nadie entienda por qué.
+  it("las de Google apuntan a fonts.googleapis.com, que es lo que permite la CSP", () => {
+    for (const f of STORE_FONTS) {
+      const href = googleFontHref(f);
+      if (href === null) continue;
+      expect(href.startsWith("https://fonts.googleapis.com/css2?family="), `fuente ${f.id}`).toBe(true);
+      expect(href).toContain("display=swap");
+    }
   });
 });
