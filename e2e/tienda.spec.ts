@@ -113,6 +113,43 @@ test.describe("ficha de producto", () => {
     await expect(page.getByText("Sin stock por ahora")).toBeVisible();
     await expect(page.getByPlaceholder("tu@email.com")).toBeVisible();
   });
+
+  test("preguntas: se listan las respondidas y sin cuenta se invita a entrar", async ({ page }) => {
+    await page.goto(tienda("/productos"));
+    const fichas = await fichasVisibles(page);
+    await fichas.first().click();
+
+    await expect(page.getByRole("heading", { name: "Preguntas y respuestas" })).toBeVisible();
+
+    // Sin sesión no hay caja de texto: preguntar pide cuenta, y el link a
+    // /cuenta es lo único que se ofrece.
+    await expect(page.getByPlaceholder("¿Qué querés saber de este producto?")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Iniciá sesión" }).first()).toBeVisible();
+  });
+
+  test("ninguna sección de la ficha aparece vacía", async ({ page }) => {
+    // El "Perfil olfativo" se mostraba con el título y nada debajo cuando la
+    // fila de detalle existía pero estaba vacía, y `0 || 0` dejaba un cero
+    // suelto en el medio de la página.
+    await page.goto(tienda("/productos"));
+    const fichas = await fichasVisibles(page);
+    await fichas.first().click();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    const perfil = page.getByRole("heading", { name: "Perfil olfativo" });
+    if (await perfil.count()) {
+      // Si está el título, tiene que haber contenido real abajo.
+      const seccion = perfil.locator("xpath=..");
+      expect((await seccion.innerText()).replace("Perfil olfativo", "").trim().length).toBeGreaterThan(0);
+    }
+
+    const ceroSuelto = await page.evaluate(() =>
+      [...document.querySelectorAll("div")].some(
+        d => d.lastChild?.nodeType === 3 && d.lastChild.nodeValue?.trim() === "0",
+      ),
+    );
+    expect(ceroSuelto, "un `x && y` con x numérico dejó un 0 impreso en la página").toBe(false);
+  });
 });
 
 test.describe("carrito", () => {

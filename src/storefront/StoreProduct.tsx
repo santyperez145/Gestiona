@@ -12,6 +12,7 @@ import {
 import { ChevronLeft, Minus, Plus, ShoppingBag, Check, Heart } from "lucide-react";
 import { trackViewItem, trackAddToCart } from "./tracking";
 import ProductReviews from "./ProductReviews";
+import ProductQuestions from "./ProductQuestions";
 import StockAlertForm from "./StockAlertForm";
 import { useWishlist } from "./wishlist";
 
@@ -107,6 +108,14 @@ export default function StoreProduct() {
     { t: "Corazón", v: d?.notas_corazon },
     { t: "Fondo", v: d?.notas_fondo },
   ].filter(n => n.v?.length);
+
+  // La fila de `perfume_details` existe apenas se abre la ficha en gestión,
+  // aunque se guarde vacía. Sin esto la tienda muestra el título "Perfil
+  // olfativo" con nada debajo, que se lee como un error de carga.
+  const hayPerfil = !!d && (
+    notas.length > 0 || !!d.familia_olfativa || !!d.duracion || !!d.proyeccion ||
+    (d.estacion?.length ?? 0) > 0 || (d.ocasion?.length ?? 0) > 0 || !!d.inspiracion
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -296,7 +305,7 @@ export default function StoreProduct() {
           )}
 
           {/* ── Ficha olfativa ───────────────────────────────────── */}
-          {d && (
+          {hayPerfil && (
             <div className="mt-7 pt-6 border-t space-y-4" style={{ borderColor: "hsl(var(--st-border))" }}>
               <h2 className="font-semibold">Perfil olfativo</h2>
 
@@ -332,7 +341,9 @@ export default function StoreProduct() {
                 </div>
               ))}
 
-              {(d.estacion?.length || d.ocasion?.length) && (
+              {/* `0 || 0` es `0`, y React imprime el cero. Con `> 0` la
+                  condición es booleana y no deja basura en la página. */}
+              {((d.estacion?.length ?? 0) > 0 || (d.ocasion?.length ?? 0) > 0) && (
                 <div className="grid grid-cols-2 gap-4">
                   {d.estacion?.length ? (
                     <div>
@@ -358,6 +369,8 @@ export default function StoreProduct() {
           )}
         </div>
       </div>
+
+      <ProductQuestions productId={p.id} />
 
       <ProductReviews productId={p.id} />
 

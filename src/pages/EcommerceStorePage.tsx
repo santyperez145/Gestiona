@@ -17,6 +17,7 @@ import {
 import { Link } from "react-router-dom";
 import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
+import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
@@ -87,6 +88,10 @@ export default function EcommerceStorePage() {
   usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
   const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "pages" | "banners" | "design" | "settings">("overview");
+  // Opiniones y preguntas comparten pestaña: son las dos cosas que escribe el
+  // comprador y que el comercio contesta. Separarlas agregaba una pestaña más a
+  // una fila que ya tiene siete.
+  const [vozTab, setVozTab] = useState<"opiniones" | "preguntas">("opiniones");
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [storeForm, setStoreForm] = useState({
@@ -297,7 +302,7 @@ export default function EcommerceStorePage() {
   const TABS = [
     { id: "overview",  label: "Overview" },
     { id: "orders",    label: "Órdenes" },
-    { id: "reviews",   label: "Opiniones" },
+    { id: "reviews",   label: "Opiniones y preguntas" },
     { id: "pages",     label: "Páginas" },
     { id: "banners",   label: "Banners" },
     { id: "design",    label: "Diseño & Tema" },
@@ -368,7 +373,21 @@ export default function EcommerceStorePage() {
         ))}
       </div>
 
-      {tab === "reviews" && <ReviewsModeration />}
+      {tab === "reviews" && (
+        <div className="space-y-4">
+          <div className="flex gap-1 bg-muted/30 p-1 rounded-xl w-fit max-w-full flex-wrap">
+            {(["opiniones", "preguntas"] as const).map(v => (
+              <button
+                key={v} onClick={() => setVozTab(v)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${vozTab === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          {vozTab === "opiniones" ? <ReviewsModeration /> : <QuestionsModeration />}
+        </div>
+      )}
 
       {tab === "pages" && (
         <StorePagesEditor storeId={store?.id ?? null} storeSlug={store?.slug ?? null} />
