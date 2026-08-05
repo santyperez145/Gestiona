@@ -14,7 +14,7 @@ import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } fr
 import { useStoreAuth } from "./storeAuth";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, pages, cart, cartCount, subtotal, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -350,6 +350,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     <span style={{ color: "hsl(var(--st-muted))" }}>Subtotal</span>
                     <span>{fmt(subtotal)}</span>
                   </div>
+                  {promo2x > 0 && (
+                    <div className="flex justify-between text-sm" style={{ color: "hsl(var(--st-accent))" }}>
+                      <span>Promo llevando 2</span>
+                      <span>−{fmt(promo2x)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "hsl(var(--st-muted))" }}>Envío</span>
                     <span>{shippingCost === 0 ? "Gratis" : fmt(shippingCost)}</span>

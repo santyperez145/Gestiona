@@ -680,6 +680,44 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 94 — La promo que el comercio ya tenía cargada (2026-08-05)
+
+`price_2x_ars` —el precio llevando dos— existía en la tabla, en la vista
+pública `store_catalog_products`, en el select de `publicDataSource.ts` y se
+mostraba en el catálogo por WhatsApp y en la página pública. **La tienda online
+era la única superficie que lo ignoraba.** El comercio tenía la promo cargada,
+la estaba publicando en otro lado, y su propia tienda cobraba el precio pleno.
+
+Medido contra la base: LOST MARY DURA, oferta 26.496 c/u y 2x 36.000 — en la
+tienda pagabas 52.992 por dos. ELFBAR ICE KING 40K, oferta 30.912 y 2x 42.000 —
+pagabas 61.824. Alguien que vio el catálogo por WhatsApp y entró a la tienda
+encontraba otro precio, que es la clase de inconsistencia que hace dudar del
+resto.
+
+**La decisión que define la implementación es que el ahorro se cuenta por
+producto, cruzando líneas.** Los dos productos con promo son vapers con 9 y 10
+sabores, así que la compra real —"uno de frutilla y otro de uva"— llega al RPC
+como dos líneas de una unidad. Una regla que mirara `quantity >= 2` por línea
+no habría disparado **nunca**, y el bug habría quedado escondido detrás de una
+función que "ya lo contempla". Se verificó justamente ese caso contra
+producción: dos sabores distintos descuentan 19.824.
+
+Dónde entra en la cuenta, que tampoco es obvio: va como descuento y no bajando
+el subtotal —el subtotal guardado tiene que seguir siendo la suma de los ítems
+o la orden no cierra contra su propio detalle— pero se resta **antes** del
+cupón, porque la promo es un precio y no una rebaja. Un 10% off sobre un precio
+que nadie paga sería regalar plata. El descuento por medio de pago sigue
+último.
+
+`create_store_order` se regeneró **desde la definición que está en producción**,
+insertando los cambios con un script, no reescribiéndola de memoria: es la
+misma función que casi se rompe en la sesión 90 al derivarla de un fragmento.
+
+En el navegador, con dos sabores en el carrito: subtotal 61.824, promo −19.824,
+total de mercadería 42.000 — exactamente el precio 2x. El "te faltan X para el
+envío gratis" también pasó a calcularse sobre el neto, que es lo que el
+comprador realmente paga.
+
 ### Sesión 93 — Preguntas en la tienda, y quién factura de verdad (2026-08-05)
 
 **Preguntar sobre un producto**, que tiene MercadoLibre y no tiene Tiendanube.

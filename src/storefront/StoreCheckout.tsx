@@ -33,7 +33,7 @@ const METODO_LABEL: Record<string, string> = {
 
 export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
-  const { store, cart, subtotal, shippingCost, fmt, clearCart } = useStore();
+  const { store, cart, subtotal, promo2x, shippingCost, fmt, clearCart } = useStore();
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
@@ -75,7 +75,8 @@ export default function StoreCheckout() {
     setValidandoCupon(true);
     setCuponError(null);
     const { data, error: rpcErr } = await supabase.rpc("check_store_coupon", {
-      p_slug: store.slug, p_code: cupon.trim(), p_subtotal: subtotal,
+      p_slug: store.slug, p_code: cupon.trim(),
+      p_subtotal: Math.max(0, subtotal - promo2x),
     });
     setValidandoCupon(false);
 
@@ -161,12 +162,13 @@ export default function StoreCheckout() {
 
   const descuento = cuponAplicado?.discount ?? 0;
 
-  // Mismo orden que `create_store_order`: el cupón sobre el subtotal, y el
-  // descuento del medio de pago sobre lo que queda de mercadería. El envío se
-  // suma después y no se descuenta — sería regalar lo que se le paga al correo.
+  // Mismo orden que `create_store_order`: primero la promo "llevando 2"
+  // —que es un precio, no una rebaja—, después el cupón sobre lo que queda, y
+  // el descuento del medio de pago al final. El envío se suma después y no se
+  // descuenta: sería regalar lo que se le paga al correo.
   //
   // Esto es sólo para mostrar: el número que se cobra lo recalcula la base.
-  const baseMercaderia = Math.max(0, subtotal - descuento);
+  const baseMercaderia = Math.max(0, subtotal - promo2x - descuento);
   const descuentoPago = montoDescuento(baseMercaderia, form.metodo, store?.payment_discounts);
   const totalFinal = Math.max(0, baseMercaderia - descuentoPago) + envio;
 

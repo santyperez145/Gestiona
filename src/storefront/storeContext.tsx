@@ -9,6 +9,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ahorroPromo2x } from "@/lib/promo2x";
 import { fetchStoreProducts, fetchStoreVariants, type StoreVariant } from "@/lib/publicDataSource";
 
 export interface StoreInfo {
@@ -73,6 +74,10 @@ export interface StoreProduct {
   description: string | null;
   sale_price_ars: number;
   discount_price_ars: number | null;
+  /** Precio total llevando 2. Llega desde `publicDataSource` y hasta la
+   *  sesión 94 no lo miraba nadie en la tienda, aunque el catálogo por
+   *  WhatsApp ya lo mostraba. */
+  price_2x_ars: number | null;
   stock: number;
   image_url: string | null;
   image_urls: string[] | null;
@@ -124,6 +129,8 @@ interface Ctx {
   /** Banners vigentes de la home, ya filtrados por fecha en el servidor. */
   banners: StoreBanner[];
   cart: CartLine[];
+  /** Ahorro de la promo "llevando 2". Espejo de `store_promo_2x_discount`. */
+  promo2x: number;
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
   setQty: (lineKey: string, qty: number) => void;
   removeFromCart: (lineKey: string) => void;
@@ -332,9 +339,17 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
 
   const value = useMemo<Ctx>(() => {
     const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
+
+    // El servidor recalcula esto en `create_store_order`; acá se muestra para
+    // que el carrito diga el mismo número que se va a cobrar.
+    const promo2x = ahorroPromo2x(
+      cart.map(l => ({ productId: l.productId, qty: l.qty, price: l.price })),
+      Object.fromEntries(products.map(pr => [pr.id, pr.price_2x_ars])),
+    ).total;
     const base = Number(store?.shipping_cost) || 0;
     const threshold = Number(store?.free_shipping_above) || 0;
-    const freeShipping = threshold > 0 && subtotal >= threshold;
+    const neto = Math.max(0, subtotal - promo2x);
+    const freeShipping = threshold > 0 && neto >= threshold;
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
@@ -342,10 +357,11 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,
+      promo2x,
       shippingCost,
-      total: subtotal + shippingCost,
+      total: neto + shippingCost,
       freeShippingGap: threshold > 0 && !freeShipping && cart.length > 0
-        ? threshold - subtotal
+        ? threshold - neto
         : null,
       priceOf, fmt,
     };

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { mejorDescuento, nombreMedio, totalConDescuento } from "@/lib/paymentDiscount";
 import { opcionDestacada, textoCuotas } from "@/lib/installments";
+import { ahorroDeUnPar } from "@/lib/promo2x";
 import { useInstallments } from "./useInstallments";
 import ProductCard from "./ProductCard";
 import { getCategoryLabel } from "@/lib/supabaseStore";
@@ -200,6 +201,27 @@ export default function StoreProduct() {
               </span>
             </p>
           )}
+
+          {/* Promo "llevando 2". El comercio ya la tenía cargada y la
+              publicaba en el catálogo por WhatsApp; la tienda cobraba el precio
+              pleno. El ahorro lo recalcula la base al cobrar. */}
+          {(() => {
+            const ahorro = ahorroDeUnPar(Number(precioParaTracking), p.price_2x_ars);
+            if (!ahorro) return null;
+            return (
+              <p
+                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 text-sm font-medium"
+                style={{
+                  background: "hsl(var(--st-accent) / 0.12)",
+                  color: "hsl(var(--st-accent))",
+                  borderRadius: "var(--st-radius)",
+                }}
+              >
+                Llevando 2: {fmt(Number(p.price_2x_ars))}
+                <span className="font-normal">· ahorrás {fmt(ahorro)}</span>
+              </p>
+            );
+          })()}
 
           {/* Cuotas reales de la cuenta de MercadoPago del comercio. Si no hay
               conexión OAuth, o MercadoPago no contesta, no aparece nada — antes
