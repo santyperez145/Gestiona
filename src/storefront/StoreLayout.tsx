@@ -102,7 +102,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       >
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
-            className="sm:hidden p-2 -ml-2"
+            className="lg:hidden p-2 -ml-2"
             onClick={() => setMenuOpen(v => !v)}
             aria-label="Menú"
             style={{ color: "hsl(var(--st-accent-fg))" }}
@@ -129,7 +129,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             </span>
           </Link>
 
-          <nav className="hidden sm:flex items-center gap-4 ml-4 text-sm">
+          {/* Cinco links con `whitespace-nowrap` no entran abajo de 768 junto
+              al logo, el buscador y los dos íconos, y con una categoría más se
+              rompería igual en cualquier ancho fijo. Abajo de 1024 viven en el
+              menú desplegable, que aguanta las que sean. */}
+          <nav className="hidden lg:flex items-center gap-4 ml-4 text-sm">
             {nav.map(n => (
               <Link
                 key={n.label}
@@ -142,20 +146,25 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             ))}
           </nav>
 
-          <form onSubmit={onSearch} className="ml-auto hidden md:flex items-center relative">
+          {/* Desde `sm`: con `md` quedaba una franja entre 640 y 767px sin ningún
+              buscador —el de arriba todavía oculto y el del menú ya escondido— y ahí
+              caen las tablets y los teléfonos grandes acostados. */}
+          <form onSubmit={onSearch} className="ml-auto hidden sm:flex items-center relative flex-1 min-w-0 max-w-[9rem] lg:max-w-[13rem]">
             <Search className="w-4 h-4 absolute left-2.5 opacity-50" style={{ color: "hsl(var(--st-accent-fg))" }} />
             <input
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="Buscar..."
-              className="h-9 w-52 rounded-full pl-8 pr-3 text-sm bg-white/15 placeholder:opacity-60 outline-none focus:bg-white/25 transition-colors"
+              className="h-9 w-full rounded-full pl-8 pr-3 text-sm bg-white/15 placeholder:opacity-60 outline-none focus:bg-white/25 transition-colors"
               style={{ color: "hsl(var(--st-accent-fg))" }}
             />
           </form>
 
           <Link
             to={`${base}/cuenta`}
-            className="p-2 md:ml-2 ml-auto md:ml-0"
+            // `ml-auto` sólo cuando no hay buscador: con los dos, ambos empujan y la
+            // fila se pasa de ancho. El breakpoint acompaña al del buscador.
+            className="p-2 ml-auto sm:ml-2"
             aria-label={customer ? "Mi cuenta" : "Iniciar sesión"}
             title={customer ? "Mi cuenta" : "Iniciar sesión"}
             style={{ color: "hsl(var(--st-accent-fg))" }}
@@ -182,7 +191,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         </div>
 
         {menuOpen && (
-          <nav className="sm:hidden border-t px-4 py-2 space-y-1" style={{ borderColor: "hsl(var(--st-border))" }}>
+          <nav className="lg:hidden border-t px-4 py-2 space-y-1" style={{ borderColor: "hsl(var(--st-border))" }}>
             {nav.map(n => (
               <Link key={n.label} to={n.to} className="block py-2 text-sm" style={{ color: "hsl(var(--st-accent-fg))" }}>
                 {n.label}
