@@ -9,9 +9,10 @@
  *
  *   - 10 de 60 productos activos **no tienen foto** y están publicados.
  *   - 59 de 60 **no tienen peso**, así que el envío se cotiza con el peso por
- *     defecto (0,5 kg) y cada despacho más pesado se cobra de menos. Ése es el
- *     único ítem de esta lista que cuesta plata en cada venta, no ventas
- *     perdidas: por eso pesa como pesa.
+ *     defecto (0,5 kg) y ese mismo número va declarado en la etiqueta. En este
+ *     catálogo el error es hacia arriba —los perfumes estiman 0,40—, o sea que
+ *     el comprador paga un envío más caro del que corresponde. Ver
+ *     `weightEstimate.ts`, donde está medido.
  *   - 33 de 60 tienen una descripción de menos de 80 caracteres.
  *
  * Los pesos salen de cuánto mueve la aguja cada cosa en una tienda online, no
@@ -71,7 +72,7 @@ export const REGLAS: ReglaCalidad[] = [
   {
     id: "peso",
     label: "Peso del producto",
-    porque: "Sin peso el envío se cotiza con el valor por defecto y cada despacho más pesado se cobra de menos. Es el único de esta lista que cuesta plata en cada venta.",
+    porque: "Sin peso el envío se cotiza con el valor por defecto (0,5 kg) y ese mismo número se declara en la etiqueta. Acá los perfumes pesan menos, así que el comprador paga un envío más caro del que corresponde.",
     puntos: 15,
     cumple: p => (Number(p.weight_kg) || 0) > 0,
   },

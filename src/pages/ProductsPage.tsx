@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Upload, X, FileSpreadsheet, Clock, Star, Sparkles, Droplets, Layers, DollarSign, FileText, ShoppingCart, QrCode, BarChart2, ChevronDown, ChevronUp, FileDown, Tag, Zap, LayoutGrid, List, Square, CheckSquare, CheckCheck, Brain, ScanLine, Check, Share2, Copy, Calculator, SlidersHorizontal, Scale } from "lucide-react";
 import { FAMILIAS_OLFATIVAS, DURACIONES, PROYECCIONES, ESTACIONES, OCASIONES, NOTAS_COMUNES, GENEROS, taxLabel, type TaxItem } from "@/lib/scentTaxonomy";
 import { recommendSimilar } from "@/lib/perfumeMatch";
 import { normalizeText, literalFilter } from "@/lib/searchText";
@@ -23,6 +23,7 @@ import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDisc
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
 import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
+import CompletarPesos from "@/components/products/CompletarPesos";
 import { REGLAS, type ImpactoId } from "@/lib/productQuality";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -315,6 +316,7 @@ export default function ProductsPage() {
   // Filtro por lo que le falta a la ficha. Sin esto, el panel de calidad es
   // una lista de reproches que no lleva a ningún lado.
   const [filterCalidad, setFilterCalidad] = useState<ImpactoId | null>(null);
+  const [pesosOpen, setPesosOpen] = useState(false);
   const facetCount = filterFamilia.length + filterNotas.length + filterEstacion.length + filterOcasion.length + filterGenderFacet.length + (filterMaxPrice ? 1 : 0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -685,6 +687,14 @@ export default function ProductsPage() {
                 <Tag className="w-4 h-4 mr-2" />Oferta x categoría
               </Button>
             )}
+            {canEdit && (
+              <Button
+                variant="outline" size="sm" onClick={() => setPesosOpen(true)}
+                title="Estimar el peso a partir del contenido, para que el envío no se cotice con el valor por defecto"
+              >
+                <Scale className="w-4 h-4 mr-2" />Completar pesos
+              </Button>
+            )}
             <Button variant="outline" size="sm" title="Calculadora de rentabilidad" onClick={() => { setCalcProduct(null); setCalcOpen(true); }}>
               <Calculator className="w-4 h-4 mr-2" />Calculadora
             </Button>
@@ -742,6 +752,18 @@ export default function ProductsPage() {
       </div>
 
       {/* Bulk price adjustment modal */}
+      {/* Sobre la selección; sin selección, sobre lo filtrado. Es lo que hace
+          que el filtro "sin peso" del panel de calidad termine en un arreglo y
+          no en una lista de reproches. */}
+      <CompletarPesos
+        open={pesosOpen}
+        onOpenChange={setPesosOpen}
+        productos={(selectedIds.size > 0
+          ? filteredSorted.filter((p: any) => selectedIds.has(p.id))
+          : filteredSorted) as any}
+        onDone={reload}
+      />
+
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Ajuste Masivo de Precios</DialogTitle></DialogHeader>

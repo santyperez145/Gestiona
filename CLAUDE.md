@@ -483,13 +483,26 @@ Pendientes conocidos al 2026-07-31:
   Un precio aproximado vende; ninguna opción de envío no vende nunca. Lo que
   sigue esperando al dueño es **revisar esos números** contra la tarifa real
   del correo.
-- ⚠️ **Cargar el peso de los productos.** 59 de 60 activos lo tienen en cero,
-  así que `quote_store_shipping` cotiza todo con `default_item_weight_kg`
-  (0,5 kg) y **cada despacho más pesado se cobra de menos**. No son ventas
-  perdidas: es plata que se pone en cada venta. Es el primero del ranking de
-  Productos → Calidad de las publicaciones, que ordena por impacto y no por
-  cantidad. En la misma pasada: 10 productos publicados **sin foto** y 33 con
-  descripción de menos de 80 caracteres.
+- **Cargar el peso de los productos.** 59 de 60 activos lo tienen en cero, así
+  que `quote_store_shipping` cotiza con `default_item_weight_kg` (0,5 kg) y
+  `prepare_order_shipment` declara ese mismo 0,5 en la etiqueta.
+
+  ⚠️ **El error va en la dirección contraria a la intuitiva**, y esto se
+  verificó midiendo: los 55 perfumes estiman **0,40 kg** y ninguno pasa de 0,5,
+  así que la tienda cotiza **de más**, no de menos. No cuesta margen: cuesta
+  ventas, porque el envío caro es de las primeras razones por las que se
+  abandona un carrito. En el catálogo de hoy el efecto sobre el precio queda
+  además tapado por el envío gratis desde $150.000, que se alcanza a las 3
+  unidades — empieza a verse cuando haya tarifas con kg extra en el resto de
+  las zonas.
+
+  Desde la sesión 93 el botón **"Completar pesos"** en Productos los estima a
+  partir del contenido en ml (los 60 lo tienen cargado) con vista previa y sin
+  pisar lo cargado a mano. Sigue faltando **pesar una caja real** y corregir:
+  el modelo es una estimación, no una balanza.
+- **Diez productos publicados sin foto** y 33 con descripción de menos de 80
+  caracteres. Están en el ranking de Productos → Calidad de las publicaciones,
+  que ordena por impacto y no por cantidad.
 - **Un certificado de AFIP de homologación** para verificar el ciclo de
   facturación. Es gratis y no emite comprobantes reales.
 - **Contrato con Correo Argentino o Andreani** para la etiqueta por API.

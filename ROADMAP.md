@@ -758,6 +758,37 @@ plata **en cada venta** y no ventas perdidas: sin él el envío se cotiza con lo
 Cada línea del ranking filtra el listado de abajo — una lista de pendientes que
 no lleva a ningún lado no se completa nunca.
 
+**Completar pesos**, que cierra ese círculo: el panel decía "59 sin peso" y
+filtraba la lista, pero arreglarlo eran 59 diálogos. Se estima del contenido en
+ml —los 60 lo tienen cargado, 54 son de 100 ml— con vista previa y sin pisar lo
+cargado a mano. Mismo patrón que "Completar el tarifario", y por la misma
+razón.
+
+⚠️ **Y midiendo el efecto se cayó una afirmación de este mismo documento**, que
+se había escrito dos commits antes sin verificarla. Decía que sin peso "cada
+despacho más pesado se cobra de menos". Es al revés: los 55 perfumes estiman
+**0,40 kg** contra un default de 0,50 y **ninguno lo supera**, así que la
+tienda cotiza **de más**. Eso no cuesta margen, cuesta ventas — el envío caro
+es de las primeras razones por las que se abandona un carrito.
+
+Tres cosas más que aparecieron al medirlo, y que conviene tener presentes antes
+de sacar conclusiones sobre envíos:
+
+- El efecto sobre el precio hoy queda **tapado por el envío gratis desde
+  $150.000**, que se alcanza a las 3 unidades. Dos cotizaciones consecutivas
+  dieron $0 con y sin peso cargado por eso, no porque el peso no importe.
+- La única tarifa cargada (CABA) tiene `price_per_extra_kg = 0`, así que ahí el
+  excedente de peso **no se cobra en absoluto**. El peso empieza a mover el
+  precio recién con las tarifas que genera "Completar el tarifario", que sí lo
+  llevan.
+- `store_cart_weight_kg` usa `products.weight_kg` cuando es > 0 y el default de
+  la tienda si no — verificado leyendo la función, que es el eslabón del que
+  depende todo lo anterior.
+
+Por eso `kilosSubestimados` pasó a ser `diferenciaContraDefault`, que devuelve
+las dos direcciones por separado: cotizar de más y cotizar de menos no son el
+mismo problema, y un neto habría escondido cuál está pasando.
+
 ### Sesión 92 — El stock se movía dos veces, y nadie lo veía (2026-08-02)
 
 Empezó siendo "stock real por depósito" del §6 y terminó destapando el bug más
