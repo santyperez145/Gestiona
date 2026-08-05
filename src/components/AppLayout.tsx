@@ -24,95 +24,25 @@ import CommandPalette from "@/components/shared/CommandPalette";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { usePermissionsResolver } from "@/lib/permissionsContext";
 import { moduleForRoute } from "@/lib/moduleMap";
+import { NAV_ITEMS, NAV_GROUPS, grupoDeRuta } from "@/lib/navigation";
 
-const allNavItems = [
-  // ── Principal ───────────────────────────────────────────────────────────────
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['admin', 'vendedor'], section: 'principal' },
-  { to: "/caja", label: "Caja / POS", icon: ScanLine, roles: ['admin', 'vendedor'], section: 'principal' },
-  { to: "/tareas", label: "Tareas", icon: CheckSquare, roles: ['admin', 'vendedor'], section: 'principal' },
-  { to: "/seguimiento", label: "Seguimiento", icon: Bell, roles: ['admin', 'vendedor'], section: 'principal' },
-  { to: "/calendario", label: "Calendario", icon: Calendar, roles: ['admin', 'vendedor'], section: 'principal' },
-  // ── Inventario ──────────────────────────────────────────────────────────────
-  { to: "/productos", label: "Productos", icon: Package, roles: ['admin'], section: 'inventario' },
-  { to: "/bundles", label: "Bundles / Kits", icon: Layers, roles: ['admin'], section: 'inventario' },
-  { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ['admin'], section: 'inventario' },
-  { to: "/ordenes-compra", label: "Órdenes de Compra", icon: ClipboardList, roles: ['admin'], section: 'inventario' },
-  { to: "/restock", label: "Auto-Reposición", icon: RefreshCw, roles: ['admin'], section: 'inventario' },
-  { to: "/transferencias", label: "Transferencias", icon: ArrowRightLeft, roles: ['admin'], section: 'inventario' },
-  { to: "/kardex", label: "Kardex", icon: History, roles: ['admin'], section: 'inventario' },
-  { to: "/lotes", label: "Lotes & Vencimientos", icon: ScanBarcode, roles: ['admin'], section: 'inventario' },
-  { to: "/valuacion-inventario", label: "Valuación de Inventario", icon: Layers, roles: ['admin'], section: 'inventario' },
-  { to: "/listas-precios", label: "Listas de Precios", icon: Tag, roles: ['admin'], section: 'inventario' },
-  { to: "/inventario-inteligente", label: "Inventario Inteligente IA", icon: Brain, roles: ['admin'], section: 'inventario' },
-  { to: "/forecast-inventario", label: "Forecast Inventario", icon: TrendingUp, roles: ['admin'], section: 'inventario' },
-  // ── Ventas & CRM ────────────────────────────────────────────────────────────
-  { to: "/ventas", label: "Ventas", icon: DollarSign, roles: ['admin', 'vendedor'], section: 'ventas' },
-  { to: "/clientes", label: "Clientes / CRM", icon: Users, roles: ['admin', 'vendedor'], section: 'ventas' },
-  { to: "/crm-avanzado", label: "CRM / Pipeline", icon: Kanban, roles: ['admin'], section: 'ventas' },
-  { to: "/presupuestos", label: "Presupuestos", icon: ClipboardList, roles: ['admin'], section: 'ventas' },
-  { to: "/deudas", label: "Deudas", icon: AlertCircle, roles: ['admin'], section: 'ventas' },
-  { to: "/cuotas", label: "Cuotas", icon: CreditCard, roles: ['admin'], section: 'ventas' },
-  { to: "/devoluciones", label: "Devoluciones", icon: RotateCcw, roles: ['admin'], section: 'ventas' },
-  { to: "/rfm", label: "Segmentación RFM", icon: Users, roles: ['admin'], section: 'ventas' },
-  { to: "/facturas", label: "Facturas", icon: FileText, roles: ['admin'], section: 'ventas' },
-  { to: "/envios", label: "Seguimiento de Envíos", icon: Truck, roles: ['admin', 'vendedor'], section: 'ventas' },
-  // ── Ecommerce & Multi-Tienda ────────────────────────────────────────────────
-  { to: "/tienda-online", label: "Tienda Online", icon: ShoppingBag, roles: ['admin'], section: 'ecommerce' },
-  { to: "/catalogo", label: "Catálogo Online", icon: BookOpen, roles: ['admin'], section: 'ecommerce' },
-  { to: "/sucursales", label: "Sucursales & Depósitos", icon: Warehouse, roles: ['admin'], section: 'ecommerce' },
-  { to: "/links-de-pago", label: "Links de Pago", icon: CreditCard, roles: ['admin'], section: 'ecommerce' },
-  // ── Finanzas ────────────────────────────────────────────────────────────────
-  { to: "/gastos", label: "Gastos", icon: Wallet, roles: ['admin'], section: 'finanzas' },
-  { to: "/proveedores", label: "Proveedores", icon: Truck, roles: ['admin'], section: 'finanzas' },
-  { to: "/banco", label: "Banco / Conciliación", icon: Landmark, roles: ['admin'], section: 'finanzas' },
-  { to: "/movimientos", label: "Libro Mayor", icon: BookOpen, roles: ['admin'], section: 'finanzas' },
-  { to: "/cheques", label: "Cheques", icon: FileText, roles: ['admin'], section: 'finanzas' },
-  { to: "/comisiones", label: "Comisiones", icon: Receipt, roles: ['admin'], section: 'finanzas' },
-  { to: "/cash-flow", label: "Cash Flow", icon: BarChart3, roles: ['admin'], section: 'finanzas' },
-  { to: "/multi-divisa", label: "Multi-Divisa FX", icon: DollarSign, roles: ['admin'], section: 'finanzas' },
-  { to: "/impuestos", label: "Gestión Impositiva", icon: Scale, roles: ['admin'], section: 'finanzas' },
-  { to: "/afip", label: "AFIP / Fact. Electrónica", icon: Shield, roles: ['admin'], section: 'finanzas' },
-  { to: "/suscripciones", label: "Suscripciones", icon: CreditCard, roles: ['admin'], section: 'finanzas' },
-  { to: "/pl-dashboard", label: "Dashboard P&L", icon: TrendingUp, roles: ['admin'], section: 'finanzas' },
-  // ── Marketing & Influencers ─────────────────────────────────────────────────
-  { to: "/marketing", label: "Marketing", icon: Megaphone, roles: ['admin'], section: 'marketing' },
-  { to: "/canjes", label: "Canjes & Influencers", icon: Gift, roles: ['admin'], section: 'marketing' },
-  { to: "/influencers", label: "Influencers", icon: Users2, roles: ['admin'], section: 'marketing' },
-  { to: "/email-campaigns", label: "Email Marketing", icon: Mail, roles: ['admin'], section: 'marketing' },
-  { to: "/whatsapp-campaigns", label: "WhatsApp Masivo", icon: MessageCircle, roles: ['admin'], section: 'marketing' },
-  { to: "/planner-social", label: "Planner Social", icon: Share2, roles: ['admin'], section: 'marketing' },
-  { to: "/cupones", label: "Cupones", icon: Tag, roles: ['admin'], section: 'marketing' },
-  { to: "/promociones", label: "Promociones & Flash Sales", icon: Zap, roles: ['admin'], section: 'marketing' },
-  { to: "/afiliados", label: "Programa Afiliados", icon: UserPlus, roles: ['admin'], section: 'marketing' },
-  { to: "/referidos", label: "Referidos", icon: Trophy, roles: ['admin'], section: 'marketing' },
-  { to: "/fidelidad", label: "Fidelidad", icon: Star, roles: ['admin'], section: 'marketing' },
-  // ── Analytics ───────────────────────────────────────────────────────────────
-  { to: "/reportes", label: "Reportes", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
-  { to: "/analytics", label: "Analytics", icon: BarChart3, roles: ['admin'], section: 'analytics' },
-  { to: "/kpi-dashboard", label: "KPI Dashboard", icon: LineChart, roles: ['admin'], section: 'analytics' },
-  { to: "/bi-reportes", label: "BI & Reports Avanzados", icon: BarChart3, roles: ['admin'], section: 'analytics' },
-  { to: "/forecast", label: "Forecast de Ventas", icon: TrendingUp, roles: ['admin'], section: 'analytics' },
-  { to: "/ia", label: "AI Insights", icon: Sparkles, roles: ['admin'], section: 'analytics' },
-  // ── Administración ──────────────────────────────────────────────────────────
-  { to: "/chat-ia", label: "Chat IA", icon: Brain, roles: ['admin'], section: 'admin' },
-  { to: "/alertas", label: "Alertas", icon: AlertTriangle, roles: ['admin'], section: 'admin' },
-  { to: "/integraciones", label: "Integraciones & API", icon: Plug, roles: ['admin'], section: 'admin' },
-  { to: "/equipo", label: "Equipo", icon: Users, roles: ['admin'], section: 'admin' },
-  { to: "/ajustes", label: "Ajustes", icon: Settings, roles: ['admin'], section: 'admin' },
-  { to: "/perfil", label: "Mi Perfil", icon: UserCircle, roles: ['admin', 'vendedor'], section: 'admin' },
-  { to: "/admin", label: "Admin", icon: Crown, roles: ['admin'], section: 'admin' },
-];
+/**
+ * La navegación vive en `src/lib/navigation.ts`.
+ *
+ * Antes eran 67 items declarados acá adentro, en 8 secciones que arrancaban
+ * TODAS abiertas y con el mismo peso visual. Mirando los datos reales, diez
+ * módulos sostienen el negocio y veinticuatro están en cero: darle a
+ * "Multi-Divisa FX" el mismo tamaño que a "Productos" enseña a ignorar el menú.
+ *
+ * Ahora seis destinos quedan siempre a la vista y el resto vive en grupos que
+ * abren de a uno. Ningún destino se perdió — los 67 siguen, y todos se alcanzan
+ * además con Ctrl+K.
+ */
+const allNavItems = NAV_ITEMS.map(i => ({ ...i, section: i.group }));
 
-const SECTION_LABELS: Record<string, string> = {
-  principal: '',
-  inventario: 'Inventario',
-  ventas: 'Ventas & CRM',
-  ecommerce: 'Ecommerce & Multi-Tienda',
-  finanzas: 'Finanzas',
-  marketing: 'Marketing & Influencers',
-  analytics: 'Analytics',
-  admin: 'Administración',
-};
+const SECTION_LABELS: Record<string, string> = Object.fromEntries(
+  NAV_GROUPS.map(g => [g.id, g.label]),
+);
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
@@ -129,38 +59,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const effectiveCollapsed = collapsed || isTablet;
 
   // ── Collapsible sidebar sections ─────────────────────────────────────────
-  const ALL_SECTIONS = Object.keys(SECTION_LABELS);
   const getActiveSectionForPath = (path: string) => {
     const item = allNavItems.find(i => i.to === path);
-    return item?.section ?? 'principal';
+    return item?.section ?? 'diario';
   };
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
-    // Restore from localStorage; default = ALL sections expanded
+  /**
+   * Los grupos que el usuario abrió a mano.
+   *
+   * Existe para distinguirlos de los que se abren solos al navegar. Sin esa
+   * distinción, la versión anterior auto-abría el grupo de cada página y no
+   * cerraba ninguno: bastaba una semana de uso para volver a tener los siete
+   * abiertos, o sea al menú de 67 renglones que esto viene a arreglar.
+   *
+   * La regla queda en una línea: **el grupo de la página actual siempre está
+   * abierto; los demás, sólo si vos los abriste.**
+   */
+  const [fijados, setFijados] = useState<Set<string>>(() => {
     try {
-      const saved = localStorage.getItem('gestiona.sidebar.expanded');
+      const saved = localStorage.getItem('gestiona.sidebar.expanded.v2');
       if (saved) return new Set(JSON.parse(saved) as string[]);
     } catch { /* ignore */ }
-    return new Set(ALL_SECTIONS);
+    return new Set();
   });
+
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => {
+    setFijados(prev => {
       const next = new Set(prev);
       if (next.has(section)) { next.delete(section); } else { next.add(section); }
-      // Persist to localStorage
-      try { localStorage.setItem('gestiona.sidebar.expanded', JSON.stringify([...next])); } catch { /* ignore */ }
+      try { localStorage.setItem('gestiona.sidebar.expanded.v2', JSON.stringify([...next])); } catch { /* ignore */ }
       return next;
     });
   };
-  // Auto-expand the section of the newly active route (never auto-collapse)
-  useEffect(() => {
-    const section = getActiveSectionForPath(pathname);
-    setExpandedSections(prev => {
-      if (prev.has(section)) return prev;
-      const next = new Set([...prev, section]);
-      try { localStorage.setItem('gestiona.sidebar.expanded', JSON.stringify([...next])); } catch { /* ignore */ }
-      return next;
-    });
-  }, [pathname]);
+
+  const expandedSections = useMemo(() => {
+    const activo = getActiveSectionForPath(pathname);
+    return new Set([...fijados, activo]);
+  }, [fijados, pathname]);
   const config = useBusinessConfig();
   const { subscription, isTrialing, trialDaysLeft } = useEntitlements();
 
@@ -199,7 +133,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       // Alt+1 → Dashboard, Alt+2 → POS, Alt+3 → Productos, Alt+4 → Ventas, Alt+5 → Clientes
       const routes: Record<string, string> = {
         "1": "/", "2": "/caja", "3": "/productos", "4": "/ventas", "5": "/clientes",
-        "6": "/tareas", "7": "/movimientos", "8": "/analitica", "9": "/integraciones",
+        "6": "/tareas", "7": "/movimientos", "8": "/analytics", "9": "/integraciones",
       };
       if (routes[e.key]) { e.preventDefault(); navigate(routes[e.key]); }
     };
@@ -318,7 +252,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* ── Navigation ───────────────────────────────────────────── */}
         <nav className="flex-1 px-2 py-2.5 overflow-y-auto scrollbar-hide">
           {groupedNav.map((group, gi) => {
-            const isExpanded = group.section === 'principal' || effectiveCollapsed || expandedSections.has(group.section);
+            const isExpanded = group.section === 'diario' || effectiveCollapsed || expandedSections.has(group.section);
             return (
             <div key={group.section} className={gi > 0 ? 'mt-1' : ''}>
               {/* Section label — clickable to collapse/expand */}

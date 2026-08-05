@@ -25,29 +25,37 @@ import {
 import { useAuth } from "@/lib/auth";
 import { getProductsDB, getCustomersDB } from "@/lib/supabaseStore";
 import Fuse from "fuse.js";
+import { NAV_ITEMS as NAV_MODEL } from "@/lib/navigation";
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
 
-const NAV_ITEMS = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard, shortcut: "G H" },
-  { label: "Productos", path: "/productos", icon: Package, shortcut: "Ctrl+P" },
-  { label: "Punto de Venta (POS)", path: "/pos", icon: ShoppingCart },
-  { label: "Ventas", path: "/ventas", icon: DollarSign, shortcut: "Ctrl+N" },
-  { label: "Compras", path: "/compras", icon: ShoppingCart },
-  { label: "Deudas", path: "/deudas", icon: AlertCircle, shortcut: "Ctrl+D" },
-  { label: "Clientes / CRM", path: "/clientes", icon: Users },
-  { label: "Presupuestos", path: "/presupuestos", icon: FileText },
-  { label: "Gastos", path: "/gastos", icon: Wallet, shortcut: "Ctrl+G" },
-  { label: "Reportes", path: "/reportes", icon: TrendingUp },
-  { label: "Marketing", path: "/marketing", icon: Megaphone },
-  { label: "Email Marketing", path: "/email-campaigns", icon: Mail },
-  { label: "WhatsApp Masivo", path: "/whatsapp-campaigns", icon: MessageCircle },
-  { label: "Links de Pago", path: "/links-de-pago", icon: CreditCard },
-  { label: "Canjes & Influencers", path: "/canjes", icon: Gift },
-  { label: "IA Insights", path: "/ia", icon: Brain },
-  { label: "Ajustes", path: "/ajustes", icon: Settings },
-  { label: "Admin", path: "/admin", icon: Crown },
-];
+/**
+ * Los destinos salen de `src/lib/navigation.ts`, la misma fuente que arma el
+ * sidebar. Antes esta lista era una copia a mano de 18 páginas sobre 67, y
+ * había quedado desincronizada: "Punto de Venta (POS)" apuntaba a `/pos`, una
+ * ruta que **no existe** — el buscador te llevaba a una pantalla en blanco. La
+ * ruta real es `/caja`.
+ *
+ * Con la fuente única se buscan los 67 y, además, por las palabras clave: quien
+ * escriba "kardex", "P&L" o "me deben" llega igual aunque el nombre visible
+ * haya cambiado.
+ */
+const ATAJOS: Record<string, string> = {
+  "/": "G H",
+  "/productos": "Ctrl+P",
+  "/ventas": "Ctrl+N",
+  "/deudas": "Ctrl+D",
+  "/gastos": "Ctrl+G",
+};
+
+const NAV_ITEMS = NAV_MODEL.map(i => ({
+  label: i.label,
+  path: i.to,
+  icon: i.icon,
+  /** Fuse busca también acá, que es lo que hace tolerable el renombrado. */
+  keywords: (i.keywords ?? []).join(" "),
+  shortcut: ATAJOS[i.to],
+}));
 
 const QUICK_ACTIONS = [
   { label: "Nueva venta rápida", path: "/ventas?new=1", icon: Plus, color: "text-green-400" },
@@ -165,7 +173,9 @@ export default function CommandPalette() {
   }), [customers]);
 
   const navFuse = useMemo(() => new Fuse(NAV_ITEMS, {
-    keys: ["label"],
+    // El nombre pesa más que las palabras clave: buscar "ventas" tiene que
+    // devolver Ventas primero, no Reportes porque las menciona.
+    keys: [{ name: "label", weight: 3 }, { name: "keywords", weight: 1 }],
     threshold: 0.35,
     includeScore: true,
   }), []);
