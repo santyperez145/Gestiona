@@ -15,6 +15,7 @@ import {
   quoteShipping, type ShippingZone, type ShippingRate,
   type CarrierCode, type ServiceCode, type StoreShippingConfig,
 } from '@/lib/shippingCalc';
+import CompletarTarifario from './CompletarTarifario';
 
 const fmt = (n: number) => `$${n.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;
 
@@ -185,7 +186,10 @@ export default function ShippingZonesTab() {
         </div>
       )}
 
-      {/* Provincias sin cubrir */}
+      {/* Provincias sin zona. Ojo: tener zona NO alcanza para poder vender —eso
+          lo advierte `CompletarTarifario`, que mira si además hay tarifa. Las
+          6 zonas por defecto cubren el país entero, así que este aviso queda
+          callado mientras 23 provincias siguen sin poder comprar. */}
       {zones.length > 0 && uncovered.length > 0 && (
         <div className="bg-yellow-500/8 border border-yellow-500/25 rounded-[10px] px-4 py-3">
           <p className="text-xs text-yellow-500/90">
@@ -196,6 +200,8 @@ export default function ShippingZonesTab() {
           </p>
         </div>
       )}
+
+      <CompletarTarifario orgId={orgId} zonas={zones} rates={rates} onDone={load} />
 
       {/* Nueva zona */}
       {zones.length > 0 && (

@@ -471,9 +471,18 @@ Pendientes conocidos al 2026-07-31:
 **Lo que espera al dueño, no al código:**
 
 - **Cargar las tarifas de envío.** Hay 6 zonas activas y tarifas en **una
-  sola**: CABA. Sin retiro en local habilitado, un comprador de cualquier otra
-  provincia recibe "No hay envío disponible" en el checkout. Es lo que más
-  plata cuesta hoy y no se arregla programando.
+  sola**: CABA — verificado contra la base: 1 provincia de 24 tiene tarifa. El
+  retiro en local **sí** está habilitado, así que lo que ve un comprador de las
+  otras 23 no es "No hay envío disponible" sino una única opción: ir a
+  buscarlo a CABA. Es peor de lo que suena, porque parece que el checkout
+  funciona.
+
+  Desde la sesión 93 hay un botón **"Completar el tarifario"** en Envíos →
+  Zonas que estima las 6 zonas por distancia a partir de una tarifa de
+  referencia, con vista previa de lo que va a crear y sin pisar lo ya cargado.
+  Un precio aproximado vende; ninguna opción de envío no vende nunca. Lo que
+  sigue esperando al dueño es **revisar esos números** contra la tarifa real
+  del correo.
 - **Un certificado de AFIP de homologación** para verificar el ciclo de
   facturación. Es gratis y no emite comprobantes reales.
 - **Contrato con Correo Argentino o Andreani** para la etiqueta por API.

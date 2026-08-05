@@ -123,7 +123,7 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 
 | # | Feature | Por qué importa | Esfuerzo |
 |---|---|---|---|
-| 1 | **Cargar las tarifas de envío** | No es código: es configuración. Hay 6 zonas y tarifas en **una sola**. Sin retiro en local habilitado, la tienda sólo puede venderle a CABA. Es lo que más plata cuesta hoy. | — |
+| 1 | **Revisar las tarifas de envío** | Hay 6 zonas y tarifas en **una sola**: 1 provincia de 24, verificado contra la base. Con el retiro en local habilitado, las otras 23 ven una sola opción —ir a buscarlo a CABA—, que parece un checkout que funciona. `Completar el tarifario` (sesión 93) las genera estimadas por distancia; falta contrastarlas con la tarifa real del correo. | — |
 | 2 | **AFIP de punta a punta** | La estructura está y las credenciales ya no se pueden leer desde el cliente, pero no hay certificado cargado ni factura emitida. Hace falta uno de homologación para verificar el ciclo. | L |
 | 3 | **Etiqueta por API del correo** | La imprimible ya funciona. La de Correo Argentino y Andreani necesita un contrato: sin credenciales no hay forma de verificar el payload. | M |
 
@@ -719,6 +719,25 @@ nadie llama. La vista va **sin** `security_invoker` a propósito y filtra por
 `is_platform_admin()` adentro; verificado con tres roles reales — staff ve las
 4 organizaciones, el dueño de una organización ve 0, anónimo ve 0 — y el total
 de comisión de la vista cuadra con la tabla cruda.
+
+**Completar el tarifario de envíos.** El ítem #1 de §5, y lo que este documento
+decía de él era falso: no es que un comprador de otra provincia reciba "No hay
+envío disponible" — el retiro en local está habilitado, así que recibe **una**
+opción, ir a buscarlo a CABA. Alguien en Ushuaia ve un checkout que parece
+funcionar. Verificado con el RPC real `quote_store_shipping` sobre Buenos
+Aires: antes 1 opción (retiro), después de cargar la tarifa 2 (retiro + Correo
+Argentino a domicilio $14.000), y sobre los $150.000 las dos dan $0.
+
+El botón nuevo estima las 6 zonas por **distancia de las provincias que
+contienen**, no por el nombre de la zona. La banda de una zona es la de su
+provincia más lejana y no el promedio: Patagonia tiene Neuquén y Tierra del
+Fuego, y cotizar el promedio es vender a pérdida justo en el despacho más caro.
+Nunca pisa lo cargado a mano y muestra las filas antes de crearlas.
+
+El aviso amarillo de esa pantalla también era engañoso: decía "N provincias sin
+zona", pero las 6 zonas por defecto cubren el país entero, así que estaba
+callado mientras 23 provincias no podían comprar. Tener zona no alcanza — hace
+falta que además tenga tarifa.
 
 ### Sesión 92 — El stock se movía dos veces, y nadie lo veía (2026-08-02)
 
