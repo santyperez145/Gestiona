@@ -680,6 +680,46 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 93 — Preguntas en la tienda, y quién factura de verdad (2026-08-05)
+
+**Preguntar sobre un producto**, que tiene MercadoLibre y no tiene Tiendanube.
+En perfumería la objeción que frena la compra no es el precio: es "¿es
+original?", "¿cuánto dura?". Hoy llegan por WhatsApp y se contestan de nuevo
+cada vez. Dos decisiones definen el producto: **sólo se publican las
+respondidas** —una tira de preguntas sin contestar dice que acá no atiende
+nadie— y **preguntar pide cuenta, no compra**, que es toda la diferencia con
+las reseñas: el que pregunta todavía no compró. Tope de 5 pendientes por
+persona, o alguien deja cincuenta en un minuto. Del lado del comercio va en la
+pestaña de Opiniones, ahora "Opiniones y preguntas", con el filtro arrancando
+en "Sin responder": es lo único accionable de esa pantalla.
+
+La verificación contra producción encontró que `RETURNS TABLE (id uuid, …)`
+declara una variable `id` que choca con la columna en cualquier `SELECT` de
+adentro de la función — `get_my_questions` abortaba con 42702. Y mirando la
+ficha en el navegador aparecieron dos bugs viejos: `{(a?.length || b?.length)
+&& …}` con las dos vacías evalúa a `0` y **React imprime el cero**, así que
+había un 0 suelto en la página de casi todos los productos; y "Perfil olfativo"
+se mostraba con el título y nada debajo, porque la fila de detalle se crea al
+abrir la ficha en gestión aunque quede vacía.
+
+**Negocio por comercio, en súper administración.** La plataforma cobra 5% por
+venta y hasta acá sólo podía ver el total del mes: `platform_revenue_monthly`
+agrupa por mes y moneda, no por comercio. La primera pregunta de cualquiera que
+opera un marketplace es "¿quién me da la plata?" y la segunda "¿quién dejó de
+dármela?", y ninguna se podía contestar sin escribir SQL a mano. El MRR de
+suscripciones tampoco alcanza: un comercio puede estar al día con el plan y no
+haber vendido en dos meses, y ése es justo el que se da de baja.
+
+`platform_org_health` deriva una señal por comercio — `sin_activar`
+(onboarding roto, no churn), `en_riesgo`, `cayendo`, `dormido`, `creciendo`,
+`estable` — y la pantalla nueva (`/platform/negocio`) ordena por urgencia, no
+alfabéticamente. El KPI que importa es **GMV en riesgo**, medido con el mes
+anterior: lo que el comercio demostró que puede facturar es lo que se pierde si
+nadie llama. La vista va **sin** `security_invoker` a propósito y filtra por
+`is_platform_admin()` adentro; verificado con tres roles reales — staff ve las
+4 organizaciones, el dueño de una organización ve 0, anónimo ve 0 — y el total
+de comisión de la vista cuadra con la tabla cruda.
+
 ### Sesión 92 — El stock se movía dos veces, y nadie lo veía (2026-08-02)
 
 Empezó siendo "stock real por depósito" del §6 y terminó destapando el bug más
