@@ -16138,8 +16138,10 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          location_id: string | null
           org_id: string
-          warehouse_id: string
+          pick_order: number
+          warehouse_id: string | null
           zone_id: string
         }
         Insert: {
@@ -16149,8 +16151,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          location_id?: string | null
           org_id: string
-          warehouse_id: string
+          pick_order?: number
+          warehouse_id?: string | null
           zone_id: string
         }
         Update: {
@@ -16160,11 +16164,20 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          location_id?: string | null
           org_id?: string
-          warehouse_id?: string
+          pick_order?: number
+          warehouse_id?: string | null
           zone_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "warehouse_bins_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "warehouse_bins_org_id_fkey"
             columns: ["org_id"]
@@ -16193,30 +16206,40 @@ export type Database = {
           active: boolean
           created_at: string
           id: string
+          location_id: string | null
           name: string
           org_id: string
-          warehouse_id: string
+          warehouse_id: string | null
           zone_type: string
         }
         Insert: {
           active?: boolean
           created_at?: string
           id?: string
+          location_id?: string | null
           name: string
           org_id: string
-          warehouse_id: string
+          warehouse_id?: string | null
           zone_type?: string
         }
         Update: {
           active?: boolean
           created_at?: string
           id?: string
+          location_id?: string | null
           name?: string
           org_id?: string
-          warehouse_id?: string
+          warehouse_id?: string | null
           zone_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "warehouse_zones_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "warehouse_zones_org_id_fkey"
             columns: ["org_id"]
@@ -17478,6 +17501,75 @@ export type Database = {
           },
         ]
       }
+      stock_sin_ubicar: {
+        Row: {
+          en_sucursal: number | null
+          location_id: string | null
+          product_id: string | null
+          producto: string | null
+          sin_ubicar: number | null
+          sucursal: string | null
+          ubicado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "location_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_sucursal_descuadrado: {
         Row: {
           diferencia: number | null
@@ -17528,6 +17620,75 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ubicaciones_descuadradas: {
+        Row: {
+          de_mas: number | null
+          en_sucursal: number | null
+          location_id: string | null
+          product_id: string | null
+          producto: string | null
+          sucursal: string | null
+          ubicado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "bin_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_bins_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
@@ -17586,6 +17747,10 @@ export type Database = {
           p_org_id: string
         }
         Returns: string
+      }
+      asignar_a_ubicacion: {
+        Args: { p_bin_id: string; p_cantidad: number; p_product_id: string }
+        Returns: Json
       }
       award_badge: {
         Args: {
@@ -18296,6 +18461,19 @@ export type Database = {
       run_abc_analysis: {
         Args: { p_org_id: string; p_period_days?: number }
         Returns: number
+      }
+      ruta_de_picking: {
+        Args: { p_items: Json; p_location_id: string }
+        Returns: {
+          a_tomar: number
+          bin_id: string
+          disponible: number
+          pick_order: number
+          posicion: string
+          product_id: string
+          producto: string
+          zona: string
+        }[]
       }
       save_afip_config: {
         Args: {

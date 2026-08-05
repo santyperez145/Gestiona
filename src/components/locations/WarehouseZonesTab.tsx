@@ -21,16 +21,18 @@ import KPICard from "@/components/shared/KPICard";
 interface WarehouseData {
   id: string;
   name: string;
-  code: string | null;
+  code?: string | null;
   address: string | null;
-  manager: string | null;
-  is_default: boolean;
+  /** `locations` no tiene encargado ni código: eran columnas que sólo existían
+   *  en la tabla duplicada. Quedan opcionales para no romper el formulario. */
+  manager?: string | null;
+  is_main: boolean;
   active: boolean;
 }
 
 interface Zone {
   id: string;
-  warehouse_id: string;
+  location_id: string;
   name: string;
   zone_type: string;
   active: boolean;
@@ -39,7 +41,7 @@ interface Zone {
 interface Bin {
   id: string;
   zone_id: string;
-  warehouse_id: string;
+  location_id: string;
   code: string;
   description: string | null;
   capacity: number | null;
@@ -65,7 +67,7 @@ const ZONE_TYPE_CFG: Record<string, { label: string; color: string }> = {
 };
 
 const EMPTY_WH = { name: "", code: "", address: "", manager: "", phone: "", is_default: false };
-const EMPTY_ZONE = { warehouse_id: "", name: "", zone_type: "general" };
+const EMPTY_ZONE = { warehouse_id: "", name: "", zone_type: "general" };  // `warehouse_id` es el id de la sucursal elegida en el form
 const EMPTY_BIN = { zone_id: "", code: "", description: "", capacity: 0 };
 
 export default function WarehouseZonesTab() {
@@ -103,7 +105,10 @@ export default function WarehouseZonesTab() {
     if (!orgId) return;
     setLoading(true);
     const [whRes, zRes, bRes, bsRes, prRes] = await Promise.allSettled([
-      supabase.from("warehouses").select("*").eq("org_id", orgId).eq("active", true).order("name"),
+      // `locations`, no `warehouses`: eran el mismo concepto modelado dos
+      // veces, y el stock vive colgado de `locations`. Con `warehouses` las
+      // posiciones nunca podían cerrar contra `location_stock`.
+      supabase.from("locations").select("*").eq("org_id", orgId).eq("active", true).order("name"),
       supabase.from("warehouse_zones").select("*").eq("org_id", orgId).eq("active", true).order("name"),
       supabase.from("warehouse_bins").select("*").eq("org_id", orgId).eq("active", true).order("code"),
       supabase.from("bin_stock").select("*, products(name, sku)").eq("org_id", orgId).order("quantity", { ascending: false }),
@@ -122,10 +127,10 @@ export default function WarehouseZonesTab() {
   async function saveWarehouse() {
     if (!orgId || !whForm.name.trim()) return toast.error("Ingresá el nombre del depósito");
     setSavingWh(true);
-    const { error } = await supabase.from("warehouses").insert({
-      org_id: orgId, name: whForm.name.trim(), code: whForm.code || null,
-      address: whForm.address || null, manager: whForm.manager || null,
-      phone: whForm.phone || null, is_default: whForm.is_default,
+    const { error } = await supabase.from("locations").insert({
+      org_id: orgId, name: whForm.name.trim(),
+      address: whForm.address || null,
+      phone: whForm.phone || null, is_main: whForm.is_default, active: true,
     });
     setSavingWh(false);
     if (error) { toast.error(error.message); return; }
@@ -138,7 +143,7 @@ export default function WarehouseZonesTab() {
     if (!zoneForm.name.trim()) return toast.error("Ingresá el nombre de la zona");
     setSavingZone(true);
     const { error } = await supabase.from("warehouse_zones").insert({
-      org_id: orgId, warehouse_id: zoneForm.warehouse_id,
+      org_id: orgId, location_id: zoneForm.warehouse_id,
       name: zoneForm.name.trim(), zone_type: zoneForm.zone_type,
     });
     setSavingZone(false);
@@ -154,7 +159,7 @@ export default function WarehouseZonesTab() {
     const zone = zones.find(z => z.id === binForm.zone_id);
     const { error } = await supabase.from("warehouse_bins").insert({
       org_id: orgId, zone_id: binForm.zone_id,
-      warehouse_id: zone?.warehouse_id ?? "",
+      location_id: zone?.location_id ?? null,
       code: binForm.code.trim().toUpperCase(),
       description: binForm.description || null,
       capacity: Number(binForm.capacity) || null,
@@ -168,13 +173,24 @@ export default function WarehouseZonesTab() {
   async function saveStock() {
     if (!orgId || !stockBinId || !stockProductId) return toast.error("Seleccioná bin y producto");
     setSavingStock(true);
-    const { error } = await supabase.from("bin_stock").upsert({
-      org_id: orgId, bin_id: stockBinId, product_id: stockProductId,
-      quantity: Number(stockQty), updated_at: new Date().toISOString(),
-    }, { onConflict: "bin_id,product_id" });
+    // Por RPC, no con un upsert directo: `asignar_a_ubicacion` valida que las
+    // posiciones de la sucursal no sumen más de lo que la sucursal tiene. El
+    // upsert que estaba acá dejaba ubicar 500 unidades de un producto del que
+    // hay 10 — el mismo agujero por el que una transferencia entre sucursales
+    // llegó a inventar 40.
+    const { data, error } = await supabase.rpc("asignar_a_ubicacion", {
+      p_bin_id: stockBinId,
+      p_product_id: stockProductId,
+      p_cantidad: Number(stockQty),
+    });
     setSavingStock(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Stock actualizado");
+    const r = data as { ubicado?: number; sin_ubicar?: number } | null;
+    toast.success(
+      r && Number(r.sin_ubicar) > 0
+        ? `Ubicado. Quedan ${Number(r.sin_ubicar)} unidades sin ubicar en la sucursal`
+        : "Ubicado. No queda nada sin ubicar",
+    );
     setStockOpen(false); setStockProductId(""); setStockQty(0); load();
   }
 
@@ -214,7 +230,7 @@ export default function WarehouseZonesTab() {
                     <SelectTrigger><SelectValue placeholder="Seleccionar zona" /></SelectTrigger>
                     <SelectContent>
                       {zones.map(z => {
-                        const wh = warehouses.find(w => w.id === z.warehouse_id);
+                        const wh = warehouses.find(w => w.id === z.location_id);
                         return <SelectItem key={z.id} value={z.id}>{wh?.name} / {z.name}</SelectItem>;
                       })}
                     </SelectContent>
@@ -342,8 +358,8 @@ export default function WarehouseZonesTab() {
       ) : (
         <div className="space-y-3">
           {warehouses.map(wh => {
-            const whZones = zones.filter(z => z.warehouse_id === wh.id);
-            const whBins = bins.filter(b => b.warehouse_id === wh.id);
+            const whZones = zones.filter(z => z.location_id === wh.id);
+            const whBins = bins.filter(b => b.location_id === wh.id);
             const whStockTotal = binStock.filter(bs => whBins.some(b => b.id === bs.bin_id)).reduce((s, bs) => s + Number(bs.quantity), 0);
             const isWhExpanded = expandedWh === wh.id;
 
@@ -358,14 +374,14 @@ export default function WarehouseZonesTab() {
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-foreground">{wh.name}</span>
                         {wh.code && <span className="text-xs text-muted-foreground font-mono">({wh.code})</span>}
-                        {wh.is_default && <Badge className="text-xs bg-yellow-500/20 text-yellow-500"><Star className="w-2.5 h-2.5 inline mr-0.5" />Predeterminado</Badge>}
+                        {wh.is_main && <Badge className="text-xs bg-yellow-500/20 text-yellow-500"><Star className="w-2.5 h-2.5 inline mr-0.5" />Predeterminado</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {whZones.length} zonas · {whBins.length} posiciones · {whStockTotal.toLocaleString("es-AR")} u. en stock
                         {wh.address && ` · ${wh.address}`}
                       </p>
                     </div>
-                    {!wh.is_default && (
+                    {!wh.is_main && (
                       <Button size="sm" variant="ghost" className="h-6 text-xs shrink-0" onClick={e => { e.stopPropagation(); setDefault(wh.id); }}>
                         Predeterminado
                       </Button>
