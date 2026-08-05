@@ -22,6 +22,8 @@ import { normalizeText, literalFilter } from "@/lib/searchText";
 import { getCategoryMarkup, getCategoryDiscount, calcAutoSalePrice, calcAutoDiscountPrice } from "@/lib/pricing";
 import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderModal";
 import PageHeader from "@/components/shared/PageHeader";
+import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
+import { REGLAS, type ImpactoId } from "@/lib/productQuality";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -310,6 +312,9 @@ export default function ProductsPage() {
   const [filterOcasion, setFilterOcasion] = useState<string[]>([]);
   const [filterGenderFacet, setFilterGenderFacet] = useState<string[]>([]);
   const [filterMaxPrice, setFilterMaxPrice] = useState('');
+  // Filtro por lo que le falta a la ficha. Sin esto, el panel de calidad es
+  // una lista de reproches que no lleva a ningún lado.
+  const [filterCalidad, setFilterCalidad] = useState<ImpactoId | null>(null);
   const facetCount = filterFamilia.length + filterNotas.length + filterEstacion.length + filterOcasion.length + filterGenderFacet.length + (filterMaxPrice ? 1 : 0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -430,7 +435,25 @@ export default function ProductsPage() {
     return new Set(fuseIndex.search(q).map(r => r.item.id));
   }, [products, fuseIndex, search]);
 
+  // La ficha técnica vive en otra tabla, así que se adjunta acá: la regla de
+  // calidad recibe un producto plano y no sabe nada de cómo se carga.
+  const paraCalidad = useMemo(() => products.map((p: any) => ({
+    ...p,
+    tiene_ficha: !!perfumeDetailsByProduct[p.id]
+      && Object.values(perfumeDetailsByProduct[p.id]).some(
+        (v: any) => Array.isArray(v) ? v.length > 0 : (typeof v === 'string' && v.trim() !== ''),
+      ),
+  })), [products, perfumeDetailsByProduct]);
+
+  const calidadPorProducto = useMemo(
+    () => new Map(paraCalidad.map((p: any) => [p.id, p])), [paraCalidad]);
+
   const filtered = products.filter(p => {
+    if (filterCalidad) {
+      const regla = REGLAS.find(r => r.id === filterCalidad);
+      const conFicha = calidadPorProducto.get(p.id) ?? p;
+      if (regla && regla.cumple(conFicha as never)) return false;
+    }
     if (search && search.length >= 2 && searchMatchIds && !searchMatchIds.has(p.id)) return false;
     if (search && search.length < 2 && !normalizeText(p.name).includes(normalizeText(search)) && !normalizeText(p.brand ?? '').includes(normalizeText(search))) return false;
     if (filterCat !== 'all' && p.category !== filterCat) return false;
@@ -685,6 +708,12 @@ export default function ProductsPage() {
             ))}
           </div>
         }
+      />
+
+      <CalidadPublicaciones
+        productos={paraCalidad}
+        filtroActivo={filterCalidad}
+        onFiltrar={setFilterCalidad}
       />
 
       {/* KPI row */}
@@ -1164,6 +1193,9 @@ export default function ProductsPage() {
                             <div className="flex items-center gap-2">
                               {p.image_url && <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover" />}
                               <span className="truncate">{p.name}</span>
+                              {/* El puntaje de la ficha, sólo si no está completa:
+                                  un catálogo lleno de números verdes no dice nada. */}
+                              <BadgeCalidad producto={calidadPorProducto.get(p.id) ?? p} />
                               {p.featured && <Star className="w-3 h-3 text-primary shrink-0" fill="currentColor" />}
                               {variantCounts[p.id] > 0 && (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 shrink-0 flex items-center gap-0.5" title={`${variantCounts[p.id]} sabores/variantes`}>

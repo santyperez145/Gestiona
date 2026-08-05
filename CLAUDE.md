@@ -483,6 +483,13 @@ Pendientes conocidos al 2026-07-31:
   Un precio aproximado vende; ninguna opción de envío no vende nunca. Lo que
   sigue esperando al dueño es **revisar esos números** contra la tarifa real
   del correo.
+- ⚠️ **Cargar el peso de los productos.** 59 de 60 activos lo tienen en cero,
+  así que `quote_store_shipping` cotiza todo con `default_item_weight_kg`
+  (0,5 kg) y **cada despacho más pesado se cobra de menos**. No son ventas
+  perdidas: es plata que se pone en cada venta. Es el primero del ranking de
+  Productos → Calidad de las publicaciones, que ordena por impacto y no por
+  cantidad. En la misma pasada: 10 productos publicados **sin foto** y 33 con
+  descripción de menos de 80 caracteres.
 - **Un certificado de AFIP de homologación** para verificar el ciclo de
   facturación. Es gratis y no emite comprobantes reales.
 - **Contrato con Correo Argentino o Andreani** para la etiqueta por API.

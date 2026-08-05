@@ -739,6 +739,25 @@ zona", pero las 6 zonas por defecto cubren el país entero, así que estaba
 callado mientras 23 provincias no podían comprar. Tener zona no alcanza — hace
 falta que además tenga tarifa.
 
+**Calidad de las publicaciones**, que es la herramienta de merchandising más
+conocida de MercadoLibre y Tiendanube no tiene. Antes de escribirla se midió si
+había algo que mostrar, y lo había: **10 de 60** productos activos publicados
+**sin foto**, **59 de 60 sin peso**, 33 con descripción de menos de 80
+caracteres, y las 30 filas de `product_perfume_details` que existen están
+**todas vacías** — por eso no se hizo el filtro por familia olfativa que parecía
+el próximo paso obvio: habría filtrado sobre nada.
+
+El panel ordena por **impacto total** (productos × puntos), no por cuántos
+productos tienen cada cosa mal. Verificado con el espejo en SQL: primero el
+peso (59 × 15 = 885), último el SKU (60 × 2 = 120) aunque le falte a los 60.
+Cargarle el SKU a todo el catálogo es más trabajo y rinde menos que sacarle la
+foto a los diez que no la tienen. El peso además es el único ítem que cuesta
+plata **en cada venta** y no ventas perdidas: sin él el envío se cotiza con los
+0,5 kg por defecto.
+
+Cada línea del ranking filtra el listado de abajo — una lista de pendientes que
+no lleva a ningún lado no se completa nunca.
+
 ### Sesión 92 — El stock se movía dos veces, y nadie lo veía (2026-08-02)
 
 Empezó siendo "stock real por depósito" del §6 y terminó destapando el bug más
