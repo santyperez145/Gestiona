@@ -161,6 +161,12 @@ cerró que la transferencia entre sucursales **inventaba mercadería** (transfer
 
 ### Resuelta (queda anotada para no repetirla)
 
+- **La navegación estaba escrita tres veces** —el sidebar, la paleta Ctrl+K y el
+  mapa de módulos— y las copias se desincronizaron: la paleta ofrecía "Punto de
+  Venta" apuntando a `/pos`, una ruta inexistente, y `Alt+8` iba a `/analitica`
+  en vez de `/analytics`. Los dos llevaban a una pantalla en blanco. Ahora
+  `src/lib/navigation.ts` es la fuente única.
+
 - **El sitemap y las vistas previas de producto estaban rotos desde el hardening
   de RLS.** `api/sitemap.ts` y `api/og.ts` leían `products` cruda con la clave
   anónima: 0 filas. Google no indexaba ni una ficha y compartir un producto por
