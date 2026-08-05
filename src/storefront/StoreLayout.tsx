@@ -9,9 +9,31 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { menuDeCategorias } from "@/lib/storeCategories";
+import { menuEfectivo } from "@/lib/storeMenu";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
+
+/**
+ * Un link del menú. Los externos salen del router: con `<Link>` un
+ * "https://instagram.com/x" se interpreta como ruta interna y da 404.
+ */
+function LinkDeMenu({
+  item, className, style,
+}: {
+  item: { label: string; to: string; externo?: boolean };
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  if (item.externo) {
+    return (
+      <a href={item.to} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+        {item.label}
+      </a>
+    );
+  }
+  return <Link to={item.to} className={className} style={style}>{item.label}</Link>;
+}
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   const { store, products, categorias, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
@@ -68,21 +90,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   // Desde la sesión 94 el nombre y el orden salen de `ecommerce_categories`
   // cuando el comercio las cargó; si no, de los slugs de los productos, que es
   // como venía funcionando.
+  // Y desde la sesión 95 el comercio puede armar el suyo: si cargó links, se
+  // usan ésos; si no —o si todos quedaron rotos— se arma el de siempre.
   const nav = useMemo(() => {
     const cats = menuDeCategorias(
       categorias,
       products.map(p => p.category).filter(Boolean) as string[],
     );
-    return [
-      { to: base, label: "Inicio" },
-      { to: `${base}/productos`, label: "Productos" },
-      ...cats.slice(0, 2).map(c => ({
-        to: `${base}/productos?cat=${encodeURIComponent(c.slug)}`,
-        label: c.label,
-      })),
-      { to: `${base}/productos?oferta=1`, label: "Ofertas" },
-    ];
-  }, [products, categorias, base]);
+    return menuEfectivo(store?.nav_links, { base, categorias: cats });
+  }, [products, categorias, base, store?.nav_links]);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,14 +158,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               menú desplegable, que aguanta las que sean. */}
           <nav className="hidden lg:flex items-center gap-4 ml-4 text-sm">
             {nav.map(n => (
-              <Link
+              <LinkDeMenu
                 key={n.label}
-                to={n.to}
+                item={n}
                 className="opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
                 style={{ color: "hsl(var(--st-accent-fg))" }}
-              >
-                {n.label}
-              </Link>
+              />
             ))}
           </nav>
 
@@ -200,9 +214,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         {menuOpen && (
           <nav className="lg:hidden border-t px-4 py-2 space-y-1" style={{ borderColor: "hsl(var(--st-border))" }}>
             {nav.map(n => (
-              <Link key={n.label} to={n.to} className="block py-2 text-sm" style={{ color: "hsl(var(--st-accent-fg))" }}>
-                {n.label}
-              </Link>
+              <LinkDeMenu
+                key={n.label} item={n}
+                className="block py-2 text-sm"
+                style={{ color: "hsl(var(--st-accent-fg))" }}
+              />
             ))}
             <form onSubmit={onSearch} className="pt-1 pb-2">
               <input
@@ -232,7 +248,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <p className="text-sm font-semibold mb-2">Navegación</p>
             <ul className="space-y-1 text-sm" style={{ color: "hsl(var(--st-muted))" }}>
               {nav.map(n => (
-                <li key={n.label}><Link to={n.to} className="hover:underline">{n.label}</Link></li>
+                <li key={n.label}><LinkDeMenu item={n} className="hover:underline" /></li>
               ))}
             </ul>
           </div>

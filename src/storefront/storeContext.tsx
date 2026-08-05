@@ -38,6 +38,8 @@ export interface StoreInfo {
   meta_title: string | null;
   meta_description: string | null;
   social_links: Record<string, string> | null;
+  /** Menú armado por el comercio. Vacío = se arma solo. Ver `storeMenu.ts`. */
+  nav_links: unknown;
   meta_pixel_id: string | null;
   ga_measurement_id: string | null;
   tiktok_pixel_id: string | null;

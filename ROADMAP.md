@@ -680,6 +680,23 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 96 — El menú lo arma el comercio (2026-08-05)
+
+El menú se armaba solo y no se podía tocar. Ahora se guarda en `nav_links`
+(jsonb en la tienda), y **vacío significa "armalo solo"**: por eso aplicar la
+migración no cambia ninguna tienda. Un paso más: si todos los links quedaron
+rotos —una categoría borrada, una página despublicada— se vuelve al automático,
+porque el header no puede quedarse sin forma de llegar al catálogo.
+
+Dos cosas que valen más que la feature: sólo se aceptan http y https —un
+`javascript:` en el menú es un XSS servido, y se valida al guardar **y otra vez
+al mostrar**, porque una fila vieja no pasó por el formulario de hoy— y los
+links externos salen del router, que con `<Link>` darían 404. El menú se dibuja
+en tres lados, así que esa decisión vive en un solo componente.
+
+`get_store_by_slug` se regeneró desde producción con la columna al final de la
+firma: tiene cuatro llamadores reales y los cuatro leen por nombre de campo.
+
 ### Sesión 95 — Las categorías dejan de estar hardcodeadas (2026-08-05)
 
 Comparando la tienda contra Tiendanube feature por feature, casi todo ya

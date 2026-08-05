@@ -20,6 +20,7 @@ import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
 import CategoriesEditor from "@/components/ecommerce/CategoriesEditor";
+import MenuEditor from "@/components/ecommerce/MenuEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
@@ -126,6 +127,22 @@ export default function EcommerceStorePage() {
   const [orders, setOrders] = useState<EcomOrder[]>([]);
   const [envioDe, setEnvioDe] = useState<EcomOrder | null>(null);
   const [funnelData, setFunnelData] = useState<FunnelRow[]>([]);
+  // Opciones para armar el menú: las categorías y las páginas publicadas.
+  const [menuCategorias, setMenuCategorias] = useState<{ slug: string; name: string }[]>([]);
+  const [menuPaginas, setMenuPaginas] = useState<{ slug: string; title: string }[]>([]);
+
+  useEffect(() => {
+    if (!orgId || tab !== "categorias") return;
+    Promise.all([
+      supabase.from("ecommerce_categories").select("slug, name")
+        .eq("org_id", orgId).eq("is_active", true).order("sort_order"),
+      supabase.from("store_pages").select("slug, title")
+        .eq("org_id", orgId).eq("status", "published").order("title"),
+    ]).then(([c, g]) => {
+      setMenuCategorias((c.data ?? []) as { slug: string; name: string }[]);
+      setMenuPaginas((g.data ?? []) as { slug: string; title: string }[]);
+    });
+  }, [orgId, tab]);
 
   /** Releer las órdenes. Se usa al montar y después de despachar una. */
   const loadOrders = useCallback(async () => {
@@ -391,7 +408,16 @@ export default function EcommerceStorePage() {
         </div>
       )}
 
-      {tab === "categorias" && <CategoriesEditor storeId={store?.id ?? null} />}
+      {tab === "categorias" && (
+        <div className="space-y-6">
+          <CategoriesEditor storeId={store?.id ?? null} />
+          <MenuEditor
+            storeSlug={store?.slug ?? null}
+            categorias={menuCategorias}
+            paginas={menuPaginas}
+          />
+        </div>
+      )}
 
       {tab === "pages" && (
         <StorePagesEditor storeId={store?.id ?? null} storeSlug={store?.slug ?? null} />

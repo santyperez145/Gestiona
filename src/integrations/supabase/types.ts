@@ -5604,6 +5604,7 @@ export type Database = {
           meta_pixel_id: string | null
           meta_title: string | null
           name: string
+          nav_links: Json
           notification_email: string | null
           org_id: string
           payment_discounts: Json
@@ -5639,6 +5640,7 @@ export type Database = {
           meta_pixel_id?: string | null
           meta_title?: string | null
           name?: string
+          nav_links?: Json
           notification_email?: string | null
           org_id: string
           payment_discounts?: Json
@@ -5674,6 +5676,7 @@ export type Database = {
           meta_pixel_id?: string | null
           meta_title?: string | null
           name?: string
+          nav_links?: Json
           notification_email?: string | null
           org_id?: string
           payment_discounts?: Json
@@ -19900,6 +19903,7 @@ export type Database = {
           meta_pixel_id: string
           meta_title: string
           name: string
+          nav_links: Json
           org_id: string
           owner_user_id: string
           payment_discounts: Json
