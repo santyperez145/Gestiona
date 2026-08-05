@@ -115,7 +115,9 @@ FAQ, términos) con plantillas argentinas · **banners con vigencia** ·
 (sin necesidad de cuenta) · **etiqueta de envío imprimible y seguimiento** que
 el comprador ve sin cuenta · **comisión por transacción cobrada de verdad** ·
 **descuento por medio de pago** (10% con transferencia, calculado en la base) ·
-**feed de productos para Google Shopping y Meta** · 5 temas · dominio propio.
+**feed de productos para Google Shopping y Meta** ·
+**cuotas reales de MercadoPago en la ficha** (consultadas a la cuenta del
+comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio.
 
 ### Falta, en orden de impacto
 
