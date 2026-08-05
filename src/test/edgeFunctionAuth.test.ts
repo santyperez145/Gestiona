@@ -55,6 +55,11 @@ const ALLOWED_WITHOUT_USER: Record<string, string> = {
   'store-order-email': 'storefront público',
   'store-pay': 'storefront público',
   'shipping-quote': 'storefront público',
+  // Devuelve el listado de cuotas y nada más: la clave del comercio se usa
+  // para preguntarle a MercadoPago y nunca sale en la respuesta. El org se
+  // resuelve por el slug, así que no se pueden pedir las cuotas de otra
+  // organización.
+  'mp-installments': 'storefront público',
   // Otros
   'send-push': 'invocada server-side',
   'drip-unsubscribe': 'link público de un solo uso',

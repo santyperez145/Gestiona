@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { mejorDescuento, nombreMedio, totalConDescuento } from "@/lib/paymentDiscount";
+import { opcionDestacada, textoCuotas } from "@/lib/installments";
+import { useInstallments } from "./useInstallments";
 import ProductCard from "./ProductCard";
 import { getCategoryLabel } from "@/lib/supabaseStore";
 import {
@@ -46,6 +48,12 @@ export default function StoreProduct() {
     if (!p) return;
     trackViewItem({ id: p.id, name: p.name, price: Number(precioParaTracking) }, store?.currency ?? "ARS");
   }, [p, precioParaTracking, store?.currency]);
+
+  // Cuotas: va ANTES del early return por la regla de los hooks, igual que el
+  // tracking. Se consulta sobre `precioParaTracking`, que ya contempla la
+  // variante elegida.
+  const cuotas = useInstallments(store?.slug, precioParaTracking);
+  const textoCuota = textoCuotas(opcionDestacada(cuotas), fmt);
 
   if (!p) {
     return (
@@ -181,6 +189,15 @@ export default function StoreProduct() {
               <span style={{ color: "hsl(var(--st-muted))" }}>
                 con {nombreMedio(descuentoPago.metodo)} ({descuentoPago.porcentaje}% OFF)
               </span>
+            </p>
+          )}
+
+          {/* Cuotas reales de la cuenta de MercadoPago del comercio. Si no hay
+              conexión OAuth, o MercadoPago no contesta, no aparece nada — antes
+              que mostrar una cuota inventada que el checkout va a desmentir. */}
+          {textoCuota && (
+            <p className="mt-1 text-sm" style={{ color: "hsl(var(--st-muted))" }}>
+              {textoCuota}
             </p>
           )}
 
