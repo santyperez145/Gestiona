@@ -8,13 +8,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
-import { getCategoryLabel } from "@/lib/supabaseStore";
+import { menuDeCategorias } from "@/lib/storeCategories";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, categorias, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -64,18 +64,25 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   // El menú sale de las categorías que la tienda realmente tiene. Hardcodear
   // "Perfumes árabes" servía para este negocio pero rompía el resto: esto es
   // multi-negocio y cada tienda vende otra cosa.
+  //
+  // Desde la sesión 94 el nombre y el orden salen de `ecommerce_categories`
+  // cuando el comercio las cargó; si no, de los slugs de los productos, que es
+  // como venía funcionando.
   const nav = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category).filter(Boolean))] as string[];
+    const cats = menuDeCategorias(
+      categorias,
+      products.map(p => p.category).filter(Boolean) as string[],
+    );
     return [
       { to: base, label: "Inicio" },
       { to: `${base}/productos`, label: "Productos" },
       ...cats.slice(0, 2).map(c => ({
-        to: `${base}/productos?cat=${encodeURIComponent(c)}`,
-        label: getCategoryLabel(c),
+        to: `${base}/productos?cat=${encodeURIComponent(c.slug)}`,
+        label: c.label,
       })),
       { to: `${base}/productos?oferta=1`, label: "Ofertas" },
     ];
-  }, [products, base]);
+  }, [products, categorias, base]);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();

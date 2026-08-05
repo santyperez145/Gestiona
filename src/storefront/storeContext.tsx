@@ -10,6 +10,7 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ahorroPromo2x } from "@/lib/promo2x";
+import type { CategoriaTienda } from "@/lib/storeCategories";
 import { fetchStoreProducts, fetchStoreVariants, type StoreVariant } from "@/lib/publicDataSource";
 
 export interface StoreInfo {
@@ -131,6 +132,8 @@ interface Ctx {
   cart: CartLine[];
   /** Ahorro de la promo "llevando 2". Espejo de `store_promo_2x_discount`. */
   promo2x: number;
+  /** Categorías que cargó el comercio. Vacío = todavía usa los nombres viejos. */
+  categorias: CategoriaTienda[];
   addToCart: (p: StoreProduct, qty?: number, variant?: StoreVariant | null) => void;
   setQty: (lineKey: string, qty: number) => void;
   removeFromCart: (lineKey: string) => void;
@@ -155,6 +158,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [perfumes, setPerfumes] = useState<Record<string, PerfumeDetail>>({});
+  const [categorias, setCategorias] = useState<CategoriaTienda[]>([]);
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
   const [reviewsByProduct, setReviewsByProduct] = useState<Record<string, { avg: number; count: number }>>({});
   const [pages, setPages] = useState<StorePage[]>([]);
@@ -181,7 +185,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       }
       setStore(row);
 
-      const [pRes, dRes, vRes, rRes, gRes, bRes] = await Promise.all([
+      const [pRes, dRes, vRes, rRes, gRes, bRes, cRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
@@ -191,6 +195,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         supabase.rpc("get_store_reviews", { p_slug: slug }),
         supabase.rpc("get_store_pages", { p_slug: slug }),
         supabase.rpc("get_store_banners", { p_slug: slug }),
+        supabase.rpc("get_store_categories", { p_slug: slug }),
       ]);
       if (cancelled) return;
 
@@ -225,6 +230,10 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
 
       setPages((gRes?.data ?? []) as unknown as StorePage[]);
       setBanners((bRes?.data ?? []) as unknown as StoreBanner[]);
+      // Si el comercio todavía no creó las suyas, esto queda vacío y el menú
+      // sigue saliendo de los slugs de los productos, como antes. No se
+      // reporta como error: no tener categorías propias es un estado válido.
+      setCategorias((cRes?.data ?? []) as unknown as CategoriaTienda[]);
       setLoading(false);
     })().catch(() => {
       if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -353,7 +362,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     const shippingCost = cart.length === 0 ? 0 : (freeShipping ? 0 : base);
 
     return {
-      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart,
+      loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias,
       addToCart, setQty, removeFromCart, clearCart, lineKeyOf,
       cartCount: cart.reduce((s, l) => s + l.qty, 0),
       subtotal,

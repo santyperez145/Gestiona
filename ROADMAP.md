@@ -680,6 +680,53 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 95 — Las categorías dejan de estar hardcodeadas (2026-08-05)
+
+Comparando la tienda contra Tiendanube feature por feature, casi todo ya
+estaba: cuotas, envío gratis con barra de progreso, reseñas, preguntas,
+wishlist, cupones, carritos abandonados, feed para Google y Meta —verificado,
+emite 50 ítems sanos—, sitemap, píxeles y seguimiento. Lo que faltaba era otra
+cosa, y era estructural.
+
+**El nombre de una categoría salía de un `Record` hardcodeado con cuatro
+entradas de perfumería.** En una plataforma multi-tenant eso significa que
+quien venda ropa ve el slug crudo, y que nadie puede renombrar, ordenar,
+esconder ni ponerle una foto a una categoría sin tocar código. Es de las
+primeras cosas que Tiendanube deja hacer.
+
+La tabla `ecommerce_categories` ya existía con la forma correcta —jerárquica,
+con slug, orden e imagen— **vacía y sin usar por ningún código**, y el RPC
+`get_store_categories` también, del andamiaje inicial. Mismo caso que el stock
+por sucursal en la sesión 92: la estructura estaba, faltaba conectarla.
+
+Lo que **no** cambia es `products.category`: sigue guardando el slug y sigue
+siendo lo que usan el POS, los precios por categoría y las ofertas masivas.
+Esta migración le agrega nombre, orden y presentación a ese slug. Tocar la
+columna habría obligado a migrar seis pantallas de una vez y a reescribir
+`category_pricing`, que se indexa por slug.
+
+Por eso el día que se aplica **la tienda se ve exactamente igual**: verificado
+en el navegador antes y después. Sin categorías propias el menú sigue saliendo
+de los slugs de los productos con los nombres viejos; con categorías cargadas
+manda lo que puso el comercio. Renombrar "Vaper" y subirla al primer lugar se
+propagó al menú del header y a las tarjetas de la portada.
+
+Dos cosas que costaron y conviene no repetir:
+
+- **El `DROP FUNCTION` de un RPC público.** Hacía falta porque cambiaba el tipo
+  de retorno. Antes de dropearlo verifiqué con grep sobre `src`, `api` y las
+  edge functions que **no lo llamara nadie** y que la tabla estuviera vacía. Sin
+  ese chequeo, dropear un RPC público es exactamente el cambio que rompe la
+  tienda en silencio.
+- **Dos falsos positivos de agujero de seguridad, los dos míos.** El primero:
+  un bloque `DO $` corre como superusuario y **bypassa la RLS**, así que el
+  test decía que anon y otra organización leían la tabla. Corriendo con
+  `SET ROLE anon` de verdad —que es lo que CLAUDE.md dice y yo me salteé— dan
+  0 y 0. El segundo: el RPC público parecía devolver 0 filas para anon, y era
+  que el subquery que le pasaba el slug corre en el contexto del **llamador**,
+  no dentro de la función definer; con el slug literal devuelve las 3 con sus
+  conteos.
+
 ### Sesión 94 — La promo que el comercio ya tenía cargada (2026-08-05)
 
 `price_2x_ars` —el precio llevando dos— existía en la tabla, en la vista

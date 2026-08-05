@@ -19,6 +19,7 @@ import StoreReadinessPanel from "@/components/ecommerce/StoreReadinessPanel";
 import ReviewsModeration from "@/components/ecommerce/ReviewsModeration";
 import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
+import CategoriesEditor from "@/components/ecommerce/CategoriesEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
@@ -87,7 +88,7 @@ interface FunnelRow {
 export default function EcommerceStorePage() {
   usePageTitle("Tienda E-Commerce");
   const { orgId } = useOrganization();
-  const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "pages" | "banners" | "design" | "settings">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "reviews" | "categorias" | "pages" | "banners" | "design" | "settings">("overview");
   // Opiniones y preguntas comparten pestaña: son las dos cosas que escribe el
   // comprador y que el comercio contesta. Separarlas agregaba una pestaña más a
   // una fila que ya tiene siete.
@@ -303,6 +304,7 @@ export default function EcommerceStorePage() {
     { id: "overview",  label: "Overview" },
     { id: "orders",    label: "Órdenes" },
     { id: "reviews",   label: "Opiniones y preguntas" },
+    { id: "categorias", label: "Categorías" },
     { id: "pages",     label: "Páginas" },
     { id: "banners",   label: "Banners" },
     { id: "design",    label: "Diseño & Tema" },
@@ -388,6 +390,8 @@ export default function EcommerceStorePage() {
           {vozTab === "opiniones" ? <ReviewsModeration /> : <QuestionsModeration />}
         </div>
       )}
+
+      {tab === "categorias" && <CategoriesEditor storeId={store?.id ?? null} />}
 
       {tab === "pages" && (
         <StorePagesEditor storeId={store?.id ?? null} storeSlug={store?.slug ?? null} />

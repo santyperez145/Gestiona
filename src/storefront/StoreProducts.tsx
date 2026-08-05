@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
-import { getCategoryLabel } from "@/lib/supabaseStore";
+import { menuDeCategorias, nombreDeCategoria } from "@/lib/storeCategories";
 import { normalizeText, queryTokens, matchesAllTokens } from "@/lib/searchText";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { SlidersHorizontal, X } from "lucide-react";
@@ -16,7 +16,7 @@ const ORDENES = [
 ];
 
 export default function StoreProducts() {
-  const { products, perfumes, priceOf, fmt } = useStore();
+  const { products, perfumes, categorias: cats2, priceOf, fmt } = useStore();
   const [params, setParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
 
@@ -38,9 +38,13 @@ export default function StoreProducts() {
     setParams(next, { replace: true });
   };
 
+  // Nombre y orden de las categorías del comercio; si no cargó ninguna, los
+  // slugs de los productos, como antes.
   const categorias = useMemo(
-    () => [...new Set(products.map(p => p.category).filter(Boolean))] as string[],
-    [products],
+    () => menuDeCategorias(
+      cats2, products.map(p => p.category).filter(Boolean) as string[],
+    ),
+    [cats2, products],
   );
   const familias = useMemo(
     () => [...new Set(Object.values(perfumes).map(d => d.familia_olfativa).filter(Boolean))] as string[],
@@ -93,7 +97,7 @@ export default function StoreProducts() {
       <div className="flex items-baseline justify-between gap-3 flex-wrap mb-5">
         <div>
           <h1 className="text-2xl font-bold">
-            {q ? `Resultados para "${q}"` : cat ? getCategoryLabel(cat) : soloOferta ? "Ofertas" : "Todos los productos"}
+            {q ? `Resultados para "${q}"` : cat ? nombreDeCategoria(cat, cats2) : soloOferta ? "Ofertas" : "Todos los productos"}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "hsl(var(--st-muted))" }}>
             {filtrados.length} {filtrados.length === 1 ? "producto" : "productos"}
@@ -132,8 +136,8 @@ export default function StoreProducts() {
           <Grupo titulo="Categoría">
             <Opcion activo={!cat} onClick={() => setParam("cat", "")}>Todas</Opcion>
             {categorias.map(c => (
-              <Opcion key={c} activo={cat === c} onClick={() => setParam("cat", c)}>
-                {getCategoryLabel(c)}
+              <Opcion key={c.slug} activo={cat === c.slug} onClick={() => setParam("cat", c.slug)}>
+                {c.label}
               </Opcion>
             ))}
           </Grupo>

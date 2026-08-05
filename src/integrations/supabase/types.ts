@@ -19922,6 +19922,8 @@ export type Database = {
           id: string
           image_url: string
           name: string
+          parent_id: string
+          productos: number
           slug: string
           sort_order: number
         }[]
@@ -20301,6 +20303,7 @@ export type Database = {
       }
       seed_journey_stages: { Args: { p_org_id: string }; Returns: undefined }
       seed_return_reasons: { Args: { p_org_id: string }; Returns: undefined }
+      seed_store_categories: { Args: { p_org_id: string }; Returns: Json }
       seed_store_pages: { Args: { p_store_id: string }; Returns: Json }
       seed_tax_rates: { Args: { p_org_id: string }; Returns: undefined }
       set_order_tracking: {
@@ -20313,6 +20316,10 @@ export type Database = {
       }
       store_payment_discount_pct: {
         Args: { p_descuentos: Json; p_metodo: string }
+        Returns: number
+      }
+      store_promo_2x_discount: {
+        Args: { p_items: Json; p_org_id: string }
         Returns: number
       }
       submit_influencer_content: {

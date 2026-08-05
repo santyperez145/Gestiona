@@ -2,12 +2,12 @@ import { Link } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
 import StoreBanners from "./StoreBanners";
-import { getCategoryLabel } from "@/lib/supabaseStore";
+import { menuDeCategorias } from "@/lib/storeCategories";
 import { ArrowRight, Truck, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import { mejorDescuento, nombreMedio } from "@/lib/paymentDiscount";
 
 export default function StoreHome() {
-  const { store, products, banners, priceOf, fmt } = useStore();
+  const { store, products, banners, categorias: cats2, priceOf, fmt } = useStore();
 
   // El mejor descuento que la tienda ofrece hoy, o null. Sólo cuenta los
   // medios que además están habilitados: anunciar uno que no se acepta sería
@@ -29,7 +29,9 @@ export default function StoreHome() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
 
-  const categorias = [...new Set(products.map(p => p.category).filter(Boolean))] as string[];
+  const categorias = menuDeCategorias(
+    cats2, products.map(p => p.category).filter(Boolean) as string[],
+  );
 
   return (
     <>
@@ -98,11 +100,16 @@ export default function StoreHome() {
           <h2 className="text-lg font-semibold mb-4">Categorías</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {categorias.map(c => {
-              const cover = products.find(p => p.category === c && p.image_url);
+              // La foto propia de la categoría manda; si no cargó ninguna, se
+              // usa la del primer producto, que es como se veía antes.
+              const propia = cats2.find(x => x.slug === c.slug)?.image_url;
+              const cover = propia
+                ? { image_url: propia }
+                : products.find(p => p.category === c.slug && p.image_url);
               return (
                 <Link
-                  key={c}
-                  to={`${base}/productos?cat=${encodeURIComponent(c)}`}
+                  key={c.slug}
+                  to={`${base}/productos?cat=${encodeURIComponent(c.slug)}`}
                   className="group relative aspect-[4/3] overflow-hidden border"
                   style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
                 >
@@ -116,9 +123,9 @@ export default function StoreHome() {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   <span className="absolute bottom-2 left-3 right-3 text-white font-medium text-sm">
-                    {getCategoryLabel(c)}
+                    {c.label}
                     <span className="block text-[11px] opacity-75">
-                      {products.filter(p => p.category === c).length} productos
+                      {products.filter(p => p.category === c.slug).length} productos
                     </span>
                   </span>
                 </Link>
