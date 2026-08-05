@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useMemo, useRef } from "react";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import FocoDelDia from "@/components/dashboard/FocoDelDia";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
 import { useSalesForecaster } from "@/hooks/useSalesForecaster";
@@ -1061,6 +1062,10 @@ export default function Dashboard() {
       monthSalesARS, weekSalesARS, monthGrossProfit, totalMonthExpenses, netMonthProfitARS, expensesChartData, prevTotalMonthExpenses,
       yoySalesARS, yoyGrowth,
       salesGrowth, profitGrowth, topCustomers, smartAlerts, salesByChannel, topMonthProducts,
+      // Crudo a propósito: `salesGrowth` devuelve 100 cuando no hay mes anterior,
+      // y eso es un crecimiento inventado. Con el número, quien lo muestre puede
+      // decir "sin comparación" en vez de mentir.
+      prevSalesARS,
       lowStockThreshold, marginAlertPct,
       anomalies: anomalies.slice(0, 5),
       bestWeekdayData, bestWeekday,
@@ -1340,6 +1345,27 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Lo primero que se ve ──────────────────────────────────────────
+          Antes el panel abría con la cotización y los accesos rápidos, y las
+          ventas del mes aparecían recién scrolleando. Este bloque contesta las
+          dos preguntas con las que se abre el sistema a la mañana: cómo viene
+          el mes, y qué hay para hacer ahora. */}
+      {stats && (
+        <FocoDelDia
+          orgId={activeOrg?.id}
+          ventasMes={stats.monthSalesARS}
+          ventasMesAnterior={stats.prevSalesARS}
+          gananciaNetaMes={stats.netMonthProfitARS}
+          margenPct={stats.profitMargin}
+          sinStock={stats.outOfStock}
+          stockBajo={stats.lowStock}
+          deudasPendientes={stats.pendingDebts}
+          deudaTotalARS={stats.totalDebtsARS}
+          deudasVencidas30={stats.agingCount30}
+          seguimientosHoy={pendingFollowUps.length}
+        />
       )}
 
       {/* Quick Actions */}
