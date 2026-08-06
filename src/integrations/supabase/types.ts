@@ -4424,6 +4424,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_ecommerce_order_id_fkey"
+            columns: ["ecommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deliveries_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -11634,6 +11641,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "product_reviews_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -16050,6 +16064,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_sin_iva"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_reservations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
@@ -19150,6 +19171,32 @@ export type Database = {
           },
         ]
       }
+      ordenes_sin_iva: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          order_number: string | null
+          org_id: string | null
+          tax_amount: number | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           id: string | null
@@ -20228,6 +20275,10 @@ export type Database = {
         }
         Returns: Json
       }
+      desglosar_iva: {
+        Args: { p_importe: number; p_incluido: boolean; p_tasa: number }
+        Returns: Json
+      }
       end_expired_promotions: { Args: never; Returns: number }
       eval_territory_conditions: {
         Args: { p_attributes: Json; p_conditions: Json }
@@ -20928,6 +20979,7 @@ export type Database = {
         Args: { p_default_weight?: number; p_items: Json; p_org_id: string }
         Returns: number
       }
+      store_iva_config: { Args: { p_slug: string }; Returns: Json }
       store_payment_discount_pct: {
         Args: { p_descuentos: Json; p_metodo: string }
         Returns: number
