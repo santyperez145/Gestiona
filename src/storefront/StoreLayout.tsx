@@ -10,6 +10,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { menuDeCategorias } from "@/lib/storeCategories";
 import { menuEfectivo, menuConSubmenus } from "@/lib/storeMenu";
+import { sugerenciasParaElCarrito, TEXTO_MOTIVO } from "@/lib/crossSell";
 import { arbolDeCategorias, nombreDeCategoria } from "@/lib/storeCategories";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
 import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
@@ -37,7 +38,7 @@ function LinkDeMenu({
 }
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  const { store, products, categorias, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, setQty, removeFromCart, lineKeyOf } = useStore();
+  const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -114,6 +115,20 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
     return menuConSubmenus(items, hijas, base);
   }, [products, categorias, base, store?.nav_links]);
+
+  // "Completá tu compra". Se recalcula con el carrito: al agregar una, la
+  // siguiente ya sabe que esa está adentro y que el faltante para el envío
+  // gratis bajó.
+  const sugerencias = useMemo(
+    () => sugerenciasParaElCarrito({
+      cart: cart.map(l => ({ productId: l.productId, price: l.price, qty: l.qty })),
+      productos: products,
+      precioDe: priceOf,
+      faltaEnvioGratis: freeShippingGap,
+      limite: 3,
+    }),
+    [cart, products, priceOf, freeShippingGap],
+  );
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -430,6 +445,69 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                     </div>
                   ))}
                 </div>
+
+                {sugerencias.length > 0 && (
+                  <div className="border-t p-4" style={{ borderColor: "hsl(var(--st-border))" }}>
+                    <p className="text-xs font-medium mb-2">Completá tu compra</p>
+                    <div className="space-y-2">
+                      {sugerencias.map(sg => (
+                        <div key={sg.producto.id} className="flex items-center gap-2">
+                          <Link
+                            to={`${base}/producto/${sg.producto.id}`}
+                            className="w-10 h-10 shrink-0 overflow-hidden bg-black/5"
+                            style={{ borderRadius: "var(--st-radius)" }}
+                          >
+                            {sg.producto.image_url && (
+                              <img src={sg.producto.image_url} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </Link>
+                          <div className="min-w-0 flex-1">
+                            <Link
+                              to={`${base}/producto/${sg.producto.id}`}
+                              className="block text-xs font-medium leading-tight line-clamp-1 hover:underline"
+                            >
+                              {sg.producto.name}
+                            </Link>
+                            <p
+                              className="text-[11px]"
+                              style={{
+                                color: sg.motivo === "envio_gratis"
+                                  ? "hsl(var(--st-accent))"
+                                  : "hsl(var(--st-muted))",
+                              }}
+                            >
+                              {fmt(sg.precio)} · {TEXTO_MOTIVO[sg.motivo]}
+                            </p>
+                          </div>
+                          {/* Agrega una unidad sin variante. Un producto con
+                              variantes necesita que el comprador elija sabor o
+                              tamaño, así que ése abre la ficha. */}
+                          {(variantsByProduct[sg.producto.id]?.length ?? 0) > 0 ? (
+                            <Link
+                              to={`${base}/producto/${sg.producto.id}`}
+                              className="px-2 py-1 text-[11px] font-medium border shrink-0"
+                              style={{ borderColor: "hsl(var(--st-border))", borderRadius: "var(--st-radius)" }}
+                            >
+                              Elegir
+                            </Link>
+                          ) : (
+                            <button
+                              onClick={() => addToCart(sg.producto, 1, null)}
+                              className="px-2 py-1 text-[11px] font-medium shrink-0"
+                              style={{
+                                background: "hsl(var(--st-accent))",
+                                color: "hsl(var(--st-accent-fg))",
+                                borderRadius: "var(--st-radius)",
+                              }}
+                            >
+                              Agregar
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="border-t p-4 space-y-2" style={{ borderColor: "hsl(var(--st-border))" }}>
                   {freeShippingGap !== null && freeShippingGap > 0 && (

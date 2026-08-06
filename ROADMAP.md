@@ -680,6 +680,28 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 98 — Completá tu compra (2026-08-06)
+
+En la ficha ya había "También te puede gustar", que es descubrimiento. El
+carrito no ofrecía nada, y es el momento del embudo donde un agregado cuesta
+menos: el comprador ya decidió.
+
+**La regla que lo separa de una vidriera más: primero lo que completa el envío
+gratis.** Si faltan $18.000, un producto de $20.000 no es otra sugerencia — es
+la que convierte ese gasto en algo que además le ahorra el envío. Con tope de
+1,6× lo que falta: uno que pasa el umbral por cinco veces no completa nada,
+sólo parece un intento de vender más caro. Después manda la afinidad (marca,
+categoría) y al final lo más vendido, que es el desempate honesto.
+
+Dentro de cada motivo se ofrece lo más barato: es un agregado, no un reemplazo.
+Un producto con variantes abre la ficha en vez de agregarse solo, porque hace
+falta elegir sabor o tamaño. Verificado en el navegador: con $52.594 faltando,
+sugiere tres de $52.992 a $54.464.
+
+De paso quedó comprobado que **el panel de liquidaciones ya existía** y está
+montado en Libro mayor: muestra el desglose de cada cobro y la fecha de
+acreditación. Lo que se pensaba como "Gestiona Pagos" está hecho salvo la marca.
+
 ### Sesión 97 — Subcategorías y despliegue del menú (2026-08-06)
 
 `parent_id` estaba en la tabla y en el RPC desde el principio, sin usar. Lo que

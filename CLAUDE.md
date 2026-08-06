@@ -565,8 +565,11 @@ email corren, encuentran los destinatarios y no pueden enviar).
 
 Lo que la tienda todavía no tiene, en orden de impacto:
 
-1. **Las tarifas de envío cargadas.** No es código: hay 6 zonas y tarifas en una
-   sola. Hoy sólo se le puede vender a CABA.
+1. **Revisar las tarifas de envío.** Hay 6 zonas y tarifas en una sola: 1
+   provincia de 24, verificado. Con el retiro en local habilitado, las otras 23
+   ven **una** opción —ir a buscarlo a CABA—, que parece un checkout que
+   funciona. `Completar el tarifario` las genera estimadas por distancia;
+   falta contrastarlas con la tarifa real del correo.
 2. **AFIP probado contra el organismo.** La estructura está y las credenciales
    ya no se pueden leer desde el cliente, pero no hay certificado cargado ni
    factura emitida.
@@ -627,6 +630,62 @@ app de la plataforma por OAuth, MP devuelve un token del vendedor emitido por
 esa app, y al acreditar el pago el neto va al vendedor y el `marketplace_fee` al
 dueño de la aplicación. Por eso con un token pegado a mano MP rechaza la
 preferencia: no existe la relación marketplace.
+
+**Lo que la tienda ganó en las sesiones 93–97**, y las decisiones que hay que
+respetar al tocarlo:
+
+- **Preguntas sobre el producto** (`product_questions`). Sólo se publican las
+  **respondidas**: una tira de preguntas sin contestar dice que acá no atiende
+  nadie. Preguntar pide cuenta pero **no** compra —esa es toda la diferencia con
+  las reseñas, el que pregunta todavía no compró— con tope de 5 pendientes por
+  persona.
+- **Promo "llevando 2"** (`store_promo_2x_discount`). El ahorro se cuenta **por
+  producto cruzando líneas**, no por línea: los productos con promo son vapers
+  con 9 y 10 sabores, así que la compra real son dos líneas de una unidad y una
+  regla por línea no dispararía nunca. Va como descuento y no bajando el
+  subtotal —que tiene que seguir siendo la suma de los ítems— pero se resta
+  **antes** del cupón: la promo es un precio, no una rebaja.
+- **Categorías propias** (`ecommerce_categories`, `get_store_categories`). El
+  nombre dejó de estar hardcodeado. `products.category` **sigue guardando el
+  slug** y sigue siendo lo que usan el POS, los precios por categoría y las
+  ofertas masivas: esta tabla le agrega nombre, orden y presentación a ese slug,
+  no lo reemplaza. Renombrar no toca el slug.
+- **Subcategorías** (`parent_id`). Lo que las hace servir es que **entrar al
+  padre trae los productos de las hijas** (`slugsDeRama`): sin eso, tocar el
+  padre da una página vacía. El menú lleva **sólo primer nivel**, contando la
+  rama entera para que un padre sin productos propios entre igual.
+- **Menú configurable** (`ecommerce_stores.nav_links`). **Vacío significa
+  "armalo solo"**, no "menú vacío", y si todos los links quedaron rotos se
+  vuelve al automático: el header no puede quedarse sin forma de llegar al
+  catálogo. Sólo http(s) —un `javascript:` ahí es un XSS servido— validado al
+  guardar **y** al mostrar.
+- **Calidad de la publicación** y **Completar pesos** en Productos, y
+  **Completar el tarifario** en Envíos. Los tres siguen el mismo patrón: el
+  panel señala el problema, un botón lo arregla en masa con **vista previa**, y
+  nunca pisa lo cargado a mano.
+- **Cross-selling en el carrito** (`crossSell.ts`). Primero lo que **completa el
+  envío gratis**, con tope de 1,6× lo que falta: un producto que pasa el umbral
+  por cinco veces no completa nada.
+- **Negocio por comercio** en `/platform/negocio` (`platform_org_health`).
+  Ordena por urgencia, no por facturación, y el KPI es el **GMV en riesgo**
+  medido con el mes **anterior**: el que está en riesgo hoy factura cero.
+
+⚠️ **Lo que se aprendió verificando, y cuesta caro repetir:**
+
+- **Un bloque `DO $` corre como superusuario y bypassa la RLS.** Un test de
+  permisos ahí da falsos positivos de agujero. Va con `SET ROLE anon` /
+  `authenticated` de verdad.
+- **Un subquery que le pasa un argumento a un RPC `SECURITY DEFINER` corre en el
+  contexto del llamador.** `get_store_categories((SELECT slug FROM
+  ecommerce_stores ...))` como anon recibe NULL, porque anon no lee esa tabla.
+- **Para tocar una función grande, regenerarla desde `pg_get_functiondef` con un
+  script**, insertando los cambios. Reescribir `create_store_order` (186 líneas)
+  o `get_store_by_slug` de memoria es como casi se rompe `mark_store_order_paid`.
+- **`{(a?.length || b?.length) && …}` con las dos vacías evalúa a `0`, y React
+  imprime el cero.** Había un 0 suelto en la ficha de casi todos los productos.
+- **Antes de dropear un RPC público, comprobar con grep quién lo llama** en
+  `src`, `api` y las edge functions. Agregar una columna al **final** de la
+  firma no rompe a quien lee por nombre de campo.
 
 Ya resueltas (sesiones 87–91): reseñas de compra verificada, páginas de
 contenido, banners con vigencia, filtro por rango de precio, lista de deseos,
