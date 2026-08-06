@@ -16,6 +16,10 @@ Tres superficies separadas, y esa separación es deliberada:
 Ser staff de plataforma **no** otorga permisos dentro de una organización. Ver
 [docs/permisos.md](docs/permisos.md).
 
+¿Arrancando de cero? [docs/GUIA.md](docs/GUIA.md) explica la plataforma y el
+código para alguien sin experiencia, con un orden de estudio y ejercicios sobre
+los archivos de este repo.
+
 ---
 
 ## ⚠️ Antes de escribir código
