@@ -680,6 +680,24 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 101 — El buscador sugiere mientras se escribe (2026-08-06)
+
+Antes había que escribir, apretar Enter y esperar el catálogo para saber si
+existía lo buscado. **Primero marcas y categorías, después productos**: son
+atajos a muchos productos y quien escribe "lattafa" quiere ver la marca, no un
+perfume puntual. Verificado en la tienda: sugiere "LATTAFA · Marca · 19
+productos" y recién después los perfumes.
+
+Cuatro decisiones: con menos de dos letras no sugiere nada; no ofrece lo agotado
+salvo que sea lo único que hay —la ficha ofrece avisar cuando vuelva—; la flecha
+arriba desde el primero vuelve a "nada seleccionado" para que Enter no navegue a
+algo que el comprador no eligió; y encuentra la categoría por su nombre visible,
+no por el slug.
+
+El desplegable usa `onMouseDown` y no `onClick`: el `blur` del input dispara
+antes que el click y se cerraba sin navegar. Todo sobre el catálogo en memoria,
+sin una consulta por tecla.
+
 ### Sesión 100 — Ofertas reales: cuándo el medio de pago sí se suma (2026-08-06)
 
 La sesión anterior frenó el descuento doble, pero dejaba afuera la otra mitad:

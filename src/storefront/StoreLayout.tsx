@@ -5,15 +5,17 @@
  * Las páginas nunca hardcodean un color, así que cambiar de tema en el panel
  * cambia la tienda entera sin tocar componentes.
  */
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
-import { menuDeCategorias } from "@/lib/storeCategories";
+import {
+  menuDeCategorias, arbolDeCategorias, nombreDeCategoria,
+} from "@/lib/storeCategories";
 import { menuEfectivo, menuConSubmenus } from "@/lib/storeMenu";
 import { sugerenciasParaElCarrito, TEXTO_MOTIVO } from "@/lib/crossSell";
-import { arbolDeCategorias, nombreDeCategoria } from "@/lib/storeCategories";
+import SearchBox from "./SearchBox";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
-import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
+import { ShoppingBag, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 
 /**
@@ -41,8 +43,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   const { store, products, categorias, variantsByProduct, pages, cart, cartCount, subtotal, promo2x, shippingCost, total, freeShippingGap, fmt, priceOf, addToCart, setQty, removeFromCart, lineKeyOf } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [q, setQ] = useState("");
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   const { customer } = useStoreAuth();
 
@@ -130,10 +130,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     [cart, products, priceOf, freeShippingGap],
   );
 
-  const onSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(`${base}/productos${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
-  };
+  const nombreCat = useCallback(
+    (slug: string) => nombreDeCategoria(slug, categorias),
+    [categorias],
+  );
 
   return (
     <div
@@ -239,16 +239,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           {/* Desde `sm`: con `md` quedaba una franja entre 640 y 767px sin ningún
               buscador —el de arriba todavía oculto y el del menú ya escondido— y ahí
               caen las tablets y los teléfonos grandes acostados. */}
-          <form onSubmit={onSearch} className="ml-auto hidden sm:flex items-center relative flex-1 min-w-0 max-w-[9rem] lg:max-w-[13rem]">
-            <Search className="w-4 h-4 absolute left-2.5 opacity-50" style={{ color: "hsl(var(--st-accent-fg))" }} />
-            <input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="Buscar..."
-              className="h-9 w-full rounded-full pl-8 pr-3 text-sm bg-white/15 placeholder:opacity-60 outline-none focus:bg-white/25 transition-colors"
-              style={{ color: "hsl(var(--st-accent-fg))" }}
-            />
-          </form>
+          <SearchBox
+            base={base}
+            productos={products}
+            nombreCategoria={nombreCat}
+            className="ml-auto hidden sm:block flex-1 min-w-0 max-w-[9rem] lg:max-w-[13rem]"
+          />
 
           <Link
             to={`${base}/cuenta`}
@@ -303,15 +299,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 ))}
               </div>
             ))}
-            <form onSubmit={onSearch} className="pt-1 pb-2">
-              <input
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                placeholder="Buscar productos..."
-                className="w-full h-9 rounded-full px-3 text-sm bg-white/15 outline-none"
-                style={{ color: "hsl(var(--st-accent-fg))" }}
+            <div className="pt-1 pb-2">
+              <SearchBox
+                base={base}
+                productos={products}
+                nombreCategoria={nombreCat}
+                variante="panel"
+                onNavegar={() => setMenuOpen(false)}
               />
-            </form>
+            </div>
           </nav>
         )}
       </header>
