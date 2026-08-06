@@ -666,6 +666,12 @@ respetar al tocarlo:
 - **Cross-selling en el carrito** (`crossSell.ts`). Primero lo que **completa el
   envío gratis**, con tope de 1,6× lo que falta: un producto que pasa el umbral
   por cinco veces no completa nada.
+- **Descuento por cantidad** (`quantity_discounts`, `store_volume_discount`).
+  "Llevando 3 o más, 15% off", con alcance todos/categoría/producto. **Por
+  producto gana el mejor entre el 2x fijo y la mejor regla, nunca la suma**, y
+  entre varias reglas gana la de mayor descuento. La cantidad se cuenta
+  cruzando líneas. El carrito lo espeja con `get_store_quantity_discounts`:
+  sin ese RPC el cliente mostraría menos de lo que se cobra.
 - ⚠️ **La oferta y el descuento por medio de pago NO se acumulan: se cobra el
   mejor, nunca la suma** (`precioConMedioDePago`, espejo de
   `20260806000001_descuento_no_acumula.sql`). Se aplicaban uno sobre otro, así

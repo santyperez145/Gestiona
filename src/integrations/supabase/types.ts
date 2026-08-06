@@ -12815,6 +12815,63 @@ export type Database = {
           },
         ]
       }
+      quantity_discounts: {
+        Row: {
+          created_at: string
+          discount_percent: number
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          min_qty: number
+          name: string
+          org_id: string
+          scope: string
+          starts_at: string | null
+          target: string | null
+        }
+        Insert: {
+          created_at?: string
+          discount_percent: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          min_qty: number
+          name: string
+          org_id: string
+          scope?: string
+          starts_at?: string | null
+          target?: string | null
+        }
+        Update: {
+          created_at?: string
+          discount_percent?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          min_qty?: number
+          name?: string
+          org_id?: string
+          scope?: string
+          starts_at?: string | null
+          target?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quantity_discounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       quote_sequences: {
         Row: {
           last_number: number
@@ -20253,6 +20310,17 @@ export type Database = {
           proyeccion: string
         }[]
       }
+      get_store_quantity_discounts: {
+        Args: { p_slug: string }
+        Returns: {
+          discount_percent: number
+          id: string
+          min_qty: number
+          name: string
+          scope: string
+          target: string
+        }[]
+      }
       get_store_questions: {
         Args: { p_slug: string }
         Returns: {
@@ -20601,6 +20669,10 @@ export type Database = {
         Returns: number
       }
       store_promo_2x_discount: {
+        Args: { p_items: Json; p_org_id: string }
+        Returns: number
+      }
+      store_volume_discount: {
         Args: { p_items: Json; p_org_id: string }
         Returns: number
       }

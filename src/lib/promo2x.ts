@@ -96,3 +96,85 @@ export function ahorroDeUnPar(
   const ahorro = 2 * unit - p2;
   return ahorro > 0 ? Math.round(ahorro) : null;
 }
+
+// ── Descuento por cantidad ──────────────────────────────────────────────────
+//
+// ⚠️ Espejo de `public.store_volume_discount`
+// (`20260806000004_descuento_por_cantidad.sql`). Misma regla que en el resto de
+// los precios de este repo: **por producto gana el mejor, nunca la suma.**
+
+export interface ReglaCantidad {
+  id: string;
+  name: string;
+  scope: "todos" | "categoria" | "producto";
+  target: string | null;
+  min_qty: number;
+  discount_percent: number;
+}
+
+export interface LineaConProducto extends LineaCarrito {
+  /** Categoría del producto, para resolver el alcance de la regla. */
+  category?: string | null;
+}
+
+/** ¿Esta regla aplica a este producto? */
+export function reglaAplica(
+  regla: ReglaCantidad,
+  productId: string,
+  category: string | null | undefined,
+): boolean {
+  switch (regla.scope) {
+    case "todos":     return true;
+    case "categoria": return !!category && regla.target === category;
+    case "producto":  return regla.target === productId;
+    default:          return false;
+  }
+}
+
+/**
+ * Ahorro por volumen: por cada producto, el mejor entre el precio 2x y la mejor
+ * regla de cantidad que alcance esa cantidad.
+ */
+export function ahorroPorVolumen(
+  lineas: LineaConProducto[],
+  precios2x: PreciosPar,
+  reglas: ReglaCantidad[],
+): ResultadoPromo2x {
+  const porProducto = new Map<string, { qty: number; total: number; category?: string | null }>();
+
+  for (const l of lineas) {
+    const qty = Math.max(0, Number(l.qty) || 0);
+    if (qty === 0) continue;
+    const acc = porProducto.get(l.productId) ?? { qty: 0, total: 0, category: l.category };
+    acc.qty += qty;
+    acc.total += qty * (Number(l.price) || 0);
+    if (l.category) acc.category = l.category;
+    porProducto.set(l.productId, acc);
+  }
+
+  const detalle: DetallePromo2x[] = [];
+
+  for (const [productId, { qty, total, category }] of porProducto) {
+    if (qty < 2) continue;
+
+    const precio2x = Number(precios2x[productId]) || 0;
+    const unitario = total / qty;
+    const pares = Math.floor(qty / 2);
+    const ahorro2x = precio2x > 0
+      ? Math.max(0, pares * (2 * unitario - precio2x))
+      : 0;
+
+    const mejorPct = reglas
+      .filter(r => r.min_qty <= qty && reglaAplica(r, productId, category))
+      .reduce((max, r) => Math.max(max, Number(r.discount_percent) || 0), 0);
+    const ahorroCantidad = (total * mejorPct) / 100;
+
+    const ahorro = Math.max(ahorro2x, ahorroCantidad);
+    if (ahorro > 0) detalle.push({ productId, pares, ahorro });
+  }
+
+  return {
+    total: Math.round(detalle.reduce((s, d) => s + d.ahorro, 0)),
+    detalle,
+  };
+}

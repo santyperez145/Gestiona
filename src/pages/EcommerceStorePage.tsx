@@ -21,6 +21,7 @@ import QuestionsModeration from "@/components/ecommerce/QuestionsModeration";
 import StorePagesEditor from "@/components/ecommerce/StorePagesEditor";
 import CategoriesEditor from "@/components/ecommerce/CategoriesEditor";
 import MenuEditor from "@/components/ecommerce/MenuEditor";
+import QuantityDiscountsEditor from "@/components/ecommerce/QuantityDiscountsEditor";
 import StoreBannersEditor from "@/components/ecommerce/StoreBannersEditor";
 import OrderShipmentDialog, { type OrderForShipment } from "@/components/ecommerce/OrderShipmentDialog";
 import ImageUpload from "@/components/shared/ImageUpload";
@@ -419,6 +420,7 @@ export default function EcommerceStorePage() {
             categorias={menuCategorias}
             paginas={menuPaginas}
           />
+          <QuantityDiscountsEditor categorias={menuCategorias} />
         </div>
       )}
 

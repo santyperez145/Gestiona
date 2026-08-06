@@ -9,7 +9,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ahorroPromo2x } from "@/lib/promo2x";
+import { ahorroPorVolumen, type ReglaCantidad } from "@/lib/promo2x";
 import type { CategoriaTienda } from "@/lib/storeCategories";
 import { fetchStoreProducts, fetchStoreVariants, type StoreVariant } from "@/lib/publicDataSource";
 
@@ -164,6 +164,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [perfumes, setPerfumes] = useState<Record<string, PerfumeDetail>>({});
   const [categorias, setCategorias] = useState<CategoriaTienda[]>([]);
+  const [reglasCantidad, setReglasCantidad] = useState<ReglaCantidad[]>([]);
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, StoreVariant[]>>({});
   const [reviewsByProduct, setReviewsByProduct] = useState<Record<string, { avg: number; count: number }>>({});
   const [pages, setPages] = useState<StorePage[]>([]);
@@ -190,7 +191,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       }
       setStore(row);
 
-      const [pRes, dRes, vRes, rRes, gRes, bRes, cRes] = await Promise.all([
+      const [pRes, dRes, vRes, rRes, gRes, bRes, cRes, qRes] = await Promise.all([
         // Lee la vista pública saneada (sin costos ni márgenes) y tolera que la
         // migración todavía no esté aplicada — si no, la tienda se muestra
         // vacía aunque haya productos cargados.
@@ -201,6 +202,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         supabase.rpc("get_store_pages", { p_slug: slug }),
         supabase.rpc("get_store_banners", { p_slug: slug }),
         supabase.rpc("get_store_categories", { p_slug: slug }),
+        supabase.rpc("get_store_quantity_discounts", { p_slug: slug }),
       ]);
       if (cancelled) return;
 
@@ -239,6 +241,9 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
       // sigue saliendo de los slugs de los productos, como antes. No se
       // reporta como error: no tener categorías propias es un estado válido.
       setCategorias((cRes?.data ?? []) as unknown as CategoriaTienda[]);
+      // Sin reglas cargadas esto queda vacío y el ahorro sale sólo del 2x, que
+      // es como venía funcionando. No tener reglas es un estado válido.
+      setReglasCantidad((qRes?.data ?? []) as unknown as ReglaCantidad[]);
       setLoading(false);
     })().catch(() => {
       if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -356,9 +361,17 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
 
     // El servidor recalcula esto en `create_store_order`; acá se muestra para
     // que el carrito diga el mismo número que se va a cobrar.
-    const promo2x = ahorroPromo2x(
-      cart.map(l => ({ productId: l.productId, qty: l.qty, price: l.price })),
+    // Por producto gana el mejor entre el 2x y la mejor regla de cantidad,
+    // nunca la suma. Espejo de `store_volume_discount`.
+    const promo2x = ahorroPorVolumen(
+      cart.map(l => ({
+        productId: l.productId,
+        qty: l.qty,
+        price: l.price,
+        category: products.find(pr => pr.id === l.productId)?.category ?? null,
+      })),
       Object.fromEntries(products.map(pr => [pr.id, pr.price_2x_ars])),
+      reglasCantidad,
     ).total;
     const base = Number(store?.shipping_cost) || 0;
     const threshold = Number(store?.free_shipping_above) || 0;
@@ -379,7 +392,7 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
         : null,
       priceOf, fmt,
     };
-  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
+  }, [loading, notFound, store, products, perfumes, variantsByProduct, reviewsByProduct, pages, banners, cart, categorias, reglasCantidad, addToCart, setQty, removeFromCart, clearCart, lineKeyOf, priceOf, fmt]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

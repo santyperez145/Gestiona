@@ -680,6 +680,21 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 102 — Descuento por cantidad, general (2026-08-06)
+
+Lo único que había era `price_2x_ars`: precio fijo para dos unidades, a mano y
+sólo en vapers. Ahora hay reglas: "llevando 3 o más, 15% off", con alcance
+todos/categoría/producto.
+
+**Por producto gana el mejor, nunca la suma** — misma regla que la oferta con el
+medio de pago. Entre varias reglas gana la de mayor descuento, no la más
+específica. La cantidad se cuenta cruzando líneas, igual que el 2x.
+
+Verificado con siete casos: el clave es que **una regla floja no se suma al 2x**.
+Y el carrito muestra lo mismo que se cobra gracias a
+`get_store_quantity_discounts`: sin ese RPC el espejo del cliente no podía ver
+las reglas, que es el bug que este repo evita en cada cálculo de plata.
+
 ### Sesión 101 — El buscador sugiere mientras se escribe (2026-08-06)
 
 Antes había que escribir, apretar Enter y esperar el catálogo para saber si
