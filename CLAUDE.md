@@ -666,6 +666,16 @@ respetar al tocarlo:
 - **Cross-selling en el carrito** (`crossSell.ts`). Primero lo que **completa el
   envío gratis**, con tope de 1,6× lo que falta: un producto que pasa el umbral
   por cinco veces no completa nada.
+- ⚠️ **La oferta y el descuento por medio de pago NO se acumulan: se cobra el
+  mejor, nunca la suma** (`precioConMedioDePago`, espejo de
+  `20260806000001_descuento_no_acumula.sql`). Se aplicaban uno sobre otro, así
+  que un producto con 20% off pagado por transferencia con 20% terminaba con
+  **36% de descuento real** y el precio tachado no correspondía a ningún
+  porcentaje redondo. El descuento del medio se mide contra el precio de
+  **lista**, por línea: si la oferta ya deja el precio por debajo, no descuenta
+  nada más; si el medio es mejor que la oferta, gana el medio —publicar "20% OFF
+  con transferencia" y cobrar el 10% de la oferta sería romper la promesa—. Para
+  poder compararlo, la línea de `resolve_store_line` lleva `list_price`.
 - **Negocio por comercio** en `/platform/negocio` (`platform_org_health`).
   Ordena por urgencia, no por facturación, y el KPI es el **GMV en riesgo**
   medido con el mes **anterior**: el que está en riesgo hoy factura cero.

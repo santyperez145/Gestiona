@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "./storeContext";
-import { mejorDescuento, nombreMedio, totalConDescuento } from "@/lib/paymentDiscount";
+import {
+  mejorDescuento, nombreMedio, precioConMedioDePago, medioMejoraElPrecio,
+} from "@/lib/paymentDiscount";
 import { opcionDestacada, textoCuotas } from "@/lib/installments";
 import { ahorroDeUnPar } from "@/lib/promo2x";
 import { useInstallments } from "./useInstallments";
@@ -191,10 +193,14 @@ export default function StoreProduct() {
               según cómo se pague, y esconderlo hasta el checkout es perder la
               venta antes de llegar. El monto exacto lo recalcula la base al
               crear la orden; esto es el espejo. */}
-          {descuentoPago && (
+          {/* Sólo si mejora lo que ya paga: con una oferta del 20% y
+              transferencia del 20%, el precio con transferencia ES el de
+              oferta, y anunciarlo al lado de un número idéntico hace dudar de
+              los dos. Los descuentos no se acumulan. */}
+          {descuentoPago && medioMejoraElPrecio(list, price, descuentoPago.metodo, store?.payment_discounts) && (
             <p className="mt-1.5 text-sm">
               <strong style={{ color: "hsl(var(--st-accent))" }}>
-                {fmt(totalConDescuento(price, descuentoPago.metodo, store?.payment_discounts))}
+                {fmt(precioConMedioDePago(list, price, descuentoPago.metodo, store?.payment_discounts))}
               </strong>{" "}
               <span style={{ color: "hsl(var(--st-muted))" }}>
                 con {nombreMedio(descuentoPago.metodo)} ({descuentoPago.porcentaje}% OFF)

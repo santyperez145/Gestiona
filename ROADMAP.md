@@ -680,6 +680,28 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 99 — La oferta y el medio de pago dejaron de acumularse (2026-08-06)
+
+Lo reportó el dueño mirando su propia tienda: un vaper de lista 38.640 con
+oferta 30.912 (20% off) mostraba "24.730 con transferencia (20% OFF)". Son
+**36% de descuento real**, no 20 — el porcentaje del medio de pago se aplicaba
+sobre un subtotal que ya venía con el precio de oferta. Y el precio tachado
+tampoco cerraba con nada.
+
+**La regla: no se acumulan, se cobra el mejor.** El descuento del medio se mide
+por línea contra el precio de **lista**, así que si la oferta ya deja el precio
+por debajo no descuenta nada más. No es "sólo la oferta": si el medio es mejor
+—oferta del 10% con transferencia del 20%— gana el medio, porque publicar "20%
+OFF con transferencia" y cobrar el 10% sería romper la promesa. Los cuatro
+casos verificados contra la base.
+
+Para poder compararlo, `resolve_store_line` ahora lleva `list_price` en la
+línea; con una variante que tiene `price_override`, su lista es ese precio
+propio. Las dos funciones se regeneraron desde producción con script.
+
+En la ficha el cartel del medio de pago **sólo aparece si mejora** lo que ya se
+paga: anunciarlo al lado de un número idéntico hace dudar de los dos.
+
 ### Sesión 98 — Completá tu compra (2026-08-06)
 
 En la ficha ya había "También te puede gustar", que es descubrimiento. El

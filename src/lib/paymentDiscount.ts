@@ -103,3 +103,56 @@ export const NOMBRE_MEDIO: Record<string, string> = {
 export function nombreMedio(metodo: string): string {
   return NOMBRE_MEDIO[metodo] ?? metodo;
 }
+
+/**
+ * Precio final de un producto pagando con un medio que tiene descuento.
+ *
+ * ⚠️ **Los dos descuentos NO se acumulan: se cobra el mejor, nunca la suma.**
+ *
+ * Espejo de `create_store_order` desde `20260806000001_descuento_no_acumula.sql`.
+ * Antes el porcentaje del medio de pago se aplicaba sobre el precio de oferta,
+ * así que un producto con 20% off pagado por transferencia con 20% terminaba
+ * con 36% de descuento real, y el precio tachado no correspondía a nada.
+ *
+ * Ahora el descuento del medio se mide contra el precio de **lista**:
+ *
+ *   lista 38.640, oferta 30.912 (20%), transferencia 20% → 30.912
+ *   lista 10.000, sin oferta,          transferencia 20% →  8.000
+ *   lista 10.000, oferta 7.000 (30%),  transferencia 20% →  7.000  (gana la oferta)
+ *   lista 10.000, oferta 9.000 (10%),  transferencia 20% →  8.000  (gana el medio)
+ *
+ * El último caso es el que obliga a que sea "el mejor" y no "sólo la oferta":
+ * con "20% OFF con transferencia" publicado, cobrar el 10% de la oferta sería
+ * romper esa promesa.
+ */
+export function precioConMedioDePago(
+  precioLista: number,
+  precioVigente: number,
+  metodo: string | null | undefined,
+  descuentos: PaymentDiscounts | null | undefined,
+): number {
+  const vigente = Number(precioVigente) || 0;
+  const lista = Number(precioLista) || 0;
+  const pct = porcentajeDe(metodo, descuentos);
+  if (pct <= 0 || lista <= 0) return vigente;
+
+  const conMedio = Math.round(lista * (100 - pct) / 100);
+  return Math.min(vigente, conMedio);
+}
+
+/**
+ * ¿Conviene mostrar el precio con este medio de pago?
+ *
+ * `false` cuando el descuento del medio no mejora lo que ya paga: anunciar
+ * "20% OFF con transferencia" al lado de un precio idéntico al de arriba hace
+ * dudar de los dos números.
+ */
+export function medioMejoraElPrecio(
+  precioLista: number,
+  precioVigente: number,
+  metodo: string | null | undefined,
+  descuentos: PaymentDiscounts | null | undefined,
+): boolean {
+  return precioConMedioDePago(precioLista, precioVigente, metodo, descuentos)
+    < (Number(precioVigente) || 0);
+}

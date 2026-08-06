@@ -106,3 +106,62 @@ describe("mejorDescuento", () => {
     expect(mejorDescuento(null, DESC)).toBeNull();
   });
 });
+
+// ── Los descuentos no se acumulan ───────────────────────────────────────────
+import { precioConMedioDePago, medioMejoraElPrecio } from "@/lib/paymentDiscount";
+
+describe("precioConMedioDePago", () => {
+  const transf = { transferencia: 20 };
+
+  it("el caso reportado: oferta 20% + transferencia 20% NO es 36% off", () => {
+    // Antes: 30.912 × 0,8 = 24.730. El precio tachado de 38.640 no correspondía
+    // a ningún porcentaje redondo sobre el final.
+    expect(precioConMedioDePago(38_640, 30_912, "transferencia", transf)).toBe(30_912);
+  });
+
+  it("sin oferta, el medio de pago descuenta sobre la lista", () => {
+    expect(precioConMedioDePago(10_000, 10_000, "transferencia", transf)).toBe(8_000);
+  });
+
+  it("si la oferta es mejor que el medio, gana la oferta", () => {
+    expect(precioConMedioDePago(10_000, 7_000, "transferencia", transf)).toBe(7_000);
+  });
+
+  it("si el medio es mejor que la oferta, gana el medio: la promesa se cumple", () => {
+    // Publicar "20% OFF con transferencia" y cobrar el 10% de la oferta sería
+    // romperla.
+    expect(precioConMedioDePago(10_000, 9_000, "transferencia", transf)).toBe(8_000);
+  });
+
+  it("sin descuento configurado devuelve el precio vigente", () => {
+    expect(precioConMedioDePago(10_000, 9_000, "transferencia", {})).toBe(9_000);
+    expect(precioConMedioDePago(10_000, 9_000, null, transf)).toBe(9_000);
+    expect(precioConMedioDePago(10_000, 9_000, "efectivo", transf)).toBe(9_000);
+  });
+
+  it("nunca sube el precio", () => {
+    for (const [lista, vig] of [[10_000, 9_000], [10_000, 5_000], [0, 5_000]]) {
+      expect(precioConMedioDePago(lista, vig, "transferencia", transf))
+        .toBeLessThanOrEqual(vig);
+    }
+  });
+
+  it("aguanta números que llegan como texto o basura", () => {
+    expect(precioConMedioDePago("10000" as unknown as number, "9000" as unknown as number, "transferencia", transf)).toBe(8_000);
+    expect(precioConMedioDePago(NaN, 9_000, "transferencia", transf)).toBe(9_000);
+  });
+});
+
+describe("medioMejoraElPrecio", () => {
+  const transf = { transferencia: 20 };
+
+  it("es false cuando el precio no baja: anunciarlo haría dudar de los dos números", () => {
+    expect(medioMejoraElPrecio(38_640, 30_912, "transferencia", transf)).toBe(false);
+    expect(medioMejoraElPrecio(10_000, 7_000, "transferencia", transf)).toBe(false);
+  });
+
+  it("es true cuando sí mejora", () => {
+    expect(medioMejoraElPrecio(10_000, 10_000, "transferencia", transf)).toBe(true);
+    expect(medioMejoraElPrecio(10_000, 9_000, "transferencia", transf)).toBe(true);
+  });
+});

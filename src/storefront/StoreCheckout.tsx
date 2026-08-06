@@ -7,7 +7,7 @@ import { Loader2, ShoppingBag, Lock, Tag, Truck } from "lucide-react";
 import { AR_PROVINCES } from "@/lib/shippingCalc";
 import { quoteStoreShipping, createStoreOrder } from "@/lib/publicDataSource";
 import { trackBeginCheckout } from "./tracking";
-import { montoDescuento, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
+import { precioConMedioDePago, porcentajeDe, nombreMedio } from "@/lib/paymentDiscount";
 
 /** Fila que devuelve el RPC `quote_store_shipping`. */
 interface ShippingOption {
@@ -33,7 +33,7 @@ const METODO_LABEL: Record<string, string> = {
 
 export default function StoreCheckout() {
   // `total` del contexto no se usa acá: el checkout calcula el suyo con el cupón.
-  const { store, cart, subtotal, promo2x, shippingCost, fmt, clearCart } = useStore();
+  const { store, products, cart, subtotal, promo2x, shippingCost, fmt, clearCart } = useStore();
   const navigate = useNavigate();
   const base = `/tienda/${store?.slug ?? ""}`;
 
@@ -169,7 +169,21 @@ export default function StoreCheckout() {
   //
   // Esto es sólo para mostrar: el número que se cobra lo recalcula la base.
   const baseMercaderia = Math.max(0, subtotal - promo2x - descuento);
-  const descuentoPago = montoDescuento(baseMercaderia, form.metodo, store?.payment_discounts);
+
+  // El descuento del medio de pago se mide contra el precio de LISTA de cada
+  // línea y no sobre el subtotal, que ya viene con la oferta aplicada: si no, un
+  // producto con 20% off pagado por transferencia con 20% terminaba con 36% de
+  // descuento. Espejo de `create_store_order`.
+  const ahorroPorMedio = (metodo: string) => Math.min(
+    cart.reduce((s, l) => {
+      const pr = products.find(x => x.id === l.productId);
+      const lista = Number(pr?.sale_price_ars) || l.price;
+      return s + Math.max(0, l.price - precioConMedioDePago(lista, l.price, metodo, store?.payment_discounts)) * l.qty;
+    }, 0),
+    baseMercaderia,
+  );
+
+  const descuentoPago = ahorroPorMedio(form.metodo);
   const totalFinal = Math.max(0, baseMercaderia - descuentoPago) + envio;
 
   // Inicio de checkout: Meta y GA lo usan para medir abandono.
@@ -411,7 +425,7 @@ export default function StoreCheckout() {
             <div className="space-y-2">
               {metodos.map(m => {
                 const pct = porcentajeDe(m, store?.payment_discounts);
-                const ahorro = montoDescuento(baseMercaderia, m, store?.payment_discounts);
+                const ahorro = ahorroPorMedio(m);
                 return (
                   <label
                     key={m}
