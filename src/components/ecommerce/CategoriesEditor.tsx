@@ -22,7 +22,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ImageUpload from "@/components/shared/ImageUpload";
-import { slugDeNombre, validarNombre, type CategoriaTienda } from "@/lib/storeCategories";
+import {
+  slugDeNombre, validarNombre, validarPadre, arbolDeCategorias,
+  type CategoriaTienda,
+} from "@/lib/storeCategories";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 interface Fila extends CategoriaTienda {
   is_active: boolean;
@@ -43,7 +49,7 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
     setLoading(true);
     const [{ data, error }, { data: prods }] = await Promise.all([
       supabase.from("ecommerce_categories")
-        .select("id, name, slug, image_url, description, sort_order, is_active")
+        .select("id, name, slug, parent_id, image_url, description, sort_order, is_active")
         .eq("org_id", orgId)
         .order("sort_order").order("name"),
       supabase.from("products").select("category").eq("org_id", orgId).eq("is_active", true),
@@ -110,6 +116,16 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
     toast.success("Nombre actualizado");
   }
 
+  async function ponerPadre(f: Fila, parentId: string | null) {
+    const error = validarPadre(f.id, parentId, filas);
+    if (error) { toast.error(error); return; }
+    const { error: err } = await supabase.from("ecommerce_categories")
+      .update({ parent_id: parentId } as never).eq("id", f.id);
+    if (err) { toast.error(err.message); return; }
+    setFilas(prev => prev.map(x => x.id === f.id ? { ...x, parent_id: parentId } : x));
+    toast.success(parentId ? "Ahora es una subcategoría" : "Ahora es una categoría principal");
+  }
+
   async function alternar(f: Fila) {
     const nuevo = !f.is_active;
     const { error } = await supabase.from("ecommerce_categories")
@@ -153,6 +169,22 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
     if (error) { toast.error(error.message); return; }
     setFilas(prev => prev.map(x => x.id === f.id ? { ...x, image_url: url } : x));
   }
+
+  // Padre, después sus hijas. Una lista plana con las subcategorías mezcladas
+  // no deja ver la jerarquía que se está armando.
+  const ordenJerarquico = (() => {
+    const porId = new Map(filas.map(f => [f.id, f]));
+    const salida: { fila: Fila; nivel: number }[] = [];
+    for (const raiz of arbolDeCategorias(filas)) {
+      const f = porId.get(raiz.id);
+      if (f) salida.push({ fila: f, nivel: 0 });
+      for (const hijo of raiz.hijos) {
+        const h = porId.get(hijo.id);
+        if (h) salida.push({ fila: h, nivel: 1 });
+      }
+    }
+    return salida;
+  })();
 
   if (loading) {
     return <div className="py-12 grid place-items-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin" /></div>;
@@ -199,17 +231,21 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
         </div>
       ) : (
         <div className="space-y-2">
-          {filas.map((f, i) => (
-            <div key={f.id} className="bg-card border border-border rounded-xl p-3">
+          {ordenJerarquico.map(({ fila: f, nivel }, i) => (
+            <div
+              key={f.id}
+              className="bg-card border border-border rounded-xl p-3"
+              style={nivel > 0 ? { marginLeft: `${nivel * 1.5}rem` } : undefined}
+            >
               <div className="flex items-start gap-3 flex-wrap">
                 <div className="flex flex-col gap-0.5 shrink-0">
                   <button
-                    onClick={() => mover(f, -1)} disabled={i === 0}
+                    onClick={() => mover(f, -1)} disabled={filas.indexOf(f) === 0}
                     className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-25"
                     aria-label="Subir"
                   ><ArrowUp className="w-3.5 h-3.5" /></button>
                   <button
-                    onClick={() => mover(f, 1)} disabled={i === filas.length - 1}
+                    onClick={() => mover(f, 1)} disabled={filas.indexOf(f) === filas.length - 1}
                     className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-25"
                     aria-label="Bajar"
                   ><ArrowDown className="w-3.5 h-3.5" /></button>
@@ -254,6 +290,25 @@ export default function CategoriesEditor({ storeId }: { storeId: string | null }
                   {!f.is_active && (
                     <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/20 text-[11px]">Oculta</Badge>
                   )}
+                  <Select
+                    value={f.parent_id ?? "__raiz__"}
+                    onValueChange={v => ponerPadre(f, v === "__raiz__" ? null : v)}
+                  >
+                    <SelectTrigger className="h-8 w-[11rem] text-xs">
+                      <SelectValue placeholder="Categoría principal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__raiz__">Categoría principal</SelectItem>
+                      {/* Sólo las de primer nivel: dos niveles alcanzan y es lo
+                          que el menú puede desplegar sin volverse un árbol de
+                          carpetas. */}
+                      {filas
+                        .filter(o => o.id !== f.id && !o.parent_id)
+                        .map(o => (
+                          <SelectItem key={o.id} value={o.id}>Dentro de {o.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                   <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => alternar(f)}>
                     {f.is_active
                       ? <><EyeOff className="w-3 h-3" />Ocultar</>

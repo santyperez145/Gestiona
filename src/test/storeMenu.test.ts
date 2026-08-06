@@ -147,3 +147,47 @@ describe("validarLink", () => {
       .toEqual(["categoria", "pagina", "url"]);
   });
 });
+
+// ── Submenús ────────────────────────────────────────────────────────────────
+import { menuConSubmenus } from "@/lib/storeMenu";
+
+describe("menuConSubmenus", () => {
+  const hijas = new Map([
+    ["perfumes", [
+      { slug: "arabes", label: "Árabes" },
+      { slug: "disenador", label: "Diseñador" },
+    ]],
+  ]);
+
+  it("despliega el ítem que apunta a una categoría con hijas", () => {
+    const items = [{ label: "Perfumes", to: `${base}/productos?cat=perfumes` }];
+    const [n] = menuConSubmenus(items, hijas, base);
+    expect(n.hijos.map(h => h.label)).toEqual(["Árabes", "Diseñador"]);
+    expect(n.hijos[0].to).toBe(`${base}/productos?cat=arabes`);
+  });
+
+  it("lo que no es una categoría queda plano", () => {
+    const items = [
+      { label: "Inicio", to: base },
+      { label: "IG", to: "https://instagram.com/x", externo: true },
+      { label: "Cómo comprar", to: `${base}/pagina/como-comprar` },
+    ];
+    expect(menuConSubmenus(items, hijas, base).every(n => n.hijos.length === 0)).toBe(true);
+  });
+
+  it("una categoría sin hijas queda plana", () => {
+    const items = [{ label: "Vapers", to: `${base}/productos?cat=vaper` }];
+    expect(menuConSubmenus(items, hijas, base)[0].hijos).toEqual([]);
+  });
+
+  it("lee el slug aunque venga escapado en la URL", () => {
+    const conEspacio = new Map([["ropa de verano", [{ slug: "remeras", label: "Remeras" }]]]);
+    const items = [{ label: "Ropa", to: `${base}/productos?cat=ropa%20de%20verano` }];
+    expect(menuConSubmenus(items, conEspacio, base)[0].hijos).toHaveLength(1);
+  });
+
+  it("no confunde `cat` con otro parámetro que lo contenga", () => {
+    const items = [{ label: "Ofertas", to: `${base}/productos?oferta=1` }];
+    expect(menuConSubmenus(items, hijas, base)[0].hijos).toEqual([]);
+  });
+});

@@ -680,6 +680,24 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 97 — Subcategorías y despliegue del menú (2026-08-06)
+
+`parent_id` estaba en la tabla y en el RPC desde el principio, sin usar. Lo que
+hace que sirva no es el árbol sino que **entrar al padre traiga los productos de
+las hijas**: sin eso, tocar "Perfumes" da una página vacía y el comprador
+concluye que no hay stock. Verificado: filtrar por el padre devuelve 55, que son
+54 + 1.
+
+El corolario apareció mirando la tienda, no el código: el menú llevaba la lista
+**plana**, así que agarraba dos hijas, el padre no salía nunca y tampoco su
+desplegable. Ahora lleva sólo primer nivel, contando `productosEnRama` para que
+un padre sin productos propios entre igual.
+
+El árbol aguanta ciclo (si no, bucle infinito en el render), hija con padre
+ausente —pasa al esconder el padre— y elegirse a sí misma como padre. En el
+celular las hijas van indentadas y visibles: no hay hover, y un submenú que pide
+otro toque esconde lo que el comprador vino a buscar.
+
 ### Sesión 96 — El menú lo arma el comercio (2026-08-05)
 
 El menú se armaba solo y no se podía tocar. Ahora se guarda en `nav_links`

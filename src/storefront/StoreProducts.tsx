@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "./storeContext";
 import ProductCard from "./ProductCard";
-import { menuDeCategorias, nombreDeCategoria } from "@/lib/storeCategories";
+import {
+  menuDeCategorias, nombreDeCategoria, arbolDeCategorias, slugsDeRama,
+} from "@/lib/storeCategories";
 import { normalizeText, queryTokens, matchesAllTokens } from "@/lib/searchText";
 import { FAMILIAS_OLFATIVAS, taxLabel } from "@/lib/scentTaxonomy";
 import { SlidersHorizontal, X } from "lucide-react";
@@ -51,6 +53,33 @@ export default function StoreProducts() {
     [perfumes],
   );
 
+  // Los slugs que cuentan cuando se filtra: el elegido más su descendencia.
+  const slugsFiltro = useMemo(
+    () => (cat ? new Set(slugsDeRama(cat, cats2)) : null),
+    [cat, cats2],
+  );
+
+  const arbolCats = useMemo(() => {
+    const conProductos = new Set(products.map(p => p.category).filter(Boolean) as string[]);
+    const visible = (n: { slug: string; productosEnRama: number }) =>
+      n.productosEnRama > 0 || conProductos.has(n.slug);
+
+    if (cats2.length === 0) {
+      // Sin categorías propias no hay jerarquía que mostrar: la lista plana de
+      // siempre, armada con los slugs de los productos.
+      return categorias.map(c => ({ ...c, hijos: [] as { slug: string; label: string }[] }));
+    }
+    return arbolDeCategorias(cats2)
+      .filter(visible)
+      .map(n => ({
+        slug: n.slug,
+        label: nombreDeCategoria(n.slug, cats2),
+        hijos: n.hijos.filter(visible).map(h => ({
+          slug: h.slug, label: nombreDeCategoria(h.slug, cats2),
+        })),
+      }));
+  }, [cats2, categorias, products]);
+
   const filtrados = useMemo(() => {
     const tokens = queryTokens(q);
     let out = products.filter(p => {
@@ -58,7 +87,7 @@ export default function StoreProducts() {
         const hay = normalizeText(`${p.name} ${p.brand ?? ""} ${p.description ?? ""}`);
         if (!matchesAllTokens(hay, tokens)) return false;
       }
-      if (cat && p.category !== cat) return false;
+      if (slugsFiltro && !slugsFiltro.has(p.category ?? "")) return false;
       if (genero && p.gender !== genero) return false;
       if (soloOferta && priceOf(p) >= Number(p.sale_price_ars)) return false;
       if (precioMin > 0 && priceOf(p) < precioMin) return false;
@@ -135,10 +164,21 @@ export default function StoreProducts() {
 
           <Grupo titulo="Categoría">
             <Opcion activo={!cat} onClick={() => setParam("cat", "")}>Todas</Opcion>
-            {categorias.map(c => (
-              <Opcion key={c.slug} activo={cat === c.slug} onClick={() => setParam("cat", c.slug)}>
-                {c.label}
-              </Opcion>
+            {arbolCats.map(n => (
+              <div key={n.slug}>
+                <Opcion activo={cat === n.slug} onClick={() => setParam("cat", n.slug)}>
+                  {n.label}
+                </Opcion>
+                {/* Las subcategorías van indentadas debajo del padre: una lista
+                    plana de ocho no deja ver qué está adentro de qué. */}
+                {n.hijos.map(h => (
+                  <div key={h.slug} className="pl-3">
+                    <Opcion activo={cat === h.slug} onClick={() => setParam("cat", h.slug)}>
+                      {h.label}
+                    </Opcion>
+                  </div>
+                ))}
+              </div>
             ))}
           </Grupo>
 

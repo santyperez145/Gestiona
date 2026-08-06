@@ -9,9 +9,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "./storeContext";
 import { menuDeCategorias } from "@/lib/storeCategories";
-import { menuEfectivo } from "@/lib/storeMenu";
+import { menuEfectivo, menuConSubmenus } from "@/lib/storeMenu";
+import { arbolDeCategorias, nombreDeCategoria } from "@/lib/storeCategories";
 import { resolveTheme, resolveFont, googleFontHref } from "./theme";
-import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User } from "lucide-react";
+import { ShoppingBag, Search, X, Plus, Minus, Trash2, Instagram, Menu, User, ChevronDown } from "lucide-react";
 import { useStoreAuth } from "./storeAuth";
 
 /**
@@ -97,7 +98,21 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       categorias,
       products.map(p => p.category).filter(Boolean) as string[],
     );
-    return menuEfectivo(store?.nav_links, { base, categorias: cats });
+    const items = menuEfectivo(store?.nav_links, { base, categorias: cats });
+
+    // Las hijas de cada categoría, para el despliegue. Sólo las que tienen
+    // algo: una subcategoría vacía en el desplegable es un callejón sin salida
+    // igual que una categoría vacía en el menú.
+    const hijas = new Map<string, { slug: string; label: string }[]>();
+    for (const nodo of arbolDeCategorias(categorias)) {
+      const conProductos = nodo.hijos.filter(h => h.productosEnRama > 0);
+      if (conProductos.length > 0) {
+        hijas.set(nodo.slug, conProductos.map(h => ({
+          slug: h.slug, label: nombreDeCategoria(h.slug, categorias),
+        })));
+      }
+    }
+    return menuConSubmenus(items, hijas, base);
   }, [products, categorias, base, store?.nav_links]);
 
   const onSearch = (e: React.FormEvent) => {
@@ -157,13 +172,52 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               rompería igual en cualquier ancho fijo. Abajo de 1024 viven en el
               menú desplegable, que aguanta las que sean. */}
           <nav className="hidden lg:flex items-center gap-4 ml-4 text-sm">
-            {nav.map(n => (
+            {nav.map(n => n.hijos.length === 0 ? (
               <LinkDeMenu
                 key={n.label}
                 item={n}
                 className="opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
                 style={{ color: "hsl(var(--st-accent-fg))" }}
               />
+            ) : (
+              // El padre sigue siendo un link: entrar a "Perfumes" muestra todo
+              // lo de la rama. El desplegable es un atajo, no la única forma de
+              // llegar — con `onClick` que sólo abre, el que toca el nombre no
+              // llega a ningún lado.
+              <div key={n.label} className="relative group">
+                <LinkDeMenu
+                  item={n}
+                  className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity whitespace-nowrap"
+                  style={{ color: "hsl(var(--st-accent-fg))" }}
+                />
+                <ChevronDown
+                  className="w-3 h-3 inline-block ml-0.5 opacity-60 pointer-events-none"
+                  style={{ color: "hsl(var(--st-accent-fg))" }}
+                />
+                {/* `focus-within` además de `hover` para que se pueda recorrer
+                    con el teclado. El `pt-2` es el puente: sin él, el mouse
+                    cruza un hueco y el menú se cierra a mitad de camino. */}
+                <div className="absolute left-0 top-full pt-2 hidden group-hover:block group-focus-within:block z-50">
+                  <div
+                    className="min-w-[11rem] py-1 border shadow-lg"
+                    style={{
+                      background: "hsl(var(--st-bg))",
+                      borderColor: "hsl(var(--st-border))",
+                      borderRadius: "var(--st-radius)",
+                    }}
+                  >
+                    {n.hijos.map(h => (
+                      <Link
+                        key={h.to}
+                        to={h.to}
+                        className="block px-3 py-1.5 text-sm hover:opacity-70 transition-opacity whitespace-nowrap"
+                      >
+                        {h.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ))}
           </nav>
 
@@ -214,11 +268,25 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         {menuOpen && (
           <nav className="lg:hidden border-t px-4 py-2 space-y-1" style={{ borderColor: "hsl(var(--st-border))" }}>
             {nav.map(n => (
-              <LinkDeMenu
-                key={n.label} item={n}
-                className="block py-2 text-sm"
-                style={{ color: "hsl(var(--st-accent-fg))" }}
-              />
+              <div key={n.label}>
+                <LinkDeMenu
+                  item={n}
+                  className="block py-2 text-sm"
+                  style={{ color: "hsl(var(--st-accent-fg))" }}
+                />
+                {/* En el celular no hay hover: las hijas van indentadas y
+                    siempre visibles. Un desplegable que necesita otro toque
+                    esconde justo lo que el comprador vino a buscar. */}
+                {n.hijos.map(h => (
+                  <Link
+                    key={h.to} to={h.to}
+                    className="block py-1.5 pl-4 text-sm opacity-70"
+                    style={{ color: "hsl(var(--st-accent-fg))" }}
+                  >
+                    {h.label}
+                  </Link>
+                ))}
+              </div>
             ))}
             <form onSubmit={onSearch} className="pt-1 pb-2">
               <input

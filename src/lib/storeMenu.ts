@@ -126,3 +126,38 @@ export function validarLink(link: LinkMenu): string | undefined {
   }
   return undefined;
 }
+
+// ── Submenús ────────────────────────────────────────────────────────────────
+
+export interface ItemMenuConHijos extends ItemMenu {
+  hijos: ItemMenu[];
+}
+
+/**
+ * El menú con un nivel de despliegue, que es lo que hacen Tiendanube y
+ * MercadoLibre: "Perfumes ▾" abre "Árabes / Diseñador".
+ *
+ * Un ítem del menú configurado por el comercio se despliega si apunta a una
+ * categoría que tiene hijas; los demás tipos —una página, un link externo— no
+ * tienen nada que desplegar y quedan planos.
+ */
+export function menuConSubmenus(
+  items: ItemMenu[],
+  hijasPorSlug: Map<string, { slug: string; label: string }[]>,
+  base: string,
+): ItemMenuConHijos[] {
+  return items.map(item => {
+    // El slug se saca del propio destino: así funciona igual para el menú
+    // automático y para el que armó el comercio, sin arrastrar el tipo hasta acá.
+    const m = /[?&]cat=([^&]+)/.exec(item.to);
+    const slug = m ? decodeURIComponent(m[1]) : null;
+    const hijas = slug ? hijasPorSlug.get(slug) ?? [] : [];
+    return {
+      ...item,
+      hijos: hijas.map(h => ({
+        label: h.label,
+        to: `${base}/productos?cat=${encodeURIComponent(h.slug)}`,
+      })),
+    };
+  });
+}
