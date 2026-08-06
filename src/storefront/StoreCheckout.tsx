@@ -177,8 +177,10 @@ export default function StoreCheckout() {
   const ahorroPorMedio = (metodo: string) => Math.min(
     cart.reduce((s, l) => {
       const pr = products.find(x => x.id === l.productId);
-      const lista = Number(pr?.sale_price_ars) || l.price;
-      return s + Math.max(0, l.price - precioConMedioDePago(lista, l.price, metodo, store?.payment_discounts)) * l.qty;
+      // La base la resuelve la vista: es el precio de oferta cuando la oferta
+      // acumula y el de lista cuando no. Acá no se decide la política.
+      const base = Number(pr?.payment_base_price) || Number(pr?.sale_price_ars) || l.price;
+      return s + Math.max(0, l.price - precioConMedioDePago(base, l.price, metodo, store?.payment_discounts)) * l.qty;
     }, 0),
     baseMercaderia,
   );

@@ -24,7 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 /** Columnas del catálogo que pueden salir al navegador. Sin costos. */
 const PRODUCT_COLUMNS =
   'id,org_id,user_id,name,brand,category,gender,description,image_url,image_urls,' +
-  'sale_price_ars,discount_price_ars,price_2x_ars,stock,content_ml,total_sold,' +
+  'sale_price_ars,discount_price_ars,price_2x_ars,payment_base_price,stock,content_ml,total_sold,' +
   'featured,offer_expires_at,created_at';
 
 /** Las mismas, más los precios de decant que sólo la vista puede calcular. */

@@ -81,6 +81,9 @@ export interface StoreProduct {
    *  sesión 94 no lo miraba nadie en la tienda, aunque el catálogo por
    *  WhatsApp ya lo mostraba. */
   price_2x_ars: number | null;
+  /** Precio sobre el que se aplica el descuento por medio de pago. Lo resuelve
+   *  la vista cruzando la política de la tienda con el override del producto. */
+  payment_base_price: number | null;
   stock: number;
   image_url: string | null;
   image_urls: string[] | null;

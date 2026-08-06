@@ -5607,6 +5607,7 @@ export type Database = {
           nav_links: Json
           notification_email: string | null
           org_id: string
+          payment_discount_stacks: boolean
           payment_discounts: Json
           payment_methods: string[]
           pickup_address: string | null
@@ -5643,6 +5644,7 @@ export type Database = {
           nav_links?: Json
           notification_email?: string | null
           org_id: string
+          payment_discount_stacks?: boolean
           payment_discounts?: Json
           payment_methods?: string[]
           pickup_address?: string | null
@@ -5679,6 +5681,7 @@ export type Database = {
           nav_links?: Json
           notification_email?: string | null
           org_id?: string
+          payment_discount_stacks?: boolean
           payment_discounts?: Json
           payment_methods?: string[]
           pickup_address?: string | null
@@ -11854,6 +11857,7 @@ export type Database = {
           low_stock_threshold: number | null
           name: string
           offer_expires_at: string | null
+          offer_stacks_payment: boolean | null
           org_id: string
           price_2x_ars: number | null
           profit_per_unit_ars: number
@@ -11897,6 +11901,7 @@ export type Database = {
           low_stock_threshold?: number | null
           name: string
           offer_expires_at?: string | null
+          offer_stacks_payment?: boolean | null
           org_id: string
           price_2x_ars?: number | null
           profit_per_unit_ars?: number
@@ -11940,6 +11945,7 @@ export type Database = {
           low_stock_threshold?: number | null
           name?: string
           offer_expires_at?: string | null
+          offer_stacks_payment?: boolean | null
           org_id?: string
           price_2x_ars?: number | null
           profit_per_unit_ars?: number
@@ -19605,6 +19611,7 @@ export type Database = {
           name: string | null
           offer_expires_at: string | null
           org_id: string | null
+          payment_base_price: number | null
           price_2x_ars: number | null
           sale_price_ars: number | null
           stock: number | null

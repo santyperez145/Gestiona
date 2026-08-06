@@ -1569,6 +1569,12 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
   const [description, setDescription] = useState(product?.description || '');
   const [featured, setFeatured] = useState(product?.featured || false);
   const [offerExpiresAt, setOfferExpiresAt] = useState(product?.offer_expires_at ? new Date(product.offer_expires_at).toISOString().slice(0, 16) : '');
+  // `null` = usa la política de la tienda. Es un tercer estado a propósito: la
+  // mayoría de los productos no necesita decidir nada, y forzar true/false en
+  // cada uno obligaría a tocarlos todos al cambiar la política.
+  const [offerStacks, setOfferStacks] = useState<boolean | null>(
+    product?.offer_stacks_payment ?? null,
+  );
   const [contentMl, setContentMl] = useState(product?.content_ml?.toString() || '100');
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [sku, setSku] = useState(product?.sku || '');
@@ -1828,6 +1834,7 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
         image_urls: urls,
         featured,
         offer_expires_at: offerExpiresAt ? new Date(offerExpiresAt).toISOString() : null,
+        offer_stacks_payment: offerStacks,
         content_ml: parseInt(contentMl) || 100,
         // Campos que el form captura pero antes NO se persistían
         barcode: barcode.trim() || null,
@@ -2647,6 +2654,31 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
           </label>
         </div>
       </div>
+      {/* Sólo tiene sentido si el producto está en oferta: sin precio rebajado
+          no hay nada con qué acumular. */}
+      {parseFloat(discountPriceARS) > 0 && (
+        <div>
+          <label className="text-sm text-muted-foreground">Descuento por transferencia/efectivo</label>
+          <Select
+            value={offerStacks === null ? 'tienda' : offerStacks ? 'suma' : 'incluido'}
+            onValueChange={v => setOfferStacks(v === 'tienda' ? null : v === 'suma')}
+          >
+            <SelectTrigger className="bg-muted border-border text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tienda">Como diga la tienda (por defecto)</SelectItem>
+              <SelectItem value="incluido">La oferta YA es el precio con descuento</SelectItem>
+              <SelectItem value="suma">Se suma a la oferta (liquidación real)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {offerStacks === true
+              ? 'Al precio de oferta se le aplica además el % del medio de pago.'
+              : offerStacks === false
+              ? 'El precio de oferta es el final: no se descuenta dos veces.'
+              : 'Usa la política configurada en Tienda online → Configuración.'}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm text-muted-foreground">Oferta hasta</label>

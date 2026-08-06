@@ -676,6 +676,17 @@ respetar al tocarlo:
   nada más; si el medio es mejor que la oferta, gana el medio —publicar "20% OFF
   con transferencia" y cobrar el 10% de la oferta sería romper la promesa—. Para
   poder compararlo, la línea de `resolve_store_line` lleva `list_price`.
+
+  ⚠️ **Pero "oferta" significa dos cosas distintas y el código no puede
+  adivinar cuál.** Un 20% off puede ser "éste es el precio con transferencia"
+  o una liquidación real sobre la que el 20% todavía corresponde. Lo decide el
+  comercio: `ecommerce_stores.payment_discount_stacks` es la política y
+  `products.offer_stacks_payment` la pisa por producto (NULL = usa la
+  política). El default es **false** porque equivocarse hacia "no acumula"
+  cobra de más y el comprador se queja, mientras que equivocarse hacia
+  "acumula" regala margen en silencio. La vista `store_catalog_products`
+  resuelve las dos en `payment_base_price` para que la tienda muestre el precio
+  sin conocer la política ni cruzar dos tablas.
 - **Negocio por comercio** en `/platform/negocio` (`platform_org_health`).
   Ordena por urgencia, no por facturación, y el KPI es el **GMV en riesgo**
   medido con el mes **anterior**: el que está en riesgo hoy factura cero.

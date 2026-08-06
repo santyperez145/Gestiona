@@ -88,6 +88,10 @@ export default function StoreProduct() {
     : priceOf(p);
   const stockEfectivo = variante ? variante.stock : p.stock;
   const list = Number(p.sale_price_ars);
+  // Sobre qué precio se descuenta el medio de pago. Cuando la oferta acumula
+  // la vista devuelve el precio de oferta, y entonces el descuento se suma
+  // encima; cuando no, devuelve el de lista y la oferta ya lo contenía.
+  const baseMedioPago = Number(p.payment_base_price) || list;
   const off = price < list ? Math.round((1 - price / list) * 100) : 0;
   // Se deduplica: `image_url` suele estar repetida dentro de `image_urls`, y
   // eso generaba dos miniaturas iguales con la misma key de React.
@@ -197,10 +201,10 @@ export default function StoreProduct() {
               transferencia del 20%, el precio con transferencia ES el de
               oferta, y anunciarlo al lado de un número idéntico hace dudar de
               los dos. Los descuentos no se acumulan. */}
-          {descuentoPago && medioMejoraElPrecio(list, price, descuentoPago.metodo, store?.payment_discounts) && (
+          {descuentoPago && medioMejoraElPrecio(baseMedioPago, price, descuentoPago.metodo, store?.payment_discounts) && (
             <p className="mt-1.5 text-sm">
               <strong style={{ color: "hsl(var(--st-accent))" }}>
-                {fmt(precioConMedioDePago(list, price, descuentoPago.metodo, store?.payment_discounts))}
+                {fmt(precioConMedioDePago(baseMedioPago, price, descuentoPago.metodo, store?.payment_discounts))}
               </strong>{" "}
               <span style={{ color: "hsl(var(--st-muted))" }}>
                 con {nombreMedio(descuentoPago.metodo)} ({descuentoPago.porcentaje}% OFF)

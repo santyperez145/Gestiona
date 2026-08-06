@@ -103,6 +103,7 @@ export default function EcommerceStorePage() {
     shipping_cost: "2500", is_active: false,
     payment_methods: ["mercadopago", "transferencia"],
     payment_discounts: {} as PaymentDiscounts,
+    payment_discount_stacks: false,
     font: "sistema",
     meta_title: "", meta_description: "",
     description: "", notification_email: "",
@@ -177,6 +178,7 @@ export default function EcommerceStorePage() {
             is_active: data.is_active ?? prev.is_active,
             payment_methods: data.payment_methods || ["mercadopago", "transferencia"],
             payment_discounts: (data.payment_discounts as PaymentDiscounts) ?? prev.payment_discounts,
+            payment_discount_stacks: data.payment_discount_stacks ?? prev.payment_discount_stacks,
             font: data.font ?? prev.font,
             meta_title: data.meta_title ?? prev.meta_title,
             description: data.description ?? prev.description,
@@ -274,6 +276,7 @@ export default function EcommerceStorePage() {
       is_active: storeForm.is_active,
       payment_methods: storeForm.payment_methods,
       payment_discounts: storeForm.payment_discounts,
+      payment_discount_stacks: storeForm.payment_discount_stacks,
       font: storeForm.font,
       description: storeForm.description || null,
       logo_url: storeForm.logo_url || null,
@@ -951,6 +954,32 @@ export default function EcommerceStorePage() {
                 );
               })}
             </div>
+
+            {/* La pregunta que el código no puede contestar solo: un "20% off"
+                puede ser el precio con transferencia o una liquidación real
+                sobre la que el descuento todavía corresponde. Es la misma
+                columna con dos significados. */}
+            <label className="flex items-start gap-2 mt-4 pt-4 border-t border-border/40 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={storeForm.payment_discount_stacks}
+                onChange={e => setStoreForm(f => ({ ...f, payment_discount_stacks: e.target.checked }))}
+              />
+              <span>
+                <span className="text-sm font-medium">
+                  El descuento se suma a los productos en oferta
+                </span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  {storeForm.payment_discount_stacks
+                    ? "Un producto rebajado de $100.000 a $70.000 con 20% de transferencia se cobra $56.000. Usalo si tus ofertas son liquidaciones reales."
+                    : "Un producto rebajado de $100.000 a $70.000 con 20% de transferencia se cobra $70.000: la oferta YA es el precio con descuento. Es lo más común y evita descontar dos veces."}
+                </span>
+                <span className="block text-xs text-muted-foreground mt-1">
+                  Se puede cambiar producto por producto desde su ficha.
+                </span>
+              </span>
+            </label>
           </div>
 
           {/* Qué falta para que la tienda pueda vender */}

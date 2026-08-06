@@ -680,6 +680,27 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 100 — Ofertas reales: cuándo el medio de pago sí se suma (2026-08-06)
+
+La sesión anterior frenó el descuento doble, pero dejaba afuera la otra mitad:
+en una liquidación de verdad el descuento por transferencia **sí** corresponde.
+Un producto rebajado de 100.000 a 70.000 sigue teniendo el 20% encima.
+
+Eso no se deduce del número: `discount_price_ars` significa las dos cosas según
+qué quiso hacer el comercio. Ahora lo decide él, con
+`ecommerce_stores.payment_discount_stacks` como política y
+`products.offer_stacks_payment` para pisarla por producto. El default es
+**false** porque los dos errores no cuestan lo mismo: cobrar de más se corrige
+porque el comprador se queja; regalar margen no avisa nadie.
+
+La base se resuelve en `store_catalog_products.payment_base_price`, no en el
+cliente: así el storefront muestra el precio sin conocer la política, y la regla
+queda junto a la que usa `create_store_order` al cobrar.
+
+Dos cosas que costaron: `CREATE OR REPLACE VIEW` sólo deja agregar columnas **al
+final** (42P16 si no), y la vista sólo unía `settings` — hubo que sumarle el
+JOIN a `ecommerce_stores`.
+
 ### Sesión 99 — La oferta y el medio de pago dejaron de acumularse (2026-08-06)
 
 Lo reportó el dueño mirando su propia tienda: un vaper de lista 38.640 con
