@@ -7181,60 +7181,60 @@ export type Database = {
           abc_class: string
           analysis_date: string
           cumulative_pct: number
-          days_on_hand: number
-          eoq: number
+          days_on_hand: number | null
+          eoq: number | null
           id: string
           org_id: string
           period_days: number
           product_id: string
-          reorder_point: number
+          reorder_point: number | null
           revenue_pct: number
-          safety_stock: number
-          stockout_risk: string
+          safety_stock: number | null
+          stockout_risk: string | null
           total_orders: number
           total_revenue: number
           total_units: number
-          velocity: string
+          velocity: string | null
           xyz_class: string | null
         }
         Insert: {
           abc_class?: string
           analysis_date?: string
           cumulative_pct?: number
-          days_on_hand?: number
-          eoq?: number
+          days_on_hand?: number | null
+          eoq?: number | null
           id?: string
           org_id: string
           period_days?: number
           product_id: string
-          reorder_point?: number
+          reorder_point?: number | null
           revenue_pct?: number
-          safety_stock?: number
-          stockout_risk?: string
+          safety_stock?: number | null
+          stockout_risk?: string | null
           total_orders?: number
           total_revenue?: number
           total_units?: number
-          velocity?: string
+          velocity?: string | null
           xyz_class?: string | null
         }
         Update: {
           abc_class?: string
           analysis_date?: string
           cumulative_pct?: number
-          days_on_hand?: number
-          eoq?: number
+          days_on_hand?: number | null
+          eoq?: number | null
           id?: string
           org_id?: string
           period_days?: number
           product_id?: string
-          reorder_point?: number
+          reorder_point?: number | null
           revenue_pct?: number
-          safety_stock?: number
-          stockout_risk?: string
+          safety_stock?: number | null
+          stockout_risk?: string | null
           total_orders?: number
           total_revenue?: number
           total_units?: number
-          velocity?: string
+          velocity?: string | null
           xyz_class?: string | null
         }
         Relationships: [
@@ -11852,6 +11852,7 @@ export type Database = {
           image_url: string | null
           image_urls: string[] | null
           is_active: boolean
+          lead_time_days: number | null
           length_cm: number | null
           lot_number: string | null
           low_stock_threshold: number | null
@@ -11896,6 +11897,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[] | null
           is_active?: boolean
+          lead_time_days?: number | null
           length_cm?: number | null
           lot_number?: string | null
           low_stock_threshold?: number | null
@@ -11940,6 +11942,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[] | null
           is_active?: boolean
+          lead_time_days?: number | null
           length_cm?: number | null
           lot_number?: string | null
           low_stock_threshold?: number | null
@@ -14814,6 +14817,8 @@ export type Database = {
           catalog_bg_color: string | null
           catalog_card_color: string | null
           category_pricing: Json
+          costo_almacenamiento_anual_pct: number | null
+          costo_por_pedido: number | null
           created_at: string
           crm_segments: Json
           customs_percent: number
@@ -14914,6 +14919,8 @@ export type Database = {
           catalog_bg_color?: string | null
           catalog_card_color?: string | null
           category_pricing?: Json
+          costo_almacenamiento_anual_pct?: number | null
+          costo_por_pedido?: number | null
           created_at?: string
           crm_segments?: Json
           customs_percent?: number
@@ -15014,6 +15021,8 @@ export type Database = {
           catalog_bg_color?: string | null
           catalog_card_color?: string | null
           category_pricing?: Json
+          costo_almacenamiento_anual_pct?: number | null
+          costo_por_pedido?: number | null
           created_at?: string
           crm_segments?: Json
           customs_percent?: number
@@ -19518,6 +19527,167 @@ export type Database = {
           },
         ]
       }
+      stock_a_reponer: {
+        Row: {
+          abc_class: string | null
+          cobertura_dias: number | null
+          eoq: number | null
+          org_id: string | null
+          product_id: string | null
+          producto: string | null
+          reorder_point: number | null
+          safety_stock: number | null
+          stock: number | null
+          stockout_risk: string | null
+          sugerencia_compra: number | null
+          velocity: string | null
+          vendidas_en_el_periodo: number | null
+          xyz_class: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_inmovilizado: {
+        Row: {
+          abc_class: string | null
+          capital_inmovilizado_usd: number | null
+          cobertura_dias: number | null
+          org_id: string | null
+          product_id: string | null
+          producto: string | null
+          stock: number | null
+          velocity: string | null
+          vendidas_en_el_periodo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_abc_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_negativo: {
         Row: {
           name: string | null
@@ -20581,6 +20751,7 @@ export type Database = {
       }
       resolve_store_line: {
         Args: {
+          p_order_subtotal?: number
           p_org_id: string
           p_product_id: string
           p_qty: number
@@ -20677,6 +20848,7 @@ export type Database = {
         Args: {
           p_category: string
           p_list_price: number
+          p_order_subtotal?: number
           p_org_id: string
           p_product_id: string
         }
@@ -20730,6 +20902,7 @@ export type Database = {
         Returns: Json
       }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "vendedor" | "viewer"
