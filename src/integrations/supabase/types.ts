@@ -15987,11 +15987,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string | null
-          customer_name: string
+          customer_name: string | null
           customer_phone: string | null
           expires_at: string | null
           id: string
           notes: string | null
+          order_id: string | null
           org_id: string
           product_id: string
           quantity: number
@@ -16003,11 +16004,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
-          customer_name: string
+          customer_name?: string | null
           customer_phone?: string | null
           expires_at?: string | null
           id?: string
           notes?: string | null
+          order_id?: string | null
           org_id: string
           product_id: string
           quantity: number
@@ -16019,11 +16021,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
-          customer_name?: string
+          customer_name?: string | null
           customer_phone?: string | null
           expires_at?: string | null
           id?: string
           notes?: string | null
+          order_id?: string | null
           org_id?: string
           product_id?: string
           quantity?: number
@@ -16037,6 +16040,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_orders"
             referencedColumns: ["id"]
           },
           {
@@ -19610,6 +19620,84 @@ export type Database = {
           },
         ]
       }
+      stock_comprometido: {
+        Row: {
+          de_ordenes: number | null
+          disponible: number | null
+          manuales: number | null
+          org_id: string | null
+          primera_vence: string | null
+          product_id: string | null
+          producto: string | null
+          reservado: number | null
+          stock_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_inmovilizado: {
         Row: {
           abc_class: string | null
@@ -20832,6 +20920,10 @@ export type Database = {
         Args: { p_carrier: string; p_order_id: string; p_tracking: string }
         Returns: Json
       }
+      stock_disponible: {
+        Args: { p_product_id: string; p_variant_id?: string }
+        Returns: number
+      }
       store_cart_weight_kg: {
         Args: { p_default_weight?: number; p_items: Json; p_org_id: string }
         Returns: number
@@ -20902,6 +20994,7 @@ export type Database = {
         Returns: Json
       }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      vencer_reservas: { Args: never; Returns: number }
       z_nivel_servicio: { Args: { p_nivel: number }; Returns: number }
     }
     Enums: {
