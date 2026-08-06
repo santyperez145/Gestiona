@@ -670,6 +670,17 @@ respetar al tocarlo:
 - **Cross-selling en el carrito** (`crossSell.ts`). Primero lo que **completa el
   envío gratis**, con tope de 1,6× lo que falta: un producto que pasa el umbral
   por cinco veces no completa nada.
+- **Promociones en la tienda** (`store_promo_price`, espejo de `bestPromoPrice`).
+  La promoción se resuelve **dentro del precio de la línea**, no como descuento
+  aparte: una promoción es un precio, así que el volumen, el cupón y el medio de
+  pago trabajan después sobre el número correcto. Quedan afuera las que tienen
+  `coupon_code` (van por cupones), `buy_x_get_y`/`bundle`/`free_shipping`
+  (necesitan lógica de carrito) y `applies_to = customers` (es de orden).
+
+  ⚠️ **Van tres mecánicas de precio que una superficie ignoraba en silencio**
+  —`price_2x_ars`, las categorías y las promociones—. Al agregar una nueva hay
+  que revisar **las cuatro**: POS, catálogo interno, catálogo público y tienda
+  online.
 - **Descuento por cantidad** (`quantity_discounts`, `store_volume_discount`).
   "Llevando 3 o más, 15% off", con alcance todos/categoría/producto. **Por
   producto gana el mejor entre el 2x fijo y la mejor regla, nunca la suma**, y

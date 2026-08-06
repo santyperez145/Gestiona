@@ -84,6 +84,8 @@ export interface StoreProduct {
   /** Precio sobre el que se aplica el descuento por medio de pago. Lo resuelve
    *  la vista cruzando la política de la tienda con el override del producto. */
   payment_base_price: number | null;
+  /** Precio de la mejor promocion auto-aplicable, o null si ninguna aplica. */
+  promo_price: number | null;
   stock: number;
   image_url: string | null;
   image_urls: string[] | null;
@@ -307,9 +309,15 @@ export function StoreProvider({ slug, children }: { slug: string; children: Reac
     [],
   );
 
+  // El precio que ve el comprador: el menor entre la oferta manual y la mejor
+  // promocion. Espejo de `resolve_store_line`, que es la que cobra: si
+  // divergieran, la tienda mostraria un precio y el checkout cobraria otro.
   const priceOf = useCallback((p: StoreProduct) => {
-    const d = Number(p.discount_price_ars) || 0;
-    return d > 0 && d < Number(p.sale_price_ars) ? d : Number(p.sale_price_ars);
+    const lista = Number(p.sale_price_ars) || 0;
+    const oferta = Number(p.discount_price_ars) || 0;
+    const vigente = oferta > 0 && oferta < lista ? oferta : lista;
+    const promo = Number(p.promo_price) || 0;
+    return promo > 0 && promo < vigente ? promo : vigente;
   }, []);
 
   const addToCart = useCallback((p: StoreProduct, qty = 1, variant?: StoreVariant | null) => {

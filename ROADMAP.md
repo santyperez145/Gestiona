@@ -680,6 +680,27 @@ con el predictor de categorías, importar órdenes como ventas, webhook de ML y
 cron multi-organización. **Bloqueado hasta que se cree la app en
 developers.mercadolibre.com.ar y se carguen las credenciales.**
 
+### Sesión 103 — Las promociones, también online (2026-08-06)
+
+`promotions` ya se aplicaba en el POS y se mostraba en los dos catálogos. La
+tienda online era la única superficie que la ignoraba: el comercio creaba "20%
+off en Perfume Árabe", se descontaba en el mostrador y online se cobraba pleno.
+
+**Van tres casos iguales** —`price_2x_ars`, las categorías, y ahora esto—, así
+que queda como regla: al agregar una mecánica de precio hay que revisar **las
+cuatro superficies**, no la que se está tocando.
+
+La promoción se resuelve dentro del precio de la línea y no como un descuento
+aparte, porque una promoción *es* un precio: así el volumen, el cupón y el medio
+de pago trabajan después sobre el número correcto. Gana el mejor, nunca la suma.
+
+Quedan afuera a propósito las que tienen cupón (van por el flujo de cupones),
+`buy_x_get_y`/`bundle`/`free_shipping` (necesitan lógica de carrito) y
+`applies_to = customers` (es de orden, no de línea).
+
+Nueve casos verificados, y la tienda muestra lo que cobra vía
+`store_catalog_products.promo_price`.
+
 ### Sesión 102 — Descuento por cantidad, general (2026-08-06)
 
 Lo único que había era `price_2x_ars`: precio fijo para dos unidades, a mano y

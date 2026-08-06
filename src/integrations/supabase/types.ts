@@ -19670,6 +19670,7 @@ export type Database = {
           org_id: string | null
           payment_base_price: number | null
           price_2x_ars: number | null
+          promo_price: number | null
           sale_price_ars: number | null
           stock: number | null
           total_sold: number | null
@@ -20670,6 +20671,15 @@ export type Database = {
       }
       store_promo_2x_discount: {
         Args: { p_items: Json; p_org_id: string }
+        Returns: number
+      }
+      store_promo_price: {
+        Args: {
+          p_category: string
+          p_list_price: number
+          p_org_id: string
+          p_product_id: string
+        }
         Returns: number
       }
       store_volume_discount: {
