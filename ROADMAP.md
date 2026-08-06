@@ -202,6 +202,13 @@ por promoción, no aflojar la regla general.
 
 ### Resuelta (queda anotada para no repetirla)
 
+- **Las métricas de inventario informaban "riesgo bajo" de productos agotados.**
+  Seis columnas NOT NULL con default `0` y `'low'` que la función nunca escribía:
+  las 16 filas decían `stockout_risk = low` con `days_on_hand = 0`, dos datos que
+  se contradicen en la misma fila. Y la velocidad salía `slow` para todo el
+  catálogo por una división entera (`5/90 = 0` en Postgres). Un default
+  silencioso es peor que un NULL: el NULL se ve, el default se usa.
+
 - **La navegación estaba escrita tres veces** —el sidebar, la paleta Ctrl+K y el
   mapa de módulos— y las copias se desincronizaron: la paleta ofrecía "Punto de
   Venta" apuntando a `/pos`, una ruta inexistente, y `Alt+8` iba a `/analitica`
