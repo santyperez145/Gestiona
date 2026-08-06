@@ -15479,6 +15479,174 @@ export type Database = {
           },
         ]
       }
+      stock_count_items: {
+        Row: {
+          ajuste: number | null
+          count_id: string
+          counted: number | null
+          counted_at: string | null
+          counted_by: string | null
+          expected: number
+          id: string
+          org_id: string
+          product_id: string
+          stock_al_cerrar: number | null
+        }
+        Insert: {
+          ajuste?: number | null
+          count_id: string
+          counted?: number | null
+          counted_at?: string | null
+          counted_by?: string | null
+          expected?: number
+          id?: string
+          org_id: string
+          product_id: string
+          stock_al_cerrar?: number | null
+        }
+        Update: {
+          ajuste?: number | null
+          count_id?: string
+          counted?: number | null
+          counted_at?: string | null
+          counted_by?: string | null
+          expected?: number
+          id?: string
+          org_id?: string
+          product_id?: string
+          stock_al_cerrar?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_items_count_id_fkey"
+            columns: ["count_id"]
+            isOneToOne: false
+            referencedRelation: "stock_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_counts: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          id: string
+          location_id: string | null
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          org_id: string
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          org_id: string
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_counts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       stock_history: {
         Row: {
           change: number
@@ -18422,6 +18590,94 @@ export type Database = {
           },
         ]
       }
+      conteo_varianzas: {
+        Row: {
+          ajuste: number | null
+          count_id: string | null
+          counted: number | null
+          expected: number | null
+          opened_at: string | null
+          org_id: string | null
+          product_id: string | null
+          producto: string | null
+          status: string | null
+          stock_al_cerrar: number | null
+          varianza: number | null
+          varianza_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_items_count_id_fkey"
+            columns: ["count_id"]
+            isOneToOne: false
+            referencedRelation: "stock_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_availability"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_negativo"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_sucursal_descuadrado"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_counts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "platform_org_health"
+            referencedColumns: ["org_id"]
+          },
+        ]
+      }
       contracts_expiring_soon: {
         Row: {
           auto_renewal: boolean | null
@@ -19478,6 +19734,15 @@ export type Database = {
       }
     }
     Functions: {
+      abrir_conteo: {
+        Args: {
+          p_location_id?: string
+          p_notes?: string
+          p_org_id: string
+          p_solo_con_stock?: boolean
+        }
+        Returns: Json
+      }
       activate_scheduled_promotions: { Args: never; Returns: number }
       adjust_stock: {
         Args: {
@@ -19544,6 +19809,8 @@ export type Database = {
         Args: { p_product_id: string; p_slug: string }
         Returns: Json
       }
+      cancelar_conteo: { Args: { p_count_id: string }; Returns: undefined }
+      cerrar_conteo: { Args: { p_count_id: string }; Returns: Json }
       check_overdue_debts: { Args: never; Returns: undefined }
       check_rotting_deals: { Args: { p_org_id: string }; Returns: number }
       check_store_coupon: {
@@ -20214,6 +20481,10 @@ export type Database = {
           p_variant_name: string
         }
         Returns: string
+      }
+      registrar_conteo: {
+        Args: { p_cantidad: number; p_count_id: string; p_product_id: string }
+        Returns: Json
       }
       renew_subscription: {
         Args: { p_subscription_id: string }
