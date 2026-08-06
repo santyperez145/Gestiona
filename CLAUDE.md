@@ -213,6 +213,32 @@ npx supabase db push --linked --dry-run
 # {"upToDate":true,"migrations":[],"message":"Remote database is up to date."}
 ```
 
+⚠️ **Al 2026-08-05 volvió a romperse, y por el camino inverso.** Hay **cinco
+migraciones anotadas en el libro sin archivo en el repo**:
+
+    20260802000009  preguntas_producto
+    20260802000010  salud_por_organizacion
+    20260805000001  promo_llevando_2
+    20260805000002  categorias_de_tienda
+    20260805000003  menu_de_tienda
+
+Los objetos **están en la base** —`product_questions`, `platform_org_health`,
+`ecommerce_categories`, `store_promo_2x_discount` y sus RPC— pero los archivos no
+están en `main` ni en ninguna rama del remoto. Se aplicaron con `db query --file`
+y se anotaron, y nunca se commitearon.
+
+Consecuencias, en orden de gravedad:
+
+1. **Ese trabajo no está versionado.** Si la base se reconstruye, se pierde.
+2. `db push` vuelve a abortar con `LegacyDbPushMissingLocalError`.
+3. La sugerencia que imprime el CLI —`migration repair --status reverted`— es
+   **la peor salida posible**: marcarlas como revertidas haría que un `push`
+   las quiera correr de nuevo, y no hay archivo que correr.
+
+La salida correcta es que la PC que las aplicó commitee los archivos. Si eso no
+pasa, se reconstruyen desde el catálogo, pero conviene coordinarlo antes para no
+terminar con dos versiones del mismo objeto con números distintos.
+
 **Ese `--dry-run` es el chequeo de salud del libro.** Si algún día devuelve
 migraciones en la lista, el libro se volvió a desfasar y hay que mirar por qué
 antes de correr nada.

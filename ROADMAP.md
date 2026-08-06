@@ -141,13 +141,24 @@ lectura del código encontró.
 | 1 | **AFIP: factura electrónica** | Es el gap crítico del producto entero. | L |
 | 2 | **Ampliar los E2E** | La tienda ya está cubierta (16 tests, escritorio y teléfono). Falta el POS y el panel, que son autenticados. | M |
 | 3 | **Entorno de staging** | Hoy se verifica contra producción con datos `ZZ` y limpieza. Funciona, pero es frágil. | M |
-| 4 | **Revisar el stock real contra el inventario físico** | No es código: durante meses cada venta descontó el doble y cada compra sumó el doble. Los números se fueron corrigiendo a mano, así que hay que contar. | — |
+| 4 | **Contar el inventario físico** | La herramienta ya está (conteo con asiento, sesión 92). Lo que falta es contar: durante meses cada venta descontó el doble, y los números se corrigieron a mano. | — |
 
 ✅ **Recepción parcial de órdenes de compra** — hecho (sesión 91). El ROADMAP lo
 anotaba como "se recibe entera o nada"; mirando el código era peor: **no se
 recibía nada**. "Marcar recibida" cambiaba `status` y `received_date` y no tocaba
 `quantity_received` ni movía una unidad de stock. El módulo de OC estaba
 desconectado del inventario.
+
+✅ **Conteo físico de inventario** — hecho (sesión 92). Hasta ahora corregir el
+stock era editar el número del producto, sin saber quién ni contra qué. Ahora es
+un conteo con asiento en el Kardex. Lo delicado es que **el ajuste se calcula
+contra el stock del cierre, no contra lo congelado al abrir**: si se vendió
+mientras se contaba, esa venta es real y descontarla de nuevo repetiría el bug
+del doble descuento. Verificado forzando ese caso exacto.
+
+✅ **Ubicaciones dentro del depósito y ruta de picking** — hecho (sesión 92).
+`locations` y `warehouses` eran el mismo concepto modelado dos veces y sin
+vínculo, así que `bin_stock` y `location_stock` no podían cerrar. Unificado.
 
 ✅ **Stock real por depósito** — hecho (sesión 91). Faltaba el eslabón del medio:
 `record_stock_movement` no sabía de sucursales, así que `location_stock` nunca se
@@ -219,6 +230,8 @@ cerró que la transferencia entre sucursales **inventaba mercadería** (transfer
   entrado, la ficha lee `customers.notes` — otra tabla.
 
 ### Abierta
+
+| ⚠️ **5 migraciones anotadas en el libro sin archivo en el repo** (`preguntas_producto`, `salud_por_organizacion`, `promo_llevando_2`, `categorias_de_tienda`, `menu_de_tienda`) | Ese trabajo no está versionado: si la base se reconstruye, se pierde. Y `db push` vuelve a abortar | S |
 
 | Ítem | Riesgo | Esfuerzo |
 |---|---|---|
