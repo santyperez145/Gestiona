@@ -24,6 +24,7 @@ import PerfumeRecommenderModal from "@/components/products/PerfumeRecommenderMod
 import PageHeader from "@/components/shared/PageHeader";
 import CalidadPublicaciones, { BadgeCalidad } from "@/components/products/CalidadPublicaciones";
 import CompletarPesos from "@/components/products/CompletarPesos";
+import CategorySelect, { useOrgCategories } from "@/components/products/CategorySelect";
 import { REGLAS, type ImpactoId } from "@/lib/productQuality";
 import KPICard from "@/components/shared/KPICard";
 import { toast } from "sonner";
@@ -316,6 +317,9 @@ export default function ProductsPage() {
   // Filtro por lo que le falta a la ficha. Sin esto, el panel de calidad es
   // una lista de reproches que no lleva a ningún lado.
   const [filterCalidad, setFilterCalidad] = useState<ImpactoId | null>(null);
+  // Las categorías de la organización, para los filtros y la oferta masiva. El
+  // formulario usa `<CategorySelect>`, que además deja crear.
+  const { opciones: opcionesCategoria } = useOrgCategories(activeOrg?.id);
   const [pesosOpen, setPesosOpen] = useState(false);
   const facetCount = filterFamilia.length + filterNotas.length + filterEstacion.length + filterOcasion.length + filterGenderFacet.length + (filterMaxPrice ? 1 : 0);
   const [page, setPage] = useState(0);
@@ -814,8 +818,10 @@ export default function ProductsPage() {
               <Select value={catOfferCategory} onValueChange={setCatOfferCategory}>
                 <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['perfume_arabe', 'perfume_diseñador', 'vaper', 'electronico'].map(c => (
-                    <SelectItem key={c} value={c}>{getCategoryLabel(c)}</SelectItem>
+                  {opcionesCategoria.map(o => (
+                    <SelectItem key={o.slug} value={o.slug}>
+                      {o.nivel > 0 ? `  ${o.label}` : o.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -987,10 +993,12 @@ export default function ProductsPage() {
             <SelectTrigger className="w-[130px] bg-muted border-border h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas cat.</SelectItem>
-              <SelectItem value="perfume_arabe">Árabe</SelectItem>
-              <SelectItem value="perfume_diseñador">Diseñador</SelectItem>
-              <SelectItem value="vaper">Vaper</SelectItem>
-              <SelectItem value="electronico">Electrónico</SelectItem>
+              {/* Un filtro no crea nada: sólo ofrece lo que existe. */}
+              {opcionesCategoria.map(o => (
+                <SelectItem key={o.slug} value={o.slug}>
+                  {o.nivel > 0 ? `  ${o.label}` : o.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={filterStock} onValueChange={v => { setFilterStock(v); setPage(0); }}>
@@ -2029,9 +2037,15 @@ function ProductForm({ product, settings, userId, orgId, onSave }: { product: an
       <div className="grid grid-cols-2 gap-3">
         <div><label className="text-sm text-muted-foreground">Marca</label><Input value={brand} onChange={e => setBrand(e.target.value.toUpperCase())} className="bg-muted border-border uppercase" /></div>
         <div><label className="text-sm text-muted-foreground">Categoría</label>
-          <Select value={category} onValueChange={setCategory}><SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="perfume_arabe">Perfume Árabe</SelectItem><SelectItem value="perfume_diseñador">Perfume Diseñador</SelectItem><SelectItem value="vaper">Vaper</SelectItem><SelectItem value="electronico">Electrónico</SelectItem></SelectContent>
-          </Select>
+          {/* Sale de `ecommerce_categories`, y deja crear una desde acá. Con las
+              cuatro escritas a mano, el comercio podía crear "Ropa de verano"
+              en la tienda y no podía asignársela a ningún producto. */}
+          <CategorySelect
+            value={category}
+            onChange={setCategory}
+            orgId={orgId}
+            className="bg-muted border-border"
+          />
         </div>
       </div>
       {/* ── Smart suggestions panel ── */}
