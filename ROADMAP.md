@@ -121,168 +121,105 @@ comercio, no declaradas) · **7 temas y tipografía elegible** · dominio propio
 
 ### Falta, en orden de impacto
 
-Revisado contra Tiendanube, Empretienda, Shopify y MercadoLibre. Lo que sigue no
-es una lista de deseos: cada ítem dice **qué hace la competencia**, **qué hace
-esto hoy** y **por qué importa**.
+Revisado contra Tiendanube, Empretienda, Shopify y MercadoLibre. Cada ítem dice
+**qué hace la competencia**, **qué hay hoy acá** y **por qué importa**. El estado
+está medido contra la base, no supuesto.
 
 ---
 
-#### A. El circuito de plata — lo que hay que arreglar antes de agregar nada
+#### A. El circuito de plata
 
-Son bugs o faltantes de lógica, no features. Van primero porque cada uno cobra
-mal en producción hoy.
+Bugs y faltantes de lógica, no features. Van primero porque cada uno cobra mal
+en producción.
 
-| # | Qué | Estado hoy | Por qué importa |
-|---|---|---|---|
-| A1 | **`min_order_value` no se aplica en ninguna parte** | La columna existe en `promotions`, se lee en el `select` de `promotions.ts` y **no la evalúa nadie**: ni el POS ni la tienda. Verificado con grep sobre las cuatro superficies. | Una promo "20% off en compras mayores a $50.000" se aplica a una compra de $1.000. Es plata regalada en cada venta chica. |
-| ~~A2~~ | ✅ **Reserva de stock entre la orden y el pago** | Hecho (sesión 98). `stock_disponible()` = stock − reservas vigentes; un trigger aparta al crear la orden y otro suelta al pagar o al fallar. Verificado: el segundo comprador de la última unidad **no puede** crear la orden. | |
-| ~~A3~~ | ✅ **IVA discriminado en la orden** | Hecho (sesión 98). Un trigger lo calcula desde la configuración de la organización; se recalcularon las 6 órdenes viejas: **$268.934 de IVA** que no estaban discriminados sobre $1.549.574 facturados. Destraba A4 y el circuito AFIP. | |
-| ~~A4~~ | ✅ **Cupones con mínimo y límite por persona** | Hecho (sesión 98). `min_order_value` y `max_uses_per_customer`, más `coupon_usages` como libro de quién usó qué. El mínimo se mide sobre la mercadería, sin envío. | |
-| A5 | **No hay cupón de envío gratis** | `promotions.type` contempla `free_shipping` y no se aplica en ningún lado. | Es el cupón más usado del comercio argentino. |
-| A6 | **No hay devoluciones ni reembolsos de órdenes online** | `/devoluciones` existe para la gestión, no para `ecommerce_orders`. No hay reintegro por MercadoPago. | Una devolución hoy se hace a mano en los dos sistemas, y el stock no vuelve. |
-| A7 | **Las promociones no registran uso** | `promotion_usages` existe con su trigger de conteo, y la tienda online no inserta nada. | El comercio no puede medir si una promo funcionó. |
+| # | Qué | Estado |
+|---|---|---|
+| ~~A1~~ | ~~`min_order_value` de las promociones no se aplicaba~~ | ✅ Sesión 104. Dos pasadas: condiciones de orden primero, efectos de línea después. |
+| ~~A2~~ | ~~No se reservaba stock entre la orden y el pago~~ | ✅ Se reserva al crear y se libera por vencimiento. |
+| ~~A3~~ | ~~`tax_amount` siempre en cero~~ | ✅ El IVA de la orden se discrimina. |
+| ~~A4~~ | ~~Cupones sin mínimo ni límite por persona~~ | ✅ Y `create_store_order` llama a `check_store_coupon` en vez de repetir la validación: el RPC es público y una llamada directa salteaba las reglas. |
+| ~~A5~~ | ~~Cupón de envío gratis~~ | ✅ Aplicado en la base como `20260806000033_cupon_de_envio_gratis` desde la otra PC. ⚠️ **El archivo todavía no está commiteado**: hasta que lo esté, ese trabajo no está versionado y `db push` aborta. | Parcial. El **cupón** ya puede bonificar envío (`shipping_discount`), y la tienda tiene `free_shipping_above` global. Falta la promoción automática **acotada a categoría o producto** — "envío gratis en perfumes" sin código. |
+| **A6** | **Devoluciones de órdenes online** | `returns`, `return_requests` y `return_reasons` existen y están **vacías**. `returns` tiene `sale_id` pero **no** `ecommerce_order_id`: sólo conoce ventas del mostrador. Falta la columna, el reintegro por MercadoPago y devolver el stock. |
+| ~~A7~~ | ~~Las promociones no registran uso~~ | ✅ Sesión 105. Se registra el ahorro atribuible a la promoción —no el descuento total— para que la métrica no dependa de cómo pagó el comprador. |
+| **A8** | **Precios con IVA discriminado por producto** | El IVA de la orden ya sale, pero es una tasa única. Un catálogo con productos a 21% y a 10,5% factura mal. |
+| **A9** | **Redondeo declarado** | Cada cálculo redondea con `round()`, sin una política única. Shopify define redondeo por moneda. Con multi-moneda esto se vuelve un bug. |
+| **A10** | **Historial de precios** | No se guarda cuándo cambió un precio ni quién lo cambió. Sin eso no se puede auditar un reclamo de "me cobraron distinto". |
 
-**Cómo lo resuelven las plataformas serias, y hacia dónde conviene ir:**
-
-Un descuento tiene **condiciones de orden** (mínimo de compra, primera compra,
-cliente en tal segmento) y **efectos de línea** (porcentaje, monto, precio fijo).
-Se evalúa en dos pasadas: primero se arma el subtotal sin descuentos, se filtran
-las promociones cuyas condiciones se cumplen, y recién ahí se aplican a las
-líneas. Hoy acá se resuelve en una sola pasada dentro de `resolve_store_line`,
-que es lo que hace imposible aplicar `min_order_value` sin restructurar.
-
-Shopify además marca cada descuento como **combinable o no** con los otros tres
-tipos (producto, orden, envío). Acá la regla es "gana el mejor, nunca la suma",
-que es más simple y más segura, pero no deja hacer "10% off + envío gratis"
-adrede. Si en algún momento se quiere eso, el lugar es un campo `combines_with`
-por promoción, no aflojar la regla general.
+**Hacia dónde va el modelo de descuentos.** Un descuento tiene *condiciones de
+orden* (mínimo, primera compra, segmento) y *efectos de línea* (porcentaje,
+monto, precio fijo). Acá ya se evalúa en ese orden desde A1. Lo que falta para
+igualar a Shopify es el campo **`combines_with`** por promoción: hoy la regla es
+"gana el mejor, nunca la suma", que es más segura pero no deja hacer "10% off +
+envío gratis" a propósito. Si se agrega, va como campo explícito por promoción —
+**nunca aflojando la regla general**.
 
 ---
 
 #### B. Tienda online — lo que el comprador nota
 
-| # | Qué | Estado hoy | Referencia |
+| # | Qué | Estado | Referencia |
 |---|---|---|---|
-| B1 | **Revisar las tarifas de envío** | 1 provincia de 24 tiene tarifa. Con retiro en local habilitado, las otras 23 ven una sola opción: ir a buscarlo a CABA. `Completar el tarifario` las estima; falta contrastarlas con el correo. | Todas |
-| B2 | **Etiqueta por API del correo** | La imprimible funciona. La de Correo Argentino y Andreani necesita contrato para verificar el payload. | Tiendanube (Envío Nube) |
-| B3 | **Checkout en un paso** | Hoy son formulario, envío y pago en la misma página pero en secuencia. | Empretienda, Shopify |
-| B4 | **Compra sin recargar: pago embebido** | Se redirige a MercadoPago y se vuelve. El Checkout Bricks embebido convierte más. | Tiendanube, ML |
-| B5 | **Notificación al comprador de cada cambio de estado** | Se manda el email de la orden y el de despacho. Falta "en camino", "entregado". | Todas |
-| B6 | **Multi-moneda** | Todo en ARS. `currency` existe en la tienda y no se usa para convertir. | Shopify, Tiendanube |
-| B7 | **Reseñas con foto** | Hay reseñas de compra verificada, sin imagen. | ML |
-| B8 | **Comparador y "visto recientemente"** | No existe. | ML |
+| **B1** | **Revisar las tarifas de envío** | 1 provincia de 24 tiene tarifa. `Completar el tarifario` las estima; falta contrastarlas con el correo. | Todas |
+| **B2** | **Etiqueta por API del correo** | La imprimible funciona; la de Correo Argentino y Andreani necesita contrato. | Tiendanube |
+| **B3** | **Checkout en un paso** | Hoy es secuencial en una página. | Empretienda, Shopify |
+| **B4** | **Pago embebido (Checkout Bricks)** | Se redirige a MercadoPago y se vuelve. Embebido convierte más. | Tiendanube, ML |
+| **B5** | **Avisos de cada cambio de estado** | Se manda el de la orden y el de despacho. Faltan "en camino" y "entregado". | Todas |
+| **B6** | **Multi-moneda** | Todo en ARS. `currency` existe y no convierte. Necesita A9 primero. | Shopify |
+| **B7** | **Reseñas con foto** | Hay reseñas verificadas, sin imagen. | ML |
+| **B8** | **Comparador y "visto recientemente"** | No existe. | ML |
+| **B9** | **Filtros por atributo en el catálogo** | Sólo categoría, precio y género. La ficha olfativa está **vacía en las 30 filas**, así que un filtro por familia filtraría sobre nada: primero hay que cargar los datos. | Tiendanube |
+| **B10** | **Búsqueda con corrección de tipeo** | Ya sugiere mientras se escribe, pero exige que los términos coincidan. "lataffa" no encuentra nada. | ML |
+| **B11** | **Envío a domicilio con cálculo por código postal real** | Se cotiza por provincia. El CP se pide y no afina la tarifa. | Todas |
+| **B12** | **Retiro en punto de entrega (pickup points)** | Hay retiro en local. Faltan sucursales de correo. | Tiendanube, ML |
+| **B13** | **Carrito persistente entre dispositivos** | Vive en `localStorage`: se pierde al cambiar de teléfono a compu aunque haya sesión. | Shopify |
+| **B14** | **Preventa y reservas** | Un producto sin stock ofrece aviso de reposición, no comprar por adelantado. | Tiendanube |
 
 ---
 
 #### C. Gestión — lo que el comercio necesita
 
-| # | Qué | Estado hoy | Referencia |
+| # | Qué | Estado | Referencia |
 |---|---|---|---|
-| C1 | **AFIP probado contra el organismo** | La estructura está y las credenciales ya no se leen desde el cliente. Falta certificado de homologación y una factura emitida. | Todas las argentinas |
-| C2 | **Contar el inventario físico** | La herramienta está (conteo con asiento, sesión 97). Falta contar: 15 productos con Kardex ≠ stock. | — |
-| C3 | **Cargar el peso de los productos** | 59 de 60 en cero. El botón los estima; falta pesar una caja real. | — |
-| C4 | **Diez productos sin foto, 33 con descripción corta** | El panel de calidad los rankea por impacto. | ML |
-| C5 | **App en el celular con notificaciones** | El POS ya funciona offline y hay PWA. Falta que el dueño reciba "vendiste" y "sin stock" en el teléfono. | Tiendanube app |
-| C6 | **Motor visual de automatizaciones** | Existen `automations` y los crons. Falta el armador de flujos. | Shopify Flow |
-| C7 | **MercadoLibre completo** | Falta el botón de publicar en la ficha, importar órdenes como ventas y el cron multi-organización. | — |
+| **C1** | **AFIP probado contra el organismo** | Estructura lista, credenciales cerradas. Falta certificado de homologación y una factura emitida. | Todas las argentinas |
+| **C2** | **Contar el inventario físico** | La herramienta está (conteo con asiento). Faltan 15 productos con Kardex ≠ stock. | — |
+| **C3** | **Cargar el peso de los productos** | 59 de 60 en cero. El botón los estima; falta pesar una caja. | — |
+| **C4** | **Fotos y descripciones** | 10 sin foto, 33 con descripción corta. El panel de calidad los rankea. | ML |
+| **C5** | **App en el celular con notificaciones** | Hay PWA y POS offline. Falta el push de "vendiste" y "sin stock". | Tiendanube app |
+| **C6** | **Motor visual de automatizaciones** | Existen `automations` y los crons; falta el armador de flujos. | Shopify Flow |
+| **C7** | **MercadoLibre completo** | Falta publicar desde la ficha, importar órdenes y el cron multi-org. | — |
+| **C8** | **Compras y reposición con proveedor** | Hay órdenes de compra y reposición automática. Falta recepción parcial y costo de importación por lote. | — |
+| **C9** | **Multi-depósito real en la tienda** | El stock por sucursal existe; la tienda vende contra el total, no contra el depósito que despacha. | Shopify |
+| **C10** | **Reportes exportables y programados** | Hay reportes en pantalla. Falta "mandame el cierre de mes por email". | Todas |
+| **C11** | **Auditoría de quién cambió qué** | `admin_audit_logs` es de plataforma. Dentro de la organización no queda rastro de quién editó un precio o un stock. | Shopify Plus |
 
 ---
 
-#### D. Plataforma — lo que falta para operar como SaaS
+#### D. Plataforma — para operar como SaaS
 
-| # | Qué | Estado hoy |
+| # | Qué | Estado |
 |---|---|---|
-| D1 | **Facturación automática de la suscripción** | Stripe cobra, pero no se emite comprobante fiscal argentino al comercio. |
-| D2 | **Onboarding guiado del comercio nuevo** | `StoreReadinessPanel` dice qué falta; no hay un paso a paso que lo lleve. |
-| D3 | **Anuncios a los comercios** | No hay forma de avisar "nueva versión" o "mantenimiento" desde la plataforma. |
-| D4 | **Límites del plan aplicados** | Hay límite de productos. Falta aplicar el resto (usuarios, tiendas, órdenes/mes). |
-| D5 | **Exportar la organización entera** | Existe el export por Ley 25.326 para personas, no para llevarse el negocio. |
+| **D1** | **Facturación fiscal de la suscripción** | Stripe cobra; no se emite comprobante argentino al comercio. |
+| **D2** | **Onboarding guiado** | `StoreReadinessPanel` dice qué falta; no hay un paso a paso. |
+| **D3** | **Anuncios a los comercios** | No hay forma de avisar "nueva versión" o "mantenimiento". |
+| **D4** | **Límites del plan aplicados** | Sólo productos. Faltan usuarios, tiendas y órdenes/mes. |
+| **D5** | **Exportar la organización entera** | Existe el export por Ley 25.326 para personas, no para llevarse el negocio. |
+| **D6** | **Entrar como el comercio, auditado** | `generateMagicLink` existe y está wireado; falta el registro visible de "soporte entró a tal cuenta". |
+| **D7** | **Estado del servicio público** | Si algo se cae, el comercio no tiene dónde mirar. |
+| **D8** | **Backup y restauración por organización** | Hay `weekly-backup`. No hay restaurar. |
 
 ---
 
-### Resuelta (queda anotada para no repetirla)
+#### E. Lo que ninguna de las tres tiene bien, y sería la ventaja
 
-- **Las métricas de inventario informaban "riesgo bajo" de productos agotados.**
-  Seis columnas NOT NULL con default `0` y `'low'` que la función nunca escribía:
-  las 16 filas decían `stockout_risk = low` con `days_on_hand = 0`, dos datos que
-  se contradicen en la misma fila. Y la velocidad salía `slow` para todo el
-  catálogo por una división entera (`5/90 = 0` en Postgres). Un default
-  silencioso es peor que un NULL: el NULL se ve, el default se usa.
+Copiar la paridad no gana clientes: iguala. Estas tres salen del hecho de que
+acá **la gestión y la tienda son el mismo sistema**, cosa que Tiendanube no
+tiene y ML menos.
 
-- **La navegación estaba escrita tres veces** —el sidebar, la paleta Ctrl+K y el
-  mapa de módulos— y las copias se desincronizaron: la paleta ofrecía "Punto de
-  Venta" apuntando a `/pos`, una ruta inexistente, y `Alt+8` iba a `/analitica`
-  en vez de `/analytics`. Los dos llevaban a una pantalla en blanco. Ahora
-  `src/lib/navigation.ts` es la fuente única.
-
-- **El sitemap y las vistas previas de producto estaban rotos desde el hardening
-  de RLS.** `api/sitemap.ts` y `api/og.ts` leían `products` cruda con la clave
-  anónima: 0 filas. Google no indexaba ni una ficha y compartir un producto por
-  WhatsApp mostraba la tarjeta genérica de la tienda. Los dos fallan en
-  silencio, que es por lo que duró. El guardia `publicSurface.test.ts` no cubría
-  `api/` **ni** detectaba la forma `fetch(.../rest/v1/tabla)`; ahora hace las
-  dos cosas.
-
-- **El stock se movía dos veces en cada venta y en cada compra.** El cliente
-  ajustaba `products.stock` después de insertar la fila, y el trigger ya lo
-  había hecho: vender 3 bajaba 6, comprar 5 subía 10. Estaba en los tres
-  caminos de alta (`addSaleDB`, `addSaleWithVariantDB`, `addPurchaseDB`), que
-  usan el POS, Ventas, Presupuestos y el chat de IA. Se arregla llevando **todo**
-  el movimiento a la base: mientras el cálculo esté repartido entre cliente y
-  trigger, alguno de los seis lugares que insertan ventas se va a equivocar.
-- Borrar una venta o una compra no devolvía el stock, y una compra programada
-  sumaba mercadería el día que se pedía en vez del día que llegaba.
-- La transferencia entre sucursales inventaba unidades: `Math.max(0, ...)` en el
-  origen y un INSERT del delta completo en el destino.
-- Políticas RLS `USING (true)` que exponían tokens de MercadoPago y contraseñas
-  SMTP de todas las organizaciones con la clave anónima.
-- `npx tsc --noEmit` como chequeo de CI: no chequeaba nada.
-- Los 13 crons fallando en silencio por dos secretos faltantes en el vault.
-- 59 tablas sin índice por `org_id`: cada lectura escaneaba las filas de todas
-  las organizaciones.
-- Service worker que dejaba la app pegada a una versión vieja para siempre.
-- `types.ts` truncado: los `.rpc()` nuevos no tenían tipos y se tapaban con
-  `as unknown`. Regenerado completo; el typecheck vuelve a servir de red.
-- La firma del webhook de MercadoPago **nunca validaba**: faltaba el punto y
-  coma final del manifiesto y el parseo del header se rompía con un espacio.
-  Toda compra quedaba pagada en MercadoPago e impaga en la tienda.
-- El id de pago se guardaba en `tracking_number`, la columna del envío. Al
-  comprador se le mostraba como número de seguimiento.
-- `afip_private_key` en `settings`, tabla que cualquier miembro de la
-  organización puede leer. RLS es por fila, no por columna.
-- Las 57 tablas huérfanas de módulos que se sacaron del producto. Estuvieron
-  un año ocupando el esquema porque la migración que las borraba figuraba como
-  "destructiva, borra datos" y nadie la corría. Tenían **0 filas entre todas**:
-  el miedo era a un dato que no existía.
-- Tokens pegados a mano conviviendo con OAuth en la misma pantalla, y tres
-  lecturas que preguntaban "¿hay MercadoPago?" mirando la columna vacía.
-- Los 4 grupos de migraciones con prefijo de versión duplicado (se renombraron
-  9 archivos). Era lo menos grave: el problema real es el libro desfasado.
-- `send-team-invite` corría en producción sin código en el repo. Ya está
-  versionada y `deploy:functions` la actualiza.
-- Las notas de cliente: los dos caminos escribían en `customer_notes` con
-  `onConflict` sobre una constraint que no existe (`42P10`) y sin mirar
-  `.error`, que `upsert()` devuelve en vez de lanzar. La UI decía "Nota
-  guardada" y la tabla tenía 0 filas con 26 perfiles cargados. Y aun si hubiera
-  entrado, la ficha lee `customers.notes` — otra tabla.
-
-### Abierta
-
-| ⚠️ **5 migraciones anotadas en el libro sin archivo en el repo** (`preguntas_producto`, `salud_por_organizacion`, `promo_llevando_2`, `categorias_de_tienda`, `menu_de_tienda`) | Ese trabajo no está versionado: si la base se reconstruye, se pierde. Y `db push` vuelve a abortar | S |
-
-| Ítem | Riesgo | Esfuerzo |
+| # | Qué | Por qué |
 |---|---|---|
-| Los E2E cubren la tienda, no el panel ni el POS | Una regresión en la gestión no se detecta sola | M |
-| Sin staging | Se verifica contra producción | M |
-| `xlsx` con vulnerabilidad sin fix en npm | ReDoS en el navegador del usuario | M |
-| ~140 warnings de `exhaustive-deps` | Deuda conocida; tocarlos en masa provoca loops de refetch | L |
-| APIs de correos sin contrato verificado | Una cotización mal armada cobra de menos | M |
-| AFIP sin probar contra el organismo | La estructura está, pero no hay certificado ni factura emitida | M |
-
-El libro de migraciones **ya no está acá**: se reconcilió entero (268 archivos,
-268 registradas). Se mantiene así anotando cada migración al aplicarla
-(`INSERT INTO supabase_migrations.schema_migrations`) y el chequeo de salud es
-`npx supabase db push --linked --dry-run`, que tiene que decir `upToDate`.
+| **E1** | **Precio único entre mostrador y online, con margen a la vista** | Hoy hay cuatro superficies de precio y se llegó a ellas de a una. Una pantalla que muestre, por producto, qué precio ve cada canal y cuánto margen deja **después** de comisión, envío e IVA, no existe en ninguna. |
+| **E2** | **El stock del local es el stock de la tienda, con reserva** | Ya está la reserva (A2) y el multi-depósito. Falta cerrarlo: vender en el mostrador algo que está reservado por una orden online tiene que avisar. |
+| **E3** | **Un cliente, una ficha** | El CRM ya cruza las cinco tablas por `customer_id`. Falta que el comprador online y el del mostrador sean la misma persona automáticamente, con su historial completo en las dos direcciones. |
 
 ---
 
